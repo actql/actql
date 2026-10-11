@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "faf7f5f9ee66076a6bf283f088c4436e6da9e11ea694375b660fe452daaf92e0",
+  "grammar_sha256": "389c5cffab417f75ac196cfe9a420278958c31bc447e82ebbe0c4a76b13a6396",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5561,6 +5561,23 @@
                   "type": "array",
                   "minItems": 2,
                   "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "split"
+              ],
+              "properties": {
+                "split": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
@@ -11573,6 +11590,27 @@
                   "type": "array",
                   "minItems": 2,
                   "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "split"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
@@ -23082,6 +23120,23 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "split"
+              ],
+              "properties": {
+                "split": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -28191,6 +28246,27 @@
                   "type": "array",
                   "minItems": 2,
                   "maxItems": 3,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "split"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
                   "items": {
                     "$ref": "#/$defs/machine_expression"
                   }
@@ -35732,6 +35808,23 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "split"
+              ],
+              "properties": {
+                "split": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/source_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -40846,6 +40939,27 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "split"
+                },
+                "body": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/machine_expression"
+                  }
+                }
+              }
             }
           ]
         },
@@ -41780,6 +41894,14 @@
       "value": "If requested length does not exceed input scalar length, return that many leftmost input scalars. Otherwise append repeated pattern scalars, using only the needed prefix of the last repetition, to produce the requested length. The omitted pattern is U+0020; an explicit empty pattern fails even for truncation, equal or zero length. Lengths count Unicode scalars, not bytes, UTF-16 units or grapheme clusters. Preserve astral characters, combining marks, NUL and line breaks exactly without normalization. Negative, nonintegral or unsafe lengths fail only on a demanded non-null call.",
       "evaluation": "Evaluate every supplied child once in authored order: value, length, then optional pattern. Apply strict NULL only after all children succeed and before length/pattern domain validation. A NULL or zero requested length never suppresses a demanded child failure. Preserve the first child failure, enclosing lazy demand, cancellation, control work, logical work, live-value/output-byte limits and workspace limits. Use the existing scalar text continuation for cooperative scalar counting, boundary location, exact output sizing and construction. Admit every output byte and storage unit before allocating the output buffer; never allocate a repeated pattern or whole intermediate output first.",
       "identity": "The closed source is {rpad: [value, length, pattern?]}; the machine node is {op: rpad, body: [value, length, pattern?]}. SQL RPAD selects this operation. Preserve omission as omission, distinct from explicit NULL or an explicit space pattern."
+    },
+    "split": {
+      "signature": "One STRING value expression and an optional ordinary STRING delimiter expression. The result is Array(String) with non-null String elements, nullable exactly when any supplied operand is nullable. Untyped NULL takes the unique STRING signature at either position. No implicit conversion, BYTES, regular-expression or collation overload is admitted. The domain is the existing finite, bounded String domain.",
+      "value": "Split at non-overlapping literal delimiter matches in input order, preserving leading, adjacent and trailing empty parts. Omitted delimiter is U+002C COMMA. Empty input produces one empty String, including with an empty delimiter. An empty delimiter on nonempty input produces one String per Unicode scalar, not UTF-8 byte, UTF-16 code unit or grapheme cluster. Preserve all remaining scalars exactly, including astral characters, combining marks, NUL and line breaks, without normalization, case folding or trimming. Literal matching does not restrict the delimiter expression to a literal or parameter. Any supplied NULL operand produces NULL after all demanded children succeed.",
+      "typing": "Retain known input max_codepoints and max_utf8_bytes on the non-null String element contract and drop min_length. The scalar-count ceiling n is the smaller of both known maxima, or the sole known maximum; a UTF-8 byte ceiling is conservative for scalar count. Set max_items to n + 1 only when representable in the existing safe-integer bound domain; otherwise omit max_items. Do not evaluate either child to derive a type or invent minimum bounds.",
+      "evaluation": "Evaluate every supplied child exactly once in authored order, value before delimiter, before strict NULL propagation. NULL does not suppress a later demanded child failure. Preserve the first child failure and enclosing lazy demand. The common expression continuation retains operand roots, logical operand/result charges, control work, live-value/output-byte limits, node/depth limits, workspace and cooperative cancellation throughout literal search, exact sizing and construction. No secondary evaluator or Host splitting helper replaces this owner.",
+      "identity": "The closed source is {split: [value, delimiter?]} and the machine node is {op: split, body: [value, delimiter?]}. Retain an ordered one-element array for omission and a two-element array for an explicit delimiter. Omission stays distinct from explicit NULL and explicit comma. Preserve the node and all ordered children without folding, sorting or duplication. SQL SPLIT selects this common operation. Earlier pinned contract bodies retain their original meaning and identities.",
+      "admission": "SPLIT is an ordinary common expression, with no split-specific text-time profile, policy or envelope. Nested profile calls retain their own obligations and input preflight. Admit the complete Array wire bytes, node/depth shape, String storage and Array slots before allocating output builders or storage. No eager whole-input split or retained boundary array substitutes for bounded continuation work. Existing Array ownership, String admission, retained-root cleanup and cancellation rules remain in force; split_part retains its separately owned text-time law."
     }
   },
   "regex_ast_contract": {

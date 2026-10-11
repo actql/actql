@@ -55,12 +55,18 @@ call = function_name, "(", expression, { ",", expression }, ")" ;
    safe-integer domain; strict NULL precedes demanded length-domain checks.
    Omitted padding uses U+0020; an explicit empty pattern is a domain failure.
    BYTES and collation overloads are not admitted. *)
+(* split takes exactly one or two STRING expressions. The optional delimiter
+   is an ordinary expression, not restricted to a literal or parameter. Its
+   match is literal rather than a regular expression; omission selects comma.
+   Both forms retain an ordered argument array, including a one-element array
+   for omission, and produce an Array of non-null STRING elements. BYTES and
+   collation overloads are not admitted. *)
 (* Vector profile calls: vector_score has exactly three arguments; the third
    is a string literal 'cosine', 'dot' or 'l2', lowered as a structural metric.
    vector_concat has at least two expression arguments. These spellings require
    the separately admitted VecA expression profile; grammar is not execution support. *)
 function_name = "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
-              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "nullif" | "negate"
+              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "nullif" | "negate"
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff"
               | "to_number" | "to_string" | "to_boolean" | "to_timestamp"

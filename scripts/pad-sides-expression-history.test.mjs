@@ -31,8 +31,10 @@ test('pad-sides retains complete predecessor bodies and identity preimages',()=>
 });
 
 test('pad-sides adds only its exact closed source and machine alternatives and laws',()=>{
-  const expression=read('spec/contracts/actql-expressions.json');
-  const program=read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Preserve adopted text bodies while SPLIT extends the current inputs.
+  const adopted=Object.fromEntries(read('portability/corpus/historical/pre-split-contract-identities.json').contracts.map(item=>[item.id,item.body]));
+  const expression=adopted.expression_contract;
+  const program=adopted.program_schema;
   const shapes={"left":{"min":2,"max":2},"right":{"min":2,"max":2},"lpad":{"min":2,"max":3},"rpad":{"min":2,"max":3}},names=new Set(Object.keys(shapes)),counts={};
   function withoutIncrement(value){
     if(Array.isArray(value))return value.map(withoutIncrement);
@@ -57,5 +59,5 @@ test('pad-sides adds only its exact closed source and machine alternatives and l
   assert.deepEqual(Object.keys(counts).sort(),[...names].sort());
   for(const count of Object.values(counts))assert.equal(count,8);
   assert.notEqual(cid(expression),cid(earlier.expression_contract));assert.notEqual(cid(program),cid(earlier.program_schema));
-  for(const [id,path] of [['scalar_law_manifest','spec/dependencies/aoa-rela-scalar-laws.json'],['production_profile_registry','spec/contracts/actql-production-profile-schemas.json'],['barrier_manifest','spec/manifests/actql-barrier-contracts-0.1.json']])assert.deepEqual(read(path),earlier[id]);
+  for(const [id,path] of [['scalar_law_manifest','spec/dependencies/aoa-rela-scalar-laws.json'],['production_profile_registry','spec/contracts/actql-production-profile-schemas.json'],['barrier_manifest','spec/manifests/actql-barrier-contracts-0.1.json']])assert.deepEqual(adopted[id],earlier[id]);
 });

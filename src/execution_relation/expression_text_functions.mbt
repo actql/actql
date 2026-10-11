@@ -15,6 +15,7 @@ priv enum TextFunctionKind {
   TextLength
   TextStrpos
   TextReplace
+  TextSplit
   TextSubstring
   TextLeft
   TextRight

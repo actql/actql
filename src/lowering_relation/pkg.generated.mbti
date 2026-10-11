@@ -1465,6 +1465,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Split
   Substring
   LeftString
   RightString

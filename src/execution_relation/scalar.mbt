@@ -545,6 +545,7 @@ pub fn boolean_pair(
     | Concat
     | ConcatStrict
     | Replace
+    | Split
     | Substring
     | LeftString
     | RightString

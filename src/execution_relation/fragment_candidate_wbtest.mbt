@@ -66,7 +66,7 @@ test "complete fragment candidate matches independently constructed contract vec
   // fixed body is in portability/corpus/expression-fragment-identities.json.
   assert_eq(
     candidate.artifact.cid,
-    "sha256:a159064344a6349336b0d905cfdd4113080077b82250a5ec96eb64133f01615d",
+    "sha256:97ef53cc75e1bbb098ebfcbe4e81d36a61460cac9a20303069c02ce33e930b68",
   )
   assert_eq(candidate.artifact.bytes, 2774)
   assert_true(
