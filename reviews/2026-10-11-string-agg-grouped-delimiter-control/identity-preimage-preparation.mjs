@@ -15,7 +15,7 @@ const grammar=JSON.parse(readFileSync(process.argv[3] ?? 'spec/manifests/actql-g
 const aoa=JSON.parse(readFileSync('spec/contracts/actql-aoa.json'));
 const barrier=JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json'));
 const body=`${declarations}\nconst deps=valuesDependencyOracle(), identity=valuesProgramOracle();
-result={source_revision:recordedRevision, source_baseline:'f17e9fb2c93c84d0008d09018692f2c0e3f90d17', prepared:recordedRevision === null, grammar,
+result={source_revision:recordedRevision, source_baseline:'8305fdb52a5bca8a41d7f5278077035705cb6e9e', prepared:recordedRevision === null, grammar,
   aoa_contract_cid:cid(aoa),barrier_contract_manifest_cid:barrierInput.barrier_contract_manifest_cid,
   values_dependencies:deps,program_identity:identity,
   run_preimages:vector(grammar.grammar_manifest_cid,cid(aoa),deps,

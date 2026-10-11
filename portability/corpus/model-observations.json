@@ -142,5 +142,140 @@
       "expected_cid": "sha256:844600a9588f05bc868b97ec4da2f86423b834328ce798bc5ee73ac0b66d9fca",
       "expected_canonical_bytes": "{\"attempt\":1,\"authored_model_selector\":\"configured-selector\",\"finish_reason\":null,\"gateway_request_id\":null,\"input_result_artifact_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_row_identity\":[\"key\",7],\"input_row_identity_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"input_tokens\":null,\"model_call_slot_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"model_task_contract_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"observed_at\":\"2026-10-11T00:00:00.000Z\",\"output_tokens\":0,\"provider_metadata\":{},\"provider_reported_model_id\":null,\"provider_reported_revision\":null,\"provider_request_id\":null,\"raw_response_artifact_cid\":null,\"response_complete\":true,\"response_profile_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"semantic_request_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"structured_response_artifact_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"validated_structured_output_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-model-invocation-evidence/0.2\"}"
     }
+  ],
+  "bundle_cases": [
+    {
+      "id": "new bundle retaining historical evidence",
+      "body": {
+        "version": "actql-model-capture-bundle/0.2",
+        "captures": [
+          {
+            "model_call_slot_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "semantic_request_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "structured_response": {
+              "answer": "original-é\r\n"
+            },
+            "evidence": {
+              "version": "actql-model-invocation-evidence/0.1",
+              "model_task_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "semantic_request_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "model_call_slot_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "input_result_artifact_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "input_row_identity_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "input_row_identity": [
+                "key",
+                7
+              ],
+              "authored_model_selector": "configured-selector",
+              "provider_reported_model_id": "historical-model",
+              "provider_request_id": "historical-request",
+              "attempt": 1,
+              "structured_response_artifact_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+              "validated_structured_output_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+              "input_tokens": 0,
+              "output_tokens": 11,
+              "finish_reason": "stop",
+              "observed_at": "2026-10-11T00:00:00.000Z",
+              "model_invocation_evidence_cid": "sha256:40bf2cab544ebfcf515f9bfd23918a66be40437c6aed3e693d2c9167a40b811e"
+            }
+          }
+        ],
+        "barrier_receipts": []
+      },
+      "expected_cid": "sha256:179c20ec5e89d02ea39a46ec809b4b3221343d0f6fa8052c6664959a7f607f92",
+      "expected_canonical_bytes": "{\"barrier_receipts\":[],\"captures\":[{\"evidence\":{\"attempt\":1,\"authored_model_selector\":\"configured-selector\",\"finish_reason\":\"stop\",\"input_result_artifact_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_row_identity\":[\"key\",7],\"input_row_identity_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"input_tokens\":0,\"model_call_slot_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"model_invocation_evidence_cid\":\"sha256:40bf2cab544ebfcf515f9bfd23918a66be40437c6aed3e693d2c9167a40b811e\",\"model_task_contract_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"observed_at\":\"2026-10-11T00:00:00.000Z\",\"output_tokens\":11,\"provider_reported_model_id\":\"historical-model\",\"provider_request_id\":\"historical-request\",\"semantic_request_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"structured_response_artifact_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"validated_structured_output_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-model-invocation-evidence/0.1\"},\"model_call_slot_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"semantic_request_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"structured_response\":{\"answer\":\"original-é\\r\\n\"}}],\"version\":\"actql-model-capture-bundle/0.2\"}"
+    },
+    {
+      "id": "new bundle retaining mixed original evidence",
+      "body": {
+        "version": "actql-model-capture-bundle/0.2",
+        "captures": [
+          {
+            "model_call_slot_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "semantic_request_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "structured_response": {
+              "answer": "original-é\r\n"
+            },
+            "evidence": {
+              "version": "actql-model-invocation-evidence/0.1",
+              "model_task_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "semantic_request_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "model_call_slot_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "input_result_artifact_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "input_row_identity_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "input_row_identity": [
+                "key",
+                7
+              ],
+              "authored_model_selector": "configured-selector",
+              "provider_reported_model_id": "historical-model",
+              "provider_request_id": "historical-request",
+              "attempt": 1,
+              "structured_response_artifact_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+              "validated_structured_output_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+              "input_tokens": 0,
+              "output_tokens": 11,
+              "finish_reason": "stop",
+              "observed_at": "2026-10-11T00:00:00.000Z",
+              "model_invocation_evidence_cid": "sha256:40bf2cab544ebfcf515f9bfd23918a66be40437c6aed3e693d2c9167a40b811e"
+            }
+          },
+          {
+            "model_call_slot_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "semantic_request_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "structured_response": {
+              "answer": "original-é\r\n"
+            },
+            "evidence": {
+              "version": "actql-model-invocation-evidence/0.2",
+              "model_task_contract_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "semantic_request_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "model_call_slot_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "input_result_artifact_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "input_row_identity_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "input_row_identity": [
+                "other-key",
+                8
+              ],
+              "authored_model_selector": "configured-selector",
+              "provider_reported_model_id": "raw-é\r\nmodel",
+              "provider_request_id": "raw-request",
+              "attempt": 1,
+              "structured_response_artifact_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+              "validated_structured_output_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+              "input_tokens": 13,
+              "output_tokens": null,
+              "finish_reason": "provider-complete",
+              "observed_at": "2026-10-11T00:00:00.000Z",
+              "provider_reported_revision": "revision-1",
+              "gateway_request_id": "gateway-1",
+              "raw_response_artifact_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+              "response_profile_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+              "response_complete": true,
+              "provider_metadata": {
+                "provider": {
+                  "unknown_extension": [
+                    null,
+                    0,
+                    false,
+                    "",
+                    "raw-é\r\n"
+                  ],
+                  "nested": {
+                    "complete": false,
+                    "precision": 99,
+                    "retry": true
+                  }
+                }
+              },
+              "model_invocation_evidence_cid": "sha256:13bb555bfd8502ce03ce84221c8f0d6effed47ac42c253f2233cb8430a877fa0"
+            }
+          }
+        ],
+        "barrier_receipts": []
+      },
+      "expected_cid": "sha256:a34485f93bcb338e5c4f4b035013a0a839fba5cb8e5d8e1343a065685c09980f",
+      "expected_canonical_bytes": "{\"barrier_receipts\":[],\"captures\":[{\"evidence\":{\"attempt\":1,\"authored_model_selector\":\"configured-selector\",\"finish_reason\":\"stop\",\"input_result_artifact_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_row_identity\":[\"key\",7],\"input_row_identity_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"input_tokens\":0,\"model_call_slot_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"model_invocation_evidence_cid\":\"sha256:40bf2cab544ebfcf515f9bfd23918a66be40437c6aed3e693d2c9167a40b811e\",\"model_task_contract_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"observed_at\":\"2026-10-11T00:00:00.000Z\",\"output_tokens\":11,\"provider_reported_model_id\":\"historical-model\",\"provider_request_id\":\"historical-request\",\"semantic_request_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"structured_response_artifact_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"validated_structured_output_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-model-invocation-evidence/0.1\"},\"model_call_slot_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"semantic_request_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"structured_response\":{\"answer\":\"original-é\\r\\n\"}},{\"evidence\":{\"attempt\":1,\"authored_model_selector\":\"configured-selector\",\"finish_reason\":\"provider-complete\",\"gateway_request_id\":\"gateway-1\",\"input_result_artifact_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_row_identity\":[\"other-key\",8],\"input_row_identity_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"input_tokens\":13,\"model_call_slot_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"model_invocation_evidence_cid\":\"sha256:13bb555bfd8502ce03ce84221c8f0d6effed47ac42c253f2233cb8430a877fa0\",\"model_task_contract_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"observed_at\":\"2026-10-11T00:00:00.000Z\",\"output_tokens\":null,\"provider_metadata\":{\"provider\":{\"nested\":{\"complete\":false,\"precision\":99,\"retry\":true},\"unknown_extension\":[null,0,false,\"\",\"raw-é\\r\\n\"]}},\"provider_reported_model_id\":\"raw-é\\r\\nmodel\",\"provider_reported_revision\":\"revision-1\",\"provider_request_id\":\"raw-request\",\"raw_response_artifact_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"response_complete\":true,\"response_profile_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"semantic_request_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"structured_response_artifact_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"validated_structured_output_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-model-invocation-evidence/0.2\"},\"model_call_slot_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"semantic_request_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"structured_response\":{\"answer\":\"original-é\\r\\n\"}}],\"version\":\"actql-model-capture-bundle/0.2\"}"
+    }
   ]
 }

@@ -80,3 +80,24 @@ separately. An independently authorized owner can adopt the fixed commit into
 its own clean worktree and use the prepared limited guard commands. Public
 acceptance requires a separately coordinated Heavy slot and normal same-source
 packages; none is started for this light preparation.
+
+## Main 8305 integration
+
+The second parent is main `8305fdb52a5bca8a41d7f5278077035705cb6e9e`; the
+first parent is the submitted `d25a84d72965924e2dc30cfde46a3c4e02e0cf90`.
+This normal merge preserves main's Python, Graph, Model capture, retirement and
+publication changes without semantic edits outside the Frontend boundary.
+The only conflict was `spec/spec-family.json`. Its main references were kept
+and the existing compilation, metadata, family and canonical generators
+updated the branch's query-document imports. The family generator also
+records main's three pending INFER requirements; it does not claim their
+implementation or runtime acceptance.
+
+`f17-current-values-preimages.json` retains the old submitted preimages.
+`main8305-identity-comparison.json` compares independently assembled full
+identity inputs against both that file and the frozen main baseline. The
+semantic preimages are unchanged; only recorded source-baseline metadata
+changes. New static receipts are separate from `static-checks.json`.
+No compile, guarded runtime, public acceptance, Heavy acquisition or CI
+retry is performed by this integration. Prepared bounded commands are
+tracked in `prepared-checks.json` for independent clean-worktree execution.

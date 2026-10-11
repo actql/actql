@@ -1,0 +1,21 @@
+{
+  "description": "Independently authored projection input and constraints; original Result and attempt are checked through their existing fixed parent fixtures, never copied into replacement intent.",
+  "input": {
+    "store_authority_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "material_generation_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "max_payload_bytes": 12
+  },
+  "version": "actql-publication-payload-request/0.1",
+  "exact_payload": "[{\"next\":5}]",
+  "max_bytes": "12",
+  "row_count": "1",
+  "output_fields": ["durable_codec_cid", "logical_relation_cid", "material_generation_cid", "max_bytes", "ordering_evidence_cid", "publication_attempt_cid", "result_definition_cid", "result_schema_cid", "row_count", "store_authority_cid", "version"],
+  "cases": [
+    "closed_request_preserves_absent_null_and_rejects_supplied_result_identity",
+    "original_result_and_attempt_project_exact_bounded_payload_intent",
+    "current_authority_revalidated_after_cached_projection",
+    "failed_cleanup_keeps_same_child_input_and_exact_allocation",
+    "input_stop_retry_and_stale_child_refusal",
+    "parent_close_keeps_child_without_source_compute_reexecution"
+  ]
+}

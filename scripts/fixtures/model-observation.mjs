@@ -31,8 +31,17 @@ export const reportedModelObservation = {
   provider_metadata: {provider: {unknown_extension: [null, 0, false, '',
     'raw-e\u0301\r\n'], nested: {complete: false, precision: 99, retry: true}}},
 };
+// One new bundle retains a historical record verbatim alongside a separately
+// discriminated current observation. Distinct logical keys/slots are authored
+// here; no product capture or provider output supplies these expectations.
+export const mixedModelObservations = [
+  historicalModelObservation,
+  {...reportedModelObservation, model_call_slot_cid: cid('b'),
+    input_row_identity_cid: cid('c'), input_row_identity: ['other-key', 8]},
+];
 export const observationRefusals = [
   ['unknown version', e => {e.version = 'actql-model-invocation-evidence/invalid';}],
+  ['noninitial attempt', e => {e.attempt = 2;}],
   ['missing model observation', e => {delete e.provider_reported_model_id;}],
   ['missing usage is not NULL', e => {delete e.input_tokens;}],
   ['negative usage', e => {e.input_tokens = -1;}],
