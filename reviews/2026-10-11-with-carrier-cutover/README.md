@@ -423,3 +423,21 @@ The bounded formatter completed with one-file whitespace changes. Raw receipts,
 focused output and SHA256 are retained; actual Owner/group/ownlock absence was
 observed for all attempts. This establishes compile/check evidence only, not
 Host Delta/MATCH execution, package or Local/HTTPS completion.
+
+## WITH FULL JOIN and joined row caller retirement
+
+[p1-full-row-retirement-execution.json](p1-full-row-retirement-execution.json)
+records clean `a75bcb8affbc1413261c5ccbfc9fe1f551be30aa`: actual JS13/13
+(`run-yVSBU0`). FULL SELECT/star and nullable joined row callers now use WITH.
+Genuine unique-by premises, ON/USING, FULL/LEFT/RIGHT/CROSS, max10 and original
+ORDER conditions remain. The original staged complete Program is checked as
+a separate contract control; a source-derived unified complete Program checks
+one shared producer, both JOIN ports, private columns and ordered public fields.
+
+Initial 2454 JS12/13 remains failed: the allocation prediction missed the existing
+rule that FULL always uses the shared row-scope compiler. The corrected oracle
+follows that rule, without changing input values, keys, predicates or ceilings.
+Bounded formatting completed with whitespace only (including the adjacent Delta
+fixture); Delta JS7/7 remains evidence of its earlier exact source. Raw logs,
+receipts and SHA256 are preserved, with actual Owner/group/ownlock absence.
+This establishes compile/check evidence, not actual Host rows or Local/HTTPS.
