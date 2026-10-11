@@ -29,21 +29,34 @@ pub fn project_current_interactive_run_view(
   }
   if contract_string_from_value(authorization.value, "prepared_invocation_cid") !=
     Some(prepared.identity) ||
-    contract_string_from_value(prepared.value, "policy_decision") != Some("allow") ||
-    contract_string_from_value(authorization.value, "decision") != Some("allowed") {
+    contract_string_from_value(prepared.value, "policy_decision") !=
+    Some("allow") ||
+    contract_string_from_value(authorization.value, "decision") !=
+    Some("allowed") {
     return Err(LegacyProjectionMismatch("authorization"))
   }
   let context = contract_string(run, "authorization_context_cid")
-  if context != contract_string_from_value(prepared.value, "execution_context_cid") ||
-    context != contract_string_from_value(authorization.value, "execution_context_cid") {
+  if context !=
+    contract_string_from_value(prepared.value, "execution_context_cid") ||
+    context !=
+    contract_string_from_value(authorization.value, "execution_context_cid") {
     return Err(LegacyProjectionMismatch("execution_context_cid"))
   }
-  let policy = contract_string_from_value(authorization.value, "host_policy_cid")
+  let policy = contract_string_from_value(
+    authorization.value,
+    "host_policy_cid",
+  )
   if policy != contract_string_from_value(prepared.value, "host_policy_cid") {
     return Err(LegacyProjectionMismatch("host_policy_cid"))
   }
   let state = match
-    parse_contract_wire(state_wire, max_bytes, max_nodes, max_depth, data_keys=true) {
+    parse_contract_wire(
+      state_wire,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(ControlReadContract(issue))
   }
@@ -52,7 +65,8 @@ pub fn project_current_interactive_run_view(
     contract_string_from_value(state, "updated_at") is None {
     return Err(ControlReadContract(InvalidField("run_state")))
   }
-  if contract_string_from_value(state, "run_id") != contract_string(run, "run_id") {
+  if contract_string_from_value(state, "run_id") !=
+    contract_string(run, "run_id") {
     return Err(LegacyProjectionMismatch("run_id"))
   }
   // This small read profile does not observe continuation/fence evidence.
@@ -65,12 +79,20 @@ pub fn project_current_interactive_run_view(
     return Err(RunStateVersionUnsupported)
   }
   let ref_value = match
-    parse_contract_wire(run_ref_wire, max_bytes, max_nodes, max_depth, data_keys=true) {
+    parse_contract_wire(
+      run_ref_wire,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(ControlReadContract(issue))
   }
-  if contract_string_from_value(ref_value, "runDefinitionCid") != Some(run.identity) ||
-    contract_string_from_value(ref_value, "namespaceId") != contract_string(run, "scope_id") {
+  if contract_string_from_value(ref_value, "runDefinitionCid") !=
+    Some(run.identity) ||
+    contract_string_from_value(ref_value, "namespaceId") !=
+    contract_string(run, "scope_id") {
     return Err(LegacyProjectionMismatch("run_ref"))
   }
   fn encode(value : @json.CanonicalValue) -> String raise {
@@ -81,21 +103,32 @@ pub fn project_current_interactive_run_view(
     @encode.string_value(writer, value)
     @encode.finish(writer)
   }
-  let controlled = try {
+  let controlled = try
     "{\"version\":\"actql-controlled-run-state/0.1\",\"run_id\":" +
     quote(contract_string(run, "run_id").unwrap()) +
-    ",\"status\":" + quote(contract_string_from_value(state, "status").unwrap()) +
-    ",\"updated_at\":" + quote(contract_string_from_value(state, "updated_at").unwrap()) +
-    ",\"control_revision\":" + revision.to_string() +
-    ",\"legacy_state\":" + encode(state) + "}"
-  } catch {
+    ",\"status\":" +
+    quote(contract_string_from_value(state, "status").unwrap()) +
+    ",\"updated_at\":" +
+    quote(contract_string_from_value(state, "updated_at").unwrap()) +
+    ",\"control_revision\":" +
+    revision.to_string() +
+    ",\"legacy_state\":" +
+    encode(state) +
+    "}"
+  catch {
     _ => return Err(ControlReadContract(Encoding))
   }
   // The registered controlled envelope references the unchanged closed old
   // RunState schema. Validate that exact embedded consumer, not an invented
   // standalone publication identity for the old state.
   let controlled_value = match
-    parse_contract_wire(controlled, max_bytes, max_nodes, max_depth, data_keys=true) {
+    parse_contract_wire(
+      controlled,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(ControlReadContract(issue))
   }
@@ -104,37 +137,59 @@ pub fn project_current_interactive_run_view(
     ) {
     return Err(ControlReadContract(InvalidField("controlled_run_state")))
   }
-  let snapshot_body = try {
-    "{\"version\":\"actql-owner-snapshot/0.1\",\"ref\":" + encode(ref_value) +
+  let snapshot_body = try
+    "{\"version\":\"actql-owner-snapshot/0.1\",\"ref\":" +
+    encode(ref_value) +
     ",\"owner\":{\"kind\":\"run\",\"scopeCid\":" +
-    quote(contract_string_from_value(ref_value, "authorityScopeCid").unwrap_or("")) +
-    ",\"streamCid\":" + quote(run.identity) + "},\"snapshot\":{\"value\":" + encode(state) + "}}"
-  } catch {
+    quote(
+      contract_string_from_value(ref_value, "authorityScopeCid").unwrap_or(""),
+    ) +
+    ",\"streamCid\":" +
+    quote(run.identity) +
+    "},\"snapshot\":{\"value\":" +
+    encode(state) +
+    "}}"
+  catch {
     _ => return Err(ControlReadContract(Encoding))
   }
   let snapshot_value = match
-    parse_contract_wire(snapshot_body, max_bytes, max_nodes, max_depth, data_keys=true) {
+    parse_contract_wire(
+      snapshot_body,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(ControlReadContract(issue))
   }
-  let expected_snapshot = @json.cid_value(snapshot_value, max_bytes, max_nodes, max_depth) catch {
+  let expected_snapshot = @json.cid_value(
+    snapshot_value, max_bytes, max_nodes, max_depth,
+  ) catch {
     _ => return Err(ControlReadContract(Encoding))
   }
   if expected_snapshot != snapshot_cid {
     return Err(LegacyProjectionMismatch("snapshot_cid"))
   }
-  let body = try {
-    "{\"version\":\"actql-run-view/0.1\",\"run_ref\":" + encode(ref_value) +
-    ",\"run_state\":" + controlled +
-    ",\"compiled_plan_cid\":" + quote(contract_string(run, "compiled_plan_cid").unwrap()) +
+  let body = try
+    "{\"version\":\"actql-run-view/0.1\",\"run_ref\":" +
+    encode(ref_value) +
+    ",\"run_state\":" +
+    controlled +
+    ",\"compiled_plan_cid\":" +
+    quote(contract_string(run, "compiled_plan_cid").unwrap()) +
     ",\"logical_map_cid\":null,\"consistency\":\"non_atomic\",\"observation_scope\":\"owner_local\"," +
     "\"components\":[{\"owner\":\"run\",\"revision\":null,\"state\":\"observed\",\"provenance_cid\":" +
-    quote(snapshot_cid) + "}],\"quantities\":[],\"sample\":{\"state\":\"unavailable\",\"reason\":\"not_supported\"}," +
+    quote(snapshot_cid) +
+    "}],\"quantities\":[],\"sample\":{\"state\":\"unavailable\",\"reason\":\"not_supported\"}," +
     "\"available_operations\":[\"inspect\"],\"capabilities\":{\"static_plan\":" +
-    static_plan_installed.to_string() + ",\"inspect\":true," +
+    static_plan_installed.to_string() +
+    ",\"inspect\":true," +
     "\"durable_control\":false,\"sample_capture\":[],\"full_intermediate_retention\":[]," +
-    "\"cost_guard\":false,\"execution_batch\":false,\"policy_revision_cid\":" + quote(policy.unwrap()) + "}}"
-  } catch {
+    "\"cost_guard\":false,\"execution_batch\":false,\"policy_revision_cid\":" +
+    quote(policy.unwrap()) +
+    "}}"
+  catch {
     _ => return Err(ControlReadContract(Encoding))
   }
   let value = match
@@ -145,7 +200,10 @@ pub fn project_current_interactive_run_view(
   let wire = encode(value) catch {
     _ => return Err(ControlReadContract(Encoding))
   }
-  match parse_interactive_run_control_shape("run_view", wire, max_bytes, max_nodes, max_depth) {
+  match
+    parse_interactive_run_control_shape(
+      "run_view", wire, max_bytes, max_nodes, max_depth,
+    ) {
     Ok(_) => Ok(wire)
     Err(issue) => Err(ControlReadContract(issue))
   }

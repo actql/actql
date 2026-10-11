@@ -95,27 +95,51 @@ fn interactive_port(
     is Some((kind, contract)) else {
     return Err(UnsupportedCarrierContract)
   }
-  let key = match interactive_key(
-    "logical_port_key",
-    "{\"version\":\"actql-logical-port-key/0.1\",\"compiled_plan_cid\":\"" +
-    plan_cid + "\",\"step_id\":\"" + step_id + "\",\"role\":\"" + role +
-    "\",\"port_ordinal\":" + ordinal.to_string() + "}",
-    max_bytes, max_nodes, max_depth,
-  ) {
+  let key = match
+    interactive_key(
+      "logical_port_key",
+      "{\"version\":\"actql-logical-port-key/0.1\",\"compiled_plan_cid\":\"" +
+      plan_cid +
+      "\",\"step_id\":\"" +
+      step_id +
+      "\",\"role\":\"" +
+      role +
+      "\",\"port_ordinal\":" +
+      ordinal.to_string() +
+      "}",
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let port_id = @publication.run_evidence_value_identity(key)
-  let locator = source.unwrap_or_else(() =>
-    "{\"kind\":\"logical_output\",\"step_id\":\"" + step_id +
-    "\",\"output_port_id\":\"" + port_id + "\"}",
+  let locator = source.unwrap_or_else(() => {
+    "{\"kind\":\"logical_output\",\"step_id\":\"" +
+    step_id +
+    "\",\"output_port_id\":\"" +
+    port_id +
+    "\"}"
+  })
+  Ok(
+    (
+      port_id,
+      "{\"port_id\":\"" +
+      port_id +
+      "\",\"role\":\"" +
+      role +
+      "\",\"port_ordinal\":" +
+      ordinal.to_string() +
+      ",\"carrier\":\"" +
+      kind +
+      "\",\"carrier_contract_cid\":\"" +
+      contract +
+      "\",\"source\":" +
+      locator +
+      ",\"can_sample\":false,\"sample_reason\":\"not_installed\"}",
+    ),
   )
-  Ok((port_id,
-    "{\"port_id\":\"" + port_id + "\",\"role\":\"" + role +
-    "\",\"port_ordinal\":" + ordinal.to_string() +
-    ",\"carrier\":\"" + kind + "\",\"carrier_contract_cid\":\"" + contract +
-    "\",\"source\":" + locator +
-    ",\"can_sample\":false,\"sample_reason\":\"not_installed\"}"))
 }
 
 ///|
@@ -164,15 +188,23 @@ fn issue_client_static_plan_view(
         "{\"kind\":\"input_output\",\"input_port_ordinal\":0}"
       } else {
         "{\"kind\":\"operation\",\"operation_ordinal\":" +
-        occurrence.to_string() + "}"
+        occurrence.to_string() +
+        "}"
       }
-      let key = match interactive_key(
-        "logical_step_key",
-        "{\"version\":\"actql-logical-step-key/0.1\",\"compiled_plan_cid\":\"" +
-        plan_cid + "\",\"stage_ordinal\":" + stage.to_string() +
-        ",\"occurrence\":" + coordinate + "}",
-        max_bytes, max_nodes, max_depth,
-      ) {
+      let key = match
+        interactive_key(
+          "logical_step_key",
+          "{\"version\":\"actql-logical-step-key/0.1\",\"compiled_plan_cid\":\"" +
+          plan_cid +
+          "\",\"stage_ordinal\":" +
+          stage.to_string() +
+          ",\"occurrence\":" +
+          coordinate +
+          "}",
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -185,10 +217,18 @@ fn issue_client_static_plan_view(
           @carrier.kind(carrier) == RelationKind else {
           return Err(UnsupportedCarrierContract)
         }
-        let (_, wire) = match interactive_port(
-          plan_cid, step_id, "input", 0, carrier,
-          Some(interactive_stage_input(stage, 0)), max_bytes, max_nodes, max_depth,
-        ) {
+        let (_, wire) = match
+          interactive_port(
+            plan_cid,
+            step_id,
+            "input",
+            0,
+            carrier,
+            Some(interactive_stage_input(stage, 0)),
+            max_bytes,
+            max_nodes,
+            max_depth,
+          ) {
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
@@ -212,12 +252,16 @@ fn issue_client_static_plan_view(
           }
         }
         if step.binding_name is Some(name) {
-          names = "[" + (interactive_quote(name, max_bytes) catch {
+          names = "[" +
+            (interactive_quote(name, max_bytes) catch {
               _ => return Err(Encoding)
-            }) + "]"
+            }) +
+            "]"
         }
         for input in 0..<@pipeline.input_occurrence_count(step) {
-          if remaining < 1 { return Err(InvalidReadLimits) }
+          if remaining < 1 {
+            return Err(InvalidReadLimits)
+          }
           remaining -= 1
           let target = @pipeline.input_occurrence_at(step, input).unwrap().target
           guard @pipeline.carrier_at(pipeline, target) is Some(carrier) else {
@@ -229,14 +273,25 @@ fn issue_client_static_plan_view(
               guard producers.get(index) is Some((producer, port)) else {
                 return Err(MissingCheckedOccurrence)
               }
-              "{\"kind\":\"logical_output\",\"step_id\":\"" + producer +
-              "\",\"output_port_id\":\"" + port + "\"}"
+              "{\"kind\":\"logical_output\",\"step_id\":\"" +
+              producer +
+              "\",\"output_port_id\":\"" +
+              port +
+              "\"}"
             }
           }
-          let (_, wire) = match interactive_port(
-            plan_cid, step_id, "input", input, carrier, Some(source),
-            max_bytes, max_nodes, max_depth,
-          ) {
+          let (_, wire) = match
+            interactive_port(
+              plan_cid,
+              step_id,
+              "input",
+              input,
+              carrier,
+              Some(source),
+              max_bytes,
+              max_nodes,
+              max_depth,
+            ) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
@@ -244,56 +299,92 @@ fn issue_client_static_plan_view(
         }
         step.output
       }
-      let (output_id, wire) = match interactive_port(
-        plan_cid, step_id, "output", 0, output,
-        if input_only { Some(interactive_stage_input(stage, 0)) } else { None },
-        max_bytes, max_nodes, max_depth,
-      ) {
+      let (output_id, wire) = match
+        interactive_port(
+          plan_cid,
+          step_id,
+          "output",
+          0,
+          output,
+          if input_only {
+            Some(interactive_stage_input(stage, 0))
+          } else {
+            None
+          },
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
       ports.push(wire)
       producers.push((step_id, output_id))
-      steps.push("{\"step_id\":\"" + step_id + "\",\"key\":" +
-        @publication.run_evidence_value_json(key) + ",\"names\":" + names +
-        ",\"operator\":" + operator + ",\"ports\":[" + ports.join(",") +
+      steps.push(
+        "{\"step_id\":\"" +
+        step_id +
+        "\",\"key\":" +
+        @publication.run_evidence_value_json(key) +
+        ",\"names\":" +
+        names +
+        ",\"operator\":" +
+        operator +
+        ",\"ports\":[" +
+        ports.join(",") +
         "],\"can_stop_before\":false,\"can_stop_after\":false," +
-        "\"stop_reason\":\"not_installed\"}")
+        "\"stop_reason\":\"not_installed\"}",
+      )
     }
   }
-  let map = match interactive_key(
-    "logical_map",
-    "{\"version\":\"actql-logical-map/0.1\",\"compiled_plan_cid\":\"" +
-    plan_cid + "\",\"program_definition_cid\":\"" +
-    prepared_client_identity(prepared).program_definition_cid +
-    "\",\"steps\":[" + steps.join(",") + "]}",
-    max_bytes, max_nodes, max_depth,
-  ) {
+  let map = match
+    interactive_key(
+      "logical_map",
+      "{\"version\":\"actql-logical-map/0.1\",\"compiled_plan_cid\":\"" +
+      plan_cid +
+      "\",\"program_definition_cid\":\"" +
+      prepared_client_identity(prepared).program_definition_cid +
+      "\",\"steps\":[" +
+      steps.join(",") +
+      "]}",
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match @publication.check_interactive_logical_map_binding(
-    map, plan, max_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.check_interactive_logical_map_binding(
+      map, plan, max_bytes, max_nodes, max_depth,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Evidence(issue))
   }
   let body = "{\"version\":\"actql-plan-view/0.1\",\"compiled_plan_cid\":\"" +
-    plan_cid + "\",\"logical_map\":" + @publication.run_evidence_value_json(map) +
+    plan_cid +
+    "\",\"logical_map\":" +
+    @publication.run_evidence_value_json(map) +
     ",\"observation\":\"static\",\"provider_io\":0,\"quantities\":[" +
     "{\"kind\":\"unknown\",\"unit\":\"work\",\"reason\":\"not_observed\"}]," +
-    "\"capabilities\":{\"static_plan\":true,\"inspect\":" + inspect_installed.to_string() + "," +
+    "\"capabilities\":{\"static_plan\":true,\"inspect\":" +
+    inspect_installed.to_string() +
+    "," +
     "\"durable_control\":false,\"sample_capture\":[]," +
     "\"full_intermediate_retention\":[],\"cost_guard\":false," +
     "\"execution_batch\":false,\"policy_revision_cid\":\"" +
-    @checked.checked_local_policy_cid(checked) + "\"}}"
+    @checked.checked_local_policy_cid(checked) +
+    "\"}}"
   guard parse_plan_identity_value(body, max_bytes, max_nodes, max_depth)
-    is Some(value) else { return Err(Encoding) }
-  let wire = @canonical.stringify_value(value, max_bytes, max_nodes, max_depth)
-    catch { _ => return Err(Encoding) }
-  match @publication.parse_interactive_run_control_shape(
-    "plan_view", wire, max_bytes, max_nodes, max_depth,
-  ) {
+    is Some(value) else {
+    return Err(Encoding)
+  }
+  let wire = @canonical.stringify_value(value, max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  match
+    @publication.parse_interactive_run_control_shape(
+      "plan_view", wire, max_bytes, max_nodes, max_depth,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Contract(issue))
   }

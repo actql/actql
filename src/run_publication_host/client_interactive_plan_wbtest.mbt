@@ -12,12 +12,21 @@ test "static map reads original input-only Stage without a fabricated operation"
     100,
   ).unwrap()
   let wire = client_task_static_plan_view(
-    prepared, compilation, 100000, 10000, 100,
+    prepared,
+    compilation,
+    100000,
+    10000,
+    100,
     inspect_installed=true,
   ).unwrap()
   assert_eq(
     client_task_static_plan_view(
-      prepared, compilation, 100000, 10000, 100, inspect_installed=true,
+      prepared,
+      compilation,
+      100000,
+      10000,
+      100,
+      inspect_installed=true,
     ).unwrap(),
     wire,
   )
@@ -100,12 +109,16 @@ test "static map reads original input-only Stage without a fabricated operation"
   }
   let default_view = parse_plan_identity_value(
     client_task_static_plan_view(prepared, compilation, 100000, 10000, 100).unwrap(),
-    100000, 10000, 100,
+    100000,
+    10000,
+    100,
   ).unwrap()
   assert_true(
     @canonical.object_field(
-      @canonical.object_field(default_view, "capabilities").unwrap(), "inspect",
-    ) is Some(@canonical.Bool(false)),
+      @canonical.object_field(default_view, "capabilities").unwrap(),
+      "inspect",
+    )
+    is Some(@canonical.Bool(false)),
   )
 }
 

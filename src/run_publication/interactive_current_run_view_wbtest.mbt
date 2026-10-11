@@ -97,7 +97,15 @@ test "current Run Inspect preserves exact original facts and unknown pending obs
   let (run, prepared, authorization, ref_wire, state) = inspect_fixture()
   let snapshot = inspect_fixture_snapshot(run, ref_wire, state)
   let result = project_current_interactive_run_view(
-    run, prepared, authorization, ref_wire, state, snapshot, 65536, 1000, 32,
+    run,
+    prepared,
+    authorization,
+    ref_wire,
+    state,
+    snapshot,
+    65536,
+    1000,
+    32,
     static_plan_installed=true,
   )
   assert_eq(result.map(_ => true), Ok(true))
@@ -108,7 +116,9 @@ test "current Run Inspect preserves exact original facts and unknown pending obs
   let current = @json.object_field(view, "run_state").unwrap()
   let capabilities = @json.object_field(view, "capabilities").unwrap()
   for field in ["static_plan", "inspect"] {
-    assert_true(@json.object_field(capabilities, field) is Some(@json.Bool(true)))
+    assert_true(
+      @json.object_field(capabilities, field) is Some(@json.Bool(true)),
+    )
   }
   let default_wire = project_current_interactive_run_view(
     run, prepared, authorization, ref_wire, state, snapshot, 65536, 1000, 32,
