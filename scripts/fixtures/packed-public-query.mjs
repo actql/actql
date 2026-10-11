@@ -1097,7 +1097,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
   if (inputStageResultOnly) saved.retainedRelationOutput = true;
-  if (graphRemainingOperationsOnly || inputStageResultOnly) {
+  if (graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly) {
     saved.expectedSampleNames = [...boundaryNames];
     saved.authorization = authorization;
   }
@@ -1115,7 +1115,7 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0;
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
-  const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+  const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
     ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
   const retainedLeases = [];
@@ -1145,7 +1145,7 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0;
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
-    const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+    const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
       ? createRetainedGraphAuthorization() : undefined;
     const physicalDispatches = [];
     const retainedLeases = [];

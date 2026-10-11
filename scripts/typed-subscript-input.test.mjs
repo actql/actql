@@ -38,6 +38,15 @@ test('typed subscript packed selection stays narrow and reuses original retained
   assert.ok(driver.includes("['scripts/fixtures/typed-subscript-input.mjs', 'typed-subscript-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_TYPED_SUBSCRIPT_ONLY = '1'"));
   assert.ok(corpus.includes('typedSubscriptOnly ? {successes: typedSubscriptSuccesses'));
+  const retained = corpus.slice(corpus.indexOf('const recordCohort ='),
+    corpus.indexOf('for (const [index, cohort] of cohorts.entries())'));
+  assert.ok(retained.includes('graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly'));
+  assert.ok(retained.includes('saved.expectedSampleNames = [...boundaryNames]'));
+  assert.ok(retained.includes('saved.authorization = authorization'));
+  assert.equal(corpus.split('const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly').length - 1, 2,
+    'Both initial transports install the same observed authority saved for restart');
+  assert.ok(corpus.includes("physicalDispatches.includes('physical_start_reserved')"),
+    'Initial execution provides a positive control for the real dispatch observer');
   const restart = driver.indexOf("await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'})");
   assert.ok(restart > end);
   assert.ok(driver.slice(driver.indexOf("if (process.argv.includes('--graph-graft-only')"), restart)

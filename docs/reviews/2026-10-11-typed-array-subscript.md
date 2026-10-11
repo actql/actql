@@ -82,6 +82,22 @@ Both workers exited with failure and zero live children; the normal guard
 verified its owned group stopped and released both locks. The failed receipt
 and five-package artifacts remain retained.
 
+The corrected clean-source run (`a8be6a553dc8407a86ecd0eed85cd0ccd1af0e77`,
+`run-fpDmJi`) completed all ten cases per transport and one retained root per
+transport in new processes. All four workers and the normal guard exited
+successfully, with zero live children and released locks. The five normal
+package digests match the earlier runtime artifacts. However, the generic
+restart fixture's `physicalDispatches: 0` was not instrumented for this narrow
+selection. It proves rereading and preservation of the original Run, not the
+stronger physical non-reexecution claim. That earlier claim is withdrawn.
+
+The narrow selection now installs the existing observed fixture authority in
+both initial transports, proves the dispatch hook is live during initial
+execution, and retains its authority and exact boundary sample inventory for
+fresh-process restoration. The same existing observer then checks that attach,
+original-submission replay and lookup do not dispatch or advance Compute.
+This is acceptance instrumentation, not a product authorization bypass.
+
 Public acceptance is not established by the editing tests above. The handoff
 must identify its clean source SHA, all five package digests, actual completion
 inventories, process-stop receipts and released locks. CI, Preview and full-Core
