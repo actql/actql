@@ -21,7 +21,7 @@ test "registry admission hashes complete immutable bodies and excludes historica
   ).unwrap()
   assert_eq(
     accepted.registry_cid,
-    "sha256:bc611db78c8ece229a0b67eff0bfabd7965226d5823e22e974070ae55e8e6f62",
+    "sha256:e0e4fd338b37c799acb560a8977e46b6344c1a0f85f14237279ca261f4f9a55c",
   )
   assert_eq(
     accepted.values_contract_cid,

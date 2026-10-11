@@ -251,6 +251,7 @@ fn emit_frames(
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
+                  Split => "split"
                   Substring => "substring"
                   LeftString => "left"
                   RightString => "right"

@@ -151,6 +151,19 @@ calls only when immediately followed by the opening-parenthesis token. They
 remain reserved as bare identifiers; `LEFT JOIN` and `RIGHT JOIN` retain their
 query syntax and are not reclassified as scalar calls.
 
+`SPLIT(value[, delimiter])` selects the common `split` expression, following the
+[GoogleSQL STRING rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#split).
+The optional delimiter is an ordinary STRING expression; literal matching
+excludes regular expressions but does not require a literal-valued argument.
+Omission selects comma and remains a one-element ordered argument array.
+Empty input produces one empty String; an empty delimiter on nonempty input
+selects Unicode scalars. The nullable Array result has non-null String elements
+and the common conservative input-derived bounds. Every supplied child remains
+once-only and ordered before strict NULL propagation; child errors, lazy demand,
+resource admission and cancellation remain with the common expression owner.
+BYTES and collation remain coverage gaps. No `split_part` profile or frontend
+split evaluator is introduced.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive

@@ -107,6 +107,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Split
   Substring
   LeftString
   RightString
@@ -279,6 +280,7 @@ fn expression_tag(
     | "concat_strict"
     | "len"
     | "replace"
+    | "split"
     | "substring"
     | "left"
     | "right"
@@ -1022,6 +1024,7 @@ fn lower_typed_expression_measured(
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "split" => Many(Split, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)
         "right" => Many(RightString, args)
