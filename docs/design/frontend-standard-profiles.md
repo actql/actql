@@ -308,3 +308,17 @@ length or pattern expression. The common bounded text continuation owns the
 Unicode scalar slicing, padding, exact sizing, retained roots and cancellation.
 The safe-integer ActQL Number length domain excludes other INT64 values, BYTES
 and collation. Omitted padding alone means U+0020; explicit empty pattern fails.
+
+
+### STRING translation and occurrence search
+
+TRANSLATE and INSTR select the common expression owner across SQL/Pipe and
+canonical JSON/YAML. TRANSLATE admits exactly three STRING operands. INSTR
+admits two STRING operands plus optional position and occurrence; omitted
+values mean one without synthetic canonical children. Matching and substitution
+use exact Unicode scalars, including overlapping occurrences and empty-pattern
+boundaries, under the [owned contract](../spec/language.md#scalar-expressions).
+GoogleSQL's INT64 search parameters are explicitly adapted to existing integral
+finite Number values without an INT64 or safe-integer cap. This is scoped
+STRING/default-binary coverage; BYTES, collation, regex and implicit coercion
+remain outside the increment. Existing profiles and resource limits do not move.

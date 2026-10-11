@@ -437,7 +437,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const {grammar_manifest_cid: previousWithCid, ...previousWithBody} = previousWith;
   assert.equal(cid(previousWithBody), previousWithCid);
   assert.equal(previousWithCid, 'sha256:c74b336ae4363e26b12e7af399b46791ce463755f66e47f12f557d1e7e72eab8');
-  const currentExpected = 'sha256:f9006fa913e4abfee8c8348a093db8405eb546bf39a625824d42079441a843c4';
+  const currentExpected = 'sha256:15497efe2f8cdeb6ad5bd4d2dab47de99a2c962ace3cbc6b762ebf4c20ef4d34';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -606,7 +606,7 @@ test('integrated derived scopes preserve common contracts and both historical pa
 
 
 test('WITH cutover changes query grammar/rules without changing machine contracts', () => {
-  const before = read('scripts/fixtures/pre-with-carrier-cutover-values-identities.json').grammar;
+  const before = read('scripts/fixtures/adopted-scalar-main-before-with-values-identities.json').grammar;
   const after = read('scripts/fixtures/submitted-with-carrier-cutover-values-identities.json').grammar;
   const {grammar_manifest_cid: bc, query_text_grammar_sha256: bg, query_text_rules_sha256: br, ...beforeCommon} = before;
   const {grammar_manifest_cid: ac, query_text_grammar_sha256: ag, query_text_rules_sha256: ar, ...afterCommon} = after;
