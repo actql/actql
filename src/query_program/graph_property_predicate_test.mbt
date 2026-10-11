@@ -6,7 +6,8 @@ fn with_graph_predicate_refusal(
 ) -> @pipeline.IssueKind raise {
   match result {
     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => issue.kind
-    Err(_) => fail("expected a common pipeline refusal at WITH static admission")
+    Err(_) =>
+      fail("expected a common pipeline refusal at WITH static admission")
     Ok(_) => fail("invalid predicate must not pass WITH static checking")
   }
 }
@@ -200,9 +201,7 @@ test "Graph property predicate delegates missing members and scalar receivers to
     )
     let kind = with_graph_predicate_refusal(program)
     if missing {
-      assert_true(
-        kind is @pipeline.GraphMatch(Typing(UnknownField("missing"))),
-      )
+      assert_true(kind is @pipeline.GraphMatch(Typing(UnknownField("missing"))))
     } else {
       assert_true(
         kind

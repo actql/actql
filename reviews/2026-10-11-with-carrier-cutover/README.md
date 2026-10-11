@@ -455,3 +455,22 @@ traced common Operation(PresenceRequired), now at WITH static admission. No
 frontend presence or identity evidence is invented. Exact source/tree, commands,
 raw receipts and SHA256 are retained with actual Owner/group/ownlock release.
 Host rows/order, packages and Local/HTTPS remain unexecuted.
+
+## WITH Graph predicate caller retirement
+
+[p1-graph-predicate-retirement-execution.json](p1-graph-predicate-retirement-execution.json)
+records clean `0c8e429180b2737a79b749f1c5b74a193eaa5844`: actual JS26/26
+(`run-dNSdHB`). Original complete Programs, nullable object/score data, node
+and edge predicates, fixed/zero/max hops, incoming direction, quoted/anonymous
+receivers and expression work1 remain unchanged. Only producer spelling and
+current source wrappers change. Existing common static checking owns invalid
+member/scalar types and the reached-definition intersection; it does not infer
+presence from predicate matches or sample rows. The test helper extracts its
+actual typed pipeline refusal without constructing another checker.
+
+The original `run-mNv9Fv` compile failure remains failed with zero executed
+tests: the test helper requested Debug on an API type without that trait. Two
+bounded formatter attempts completed with fixture whitespace only. Exact
+source/tree, commands, original callers, receipts/logs and SHA256 are retained,
+with actual Owner/group/ownlock release. Public Host/package/Local/HTTPS are
+unexecuted; JS26/26 is evidence for its exact source, not full Graph execution.
