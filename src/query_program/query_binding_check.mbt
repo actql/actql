@@ -1,6 +1,8 @@
 ///|
 pub(all) enum BindingPreparationIssue {
   Declarations(@stage_parameters.Issue)
+  SourceDeclarations(@sourceviews.Issue)
+  MissingSourceCatalog(@sourceviews.Declaration)
   SourceRegistration(@check_context.SourceRegistrationIssue)
   SourceProgram(@check_context.SourceViewProgramIssue)
   LocalProgram(@stage_results.LocalProgramIssue)
@@ -69,15 +71,32 @@ fn prepare_query_bindings(
         Err(issue) => Err(SourceProgram(issue))
       }
     }
-    None =>
+    None => {
+      let views = match
+        @sourceviews.collect(source, {
+          max_work: limits.max_expression_work,
+          max_order_keys: tree.max_nodes,
+        }) {
+        Ok(views) => views
+        Err(issue) => return Err(SourceDeclarations(issue))
+      }
+      if @sourceviews.at(views, 0) is Some(declaration) {
+        // The common declaration owner identifies the missing metadata. Do not
+        // parse a Connector input as a Local Relation or fabricate its Carrier.
+        return Err(MissingSourceCatalog(declaration))
+      }
       match
         @stage_results.prepare_local_program(
           source,
-          pipeline_limits,
+          {
+            ..pipeline_limits,
+            max_work: pipeline_limits.max_work - @sourceviews.work(views),
+          },
           model_tasks=context.model_tasks,
         ) {
         Ok((wiring, _)) => Ok(wiring)
         Err(issue) => Err(LocalProgram(issue))
       }
+    }
   }
 }

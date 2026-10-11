@@ -33,14 +33,19 @@ test "unused WITH Source requires its actual Catalog registration" {
   )
   // Keeping the exact schema but removing the Catalog must not fabricate an
   // admitted SourceViewInput. No provider execution is available in this API.
-  assert_true(
-    compile_query_script(
-      parsed,
-      { ..admitted, source_catalog: None, },
-      construction_limits(),
-    )
-    is Err(BindingPreparation(LocalProgram(MissingSourceViewRegistrations(0)))),
+  let missing = compile_query_script(
+    parsed,
+    { ..admitted, source_catalog: None, },
+    construction_limits(),
   )
+  guard missing is Err(BindingPreparation(MissingSourceCatalog(declaration))) else {
+    fail("missing Source metadata must retain its common declaration")
+  }
+  assert_eq(declaration.stage_index, 0)
+  assert_eq(declaration.input_name, "objects")
+  assert_eq(declaration.connector, "crm/main")
+  assert_eq(declaration.resource, "r")
+  assert_eq(declaration.view, Some("v"))
 }
 
 ///|
