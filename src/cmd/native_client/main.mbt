@@ -841,6 +841,8 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("delivery-attempt", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
+        @argparse.OptionArg("purpose"),
         @argparse.OptionArg("result-name", required=true),
         @argparse.OptionArg("attempt-id", required=true),
       ]),
@@ -860,9 +862,17 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     _ => stop("unsupported Client mode")
   }
   if matches.subcommand is Some((operation, child)) &&
-    (operation == "lookup-cancellation" || operation == "cancel") &&
+    (
+      operation == "lookup-cancellation" ||
+      operation == "cancel" ||
+      operation == "delivery-attempt"
+    ) &&
     optional(child, "submission-ref-file") is Some(_) {
     stop("Original Local submission binding is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some(("delivery-attempt", child)) &&
+    optional(child, "purpose") is Some(_) {
+    stop("Explicit Local delivery purpose is unavailable in Remote mode")
   }
   let endpoint = endpoint_url(required(matches, "endpoint"))
   let request_max = positive_int(

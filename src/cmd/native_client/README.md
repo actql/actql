@@ -132,6 +132,26 @@ fixtures include discarded stdout after a real exited command; that case is
 not a pre/post-commit fault injection. These fixtures are defined and checked
 for syntax separately from runtime acceptance.
 
+Local `delivery-attempt` observes only the original saved read attempt. Supply
+`--submission-ref-file`, `--ref-file`, `--result-name`, `--purpose` and
+`--attempt-id`. The trusted account must explicitly permit both the current
+`principal × connection × run × read` and
+`principal × connection × result/<name> × read` tuples. Submit or cancel
+permission is not Result read authority. Local-only purpose and Submission
+options are refused in Remote mode before transport setup.
+
+The existing original-Submission Owner authenticates the exact admitted Run
+and original Store custody. The Result access Owner rechecks current lookup
+authority before and after reading metadata. This lookup service does not
+provide read admission, delivery or receipt hooks and cannot issue/consume a
+grant or reopen payload. `history: unresolved` supplies no replay permission.
+A retained reply contains the original `attempt`, optional latest `record` and
+optional `hostReleaseReceipt`; missing records/receipts are explicit NULL.
+These independently obtained facts are not an atomic Run snapshot. Store and
+Host close must succeed before the reply is published. Actual retained-attempt
+CLI acceptance and the new read admission path remain unfinished; the defined
+process fixtures are not fresh-artifact execution evidence.
+
 In addition to the preparation settings, the selected `actql-config/0.1`
 document requires `account_config` (one file name in the selected private root)
 and `native.local`:

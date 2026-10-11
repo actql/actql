@@ -105,6 +105,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     operation == "lookup-submission" ||
     operation == "lookup-cancellation" ||
     operation == "cancel" ||
+    operation == "delivery-attempt" ||
     operation == "start" ||
     operation == "aql" {
     return execute_native_local_adoption(matches, operation, child)

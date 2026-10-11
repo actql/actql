@@ -79,6 +79,20 @@ test('Native Remote refuses a Local cancellation Submission binding before trans
   }
 });
 
+test('Native Remote refuses Local original-delivery bindings before transport setup', () => {
+  const common = ['--mode', 'remote', 'delivery-attempt', '--ref-file', 'absent-run.json',
+    '--result-name', 'answer', '--attempt-id', 'original'];
+  for (const [options, reason] of [
+    [['--submission-ref-file', 'absent-submission.json'], /Original Local submission binding is unavailable in Remote mode/u],
+    [['--purpose', 'cli-read'], /Explicit Local delivery purpose is unavailable in Remote mode/u],
+  ]) {
+    const result = runNative([...common, ...options]);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, reason);
+  }
+});
+
 test('Native Local retains parameter values and distinguishes wrong type', async () => {
   await writeFile(join(scratch.path, 'parameter.sql'), 'SELECT @message AS message\n');
   await writeFile(join(scratch.path, 'declarations.json'), JSON.stringify({message: {type: 'string'}}));

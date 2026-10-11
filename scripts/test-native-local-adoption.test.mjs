@@ -109,6 +109,14 @@ const cancelPermission = {entry_id: 'run-cancel', outcome: 'allow',
   principal: {any_of: ['operator']}, connection: {any_of: ['cli']},
   resource: {any_of: ['run']}, operation: {any_of: ['cancel']}, exclusions: []};
 
+const runReadPermission = {entry_id: 'run-read', outcome: 'allow',
+  principal: {any_of: ['operator']}, connection: {any_of: ['cli']},
+  resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []};
+
+const resultReadPermission = {entry_id: 'result-read', outcome: 'allow',
+  principal: {any_of: ['operator']}, connection: {any_of: ['cli']},
+  resource: {any_of: ['result/answer']}, operation: {any_of: ['read']}, exclusions: []};
+
 test('Native CLI original Submission lookup stays unresolved across separate exited processes', async () => {
   const f = await fixture('lookup-unaccepted', [submitPermission]);
   success(invoke(f, ['adopt', '--json']));
@@ -490,6 +498,78 @@ test('Native CLI cancellation refuses missing original Store without initializin
   const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
   assert.equal(original.controlRevision, admitted.controlRevision);
   assert.deepEqual(original.ref, admitted.ref);
+});
+
+function deliveryLookupCommand(attempt = 'original-read') {
+  return ['delivery-attempt', '--submission-ref-file', 'original-submission.json',
+    '--ref-file', 'original-run.json', '--result-name', 'answer',
+    '--purpose', 'cli-read', '--attempt-id', attempt];
+}
+
+test('Native CLI original delivery lookup stays unresolved across exited processes without grant or payload replay', async () => {
+  const {f, admitted} = await cancellationLookupFixture('delivery-lookup-original',
+    [submitPermission, runReadPermission, resultReadPermission]);
+  const storeFile = join(f.root, 'managed', 'results', '.actql-publication.sqlite3');
+  const before = await readFile(storeFile);
+  const expected = {kind: 'local_delivery_attempt_lookup', history: 'unresolved',
+    ref: admitted.ref, resultName: 'answer', purpose: 'cli-read', attemptId: 'original-read'};
+  assert.deepEqual(success(invoke(f, deliveryLookupCommand())), expected);
+  assert.deepEqual(success(invoke(f, deliveryLookupCommand())), expected);
+  assert.deepEqual(await readFile(storeFile), before, 'Metadata lookup cannot issue/consume a grant or create an attempt');
+  const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.deepEqual(original.ref, admitted.ref);
+  assert.equal(original.controlRevision, admitted.controlRevision);
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+});
+
+test('Native CLI delivery lookup requires separate current Run and named-Result read authority', async () => {
+  for (const [name, entries] of [['run', [submitPermission, resultReadPermission]],
+    ['result', [submitPermission, runReadPermission]]]) {
+    const {f, admitted} = await cancellationLookupFixture(`delivery-lookup-denied-${name}`, entries);
+    const before = await readFile(join(f.root, 'managed', 'results', '.actql-publication.sqlite3'));
+    refusal(invoke(f, deliveryLookupCommand()), /LocalDeliveryLookupAuthorizationDenied/u);
+    assert.deepEqual(await readFile(join(f.root, 'managed', 'results', '.actql-publication.sqlite3')), before);
+    const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+    assert.equal(original.controlRevision, admitted.controlRevision);
+  }
+});
+
+test('Native CLI delivery lookup rejects foreign Run and missing original Store without recreating state', async () => {
+  const {f, admitted} = await cancellationLookupFixture('delivery-lookup-custody',
+    [submitPermission, runReadPermission, resultReadPermission]);
+  for (const [field, value] of [['namespaceId', 'foreign'],
+    ['authorityScopeCid', `sha256:${'0'.repeat(64)}`], ['runDefinitionCid', `sha256:${'0'.repeat(64)}`]]) {
+    await writeFile(join(f.root, 'original-run.json'), JSON.stringify({...admitted.ref, [field]: value}));
+    refusal(invoke(f, deliveryLookupCommand()), /LocalOriginalRunReferenceMismatch/u);
+  }
+  await writeFile(join(f.root, 'original-run.json'), JSON.stringify(admitted.ref));
+  const db = join(f.root, 'managed', 'results', '.actql-publication.sqlite3');
+  await rename(db, `${db}.held-original`);
+  refusal(invoke(f, deliveryLookupCommand()), /LocalOriginalStoreUnavailable/u);
+  await assert.rejects(stat(db), {code: 'ENOENT'});
+});
+
+test('Native CLI delivery lookup rejects malformed attempt and unauthorized Result before opening Store', async () => {
+  const {f} = await cancellationLookupFixture('delivery-lookup-scope',
+    [submitPermission, runReadPermission, resultReadPermission]);
+  const before = await readFile(join(f.root, 'managed', 'results', '.actql-publication.sqlite3'));
+  refusal(invoke(f, deliveryLookupCommand('x'.repeat(257))), /InvalidLocalDeliveryLookup/u);
+  const foreign = deliveryLookupCommand();
+  foreign[foreign.indexOf('--result-name') + 1] = 'foreign';
+  refusal(invoke(f, foreign), /LocalDeliveryLookupAuthorizationDenied/u);
+  assert.deepEqual(await readFile(join(f.root, 'managed', 'results', '.actql-publication.sqlite3')), before);
+});
+
+test('Native CLI delivery lookup rejects a same-authority replacement Store instead of claiming absent history', async () => {
+  const entries = [submitPermission, runReadPermission, resultReadPermission];
+  const {f} = await cancellationLookupFixture('delivery-lookup-original-store', entries);
+  const {f: foreign} = await cancellationLookupFixture('delivery-lookup-foreign-store', entries);
+  const original = join(f.root, 'managed', 'results', '.actql-publication.sqlite3');
+  const replacement = join(foreign.root, 'managed', 'results', '.actql-publication.sqlite3');
+  await rename(original, `${original}.held-original`);
+  await copyFile(replacement, original);
+  refusal(invoke(f, deliveryLookupCommand()), /LocalDeliveryLookupUnavailable/u);
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
 });
 
 test('Native CLI cancellation lookup rejects substituted namespace authority and Run before original operation lookup', async () => {

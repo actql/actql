@@ -32,34 +32,26 @@ fn local_resolve_admitted_run(
 }
 
 ///|
-priv struct LocalCancellationSelection {
+priv struct LocalOriginalRunSelection {
   request : @run_host.ClientRequestIdentity
+  submission : @local_host.NativeClientSubmissionReference
   reference : Json
-  cancel_ref : Json
-  scope : String
   namespace_id : String
-  cancel_id : String
-  revision : Int
+  run_definition_cid : String
 }
 
 ///|
-// This is Host glue around the original admission and cancellation Owner.
-// A selection is neither a new execution nor an authorization capability.
-fn local_cancellation_selection(
+// Resolve an authenticated original Submission and exact public Run reference.
+// The operation's current authority callback supplies its own permission.
+fn local_original_run_selection(
   host : @local_host.NativeLocalHostConnection,
-  settings : LocalHostSettings,
-  crypto : @local_crypto.Library,
   input_root : String,
   child : @argparse.Matches,
-) -> LocalCancellationSelection raise ClientStop {
-  let scope = local_host_result(
-    host.authority_scope_cid(settings.principal, settings.connection, crypto),
-  )
-  let current = () => {
-    local_run_operation_allowed(host, settings, crypto, scope, "cancel")
-  }
+  scope : String,
+  current : () -> Bool,
+) -> LocalOriginalRunSelection raise ClientStop {
   if !current() {
-    stop("LocalCancellationAuthorizationDenied")
+    stop("LocalOriginalRunAuthorizationDenied")
   }
   let submission = @local_host.admit_native_client_submission_reference(
     text_file(input_root, required(child, "submission-ref-file"), 4096L),
@@ -97,6 +89,51 @@ fn local_cancellation_selection(
     same_cancellation_target(supplied, original) else {
     stop("LocalOriginalRunReferenceMismatch")
   }
+  {
+    request,
+    submission,
+    reference,
+    namespace_id: json_text(original, "namespaceId").unwrap(),
+    run_definition_cid: json_text(original, "runDefinitionCid").unwrap(),
+  }
+}
+
+///|
+priv struct LocalCancellationSelection {
+  request : @run_host.ClientRequestIdentity
+  reference : Json
+  cancel_ref : Json
+  scope : String
+  namespace_id : String
+  cancel_id : String
+  revision : Int
+}
+
+///|
+// This is Host glue around the original admission and cancellation Owner.
+// A selection is neither a new execution nor an authorization capability.
+fn local_cancellation_selection(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  input_root : String,
+  child : @argparse.Matches,
+) -> LocalCancellationSelection raise ClientStop {
+  let scope = local_host_result(
+    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+  )
+  let current = () => {
+    local_run_operation_allowed(host, settings, crypto, scope, "cancel")
+  }
+  if !current() {
+    stop("LocalCancellationAuthorizationDenied")
+  }
+  let selected = local_original_run_selection(
+    host, input_root, child, scope, current,
+  )
+  guard selected.reference is Object(original) else {
+    stop("LocalOriginalRunUnavailable")
+  }
   let cancel_id = required(child, "cancel-id")
   let revision = cancellation_revision(required(child, "expected-revision"))
   let cancel_fields : Map[String, Json] = Map([])
@@ -110,11 +147,11 @@ fn local_cancellation_selection(
     stop("InvalidCancellationRef")
   }
   {
-    request,
-    reference,
+    request: selected.request,
+    reference: selected.reference,
     cancel_ref,
     scope,
-    namespace_id: json_text(original, "namespaceId").unwrap(),
+    namespace_id: selected.namespace_id,
     cancel_id,
     revision,
   }
@@ -242,41 +279,15 @@ fn local_cancellation_operation(
       "cancel",
     )
   }
-  let file = settings.run_file.unwrap_or_else(() => {
-    stop("LocalRunOriginalNotSelected")
-  })
-  let original = local_host_result(host.selected_configuration(file))
-  let run = local_run_installation(
-    @utf8.decode(original) catch {
-      _ => stop("InvalidLocalRunInstallation")
-    },
-  )
-  if run.namespace_id != selected.namespace_id {
-    stop("LocalOriginalRunReferenceMismatch")
-  }
-  let managed = local_host_result(host.managed_root_path()).unwrap_or_else(() => {
-    stop("LocalManagedRootRequired")
-  })
-  let root = @local_filesystem.open_private_root(managed).unwrap_or_else(() => {
-    stop("LocalManagedRootUntrusted")
-  })
-  root
-  .open_child(run.store_name)
-  .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-  .private_ownership()
-  .unwrap_or_else(() => stop("LocalStoreCustodyUnavailable"))
-  |> ignore
   if !current() {
     stop("LocalCancellationAuthorizationDenied")
   }
-  let store = @local_store.open_existing_store(
+  let store = local_original_result_store(
+    host,
+    settings,
     sqlite,
-    managed + "/" + run.store_name,
-    run.store_authority_cid,
-    run.store_capacity_bytes,
-    run.store_objects,
-    run.store_record_bytes,
-  ).unwrap_or_else(() => stop("LocalOriginalStoreUnavailable"))
+    selected.namespace_id,
+  )
   let reply = {
     errdefer (if !(store.close() is Ok(true)) {
       stop("LocalCancellationStoreCleanupPending")
@@ -326,6 +337,9 @@ fn local_cancellation_operation(
   }
   if !(store.close() is Ok(true)) {
     stop("LocalCancellationStoreCleanupPending")
+  }
+  if !current() {
+    stop("LocalCancellationAuthorizationDenied")
   }
   reply
 }
