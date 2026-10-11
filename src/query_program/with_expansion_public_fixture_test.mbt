@@ -410,6 +410,16 @@ test "WITH public expansion joined-unnest-star-acquired-data" {
     Err(QueryLowering(UnsupportedJoin)) => fail("UnsupportedJoin")
     Err(QueryLowering(UnknownColumn)) => fail("UnknownColumn")
     Err(QueryLowering(UnresolvedRelation(_))) => fail("UnresolvedRelation")
+    Err(QueryLowering(BindingPreparation(SourceProgram(Program(Pipeline(_, issue)))))) =>
+      fail("Catalog pipeline: " + @debug.to_string(issue.kind))
+    Err(QueryLowering(BindingPreparation(SourceProgram(Program(Order(_, _)))))) =>
+      fail("Catalog output Order")
+    Err(QueryLowering(BindingPreparation(SourceProgram(_)))) =>
+      fail("another SourceProgram cause")
+    Err(QueryLowering(BindingPreparation(SourceRegistration(_)))) =>
+      fail("SourceRegistration")
+    Err(QueryLowering(BindingPreparation(SourceDeclarations(_)))) =>
+      fail("SourceDeclarations")
     Err(QueryLowering(BindingPreparation(_))) => fail("another binding preparation cause")
     Err(QuerySyntax(_)) => fail("QuerySyntax")
     Err(QueryLowering(issue)) => {
