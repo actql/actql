@@ -16,6 +16,11 @@ priv struct Instance {
   readers : Map[Int, @buffers.BufferBorrow]
   environments : Map[Int, StoredEnvironment]
   preparations : Map[Int, StoredPreparation]
+  run_configurations : Map[Int, StoredRunConfiguration]
+  runs : Map[Int, StoredRun]
+  materials : Map[Int, StoredMaterial]
+  restorations : Map[Int, StoredRestoration]
+  physical_starts : Map[Int, StoredPhysicalStart]
   mut next_handle : Int
 }
 
@@ -78,6 +83,11 @@ pub fn open(
         readers: {},
         environments: {},
         preparations: {},
+        run_configurations: {},
+        runs: {},
+        materials: {},
+        restorations: {},
+        physical_starts: {},
         next_handle: 1,
       })
       0
@@ -228,6 +238,10 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.readers.clear()
     value.environments.clear()
     value.preparations.clear()
+    value.run_configurations.clear()
+    value.runs.clear()
+    value.materials.clear()
+    value.restorations.clear()
   }
   result
 }

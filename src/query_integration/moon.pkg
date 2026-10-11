@@ -107,6 +107,8 @@ import {
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
   "actql/actql/carrier_contract",
   "actql/actql/execution_authorization" @authorization,
+  "actql/actql/client_local_preparation" @local_input,
+  "actql/actql/client_local_run" @local_run,
 } for "wbtest"
 
 options(

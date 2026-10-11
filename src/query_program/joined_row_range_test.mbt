@@ -121,3 +121,26 @@ test "joined ORDER row alias prevents reuse of an input row expression" {
     msg="ORDER receiver l means the output r row, not the selected input l row",
   )
 }
+
+///|
+test "PIVOT row argument keeps range precedence over a same-named scalar column" {
+  for
+    source in [
+      "FROM (SELECT 7 AS l,9 AS id,'A' AS axis) l |> PIVOT(COUNT(l) FOR axis IN('A')) |> SELECT *",
+      "FROM (SELECT 7 AS l,9 AS id,'A' AS axis) l |> PIVOT(COUNT(COALESCE(l,NULL)) FOR axis IN('A')) |> SELECT *",
+    ] {
+    let p = compile_query_script(
+      @query.parse_query_script(source, syntax_limits()).unwrap(),
+      { ..values_context(), inputs: [], },
+      construction_limits(),
+    ).unwrap()
+    let text = semantic(p)
+    assert_true(text.contains("\"object\""))
+    assert_true(text.contains("\"index\":[]"))
+    match @check.check_parsed(p, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(issue) => raise @check.diagnostic_cause(issue)
+      _ => fail("closed PIVOT row source")
+    }
+  }
+}

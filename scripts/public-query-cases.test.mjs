@@ -1,9 +1,11 @@
+import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl} from './fixtures/public-query-input.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
-import {relationDataSuccesses, relationDataRefusals, queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl} from './fixtures/public-query-input.mjs';
+import {relationDataSuccesses, relationDataRefusals} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
-import {pipePivotSuccesses,pipePivotRefusals,fromPivotAcquiredProgram,pivotArgumentExpressionProgram} from './fixtures/pipe-pivot-source-input.mjs';
+import {pipePivotSuccesses, pipePivotRefusals, pivotArgumentExpressionProgram, fromPivotAcquiredProgram}
+  from './fixtures/pipe-pivot-source-input.mjs';
 
 test('shared Relation controls and Graph source cases have one request each', () => {
   const selected = uniquePublicQueryCases([
@@ -25,6 +27,66 @@ test('duplicate request names cannot hide conflicting source or expectations', (
     assert.throws(() => uniquePublicQueryCases([original, conflicting]),
       /Conflicting public query fixture/u);
   }
+});
+
+test('DATA positional fixture keeps NULL duplicates and public output contracts', () => {
+  const cases = new Map(relationDataSuccesses.map(item => [item.name, item]));
+  assert.deepEqual(cases.get('data-anonymous-set-duplicate-order-limit').results.nodes.rows,
+    [{id: 1}, {id: 1}]);
+  assert.deepEqual(cases.get('data-anonymous-set-null-source').results,
+    cases.get('data-anonymous-set-null-json-control').results);
+  assert.deepEqual(cases.get('data-anonymous-set-null-source').results.nodes.columns,
+    [{name: 'id', contract: {type: 'number', nullable: true}}]);
+  assert.deepEqual(cases.get('data-anonymous-set-cte-source').results.nodes.rows,
+    [{id: 1}, {id: 2}]);
+});
+
+test('DATA refusal fixtures distinguish unsupported output names from private references', () => {
+  const cases = new Map(relationDataRefusals.map(item => [item.name, item]));
+  assert.equal(cases.get('data-anonymous-set-by-name').expectedCode,
+    'ClientProgramImplementationLimit');
+  assert.equal(cases.get('data-anonymous-set-private-field').expectedCode,
+    'ClientProgramInvalidInput');
+});
+
+test('PIVOT expression controls distinguish consumed fields, constants and frozen input slots', () => {
+  const cases = new Map(pipePivotSuccesses.map(item => [item.name, item]));
+  const source = cases.get('pipe-pivot-argument-expression-consumption');
+  const control = cases.get('pipe-pivot-argument-expression-json-control');
+  assert.deepEqual(source.expected, [{product: 1, A: 5}]);
+  assert.deepEqual(source.columns, control.columns);
+  assert.deepEqual(source.expected, control.expected);
+  assert.deepEqual(JSON.parse(control.text), pivotArgumentExpressionProgram);
+  assert.deepEqual(pivotArgumentExpressionProgram.stages[0].steps[2].pivot.index, ['product']);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-constant').expected,
+    [{product: 1, amount: 1, A: 1}, {product: 1, amount: 2, A: 1}]);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-immutable-range').expected,
+    [{product: 1, amount: 7, A: 5}]);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-current-slot').expected,
+    [{product: 1, A: 16}]);
+  assert.deepEqual(cases.get('pipe-pivot-argument-expression-property-null-propagation').expected,
+    [{product: 1, A: 11}, {product: 2, A: null}, {product: 3, A: null}]);
+  assert.equal(pipePivotRefusals.filter(item => item.name.startsWith('pipe-pivot-refusal-argument-expression-')).length, 6);
+});
+
+test('FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh output scopes',()=>{
+ const cases=new Map(pipePivotSuccesses.map(item=>[item.name,item]));
+ const source=cases.get('pipe-pivot-from-shared-source');
+ const control=cases.get('pipe-pivot-from-shared-source-json-control');
+ assert.deepEqual(source.sourceRows,control.sourceRows);
+ assert.deepEqual(source.expected,[{product:'kale',first:3,second:1}]);
+ assert.deepEqual(source.expected,control.expected);
+ assert.deepEqual(source.columns,control.columns);
+ assert.equal(source.sourceReadSessionCount,1);assert.equal(control.sourceReadSessionCount,1);
+ assert.equal(source.sourceReadCount,2);assert.equal(control.sourceReadCount,2);
+ assert.deepEqual(fromPivotAcquiredProgram.stages[0].steps[0].filter,
+  {gt:[{field:'id'},{literal:0}]});
+ assert.ok(cases.get('pipe-pivot-from-left-join-padding').text.includes('MAX_OUTPUT_ROWS 10'));
+ assert.deepEqual(cases.get('pipe-pivot-from-left-join-padding').expected,
+  [{product:1,marker:100,A:5},{product:2,marker:200,A:null}]);
+ assert.deepEqual(cases.get('pipe-pivot-from-projected-identity').expected,
+  [{twin:1,A:2},{twin:2,A:2}]);
+ assert.equal(pipePivotRefusals.filter(item=>item.name.startsWith('pipe-pivot-refusal-from-')).length,6);
 });
 
 test('joined row fixtures distinguish row identity, null extension and ORDER receiver reuse',()=>{
@@ -50,45 +112,6 @@ test('joined row fixtures distinguish row identity, null extension and ORDER rec
  assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('joined-row-refusal-')).length,4);
 });
 
-test('DATA positional fixture keeps NULL duplicates and public output contracts', () => {
-  const cases = new Map(relationDataSuccesses.map(item => [item.name, item]));
-  assert.deepEqual(cases.get('data-anonymous-set-duplicate-order-limit').results.nodes.rows,
-    [{id: 1}, {id: 1}]);
-  assert.deepEqual(cases.get('data-anonymous-set-null-source').results,
-    cases.get('data-anonymous-set-null-json-control').results);
-  assert.deepEqual(cases.get('data-anonymous-set-null-source').results.nodes.columns,
-    [{name: 'id', contract: {type: 'number', nullable: true}}]);
-  assert.deepEqual(cases.get('data-anonymous-set-cte-source').results.nodes.rows,
-    [{id: 1}, {id: 2}]);
-});
-
-test('DATA refusal fixtures distinguish unsupported output names from private references', () => {
-  const cases = new Map(relationDataRefusals.map(item => [item.name, item]));
-  assert.equal(cases.get('data-anonymous-set-by-name').expectedCode,
-    'ClientProgramImplementationLimit');
-  assert.equal(cases.get('data-anonymous-set-private-field').expectedCode,
-    'ClientProgramInvalidInput');
-});
-
-test('FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh output scopes',()=>{
- const cases=new Map(pipePivotSuccesses.map(item=>[item.name,item]));
- const source=cases.get('pipe-pivot-from-shared-source');
- const control=cases.get('pipe-pivot-from-shared-source-json-control');
- assert.deepEqual(source.sourceRows,control.sourceRows);
- assert.deepEqual(source.expected,[{product:'kale',first:3,second:1}]);
- assert.deepEqual(source.expected,control.expected);
- assert.deepEqual(source.columns,control.columns);
- assert.equal(source.sourceReadSessionCount,1);assert.equal(control.sourceReadSessionCount,1);
- assert.equal(source.sourceReadCount,2);assert.equal(control.sourceReadCount,2);
- assert.deepEqual(fromPivotAcquiredProgram.stages[0].steps[0].filter,
-  {gt:[{field:'id'},{literal:0}]});
- assert.ok(cases.get('pipe-pivot-from-left-join-padding').text.includes('MAX_OUTPUT_ROWS 10'));
- assert.deepEqual(cases.get('pipe-pivot-from-left-join-padding').expected,
-  [{product:1,marker:100,A:5},{product:2,marker:200,A:null}]);
- assert.deepEqual(cases.get('pipe-pivot-from-projected-identity').expected,
-  [{twin:1,A:2},{twin:2,A:2}]);
- assert.equal(pipePivotRefusals.filter(item=>item.name.startsWith('pipe-pivot-refusal-from-')).length,6);
-});
 
 test('optional table aliases preserve independent NULL/duplicate and range-value controls',()=>{
  const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
@@ -107,6 +130,7 @@ test('optional table aliases preserve independent NULL/duplicate and range-value
  assert.equal(cases.get('derived-optional-captured-range-snapshot').sourceReadSessionCount,1);
  assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('derived-optional-refusal-')).length,6);
 });
+
 
 test('derived value-table aliases retain scalar/object type and old-name refusal controls',()=>{
  const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
@@ -128,6 +152,7 @@ test('derived value-table aliases retain scalar/object type and old-name refusal
 });
 
 
+
 test('ordinary row fixtures distinguish NULL fields, immutable bindings and rebound columns',()=>{
  const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
  const source=cases.get('whole-row-offset-receiver'),control=cases.get('whole-row-json-control');
@@ -145,6 +170,7 @@ test('ordinary row fixtures distinguish NULL fields, immutable bindings and rebo
 });
 
 
+
 test('range-shadow fixtures distinguish input ranges, ORDER aliases and NULL object columns',()=>{
  const cases=new Map(queryCompositionSuccesses.map(c=>[c.name,c]));
  assert.deepEqual(cases.get('range-shadow-order-alias').expected,[{element:2},{element:1},{element:0}]);
@@ -156,26 +182,6 @@ test('range-shadow fixtures distinguish input ranges, ORDER aliases and NULL obj
  assert.deepEqual(cases.get('range-shadow-where-row').expected,[{row:{element:null,position:1},position:1},{row:{element:2,position:2},position:2}]);
  assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('range-shadow-')).length,7);
  assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('range-shadow-refusal-')).length,2);
-});
-
-test('PIVOT expression controls distinguish consumed fields, constants and frozen input slots', () => {
-  const cases = new Map(pipePivotSuccesses.map(item => [item.name, item]));
-  const source = cases.get('pipe-pivot-argument-expression-consumption');
-  const control = cases.get('pipe-pivot-argument-expression-json-control');
-  assert.deepEqual(source.expected, [{product: 1, A: 5}]);
-  assert.deepEqual(source.columns, control.columns);
-  assert.deepEqual(source.expected, control.expected);
-  assert.deepEqual(JSON.parse(control.text), pivotArgumentExpressionProgram);
-  assert.deepEqual(pivotArgumentExpressionProgram.stages[0].steps[2].pivot.index, ['product']);
-  assert.deepEqual(cases.get('pipe-pivot-argument-expression-constant').expected,
-    [{product: 1, amount: 1, A: 1}, {product: 1, amount: 2, A: 1}]);
-  assert.deepEqual(cases.get('pipe-pivot-argument-expression-immutable-range').expected,
-    [{product: 1, amount: 7, A: 5}]);
-  assert.deepEqual(cases.get('pipe-pivot-argument-expression-current-slot').expected,
-    [{product: 1, A: 16}]);
-  assert.deepEqual(cases.get('pipe-pivot-argument-expression-property-null-propagation').expected,
-    [{product: 1, A: 11}, {product: 2, A: null}, {product: 3, A: null}]);
-  assert.equal(pipePivotRefusals.filter(item => item.name.startsWith('pipe-pivot-refusal-argument-expression-')).length, 6);
 });
 
 test('JOIN value receiver fixtures distinguish scalar object and ordinary row kinds',()=>{

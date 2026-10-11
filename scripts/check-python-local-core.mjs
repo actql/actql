@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {copyFile,mkdir,readFile,writeFile} from 'node:fs/promises';
+import {constants} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runLocalCheck} from './local-checks-guard.mjs';
@@ -27,8 +28,19 @@ if(process.argv.includes('--build-and-consume')){
   const source=run('git',['rev-parse','HEAD']);
   const target=join(root,'_build/python-local-core/wasm');
   run('moon',['build','--target','wasm','--release','src/client_host_wasm','--target-dir',target],120000);
-  const module=join(target,'wasm/release/build/client_host_wasm/client_host_wasm.wasm');
-  const digest=createHash('sha256').update(await readFile(module)).digest('hex');
+  const built=join(target,'wasm/release/build/client_host_wasm/client_host_wasm.wasm');
+  const digest=createHash('sha256').update(await readFile(built)).digest('hex');
+  const receipt=join(root,'_build/python-local-core/artifacts',source);
+  await mkdir(receipt,{recursive:true});
+  // Consume and retain the same immutable module, not the next build's path.
+  const module=join(receipt,'client_host_wasm.wasm');
+  try {
+    await copyFile(built,module,constants.COPYFILE_EXCL);
+  } catch (error) {
+    if(error.code!=='EEXIST')throw error;
+  }
+  assert.equal(createHash('sha256').update(await readFile(module)).digest('hex'),
+    digest,'The retained artifact must match this fixed-source build');
   const output=run(python,['scripts/fixtures/python-local-buffer-abi.py',module]);
   const result=JSON.parse(output);
   assert.equal(result.success,true);
@@ -39,10 +51,24 @@ if(process.argv.includes('--build-and-consume')){
   const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
   assert.equal(physical.success,true);
   assert.equal(physical.module_sha256,digest);
-  const receipt=join(root,'_build/python-local-core/artifacts',source.slice(0,9));
-  await mkdir(receipt,{recursive:true});
-  await writeFile(join(receipt,'receipt.json'),JSON.stringify({source_sha:source,module,
-    module_sha256:digest,moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical},null,2)+'\n');
+  const sourceEnvironment=JSON.parse(run(python,['scripts/fixtures/python-local-source-environment-abi.py',module]));
+  assert.equal(sourceEnvironment.success,true);
+  assert.equal(sourceEnvironment.module_sha256,digest);
+  const runPreparation=JSON.parse(run(python,['scripts/fixtures/python-local-run-abi.py',module]));
+  assert.equal(runPreparation.success,true);
+  assert.equal(runPreparation.module_sha256,digest);
+  const materials=JSON.parse(run(python,['scripts/fixtures/python-local-material-abi.py',module]));
+  assert.equal(materials.success,true);
+  assert.equal(materials.module_sha256,digest);
+  const record={source_sha:source,module,module_sha256:digest,
+    moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,source_environment:sourceEnvironment,run_preparation:runPreparation,materials};
+  try {
+    await writeFile(join(receipt,'receipt.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+  } catch (error) {
+    if(error.code!=='EEXIST')throw error;
+    assert.deepEqual(JSON.parse(await readFile(join(receipt,'receipt.json'),'utf8')),record,
+      'Do not replace an existing fixed-source receipt');
+  }
 }else{
   process.exitCode=await runLocalCheck({root,heavy:true,timeoutSeconds:240,graceSeconds:5,steps:[{
     name:'Actual Python/Core buffer ABI',command:process.execPath,

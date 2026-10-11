@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 
 const contractUrl = new URL(
   '../adapters/connectors/duckdb/environment-contract.json',
@@ -55,3 +55,16 @@ const readback = [
   '',
 ].join('\n');
 assert.equal(await readFile(readbackUrl, 'utf8'), readback);
+
+const pythonUrl = new URL(
+  '../packages/python-sdk/src/actql_sdk/_duckdb_environment.py', import.meta.url,
+);
+const python = [
+  '# Generated from adapters/connectors/duckdb/environment-contract.json.',
+  'SETTINGS: tuple[tuple[str, str], ...] = (',
+  ...entries.map(([name, value]) => `    (${JSON.stringify(name)}, ${JSON.stringify(value)}),`),
+  ')',
+  '',
+].join('\n');
+if (process.argv.includes('--write-python')) await writeFile(pythonUrl, python);
+assert.equal(await readFile(pythonUrl, 'utf8'), python);
