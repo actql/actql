@@ -52,6 +52,7 @@ import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
   from './graph-shortest-source-input.mjs';
 import {graphMeanSourceOracles, graphMeanSourceRefusals}
   from './graph-mean-source-input.mjs';
+import {inputStageResultSuccesses} from './input-stage-result.mjs';
 import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
   from './graph-remaining-operation-inputs.mjs';
 import {createRetainedGraphAuthorization, observeRetainedGraphDispatch}
@@ -255,7 +256,8 @@ const unnestCheckedArrayOnly = process.env.ACTQL_TEST_UNNEST_CHECKED_ARRAY_ONLY 
 const unnestParameterPathOnly = process.env.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY === '1';
 const pipeUnpivotOnly = process.env.ACTQL_TEST_PIPE_UNPIVOT_ONLY === '1';
 const unnestOnly = process.env.ACTQL_TEST_UNNEST_SOURCE_ONLY === '1';
-const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
+const inputStageResultOnly = process.env.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY === '1';
+const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1' || inputStageResultOnly;
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
@@ -337,7 +339,8 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
+const scopeInputs = inputStageResultOnly ? {successes: inputStageResultSuccesses, refusals: []}
+  : graphRemainingOperationsOnly ? graphRemainingOperationInputs
   : concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
   : analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
   : countifDistinctOnly ? {successes: countifDistinctSuccesses, refusals: countifDistinctRefusals}

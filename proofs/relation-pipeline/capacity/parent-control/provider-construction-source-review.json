@@ -1,6 +1,6 @@
 {
   "version": "actql-provider-construction-source-review/0.1",
-  "currentRecipeDigest": "df6476d3e0e28dbc4d2a8916adda79a12abeca38abf0540a4daee6cdb9f5934a",
+  "currentRecipeDigest": "2aad0b5b4dbc34b8161140adb91428dce524ad6e207067f6ee14cc9d43671012",
   "originalRecipeDigest": "cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71",
   "historicalSourcePremises": {
     "src/connectors/local/managed_provider.mbt": "40b1b803e586d1dbce5eb0dabc9888d57ae0eb28bebbcee7e0d3b4fd5fa00950",
@@ -8,7 +8,7 @@
   },
   "introductionRevision": "58fd19eade59cf3bcbf6a859c9821471346e3b41",
   "historicalReviewRevision": "7d7cc6cfc6e7b46379fc85c8ac223bd380cbd200",
-  "selectedDigest": "3fed93a0919b10bc204c93d90d8e217344dc44831c87b6337cfdb7f08e168d4a",
+  "selectedDigest": "22c90febf2d0ea00ff2bba1cc5483a396c82bcdf6cc3bee7f8b4882a8a45e59f",
   "managedDigest": "0a5978f614e7b01fd191395f2fe3cb4ce98c3c7548aec968033d10d0fa8964a3",
   "generatedVariants": [
     {
@@ -63,6 +63,7 @@
     "family"
   ],
   "changedResponsibilities": [
+    "The operation-free one-Relation-input owner is admitted and dispatched to the existing bounded copy cursor by exactly two callback-execution branches. Removing those exact branches yields the full fdb902734d253cc171fa2c0c7e478f8611064de2 provider source byte-for-byte. Candidate count, record fields, four callbacks, capture inputs, arrays and constructor wrappers remain unchanged. Copy work, output retention and cleanup are runtime obligations, not construction-only byte guarantees.",
     "retained receiving-input preparation changes callback execution and parent state, outside candidate construction; the complete selected factory is byte-identical to b98a50ff763d1367e344fdfa8aea380ec8749132",
     "GraphConstructionStep replaces the constructor spelling in the existing row-kernel exclusion only; historical source normalization adds no runtime alias",
     "GraphMeanStep adds one alternative to the existing row-kernel false branch. Removing exactly that line yields the entire ba0779ad8551bb06476c275cc74cebeef4463751 generated_sequence.mbt blob byte-for-byte. Construction count, records, callbacks, capture fields, arrays and recipe bytes do not change. Mean execution and scratch/output reservations are separate from this construction-only component; this review does not establish a full parent or pipeline physical upper bound.",

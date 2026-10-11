@@ -255,9 +255,16 @@ fn start_trusted_output_preparation(
       }
     }
   }
-  guard target is Step(index) &&
-    index == completion_preparation_terminal_step(generated) &&
-    @lower.node_at(prepared, index) is Some(node) &&
+  let id = match target {
+    Step(index) if index == completion_preparation_terminal_step(generated) =>
+      @lower.node_at(prepared, index).map(@lower.node_id)
+    Input(index) if @lower.node_count(prepared) == 0 &&
+      generated.selected_step is None &&
+      @lower.preparation_output_target(prepared) == Some(target) =>
+      @lower.input_id(prepared, index)
+    _ => None
+  }
+  guard id is Some(id) &&
     @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(InvalidTarget)
   }
@@ -266,7 +273,6 @@ fn start_trusted_output_preparation(
   if generated.retained_ids.length() != 1 {
     return Err(NotRetained)
   }
-  let id = @lower.node_id(node)
   Ok({
     generated,
     target,
