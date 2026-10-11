@@ -2649,9 +2649,6 @@ fn serve_holder_output(
     None
   },
   effect_evidence_read? : (@remote.DispatchRequest) -> Bool = _ => false,
-  effect_review_publication? : (@remote.DispatchRequest) -> HolderEffectReviewPublication? = _ => {
-    None
-  },
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
     None
   },
@@ -2759,7 +2756,6 @@ fn serve_holder_output(
                 environment.journal,
                 resources,
                 effect_catalog_review,
-                effect_review_publication,
                 current_authority,
               ),
             )
@@ -3058,7 +3054,6 @@ fn serve_holder_output(
                             environment.journal,
                             resources,
                             effect_catalog_review,
-                            effect_review_publication,
                             () => {
                               exclusive_current() &&
                               effect_evidence_read(task.request) &&
@@ -4173,6 +4168,26 @@ fn run_holder(
         observer,
         () => slot.verify_current_hold() == Ok(()),
         effect_producer=effect_producer.val,
+        effect_catalog_review=original => {
+          open_holder_effect_review_installation(
+            matches,
+            environment.sqlite_library,
+            resources,
+            execution.limits.output.output_export,
+            original,
+          ) catch {
+            CommandStop(_) => {
+              report("effect-review-pending", [
+                (
+                  "request_cid",
+                  @remote.dispatch_request_identity(original.task.request),
+                ),
+                ("reason", "review-installation"),
+              ])
+              None
+            }
+          }
+        },
         effect_resume_installation=request => {
           if effect_resume.val is None {
             let installed = open_holder_effect_resume_installation(
@@ -4733,6 +4748,7 @@ fn command() -> @argparse.Command {
       global("budget-execution-bytes"),
       global("engine-root"),
       global("effect-resume-root"),
+      global("effect-review-root"),
       global("duckdb-library"),
       global("source-ref"),
       global("source-contract-cid"),

@@ -12,6 +12,7 @@ priv struct HolderEffectCatalogReviewCustody {
   max_observation_bytes : Int
   crypto : @signature.Library
   key : Bytes
+  publication : HolderEffectReviewPublication
   mut observed : (
     @effect_catalog.CatalogObservation,
     @effect_resource.NativeCredentialResponse,
@@ -66,6 +67,7 @@ fn new_holder_effect_catalog_review_custody(
   max_observation_bytes : Int,
   crypto : @signature.Library,
   key : Bytes,
+  publication : HolderEffectReviewPublication,
 ) -> HolderEffectCatalogReviewCustody {
   {
     installation,
@@ -77,6 +79,7 @@ fn new_holder_effect_catalog_review_custody(
     max_observation_bytes,
     crypto,
     key,
+    publication,
     observed: None,
     context: None,
     retiring: false,
@@ -243,6 +246,7 @@ fn prepare_holder_effect_catalog_review(
   let current = () => {
     authorize_evidence_read() &&
     original.current() &&
+    (catalog.publication.current)() &&
     !catalog.retiring &&
     !installed.client_closed &&
     !installed.database_closed &&
