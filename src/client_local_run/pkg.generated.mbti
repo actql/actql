@@ -25,6 +25,8 @@ pub fn authorize_local_native_source(LocalNativeSourceConfiguration, @execution_
 
 pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Result[LocalComputeStart, LocalComputeIssue]
 
+pub fn check_local_source_publication_preflight(LocalPublicationIntent, LocalSourceInvocation, @execution_authorization.AdmittedAccountConfiguration, Array[@run_publication.PublicationContract]) -> Result[LocalPublicationPreflight, LocalPublicationIntentIssue]
+
 pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
 pub fn configure_captured_source_local_compute_on_ledger(LocalRunPlan, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
@@ -38,6 +40,8 @@ pub fn confirm_local_compute_start(LocalComputeHost, @run_publication_host.Clien
 pub fn confirm_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[LocalRunPhysicalStart, LocalRunIssue]
 
 pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[String, LocalRunIssue]
+
+pub fn issue_local_preflight_result_publication(LocalPublicationPreflight, Int, @run_publication_host.PublicationOutputExport, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalPublicationIntentIssue]
 
 pub fn issue_local_result_durable_binding(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
 
@@ -58,6 +62,10 @@ pub fn local_compute_run(LocalComputeHost) -> @physical_strategy.CapturedDAG
 pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @host.NativeHostConfiguration
 
 pub fn local_native_source_requirement(LocalNativeSourceConfiguration) -> @query_planning.QueryRequirement
+
+pub fn local_publication_intent_contracts(LocalPublicationIntent) -> (@run_publication.PublicationContract, @run_publication.PublicationContract)
+
+pub fn local_publication_intent_inventory(LocalPublicationIntent) -> @run_publication.CheckedPublicationInventory
 
 pub fn local_result_publication_contracts(LocalResultPublication) -> Array[@run_publication.PublicationContract]
 
@@ -89,6 +97,8 @@ pub fn local_source_publication_logical(LocalSourcePublication) -> @run_publicat
 
 pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
+pub fn prepare_local_publication_intent(LocalRunPlan, String, String, String, String, String, String, String?, String, LocalPublicationIntentLimits) -> Result[LocalPublicationIntent, LocalPublicationIntentIssue]
+
 pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Bool, LocalRunIssue]
 
 pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
@@ -118,6 +128,8 @@ pub fn start_local_publication_commit_check(LocalRunManifest, LocalRunNormalizat
 pub fn start_local_result_publication_snapshot(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication_host.PublicationOutputSnapshotPreparation, LocalResultPublicationIssue]
 
 pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
+
+pub fn validate_local_publication_preflight_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
 
 pub fn validate_local_result_publication_current(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalResultPublicationIssue]
 
@@ -164,6 +176,31 @@ pub(all) enum LocalNativeSourceIssue {
   Configuration(@client_local_host.ClientDuckDBAcquisitionIssue)
   Host(@host.NativeHostIssue)
 }
+
+type LocalPublicationIntent
+
+pub(all) enum LocalPublicationIntentIssue {
+  MissingResult
+  InventoryLimit
+  Inventory(@run_publication.PublicationInventoryIssue)
+  Contract(@run_publication.PublicationCommitIssuanceIssue)
+  ForeignCompute
+  AuthorizationMismatch
+  Source(LocalNativeSourceIssue)
+  UnavailableSource
+  PreflightMismatch
+  ComputeAlreadyStarted
+  ResultPublication(LocalResultPublicationIssue)
+}
+
+pub(all) struct LocalPublicationIntentLimits {
+  max_results : Int
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+type LocalPublicationPreflight
 
 pub struct LocalResultPublication {
   host : LocalComputeHost
