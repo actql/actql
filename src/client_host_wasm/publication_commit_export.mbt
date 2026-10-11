@@ -2,6 +2,7 @@
 priv enum PublicationCommitExportProjection {
   Candidate
   Material(Int, Int)
+  IndexKey
 } derive(Eq)
 
 ///|
@@ -185,6 +186,60 @@ pub fn produce_publication_commit_material(
   }
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
+  )
+  record.pending = false
+  if result == 0 {
+    record.produced = true
+  }
+  result
+}
+
+///|
+/// Project the existing Owner's scoped key from the original validated index.
+/// This is a physical address, not publisher permission or a durable ACK.
+#export_name("actql_publication_commit_export_produce_index_key")
+pub fn produce_publication_commit_index_key(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) &&
+    value.publications.get(record.publication) is Some(parent) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if record.closing {
+    return -5
+  }
+  let (commit, view) = match
+    publication_commit_export_view(value, parent, current.account) {
+    Ok(original) => original
+    Err(code) => return code
+  }
+  if record.projection is Some(original) && original != IndexKey {
+    return -33
+  }
+  if record.produced {
+    return 0
+  }
+  if record.invoked || record.pending {
+    return -33
+  }
+  let index_entry = match commit.view_contract(view, 7) {
+    Ok(contract) => contract
+    Err(_) => return -32
+  }
+  let key = match
+    @publication.publication_index_storage_key(index_entry, 32768, 256, 16) {
+    Ok(key) => key
+    Err(_) => return -32
+  }
+  record.projection = Some(IndexKey)
+  record.invoked = true
+  record.pending = true
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(key)),
   )
   record.pending = false
   if result == 0 {

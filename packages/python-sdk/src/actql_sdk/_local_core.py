@@ -263,6 +263,7 @@ _COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity'
 _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'count': ('i64 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
+    'produce_index_key': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
@@ -563,7 +564,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 36:
+            if self._exports['actql_host_abi_version'](self._store) != 37:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1260,6 +1261,24 @@ class LocalCore:
             self._check('produce_publication_commit_material', self._call(
                 'publication_commit_export', 'produce_material', value.handle,
                 current_configuration, ordinal, _COMMIT_MATERIAL_FIELDS[field]))
+
+    def produce_publication_commit_index_key(self, value: _Output,
+                                             current_configuration: int) -> None:
+        """Project the original index's Owner-derived physical Store key.
+
+        Read it with read_publication_commit_material(). Core retains the
+        immutable projection and rechecks current access before reuse. This
+        neither grants publisher authority nor confirms a Store commit.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            self._check('produce_publication_commit_index_key', self._call(
+                'publication_commit_export', 'produce_index_key', value.handle,
+                current_configuration))
 
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""

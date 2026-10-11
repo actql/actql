@@ -28,6 +28,7 @@ final_publication = '--final-publication' in sys.argv[4:]
 result_binding = '--result-binding' in sys.argv[4:]
 commit_candidate = '--commit-candidate' in sys.argv[4:]
 commit_materials = '--commit-materials' in sys.argv[4:]
+commit_index_key = '--commit-index-key' in sys.argv[4:]
 payload_request = '--payload-request' in sys.argv[4:]
 payload_replay = '--payload-replay' in sys.argv[4:]
 payload_record = '--payload-record' in sys.argv[4:]
@@ -48,6 +49,7 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--commit-materials'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--commit-materials', '--commit-index-key'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--publisher-port'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
@@ -71,6 +73,7 @@ preflight_inputs = {}
 preflight_output_tickets = {}
 commit_cases = []
 commit_material_cases = []
+commit_index_key_cases = []
 payload_request_cases = []
 payload_replay_cases = []
 payload_record_cases = []
@@ -250,7 +253,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 36
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 37
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -1390,6 +1393,32 @@ try:
                             assert fixture.queries == expected['source_queries']
                             assert call('publication', 'commit_progress', value, 2) == commit_start_work + commit_work
                             commit_material_cases.append('same_material_cleanup_retry_and_retired_read_refusal')
+                        if commit_index_key:
+                            key_expected = json.loads((root / 'scripts/fixtures/python-local-commit-index-key.json').read_text())
+                            key_loan = material_child()
+                            assert_status('publication_commit_export', 'produce_index_key', -32, key_loan, denied_configuration)
+                            assert_status('publication_commit_export', 'produce_index_key', 0, key_loan, configuration)
+                            original_index_key = material_bytes(key_loan)
+                            assert len(original_index_key) == 64
+                            assert all(c in b'0123456789abcdef' for c in original_index_key)
+                            commit_index_key_cases.append('original_key_and_current_authority_refusal')
+                            assert_status('publication_commit_export', 'produce_index_key', 0, key_loan, configuration)
+                            assert_status('publication_commit_export', 'produce_index_key', -32, key_loan, denied_configuration)
+                            assert_status('publication_commit_export', 'produce_material', -33, key_loan, configuration, 7, 0)
+                            assert_status('publication_commit_export', 'produce', -33, key_loan, configuration)
+                            assert material_bytes(key_loan) == original_index_key
+                            commit_index_key_cases.append('immutable_projection_and_cached_current_access')
+                            allocated = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('publication_commit_export', 'close', -9, key_loan)
+                            assert fixture.call('allocated') == allocated
+                            assert_status('publication_commit_export', 'produce_index_key', -5, key_loan, configuration)
+                            assert_status('publication_commit_export', 'length', -33, key_loan)
+                            assert fixture.call('close', commit_input) == -9
+                            fixture.cleanup_ready = True
+                            assert_status('publication_commit_export', 'close', 0, key_loan)
+                            assert_status('publication_commit_export', 'length', -2, key_loan)
+                            commit_index_key_cases.append('same_key_cleanup_retry_and_retired_read_refusal')
                         ticket += 1
                         fixture.inputs[ticket] = b''
                         commit_export = call('publication_commit_export', 'reserve', value, ticket, 2097200)
@@ -1399,6 +1428,8 @@ try:
                         assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
                         if commit_materials:
                             assert_status('publication_commit_export', 'produce_material', -33, commit_export, configuration, 5, 0)
+                        if commit_index_key:
+                            assert_status('publication_commit_export', 'produce_index_key', -33, commit_export, configuration)
                         assert_status('publication_commit_export', 'produce', -32, commit_export, denied_configuration)
                         assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
                         size = call('publication_commit_export', 'length', commit_export)
@@ -1425,6 +1456,22 @@ try:
                             original_field = 'receipt_identity_cid' if field == 'run_receipt_cid' else field
                             assert index[field] == json.loads(original)[original_field]
                         assert index['run_definition_cid'] == original_request['run_definition_cid']
+                        if commit_index_key:
+                            # Independent addressing preimage from the retained original
+                            # intent/configuration/request, not from the projected key.
+                            # Fixed literal Unicode vectors test the algorithm separately.
+                            key_preimage = json.dumps({
+                                'authority_scope_cid': CONFIGURATION['authority_scope_cid'],
+                                'namespace_id': intent_facts['namespace_id'],
+                                'run_definition_cid': original_request['run_definition_cid'],
+                                'version': 'actql-public-index-key/0.1',
+                            }, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
+                            assert original_index_key == hashlib.sha256(key_preimage).hexdigest().encode('ascii')
+                            commit_index_key_cases.append('key_matches_original_index_scope')
+                            assert fixture.queries == expected['source_queries']
+                            assert call('publication', 'commit_progress', value, 2) == commit_start_work + commit_work
+                            commit_index_key_cases.append('shared_work_and_source_queries_unchanged')
+
                         assert index['invocation_cid'] == json.loads(body['manifest'])['invocation_cid']
                         assert index['durable_result_binding_cids'] == [binding['durable_result_binding_cid']]
                         assert len(index['durable_result_binding_cids']) == commit_expected['binding_count']
@@ -1543,6 +1590,12 @@ try:
                     binding_cases.append('parent_close_retains_child_without_source_compute_replay')
                     if commit_candidate:
                         assert_status('publication_commit_export', 'produce', -5, commit_export, configuration)
+                        if commit_index_key:
+                            assert_status('publication_commit_export', 'produce_index_key', -5, commit_export, configuration)
+                            assert fixture.queries == expected['source_queries']
+                            commit_index_key_cases.append('parent_close_refuses_key_without_reexecution')
+                            assert commit_index_key_cases == key_expected['cases']
+
                         if commit_materials:
                             assert_status('publication_commit_export', 'count', -5, value, configuration)
                             assert fixture.queries == expected['source_queries']
@@ -1686,6 +1739,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'publication_retirement_cases': publication_retirement_cases,
                   'commit_candidate_cases': commit_cases,
                   'commit_material_cases': commit_material_cases,
+                  'commit_index_key_cases': commit_index_key_cases,
                   'payload_request_cases': payload_request_cases,
                   'payload_replay_cases': payload_replay_cases,
                   'payload_record_cases': payload_record_cases,

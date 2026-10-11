@@ -72,6 +72,8 @@ try:
         left.store, left.nonce, handle, handle) == -2
     assert left.exports['actql_publication_commit_export_produce_material'](
         left.store, right.nonce, handle, handle, 0, 0) == -2
+    assert left.exports['actql_publication_commit_export_produce_index_key'](
+        left.store, right.nonce, handle, handle) == -2
     assert left.exports['actql_publication_commit_export_produce'](
         left.store, left.nonce, handle, handle) == -2
     assert left.exports['actql_publication_commit_export_length'](
