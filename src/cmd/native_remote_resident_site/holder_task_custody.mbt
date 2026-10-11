@@ -11,6 +11,7 @@ priv struct HolderTaskCustody {
   mut executed : @resident_host.ResidentExecuted?
   mut effect_producer : @resident_host.ResidentEffectProducerExecuted?
   mut effect_review : @effect_review.NativeResidentEffectReview?
+  mut effect_catalog_review : HolderEffectCatalogReviewCustody?
   mut effect_review_cleanup : @resident_host.ResidentEffectReviewInputContext?
   mut restoration : @resident_host.ResidentCompletedAttempt?
   mut restoration_cleanup : @runtime.NativeRemoteRuntime?
@@ -40,6 +41,7 @@ fn new_holder_task_custody(
     executed,
     effect_producer,
     effect_review: None,
+    effect_catalog_review: None,
     effect_review_cleanup: None,
     restoration: None,
     restoration_cleanup: None,

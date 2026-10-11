@@ -1,0 +1,21 @@
+{
+  "baseline": "6d0f42f54ce7380fda012c641025ac3ea21060a5",
+  "runtime_executed": false,
+  "compile_executed": false,
+  "public_executed": false,
+  "heavy_started": false,
+  "moon_js_commands": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_syntax/grouped_limit_test.mbt src/query_syntax/limit_parameter_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/grouped_limit_test.mbt src/query_program/limit_parameter_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/run_publication_host/client_values_run_materials_wbtest.mbt"
+  ],
+  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/limit-parameter-source-input.test.mjs scripts/client-values-run-materials-vector.test.mjs",
+  "public_route": "--limit-parameter-only",
+  "additions": {
+    "normal": 5,
+    "refusal": 5
+  },
+  "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
+  "guard": "Do not retry or bypass B process-inspection rejection; public Heavy is unreserved."
+}
