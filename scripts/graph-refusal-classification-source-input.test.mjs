@@ -46,9 +46,10 @@ const originals = [
   ['graph-equality-graph-call-after-transition', '2460ffb2a2bab8d2a1a3345ec1efd8c162329f85999137cfa524eb93dff44f83', false],
 ];
 // Retired authored sources remain immutable evidence, not accepted callers.
+const historicalCore = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-core-source-input.json', import.meta.url), 'utf8'));
 const historicalRows = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-row-source-input.json', import.meta.url), 'utf8'));
 const cases = new Map([
-  ...graphSourceRefusals,
+  ...historicalCore.graph.refusals,
   ...subgraphSourceRefusals,
   ...graphAnyDirectionRefusals,
   ...graphAbbreviatedRefusals,
@@ -85,5 +86,22 @@ test('WITH Graph row refusals preserve their existing rejection policy', () => {
     assert.notEqual(text, oldText);
     assert.ok(text.startsWith('WITH '));
     assert.ok(!/\bDATA\b|PROPERTY GRAPH/.test(text));
+  }
+});
+
+test('WITH Graph core refusals preserve independent rejection policy', () => {
+  assert.equal(graphSourceRefusals.length, historicalCore.graph.refusals.length);
+  for (const current of graphSourceRefusals) {
+    const previous = historicalCore.graph.refusals.find(item => item.name === current.name);
+    const {text: oldText, ...oldPolicy} = previous;
+    const {text, ...policy} = current;
+    assert.deepEqual(policy, oldPolicy, current.name);
+    if (current.name === 'data-sql-format') {
+      assert.equal(text, oldText, 'retain explicit rejection of the retired entry');
+    } else {
+      assert.notEqual(text, oldText, current.name);
+      assert.ok(text.startsWith('WITH '), current.name);
+      assert.ok(!/\bDATA\b|PROPERTY GRAPH/.test(text), current.name);
+    }
   }
 });
