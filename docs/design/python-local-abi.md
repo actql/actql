@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 32; this private ABI
+before opening the instance. `actql_host_abi_version` returns 33; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1277,3 +1277,20 @@ Neither a physical digest nor a produced Sealed candidate grants publisher
 authority, installs a final pathname, commits a Store or determines a Run
 outcome. Actual physical installation and durable publication remain separate
 existing Owner responsibilities.
+
+Private ABI33 projects original Core-selected staging/object names through a
+separately reserved 1KiB `actql_payload_names_*` output child. Only a confirmed
+filesystem-owned Writing or Sealed record can create it. The projection carries
+the original request CID, Store/material identity and captured record revision.
+It uses the existing payload Owner's name getters; Python does not reconstruct
+names from a submitted Program or interpret a durable-record compatibility
+format. The existing durable record, public schema and identity preimages are
+unchanged. These names do not authorize file operations or publication.
+
+Production and cached reads require the same original revision and current
+Run/Source authorization. A later transition invalidates that old projection.
+The child pins its original record and exact Source/input custody until its
+existing buffer cleanup succeeds. Parent close seals further production and
+waits for that same child; failed cleanup retains its reservation and handle.
+Python checks nominal loans and bounds before copying, returns exact bytes and
+does not start an execution, write files or release persistent capacity.

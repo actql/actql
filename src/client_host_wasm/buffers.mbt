@@ -52,6 +52,7 @@ priv struct Instance {
   payload_reservations : Map[Int, StoredPayloadReservation]
   payload_writings : Map[Int, StoredPayloadWriting]
   payload_allocations : Map[Int, StoredPayloadAllocation]
+  payload_names : Map[Int, StoredPayloadNames]
   tasks : Map[Int, StoredManagedTask]
   result_exports : Map[Int, StoredResultExport]
   result_chunks : Map[Int, StoredResultChunk]
@@ -170,6 +171,7 @@ pub fn open(
         payload_reservations: {},
         payload_writings: {},
         payload_allocations: {},
+        payload_names: {},
         tasks: {},
         result_exports: {},
         result_chunks: {},
@@ -342,6 +344,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     !value.payload_reservations.is_empty() ||
     !value.payload_writings.is_empty() ||
     !value.payload_allocations.is_empty() ||
+    !value.payload_names.is_empty() ||
     !value.tasks.is_empty() ||
     !value.result_exports.is_empty() ||
     !value.result_chunks.is_empty() {
@@ -386,6 +389,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.payload_reservations.clear()
     value.payload_writings.clear()
     value.payload_allocations.clear()
+    value.payload_names.clear()
     value.tasks.clear()
     value.result_exports.clear()
     value.result_chunks.clear()

@@ -241,7 +241,8 @@ pub fn close_payload_record(nonce : Int64, handle : Int) -> Int {
   record.closing = true
   if value.payload_reservations.values().any(child => child.parent == handle) ||
     value.payload_writings.values().any(child => child.parent == handle) ||
-    value.payload_allocations.values().any(child => child.parent == handle) {
+    value.payload_allocations.values().any(child => child.parent == handle) ||
+    value.payload_names.values().any(child => child.parent == handle) {
     return -9
   }
   if record.begun && !record.confirmed {

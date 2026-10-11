@@ -88,6 +88,8 @@ pub fn publication_payload_allocation_write_request(PublicationPayloadAllocation
 
 pub fn publication_payload_allocation_write_value(PublicationPayloadAllocationWrite) -> PublicationPayloadAllocation
 
+pub fn publication_payload_filesystem_names_json(PublicationPayloadRecord) -> Result[String, PublicationPayloadIssue]
+
 pub fn publication_payload_material_identity(PublicationPayloadRequest) -> String
 
 pub fn publication_payload_object_name(PublicationPayloadRequest) -> String

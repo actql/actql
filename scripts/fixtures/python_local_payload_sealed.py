@@ -10,7 +10,7 @@ from actql_sdk._local_storage import ByteFence, ByteWrite, LocalByteStore, Store
 
 
 def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
-                         copy, call, assert_status, new_output_ticket):
+                         copy, call, assert_status, new_output_ticket, names_observer=None):
     expected = json.loads((Path(__file__).parent / 'python-local-payload-sealed.json').read_text())
     independent = json.loads((Path(__file__).parent / 'python-local-result-storage-binding.json').read_text())
     cases = []
@@ -93,6 +93,8 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     assert_status('payload_writing', 'begin', 0, writing, configuration)
                     assert store.compare_exchange_reserved(ByteWrite(key, 1, writing_wire), capacity) == 2
                     confirm('payload_writing', writing, 2, writing_wire)
+                    if names_observer is not None:
+                        names_observer.unowned(record)
                     assert_status('payload_writing', 'close', 0, writing)
                     assert_status('payload_writing', 'reserve', -2, record, 3, 65200, expected['physical_copy_bytes'])
 
@@ -143,6 +145,8 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     confirm('payload_writing', owned, 3, owned_wire)
                     assert_status('payload_writing', 'close', 0, owned)
                     cases.append('original_confirmed_area_and_file_ownership_precede_sealed')
+                    if names_observer is not None:
+                        names_observer.owned(record, owned_wire)
 
                     assert_status('payload_request', 'start_replay', 0, parent, configuration)
                     offset = 0
@@ -215,6 +219,8 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     assert body['physical_digest'] == fact['physical_digest']
                     assert body['request_json'] == json.loads(owned_wire)['request_json']
                     assert store.read(key) == StoredBytes(3, owned_wire)
+                    if names_observer is not None:
+                        names_observer.candidate(record, owned_wire, sealed_wire)
                     cases.append('physical_sealed_candidate_keeps_original_writing_until_cas')
                     assert_status('payload_writing', 'begin', 0, sealed, configuration)
                     assert_status('payload_writing', 'begin', -33, sealed, configuration)
