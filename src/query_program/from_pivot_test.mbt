@@ -39,20 +39,23 @@ test "FROM PIVOT matches independently authored producer stages" {
     construction_limits().program,
     format=Json,
   ).unwrap()
-  for source in [
-    "SELECT id,customer_id,opened,closed FROM orders PIVOT(COUNT(amount) FOR status IN ('open' AS opened,'closed')) ORDER BY id",
-    "SELECT id,customer_id,opened,closed FROM orders PIVOT(COUNT(amount) FOR status IN ((('open')) AS opened,('closed'))) ORDER BY id",
-  ] {
+  for
+    source in [
+      "SELECT id,customer_id,opened,closed FROM orders PIVOT(COUNT(amount) FOR status IN ('open' AS opened,'closed')) ORDER BY id",
+      "SELECT id,customer_id,opened,closed FROM orders PIVOT(COUNT(amount) FOR status IN ((('open')) AS opened,('closed'))) ORDER BY id",
+    ] {
     let actual = compile(
       @query.parse_query(source, syntax_limits()).unwrap(),
       values_context(),
       construction_limits(),
     ).unwrap()
     assert_eq(semantic(actual), semantic(expected), msg=source)
-    match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    match
+      @check.check_parsed(actual, check_environment(), None, check_limits()) {
       Checked(_) => ()
       Rejected(issue) => raise @check.diagnostic_cause(issue)
-      NeedsInputs(_) => fail("grouped FROM PIVOT must check as a closed Program")
+      NeedsInputs(_) =>
+        fail("grouped FROM PIVOT must check as a closed Program")
     }
   }
 }
