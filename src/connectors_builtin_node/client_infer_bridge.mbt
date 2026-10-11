@@ -725,6 +725,31 @@ pub fn client_program_claim_infer_original_preparation(
 }
 
 ///|
+/// Private trusted Node layout selection, before any operation/IO allocation.
+/// The original Resource Owner issues the same one-shot consumer. This is not
+/// a physical-layout proof, a numerical default, or Model dispatch authority.
+#export_name("clientProgramClaimInferNodePreparationLayout")
+pub fn client_program_claim_infer_node_preparation_layout(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+) -> Result[
+  @publication_host.ClientModelReadConsumer,
+  @publication_host.ClientModelPreparationLayoutIssue,
+] {
+  @publication_host.claim_client_node_model_preparation_layout(
+    read, compiled, definition, graph, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
+  )
+}
+
+///|
 /// Recheck original funding before the ordinary bounded input/Execution start.
 /// This private caller does not install a public asynchronous capability.
 #export_name("clientProgramStartOriginalInferExecution")

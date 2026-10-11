@@ -2351,6 +2351,30 @@ function publicationControl(moon) {
         preparedCallSet, admitted, beginEntry));
       return admitted;
     },
+    // Reuse the original compiled/definition token domains. A public wrapper
+    // object cannot be passed as a nominal MoonBit compiled Run or contract.
+    claimCheckedClientInferNodePreparationLayout(compiled, definition, graph, read,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramClaimInferNodePreparationLayout(read,
+        value, token(definition), graph, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability));
+    },
+    startCheckedClientInferOriginalPreparation(compiled, definition, prepared,
+      step, graph, registry, values, provider, consumer, readRetainedBytes,
+      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalInferExecution(prepared,
+        step, graph, registry, values, provider, value, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes,
+        modelExecutionBytes, fragment, ordered));
+    },
     // Private installed Node inputs only. Canonical/body admission does not
     // issue capture authority, funded capacity or public async support.
     readInstalledModelResponseProfile(wire, expectedCid, limits) {

@@ -49,9 +49,27 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     }
     // The original read owner retains the issued ticket if a later constructor
     // fails. No JS ownership map, claim reset or unowned-start fallback exists.
-    originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalPreparation.read,
-      originalPreparation.compiled, originalPreparation.runDefinition, graph,
-      originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes));
+    if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
+      const selected = originalPreparation.nodeInstallation;
+      if (selected === null || typeof selected !== 'object' ||
+          Object.keys(selected).sort().join(',') !==
+            'installation,layout,layoutArtifactCid,probability,runtimeArtifactCid' ||
+          typeof originalPreparation.control?.claimCheckedClientInferNodePreparationLayout !== 'function' ||
+          typeof originalPreparation.control?.startCheckedClientInferOriginalPreparation !== 'function') {
+        throw new TypeError('InvalidInferOriginalPreparationLayout');
+      }
+      // Installation-owned selection only. Never retry a rejected layout with
+      // the older private envelope seam, or derive grants from support bounds.
+      originalConsumer = originalPreparation.control.claimCheckedClientInferNodePreparationLayout(
+        originalPreparation.compiled, originalPreparation.runDefinition, graph,
+        originalPreparation.read, selected);
+    } else {
+      // Explicit existing private envelope caller; no production supplier or
+      // physical adequacy is implied by this older diagnostic interface.
+      originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalPreparation.read,
+        originalPreparation.compiled, originalPreparation.runDefinition, graph,
+        originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes));
+    }
   }
   if (retainOperation !== undefined && typeof retainOperation !== 'function') {
     throw new TypeError('InvalidInferOperationCustody');
@@ -101,7 +119,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
   let active;
-  try { active = checked(originalPreparation !== undefined
+  try { active = originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
+    ? originalPreparation.control.startCheckedClientInferOriginalPreparation(
+      originalPreparation.compiled, originalPreparation.runDefinition,
+      preparedProgram, step, graph, registry, values, provider, originalConsumer,
+      originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
+      originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes, fragment, ordered)
+    : checked(originalPreparation !== undefined
     ? moon.clientProgramStartOriginalInferExecution(preparedProgram, step, graph,
       registry, values, provider, originalPreparation.compiled, originalPreparation.runDefinition,
       originalConsumer, originalPreparation.readRetainedBytes,

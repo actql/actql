@@ -415,6 +415,49 @@ test('ordinary Program joins actual journal ACK and capture to pinned SDK and St
 test('ordinary Program joins durable capture after a lost settlement commit response without resend',
   {timeout: 10000}, t => originalSdkStoreConnection(t, true, true));
 
+test('original Node layout control preserves nominal compiled and definition domains before claim', () => {
+  const claims = [];
+  const consumingMoon = {...moon,
+    clientProgramClaimInferNodePreparationLayout(...args) {
+      claims.push(args);
+      return moon.clientProgramClaimInferNodePreparationLayout(...args);
+    }};
+  const control = runtimeCore(consumingMoon).publicationControl;
+  const foreign = runtimeCore(moon).publicationControl;
+  const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+  const graph = scopedInferGraph(prepared);
+  const root = cid({fixture: 'original Node layout'});
+  const policy = {executionContextCid: root, hostPolicyCid: root,
+    expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
+  const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', policy, graph);
+  const definition = control.defineCheckedClientCompiledRun(compiled,
+    {namespaceId: 'layout', runId: 'one', createdAt: '2026-10-02T00:00:00.000Z',
+      validUntil: policy.expiresAt});
+  const foreignCompiled = foreign.prepareCheckedClientCompiledRun(prepared, 'infer', policy, graph);
+  const foreignDefinition = foreign.defineCheckedClientCompiledRun(foreignCompiled,
+    {namespaceId: 'layout', runId: 'foreign', createdAt: '2026-10-02T00:00:00.000Z',
+      validUntil: policy.expiresAt});
+  const selected = {layout: undefined, installation: undefined,
+    runtimeArtifactCid: root, layoutArtifactCid: root, probability: undefined};
+  assert.throws(() => control.claimCheckedClientInferNodePreparationLayout(
+    foreignCompiled, definition, graph, undefined, selected), /Foreign Client compiled Infer preparation/u);
+  assert.throws(() => control.claimCheckedClientInferNodePreparationLayout(
+    compiled, foreignDefinition, graph, undefined, selected), /Foreign publication contract/u);
+  assert.equal(claims.length, 0, 'foreign wrappers do not reach the original claim');
+  // The real Core reads the optional layout first and returns Unavailable;
+  // this negative fixture supplies no original read token or capacity grant.
+  assert.throws(() => control.claimCheckedClientInferNodePreparationLayout(
+    compiled, definition, graph, undefined, selected), error => error.code === 'MoonBitHostFailure');
+  assert.equal(claims.length, 1);
+  assert.notEqual(claims[0][1], compiled, 'consume the original nominal compiled Run, not its JS view');
+  assert.notEqual(claims[0][2], definition, 'consume the original nominal definition, not its JS view');
+  assert.equal(claims[0][3], graph);
+  assert.throws(() => control.startCheckedClientInferOriginalPreparation(
+    foreignCompiled, definition, prepared, 2, graph), /Foreign Client compiled Infer preparation/u);
+  assert.throws(() => control.startCheckedClientInferOriginalPreparation(
+    compiled, foreignDefinition, prepared, 2, graph), /Foreign publication contract/u);
+});
+
 test('bounded Infer admission fixtures match their existing checked owners', () => {
   execFileSync(process.execPath, ['scripts/infer-host-fixtures.mjs'],
     {stdio: 'pipe'});

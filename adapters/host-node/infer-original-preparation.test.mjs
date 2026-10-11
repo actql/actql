@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {openNodeInferOperation} from './infer-operation.mjs';
 import {createInferIoNotification, claimInferIoNotification} from './infer-io-notification.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 function fixture() {
   const active = {}, read = {}, compiled = {}, runDefinition = {};
@@ -138,6 +139,76 @@ test('funded start does not reinterpret restored or malformed installation as fr
   ]) {
     const f = fundedFixture(); mutate(f);
     assert.throws(() => openNodeInferOperation(f.options), /InvalidInferOriginalPreparation/u);
+    assert.equal(f.calls.length, 0);
+  }
+});
+
+function nodeLayoutFixture(issue) {
+  const f = fundedFixture();
+  let claimed = false;
+  const selected = {layout: {}, installation: {}, runtimeArtifactCid: 'runtime',
+    layoutArtifactCid: 'layout', probability: undefined};
+  f.originalPreparation.nodeInstallation = selected;
+  f.originalPreparation.control = {
+    claimCheckedClientInferNodePreparationLayout(...args) {
+      f.calls.push(['layoutClaim', ...args]);
+      if (issue !== undefined || claimed) return checked({$tag: 0, _0: issue ?? 'SpentClaim'});
+      claimed = true;
+      return f.consumer;
+    },
+    startCheckedClientInferOriginalPreparation(compiled, definition, ...args) {
+      assert.equal(compiled, f.originalPreparation.compiled);
+      assert.equal(definition, f.originalPreparation.runDefinition);
+      return checked(f.options.moon.clientProgramStartOriginalInferExecution(
+        ...args.slice(0, 6), compiled, definition, ...args.slice(6)));
+    },
+  };
+  return {...f, selected};
+}
+
+test('installed layout delegates authenticated original control before IO and reuses its same consumer', async () => {
+  const f = nodeLayoutFixture();
+  const operation = openNodeInferOperation(f.options);
+  assert.deepEqual(f.calls[0], ['layoutClaim', f.originalPreparation.compiled,
+    f.originalPreparation.runDefinition, f.graph, f.originalPreparation.read, f.selected]);
+  assert.deepEqual(f.calls[1], ['start', f.options.preparedProgram, 2, f.graph,
+    'registry', 'values', f.options.provider,
+    f.originalPreparation.compiled, f.originalPreparation.runDefinition,
+    f.consumer, 7n, 5n, 100n, 5n, 'fragment', 'ordered']);
+  assert.equal(f.calls.some(call => call[0] === 'claim'), false);
+  await operation.close();
+});
+
+test('installed layout refusal and duplicate claim never fall back or consume a second IO notifier', async () => {
+  for (const issue of ['Unavailable', 'RuntimeMismatch', 'PreparationMismatch']) {
+    const f = nodeLayoutFixture(issue);
+    const io = createInferIoNotification();
+    f.options.ioNotification = io;
+    assert.throws(() => openNodeInferOperation(f.options), error =>
+      error.code === 'MoonBitHostFailure' && error.cause === issue);
+    assert.equal(f.calls.length, 1);
+    claimInferIoNotification(io).close();
+  }
+  const f = nodeLayoutFixture();
+  const operation = openNodeInferOperation(f.options);
+  const io = createInferIoNotification();
+  f.options.ioNotification = io;
+  assert.throws(() => openNodeInferOperation(f.options), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === 'SpentClaim');
+  assert.equal(f.calls.filter(call => call[0] === 'start').length, 1);
+  claimInferIoNotification(io).close();
+  await operation.close();
+});
+
+test('installed layout requires explicit selected facts and original control without a legacy fallback', () => {
+  for (const mutate of [
+    f => { f.originalPreparation.nodeInstallation = undefined; },
+    f => { delete f.originalPreparation.nodeInstallation.installation; },
+    f => { f.originalPreparation.nodeInstallation.extra = true; },
+    f => { delete f.originalPreparation.control; },
+  ]) {
+    const f = nodeLayoutFixture(); mutate(f);
+    assert.throws(() => openNodeInferOperation(f.options), /InvalidInferOriginalPreparationLayout/u);
     assert.equal(f.calls.length, 0);
   }
 });

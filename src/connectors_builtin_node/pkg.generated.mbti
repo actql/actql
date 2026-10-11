@@ -305,6 +305,8 @@ pub fn client_program_check_unavailable(String) -> String
 
 pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) -> String
 
+pub fn client_program_claim_infer_node_preparation_layout(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientModelPreparationLayoutIssue]
+
 pub fn client_program_claim_infer_original_preparation(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Result[@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientModelReadPreparationIssue]
 
 pub fn client_program_cleanup_infer_capture_export(@model_execution.ModelCaptureExport) -> Result[Bool, @model_execution.ModelExecutionIssue]
