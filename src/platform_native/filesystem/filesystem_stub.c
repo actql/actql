@@ -78,6 +78,8 @@ struct actql_native_private_file_projection {
   actql_native_filesystem_root *root;
   char *name;
   struct stat original;
+  uint64_t original_root_device;
+  uint64_t original_root_inode;
   bool ready;
 };
 
@@ -562,6 +564,8 @@ void *actql_native_filesystem_adopt_private_file_projection(
       !actql_private_file_same_generation(
         &projection->original, &projection->original
       )) return projection;
+  projection->original_root_device = root->result_device;
+  projection->original_root_inode = root->result_inode;
   projection->ready = true;
   return projection;
 }
@@ -579,6 +583,8 @@ bool actql_native_private_file_projection_matches(
   struct stat opened, named;
   return projection != NULL && projection->ready && descriptor >= 0 &&
     actql_native_filesystem_private_root_identity(projection->root) &&
+    projection->root->result_device == projection->original_root_device &&
+    projection->root->result_inode == projection->original_root_inode &&
     fstat(descriptor, &opened) == 0 &&
     actql_private_file_same_generation(&projection->original, &opened) &&
     actql_stat_regular_at(projection->root, projection->name, &named) &&
@@ -599,6 +605,147 @@ int actql_native_private_file_projection_open(
     return -1;
   }
   return descriptor;
+}
+
+// Private format: AQLPFP01, platform byte, name length, twelve big-endian
+// 64-bit fields, then the exact object name. No struct layout, secret, pointer,
+// public identity or authorization is encoded. The Host must authenticate and
+// bind these original bytes through its existing private journal custody.
+#define ACTQL_PRIVATE_PROJECTION_PREFIX 106
+#define ACTQL_PRIVATE_PROJECTION_MAX 234
+#ifdef __APPLE__
+#define ACTQL_PRIVATE_PROJECTION_PLATFORM 1
+#elif defined(__linux__)
+#define ACTQL_PRIVATE_PROJECTION_PLATFORM 2
+#else
+#define ACTQL_PRIVATE_PROJECTION_PLATFORM 0
+#endif
+
+static void actql_projection_put(unsigned char *output, uint64_t value) {
+  for (int index = 7; index >= 0; index--) {
+    output[index] = (unsigned char)(value & 255);
+    value >>= 8;
+  }
+}
+
+static uint64_t actql_projection_get(const unsigned char *input) {
+  uint64_t value = 0;
+  for (int index = 0; index < 8; index++) value = (value << 8) | input[index];
+  return value;
+}
+
+static int64_t actql_projection_signed(uint64_t value) {
+  return value <= INT64_MAX ? (int64_t)value : -1 - (int64_t)(UINT64_MAX - value);
+}
+
+static void actql_projection_fields(
+  const actql_native_private_file_projection *projection, uint64_t fields[12]
+) {
+  const struct stat *file = &projection->original;
+  fields[0] = projection->original_root_device;
+  fields[1] = projection->original_root_inode;
+  fields[2] = (uint64_t)file->st_dev;
+  fields[3] = (uint64_t)file->st_ino;
+  fields[4] = (uint64_t)file->st_mode;
+  fields[5] = (uint64_t)file->st_uid;
+  fields[6] = (uint64_t)file->st_gid;
+  fields[7] = (uint64_t)file->st_size;
+#ifdef __APPLE__
+  fields[8] = (uint64_t)file->st_mtimespec.tv_sec;
+  fields[9] = (uint64_t)file->st_mtimespec.tv_nsec;
+  fields[10] = (uint64_t)file->st_ctimespec.tv_sec;
+  fields[11] = (uint64_t)file->st_ctimespec.tv_nsec;
+#else
+  fields[8] = (uint64_t)file->st_mtim.tv_sec;
+  fields[9] = (uint64_t)file->st_mtim.tv_nsec;
+  fields[10] = (uint64_t)file->st_ctim.tv_sec;
+  fields[11] = (uint64_t)file->st_ctim.tv_nsec;
+#endif
+}
+
+int32_t actql_native_filesystem_export_private_file_projection(
+  actql_native_private_file_projection *projection,
+  moonbit_bytes_t output,
+  int32_t capacity
+) {
+  if (projection == NULL || !projection->ready ||
+      ACTQL_PRIVATE_PROJECTION_PLATFORM == 0) return 0;
+  size_t name_length = strlen(projection->name);
+  if (name_length == 0 || name_length > 128 ||
+      capacity < ACTQL_PRIVATE_PROJECTION_PREFIX + (int32_t)name_length) return 0;
+  int descriptor = actql_native_private_file_projection_open(projection);
+  if (descriptor < 0 || close(descriptor) != 0) return 0;
+  memcpy(output, "AQLPFP01", 8);
+  output[8] = ACTQL_PRIVATE_PROJECTION_PLATFORM;
+  output[9] = (unsigned char)name_length;
+  uint64_t fields[12];
+  actql_projection_fields(projection, fields);
+  for (int index = 0; index < 12; index++) {
+    actql_projection_put(output + 10 + index * 8, fields[index]);
+  }
+  memcpy(output + ACTQL_PRIVATE_PROJECTION_PREFIX, projection->name, name_length);
+  return ACTQL_PRIVATE_PROJECTION_PREFIX + (int32_t)name_length;
+}
+
+void *actql_native_filesystem_restore_private_file_projection(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t original,
+  int32_t length
+) {
+  actql_native_private_file_projection *projection = moonbit_make_external_object(
+    actql_private_file_projection_finalize, sizeof(*projection)
+  );
+  memset(projection, 0, sizeof(*projection));
+  projection->root = root;
+  if (root != NULL) moonbit_incref(root);
+  if (length <= ACTQL_PRIVATE_PROJECTION_PREFIX ||
+      length > ACTQL_PRIVATE_PROJECTION_MAX ||
+      memcmp(original, "AQLPFP01", 8) != 0 ||
+      ACTQL_PRIVATE_PROJECTION_PLATFORM == 0 ||
+      original[8] != ACTQL_PRIVATE_PROJECTION_PLATFORM || original[9] == 0 ||
+      original[9] > 128 || length != ACTQL_PRIVATE_PROJECTION_PREFIX + original[9]) {
+    return projection;
+  }
+  projection->name = actql_copy_text(original + ACTQL_PRIVATE_PROJECTION_PREFIX, original[9]);
+  if (projection->name == NULL ||
+      !actql_valid_name(projection->name, original[9])) return projection;
+  uint64_t fields[12];
+  for (int index = 0; index < 12; index++) {
+    fields[index] = actql_projection_get(original + 10 + index * 8);
+  }
+  if (fields[7] == 0 || fields[7] > 8192 ||
+      fields[9] >= 1000000000 || fields[11] >= 1000000000) return projection;
+  projection->original_root_device = fields[0];
+  projection->original_root_inode = fields[1];
+  struct stat *file = &projection->original;
+  file->st_dev = (dev_t)fields[2];
+  file->st_ino = (ino_t)fields[3];
+  file->st_mode = (mode_t)fields[4];
+  file->st_uid = (uid_t)fields[5];
+  file->st_gid = (gid_t)fields[6];
+  file->st_size = (off_t)fields[7];
+#ifdef __APPLE__
+  file->st_mtimespec.tv_sec = (time_t)actql_projection_signed(fields[8]);
+  file->st_mtimespec.tv_nsec = (long)fields[9];
+  file->st_ctimespec.tv_sec = (time_t)actql_projection_signed(fields[10]);
+  file->st_ctimespec.tv_nsec = (long)fields[11];
+#else
+  file->st_mtim.tv_sec = (time_t)actql_projection_signed(fields[8]);
+  file->st_mtim.tv_nsec = (long)fields[9];
+  file->st_ctim.tv_sec = (time_t)actql_projection_signed(fields[10]);
+  file->st_ctim.tv_nsec = (long)fields[11];
+#endif
+  // Reject narrowing and non-canonical representations before comparing the
+  // current namespace. Restoring never adopts freshly observed generation.
+  uint64_t round_trip[12];
+  actql_projection_fields(projection, round_trip);
+  for (int index = 0; index < 12; index++) {
+    if (round_trip[index] != fields[index]) return projection;
+  }
+  projection->ready = true;
+  int descriptor = actql_native_private_file_projection_open(projection);
+  if (descriptor < 0 || close(descriptor) != 0) projection->ready = false;
+  return projection;
 }
 
 // Whitebox tests alter only their already-open, user-owned scratch directory.

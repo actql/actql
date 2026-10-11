@@ -53,6 +53,7 @@ pub(all) enum NativeFilesystemIssue {
 }
 
 type PrivateFileProjection
+pub fn PrivateFileProjection::export_original(Self) -> Result[Bytes, NativeFilesystemIssue]
 
 type Reader
 pub fn Reader::close(Self) -> Result[Unit, NativeFilesystemIssue]
@@ -71,6 +72,7 @@ pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, N
 pub fn Root::private_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::reclaim_generation(Self, String, NativeFileGeneration) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::remove_directory(Self, String, NativeFileOwnership) -> Result[Bool, NativeFilesystemIssue]
+pub fn Root::restore_private_file_projection(Self, Bytes) -> Result[PrivateFileProjection, NativeFilesystemIssue]
 pub fn Root::sync_directory(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
 
