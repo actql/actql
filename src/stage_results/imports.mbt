@@ -95,6 +95,32 @@ pub fn resolve_imports(
   producers : Array[StagePorts],
   limits : ImportLimits,
 ) -> Result[ResultImports, ImportIssue] {
+  let (entries, work, text_bytes) = match resolve_result_references(
+    source, stage_index, producers, limits,
+    owner_stage=fn(owner) { owner.stage },
+    lookup=fn(owner, name) { @results.lookup_port(owner.ports, name) },
+  ) {
+    Err(e) => return Err(e)
+    Ok(v) => v
+  }
+  Ok({ source, stage: stage_index,
+    entries: entries.map(fn(entry) {
+      let (name, producer, port) = entry
+      { name, producer, port, }
+    }), work, text_bytes, })
+}
+
+///|
+// Resolve the same source-bound Result references for publication and static
+// topology. The caller supplies an owner-issued output, never an input schema.
+fn[P, I] resolve_result_references(
+  source : @parameters.Source,
+  stage_index : Int,
+  producers : Array[P],
+  limits : ImportLimits,
+  owner_stage~ : (P) -> @parameters.CollectedStage,
+  lookup~ : (P, String) -> I?,
+) -> Result[(Array[(String, P, I)], Int, Int), ImportIssue] {
   if limits.max_work < 0 || limits.max_imports < 0 || limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -104,17 +130,17 @@ pub fn resolve_imports(
   }
   let mut work = limits.max_work
   let mut text = limits.max_text_bytes
-  let known : Map[String, StagePorts] = Map([])
+  let known : Map[String, P] = Map([])
   // Charge before constructing indexes, including unused supplied producers.
   if producers.length() > work {
     return Err(BudgetExceeded)
   }
   work -= producers.length()
   for producer in producers {
-    if !physical_equal(@parameters.source(producer.stage), source) {
+    if !physical_equal(@parameters.source(owner_stage(producer)), source) {
       return Err(ForeignSource)
     }
-    let index = @parameters.stage_index(producer.stage)
+    let index = @parameters.stage_index(owner_stage(producer))
     if index >= stage_index {
       return Err(NotEarlierStage(index))
     }
@@ -133,7 +159,7 @@ pub fn resolve_imports(
     return Err(BudgetExceeded)
   }
   work -= count
-  let entries : Array[ResultImport] = []
+  let entries : Array[(String, P, I)] = []
   for i in 0..<count {
     let (name, reference) = @syntax.import_at(stage, i).unwrap()
     match reference {
@@ -152,21 +178,15 @@ pub fn resolve_imports(
           None => return Err(MissingProducer(producer))
           Some(v) => v
         }
-        let port = match @results.lookup_port(owner.ports, result) {
+        let port = match lookup(owner, result) {
           None => return Err(MissingResult(producer, result))
           Some(v) => v
         }
-        entries.push({ name, producer: owner, port, })
+        entries.push((name, owner, port))
       }
     }
   }
-  Ok({
-    source,
-    stage: stage_index,
-    entries,
-    work: limits.max_work - work,
-    text_bytes: limits.max_text_bytes - text,
-  })
+  Ok((entries, limits.max_work - work, limits.max_text_bytes - text))
 }
 
 ///|

@@ -60,23 +60,17 @@ pub fn prepare_ports(
     }
     work -= 1
     let definition = results.definitions[i]
-    let object = @decode.open_object(definition.source).unwrap()
-    let fields = @decode.required(object, "fields").unwrap()
-    let schema = @pipeline.schema_at(results.pipeline, definition.target).unwrap()
-    let projection = match
-      @relation.check(Select, fields, schema, None, {
-        max_work: work,
-        max_nodes: nodes,
-        max_text_bytes: text,
-        max_tokens: 0,
-        max_depth: limits.max_depth,
-      }) {
-      Err(e) => return Err(Projection(i, e))
+    let (projection, projection_used) = match check_result_projection(
+      results, i, { max_results: limits.max_results, max_work: work,
+        max_nodes: nodes, max_text_bytes: text, max_depth: limits.max_depth, }
+    ) {
+      Err(e) => return Err(e)
       Ok(v) => v
     }
-    work -= @relation.work_used(projection)
-    nodes -= @relation.nodes_used(projection)
-    text -= @relation.text_bytes_used(projection)
+    work -= projection_used.work
+    nodes -= projection_used.nodes
+    text -= projection_used.text_bytes
+    let object = @decode.open_object(definition.source).unwrap()
     let prepared = match
       @pipeline.publish_produced_input(
         results.pipeline,
