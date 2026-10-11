@@ -89,22 +89,23 @@ test "Graph Delta source keeps invalid argument bodies at the common checker" {
       "apply_graph_delta()", "apply_graph_delta(with: changes)", "apply_graph_delta(with: changes, field: 'missing')",
       "apply_graph_delta(with: changes, field: 1)", "apply_graph_delta(with: changes, field: 'delta', extra: true)",
     ] {
-    let actual = graph_delta_source_compile(
+    let expected : @pipeline.IssueKind = match call {
+      "apply_graph_delta()" | "apply_graph_delta(with: changes)"
+      | "apply_graph_delta(with: changes, field: 'delta', extra: true)" =>
+        @pipeline.InvalidBody
+      "apply_graph_delta(with: changes, field: 'missing')" =>
+        @pipeline.Graph(UnknownDeltaField("missing"))
+      "apply_graph_delta(with: changes, field: 1)" => @pipeline.Decode(WrongType)
+      _ => fail("undeclared malformed Delta control")
+    }
+    // The unified WITH owner runs the ordinary common static checker before
+    // returning a complete Program. Do not fabricate an invalid Program.
+    expect_with_graph_static_refusal(
       graph_delta_source_prefix() +
       "FROM g |> " +
       call +
       " |> node_rows() |> SELECT node_key",
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        actual,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=call,
+      expected=Some(expected),
     )
   }
 }
