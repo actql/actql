@@ -464,6 +464,17 @@ acknowledges physical cleanup. Failed deletion retains the original reservation;
 failed transaction rollback leaves the same connection pending and unreadable.
 Closing the connection preserves durable capacity and does not cancel a Run.
 
+`compare_exchange_reserved` fences the original byte CAS with the exact retained
+capacity row under the same SQLite transaction. Its immutable observation must
+name the written material key. The existing batch port can apply the same fence
+to its original material and dependent opaque records. A reservation removed or
+changed after an earlier read produces a physical conflict with no writes, no
+capacity reacquisition and no automatic resend. This follows the Native physical
+transaction boundary; it does not interpret Core record states. A lost commit
+acknowledgement still requires original read-only observation and Core decision.
+The trusted Host must retain the original cleanup responsibility and coordinate
+release through the existing Owner; a physical row is not a cleanup permission.
+
 The existing payload Owner's
 `prepare_observed_publication_payload_reserved` checks the original nominal
 record's Store authority, the existing `publication_payload` namespace, material

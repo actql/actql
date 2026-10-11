@@ -337,7 +337,21 @@ class LocalByteStore:
                     database.execute('ROLLBACK')
                 raise
 
-    def compare_exchange_many(self, writes: tuple[ByteWrite, ...]) -> tuple[int, ...] | None:
+    def compare_exchange_reserved(self, write: ByteWrite,
+                                  capacity: CapacityReservation) -> int | None:
+        """CAS original bytes only while the exact reservation is still present.
+
+        Capacity and record are checked under one SQLite write transaction.
+        A prior read alone cannot supply this fence. Neither a conflict nor an
+        exception acquires capacity or authorizes another physical write.
+        """
+        if type(capacity) is not CapacityReservation:
+            raise ValueError('Invalid Local physical capacity observation')
+        generations = self.compare_exchange_many((write,), capacity=capacity)
+        return None if generations is None else generations[0]
+
+    def compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
+                              capacity: CapacityReservation | None = None) -> tuple[int, ...] | None:
         """Install all opaque writes in one physical transaction or none.
 
         The trusted Host must first obtain the Core's full-chain validation and
@@ -345,6 +359,11 @@ class LocalByteStore:
         An exception, including a lost commit acknowledgement, is returned to
         that Owner without repeating the transaction. Caller-held bytes and
         SQLite workspace remain separately reserved by the Host.
+
+        When supplied, the original capacity observation must name a key in this
+        batch. Its exact retained amounts are rechecked in the same transaction;
+        a changed or missing reservation leaves every write untouched. The Host
+        still supplies the original Store binding and Core-issued record bytes.
         """
         if type(writes) is not tuple or not 1 <= len(writes) <= self._max_records:
             raise ValueError('Invalid Local physical write batch')
@@ -362,11 +381,27 @@ class LocalByteStore:
                 raise ValueError('Invalid Local physical CAS generation')
             if type(write.payload) is not bytes or len(write.payload) > self._max_record_bytes:
                 raise ValueError('Invalid Local physical payload')
+        if capacity is not None:
+            if type(capacity) is not CapacityReservation:
+                raise ValueError('Invalid Local physical capacity observation')
+            self._capacity_name(capacity.namespace)
+            self._capacity_name(capacity.key)
+            self._capacity_amount(capacity.reserved_bytes)
+            self._capacity_amount(capacity.reserved_objects)
+            if capacity.key not in keys:
+                raise ValueError('Local physical reservation names another record')
         with self._lock:
             self._open()
             database = self._connection
             database.execute('BEGIN IMMEDIATE')
             try:
+                if capacity is not None:
+                    retained = database.execute('''SELECT reserved_bytes, reserved_objects
+                        FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                        (capacity.namespace, capacity.key)).fetchone()
+                    if retained != (capacity.reserved_bytes, capacity.reserved_objects):
+                        database.execute('ROLLBACK')
+                        return None
                 generations: list[int] = []
                 inserted = replaced = 0
                 for write in writes:
