@@ -325,3 +325,33 @@ class ReaderFactsTests(unittest.TestCase):
                 self.assertEqual(len(calls), before)
                 self.assertIs(facts.pending_input, first)
                 self.assertTrue(facts.close())
+
+    def test_original_core_pool_retirement_can_release_holder_after_pending_metadata_cleanup(self):
+        with self.file() as (_, root, _, final):
+            reader = self.transfer_ready(root, final)
+            core, _, _, _, facts, _, state, _ = self.bridge(root, reader)
+            facts.validate()
+            original = facts.pending_input
+            old_call = core._call
+            def call(family, name, *args):
+                if (family, name) == ('buffer', 'close_pool'):
+                    return 0 if all(core._cleanup(ticket) == 0 for ticket in list(core._inputs)) else -9
+                return old_call(family, name, *args)
+            core._call = call
+            for name in ('_store', '_linker', '_module', '_engine'):
+                setattr(core, name, None)
+            for name in ('_native_observers', '_native_loans', '_compute_loans', '_task_loans', '_result_loans'):
+                setattr(core, name, {})
+            state['meta_cleanup'] = False
+            self.assertFalse(core.close())
+            self.assertFalse(core._retired)
+            self.assertFalse(facts.close())
+            self.assertIs(facts.pending_input, original)
+            state['meta_cleanup'] = True
+            # Real Python retirement/disposal path, with mocked scalar close_pool;
+            # no Wasm or physical Core pool cleanup receipt is claimed.
+            self.assertTrue(core.close())
+            self.assertTrue(core._retired)
+            self.assertTrue(facts.close())
+            self.assertIsNone(facts.pending_input)
+            self.assertIs(root._readers[id(reader)], reader)

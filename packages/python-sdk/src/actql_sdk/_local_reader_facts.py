@@ -172,7 +172,12 @@ class OriginalReaderFacts:
                     return False
                 self._acquisition_ticket = None
             if self._input is not None:
-                if not core.close_input(self._input):
+                if core._retired:
+                    # Original close_pool success already retired this loan. A
+                    # physical callback alone cannot establish that fact.
+                    if self._input.ticket in core._inputs:
+                        return False
+                elif not core.close_input(self._input):
                     return False
                 self._input = None
             return True
