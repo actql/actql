@@ -123,5 +123,25 @@
       "total": 54
     },
     "reason": "Adopt the already integrated stop-inclusive and Waiting/Settling pause model and typed claim roots. Original Session/Chain laws, typed claims and historical checker digest remain fixed. The producer must execute the current 54-law typed/axiom audit; no old-checker compatibility or stronger implementation claim is introduced."
+  },
+  "runnerExtension": {
+    "revision": "6e1955f4a2d9598e0292f603a1d928b8d631b108",
+    "parent": "977f59480e4761e654f6360a590caffb878b6899",
+    "files": {
+      "proofs/relation-chain/check.mjs": "77232cbf3faca2299fc58c03e59682acf4266c5244a1f6cd9097fa48c93ae7f6",
+      "proofs/relation-chain/retirement-check.mjs": "caff94fcd955b36f0f173ca132f1b3cfbc821ff15b213fc1623093a39415b0d2",
+      "proofs/bounded-session/proof-command.mjs": "736f49029fad3b1753a7d0872cb68372f1c926d4d30de468e70ac7c8758a23c7"
+    },
+    "preserved": {
+      "proofs/bounded-session/Session.lean": "d5a9f5e62e5a360b52d5cf0d886f6832c38a00088737c3378b01dff6b6b1a434",
+      "proofs/bounded-session/Claims.lean": "70084213e510d49a17797e52509c8e2b3b0d5231519322665f686ba1f151fdd1",
+      "proofs/relation-chain/Chain.lean": "9246eec44f86fd3af52c9f7f9db3689a5728d8ec0a28c4b9b3ec1c8524ad1661",
+      "proofs/relation-chain/Claims.lean": "94947cc1ea5d6d5b7818ef81843dfa1f2888837790013797ca5148de82c95edc",
+      "proofs/relation-chain/StopAccounting.lean": "33aaf44ae59b75a7337f7efd557bfbae39f08f7e464db61ffe5596821c2ed9ad",
+      "proofs/relation-chain/StopClaims.lean": "9de230f934b5e78377d5407d0f669344bbeaac38e37d514e2502f981a00b7914",
+      "proofs/relation-chain/Retirement.lean": "f814038774f911981ea069ac9c3e700abf5c142cc608fe92313ab8babefba06b",
+      "proofs/relation-chain/RetirementClaims.lean": "4a55695d33ae1a1da5fa5ba5c9d3524f14ac55e19a779d7f6805f44378cc6419",
+      "proofs/relation-chain/lean-toolchain": "1098ca8368e0db12138f33b070187e1f6527984ae0451a587b20e3e661f96a76"
+    }
   }
 }
