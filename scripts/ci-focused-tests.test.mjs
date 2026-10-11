@@ -221,7 +221,7 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   assert.equal(checkpoint.baseSha, old);
   assert.deepEqual(checkpoint.policy.map(entry => entry.path), policyPaths);
   assert(policyPaths.includes('scripts/ci-focused-tests.mjs'));
-  const focused = selection([change()], {event: 'push', mainBaseline: checkpoint});
+  const focused = selection([change()], {event: 'push', mainIntegration: false, mainBaseline: checkpoint});
   assert.equal(validateSelection(focused).profile, 'focused-tests');
   verifyGate({selection: focused, sourceRevision: head}, results(focused), {event: 'push', sourceRevision: head});
   jobs.find(job => job.name === 'core (native)').conclusion = 'skipped';
