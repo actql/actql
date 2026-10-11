@@ -41,8 +41,13 @@ test "Reach refuses malformed finite bounds and nonexistent selector fields befo
       "FROM g |> reach(start: {where: 'node_key = 1'}, direction: 'out', max_depth: 2) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 0) |> SELECT depth",
       "FROM g |> reach(start: {where: 'true'}, direction: 'wrong', max_depth: 2) |> SELECT depth",
-      "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 2, extra: true) |> SELECT depth",
     ] {
     expect_with_graph_static_refusal(graph_union_prefix() + suffix)
   }
+  // The pipeline's closed operation body rejects this before Graph typing.
+  expect_with_graph_static_refusal(
+    graph_union_prefix() +
+    "FROM g |> reach(start: {where: 'true'}, direction: 'out', max_depth: 2, extra: true) |> SELECT depth",
+    expected=Some(@pipeline.InvalidBody),
+  )
 }

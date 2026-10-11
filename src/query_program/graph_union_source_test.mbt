@@ -143,13 +143,19 @@ test "complete public edge union source has one query and passes ordinary checke
 }
 
 ///|
-fn expect_with_graph_static_refusal(text : String) -> Unit raise {
+fn expect_with_graph_static_refusal(
+  text : String,
+  expected? : @pipeline.IssueKind? = None,
+) -> Unit raise {
   match classified_graph_source(text) {
     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
-      match issue.kind {
-        Graph(_) | GraphMatch(_) => ()
-        other =>
-          fail("expected common Graph refusal: " + @debug.to_string(other))
+      match expected {
+        Some(expected) => assert_eq(issue.kind, expected)
+        None => match issue.kind {
+          Graph(_) | GraphMatch(_) => ()
+          other =>
+            fail("expected common Graph refusal: " + @debug.to_string(other))
+        }
       }
     _ => fail("expected common static Graph admission refusal: " + text)
   }
