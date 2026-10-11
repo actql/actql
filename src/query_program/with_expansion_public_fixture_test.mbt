@@ -453,7 +453,18 @@ test "WITH captured expansion preserves missing publication order refusal" {
         BindingPreparation(SourceProgram(Program(Order(0, ResultOrder(issue)))))
       )
     ) else {
-    fail("admitted Catalog without capture order must remain refused")
+    match @frontend.lower(
+      "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+      Text, Some(context),
+    ) {
+      Err(QueryLowering(BindingPreparation(SourceProgram(Program(Order(stage, ResultOrder(cause))))))) =>
+        fail("ResultOrder stage " + stage.to_string() + ": " + @debug.to_string(cause.kind))
+      Err(QueryLowering(BindingPreparation(SourceProgram(Program(Order(stage, ProducerOrder(cause))))))) =>
+        fail("ProducerOrder stage " + stage.to_string() + ": " + @debug.to_string(cause.issue.kind))
+      Err(QueryLowering(BindingPreparation(SourceProgram(Program(Order(stage, PipelineOrder(cause))))))) =>
+        fail("PipelineOrder stage " + stage.to_string() + ": " + @debug.to_string(cause.kind))
+      _ => fail("outside the captured Order refusal")
+    }
   }
   assert_eq(issue.kind, @relation_results.UnresolvedOrder)
   assert_eq(@wire.cursor_path(issue.source), [
