@@ -1054,7 +1054,7 @@ fn QueryParser::parenthesized(self : QueryParser) -> Query raise QueryAbort {
   if self.advance().value != Symbol(40) {
     raise QueryAbort("Expected query opening parenthesis", self.peek().start)
   }
-  let inner = self.query(cte_body=true)
+  let inner = self.query(context=PureQuery)
   self.source_depth -= 1
   if self.advance().value != Symbol(41) {
     raise QueryAbort("Expected query closing parenthesis", self.peek().start)
@@ -2309,11 +2309,11 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 ///|
 fn QueryParser::query(
   self : QueryParser,
-  cte_body? : Bool = false,
+  context? : QueryContext = StatementQuery,
   graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   if self.has("CREATE") {
-    if cte_body {
+    if context != StatementQuery {
       raise QueryAbort(
         "Table write is not allowed in a declaration body",
         self.peek().start,
@@ -2321,10 +2321,15 @@ fn QueryParser::query(
     }
     let clause = self.table_create_clause(None)
     self.keyword("AS")
-    // Direct CTAS computation is top-level. Parentheses do not turn it into
-    // an ordinary CTE or introduce another acquisition/execution owner.
-    let parentheses = self.peek().value == Symbol(40)
+    // Only a whole outer pair is Compute. Other grouped primaries remain Pure
+    // and keep their following set, ORDER/LIMIT or Pipe continuation.
+    let parentheses = self.ctas_whole_wrapper()
     if parentheses {
+      if self.source_depth >= 32 {
+        raise QueryAbort("Subquery depth limit", self.peek().start)
+      }
+      self.node()
+      self.source_depth += 1
       self.symbol(40)
     }
     if self.has("CREATE") {
@@ -2333,9 +2338,10 @@ fn QueryParser::query(
         self.peek().start,
       )
     }
-    let body = self.query()
+    let body = self.query(context=ComputeQuery)
     if parentheses {
       self.symbol(41)
+      self.source_depth -= 1
     }
     if body.effect is Some(_) || body.table_effect is Some(_) {
       raise QueryAbort(
@@ -2396,12 +2402,12 @@ fn QueryParser::query(
     }
   }
   let term = if self.has("FROM") {
-    self.pipe(cte_body~, graph_data_body~)
+    self.pipe(context~, graph_data_body~)
   } else {
     self.sql()
   }
   let term = if self.peek().value == Pipe {
-    self.pipe_tail(term, cte_body~)
+    self.pipe_tail(term, context~)
   } else {
     term
   }
@@ -2575,14 +2581,14 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
 ///|
 fn QueryParser::pipe(
   self : QueryParser,
-  cte_body? : Bool = false,
+  context? : QueryContext = StatementQuery,
   graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
-    if cte_body && !graph_data_body {
+    if context == PureQuery && !graph_data_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
     }
     self.keyword("GRAPH")
@@ -2613,7 +2619,7 @@ fn QueryParser::pipe(
       table_effect: None,
       work: self.work,
     },
-    cte_body~,
+    context~,
   )
 }
 
@@ -2622,7 +2628,7 @@ fn QueryParser::pipe(
 fn QueryParser::pipe_tail(
   self : QueryParser,
   input : Query,
-  cte_body? : Bool = false,
+  context? : QueryContext = StatementQuery,
 ) -> Query raise QueryAbort {
   let relation = input.relation
   let source_alias = input.source_alias
@@ -2674,7 +2680,7 @@ fn QueryParser::pipe_tail(
         table_effect: None,
         work: self.work,
       }
-      return self.pipe_tail(self.bind_query(producer), cte_body~)
+      return self.pipe_tail(self.bind_query(producer), context~)
     }
     if pipe_join_head(next) &&
       !self.starts_correlated_unnest(lookahead_offset=1) &&
@@ -2709,14 +2715,14 @@ fn QueryParser::pipe_tail(
         let bound = self.bind_query({ ..producer, operations: body_operations, })
         return self.pipe_tail(
           { ..bound, source_alias: current_range, },
-          cte_body~,
+          context~,
         )
       } else if pipe_join_range_input(producer) {
         // Continue the same logical row with its immutable ranges. An
         // authored CTE/subquery still exports only its projected columns.
         return self.pipe_tail(
           self.bind_query(producer, carry_ranges=true),
-          cte_body~,
+          context~,
         )
       }
     }
@@ -2799,7 +2805,7 @@ fn QueryParser::pipe_tail(
         raise QueryAbort("Subquery depth limit", self.peek().start)
       }
       self.source_depth += 1
-      let parsed = self.query(cte_body=true)
+      let parsed = self.query(context=PureQuery)
       self.source_depth -= 1
       let right = if !parsed.sets.is_empty() {
         self.bind_query(
@@ -3141,6 +3147,12 @@ fn QueryParser::pipe_tail(
         final_operations.push(operation)
       }
     } else if self.has("RESULT") {
+      if context == PureQuery {
+        raise QueryAbort(
+          "RESULT is not allowed in a producer body",
+          self.peek().start,
+        )
+      }
       self.keyword("RESULT")
       operations.push(RetainResult(self.name()))
     } else if self.has("ASSERT") {
@@ -3156,7 +3168,7 @@ fn QueryParser::pipe_tail(
       self.symbol(41)
       operations.push(AssertUnique(keys))
     } else if self.has("EFFECT") {
-      if cte_body {
+      if context != StatementQuery {
         raise QueryAbort(
           "EFFECT is not allowed in a declaration body",
           self.peek().start,
@@ -3172,7 +3184,7 @@ fn QueryParser::pipe_tail(
         effect = Some(self.update_effect_clause())
       }
     } else if self.has("CREATE") {
-      if cte_body {
+      if context != StatementQuery {
         raise QueryAbort(
           "Table write is not allowed in a declaration body",
           self.peek().start,
@@ -3180,7 +3192,7 @@ fn QueryParser::pipe_tail(
       }
       table_effect = Some(self.table_create_clause(None))
     } else if self.has("INFER") {
-      if cte_body {
+      if context == PureQuery {
         raise QueryAbort(
           "INFER is not allowed in a CTE body",
           self.peek().start,

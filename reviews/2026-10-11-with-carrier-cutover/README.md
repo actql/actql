@@ -2,9 +2,10 @@
 
 The user assigns the reviewed DATA-to-WITH revision the highest next priority.
 INFER and full Debug completion are not start prerequisites. Root normally
-integrates the finite submitted correctness fixes #1474/#1476; B then normally
-adopts that actual main before shared product edits. The stable submitted
-branches are not changed by this preparation.
+integrated the finite submitted correctness fixes #1474/#1476. B adopted
+published main `ab5460e2422f59da69dcf873c5498dc8a5d7997e` by the normal merge
+`d4f0cb470f247af195e4793272eb057430d0ba1d` before product edits. Both stable
+author branches remain unchanged.
 
 The reviewed design is fixed at
 `b5d03b1d38912c52a9ad333a4734155edbec0c70`, in
@@ -137,12 +138,16 @@ private structural-fixture consumers, which are protected from indiscriminate
 deletion. It is not a universal DATA token blacklist or authority to delete
 stored observations, unrelated strings or independent machine Program fixtures.
 
-All new controls are authored preparation: parser, checker, runtime and public
-execution are unverified. No product file, current tutorial, grammar or pin is
-edited yet. No build, test, producer, package installation, Heavy allocation,
-Hosted CI, merge or deployment has started. This worktree borrows no dependency
-directory and has no build output. Root's runtime evidence for prior units is
-not attributed to this source.
+All new controls remain independently authored. P1-A product editing has started
+at the normally adopted main, with a finite context/CTAS placement difference
+recorded in [p1-context-implementation.json](p1-context-implementation.json).
+Parser execution, checker, runtime and public acceptance of these edits remain
+unverified. The WITH/GRAPH cutover, current tutorial replacement and grammar/pin
+updates are still unfinished; the temporary existing DATA implementation is not
+a proposed compatibility path or a completed cutover. No build, test, producer,
+package installation, Heavy allocation, Hosted CI or deployment has started.
+This worktree borrows no dependency directory and has no build output. Root's
+runtime evidence for earlier units is not attributed to this source.
 
 [preparation-failure.json](preparation-failure.json) retains B's failed read-only
 bundle-head lookup with exit 1. Correcting its parent directory completed only

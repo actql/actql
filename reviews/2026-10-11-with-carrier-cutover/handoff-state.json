@@ -1,13 +1,10 @@
 {
   "owner": "B",
   "integration_owner": "Root",
-  "phase": "A0 preparation; P1 product implementation not started",
+  "phase": "P1-A product implementation in progress; execution unverified",
   "branch": "feat/frontend-with-carrier-cutover",
   "base": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
-  "pending_integration": [
-    "#1474 submitted stable head; Root integrates",
-    "#1476 DISTINCT result frozen for review"
-  ],
+  "pending_integration": [],
   "start_condition": "Normally adopt the submitted Frontend integration on main; INFER and Debug completion are not prerequisites.",
   "finite_next_unit": "P1 common WITH producer scope and GRAPH cutover using existing checker/capture/Graph owner, with active-source retirement and independent sql/aql-text/README public profiles.",
   "no_new_scope": [
@@ -17,11 +14,15 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "All JSON controls and target sources are authored; no parser/common checker/Host/Result execution has been run.",
+  "proof_boundary": "Original independent controls retained. Context/parser product edits have begun; new syntax tests, checker, runtime and public execution remain unexecuted.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,
     "all": 130,
     "status": "Root reported static document validation exit zero; no product execution"
-  }
+  },
+  "adopted_main": "ab5460e2422f59da69dcf873c5498dc8a5d7997e",
+  "adoption_merge": "d4f0cb470f247af195e4793272eb057430d0ba1d",
+  "adoption_tree": "54f6f118ced6db8e2628221768ffac0390618078",
+  "integration_observation": "#1474 and #1476 normally integrated by Root; author branches preserved."
 }
