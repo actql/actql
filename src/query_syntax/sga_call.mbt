@@ -3,6 +3,7 @@
 /// A producer name is never inferred from the content of a string literal.
 pub(all) enum SgaArgument {
   Producer(NamePart)
+  FieldReference(Array[NamePart])
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
@@ -25,7 +26,14 @@ pub(all) struct SgaCall {
 // provider procedures. No backend, acquisition or materialization is chosen.
 fn sga_operation(name : String) -> Bool {
   match name {
-    "reach"
+    "to_vectors"
+    | "normalize_vectors"
+    | "score_vectors"
+    | "vectors"
+    | "to_events"
+    | "session"
+    | "events"
+    | "reach"
     | "traverse"
     | "shortest_path"
     | "components"
@@ -169,6 +177,12 @@ fn QueryParser::sga_argument(
     }
     self.symbol(93)
     return ListValue(items)
+  }
+  if path.length() == 1 &&
+    ((operation == "to_vectors" && ["id", "vector"].contains(path[0])) ||
+     (operation == "to_events" && ["id", "time"].contains(path[0])) ||
+     (operation == "session" && ["id", "time", "by"].contains(path[0]))) {
+    return FieldReference(self.path())
   }
   if sga_producer_argument(operation, path) {
     // Bare and backtick names are references. A quoted STRING is a value,
