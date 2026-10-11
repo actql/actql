@@ -126,7 +126,8 @@ order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
 limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
-limit_integer = integer | parameter_token | "(", limit_integer, ")" ;
+limit_integer = integer | parameter_token | "+", limit_integer
+              | "(", limit_integer, ")" ;
 set_operator  = "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ;
 set_names     = "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]

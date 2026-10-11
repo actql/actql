@@ -1,0 +1,31 @@
+{
+  "changes": [
+    {
+      "path": "spec/manifests/actql-grammar-0.1.json",
+      "pointer": "",
+      "before": "sha256:b22c7a073d02e655296a663cd0530449ae5c94a422185ef57812e413625b0633",
+      "after": "sha256:d043a78813bf02f6e0492314b48a0b097676a222469e7646e9781da6ea6bce6b"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:bd14ecbeda7035ea6446fc4a3ea1711ee2ed902b444caa02743dcc94e53e5641",
+      "after": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:bd14ecbeda7035ea6446fc4a3ea1711ee2ed902b444caa02743dcc94e53e5641",
+      "after": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:bd14ecbeda7035ea6446fc4a3ea1711ee2ed902b444caa02743dcc94e53e5641",
+      "after": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:bd14ecbeda7035ea6446fc4a3ea1711ee2ed902b444caa02743dcc94e53e5641",
+      "after": "sha256:2a86f8b753f036ff15b747df0a3bb050a64414e07c304877a2c12f2c9f9fed55"
+    }
+  ],
+  "writes": true
+}
