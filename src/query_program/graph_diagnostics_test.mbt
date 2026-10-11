@@ -238,15 +238,15 @@ test "Graph diagnostic typed parameters retain declarations and binding rules" {
 }
 
 ///|
-test "Graph components DATA admits both kinds and retains its current Relation schema" {
+test "Graph components WITH admits both kinds and retains its current Relation schema" {
   for kind in ["weak", "strong"] {
     let actual = compile_data_set(
       graph_diagnostic_prefix() +
-      "DATA selected = FROM g |> components(kind: '" +
+      ", selected AS (FROM g |> components(kind: '" +
       kind +
-      "'); FROM selected |> SELECT node_id, component_id, component_size",
+      "')) FROM selected |> SELECT node_id, component_id, component_size",
     )
-    // DATA reserves a name before its Graph-to-Relation operation. The alias
+    // WITH reserves a name before its Graph-to-Relation operation. The alias
     // retains that producer; it does not synthesize a Graph copy or extra step.
     let expected = @program.parse(
       semantic(
@@ -273,7 +273,7 @@ test "Graph components DATA admits both kinds and retains its current Relation s
         ) {
         Checked(_) => ()
         Rejected(diagnostic) => graph_rows_rejected(diagnostic)
-        NeedsInputs(_) => fail("components DATA adds no acquisition")
+        NeedsInputs(_) => fail("components WITH adds no acquisition")
       }
     }
   }
@@ -286,42 +286,24 @@ test "Graph components invalid arguments retain exact common-checker reasons and
     ("kind: 'weak', max_output_rows: 0", Graph(InvalidCount), "max_output_rows"),
   ]
   for (arguments, expected, field) in cases {
-    let program = compile_data_set(
-      graph_diagnostic_prefix() +
-      "FROM g |> components(" +
-      arguments +
+    let actual = classified_graph_source(
+      graph_diagnostic_prefix() + "FROM g |> components(" + arguments +
       ") |> SELECT component_size",
     )
-    guard @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(diagnostic) else {
-      fail("invalid component body was admitted")
-    }
-    guard @check.diagnostic_cause(diagnostic)
-      is Source(SourceView(Program(Program(Pipeline(stage, issue))))) else {
-      graph_rows_rejected(diagnostic)
-      fail("components must reach its common body checker")
+    guard actual is Err(BindingPreparation(LocalProgram(Pipeline(stage, issue)))) else {
+      fail("components must retain its common static body refusal")
     }
     assert_eq(stage, 0)
     assert_eq(issue.kind, expected)
     assert_eq(issue.path, [
-      Key("stages"),
-      Index(0),
-      Key("steps"),
-      Index(4),
-      Key("components"),
-      Key(field),
+      Key("stages"), Index(0), Key("steps"), Index(4),
+      Key("components"), Key(field),
     ])
-    let location = @check.diagnostic_location(diagnostic).unwrap()
-    assert_eq(@check.diagnostic_location_path(location), Some(issue.path))
-    assert_eq(
-      @check.diagnostic_location_position(location),
-      @source.Source(issue.span),
-    )
+    // The common issue retains the authored call span before E's diagnostic
+    // projection decides whether any public position can be disclosed.
+    let prefix = graph_diagnostic_prefix() + "FROM g |> "
+    assert_eq(issue.span.start_byte, @utf8.encode(prefix).length())
+    assert_eq(issue.span.end_byte,
+      @utf8.encode(prefix + "components(" + arguments + ")").length())
   }
 }
