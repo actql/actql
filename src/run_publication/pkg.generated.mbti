@@ -148,6 +148,12 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
+pub fn check_interactive_admission_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, Int, Int, Int) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_interactive_logical_map_binding(RunEvidenceValue, PublicationContract, Int, Int, Int) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_interactive_profile_bounds(RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn check_model_invocation_attempt(BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, Int64) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
@@ -480,9 +486,15 @@ pub fn native_effect_source_custody_record_json(PublicationContract, CapturedEff
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
+pub fn normalize_control_amount_decimal(String) -> Result[String, RunControlMoneyIssue]
+
+pub fn parse_control_amount_micro(String) -> Result[Int64, RunControlMoneyIssue]
+
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
 pub fn parse_effect_preview_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
+
+pub fn parse_interactive_run_control_shape(String, String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
@@ -533,6 +545,8 @@ pub fn project_committed_result_read(PublicationContract, PublicationContract, S
 pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 
 pub fn project_durable_result_binding_read(PublicationContract) -> Result[DurableResultBindingRead, DeliveryIssuanceIssue]
+
+pub fn project_interactive_legacy_state(String, Int, Int, Int) -> Result[String, RunControlReadIssue]
 
 pub fn project_public_index_read(PublicationContract) -> Result[PublicIndexRead, DeliveryIssuanceIssue]
 
@@ -1539,6 +1553,17 @@ pub(all) enum ResultOrderingEvidenceIssue {
   OrderingMismatch
   WitnessMismatch
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunControlMoneyIssue {
+  InvalidControlAmount
+  ControlAmountOverflow
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunControlReadIssue {
+  ControlReadContract(PublicationContractIssue)
+  RunStateVersionUnsupported
+  LegacyProjectionMismatch(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunEvidenceChainIssue {
