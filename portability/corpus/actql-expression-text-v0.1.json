@@ -1,106 +1,1645 @@
 {
   "version": "actql-expression-text-corpus/0.1",
   "positive": [
-    {"source":"NULL","tree":{"literal":null}},
-    {"source":"-NULL","tree":{"negate":{"literal":null}}},
-    {"source":"coalesce(x, NULL)","tree":{"coalesce":[{"field":"x"},{"literal":null}]}},
-    {"source":"x IN (1, NULL)","tree":{"in":[{"field":"x"},{"literal":[1,null]}]}},
-    {"source":"(x IS NULL).c","tree":{"property":{"value":{"is_null":{"field":"x"}},"name":"c"}}},
-    {"source":"(x IS TRUE)[0]","tree":{"subscript":{"value":{"is_true":{"field":"x"}},"index":{"literal":0}}}},
-    {"source":"(x IN (1)).c","tree":{"property":{"value":{"in":[{"field":"x"},{"literal":[1]}]},"name":"c"}}},
-    {"source":"x IN ((1), (($p)), -(2))","tree":{"in":[{"field":"x"},{"literal":[1,{"$param":"p"},-2]}]}},
-    {"source":"x LIKE ('a%')","tree":{"like":[{"field":"x"},{"literal":"a%"}]}},
-    {"source":"amount * quantity + 1","tree":{"add":[{"multiply":[{"field":"amount"},{"field":"quantity"}]},{"literal":1}]}},
-    {"source":"x IN (1, 2)","tree":{"in":[{"field":"x"},{"literal":[1,2]}]}},
-    {"source":"x NOT IN $items","tree":{"not_in":[{"field":"x"},{"$param":"items"}]}},
-    {"source":"\"会社名\"","tree":{"field":"会社名"}},
-    {"source":"name IS NOT NULL","tree":{"not_null":{"field":"name"}}},
-    {"source":"coalesce(name, 'Unknown')","tree":{"coalesce":[{"field":"name"},{"literal":"Unknown"}]}},
-    {"source":"to_decimal('19.99', 18, 2)","tree":{"cast":{"value":{"literal":"19.99"},"target":{"type":"decimal","precision":18,"scale":2}}}},
-    {"source":"quantize(amount, 18, 2, 'half_up')","tree":{"quantize":{"value":{"field":"amount"},"precision":18,"scale":2,"rounding":"half_up"}}},
-    {"source":"CASE WHEN x = 1 THEN 'yes' ELSE 'no' END","tree":{"case":{"when":[{"when":{"eq":[{"field":"x"},{"literal":1}]},"then":{"literal":"yes"}}],"else":{"literal":"no"}}}},
-    {"source":"try_timestamp(stamp, 'yyyy-MM-dd HH:mm:ss')","tree":{"try_timestamp":{"value":{"field":"stamp"},"pattern":{"literal":"yyyy-MM-dd HH:mm:ss"}}}},
-    {"source":"'a' || 'b'","tree":{"concat_strict":[{"literal":"a"},{"literal":"b"}]}},
-    {"source":"NOT x = 1 AND y > 2","tree":{"and":[{"not":{"eq":[{"field":"x"},{"literal":1}]}},{"gt":[{"field":"y"},{"literal":2}]}]}},
-    {"source":"starts_with(value, prefix)","tree":{"starts_with":[{"field":"value"},{"field":"prefix"}]}},
-    {"source":"ends_with($value, $suffix)","tree":{"ends_with":[{"$param":"value"},{"$param":"suffix"}]}},
-    {"source":"starts_with('😀é', '😀')","tree":{"starts_with":[{"literal":"😀é"},{"literal":"😀"}]}},
-    {"source":"ends_with('', '')","tree":{"ends_with":[{"literal":""},{"literal":""}]}},
-    {"source":"starts_with(NULL, NULL)","tree":{"starts_with":[{"literal":null},{"literal":null}]}},
-    {"source":"sign(x)","tree":{"sign":{"field":"x"}}},
-    {"source":"sign(-1)","tree":{"sign":{"literal":-1}}},
-    {"source":"sign(-x)","tree":{"sign":{"negate":{"field":"x"}}}},
-    {"source":"sign(negate(1))","tree":{"sign":{"negate":{"literal":1}}}},
-    {"source":"sign(NULL)","tree":{"sign":{"literal":null}}},
-    {"source":"strpos(value, part)","tree":{"strpos":[{"field":"value"},{"field":"part"}]}},
-    {"source":"strpos($value, $part)","tree":{"strpos":[{"$param":"value"},{"$param":"part"}]}},
-    {"source":"strpos('😀éx', 'x')","tree":{"strpos":[{"literal":"😀éx"},{"literal":"x"}]}},
-    {"source":"strpos('', '')","tree":{"strpos":[{"literal":""},{"literal":""}]}},
-    {"source":"strpos(NULL, NULL)","tree":{"strpos":[{"literal":null},{"literal":null}]}},
-    {"source":"round(x)","tree":{"round":{"field":"x"}}},
-    {"source":"trunc(x)","tree":{"trunc":{"field":"x"}}},
-    {"source":"round(-1)","tree":{"round":{"literal":-1}}},
-    {"source":"trunc(-1)","tree":{"trunc":{"literal":-1}}},
-    {"source":"round(-x)","tree":{"round":{"negate":{"field":"x"}}}},
-    {"source":"trunc(-x)","tree":{"trunc":{"negate":{"field":"x"}}}},
-    {"source":"round(negate(1))","tree":{"round":{"negate":{"literal":1}}}},
-    {"source":"trunc(negate(1))","tree":{"trunc":{"negate":{"literal":1}}}},
-    {"source":"round(NULL)","tree":{"round":{"literal":null}}},
-    {"source":"trunc(NULL)","tree":{"trunc":{"literal":null}}},
-    {"source":"ltrim(s)","tree":{"ltrim":{"field":"s"}}},
-    {"source":"ltrim($p)","tree":{"ltrim":{"$param":"p"}}},
-    {"source":"ltrim(NULL)","tree":{"ltrim":{"literal":null}}},
-    {"source":"ltrim(' 😀é ')","tree":{"ltrim":{"literal":" 😀é "}}},
-    {"source":"ltrim('')","tree":{"ltrim":{"literal":""}}},
-    {"source":"rtrim(s)","tree":{"rtrim":{"field":"s"}}},
-    {"source":"rtrim($p)","tree":{"rtrim":{"$param":"p"}}},
-    {"source":"rtrim(NULL)","tree":{"rtrim":{"literal":null}}},
-    {"source":"rtrim(' 😀é ')","tree":{"rtrim":{"literal":" 😀é "}}},
-    {"source":"rtrim('')","tree":{"rtrim":{"literal":""}}},
-    {"source":"trim(s,' ')","tree":{"trim":[{"field":"s"},{"literal":" "}]}},
-    {"source":"trim($p,s)","tree":{"trim":[{"$param":"p"},{"field":"s"}]}},
-    {"source":"trim(NULL,'x')","tree":{"trim":[{"literal":null},{"literal":"x"}]}},
-    {"source":"trim('x',NULL)","tree":{"trim":[{"literal":"x"},{"literal":null}]}},
-    {"source":"trim(NULL,NULL)","tree":{"trim":[{"literal":null},{"literal":null}]}},
-    {"source":"trim('😀é','😀́')","tree":{"trim":[{"literal":"😀é"},{"literal":"😀́"}]}},
-    {"source":"trim('x','')","tree":{"trim":[{"literal":"x"},{"literal":""}]}},
-    {"source":"trim(s,concat('a','b'))","tree":{"trim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}},
-    {"source":"ltrim(s,' ')","tree":{"ltrim":[{"field":"s"},{"literal":" "}]}},
-    {"source":"ltrim($p,s)","tree":{"ltrim":[{"$param":"p"},{"field":"s"}]}},
-    {"source":"ltrim(NULL,'x')","tree":{"ltrim":[{"literal":null},{"literal":"x"}]}},
-    {"source":"ltrim('x',NULL)","tree":{"ltrim":[{"literal":"x"},{"literal":null}]}},
-    {"source":"ltrim(NULL,NULL)","tree":{"ltrim":[{"literal":null},{"literal":null}]}},
-    {"source":"ltrim('😀é','😀́')","tree":{"ltrim":[{"literal":"😀é"},{"literal":"😀́"}]}},
-    {"source":"ltrim('x','')","tree":{"ltrim":[{"literal":"x"},{"literal":""}]}},
-    {"source":"ltrim(s,concat('a','b'))","tree":{"ltrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}},
-    {"source":"rtrim(s,' ')","tree":{"rtrim":[{"field":"s"},{"literal":" "}]}},
-    {"source":"rtrim($p,s)","tree":{"rtrim":[{"$param":"p"},{"field":"s"}]}},
-    {"source":"rtrim(NULL,'x')","tree":{"rtrim":[{"literal":null},{"literal":"x"}]}},
-    {"source":"rtrim('x',NULL)","tree":{"rtrim":[{"literal":"x"},{"literal":null}]}},
-    {"source":"rtrim(NULL,NULL)","tree":{"rtrim":[{"literal":null},{"literal":null}]}},
-    {"source":"rtrim('😀é','😀́')","tree":{"rtrim":[{"literal":"😀é"},{"literal":"😀́"}]}},
-    {"source":"rtrim('x','')","tree":{"rtrim":[{"literal":"x"},{"literal":""}]}},
-    {"source":"rtrim(s,concat('a','b'))","tree":{"rtrim":[{"field":"s"},{"concat":[{"literal":"a"},{"literal":"b"}]}]}},
-    {"source":"round(x,y)","tree":{"round":[{"field":"x"},{"field":"y"}]}},
-    {"source":"round(x,2)","tree":{"round":[{"field":"x"},{"literal":2}]}},
-    {"source":"round($value,$digits)","tree":{"round":[{"$param":"value"},{"$param":"digits"}]}},
-    {"source":"round(x,$digits + 1)","tree":{"round":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]}},
-    {"source":"round(-1.25,-1)","tree":{"round":[{"literal":-1.25},{"literal":-1}]}},
-    {"source":"round(1.25,0)","tree":{"round":[{"literal":1.25},{"literal":0}]}},
-    {"source":"round(1.25,1.5)","tree":{"round":[{"literal":1.25},{"literal":1.5}]}},
-    {"source":"round(NULL,2)","tree":{"round":[{"literal":null},{"literal":2}]}},
-    {"source":"round(1,NULL)","tree":{"round":[{"literal":1},{"literal":null}]}},
-    {"source":"round(NULL,NULL)","tree":{"round":[{"literal":null},{"literal":null}]}},
-    {"source":"trunc(x,y)","tree":{"trunc":[{"field":"x"},{"field":"y"}]}},
-    {"source":"trunc(x,2)","tree":{"trunc":[{"field":"x"},{"literal":2}]}},
-    {"source":"trunc($value,$digits)","tree":{"trunc":[{"$param":"value"},{"$param":"digits"}]}},
-    {"source":"trunc(x,$digits + 1)","tree":{"trunc":[{"field":"x"},{"add":[{"$param":"digits"},{"literal":1}]}]}},
-    {"source":"trunc(-1.25,-1)","tree":{"trunc":[{"literal":-1.25},{"literal":-1}]}},
-    {"source":"trunc(1.25,0)","tree":{"trunc":[{"literal":1.25},{"literal":0}]}},
-    {"source":"trunc(1.25,1.5)","tree":{"trunc":[{"literal":1.25},{"literal":1.5}]}},
-    {"source":"trunc(NULL,2)","tree":{"trunc":[{"literal":null},{"literal":2}]}},
-    {"source":"trunc(1,NULL)","tree":{"trunc":[{"literal":1},{"literal":null}]}},
-    {"source":"trunc(NULL,NULL)","tree":{"trunc":[{"literal":null},{"literal":null}]}}
+    {
+      "source": "NULL",
+      "tree": {
+        "literal": null
+      }
+    },
+    {
+      "source": "-NULL",
+      "tree": {
+        "negate": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "coalesce(x, NULL)",
+      "tree": {
+        "coalesce": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "x IN (1, NULL)",
+      "tree": {
+        "in": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": [
+              1,
+              null
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "(x IS NULL).c",
+      "tree": {
+        "property": {
+          "value": {
+            "is_null": {
+              "field": "x"
+            }
+          },
+          "name": "c"
+        }
+      }
+    },
+    {
+      "source": "(x IS TRUE)[0]",
+      "tree": {
+        "subscript": {
+          "value": {
+            "is_true": {
+              "field": "x"
+            }
+          },
+          "index": {
+            "literal": 0
+          }
+        }
+      }
+    },
+    {
+      "source": "(x IN (1)).c",
+      "tree": {
+        "property": {
+          "value": {
+            "in": [
+              {
+                "field": "x"
+              },
+              {
+                "literal": [
+                  1
+                ]
+              }
+            ]
+          },
+          "name": "c"
+        }
+      }
+    },
+    {
+      "source": "x IN ((1), (($p)), -(2))",
+      "tree": {
+        "in": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": [
+              1,
+              {
+                "$param": "p"
+              },
+              -2
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "x LIKE ('a%')",
+      "tree": {
+        "like": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": "a%"
+          }
+        ]
+      }
+    },
+    {
+      "source": "amount * quantity + 1",
+      "tree": {
+        "add": [
+          {
+            "multiply": [
+              {
+                "field": "amount"
+              },
+              {
+                "field": "quantity"
+              }
+            ]
+          },
+          {
+            "literal": 1
+          }
+        ]
+      }
+    },
+    {
+      "source": "x IN (1, 2)",
+      "tree": {
+        "in": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "x NOT IN $items",
+      "tree": {
+        "not_in": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "items"
+          }
+        ]
+      }
+    },
+    {
+      "source": "\"会社名\"",
+      "tree": {
+        "field": "会社名"
+      }
+    },
+    {
+      "source": "name IS NOT NULL",
+      "tree": {
+        "not_null": {
+          "field": "name"
+        }
+      }
+    },
+    {
+      "source": "coalesce(name, 'Unknown')",
+      "tree": {
+        "coalesce": [
+          {
+            "field": "name"
+          },
+          {
+            "literal": "Unknown"
+          }
+        ]
+      }
+    },
+    {
+      "source": "to_decimal('19.99', 18, 2)",
+      "tree": {
+        "cast": {
+          "value": {
+            "literal": "19.99"
+          },
+          "target": {
+            "type": "decimal",
+            "precision": 18,
+            "scale": 2
+          }
+        }
+      }
+    },
+    {
+      "source": "quantize(amount, 18, 2, 'half_up')",
+      "tree": {
+        "quantize": {
+          "value": {
+            "field": "amount"
+          },
+          "precision": 18,
+          "scale": 2,
+          "rounding": "half_up"
+        }
+      }
+    },
+    {
+      "source": "CASE WHEN x = 1 THEN 'yes' ELSE 'no' END",
+      "tree": {
+        "case": {
+          "when": [
+            {
+              "when": {
+                "eq": [
+                  {
+                    "field": "x"
+                  },
+                  {
+                    "literal": 1
+                  }
+                ]
+              },
+              "then": {
+                "literal": "yes"
+              }
+            }
+          ],
+          "else": {
+            "literal": "no"
+          }
+        }
+      }
+    },
+    {
+      "source": "try_timestamp(stamp, 'yyyy-MM-dd HH:mm:ss')",
+      "tree": {
+        "try_timestamp": {
+          "value": {
+            "field": "stamp"
+          },
+          "pattern": {
+            "literal": "yyyy-MM-dd HH:mm:ss"
+          }
+        }
+      }
+    },
+    {
+      "source": "'a' || 'b'",
+      "tree": {
+        "concat_strict": [
+          {
+            "literal": "a"
+          },
+          {
+            "literal": "b"
+          }
+        ]
+      }
+    },
+    {
+      "source": "NOT x = 1 AND y > 2",
+      "tree": {
+        "and": [
+          {
+            "not": {
+              "eq": [
+                {
+                  "field": "x"
+                },
+                {
+                  "literal": 1
+                }
+              ]
+            }
+          },
+          {
+            "gt": [
+              {
+                "field": "y"
+              },
+              {
+                "literal": 2
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "starts_with(value, prefix)",
+      "tree": {
+        "starts_with": [
+          {
+            "field": "value"
+          },
+          {
+            "field": "prefix"
+          }
+        ]
+      }
+    },
+    {
+      "source": "ends_with($value, $suffix)",
+      "tree": {
+        "ends_with": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "suffix"
+          }
+        ]
+      }
+    },
+    {
+      "source": "starts_with('😀é', '😀')",
+      "tree": {
+        "starts_with": [
+          {
+            "literal": "😀é"
+          },
+          {
+            "literal": "😀"
+          }
+        ]
+      }
+    },
+    {
+      "source": "ends_with('', '')",
+      "tree": {
+        "ends_with": [
+          {
+            "literal": ""
+          },
+          {
+            "literal": ""
+          }
+        ]
+      }
+    },
+    {
+      "source": "starts_with(NULL, NULL)",
+      "tree": {
+        "starts_with": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "sign(x)",
+      "tree": {
+        "sign": {
+          "field": "x"
+        }
+      }
+    },
+    {
+      "source": "sign(-1)",
+      "tree": {
+        "sign": {
+          "literal": -1
+        }
+      }
+    },
+    {
+      "source": "sign(-x)",
+      "tree": {
+        "sign": {
+          "negate": {
+            "field": "x"
+          }
+        }
+      }
+    },
+    {
+      "source": "sign(negate(1))",
+      "tree": {
+        "sign": {
+          "negate": {
+            "literal": 1
+          }
+        }
+      }
+    },
+    {
+      "source": "sign(NULL)",
+      "tree": {
+        "sign": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "strpos(value, part)",
+      "tree": {
+        "strpos": [
+          {
+            "field": "value"
+          },
+          {
+            "field": "part"
+          }
+        ]
+      }
+    },
+    {
+      "source": "strpos($value, $part)",
+      "tree": {
+        "strpos": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "part"
+          }
+        ]
+      }
+    },
+    {
+      "source": "strpos('😀éx', 'x')",
+      "tree": {
+        "strpos": [
+          {
+            "literal": "😀éx"
+          },
+          {
+            "literal": "x"
+          }
+        ]
+      }
+    },
+    {
+      "source": "strpos('', '')",
+      "tree": {
+        "strpos": [
+          {
+            "literal": ""
+          },
+          {
+            "literal": ""
+          }
+        ]
+      }
+    },
+    {
+      "source": "strpos(NULL, NULL)",
+      "tree": {
+        "strpos": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(x)",
+      "tree": {
+        "round": {
+          "field": "x"
+        }
+      }
+    },
+    {
+      "source": "trunc(x)",
+      "tree": {
+        "trunc": {
+          "field": "x"
+        }
+      }
+    },
+    {
+      "source": "round(-1)",
+      "tree": {
+        "round": {
+          "literal": -1
+        }
+      }
+    },
+    {
+      "source": "trunc(-1)",
+      "tree": {
+        "trunc": {
+          "literal": -1
+        }
+      }
+    },
+    {
+      "source": "round(-x)",
+      "tree": {
+        "round": {
+          "negate": {
+            "field": "x"
+          }
+        }
+      }
+    },
+    {
+      "source": "trunc(-x)",
+      "tree": {
+        "trunc": {
+          "negate": {
+            "field": "x"
+          }
+        }
+      }
+    },
+    {
+      "source": "round(negate(1))",
+      "tree": {
+        "round": {
+          "negate": {
+            "literal": 1
+          }
+        }
+      }
+    },
+    {
+      "source": "trunc(negate(1))",
+      "tree": {
+        "trunc": {
+          "negate": {
+            "literal": 1
+          }
+        }
+      }
+    },
+    {
+      "source": "round(NULL)",
+      "tree": {
+        "round": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "trunc(NULL)",
+      "tree": {
+        "trunc": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "ltrim(s)",
+      "tree": {
+        "ltrim": {
+          "field": "s"
+        }
+      }
+    },
+    {
+      "source": "ltrim($p)",
+      "tree": {
+        "ltrim": {
+          "$param": "p"
+        }
+      }
+    },
+    {
+      "source": "ltrim(NULL)",
+      "tree": {
+        "ltrim": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "ltrim(' 😀é ')",
+      "tree": {
+        "ltrim": {
+          "literal": " 😀é "
+        }
+      }
+    },
+    {
+      "source": "ltrim('')",
+      "tree": {
+        "ltrim": {
+          "literal": ""
+        }
+      }
+    },
+    {
+      "source": "rtrim(s)",
+      "tree": {
+        "rtrim": {
+          "field": "s"
+        }
+      }
+    },
+    {
+      "source": "rtrim($p)",
+      "tree": {
+        "rtrim": {
+          "$param": "p"
+        }
+      }
+    },
+    {
+      "source": "rtrim(NULL)",
+      "tree": {
+        "rtrim": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "rtrim(' 😀é ')",
+      "tree": {
+        "rtrim": {
+          "literal": " 😀é "
+        }
+      }
+    },
+    {
+      "source": "rtrim('')",
+      "tree": {
+        "rtrim": {
+          "literal": ""
+        }
+      }
+    },
+    {
+      "source": "trim(s,' ')",
+      "tree": {
+        "trim": [
+          {
+            "field": "s"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      }
+    },
+    {
+      "source": "trim($p,s)",
+      "tree": {
+        "trim": [
+          {
+            "$param": "p"
+          },
+          {
+            "field": "s"
+          }
+        ]
+      }
+    },
+    {
+      "source": "trim(NULL,'x')",
+      "tree": {
+        "trim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": "x"
+          }
+        ]
+      }
+    },
+    {
+      "source": "trim('x',NULL)",
+      "tree": {
+        "trim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "trim(NULL,NULL)",
+      "tree": {
+        "trim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "trim('😀é','😀́')",
+      "tree": {
+        "trim": [
+          {
+            "literal": "😀é"
+          },
+          {
+            "literal": "😀́"
+          }
+        ]
+      }
+    },
+    {
+      "source": "trim('x','')",
+      "tree": {
+        "trim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": ""
+          }
+        ]
+      }
+    },
+    {
+      "source": "trim(s,concat('a','b'))",
+      "tree": {
+        "trim": [
+          {
+            "field": "s"
+          },
+          {
+            "concat": [
+              {
+                "literal": "a"
+              },
+              {
+                "literal": "b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim(s,' ')",
+      "tree": {
+        "ltrim": [
+          {
+            "field": "s"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim($p,s)",
+      "tree": {
+        "ltrim": [
+          {
+            "$param": "p"
+          },
+          {
+            "field": "s"
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim(NULL,'x')",
+      "tree": {
+        "ltrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": "x"
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim('x',NULL)",
+      "tree": {
+        "ltrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim(NULL,NULL)",
+      "tree": {
+        "ltrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim('😀é','😀́')",
+      "tree": {
+        "ltrim": [
+          {
+            "literal": "😀é"
+          },
+          {
+            "literal": "😀́"
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim('x','')",
+      "tree": {
+        "ltrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": ""
+          }
+        ]
+      }
+    },
+    {
+      "source": "ltrim(s,concat('a','b'))",
+      "tree": {
+        "ltrim": [
+          {
+            "field": "s"
+          },
+          {
+            "concat": [
+              {
+                "literal": "a"
+              },
+              {
+                "literal": "b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim(s,' ')",
+      "tree": {
+        "rtrim": [
+          {
+            "field": "s"
+          },
+          {
+            "literal": " "
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim($p,s)",
+      "tree": {
+        "rtrim": [
+          {
+            "$param": "p"
+          },
+          {
+            "field": "s"
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim(NULL,'x')",
+      "tree": {
+        "rtrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": "x"
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim('x',NULL)",
+      "tree": {
+        "rtrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim(NULL,NULL)",
+      "tree": {
+        "rtrim": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim('😀é','😀́')",
+      "tree": {
+        "rtrim": [
+          {
+            "literal": "😀é"
+          },
+          {
+            "literal": "😀́"
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim('x','')",
+      "tree": {
+        "rtrim": [
+          {
+            "literal": "x"
+          },
+          {
+            "literal": ""
+          }
+        ]
+      }
+    },
+    {
+      "source": "rtrim(s,concat('a','b'))",
+      "tree": {
+        "rtrim": [
+          {
+            "field": "s"
+          },
+          {
+            "concat": [
+              {
+                "literal": "a"
+              },
+              {
+                "literal": "b"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(x,y)",
+      "tree": {
+        "round": [
+          {
+            "field": "x"
+          },
+          {
+            "field": "y"
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(x,2)",
+      "tree": {
+        "round": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      }
+    },
+    {
+      "source": "round($value,$digits)",
+      "tree": {
+        "round": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "digits"
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(x,$digits + 1)",
+      "tree": {
+        "round": [
+          {
+            "field": "x"
+          },
+          {
+            "add": [
+              {
+                "$param": "digits"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(-1.25,-1)",
+      "tree": {
+        "round": [
+          {
+            "literal": -1.25
+          },
+          {
+            "literal": -1
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(1.25,0)",
+      "tree": {
+        "round": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 0
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(1.25,1.5)",
+      "tree": {
+        "round": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(NULL,2)",
+      "tree": {
+        "round": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 2
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(1,NULL)",
+      "tree": {
+        "round": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "round(NULL,NULL)",
+      "tree": {
+        "round": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(x,y)",
+      "tree": {
+        "trunc": [
+          {
+            "field": "x"
+          },
+          {
+            "field": "y"
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(x,2)",
+      "tree": {
+        "trunc": [
+          {
+            "field": "x"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc($value,$digits)",
+      "tree": {
+        "trunc": [
+          {
+            "$param": "value"
+          },
+          {
+            "$param": "digits"
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(x,$digits + 1)",
+      "tree": {
+        "trunc": [
+          {
+            "field": "x"
+          },
+          {
+            "add": [
+              {
+                "$param": "digits"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(-1.25,-1)",
+      "tree": {
+        "trunc": [
+          {
+            "literal": -1.25
+          },
+          {
+            "literal": -1
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(1.25,0)",
+      "tree": {
+        "trunc": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 0
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(1.25,1.5)",
+      "tree": {
+        "trunc": [
+          {
+            "literal": 1.25
+          },
+          {
+            "literal": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(NULL,2)",
+      "tree": {
+        "trunc": [
+          {
+            "literal": null
+          },
+          {
+            "literal": 2
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(1,NULL)",
+      "tree": {
+        "trunc": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "trunc(NULL,NULL)",
+      "tree": {
+        "trunc": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "pow(2, 3)",
+      "tree": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      }
+    },
+    {
+      "source": "pow(NULL, NULL)",
+      "tree": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "pow(x, $q)",
+      "tree": {
+        "pow": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      }
+    },
+    {
+      "source": "power(2, 3)",
+      "tree": {
+        "pow": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      }
+    },
+    {
+      "source": "power(NULL, NULL)",
+      "tree": {
+        "pow": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "power(x, $q)",
+      "tree": {
+        "pow": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      }
+    },
+    {
+      "source": "log(2, 3)",
+      "tree": {
+        "log": [
+          {
+            "literal": 2
+          },
+          {
+            "literal": 3
+          }
+        ]
+      }
+    },
+    {
+      "source": "log(NULL, NULL)",
+      "tree": {
+        "log": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "log(x, $q)",
+      "tree": {
+        "log": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "q"
+          }
+        ]
+      }
+    },
+    {
+      "source": "exp(1)",
+      "tree": {
+        "exp": {
+          "literal": 1
+        }
+      }
+    },
+    {
+      "source": "exp(NULL)",
+      "tree": {
+        "exp": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "exp(x)",
+      "tree": {
+        "exp": {
+          "field": "x"
+        }
+      }
+    },
+    {
+      "source": "exp($q)",
+      "tree": {
+        "exp": {
+          "$param": "q"
+        }
+      }
+    },
+    {
+      "source": "ln(1)",
+      "tree": {
+        "ln": {
+          "literal": 1
+        }
+      }
+    },
+    {
+      "source": "ln(NULL)",
+      "tree": {
+        "ln": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "ln(x)",
+      "tree": {
+        "ln": {
+          "field": "x"
+        }
+      }
+    },
+    {
+      "source": "ln($q)",
+      "tree": {
+        "ln": {
+          "$param": "q"
+        }
+      }
+    },
+    {
+      "source": "log(1)",
+      "tree": {
+        "ln": {
+          "literal": 1
+        }
+      }
+    },
+    {
+      "source": "log(NULL)",
+      "tree": {
+        "ln": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "log(x)",
+      "tree": {
+        "ln": {
+          "field": "x"
+        }
+      }
+    },
+    {
+      "source": "log($q)",
+      "tree": {
+        "ln": {
+          "$param": "q"
+        }
+      }
+    },
+    {
+      "source": "log10(1)",
+      "tree": {
+        "log10": {
+          "literal": 1
+        }
+      }
+    },
+    {
+      "source": "log10(NULL)",
+      "tree": {
+        "log10": {
+          "literal": null
+        }
+      }
+    },
+    {
+      "source": "log10(x)",
+      "tree": {
+        "log10": {
+          "field": "x"
+        }
+      }
+    },
+    {
+      "source": "log10($q)",
+      "tree": {
+        "log10": {
+          "$param": "q"
+        }
+      }
+    },
+    {
+      "source": "greatest(1, -2, 3, 1)",
+      "tree": {
+        "greatest": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": -2
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": 1
+          }
+        ]
+      }
+    },
+    {
+      "source": "greatest(7)",
+      "tree": {
+        "greatest": [
+          {
+            "literal": 7
+          }
+        ]
+      }
+    },
+    {
+      "source": "greatest(NULL)",
+      "tree": {
+        "greatest": [
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "greatest(NULL, NULL)",
+      "tree": {
+        "greatest": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "greatest(x, $q, 2)",
+      "tree": {
+        "greatest": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "q"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      }
+    },
+    {
+      "source": "least(1, -2, 3, 1)",
+      "tree": {
+        "least": [
+          {
+            "literal": 1
+          },
+          {
+            "literal": -2
+          },
+          {
+            "literal": 3
+          },
+          {
+            "literal": 1
+          }
+        ]
+      }
+    },
+    {
+      "source": "least(7)",
+      "tree": {
+        "least": [
+          {
+            "literal": 7
+          }
+        ]
+      }
+    },
+    {
+      "source": "least(NULL)",
+      "tree": {
+        "least": [
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "least(NULL, NULL)",
+      "tree": {
+        "least": [
+          {
+            "literal": null
+          },
+          {
+            "literal": null
+          }
+        ]
+      }
+    },
+    {
+      "source": "least(x, $q, 2)",
+      "tree": {
+        "least": [
+          {
+            "field": "x"
+          },
+          {
+            "$param": "q"
+          },
+          {
+            "literal": 2
+          }
+        ]
+      }
+    }
   ],
   "negative": [
     "x IS NULL.c",
@@ -163,6 +1702,29 @@
     "round(x,)",
     "trunc(x,2,'ROUND_HALF_EVEN')",
     "trunc(x,2,3)",
-    "trunc(x,)"
+    "trunc(x,)",
+    "pow()",
+    "pow(1,)",
+    "pow(1, 2, 3)",
+    "pow(1)",
+    "power()",
+    "power(1,)",
+    "power(1, 2, 3)",
+    "power(1)",
+    "log()",
+    "log(1,)",
+    "log(1, 2, 3)",
+    "exp()",
+    "exp(1,2)",
+    "ln()",
+    "ln(1,2)",
+    "log10()",
+    "log10(1,2)",
+    "greatest()",
+    "greatest(1,)",
+    "greatest(,1)",
+    "least()",
+    "least(1,)",
+    "least(,1)"
   ]
 }

@@ -611,6 +611,8 @@ pub fn remote_poll_effect_current_request(RemotePollEffectCurrent) -> DispatchRe
 
 pub fn remote_poll_effect_resume_delivery_json(RemotePollEffectResume) -> String
 
+pub fn remote_poll_effect_resume_envelope_json(RemotePollEffectResume) -> Result[String, DispatchIssue]
+
 pub fn remote_poll_effect_resume_json(RemoteEffectResumeDelivery) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_effect_resume_request(RemotePollEffectResume) -> DispatchRequest

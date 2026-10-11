@@ -129,6 +129,77 @@ preserved without a synthetic length expression. The admitted number indices
 are safe-integer-valued finite binary64 numbers; full INT64 and BYTES remain
 coverage gaps. Quoted/case variants retain the same function identity.
 
+`CBRT(value)` selects the direct unary `cbrt` common expression, following the
+[GoogleSQL cube-root rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#cbrt)
+within the existing finite Number domain. Positive and negative finite inputs
+produce their real cube root, either zero sign produces canonical positive zero,
+and NULL produces NULL. The pinned MoonBit math primitive supplies the numerical
+operation with existing finite-result validation; this does not promise general
+last-bit equality across targets or live BigQuery. No implicit conversion,
+Decimal, distinct INT64/NUMERIC/BIGNUMERIC, non-finite overload or SAFE prefix is
+added. Arity, type, once-only child demand, failure, resources, cancellation and
+canonical identity remain with the common expression owner.
+
+The finite Number scalar functions `POW(x, y)` and `POWER(x, y)` lower to the
+same `pow` operation. `EXP(x)`, `LN(x)` and `LOG10(x)` are unary. `LOG(x)` is a
+synonym of `LN(x)`; `LOG(x, base)` is binary and retains its ordered arguments.
+The common expression finite-domain, NULL and arithmetic-failure rules apply.
+No distinct INT64/NUMERIC/BIGNUMERIC or non-finite overload is added. `MOD` is
+not admitted as a GoogleSQL FLOAT64 function; internal `%` remains unchanged.
+
+`LEFT(value, length)`, `RIGHT(value, length)`, `LPAD(value, length[, pattern])`
+and `RPAD(value, length[, pattern])` select the common String scalar operations
+with the same ordered argument arrays. Side slices select at most the requested
+number of Unicode scalars. Padding truncates to an original prefix or repeats
+the omitted U+0020/explicit nonempty pattern at the corresponding side, retaining
+only the needed final pattern prefix. Zero, NULL, failure, finite safe-integer
+length validation and cooperative resource rules belong to the common owner.
+Every supplied child remains present exactly once; quoted and case variants
+retain function identity. BYTES, explicit collation and the full INT64 length
+domain remain coverage gaps. No frontend evaluator or expansion that repeats
+the length child is introduced. Unquoted `LEFT` and `RIGHT` select function
+calls only when immediately followed by the opening-parenthesis token. They
+remain reserved as bare identifiers; `LEFT JOIN` and `RIGHT JOIN` retain their
+query syntax and are not reclassified as scalar calls.
+
+`SPLIT(value[, delimiter])` selects the common `split` expression, following the
+[GoogleSQL STRING rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#split).
+The optional delimiter is an ordinary STRING expression; literal matching
+excludes regular expressions but does not require a literal-valued argument.
+Omission selects comma and remains a one-element ordered argument array.
+Empty input produces one empty String; an empty delimiter on nonempty input
+selects Unicode scalars. The nullable Array result has non-null String elements
+and the common conservative input-derived bounds. Every supplied child remains
+once-only and ordered before strict NULL propagation; child errors, lazy demand,
+resource admission and cancellation remain with the common expression owner.
+BYTES and collation remain coverage gaps. No `split_part` profile or frontend
+split evaluator is introduced.
+
+`BYTE_LENGTH(value)` and its `OCTET_LENGTH(value)` alias select the same unary
+`byte_length` common expression for STRING UTF-8 byte counts. `UNICODE(value)`
+selects `unicode`, returning the first Unicode scalar code point or zero for
+empty input/leading NUL. `CHR(value)` selects `chr`, accepting integral finite
+Number code points from 0..0xD7FF or 0xE000..0x10FFFF. Zero returns an empty
+String; every other admitted code point produces one scalar. Fractional,
+negative, surrogate and out-of-range inputs fail after strict NULL propagation.
+These follow the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions),
+within the existing bounded String/finite Number domains. BYTES and distinct
+INT64 overloads remain coverage gaps. All spellings preserve one common child,
+operand nullability, lazy demand, failure, resources and cancellation.
+
+`REPEAT(value, count)` selects the ordered binary `repeat` common expression;
+`REVERSE(value)` selects direct unary `reverse`. REPEAT accepts a STRING and
+nonnegative integral finite Number count, returning empty for zero or an empty
+input after strict NULL propagation and domain validation. GoogleSQL's INT64
+count is explicitly adapted to ActQL's existing finite Number domain without a
+safe-integer or INT64 cap; nonempty outputs remain bounded by existing resource
+owners. REVERSE reverses Unicode scalar order, preserving astral scalars and
+combining marks without normalization or grapheme segmentation. These follow
+the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions)
+within the admitted STRING surface; BYTES and distinct INT64 remain coverage
+gaps. All demanded children run once in order before NULL propagation, preserving
+failure, enclosing lazy demand, resources, cancellation and canonical nodes.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive
@@ -139,6 +210,21 @@ retains the common lazy-demand, failure, cancellation and budget rules.
 This implements the finite FLOAT64 subset. INT64, NUMERIC, BIGNUMERIC and
 non-finite overload domains remain unsupported; no implicit conversion is
 introduced by the frontend.
+
+`GREATEST(expr, ...)` and `LEAST(expr, ...)` require at least one finite
+`number` expression and lower to the corresponding common nonempty argument
+array, retaining order, repetitions and singleton calls. They return the numeric
+maximum/minimum; any NULL yields NULL after every demanded child succeeds.
+A NULL operand does not suppress a later arithmetic error. Enclosing lazy
+conditional and COALESCE demand still applies. Immediate untyped NULL has the
+unique number signature, including all-NULL calls, and result nullability is the
+union of operand nullability. Empty calls are rejected before checking.
+
+Only the finite Number subset is implemented. STRING, BOOLEAN, decimal,
+temporal, BYTES, non-finite and mixed-type overloads, implicit conversions and
+collation are unsupported. GoogleSQL's Unicode-code-point STRING order differs
+from the canonical ActQL UTF-16 order; these functions do not redefine that
+shared ordering owner. No GoogleSQL NUMERIC/BIGNUMERIC support is implied.
 
 `ROUND(expr[, n])` and `TRUNC(expr[, n])` take one or two finite binary64
 `number` expressions and lower to the common `round` or `trunc` node.
