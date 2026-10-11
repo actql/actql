@@ -220,7 +220,13 @@ fn local_submission_start(
   ).unwrap_or_else(() => stop("LocalPreparationNotReady"))
   guard @local_host.native_client_submitted_preparation(preparation)
     is Computation(prepared) else {
-    stop("LocalEffectExecutionNotConnected")
+    local_effect_prepare_start(
+      host, settings, crypto, preparation, reference, run, scope,
+    )
+    |> ignore
+    // No accepted Run or physical Source work is created until the selected
+    // Local capture/reviewer supplier is connected. Compilation is not approval.
+    stop("LocalEffectAuthoritySupplierUnavailable")
   }
   if !@source_owner.resident_source_compute_shape_supported(prepared) {
     stop("LocalSourceExecutionProfileNotSupported")
