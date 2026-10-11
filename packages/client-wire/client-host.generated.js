@@ -16920,6 +16920,13 @@ const operationKeys = {
     "maxNodes",
     "maxDepth"
   ],
+  "inspect-run": [
+    "connection",
+    "ref",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
   "attach": [
     "connection",
     "ref"

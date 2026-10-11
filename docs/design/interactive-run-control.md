@@ -6,6 +6,37 @@ Its closed shapes and identity domains are separate from the unchanged closed
 `actql-run-state/0.1`, legacy start intent, and Run Definition. Registration
 does not install a scheduler feature or confer execution authority.
 
+## Read-only current Run projection
+
+The initial Node Inspect service reads the original retained Run Definition and
+prepared/authorization evidence through the existing request journal. Current
+authorization is checked before acquisition and again before disclosure. The
+portable publication projection verifies original Plan, template, execution
+context, policy and Run-reference bindings, and verifies the existing Owner
+snapshot CID. Inspect neither recompiles the Program nor advances Run control.
+
+The resulting view is explicitly non-atomic and Owner-local. It retains the
+unchanged legacy Run state and its observed control revision. Missing pending
+flags remain omitted/unknown; unsupported pause, Sample and cost capabilities
+are separate facts. No logical map is reconstructed from physical tasks.
+
+This limited profile refuses Inspect when an older record lacks original policy
+evidence, or when a resuming state lacks the required continuation/fence origin
+observation. The underlying original Run and legacy status API remain usable.
+Missing evidence never authorizes reconstruction from current configuration,
+new execution or a fabricated revision/origin. New source-free Values admissions
+retain their existing prepared/authorization evidence in the journal's existing
+bounded evidence field without changing Run identity or execution meaning.
+
+The installed Node read profile reports both static planning and Inspect as
+Host support facts on either view. The Node consumer explicitly supplies that
+installation fact to the portable issuers; a common compiler or shape parser
+does not infer another Host's support. Unsupported control, Sample, full
+intermediate retention, cost and batch capabilities remain false or empty.
+Static observation and current Run provenance stay separate from those support
+facts. Capability flags and operation hints are not authorization tokens and
+do not replace current access checks or update the original policy identity.
+
 ## Existing-Owner connection inventory
 
 | Boundary | Existing authority or fact | Negotiated connection |

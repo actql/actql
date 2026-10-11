@@ -1490,7 +1490,12 @@ pub fn client_program_values_static_plan_view(
   max_depth : Int,
 ) -> Result[String, @publication_host.ClientInteractivePlanIssue] {
   @publication_host.client_values_static_plan_view(
-    prepared, compiled, max_bytes, max_nodes, max_depth,
+    prepared,
+    compiled,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    inspect_installed=true,
   )
 }
 
@@ -1504,7 +1509,39 @@ pub fn client_program_task_static_plan_view(
   max_depth : Int,
 ) -> Result[String, @publication_host.ClientInteractivePlanIssue] {
   @publication_host.client_task_static_plan_view(
-    prepared, compiled, max_bytes, max_nodes, max_depth,
+    prepared,
+    compiled,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    inspect_installed=true,
+  )
+}
+
+///|
+#export_name("clientProgramCurrentRunView")
+pub fn client_program_current_run_view(
+  run : @publication.PublicationContract,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  run_ref_wire : String,
+  state_wire : String,
+  snapshot_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.RunControlReadIssue] {
+  @publication.project_current_interactive_run_view(
+    run,
+    prepared,
+    authorization,
+    run_ref_wire,
+    state_wire,
+    snapshot_cid,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    static_plan_installed=true,
   )
 }
 

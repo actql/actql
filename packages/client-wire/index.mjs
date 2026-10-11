@@ -320,7 +320,7 @@ export function prepareClientHostRequest(operation, original) {
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
-  if (['submit-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan'].includes(operation)) {
+  if (['submit-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -365,6 +365,12 @@ export function validClientBody(operation, body) {
         !Array.isArray(body.parameters));
   }
   if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
+  if (operation === 'inspect-run') {
+    return validRunRef(body.ref) &&
+      Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= 65536 &&
+      Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
+      Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;
+  }
   if (operation === 'plan') {
     return validProgramInput(body) &&
       (body.parameters === null || typeof body.parameters === 'object' &&

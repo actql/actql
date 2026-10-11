@@ -12,12 +12,15 @@ pub(all) enum ClientInteractivePlanIssue {
 ///|
 /// Read only the exact compiler-issued Values owner. Shape/CID admission
 /// alone is not compiler provenance and cannot be substituted here.
+/// The trusted read consumer must explicitly declare installed Inspect. This
+/// portable issuer does not infer Host support from a schema or compilation.
 pub fn client_values_static_plan_view(
   prepared : PreparedClientProgram,
   compiled : ClientValuesCompilation,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  inspect_installed? : Bool = false,
 ) -> Result[String, ClientInteractivePlanIssue] {
   if !physical_equal(compiled.owner, prepared) {
     return Err(ForeignCompilation)
@@ -28,6 +31,7 @@ pub fn client_values_static_plan_view(
     max_bytes,
     max_nodes,
     max_depth,
+    inspect_installed,
   )
 }
 
@@ -40,6 +44,7 @@ pub fn client_task_static_plan_view(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  inspect_installed? : Bool = false,
 ) -> Result[String, ClientInteractivePlanIssue] {
   if !physical_equal(compiled.owner, prepared) {
     return Err(ForeignCompilation)
@@ -50,6 +55,7 @@ pub fn client_task_static_plan_view(
     max_bytes,
     max_nodes,
     max_depth,
+    inspect_installed,
   )
 }
 
@@ -128,6 +134,7 @@ fn issue_client_static_plan_view(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  inspect_installed : Bool,
 ) -> Result[String, ClientInteractivePlanIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidReadLimits)
@@ -275,7 +282,7 @@ fn issue_client_static_plan_view(
     plan_cid + "\",\"logical_map\":" + @publication.run_evidence_value_json(map) +
     ",\"observation\":\"static\",\"provider_io\":0,\"quantities\":[" +
     "{\"kind\":\"unknown\",\"unit\":\"work\",\"reason\":\"not_observed\"}]," +
-    "\"capabilities\":{\"static_plan\":true,\"inspect\":false," +
+    "\"capabilities\":{\"static_plan\":true,\"inspect\":" + inspect_installed.to_string() + "," +
     "\"durable_control\":false,\"sample_capture\":[]," +
     "\"full_intermediate_retention\":[],\"cost_guard\":false," +
     "\"execution_batch\":false,\"policy_revision_cid\":\"" +

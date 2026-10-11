@@ -17,7 +17,7 @@ const mockView = () => ({version: 'actql-plan-view/0.1', compiled_plan_cid: plan
     .update(canonicalText(mapBody)).digest('hex')}`},
   observation: 'static', provider_io: 0,
   quantities: [{kind: 'unknown', unit: 'work', reason: 'not_observed'}],
-  capabilities: {static_plan: true, inspect: false, durable_control: false,
+  capabilities: {static_plan: true, inspect: true, durable_control: false,
     sample_capture: [], full_intermediate_retention: [], cost_guard: false,
     execution_batch: false, policy_revision_cid: cid('9')}});
 const profile = mode => ({version: 'actql-client-host/0.1', mode, owner: mode,

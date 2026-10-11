@@ -2031,6 +2031,17 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
+    readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
+      if (typeof moon.clientProgramCurrentRunView !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'),
+          {code: 'ClientOperationUnavailable'});
+      }
+      return compiledRunResult(moon.clientProgramCurrentRunView(
+        token(runDefinition), evidenceToken(prepared), evidenceToken(authorization),
+        JSON.stringify(ref), JSON.stringify(state), snapshotCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostInspectRejected');
+    },
     readCheckedClientStaticPlan(checkedProgram, kind, limits) {
       if (!['values', 'tasks'].includes(kind) ||
           !Number.isSafeInteger(limits?.maxWireBytes) || limits.maxWireBytes < 1 ||

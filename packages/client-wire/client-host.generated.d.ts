@@ -1,7 +1,7 @@
 // Generated from the registered Client–Host machine contract.
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
-export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "restart-intent" | "lookup-submission" | "check" | "plan" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek" | "owner-observations";
+export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "restart-intent" | "lookup-submission" | "check" | "plan" | "inspect-run" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek" | "owner-observations";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
   nullable: boolean;

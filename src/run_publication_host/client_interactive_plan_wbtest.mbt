@@ -13,9 +13,12 @@ test "static map reads original input-only Stage without a fabricated operation"
   ).unwrap()
   let wire = client_task_static_plan_view(
     prepared, compilation, 100000, 10000, 100,
+    inspect_installed=true,
   ).unwrap()
   assert_eq(
-    client_task_static_plan_view(prepared, compilation, 100000, 10000, 100).unwrap(),
+    client_task_static_plan_view(
+      prepared, compilation, 100000, 10000, 100, inspect_installed=true,
+    ).unwrap(),
     wire,
   )
   let view = parse_plan_identity_value(wire, 100000, 10000, 100).unwrap()
@@ -83,12 +86,27 @@ test "static map reads original input-only Stage without a fabricated operation"
     ),
   )
   let capabilities = @canonical.object_field(view, "capabilities").unwrap()
-  for field in ["durable_control", "inspect", "cost_guard", "execution_batch"] {
+  for field in ["static_plan", "inspect"] {
+    assert_true(
+      @canonical.object_field(capabilities, field)
+      is Some(@canonical.Bool(true)),
+    )
+  }
+  for field in ["durable_control", "cost_guard", "execution_batch"] {
     assert_true(
       @canonical.object_field(capabilities, field)
       is Some(@canonical.Bool(false)),
     )
   }
+  let default_view = parse_plan_identity_value(
+    client_task_static_plan_view(prepared, compilation, 100000, 10000, 100).unwrap(),
+    100000, 10000, 100,
+  ).unwrap()
+  assert_true(
+    @canonical.object_field(
+      @canonical.object_field(default_view, "capabilities").unwrap(), "inspect",
+    ) is Some(@canonical.Bool(false)),
+  )
 }
 
 ///|

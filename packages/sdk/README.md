@@ -81,6 +81,37 @@ Run observations, and published Result reads. Supported Program shapes and
 connectors depend on the installation; this is not a claim that every Host
 supports every Program. See the [current implementation status](https://github.com/actql/actql/blob/main/docs/reviews/current-product-status.md).
 
+## Read-only Plan and original Run views
+
+On a supporting installed Node Host, `client.plan(program)` reads a checked
+compiler-issued static Plan and immutable logical ports without creating a Run
+or acquiring Source data. AQL text uses `client.plan(text, {format: 'aql-text'})`;
+SQL uses `{format: 'sql'}`. The map describes original checked operations, not
+physical task numbers. An input-only Stage remains an input/output occurrence.
+
+`await run.inspect()` reads the currently authorized original Run. It does not
+recompile or execute the Program, acquire inputs, dispatch a Model or Effect,
+or change the Run's control revision. Views declare non-atomic, Owner-local
+observations; they are not a globally synchronized snapshot or control grant.
+Unobserved pending flags are omitted, not `false`.
+
+Both reads accept finite `maxWireBytes`, `maxNodes` and `maxDepth` options.
+This initial slice supports static planning and Inspect for source-free Values
+Runs with retained original policy evidence. Records without that evidence and
+resuming states without the required original continuation/fence observation
+refuse Inspect; ordinary legacy status reads remain available. Durable pause,
+step, resume, Sample collection, intermediate retention and cost Guards are not
+installed by these read methods. Do not infer their support from schema types.
+
+```js
+const plan = await client.plan('SELECT 1 AS n', {format: 'sql'});
+const run = await client.startSource('SELECT 1 AS n', {format: 'sql',
+  submissionRef: client.newSubmission({nonce: 'original-read-example'})});
+await run.wait();
+const view = await run.inspect();
+console.log(plan.compiled_plan_cid, view.run_ref, view.run_state.status);
+```
+
 ## Client lifetime
 
 Always `await client.close()` in a `finally` block. Close seals new Client
