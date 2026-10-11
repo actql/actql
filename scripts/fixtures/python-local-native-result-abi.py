@@ -1222,7 +1222,8 @@ try:
                             ('run_receipt_cid', body['receipt']),
                             ('captured_run_cid', body['captured_run']),
                         ):
-                            assert index[field] == json.loads(original)[field]
+                            original_field = 'receipt_identity_cid' if field == 'run_receipt_cid' else field
+                            assert index[field] == json.loads(original)[original_field]
                         assert index['run_definition_cid'] == original_request['run_definition_cid']
                         assert index['invocation_cid'] == json.loads(body['manifest'])['invocation_cid']
                         assert index['durable_result_binding_cids'] == [binding['durable_result_binding_cid']]
@@ -1237,7 +1238,7 @@ try:
                             'publication_request_cid': original_request['publication_request_cid'],
                             'publication_attempt_cid': original_attempt['publication_attempt_cid'],
                             'result_manifest_cid': manifest['result_manifest_cid'],
-                            'run_receipt_cid': receipt['run_receipt_cid'],
+                            'run_receipt_cid': receipt['receipt_identity_cid'],
                             'captured_run_cid': captured['captured_run_cid'],
                             'durable_result_binding_cids': [binding['durable_result_binding_cid']],
                         }
@@ -1308,6 +1309,9 @@ try:
             assert call('task', 'close', task) == 0
         assert call('compute', 'close', compute) == -9
         fixture.cleanup_ready = False
+        # Output is already retired. The original input reader's physical
+        # stop, rather than former output cleanup, keeps this borrow pending.
+        fixture.stop_ready = False
         reserved = fixture.call('reserved')
         assert_status('publication_preflight', 'close', -9, preflight)
         assert fixture.call('reserved') == reserved
