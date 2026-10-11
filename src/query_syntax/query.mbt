@@ -1585,22 +1585,21 @@ fn QueryParser::frame_boundary(
     self.keyword("ROW")
     return CurrentRow
   }
-  if self.peek().value is Parameter(name) {
-    ignore(self.advance())
-    if self.has("PRECEDING") {
-      self.keyword("PRECEDING")
-      return PrecedingParameter(self.source.identifier(name))
-    }
-    self.keyword("FOLLOWING")
-    return FollowingParameter(self.source.identifier(name))
-  }
-  let distance = self.safe_integer(true)
-  if self.has("PRECEDING") {
+  // Keep the integer/whole-Parameter role after bounded transparent wrappers.
+  // Boundary direction remains authored syntax, including zero distances.
+  let distance = self.limit_integer(true)
+  let preceding = if self.has("PRECEDING") {
     self.keyword("PRECEDING")
-    Preceding(distance)
+    true
   } else {
     self.keyword("FOLLOWING")
-    Following(distance)
+    false
+  }
+  match (distance, preceding) {
+    (Integer(value), true) => Preceding(value)
+    (Integer(value), false) => Following(value)
+    (BoundParameter(name), true) => PrecedingParameter(name)
+    (BoundParameter(name), false) => FollowingParameter(name)
   }
 }
 

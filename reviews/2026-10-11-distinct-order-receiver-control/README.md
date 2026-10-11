@@ -100,3 +100,23 @@ and whitespace, all exit zero (13 commands). These do not execute the tests.
 The Node dependency symlink is read-only borrowed from the protected B
 `actql-frontend-qualify-group-aggregate-slots/node_modules` target; its exact
 path is recorded in [borrowed-dependency.json](borrowed-dependency.json).
+
+## Normal grouped ROWS main integration
+
+This branch normally merges published main
+`d80a30d47ab0d673a0005aa95147bb625e35cb17` after #1471. The submitted
+#1471/#1474 heads were not changed. Only packed registration, the inventory
+pin and its assertions conflicted; both fixture cohorts were preserved. The
+exit-1 merge and original conflicting bytes with SHA-256 remain in
+[main-merge-conflicts.json](main-merge-conflicts.json). Upstream grammar,
+generated identities, zero-ROWS correction and old preimages remain intact.
+
+The merged registration now has 3,971 declarations (2,495 normal,
+50 execution-failure, 1,426 refusal), digest
+`9a14391bd66d87985db90c7c0a77ce8088dd93acc4c445768c91d9ead08e1006`.
+The earlier 3,957 inventory is retained as pre-integration registration
+evidence. [integrated-static-checks.json](integrated-static-checks.json)
+records three syntax checks, five read-only freshness checks and whitespace,
+all exit zero. Neither this integration nor those checks execute the prepared
+regressions or public API. The five normal/five refusal independent oracles
+are unchanged. Runtime/public completion remains open.
