@@ -148,6 +148,8 @@ pub fn restore_durable_publication_payload_record(DurablePublicationPayloadRecor
 
 pub fn validate_publication_payload_allocation_write(PublicationPayloadAllocationWrite) -> Result[Unit, PublicationPayloadIssue]
 
+pub fn validate_publication_payload_sealed_generation(PublicationPayloadRecord, PublicationPayloadGeneration, String) -> Result[Unit, PublicationPayloadIssue]
+
 // Errors
 
 // Types and methods

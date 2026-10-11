@@ -298,6 +298,7 @@ _PAYLOAD_RECORD_SIGNATURES = {
     'validate': ('i64 i32 i32', 'i32'),
     'begin': ('i64 i32 i32', 'i32'),
     'confirm': ('i64 i32 i32 i32', 'i32'),
+    'validate_snapshot': ('i64 i32 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
@@ -566,7 +567,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 39:
+            if self._exports['actql_host_abi_version'](self._store) != 40:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1512,6 +1513,26 @@ class LocalCore:
 
     def close_payload_record(self, value: _Output) -> bool:
         return self._close_output(value, 'payload_record', 'close')
+
+    def validate_payload_snapshot(self, value: _Output, observation: _Input,
+                                  current_configuration: int) -> None:
+        """Compare fresh trusted physical facts with the original Sealed record.
+
+        The Host supplies actual original completed-reader facts under its
+        Core-to-File lock order, retains the reader/reservation, and rechecks
+        before physical commit. Success grants no publisher authority or ACK.
+        This call keeps both original loans and performs no physical I/O.
+        """
+        with self._lock:
+            self._owned_output(value, 'payload_record')
+            self._owned_input(observation)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('validate_payload_snapshot', self._call(
+                'payload_record', 'validate_snapshot', value.handle,
+                observation.handle, current_configuration))
 
     def reserve_payload_reservation(self, request: _Output, *,
                                cleanup: Callable[[], bool]) -> _Output:

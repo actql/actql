@@ -972,6 +972,26 @@ class LocalFileRoot:
             reader.eof = chunk.eof
             reader.chunk = None
 
+    def observe_completed_reader(self, reader: _FileReader) -> PhysicalFileSnapshot:
+        """Observe exact EOF/digest while retaining the original descriptor.
+
+        Only the nominal reader can supply these physical facts. They are not
+        Core Sealed, Run or commit evidence. The trusted Host retains this reader
+        and its reservations and calls again before physical commit; this is a
+        current observation, not a promise that the file cannot change later.
+        No read, close or replacement descriptor is performed here.
+        """
+        with self._lock:
+            self._validate_reader(reader)
+            result = reader.finalization.result
+            if not reader.eof or reader.chunk is not None or result is None:
+                raise LocalFileError('Original Local reader is incomplete')
+            if 'sha256:' + reader.hash.hexdigest() != result.physical_digest:
+                reader.invalid = True
+                raise LocalFileError('Original Local reader physical digest changed')
+            reader.finish_ready = True
+            return result
+
     def finish_reader(self, reader: _FileReader) -> bool:
         """Check exact physical EOF/digest and stop the same original descriptor.
 
@@ -985,14 +1005,7 @@ class LocalFileRoot:
             if reader.closing and not reader.finish_ready:
                 raise LocalFileError('Original Local reader closed before physical completion')
             if not reader.closing:
-                self._validate_reader(reader)
-                result = reader.finalization.result
-                if not reader.eof or reader.chunk is not None or result is None:
-                    raise LocalFileError('Original Local reader is incomplete')
-                if 'sha256:' + reader.hash.hexdigest() != result.physical_digest:
-                    reader.invalid = True
-                    raise LocalFileError('Original Local reader physical digest changed')
-                reader.finish_ready = True
+                self.observe_completed_reader(reader)
             return self.close_reader(reader)
 
     def close_reader(self, reader: _FileReader) -> bool:
