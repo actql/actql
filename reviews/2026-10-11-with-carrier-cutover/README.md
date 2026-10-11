@@ -68,12 +68,37 @@ reviewed IDs. Root reports that the design contains the existing 119 supplied
 IDs; no target ID is deleted or weakened here. P1 and P2 do not create an
 all-provider or unimplemented Debug completion prerequisite.
 
+[operation-profile-index.json](operation-profile-index.json) expands the reviewed
+operation seeds into explicit target profiles, including the four NEAREST
+Carrier pairs, evidence-aware Relation pooling versus intrinsic Vectors,
+Relation/Events clocks, fixed/sliding windows and ranking occurrence roles.
+Existing `match_nodes`/`match_edges` retain their installed source surfaces;
+they are already included in the reviewed seed. This is
+static inventory, not execution support certification. Exact signature and
+backend rows explicitly marked unverified remain A0 work.
+
 Preserve admitted Graph identity when only a binder or nonsemantic scope wrapper
 changes. Do not add binding-only projection or normalization steps. True producer
 definition changes may change the domain; equal rows do not establish identity.
 Changed grammar bytes must have the actual new compilation/Run identities and
 independent preimages. Original source, stored Program/Run, signatures, CIDs and
 raw success/failure receipts are never relabeled under the new grammar.
+
+[graph-definition-preimages.json](graph-definition-preimages.json) fixes three
+independently authored canonical preimages using ASCII keys and safe integer
+values. Physical producer/root metadata renames preserve the same domain;
+changing the actual inline edge definition changes it. No product canonicalizer
+supplies these expectations, and common checker comparison remains unexecuted.
+A scope wrapper must preserve the admitted Graph owner rather than rebuilding
+its constructor or adding a projection/normalization step. This does not claim
+that independently compiled equal-row JSON and text producers have equal domains.
+
+[four-carrier-controls.json](four-carrier-controls.json) prepares internal Vectors
+and Events pipeline obligations alongside Relation and Graph. Test declarations
+do not issue admitted Carriers; actual common checking, retained pending
+identity/resource obligations and execution remain unverified. The dot scores
+are exactly 1 and 0; session gap equality separates the third event. P1 internal
+coverage does not claim that P2 public vector/temporal syntax is installed.
 
 ## Retirement and evidence boundaries
 
@@ -83,6 +108,14 @@ teaches those forms at the real cutover. Directly replace current source text;
 ship no converter, migrator, compatibility parser, alias or fallback. Comments,
 literal strings, external DDL, explicit negative controls and immutable evidence
 are classified separately. JSON/YAML machine Program remains supported.
+
+[retired-entry-callers.json](retired-entry-callers.json) classifies current
+entry/count/permission-flag callers and their exact source hashes. Generated
+interfaces require the existing generator; active test sources require direct
+replacement with unchanged semantic oracles. The bounded scan also finds real
+private structural-fixture consumers, which are protected from indiscriminate
+deletion. It is not a universal DATA token blacklist or authority to delete
+stored observations, unrelated strings or independent machine Program fixtures.
 
 All new controls are authored preparation: parser, checker, runtime and public
 execution are unverified. No product file, current tutorial, grammar or pin is
@@ -96,3 +129,13 @@ bundle-head lookup with exit 1. Correcting its parent directory completed only
 metadata preparation; it is not a product test or a repaired runtime failure.
 [handoff-state.json](handoff-state.json) records the actual remaining start
 condition and unchanged Owner boundaries.
+
+[a0-expansion-failure.json](a0-expansion-failure.json) retains the failed own
+metadata assertion caused by adding two operations already present in the seed.
+The corrected inventory has 45 unique operations and 82 rows; no supplied ID
+or product expectation changed.
+[four-carrier-preparation-failure.json](four-carrier-preparation-failure.json)
+retains the failed source-link assertion and authoring syntax error.
+The earlier [static receipt](a0-expansion-static.json) pins its earlier inputs;
+the [final bounded metadata receipt](a0-final-static.json) is separate from
+product execution.

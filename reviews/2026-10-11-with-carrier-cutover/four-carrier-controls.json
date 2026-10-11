@@ -1,0 +1,81 @@
+{
+  "source": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "bundle": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
+  "status": "Authored internal pipeline controls; parser/checker/evaluator/public unexecuted",
+  "relation_control": "scope-demand-controls.json#S07",
+  "graph_controls": "parallel-edge-controls.json",
+  "controls": [
+    {
+      "id": "V01-internal-pipeline",
+      "initial_carrier": "Relation",
+      "input_schema": {
+        "item_id": {"type": "number", "nullable": false},
+        "embedding": {"type": "vector", "nullable": false, "dimensions": 2}
+      },
+      "input_rows": [
+        {"item_id": 1, "embedding": [1, 0]},
+        {"item_id": 2, "embedding": [0, 1]}
+      ],
+      "pipeline": [
+        {"to_vectors": {"id": "item_id", "vector": "embedding"}, "as": "prepared"},
+        {"score_vectors": {"query": [1, 0], "metric": "dot"}, "from": "prepared", "as": "scored"},
+        {"vectors": true, "from": "scored"},
+        {"select": ["item_id", "score"]},
+        {"sort": [{"score": "desc"}, {"item_id": "asc"}]}
+      ],
+      "expected_step_carriers": ["Vectors", "Vectors", "Relation", "Relation", "Relation"],
+      "expected_roles": {"ids": ["item_id"], "components": "embedding", "dimensions": 2},
+      "expected_rows": [{"item_id": 1, "score": 1}, {"item_id": 2, "score": 0}],
+      "expected_columns": [
+        {"name": "item_id", "contract": {"type": "number", "nullable": false}},
+        {"name": "score", "contract": {"type": "number", "nullable": false}}
+      ],
+      "retained_pending": ["ValidateVectorValues", "ValidateUniqueIdentities", "ResolveVecaProfile", "ResolveVectorResources", "ScoreArithmetic", "ScoreOrder", "MatchDimensions"],
+      "common_symbols": ["src/vector_typing/check.mbt::check", "src/carrier_projection/projection.mbt::check"],
+      "guards": [
+        "A numeric ARRAY field is not a supplied fixed-dimensional vector field.",
+        "Structural checking does not discharge key/value/resource validation."
+      ]
+    },
+    {
+      "id": "T01-internal-pipeline",
+      "initial_carrier": "Relation",
+      "input_schema": {
+        "event_id": {"type": "number", "nullable": false},
+        "occurred_ms": {"type": "number", "nullable": false},
+        "customer_id": {"type": "string", "nullable": false}
+      },
+      "input_rows": [
+        {"event_id": 1, "occurred_ms": 0, "customer_id": "u"},
+        {"event_id": 2, "occurred_ms": 299999, "customer_id": "u"},
+        {"event_id": 3, "occurred_ms": 599999, "customer_id": "u"}
+      ],
+      "pipeline": [
+        {"to_events": {"id": "event_id", "time": "occurred_ms"}, "as": "ev"},
+        {"session": {"by": ["customer_id"], "gap": "5m"}, "from": "ev", "as": "grouped"},
+        {"events": true, "from": "grouped"},
+        {"select": ["event_id", "session_start_ms", "session_end_ms"]},
+        {"sort": [{"event_id": "asc"}]}
+      ],
+      "expected_step_carriers": ["Events", "Events", "Relation", "Relation", "Relation"],
+      "expected_roles": {"identity": "event_id", "time": "occurred_ms", "clock_encoding": "Milliseconds"},
+      "expected_rows": [
+        {"event_id": 1, "session_start_ms": 0, "session_end_ms": 599999},
+        {"event_id": 2, "session_start_ms": 0, "session_end_ms": 599999},
+        {"event_id": 3, "session_start_ms": 599999, "session_end_ms": 899999}
+      ],
+      "expected_columns": [
+        {"name": "event_id", "contract": {"type": "number", "nullable": false}},
+        {"name": "session_start_ms", "contract": {"type": "number", "nullable": false}},
+        {"name": "session_end_ms", "contract": {"type": "number", "nullable": false}}
+      ],
+      "common_symbols": ["src/event_typing/bridge.mbt::check_bridge", "src/event_typing/session.mbt::check_session", "src/temporal_window/options.mbt::read_ms", "src/carrier_projection/projection.mbt::check"],
+      "guards": [
+        "Gap equality starts a new session.",
+        "Events input rejects id/time overrides.",
+        "Use existing independent session identity vectors; never synthesize a frontend clock or session ID."
+      ]
+    }
+  ],
+  "evidence_boundary": "These schemas are authored test declarations, not product-issued Carriers. The two pipeline controls are not complete public Programs or source-acquisition identity controls. Existing LANGUAGE_CHANGES.md V01/T01 source examples and their Origin/Program identities must be compared separately. No runtime result or Program/CID equality is inferred."
+}
