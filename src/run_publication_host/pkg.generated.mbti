@@ -118,6 +118,8 @@ pub fn admit_source_free_client_request_identity_record(String, String, String, 
 
 pub fn admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, ClientCompiledRunIssue]
 
+pub fn begin_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.CapacityReservation, Int, Int, Int) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
+
 pub fn bind_captured_client_effect_preview(ClientEffectRunMaterials, @physical_strategy.CapturedEffectRunDAG, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, Array[ClientEffectLocalIdentity], ClientCapturedEffectPreviewLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientCapturedEffectPreviewIssue]
 
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
@@ -938,7 +940,7 @@ pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int,
 
 pub fn prepare_client_infer_item_limit(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@program_check.InferItemLimit, ClientInferItemLimitIssue]
 
-pub fn prepare_client_model_read(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.CapacityReservation, Array[@physical_resources.Reservation], Array[@physical_resources.Holding], Array[@physical_resources.ExecutionDelegation], Int, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
+pub fn prepare_client_model_read(ClientModelReadScope, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
 
 pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
 
@@ -1810,6 +1812,8 @@ pub(all) enum ClientModelReadPreparationIssue {
   InvalidBootstrap
   Resource(@physical_resources.OriginalReadIssue)
 } derive(Eq, @debug.Debug)
+
+type ClientModelReadScope
 
 pub(all) struct ClientProgramIdentity {
   program_definition_cid : String

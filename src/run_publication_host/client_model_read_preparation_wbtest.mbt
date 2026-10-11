@@ -46,34 +46,15 @@ test "checked original model read binds Run Host and same ledger before handoff"
   // chosen original Definition is bound at preparation, not inferred from the
   // Program identity. A later equal-Program/other-Run handoff must be refused.
   assert_true(
-    prepare_client_model_read(
-      compiled,
-      definition,
-      foreign_plan,
-      ledger,
-      bootstrap,
-      [],
-      [],
-      [],
-      0,
-      7L,
-      5L,
+    begin_client_model_read_scope(
+      compiled, definition, foreign_plan, ledger, bootstrap, 1, 0, 0,
     )
     is Err(ForeignRun),
   )
-  let prepared = prepare_client_model_read(
-    compiled,
-    definition,
-    plan,
-    ledger,
-    bootstrap,
-    [],
-    [],
-    [],
-    0,
-    7L,
-    5L,
+  let scope = begin_client_model_read_scope(
+    compiled, definition, plan, ledger, bootstrap, 1, 0, 0,
   ).unwrap()
+  let prepared = prepare_client_model_read(scope, 7L, 5L).unwrap()
   assert_true(client_model_read_available(prepared, compiled, definition, plan))
   assert_true(
     !client_model_read_available(prepared, compiled, foreign_definition, plan),
@@ -112,6 +93,10 @@ test "checked original model read binds Run Host and same ledger before handoff"
     settle_client_model_read(prepared, true)
     is Err(Resource(@resources.SpentClaim)),
   )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 3L)
+  assert_true(
+    @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
+  )
 }
 
 ///|
@@ -128,18 +113,8 @@ test "checked original model read rejects unfunded bootstrap before Run binding"
   let bootstrap = @resources.reserve_capacity(ledger, 0L, 0L).unwrap()
   let before = @resources.ledger_usage(ledger)
   assert_true(
-    prepare_client_model_read(
-      compiled,
-      definition,
-      plan,
-      ledger,
-      bootstrap,
-      [],
-      [],
-      [],
-      0,
-      7L,
-      5L,
+    begin_client_model_read_scope(
+      compiled, definition, plan, ledger, bootstrap, 1, 0, 0,
     )
     is Err(InvalidBootstrap),
   )

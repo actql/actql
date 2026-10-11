@@ -16,6 +16,12 @@ test "funded original read exact fit includes bootstrap and hands off same ledge
   assert_eq(origin.run, "original-run")
   assert_eq(origin.host, "original-host")
   let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = begin_original_ledger_inventory(ledger, bootstrap, 1, 0, 0).unwrap()
+  let duplicate = issue_recorded_original_ledger_descriptor(identity, origin).unwrap()
+  assert_true(
+    issue_recorded_original_ledger_descriptor(identity, origin)
+    is Err(SpentClaim),
+  )
   let descriptor = issue_original_ledger_descriptor(
     ledger,
     origin,
@@ -35,7 +41,13 @@ test "funded original read exact fit includes bootstrap and hands off same ledge
   assert_true(!funded_read_available(claim, origin))
   assert_true(handoff_funded_read(claim, origin) is Err(SpentClaim))
   assert_eq(ledger_usage(downstream).reserved_retention_bytes, 10L)
+  assert_true(
+    fund_original_read(ledger, origin, duplicate, 0L, 0L) is Err(SpentClaim),
+  )
   settle_funded_read(claim, true).unwrap()
+  assert_eq(ledger_usage(downstream).reserved_retention_bytes, 3L)
+  assert_eq(ledger_usage(downstream).reserved_execution_bytes, 2L)
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   assert_eq(ledger_usage(downstream).reserved_retention_bytes, 0L)
   assert_eq(ledger_usage(downstream).reserved_execution_bytes, 0L)
   assert_true(settle_funded_read(claim, true) is Err(SpentClaim))
@@ -47,6 +59,8 @@ test "funded original read one short never grants read or refunds bootstrap" {
     let ledger = read_capacity_fixture(retained, execution)
     let origin = original_read_test_origin()
     let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+    begin_original_ledger_inventory(ledger, bootstrap, 1, 0, 0).unwrap()
+    |> ignore
     let descriptor = issue_original_ledger_descriptor(
       ledger,
       origin,
@@ -70,7 +84,8 @@ test "funded original read one short never grants read or refunds bootstrap" {
     assert_true(!descriptor.claimed)
     assert_true(capacity_reservation_open(bootstrap))
     // The constructing owner still owns its bootstrap on failed admission.
-    settle_capacity(ledger, bootstrap).unwrap()
+    assert_true(settle_capacity(ledger, bootstrap) is Err(InvalidCharge))
+    assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   }
 }
 
@@ -80,6 +95,7 @@ test "funded original read refuses foreign run owner tampering and expired boots
   let origin = original_read_test_origin()
   let foreign = original_read_test_origin()
   let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  begin_original_ledger_inventory(ledger, bootstrap, 1, 0, 0).unwrap() |> ignore
   let descriptor = issue_original_ledger_descriptor(
     ledger,
     origin,
@@ -108,7 +124,7 @@ test "funded original read refuses foreign run owner tampering and expired boots
     is Err(ChangedOriginalState),
   )
   assert_eq(ledger_usage(ledger), before)
-  settle_capacity(ledger, bootstrap).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   assert_true(
     fund_original_read(ledger, origin, descriptor, 7L, 5L) is Err(SpentClaim),
   )
@@ -125,6 +141,8 @@ test "funded original read requires actual reservation holding and delegation in
     execution_bytes: 10L,
   }).unwrap()
   let origin = original_read_test_origin()
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  begin_original_ledger_inventory(ledger, bootstrap, 3, 1, 1).unwrap() |> ignore
   let send = reserve_attempt(ledger, 1L, 4L, 1L).unwrap()
   let holding = retain_allocation(ledger, send, 2L).unwrap()
   let delegation = reserve_execution_delegation(
@@ -140,7 +158,6 @@ test "funded original read requires actual reservation holding and delegation in
     2L,
     1L,
   ).unwrap()
-  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
   let tokens = [send, delegation.reservation]
   assert_true(
     issue_original_ledger_descriptor(
@@ -208,6 +225,11 @@ test "funded original read requires actual reservation holding and delegation in
   )
   assert_true(reservation_open(send))
   assert_true(holding.live)
+  assert_true(!finish_original_ledger_inventory(ledger, true).unwrap())
+  release_allocation(ledger, holding).unwrap()
+  settle_reservation(ledger, send).unwrap()
+  settle_execution_delegation(ledger, delegation, None).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
 }
 
 ///|
@@ -220,11 +242,12 @@ test "funded original read preserves spent serial and unknown quantity through c
     duration_ms: 19L,
   }
   configure_quantities(ledger, amounts).unwrap()
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  begin_original_ledger_inventory(ledger, bootstrap, 3, 0, 0).unwrap() |> ignore
   let send = reserve_attempt(ledger, 0L, 0L, 0L, quantities=Some(amounts)).unwrap()
   mark_quantities_uncertain(ledger, send).unwrap()
   let spent = reserve_capacity(ledger, 0L, 0L).unwrap()
   settle_capacity(ledger, spent).unwrap()
-  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
   let descriptor = issue_original_ledger_descriptor(
     ledger,
     origin,
@@ -253,7 +276,9 @@ test "funded original read preserves spent serial and unknown quantity through c
   assert_eq(quantity_usage(downstream).uncertain, amounts)
   assert_true(settle_capacity(downstream, spent) is Err(ClosedReservation))
   assert_true(reservation_open(send))
+  assert_true(!finish_original_ledger_inventory(ledger, true).unwrap())
   settle_reservation(downstream, send).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   assert_eq(quantity_usage(downstream).uncertain, amounts)
 }
 
@@ -262,6 +287,7 @@ test "funded original read failure cancellation and pending cleanup retain exact
   let ledger = read_capacity_fixture(10L, 7L)
   let origin = original_read_test_origin()
   let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  begin_original_ledger_inventory(ledger, bootstrap, 1, 0, 0).unwrap() |> ignore
   let descriptor = issue_original_ledger_descriptor(
     ledger,
     origin,
@@ -280,7 +306,90 @@ test "funded original read failure cancellation and pending cleanup retain exact
   assert_eq(ledger_usage(ledger), before)
   assert_true(capacity_reservation_open(claim.read))
   assert_true(capacity_reservation_open(bootstrap))
+  assert_true(!finish_original_ledger_inventory(ledger, false).unwrap())
   settle_funded_read(claim, true).unwrap()
   assert_true(settle_funded_read(claim, true) is Err(SpentClaim))
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
+
+///|
+test "funded original read zero-byte custody cannot be omitted or released early" {
+  let ledger = read_capacity_fixture(10L, 7L)
+  let origin = original_read_test_origin()
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = begin_original_ledger_inventory(ledger, bootstrap, 3, 1, 1).unwrap()
+  let zero = reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  let held = retain_allocation(ledger, zero, 0L).unwrap()
+  let delegated = reserve_execution_delegation(
+    ledger,
+    {
+      planning_work: 0,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+    },
+    0L,
+    0L,
+  ).unwrap()
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 3L)
+  assert_eq(ledger_usage(ledger).held_bytes, 0L)
+  // Byte sums are unchanged when any zero-byte resource is omitted.
+  assert_true(
+    issue_original_ledger_descriptor(ledger, origin, bootstrap, [], [], [], 4)
+    is Err(IncompleteInventory),
+  )
+  assert_true(
+    issue_original_ledger_descriptor(
+      ledger,
+      origin,
+      bootstrap,
+      [zero, delegated.reservation],
+      [],
+      [delegated],
+      4,
+    )
+    is Err(IncompleteInventory),
+  )
+  let descriptor = issue_recorded_original_ledger_descriptor(identity, origin).unwrap()
+  let claim = fund_original_read(ledger, origin, descriptor, 7L, 5L).unwrap()
+  handoff_funded_read(claim, origin).unwrap() |> ignore
+  settle_funded_read(claim, true).unwrap()
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 3L)
+  assert_true(!finish_original_ledger_inventory(ledger, true).unwrap())
+  assert_true(reserve_capacity(ledger, 0L, 0L) is Err(ClosedReservation))
+  settle_reservation(ledger, zero).unwrap()
+  settle_execution_delegation(ledger, delegated, None).unwrap()
+  assert_true(!finish_original_ledger_inventory(ledger, true).unwrap())
+  release_allocation(ledger, held).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+}
+
+///|
+test "funded original read census rejects late setup and one-short token storage atomically" {
+  let late = read_capacity_fixture(10L, 7L)
+  let zero = reserve_attempt(late, 0L, 0L, 0L).unwrap()
+  settle_reservation(late, zero).unwrap()
+  let bootstrap = reserve_capacity(late, 3L, 2L).unwrap()
+  assert_true(
+    begin_original_ledger_inventory(late, bootstrap, 1, 0, 0)
+    is Err(ChangedOriginalState),
+  )
+  settle_capacity(late, bootstrap).unwrap()
+  let ledger = read_capacity_fixture(10L, 7L)
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = begin_original_ledger_inventory(ledger, bootstrap, 0, 0, 0).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(reserve_attempt(ledger, 0L, 0L, 0L) is Err(RetentionLimit))
+  assert_true(reserve_capacity(ledger, 0L, 0L) is Err(RetentionLimit))
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger.next_capacity_serial, Some(-2))
+  let descriptor = issue_recorded_original_ledger_descriptor(
+    identity,
+    original_read_test_origin(),
+  ).unwrap()
+  assert_eq(descriptor.reservations.length(), 0)
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
 }

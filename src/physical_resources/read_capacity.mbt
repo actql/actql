@@ -31,6 +31,10 @@ pub fn reserve_capacity(
     ledger.limits.execution_bytes - usage.reserved_execution_bytes {
     return Err(ExecutionLimit)
   }
+  match check_original_reservation_slot(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let retained = usage.held_bytes +
     usage.reserved_retention_bytes +
     retained_bytes
@@ -45,21 +49,21 @@ pub fn reserve_capacity(
   } else {
     Some(serial - 1)
   }
-  Ok({
-    reservation: {
-      owner: ledger,
-      serial,
-      transfer: 0L,
-      retention: retained_bytes,
-      execution: execution_bytes,
-      open: true,
-      cleanup_pending: false,
-      quantities: None,
-      uncertain_quantities: None,
-      observed_quantities: (false, false, false),
-      completed_output: None,
-    },
-  })
+  let reservation : Reservation = {
+    owner: ledger,
+    serial,
+    transfer: 0L,
+    retention: retained_bytes,
+    execution: execution_bytes,
+    open: true,
+    cleanup_pending: false,
+    quantities: None,
+    uncertain_quantities: None,
+    observed_quantities: (false, false, false),
+    completed_output: None,
+  }
+  record_original_reservation(ledger, reservation)
+  Ok({ reservation, })
 }
 
 ///|

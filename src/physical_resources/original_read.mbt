@@ -129,7 +129,7 @@ pub fn original_read_bootstrap_available(
 // explicit envelope must include controls, inventory, authentication workspace
 // and overlapping read phases; positive bytes alone do not prove its adequacy.
 // Public callers remain gated on independently reviewed profile derivation.
-pub fn[T] issue_original_ledger_descriptor(
+fn[T] issue_original_ledger_descriptor(
   ledger : Ledger,
   origin : T,
   bootstrap : CapacityReservation,
@@ -146,14 +146,35 @@ pub fn[T] issue_original_ledger_descriptor(
     bootstrap.reservation.execution <= 0L {
     return Err(InvalidBootstrap)
   }
-  // Subtraction bounds all scans before allocating descriptor inventory. No
-  // array or map is added to Ledger to track caller-owned tokens a second time.
+  guard ledger.original_inventory is Some(inventory) &&
+    physical_equal(inventory.bootstrap, bootstrap) &&
+    !inventory.closing else {
+    return Err(IncompleteInventory)
+  }
+  // Bound all scans before comparing the supplied private test inventory.
   if max_items < 0 ||
     reservations.length() > max_items ||
     holdings.length() > max_items - reservations.length() ||
     delegations.length() > max_items - reservations.length() - holdings.length() {
     return Err(IncompleteInventory)
   }
+  // Even zero-byte and settled tokens must originate in this original census.
+  // The byte sums below are additional consistency checks, not the issuer.
+  if reservations.length() != inventory.reservations.length() ||
+    holdings.length() != inventory.holdings.length() ||
+    delegations.length() != inventory.delegations.length() ||
+    !reservations.all(token => {
+      inventory.reservations.any(original => physical_equal(token, original))
+    }) ||
+    !holdings.all(token => {
+      inventory.holdings.any(original => physical_equal(token, original))
+    }) ||
+    !delegations.all(token => {
+      inventory.delegations.any(original => physical_equal(token, original))
+    }) {
+    return Err(IncompleteInventory)
+  }
+  // The authoritative finite census belongs to this same Ledger, not JS.
   let usage = ledger.usage
   let mut transfer = usage.reserved_transfer_bytes
   let mut retention = usage.reserved_retention_bytes -
@@ -274,6 +295,8 @@ pub fn[T] issue_original_ledger_descriptor(
 
 ///|
 fn[T] original_tokens_match(value : OriginalLedgerDescriptor[T]) -> Bool {
+  value.ledger.original_inventory is Some(inventory) &&
+  !inventory.closing &&
   original_reservation_snapshot(value.bootstrap.reservation) ==
   value.bootstrap_state &&
   value.reservations.all(pair => {
@@ -307,6 +330,9 @@ pub fn[T] fund_original_read(
   if descriptor.claimed || !capacity_reservation_open(descriptor.bootstrap) {
     return Err(SpentClaim)
   }
+  guard ledger.original_inventory is Some(inventory) && !inventory.read_claimed else {
+    return Err(SpentClaim)
+  }
   if original_ledger_snapshot(ledger) != descriptor.state ||
     !original_tokens_match(descriptor) {
     return Err(ChangedOriginalState)
@@ -316,6 +342,7 @@ pub fn[T] fund_original_read(
     Err(issue) => return Err(Resource(issue))
   }
   descriptor.claimed = true
+  inventory.read_claimed = true
   Ok({
     descriptor,
     read,
@@ -379,20 +406,20 @@ pub fn[T] settle_funded_read(
     return Err(CleanupPending)
   }
   let ledger = claim.descriptor.ledger
-  // Validate both before mutation. They are opaque and cannot be settled by a
-  // caller except through this original owner; no partial double settlement.
+  // Validate read custody before retiring snapshots. Root/bootstrap custody
+  // remains live until the original Run confirms all child cleanup separately.
   if reservation_check(ledger, claim.read.reservation) is Err(issue) {
     return Err(Resource(issue))
   }
-  if reservation_check(ledger, claim.descriptor.bootstrap.reservation)
-    is Err(issue) {
-    return Err(Resource(issue))
-  }
   claim.descriptor.reservations.clear()
+  claim.descriptor.reservations.shrink_to_fit()
   claim.descriptor.holdings.clear()
+  claim.descriptor.holdings.shrink_to_fit()
   claim.descriptor.delegations.clear()
+  claim.descriptor.delegations.shrink_to_fit()
   settle_capacity(ledger, claim.read).unwrap()
-  settle_capacity(ledger, claim.descriptor.bootstrap).unwrap()
+  // The original Run's final cleanup retires the census/bootstrap separately.
+  // Another live child or a zero-byte holding still prevents that return.
   claim.phase = Reclaimed
   Ok(())
 }

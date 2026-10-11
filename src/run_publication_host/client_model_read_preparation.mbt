@@ -10,6 +10,15 @@ priv struct ClientModelReadOrigin {
 }
 
 ///|
+// Issued before any child resources: this is the original Run/Host binding,
+// not a retrospective assignment of a used Ledger to a supplied Run CID.
+struct ClientModelReadScope {
+  origin : ClientModelReadOrigin
+  ledger : @resources.Ledger
+  identity : @resources.OriginalLedgerIdentity
+}
+
+///|
 struct ClientModelReadPreparation {
   origin : ClientModelReadOrigin
   claim : @resources.FundedReadClaim[ClientModelReadOrigin]
@@ -26,19 +35,16 @@ pub(all) enum ClientModelReadPreparationIssue {
 // The existing Run owner reserves bootstrap before this call, including this
 // binding, descriptor inventory and checker/authentication workspace. Profile
 // coefficients and durable descriptor admission are not established here.
-pub fn prepare_client_model_read(
+pub fn begin_client_model_read_scope(
   compiled : ClientCompiledRun,
   definition : @publication.PublicationContract,
   plan : ClientInferPlanGraph,
   ledger : @resources.Ledger,
   bootstrap : @resources.CapacityReservation,
-  reservations : Array[@resources.Reservation],
-  holdings : Array[@resources.Holding],
-  delegations : Array[@resources.ExecutionDelegation],
-  max_items : Int,
-  retained_bytes : Int64,
-  execution_bytes : Int64,
-) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue] {
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
   // No Run authentication or binding allocation precedes the funded envelope.
   if !@resources.original_read_bootstrap_available(ledger, bootstrap) {
     return Err(InvalidBootstrap)
@@ -58,10 +64,26 @@ pub fn prepare_client_model_read(
       compiled.admission,
     ),
   }
-  let descriptor = match
-    @resources.issue_original_ledger_descriptor(
-      ledger, origin, bootstrap, reservations, holdings, delegations, max_items,
+  let identity = match
+    @resources.begin_original_ledger_inventory(
+      ledger, bootstrap, max_reservations, max_holdings, max_delegations,
     ) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  Ok({ origin, ledger, identity, })
+}
+
+///|
+pub fn prepare_client_model_read(
+  scope : ClientModelReadScope,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue] {
+  let origin = scope.origin
+  let ledger = scope.ledger
+  let descriptor = match
+    @resources.issue_recorded_original_ledger_descriptor(scope.identity, origin) {
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))
   }
