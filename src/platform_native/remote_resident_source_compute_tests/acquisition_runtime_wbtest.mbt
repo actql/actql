@@ -1002,7 +1002,7 @@ test "completion-free original materials execute the physical Source producer on
 }
 
 ///|
-test "original completion-free Source and consumer issue a mapped-create Preview without target IO" {
+test "original completion-free Source and consumer persist mapped-create review through Store loss and cleanup retry" {
   native_mapped_create_phase("case-entered")
   println("native-mapped-create: entering actual acquisition harness")
   acquisition_runtime_case(
