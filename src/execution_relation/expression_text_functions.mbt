@@ -16,6 +16,8 @@ priv enum TextFunctionKind {
   TextByteLength
   TextUnicode
   TextChr
+  TextReverse
+  TextRepeat
   TextStrpos
   TextReplace
   TextSplit
@@ -56,6 +58,8 @@ priv struct TextFunctionState {
   kind : TextFunctionKind
   null_result : Bool
   chr_scalar : Char?
+  repetitions : Int
+  mut repetitions_remaining : Int
   input : String
   search : String
   mut replacement : String
@@ -102,15 +106,34 @@ fn start_text_function(
       Null => null_result = true
       Text(_) if kind != TextChr &&
         (
-          !is_slice_text_function(kind) ||
+          (!is_slice_text_function(kind) && kind != TextRepeat) ||
           i == 0 ||
           (is_pad_text_function(kind) && i == 2)
         ) => ()
       Number(_) if kind == TextChr ||
         (kind == TextSubstring && i > 0) ||
-        (is_slice_text_function(kind) && i == 1) => ()
+        ((is_slice_text_function(kind) || kind == TextRepeat) && i == 1) => ()
       _ => return Err({ kind: Scalar(InvalidOperand), expression, })
     }
+  }
+  fn text(value : Value) -> String {
+    match value {
+      Text(text) => text
+      _ => ""
+    }
+  }
+  let input = text(values[0])
+  let repeat_count = if kind == TextRepeat && !null_result {
+    // Count uses the existing finite integral Number domain. Validate before
+    // any narrowing and before the empty-input shortcut, including negatives.
+    guard values[1] is Number(number) &&
+      @scalar.read_integer_number(number) is Some(count) &&
+      count >= 0.0 else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    count
+  } else {
+    0.0
   }
   let chr_scalar = if kind == TextChr && !null_result {
     // Validate the complete Number before narrowing; no host conversion may
@@ -162,6 +185,23 @@ fn start_text_function(
   if !reserve_slots(workspace, 2) {
     return Err({ kind: WorkspaceLimit, expression, })
   }
+  let repetitions = if kind == TextRepeat &&
+    !null_result &&
+    !input.is_empty() &&
+    repeat_count > 0.0 {
+    // A nonempty repetition must fit the exact UTF-16 workspace and builder
+    // representation. Divide integers first so float rounding cannot admit an
+    // overflowing product. Only this resource-derived bound permits narrowing;
+    // enormous valid counts for an empty String require no count-sized work.
+    let maximum = (workspace.limit - workspace.live).min(1073741823) /
+      input.length()
+    if repeat_count > maximum.to_double() {
+      return Err({ kind: WorkspaceLimit, expression, })
+    }
+    repeat_count.to_int()
+  } else {
+    0
+  }
   let output_root = if kind != TextLength &&
     kind != TextByteLength &&
     kind != TextUnicode &&
@@ -198,19 +238,14 @@ fn start_text_function(
   } else {
     None
   }
-  fn text(value : Value) -> String {
-    match value {
-      Text(text) => text
-      _ => ""
-    }
-  }
-  let input = text(values[0])
   Ok({
     expression,
     roots,
     kind,
     null_result,
     chr_scalar,
+    repetitions,
+    repetitions_remaining: repetitions,
     input,
     search: if is_pad_text_function(kind) {
       if values.get(2) is Some(pattern) {
@@ -231,12 +266,18 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if kind == TextReplace || is_slice_text_function(kind) {
+    reserved: if kind == TextReplace ||
+      kind == TextRepeat ||
+      is_slice_text_function(kind) {
       values.length() * 3 + 3
     } else {
       2
     },
-    position: 0,
+    position: if kind == TextReverse {
+      input.length()
+    } else {
+      0
+    },
     matched: 0,
     emitting: false,
     emission: 0,
@@ -302,7 +343,7 @@ fn text_function_scalar(text : String, offset : Int) -> (Char, Int, Int, Int)? {
 }
 
 ///|
-/// The decoder and CHR share exact UTF-16, raw UTF-8 and canonical JSON widths.
+/// Forward/reverse decoding and CHR share UTF-16, UTF-8 and JSON widths.
 /// CHR's zero special case is handled before this scalar-only measurement.
 fn text_function_scalar_widths(scalar : Char) -> (Int, Int, Int) {
   let point = scalar.to_int()
@@ -329,6 +370,23 @@ fn text_function_scalar_widths(scalar : Char) -> (Int, Int, Int) {
     width
   }
   (if point < 0x10000 { 1 } else { 2 }, width, wire)
+}
+
+///|
+fn text_function_previous_scalar(
+  text : String,
+  end : Int,
+) -> (Char, Int, Int, Int)? {
+  if end <= 0 || end > text.length() {
+    return None
+  }
+  let last = text[end - 1].to_int()
+  let start = if last >= 0xdc00 && last <= 0xdfff { end - 2 } else { end - 1 }
+  match text_function_scalar(text, start) {
+    Some((scalar, next, width, wire)) if next == end =>
+      Some((scalar, start, width, wire))
+    _ => None
+  }
 }
 
 ///|
@@ -611,7 +669,17 @@ fn advance_text_function(
     state.emission = 0
     return Ok(None)
   }
-  let end = if is_trim_text_function(state.kind) ||
+  if state.kind == TextRepeat &&
+    state.position == state.input.length() &&
+    state.repetitions_remaining > 1 {
+    state.repetitions_remaining -= 1
+    state.position = 0
+    return Ok(None)
+  }
+  let end = if state.kind == TextReverse ||
+    (state.kind == TextRepeat && state.repetitions == 0) {
+    0
+  } else if is_trim_text_function(state.kind) ||
     is_slice_text_function(state.kind) {
     state.trim_end
   } else if state.kind == TextChr {
@@ -648,18 +716,40 @@ fn advance_text_function(
     state.allocated = state.units
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
-    state.position = if is_trim_text_function(state.kind) ||
+    state.position = if state.kind == TextReverse {
+      state.input.length()
+    } else if is_trim_text_function(state.kind) ||
       is_slice_text_function(state.kind) {
       state.trim_start
     } else {
       0
     }
     state.matched = 0
+    state.repetitions_remaining = state.repetitions
     state.padding_remaining = state.padding
     state.padding_position = 0
     state.preceding_cased = false
     state.probing_sigma = false
     state.probe_position = 0
+    return Ok(None)
+  }
+  if state.kind == TextReverse {
+    guard text_function_previous_scalar(state.input, state.position)
+      is Some((scalar, previous, width, wire)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    match
+      append_text_function_codepoint(
+        state,
+        scalar,
+        state.position - previous,
+        width,
+        wire,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    state.position = previous
     return Ok(None)
   }
   if state.kind == TextUpper || state.kind == TextLower {

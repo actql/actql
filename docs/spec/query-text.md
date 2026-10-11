@@ -129,6 +129,17 @@ preserved without a synthetic length expression. The admitted number indices
 are safe-integer-valued finite binary64 numbers; full INT64 and BYTES remain
 coverage gaps. Quoted/case variants retain the same function identity.
 
+`CBRT(value)` selects the direct unary `cbrt` common expression, following the
+[GoogleSQL cube-root rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#cbrt)
+within the existing finite Number domain. Positive and negative finite inputs
+produce their real cube root, either zero sign produces canonical positive zero,
+and NULL produces NULL. The pinned MoonBit math primitive supplies the numerical
+operation with existing finite-result validation; this does not promise general
+last-bit equality across targets or live BigQuery. No implicit conversion,
+Decimal, distinct INT64/NUMERIC/BIGNUMERIC, non-finite overload or SAFE prefix is
+added. Arity, type, once-only child demand, failure, resources, cancellation and
+canonical identity remain with the common expression owner.
+
 The finite Number scalar functions `POW(x, y)` and `POWER(x, y)` lower to the
 same `pow` operation. `EXP(x)`, `LN(x)` and `LOG10(x)` are unary. `LOG(x)` is a
 synonym of `LN(x)`; `LOG(x, base)` is binary and retains its ordered arguments.
@@ -175,6 +186,19 @@ These follow the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery
 within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
+
+`REPEAT(value, count)` selects the ordered binary `repeat` common expression;
+`REVERSE(value)` selects direct unary `reverse`. REPEAT accepts a STRING and
+nonnegative integral finite Number count, returning empty for zero or an empty
+input after strict NULL propagation and domain validation. GoogleSQL's INT64
+count is explicitly adapted to ActQL's existing finite Number domain without a
+safe-integer or INT64 cap; nonempty outputs remain bounded by existing resource
+owners. REVERSE reverses Unicode scalar order, preserving astral scalars and
+combining marks without normalization or grapheme segmentation. These follow
+the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions)
+within the admitted STRING surface; BYTES and distinct INT64 remain coverage
+gaps. All demanded children run once in order before NULL propagation, preserving
+failure, enclosing lazy demand, resources, cancellation and canonical nodes.
 
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),

@@ -67,12 +67,19 @@ call = function_name, "(", expression, { ",", expression }, ")" ;
    UTF-8 bytes; unicode selects the first scalar code point, or zero for empty.
    chr validates an integral Unicode scalar code point; zero yields empty.
    BYTES, distinct INT64 overloads and implicit conversions are not admitted. *)
+(* repeat takes exactly two expressions, STRING then a nonnegative integral
+   finite NUMBER count, in an ordered binary canonical array. reverse takes one
+   STRING in a direct unary canonical body and reverses Unicode scalar order.
+   Neither operation normalizes or segments graphemes; BYTES is not admitted. *)
+(* cbrt takes exactly one finite NUMBER expression in a direct unary canonical
+   body. It returns the real cube root for positive and negative finite values,
+   canonical positive zero for either zero sign, and NULL for NULL. *)
 (* Vector profile calls: vector_score has exactly three arguments; the third
    is a string literal 'cosine', 'dot' or 'l2', lowered as a structural metric.
    vector_concat has at least two expression arguments. These spellings require
    the separately admitted VecA expression profile; grammar is not execution support. *)
-function_name = "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
-              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "nullif" | "negate"
+function_name = "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "cbrt" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
+              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "repeat" | "reverse" | "nullif" | "negate"
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff"
               | "to_number" | "to_string" | "to_boolean" | "to_timestamp"

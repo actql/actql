@@ -335,6 +335,16 @@ fn infer(
         source,
       )
     }
+    "reverse" =>
+      // Reordering scalars preserves every admitted scalar/UTF-8 length bound.
+      typed(t, require_type(t, nodes, node.children[0], "string"), source)
+    "repeat" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let count = require_type(t, nodes, node.children[1], "number")
+      // A dynamic count can expand the value or make it empty. Do not infer
+      // output limits by evaluating or duplicating the authored count child.
+      primitive(t, StringType, input.nullable || count.nullable, source)
+    }
     "lpad" | "rpad" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let length = require_type(t, nodes, node.children[1], "number")
@@ -623,6 +633,7 @@ fn infer(
       )
     }
     "sqrt"
+    | "cbrt"
     | "pow"
     | "exp"
     | "ln"

@@ -1486,6 +1486,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Repeat
   Split
   Substring
   LeftString
@@ -1900,6 +1901,7 @@ pub(all) enum UnaryOperator {
   ByteLength
   Unicode
   Chr
+  Reverse
   Upper
   Lower
   Trim
@@ -1907,6 +1909,7 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
   Exp
   Ln
   Log10
