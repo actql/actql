@@ -84,8 +84,6 @@ test "Graph row JOIN cannot revive removed fields or a shadowed Graph binding" {
       "FROM g |> node_rows() |> SELECT node_key |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.name",
       prefix +
       "FROM g |> node_rows() |> SELECT node_key |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT g.node_key",
-      prefix +
-      ", probe AS (WITH g AS (SELECT 1 AS id) FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.node_key) FROM probe",
     ] {
     let script = @query.parse_query_script(source, syntax_limits()).unwrap()
     match
@@ -101,6 +99,14 @@ test "Graph row JOIN cannot revive removed fields or a shadowed Graph binding" {
         )
     }
   }
+  // A nearer Relation binding cannot fall back to the outer Graph.
+  assert_true(
+    classified_graph_source(
+      prefix +
+      ", probe AS (WITH g AS (SELECT 1 AS id) FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.node_key) FROM probe",
+    )
+    is Err(InvalidQuery),
+  )
   // Normalization retains Graph; Reach has a Relation output. This original
   // Reach call omits its required direction, so its common checker refuses it.
   let source = prefix +
