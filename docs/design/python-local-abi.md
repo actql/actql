@@ -464,6 +464,18 @@ acknowledges physical cleanup. Failed deletion retains the original reservation;
 failed transaction rollback leaves the same connection pending and unreadable.
 Closing the connection preserves durable capacity and does not cancel a Run.
 
+The existing payload Owner's
+`prepare_observed_publication_payload_reserved` checks the original nominal
+record's Store authority, the existing `publication_payload` namespace, material
+identity, exact maximum bytes and one object. It prepares the same existing
+`Intent` to `Reserved` transition; the record remains `Intent` until the trusted
+Store persists the exact next record and
+`commit_observed_publication_payload_transition` confirms its original revision,
+request and canonical bytes. A matching capacity observation alone is neither a
+durable record commit nor permission to create a file. Foreign capacity facts,
+changed amounts, later states and stale transition commits are refused. This
+Owner function does not by itself provide a Wasm transport or public Host port.
+
 This port alone does not install a Store, complete filesystem payload custody,
 authorize a publisher or acknowledge `Reserved`, `Writing`, `Sealed` or Run
 completion. SQLite workspace, Core Wasm memory, transfer buffers, DuckDB workspace

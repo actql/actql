@@ -420,6 +420,29 @@ pub fn prepare_publication_payload_reserved(
 }
 
 ///|
+/// Bind an actual trusted Store reservation to the original nominal request.
+/// The physical adapter reads the existing publication_payload namespace; these
+/// values do not attest persistence on their own. This prepares the existing
+/// transition without committing it, creating a writer or granting publication.
+pub fn prepare_observed_publication_payload_reserved(
+  record : PublicationPayloadRecord,
+  store_authority : String,
+  capacity_namespace : String,
+  material_identity : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
+  if store_authority != record.request.store_authority_cid ||
+    capacity_namespace != "publication_payload" ||
+    material_identity != record.request.material_generation_cid ||
+    reserved_bytes != record.request.max_bytes ||
+    reserved_objects != 1L {
+    return Err(StateCollision)
+  }
+  prepare_publication_payload_reserved(record)
+}
+
+///|
 pub fn prepare_publication_payload_writing(
   record : PublicationPayloadRecord,
 ) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {

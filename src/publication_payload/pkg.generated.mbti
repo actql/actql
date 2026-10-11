@@ -26,6 +26,8 @@ pub fn durable_publication_payload_record_revision(DurablePublicationPayloadReco
 
 pub fn durable_publication_payload_record_state(DurablePublicationPayloadRecord) -> PublicationPayloadState
 
+pub fn prepare_observed_publication_payload_reserved(PublicationPayloadRecord, String, String, String, Int64, Int64) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
 pub fn prepare_publication_payload_opaque_owned(PublicationPayloadRecord, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
 
 pub fn prepare_publication_payload_opaque_reclaiming(PublicationPayloadRecord, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
