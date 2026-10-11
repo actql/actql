@@ -139,3 +139,46 @@ test "input-only cancellation retains the receiving input until physical stop" {
   assert_true(producer_read_available(read))
   assert_true(completed_output_available(source))
 }
+
+///|
+test "input-only completion requires receiving proof and the exact input port" {
+  let (control, execution, read, _) = input_result_execution_fixture()
+  let generated = execution.state.port_preparation.unwrap().generated
+  for inputs in [None, Some([])] {
+    assert_true(
+      start_trusted_output_preparation(
+        generated,
+        @pipeline.Input(0),
+        10000,
+        10000,
+        inputs,
+      )
+      is Err(ForeignInputs),
+    )
+  }
+  assert_true(
+    start_trusted_output_preparation(
+      generated,
+      @pipeline.Input(1),
+      10000,
+      10000,
+      Some([trusted_output_relation_input(read)]),
+    )
+    is Err(InvalidTarget),
+  )
+  assert_true(@bounded.request_cancel(control))
+  let mut stopped = false
+  for _ in 0..<1000 {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsStopped(_, ..) => {
+        stopped = true
+        break
+      }
+      _ => fail("proof rejection caused completion")
+    }
+  }
+  assert_true(stopped)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(read))
+}

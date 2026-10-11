@@ -189,6 +189,11 @@ fn start_trusted_output_preparation(
   let owner = completion_preparation_owner(generated)
   let prepared = @lower.bound_preparation(owner)
   let input_bindings = []
+  if target is Input(_) && inputs is None {
+    // An input-only completion must retain the exact receiving authority;
+    // material validation alone is not proof that this input was acquired.
+    return Err(ForeignInputs)
+  }
   if inputs is Some(inputs) {
     if inputs.length() > max_entries {
       return Err(Limit)
