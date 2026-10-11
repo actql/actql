@@ -3531,22 +3531,29 @@ fn compile_steps(
             ).unwrap().kind
             is Reference(_) &&
             pipe_expression_slot(
-              clause.argument, pipe_visible, pipe_ranges,
+              clause.argument,
+              pipe_visible,
+              pipe_ranges,
               value_ranges=value_range_names(
                 value_table_receivers, scalar_value_table_ranges,
               ),
-            ) is Some(_)
+            )
+            is Some(_)
           })
           .unwrap_or(false)
         let argument_value = if !clause.count_star &&
           clause.argument_expression is Some(expression) &&
           !direct_argument {
-          let resolve = path => pipe_expression_slot(
-            path, pipe_visible, pipe_ranges,
-            value_ranges=value_range_names(
-              value_table_receivers, scalar_value_table_ranges,
-            ),
-          )
+          let resolve = path => {
+            pipe_expression_slot(
+              path,
+              pipe_visible,
+              pipe_ranges,
+              value_ranges=value_range_names(
+                value_table_receivers, scalar_value_table_ranges,
+              ),
+            )
+          }
           if @query.expression_node(
               expression,
               @query.expression_root(expression),

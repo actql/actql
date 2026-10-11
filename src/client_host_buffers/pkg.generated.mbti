@@ -18,6 +18,8 @@ pub fn buffer_output_limit(BufferPool, BufferSlot) -> Int?
 
 pub fn buffer_pool_ledger_usage(BufferPool) -> @physical_resources.LedgerUsage
 
+pub fn buffer_pool_reserved(BufferPool) -> Int64
+
 pub fn buffer_pool_usage(BufferPool) -> @physical_resources.SharedCapacityUsage
 
 pub fn buffer_serial(BufferSlot) -> Int
@@ -30,15 +32,21 @@ pub fn close_buffer(BufferPool, BufferSlot) -> Result[Unit, BufferIssue]
 
 pub fn close_pool(BufferPool) -> Result[Unit, BufferIssue]
 
+pub fn close_workspace(WorkspaceLoan) -> Result[Unit, BufferIssue]
+
 pub fn fill_buffer(BufferPool, BufferSlot, Int, Int, (Int) -> Byte?) -> Result[Unit, BufferIssue]
 
 pub fn lookup_buffer(BufferPool, Int) -> BufferSlot?
 
 pub fn open_pool(Int64, Int, Int) -> Result[BufferPool, BufferIssue]
 
+pub fn open_pool_on_ledger(@physical_resources.Ledger, Int64, Int, Int) -> Result[BufferPool, BufferIssue]
+
 pub fn reserve_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[BufferSlot, BufferIssue]
 
 pub fn reserve_output_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[BufferSlot, BufferIssue]
+
+pub fn reserve_workspace(@physical_resources.Ledger, Int64, () -> Bool, () -> Bool) -> Result[WorkspaceLoan, BufferIssue]
 
 pub fn return_buffer_borrow(BufferPool, BufferBorrow) -> Result[Unit, BufferIssue]
 
@@ -96,6 +104,16 @@ pub struct BufferSlot {
   mut input_complete : Bool
   mut retired : Bool
   mut cleaned : Bool
+}
+
+pub struct WorkspaceLoan {
+  capacity : @physical_resources.SharedCapacity
+  physical_stop : () -> Bool
+  physical_cleanup : () -> Bool
+  mut closing : Bool
+  mut stopped : Bool
+  mut cleaned : Bool
+  mut settled : Bool
 }
 
 // Type aliases

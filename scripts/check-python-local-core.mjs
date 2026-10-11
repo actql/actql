@@ -11,6 +11,7 @@ import {runLocalCheck} from './local-checks-guard.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const python=process.env.ACTQL_PYTHON_LOCAL;
 assert.ok(python,'Select the isolated Python Wasmtime environment');
+const physicalBoundary=process.argv.includes('--physical-boundary');
 
 function run(command,args,timeout=60000){
   const result=spawnSync(command,args,{cwd:root,env:{...process.env,PYTHONPATH:''},
@@ -45,12 +46,35 @@ if(process.argv.includes('--build-and-consume')){
   const result=JSON.parse(output);
   assert.equal(result.success,true);
   assert.equal(result.module_sha256,digest);
+  if(physicalBoundary){
+    const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
+    assert.equal(physical.success,true);
+    assert.equal(physical.module_sha256,digest);
+    const workspace=JSON.parse(run(python,['scripts/fixtures/python-local-workspace-abi.py',module]));
+    assert.equal(workspace.success,true);
+    assert.equal(workspace.module_sha256,digest);
+    const record={source_sha:source,module,module_sha256:digest,
+      scope:'physical_buffer_bridge_workspace_only',
+      moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,workspace,
+      positive_native_result_acceptance:false,public_local_acceptance:false};
+    const file=join(receipt,'physical-boundary-receipt.json');
+    try{
+      await writeFile(file,JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+    }catch(error){
+      if(error.code!=='EEXIST')throw error;
+      assert.deepEqual(JSON.parse(await readFile(file,'utf8')),record,
+        'Do not replace an existing fixed-source physical receipt');
+    }
+  }else{
   const preparation=JSON.parse(run(python,['scripts/fixtures/python-local-preparation-abi.py',module]));
   assert.equal(preparation.success,true);
   assert.equal(preparation.module_sha256,digest);
   const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
   assert.equal(physical.success,true);
   assert.equal(physical.module_sha256,digest);
+  const workspace=JSON.parse(run(python,['scripts/fixtures/python-local-workspace-abi.py',module]));
+  assert.equal(workspace.success,true);
+  assert.equal(workspace.module_sha256,digest);
   const sourceEnvironment=JSON.parse(run(python,['scripts/fixtures/python-local-source-environment-abi.py',module]));
   assert.equal(sourceEnvironment.success,true);
   assert.equal(sourceEnvironment.module_sha256,digest);
@@ -61,7 +85,7 @@ if(process.argv.includes('--build-and-consume')){
   assert.equal(materials.success,true);
   assert.equal(materials.module_sha256,digest);
   const record={source_sha:source,module,module_sha256:digest,
-    moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,source_environment:sourceEnvironment,run_preparation:runPreparation,materials};
+    moonc:run('moonc',['-v']),python:run(python,['--version']),result,preparation,physical,workspace,source_environment:sourceEnvironment,run_preparation:runPreparation,materials};
   try {
     await writeFile(join(receipt,'receipt.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
   } catch (error) {
@@ -69,9 +93,10 @@ if(process.argv.includes('--build-and-consume')){
     assert.deepEqual(JSON.parse(await readFile(join(receipt,'receipt.json'),'utf8')),record,
       'Do not replace an existing fixed-source receipt');
   }
+  }
 }else{
   process.exitCode=await runLocalCheck({root,heavy:true,timeoutSeconds:240,graceSeconds:5,steps:[{
-    name:'Actual Python/Core buffer ABI',command:process.execPath,
-    args:[fileURLToPath(import.meta.url),'--build-and-consume'],
+    name:physicalBoundary?'Actual Python/Core physical boundary':'Actual Python/Core buffer ABI',command:process.execPath,
+    args:[fileURLToPath(import.meta.url),'--build-and-consume',...(physicalBoundary?['--physical-boundary']:[])],
   }]});
 }
