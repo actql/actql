@@ -3,11 +3,131 @@
   "derivation": [
     "Context reserves t and r; binding keyed reserves cte2; imported Values reserves seed3.",
     "ASSERT UNIQUE emits one from seed3 step named cte2 with original unique_by x; both JOIN ports refer to cte2.",
-    "The ordinary JOIN adapter reserves its twelve fixed roles at length4: output5 and result14. No input range survives this authored WITH binding.",
-    "FULL explicit projections map x=left.x,y=left.y,k=right.x with original ON x=x and max10. ORDER continuation emits from output5/sort k ASC NULLS LAST/as result14.",
-    "The main rows Result exports x,y,k in declared order; original staged complete Program is retained separately and checked."
+    "query_join_chain.join_requires_group_scope returns true for FULL independent of projection; lower_script_join_relation uses the existing chain compiler.",
+    "query_join_chain.compile_join_chain_steps begins physical slots from x,y: left x->column2, y->column3, right x->column4,y->column5. Shared producer is cte2 on both ports.",
+    "reserved has four names (t,r,cte2,seed3); chain JOIN reserves join4 and tail reserves result5. ON x=x and max10 remain unchanged.",
+    "The ordinary compile_steps shared scope maps ORDER k to right column4 ASC NULLS LAST and final SELECT to x=column2,y=column3,k=column4, exporting x,y,k in order.",
+    "The original staged complete Program remains byte-identical as an independently checked contract control; no expected data value or operation argument changed."
   ],
   "expected_program": {
+    "version": "actql/0.1",
+    "id": "fixture.pipe_slots",
+    "stages": [
+      {
+        "id": "main",
+        "inputs": {},
+        "steps": [
+          {
+            "values": {
+              "schema": {
+                "x": {
+                  "type": "number",
+                  "nullable": false
+                },
+                "y": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              "rows": [
+                {
+                  "x": 1,
+                  "y": 20
+                },
+                {
+                  "x": 2,
+                  "y": 10
+                }
+              ]
+            },
+            "as": "aql_script_seed_3"
+          },
+          {
+            "from": "aql_script_seed_3",
+            "assert_rows": {
+              "unique_by": [
+                "x"
+              ]
+            },
+            "as": "aql_script_cte_2"
+          },
+          {
+            "from": "aql_script_cte_2",
+            "join": {
+              "with": "aql_script_cte_2",
+              "kind": "full",
+              "on": [
+                {
+                  "left": "x",
+                  "right": "x"
+                }
+              ],
+              "max_output_rows": 10,
+              "select": {
+                "aql_chain_column_2": "left.x",
+                "aql_chain_column_3": "left.y",
+                "aql_chain_column_4": "right.x",
+                "aql_chain_column_5": "right.y"
+              }
+            },
+            "as": "aql_chain_join_4"
+          },
+          {
+            "from": "aql_chain_join_4",
+            "sort": [
+              {
+                "field": "aql_chain_column_4",
+                "dir": "asc",
+                "nulls": "last"
+              }
+            ]
+          },
+          {
+            "select": [
+              {
+                "x": "aql_chain_column_2"
+              },
+              {
+                "y": "aql_chain_column_3"
+              },
+              {
+                "k": "aql_chain_column_4"
+              }
+            ],
+            "as": "aql_chain_result_5"
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": "aql_chain_result_5",
+            "fields": [
+              "x",
+              "y",
+              "k"
+            ]
+          }
+        }
+      }
+    ],
+    "results": {
+      "answer": {
+        "from": {
+          "stage": "main",
+          "result": "rows"
+        }
+      }
+    }
+  },
+  "preserved": [
+    "both original input-key assertions",
+    "FULL/LEFT/RIGHT/CROSS and USING/ON",
+    "JOIN ceiling10",
+    "nullable row objects",
+    "qualified and output-alias receiver distinction",
+    "all independently authored original machine controls"
+  ],
+  "public_execution": "not performed",
+  "initial_independent_prediction": {
     "version": "actql/0.1",
     "id": "fixture.pipe_slots",
     "stages": [
@@ -102,13 +222,12 @@
       }
     }
   },
-  "preserved": [
-    "both original input-key assertions",
-    "FULL/LEFT/RIGHT/CROSS and USING/ON",
-    "JOIN ceiling10",
-    "nullable row objects",
-    "qualified and output-alias receiver distinction",
-    "all independently authored original machine controls"
-  ],
-  "public_execution": "not performed"
+  "initial_failure": {
+    "source": "2454c0d00",
+    "run": "run-65uGnp",
+    "tests": 13,
+    "passed": 12,
+    "failed": 1,
+    "cause": "The initial independent allocation prediction overlooked join_requires_group_scope: FULL always enters the existing chain/row-scope lowering, not the ordinary two-input projection specialization. Original semantics and old staged control remain unchanged."
+  }
 }
