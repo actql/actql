@@ -10,8 +10,12 @@ physical Native or public Effect acceptance.
 process argument path. Unselected means None. An explicitly empty/repeated root
 is refused. The holder reads and admits its selected input before the Source
 start claim, so invalid selection does not begin Source acquisition. Setup
-failure closes the already opened output resources, environment and slot through
-the existing cleanup functions.
+failure on a journal-proven unstarted record closes the already opened output
+resources, environment and slot through the existing cleanup functions. For
+existing work or unreadable state, installation failure denies evidence access
+and remains an explicit failure; the original journal continues through the
+existing restoration/unknown/settlement Owners. It does not block their cleanup
+or infer permission to restart Source.
 
 The root contains the following exact UTF-8 files (no implicit trimming):
 

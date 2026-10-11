@@ -4096,16 +4096,46 @@ fn run_holder(
       stop("holder setup failed before claim")
     }
   }
+  // Read original journal state before installing new Host settings. A failed
+  // permission installation cannot block existing settlement/cleanup custody.
+  let (saved_completion, proven_unstarted) = match
+    environment.journal.dispatch_envelope(attempt) {
+    Ok(Some(body)) =>
+      match @remote.admit_remote_poll_dispatch_json(body) {
+        Ok(dispatch) =>
+          match
+            environment.journal.require(
+              @remote.remote_poll_dispatch_request(dispatch),
+            ) {
+            Ok(record) => {
+              let state = @remote.dispatch_record_state_codes(record)[0]
+              (state == 3, state == 0)
+            }
+            Err(_) => (false, false)
+          }
+        Err(_) => (false, false)
+      }
+    _ => (false, false)
+  }
   let effect_host_operator = load_holder_effect_host_operator(
     matches,
     resources,
     () => slot.verify_current_hold() == Ok(()),
   ) catch {
     CommandStop(issue) => {
-      close_holder_output_resources(resources)
-      close_site_environment(environment)
-      ignore(slot.close())
-      stop(issue)
+      if proven_unstarted {
+        close_holder_output_resources(resources)
+        close_site_environment(environment)
+        ignore(slot.close())
+        stop(issue)
+      }
+      // Deny evidence access while retaining the original journal and passing
+      // existing work to its normal restoration/unknown/cleanup Owners. This
+      // is not a successful installation or permission to restart Source.
+      report("effect-host-account-installation-failed", [
+        ("reason", "operator-input"),
+      ])
+      None
     }
   }
   // A Provider grant binds the captured invocation, including actual Source
@@ -4114,21 +4144,6 @@ fn run_holder(
   let effect_resume : Ref[HolderEffectResumeInstallation?] = Ref(None)
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
-  let saved_completion = match environment.journal.dispatch_envelope(attempt) {
-    Ok(Some(body)) =>
-      match @remote.admit_remote_poll_dispatch_json(body) {
-        Ok(dispatch) =>
-          match
-            environment.journal.require(
-              @remote.remote_poll_dispatch_request(dispatch),
-            ) {
-            Ok(record) => @remote.dispatch_record_state_codes(record)[0] == 3
-            Err(_) => false
-          }
-        Err(_) => false
-      }
-    _ => false
-  }
   let holder_delegation = delegation(matches, budget(matches))
   let effect_producer : Ref[@resident_host.ResidentEffectProducerExecuted?] = Ref(
     None,
