@@ -384,6 +384,51 @@ pub fn[T] handoff_funded_read(
 }
 
 ///|
+// A consumer must fund its finite derivation transition before constructing a
+// new projection. This checks the original read token, not aggregate free space.
+// The caller's full read profile must still include overlapping authentication
+// and codec scratch; this predicate does not reinterpret their charge as slack.
+pub fn[T] funded_read_preparation_available(
+  claim : FundedReadClaim[T],
+  origin : T,
+  execution_bytes : Int64,
+) -> Bool {
+  execution_bytes >= 0L &&
+  funded_read_available(claim, origin) &&
+  claim.read.reservation.execution >= execution_bytes
+}
+
+///|
+// Admit the consuming owner's reviewed byte projection before transferring
+// this original Ledger. Insufficient capacity leaves the read claim usable;
+// success transfers both the exact Ledger and its new opaque byte token.
+// The read/bootstrap custody remains separate and no quantity/send is granted.
+pub fn[T] handoff_funded_read_capacity(
+  claim : FundedReadClaim[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[(Ledger, CapacityReservation), OriginalReadIssue] {
+  if !physical_equal(origin, claim.descriptor.origin) {
+    return Err(ForeignOrigin)
+  }
+  if claim.phase != Reading {
+    return Err(SpentClaim)
+  }
+  if !funded_read_available(claim, origin) {
+    return Err(ChangedOriginalState)
+  }
+  let ledger = claim.descriptor.ledger
+  let capacity = match
+    reserve_capacity(ledger, retained_bytes, execution_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  claim.phase = HandedOff
+  Ok((ledger, capacity))
+}
+
+///|
 pub fn[T] stop_funded_read(claim : FundedReadClaim[T]) -> Unit {
   if claim.phase != Reclaimed {
     claim.phase = Stopping
