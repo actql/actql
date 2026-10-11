@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 18; this private ABI
+before opening the instance. `actql_host_abi_version` returns 20; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 18 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 21 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -769,7 +769,7 @@ projection; an old authenticator is not a permanent authorization grant.
 
 ### Captured Source publication facts
 
-Private ABI 18 borrows the original Native capture from its configured Compute
+Private ABI 19 borrows the original Native capture from its configured Compute
 Host. Source identity uses the existing bounded Relation identity frame. Each
 advance retains its cursor, limits, cancellation and monotone logical work; it
 neither reacquires the Source nor releases the acquisition reservation. The
@@ -790,7 +790,7 @@ terminal success, durable Result publication or recovery permission.
 
 ### Original Local normalization and captured invocation
 
-Private ABI 18 adds material kind 5 for the original completion-free Local
+Private ABI 19 retains material kind 5 for the original completion-free Local
 normalization journal. It issues the journal through the original checked
 preparation and compiled Run Plan owners. A real semantic completion, an
 uninstalled profile or exhausted audit is refused; successful compilation is
@@ -806,3 +806,142 @@ strings issued by the existing publication owners. Issuance rechecks current
 Run and Source authorization against the exact original Compute and capture;
 it neither reacquires Source nor starts another task. These records remain
 intermediate publication materials, not a terminal Run or durable publication.
+
+### Bounded final Result publication capture
+
+Private ABI 19 reserves one complete output before projecting the exact live
+Source invocation and completed Result exports. The closed trusted Host request
+contains `results` (original export handles), `retention` (admitted policy wire),
+`max_work` and `max_workspace_slots`. Duplicate, foreign, unfinished or closing
+parents are refused. The full declared Result inventory is validated by the
+existing Manifest Owner; a selected subset is not a complete publication.
+
+Each Result snapshot advances through the existing bounded output/snapshot
+Owner. The original normalization journal and Source evidence bind the single
+Receipt. Captured Run assembly uses the original prepared Program's distinct
+authoring-context sidecar and an empty Model inventory for this Effect-free
+profile. Grammar-owned metadata is extracted without collecting business
+values named `meta`. The final Manifest, Receipt, snapshots and authoring
+sidecar feed the existing bounded Captured Run Owner. Every advance and final export
+rechecks live original pins and current Run/Source authority; no Source or task
+is executed by this projection. The closed output contains `manifest`,
+`receipt` and `captured_run` wire strings. It does not commit durable storage,
+produce a public Run state, or refresh the original provenance.
+
+`max_work` bounds the reported snapshot/capture cursor work. It does not claim
+that synchronous contract projections or the full product fit the default
+fuel envelope; those remain separate verification boundaries.
+
+The child retains its Source and Result parents through cancellation and failed
+physical output cleanup. Parent close seals further production but cannot
+release those pins until the same child finishes cleanup. Closing the child
+cancels its snapshot/capture preparations without cancelling the original Run,
+then retires its output and input loan through their existing cleanup Owners.
+
+
+### Original Result storage binding
+
+The portable completed-export Owner can issue a durable representation binding
+for its original live receipt, Result definition, ordering evidence and artifact.
+It derives the row count, field order, schema and existing canonical row-wire
+codec pin from that export. The physical Host supplies the observed byte count,
+SHA256, material generation and Store authority identities. A different size or
+digest is refused before the existing durable-binding issuer is called. This
+entry describes the original canonical export bytes, not another physical codec.
+
+The Local wrapper obtains the Run definition, invocation and retention from the
+original nominal LocalResultPublication and rechecks current Run/Source authority.
+No adapter-generated semantic JSON or replacement provenance is accepted there.
+Cancelling a borrowed snapshot leaves its parent export facts live; releasing the
+parent revokes binding issuance. Issuance alone proves neither physical retention,
+Store commit, publication permission nor a Run outcome. A durable Store must
+still verify its actual payload and current publication authority separately.
+
+### Original checked publication intent and preflight
+
+`prepare_local_publication_intent` reads every Named Result name and producer
+from the original LocalRunPlan's checked graph. The existing checked inventory
+Owner creates their Result definitions, and the existing publication issuers
+create the request and attempt. No supplied subset, semantic JSON or replacement
+Result definition enters this path. A Host-selected inventory limit rejects the
+whole preparation when exceeded; it never shortens the inventory. Result names
+retain the existing Result Definition Owner's canonical-text requirements.
+The Host supplies the original fence CID and optional external idempotency key
+to the existing attempt issuer. This fixes intent; it does not prove a live fence
+or turn an idempotency key into permission to repeat an unknown operation.
+
+`check_local_source_publication_preflight` requires the exact captured Source
+invocation and its original plan. It checks current Run and Source access and
+live Source identity, then delegates the complete immutable scope to the existing
+publication preflight. Preparation must precede the first Compute activation;
+an active or completed Compute frontier or a pending activation grant is
+refused. The Host must retain this preparation before invoking its existing
+task activation Owner.
+
+The resulting opaque LocalPublicationPreflight retains the original intent,
+invocation and a copy of the aligned retention array. Mutable policy arrays are
+not exposed. `issue_local_preflight_result_publication` checks the exact Result
+definition and derives its retention from that preparation, then calls the
+existing completed-output and Local Result publication Owners. It rechecks
+current access and live Source custody, so an old preparation is not permanent
+authority. Preparation performs no Source acquisition or Compute activation.
+
+These facts grant neither Run admission nor Store publication permission. The
+physical publisher must separately check its current publication authority and
+durable transaction boundary. The preparation's original admission, compiled
+plan, Program definition, Source logical input, policy and authority references
+must remain bound through final Receipt, Captured Run and commit validation.
+
+### Original publication commit validation
+
+Private ABI 20 adds `actql_publication_prepare_commit`,
+`actql_publication_advance_commit`, `actql_publication_commit_progress` and
+`actql_publication_finish_commit` on the original publication handle. Preparation
+borrows a closed input containing only `bindings`, `request`, `attempt` and
+`index_entry`; each is an admitted publication contract, with bindings as an
+array. The Receipt, Captured Run, Manifest, original normalization and Result
+inventory come from the retained Core handle rather than supplied replacements.
+The physical Host supplies binding facts; consistency validation does not prove
+that physical payload bytes were written.
+
+The existing bounded publication commit Owner checks the complete chain. Capture
+and commit validation share the original `max_work` budget and workspace limit.
+Every advancing or finishing call checks current Run and Source authority. Once
+preparation starts, a different input cannot restart that handle's validation;
+traps and cleanup failures retain the same input and original parent custody.
+Closing cancels the existing Owner and returns its borrowed input only after the
+physical stop callback succeeds. Earlier ABI modules are rejected, with no
+compatibility fallback.
+
+Successful finish proves chain validation only. The physical Store must separately
+verify actual payload facts, current publication authority and the durable commit
+boundary. This ABI does not write an index, acknowledge persistence, admit a Run,
+retry an unknown operation or supply saved-Run recovery.
+
+### Original Result storage binding output
+
+Private ABI 21 adds `actql_result_binding_reserve`,
+`actql_result_binding_produce`, `actql_result_binding_length` and
+`actql_result_binding_close`. The strict Python loader requires their exact
+signatures and ABI version; earlier modules are rejected without a fallback.
+Reservation selects one Result index from the original completed publication
+handle and borrows an original sealed input. That input is a closed object of
+`material_generation_cid`, `store_authority_cid`, `byte_count` and
+`physical_sha256`. Missing, NULL and additional fields are refused. The Host
+supplies physical observations; the existing Local publication wrapper derives
+all semantic fields from the original Result and checks the observed bytes.
+
+Producing, including reuse of an already produced output, rechecks current Run
+and Source authority. A separate 65,536-byte output reservation carries the
+unchanged canonical binding bytes. Python tracks only physical loans and does
+not reconstruct semantic contracts. Copied or foreign Python handles are
+refused before I/O. Once generation has begun, invalid observations cannot be
+replaced on that handle.
+
+The child retains its original publication until output cleanup and return of
+the exact input borrow both succeed. Parent close seals new production but
+retains parent custody while a child exists. A failed physical stop or cleanup
+keeps the same child and reservation available for cleanup retry. No Source or
+Compute replay is part of this operation. Binding output proves neither Store
+commit nor durable publication, admission, recovery or a Run outcome. The
+physical Store must still verify its payload and current publication authority.

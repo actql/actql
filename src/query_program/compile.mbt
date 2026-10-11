@@ -2027,6 +2027,7 @@ fn compile_steps(
   projected_input? : Bool = false,
   initial_scope? : JoinChainScope? = None,
   preserved_scope? : Array[JoinChainScope]? = None,
+  value_table_scope? : Array[JoinChainScope]? = None,
   parameter_declarations? : @parameters.Declarations? = None,
   prefix_steps? : Array[@builder.Node] = [],
   prefix_context? : Context? = None,
@@ -2580,6 +2581,7 @@ fn compile_steps(
           construction.parameter_resolver(),
         )
         let requires_element_scope = preserved_scope is Some(_) ||
+          value_table_scope is Some(_) ||
           selected_projections(query).any(projection => {
             if projection.star is None {
               false
@@ -6577,7 +6579,11 @@ fn compile_steps(
       }
     }
   }
-  if preserved_scope is Some(scopes) {
+  let retained_scope = match preserved_scope {
+    Some(scopes) => Some(scopes)
+    None => if pipe_value_table { value_table_scope } else { None }
+  }
+  if retained_scope is Some(scopes) {
     // A private Pipe continuation carries value slots, not exported names.
     // Preserve existing scope/evidence; the consuming JOIN remaps these slots.
     scopes.push({
@@ -6702,7 +6708,8 @@ pub fn compile(
 ) -> Result[@program.Program, Issue] {
   if @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
-    has_pipe_range_input(query) {
+    has_pipe_range_input(query) ||
+    has_cte_unnest_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,
@@ -6732,7 +6739,7 @@ pub fn compile(
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
   }
-  if query_has_join_set_operand(query) {
+  if query_has_join_set_operand(query) || query_has_mixed_cte_join_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,

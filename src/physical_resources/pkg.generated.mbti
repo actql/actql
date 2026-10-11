@@ -10,6 +10,8 @@ pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocatio
 
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
 
+pub fn capacity_reservation_open(CapacityReservation) -> Bool
+
 pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
@@ -58,6 +60,8 @@ pub fn reservation_serial(Reservation) -> Int
 
 pub fn reserve_attempt(Ledger, Int64, Int64, Int64, quantities? : QuantityAmounts?) -> Result[Reservation, LedgerIssue]
 
+pub fn reserve_capacity(Ledger, Int64, Int64) -> Result[CapacityReservation, LedgerIssue]
+
 pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Result[ExecutionDelegation, LedgerIssue]
 
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
@@ -67,6 +71,8 @@ pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIs
 pub fn retire_shared_capacity(SharedAllocation) -> Unit
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
+
+pub fn settle_capacity(Ledger, CapacityReservation) -> Result[Unit, LedgerIssue]
 
 pub fn settle_completed_output_reservation(Ledger, Reservation, Holding?, Int64, Int64) -> Result[Unit, LedgerIssue]
 
@@ -85,6 +91,8 @@ pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 // Errors
 
 // Types and methods
+type CapacityReservation
+
 type ExecutionDelegation
 
 type Holding

@@ -123,10 +123,17 @@ pub(all) enum QueryOperation {
 ///|
 pub(all) struct UnpivotClause {
   columns : Array[NamePart]
+  row_labels : Array[UnpivotRowLabel?]
   value_column : NamePart
   name_column : NamePart
   include_nulls : Bool
 }
+
+///|
+pub(all) enum UnpivotRowLabel {
+  TextLabel(String)
+  IntegerLabel(String)
+} derive(Eq, Debug)
 
 ///|
 pub(all) struct KeepItem {
@@ -441,7 +448,13 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     UnnestSource(expression, element, offset) =>
       Some(UnnestSource(expression, element, offset))
     Unpivot(clause) =>
-      Some(Unpivot({ ..clause, columns: clause.columns.copy(), }))
+      Some(
+        Unpivot({
+          ..clause,
+          columns: clause.columns.copy(),
+          row_labels: clause.row_labels.copy(),
+        }),
+      )
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
@@ -933,7 +946,7 @@ fn QueryParser::optional_source_alias(
     ![
       "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",
       "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
-      "QUALIFY", "WINDOW", "PIVOT",
+      "QUALIFY", "WINDOW", "PIVOT", "UNPIVOT",
     ].contains(value.to_upper()) {
     Some(self.name())
   } else {
@@ -947,7 +960,7 @@ fn QueryParser::query_source(
 ) -> (Array[NamePart], NamePart?, Array[CtePart]) raise QueryAbort {
   if self.peek().value != Symbol(40) {
     let (relation, source_alias) = self.source_name()
-    return self.from_pivot_source(relation, source_alias, [])
+    return self.from_postfix_source(relation, source_alias, [])
   }
   let inner = self.parenthesized()
   let source_alias = self.optional_source_alias()
@@ -958,13 +971,13 @@ fn QueryParser::query_source(
       { ..inner, operations: inner.operations + [Alias(result_range)], },
       carry_ranges=true,
     )
-    return self.from_pivot_source(bound.relation, None, bound.ctes)
+    return self.from_postfix_source(bound.relation, None, bound.ctes)
   }
   // An explicit alias creates one projected range. Without it, preserve the
   // inner query's current names/ranges through the existing continuation scope.
   let carry_ranges = source_alias is None && query_output_carries_ranges(inner)
   let bound = self.bind_query(inner, carry_ranges~)
-  self.from_pivot_source(bound.relation, source_alias, bound.ctes)
+  self.from_postfix_source(bound.relation, source_alias, bound.ctes)
 }
 
 ///|
