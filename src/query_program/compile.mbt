@@ -93,6 +93,9 @@ pub(all) enum Issue {
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
   ExpressionTyping(@typing.Issue)
+  // Common metadata/pipeline preparation before selecting demanded bindings.
+  // The original typed cause is retained; this is not execution admission.
+  BindingPreparation(BindingPreparationIssue)
   Admission(@program.SyntaxError)
 }
 

@@ -602,7 +602,15 @@ pub fn compile_query_script(
       Err(issue) => raise Abort(Construction(issue))
     }
     match admit_query_source(source, document, context, limits) {
-      Ok(program) => Ok(program)
+      Ok(program) => {
+        if @query.query_binding_count(root) > 0 {
+          match prepare_query_bindings(program, context, limits) {
+            Ok(_) => ()
+            Err(issue) => return Err(BindingPreparation(issue))
+          }
+        }
+        Ok(program)
+      }
       Err(issue) => Err(issue)
     }
   } catch {
