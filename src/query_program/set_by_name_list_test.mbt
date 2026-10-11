@@ -14,7 +14,7 @@ test "BY NAME ON reorders both inputs into the authored Program" {
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
     NeedsInputs(_) => fail("BY NAME ON adds no acquisition")
   }
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA e = SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 3 AS y, 4 AS x; FROM e |> SELECT y, x",
   )
   assert_eq(semantic(actual), semantic(expected))
@@ -101,7 +101,7 @@ test "BY NAME ON DATA has the same set diagnostic and common type checking" {
       msg=text,
     )
   }
-  let bad_type = compile_data_set(
+  let bad_type = compile_with_set(
     "DATA e = SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 'wrong' AS y, 4 AS x; FROM e |> SELECT y, x",
   )
   assert_true(

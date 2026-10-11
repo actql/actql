@@ -1,6 +1,6 @@
 ///|
 test "Graph definition selector has an independent complete Program" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> node_rows(definition: 'n') |> SELECT p, node_key",
   )
   let expected = @program.parse(
@@ -21,7 +21,7 @@ test "Graph selectors preserve declared fields and common checking" {
       "FROM g |> node_rows(definition: 'n') |> SELECT node_key, p, labels", "FROM g |> node_rows(label: 'PERSON') |> SELECT node_key, p, labels",
       "DATA rows = FROM g |> node_rows(label: 'Company') |> SELECT other_key; FROM rows |> ORDER BY other_key",
     ] {
-    let program = compile_data_set(prefix + suffix)
+    let program = compile_with_set(prefix + suffix)
     match
       @check.check_parsed_with_evidence(
         program,
@@ -62,7 +62,7 @@ test "Graph label selection does not invent Conditional presence" {
     suffix in [
       "FROM g |> node_rows(label: 'Person') |> SELECT q", "FROM g |> node_rows(label: 'Person') |> WHERE q IS NOT NULL |> SELECT key",
     ] {
-    let program = compile_data_set(prefix + suffix)
+    let program = compile_with_set(prefix + suffix)
     assert_true(
       @check.check_parsed_with_evidence(
         program,
@@ -75,7 +75,7 @@ test "Graph label selection does not invent Conditional presence" {
       msg=suffix,
     )
   }
-  let program = compile_data_set(
+  let program = compile_with_set(
     prefix +
     "FROM g |> node_rows(label: 'Person') |> SELECT key, p |> WHERE p > 0 |> ORDER BY key",
   )
@@ -95,7 +95,7 @@ test "Graph label selection does not invent Conditional presence" {
 
 ///|
 test "Graph quoted element names remain string selectors" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     "DATA `input rows` = SELECT 1 AS key; DATA `graph value` = PROPERTY GRAPH (NODE TABLES (`input rows` AS `Person Set` KEY (key) LABEL `Human Label` NO PROPERTIES)); FROM `graph value` |> node_rows(definition: 'person set') |> SELECT key",
   )
   assert_true(
@@ -118,7 +118,7 @@ test "Graph quoted element names remain string selectors" {
 ///|
 test "Graph edge selectors retain the existing typed Bridge" {
   for selector in ["definition: 'e'", "label: 'r'"] {
-    let program = compile_data_set(
+    let program = compile_with_set(
       graph_rows_prefix() +
       "FROM g |> edge_rows(" +
       selector +

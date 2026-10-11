@@ -44,7 +44,7 @@ test "Graph difference independent Program uses the common publication owner" {
 
 ///|
 test "Graph difference source preserves its independently authored Program" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> graph_diff(with: g) |> SELECT delta",
   )
   assert_eq(semantic(program), semantic(graph_difference_expected()))
@@ -53,7 +53,7 @@ test "Graph difference source preserves its independently authored Program" {
 
 ///|
 test "Graph difference DATA aliases retain existing producers and Relation scope" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA `peer graph` = FROM g; DATA changes = FROM g |> normalize_graph() |> graph_diff(with: `peer graph`); FROM changes |> SELECT delta",
   )
   let body = semantic(program)

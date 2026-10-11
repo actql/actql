@@ -70,7 +70,7 @@ test "Graph diagnostics text matches independent complete machine Programs" {
         "component_size, node_id, component_id", "[\"component_size\",\"node_id\",\"component_id\"]",
       ),
     ] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       graph_diagnostic_prefix() +
       "FROM g |> " +
       operation +
@@ -100,7 +100,7 @@ test "Graph diagnostics text matches independent complete machine Programs" {
 
 ///|
 test "Graph diagnostic WITH reuses the normalized producer and current columns" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_diagnostic_prefix() +
     " , `stats` AS (FROM g |> normalize_graph() |> degree(direction: 'out')) FROM `stats` |> WHERE degree = 0 |> SELECT degree, node |> ORDER BY degree |> LIMIT 1",
   )
@@ -240,7 +240,7 @@ test "Graph diagnostic typed parameters retain declarations and binding rules" {
 ///|
 test "Graph components WITH admits both kinds and retains its current Relation schema" {
   for kind in ["weak", "strong"] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       graph_diagnostic_prefix() +
       ", selected AS (FROM g |> components(kind: '" +
       kind +

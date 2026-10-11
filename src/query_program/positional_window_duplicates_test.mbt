@@ -151,7 +151,7 @@ test "positional window lowering matches the independent complete DATA Program" 
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; DATA e = SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r; FROM e |> SELECT a, b",
   )
   assert_eq(semantic(actual), semantic(expected))

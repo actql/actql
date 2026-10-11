@@ -157,7 +157,7 @@ test "duplicate aggregate lowering matches an independently authored complete Pr
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA e = SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n; FROM e |> SELECT a, b",
   )
   assert_eq(semantic(actual), semantic(expected))

@@ -23,7 +23,7 @@ test "independent common Graph match control is already checked" {
 
 ///|
 test "named Graph match has an independently authored complete Program" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> match_nodes(definition: 'N', label: 'Person', where: {gt: [{field: 'p'}, {literal: 5}]}, fields: ['p']) |> SELECT p",
   )
   let expected = @program.parse(
@@ -55,7 +55,7 @@ test "named Graph match carries projection order and identity roles to the commo
       "FROM g |> match_nodes(definition: 'n', bindings: {identity: 'element'}, where: {literal: true}, fields: ['name', 'element']) |> SELECT name, element |> ORDER BY name",
       "DATA selected = FROM g |> normalize_graph() |> match_edges(definition: 'E', label: 'r', bindings: {identity: 'edge', source: 'source', target: 'target'}, fields: ['target', 'edge', 'source']); FROM selected |> SELECT target, edge, source",
     ] {
-    let actual = compile_data_set(graph_rows_prefix() + suffix)
+    let actual = compile_with_set(graph_rows_prefix() + suffix)
     match
       @check.check_parsed_with_evidence(
         actual,
@@ -84,7 +84,7 @@ test "named Graph match retains malformed authored contracts for common refusal"
       "match_nodes(definition: 'N', where: {literal: true}, fields: ['name'], extra: true)",
       "match_edges(definition: 'E', bindings: {source: 'src'}, fields: ['src'], types: [1])",
     ] {
-    let actual = compile_data_set(graph_rows_prefix() + "FROM g |> " + call)
+    let actual = compile_with_set(graph_rows_prefix() + "FROM g |> " + call)
     assert_true(
       @check.check_parsed_with_evidence(
         actual,

@@ -8,7 +8,7 @@ test "bounded Graph modes lower to the existing traversal without changing bound
       ("TRAIL", "trail"),
       ("ACYCLIC", "acyclic"),
     ] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       prefix +
       "FROM GRAPH g |> MATCH p = " +
       mode +

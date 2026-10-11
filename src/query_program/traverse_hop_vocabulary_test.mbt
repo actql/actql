@@ -25,7 +25,7 @@ test "uppercase traverse hop fields retain an independent checked Program" {
       "TRAVERSE(START: {FROM: seeds, ID: 'element'}, HOPS: [{DIRECTION: 'out', EDGE_TYPES: [], NODE_WHERE: {literal: true}, EDGE_WHERE: {literal: true}}], PATH_MODE: 'walk', EMIT: 'nodes', MAX_OUTPUT_ROWS: 10)",
       "traverse(start: {from: seeds, id: 'element'}, hops: [{`DiReCtIoN`: 'out', `EdGe_TyPeS`: [], `NoDe_WhErE`: {literal: true}, `EdGe_WhErE`: {literal: true}}], path_mode: 'walk', emit: 'nodes', max_output_rows: 10)",
     ] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       traversal_nodes_source() +
       "FROM g |> " +
       tail +

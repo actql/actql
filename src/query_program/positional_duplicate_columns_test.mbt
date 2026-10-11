@@ -117,7 +117,7 @@ test "positional duplicate projection preserves an independently authored comple
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA e = SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x; FROM e |> SELECT a, b",
   )
   assert_eq(semantic(actual), semantic(expected))

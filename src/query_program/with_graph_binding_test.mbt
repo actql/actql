@@ -14,7 +14,7 @@ test "WITH Graph MATCH reuses its existing owner and complete Program" {
       "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)))), chosen AS (FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value) FROM chosen |> ORDER BY value",
       "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)))), chosen AS (FROM g |> MATCH WALK (a:Node) |> SELECT a.p AS value) FROM chosen |> ORDER BY value",
     ] {
-    let actual = compile_data_set(text)
+    let actual = compile_with_set(text)
     assert_eq(semantic(actual), semantic(expected))
     match
       @check.check_parsed_with_evidence(

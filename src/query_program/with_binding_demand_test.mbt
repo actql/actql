@@ -111,7 +111,7 @@ test "nested unused WITH Source is independent of the demanded outer body" {
 
 ///|
 test "demanded WITH body keeps assertions and non-output evaluations" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "WITH kept AS (SELECT 1 AS id, 9 AS ignored |> ASSERT UNIQUE BY (id) |> SELECT id) FROM kept |> SELECT id",
   )
   let body = semantic(actual)
@@ -122,7 +122,7 @@ test "demanded WITH body keeps assertions and non-output evaluations" {
 
 ///|
 test "unused Graph value validation is absent from final executable steps" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "WITH n AS (SELECT 1 AS id UNION ALL SELECT 1 AS id), unused AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES))) SELECT 1 AS answer",
   )
   let body = semantic(actual)

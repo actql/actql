@@ -54,7 +54,7 @@ test "Graph traversal path DATA preserves declared arguments and current column 
     .replace(old="from: seeds", new="from: `seed set`")
     .replace(old="FROM g |> traverse", new="DATA visited = FROM g |> traverse") +
     "; FROM visited |> WHERE hop_count >= 0 |> SELECT edge_ids, node_ids, hop_count |> ORDER BY hop_count"
-  let program = compile_data_set(source)
+  let program = compile_with_set(source)
   let body = semantic(program)
   assert_eq(body.split("\"traverse\":").length(), 2)
   assert_true(body.contains("\"max_output_rows\":10"))
@@ -137,7 +137,7 @@ test "Graph traversal path preserves malformed arguments for common refusal" {
       ("path_mode: 'trail'", "path_mode: 'invented'"),
       ("max_output_rows: 10", "max_output_rows: 10, extra: true"),
     ] {
-    let program = compile_data_set(
+    let program = compile_with_set(
       traversal_paths_source().replace(old=before, new=after),
     )
     assert_true(

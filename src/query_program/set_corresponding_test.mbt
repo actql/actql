@@ -13,7 +13,7 @@ test "CORRESPONDING aligns evaluated inputs into an authored Program" {
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
     NeedsInputs(_) => fail("CORRESPONDING alignment adds no acquisition")
   }
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA e = SELECT 1 AS x, 2 AS left_only UNION ALL CORRESPONDING SELECT 3 AS x, 4 AS right_only; FROM e |> SELECT x",
   )
   assert_eq(semantic(actual), semantic(expected))
@@ -35,7 +35,7 @@ test "STRICT CORRESPONDING BY reorders both inputs into the authored Program" {
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
     NeedsInputs(_) => fail("STRICT CORRESPONDING BY adds no acquisition")
   }
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA e = SELECT 1 AS x, 2 AS y UNION ALL STRICT CORRESPONDING BY (y, x) SELECT 3 AS y, 4 AS x; FROM e |> SELECT y, x",
   )
   assert_eq(semantic(actual), semantic(expected))
@@ -75,7 +75,7 @@ test "SQL CORRESPONDING chain omits globally absent columns before comparing set
     values_context(),
     construction_limits(),
   ).unwrap()
-  let data = compile_data_set("DATA e = " + sql + "; FROM e |> SELECT x")
+  let data = compile_with_set("DATA e = " + sql + "; FROM e |> SELECT x")
   for actual in [root, data] {
     match
       @check.check_parsed(actual, check_environment(), None, check_limits()) {
@@ -85,7 +85,7 @@ test "SQL CORRESPONDING chain omits globally absent columns before comparing set
     }
   }
   // Two sequential Pipe sets compare their intermediate common column.
-  let pipe = compile_data_set(
+  let pipe = compile_with_set(
     "DATA e = SELECT 1 AS x, 2 AS ignored |> UNION ALL CORRESPONDING (SELECT 3 AS x, 'text' AS ignored) |> UNION ALL CORRESPONDING (SELECT 4 AS x); FROM e |> SELECT x",
   )
   assert_true(

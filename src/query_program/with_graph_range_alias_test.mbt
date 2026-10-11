@@ -32,7 +32,7 @@ test "WITH producer alias and row alias after a Graph bridge remain valid" {
       ", renamed AS (FROM g) FROM renamed |> node_rows() |> AS r |> SELECT r.p",
       "FROM g |> node_rows() |> AS r |> SELECT r.p", "FROM g |> MATCH WALK (a:Node) |> SELECT a.p AS p |> AS r |> SELECT r.p",
     ] {
-    let program = compile_data_set(with_graph_alias_prefix() + tail)
+    let program = compile_with_set(with_graph_alias_prefix() + tail)
     let body = semantic(program)
     assert_eq(body.split("\"graph\":{").length(), 2)
     match

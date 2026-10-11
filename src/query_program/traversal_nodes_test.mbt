@@ -5,7 +5,7 @@ fn traversal_nodes_source() -> String {
 
 ///|
 test "Graph traversal node source retains an independent complete Program" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     traversal_nodes_source() +
     "FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth",
   )
@@ -33,7 +33,7 @@ test "Graph traversal node source retains an independent complete Program" {
 
 ///|
 test "Graph traversal node output continues as a Relation WITH producer" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     traversal_nodes_source().replace(old="seeds", new="`seed set`") +
     ", visited AS (FROM g |> traverse(start: {from: `seed set`, id: 'element'}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'nodes') |> SELECT depth) FROM visited |> WHERE depth > 0 |> ORDER BY depth",
   )

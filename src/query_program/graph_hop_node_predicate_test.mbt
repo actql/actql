@@ -223,7 +223,7 @@ fn graph_hop_definition_prefix(extra? : Bool = false) -> String {
 
 ///|
 test "Graph hop scope uses reached definitions rather than the start schema" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_hop_definition_prefix() +
     "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]->(b:Target WHERE b.score > 10) |> SELECT PATH_LENGTH(p) AS depth",
   )
@@ -248,7 +248,7 @@ test "Graph hop scope uses reached definitions rather than the start schema" {
 
 ///|
 test "Graph hop scope does not invent property presence in other reached definitions" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_hop_definition_prefix(extra=true) +
     "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]->(b WHERE b.score > 10) |> SELECT PATH_LENGTH(p) AS depth",
   )

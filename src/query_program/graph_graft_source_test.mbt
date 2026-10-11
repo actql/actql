@@ -8,13 +8,13 @@ test "Graph graft public AQL retains its own binary operation and Graph row cons
     format=Json,
   ).unwrap()
   check_graph_union_source(expected)
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     graph_union_prefix() +
     "FROM g |> graft_graph(with: g) |> node_rows() |> SELECT p, node_key",
   )
   assert_eq(semantic(actual), semantic(expected))
   check_graph_union_source(actual)
-  let bound = compile_data_set(
+  let bound = compile_with_set(
     graph_union_prefix() +
     ", h AS (FROM g |> graft_graph(with: g)) FROM h |> node_rows() |> SELECT p, node_key",
   )

@@ -27,7 +27,7 @@ test "Graph equality independent Program uses the ordinary checker" {
 
 ///|
 test "Graph equality source matches its independent complete Program" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> graphs_equal(with: g) |> SELECT equal",
   )
   assert_eq(semantic(actual), semantic(graph_equality_expected()))
@@ -35,7 +35,7 @@ test "Graph equality source matches its independent complete Program" {
 
 ///|
 test "Graph equality DATA resolves quoted aliases without copying the Graph" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA `peer graph` = FROM g; DATA same = FROM g |> normalize_graph() |> graphs_equal(with: `peer graph`); FROM same |> WHERE equal |> SELECT equal",
   )
   let body = semantic(program)
@@ -60,7 +60,7 @@ test "Graph equality DATA resolves quoted aliases without copying the Graph" {
 
 ///|
 test "Graph equality singleton supports ORDER and LIMIT through the common owner" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> graphs_equal(with: g) |> SELECT equal |> ORDER BY equal |> LIMIT 1",
   )
   let expected = @program.parse(

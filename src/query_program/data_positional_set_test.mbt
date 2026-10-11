@@ -42,7 +42,7 @@ test "DATA positional operands preserve their independently authored Program" {
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA e = SELECT 10 AS id UNION ALL SELECT 11; FROM e |> SELECT id",
   )
   assert_eq(semantic(actual), semantic(expected))

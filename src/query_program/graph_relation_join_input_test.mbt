@@ -36,7 +36,7 @@ test "Ordered Graph Relation JOIN retains established singleton equality order" 
     for
       program in [
         graph_relation_join_control(operation, arguments, field, ordered=true),
-        compile_data_set(source),
+        compile_with_set(source),
       ] {
       let checked = @check.check_parsed_with_evidence(
         program,
@@ -113,7 +113,7 @@ test "Existing Graph Relation calls remain Relation JOIN inputs" {
       ") |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l." +
       field +
       " AS value, rr.tag AS tag"
-    let actual = compile_data_set(source)
+    let actual = compile_with_set(source)
     match
       @check.check_parsed_with_evidence(
         actual,

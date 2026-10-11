@@ -24,7 +24,7 @@ test "projected MATCH DATA has an independent ordinary Program control" {
     Rejected(diagnostic) => graph_rows_rejected(diagnostic)
     NeedsInputs(_) => fail("independent MATCH DATA control requires no Source")
   }
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     match_data_prefix() +
     "DATA chosen = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value; FROM chosen |> ORDER BY value",
   )
@@ -44,7 +44,7 @@ test "projected MATCH DATA has an independent ordinary Program control" {
 
 ///|
 test "projected MATCH DATA retains a complete independently authored lowering" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     match_data_prefix() +
     "DATA chosen = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value; FROM chosen |> ORDER BY value",
   )
@@ -66,7 +66,7 @@ test "MATCH DATA permits quoted names and ordinary Relation continuation" {
       "DATA `picked rows` = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value; FROM `picked rows` |> SELECT value",
       "DATA chosen = FROM GRAPH g |> MATCH WALK (a:Node WHERE p > 9) |> SELECT a.p AS value; FROM chosen |> SELECT value",
     ] {
-    let actual = compile_data_set(match_data_prefix() + suffix)
+    let actual = compile_with_set(match_data_prefix() + suffix)
     match
       @check.check_parsed_with_evidence(
         actual,
@@ -165,7 +165,7 @@ test "independent public MATCH DATA controls and source use the normal checker" 
       "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p, node_key))); DATA chosen = FROM GRAPH g |> normalize_graph() |> MATCH WALK (a:Node) |> SELECT a.p AS value, a.node_key AS key; FROM chosen |> WHERE key > 0 |> SELECT value, key |> ORDER BY key |> RESULT matched",
       "DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 1 AS src, 1 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); DATA chosen = FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS value; FROM chosen |> WHERE value > 1 |> SELECT value |> ORDER BY value |> RESULT matched",
     ] {
-    let actual = compile_data_set(text)
+    let actual = compile_with_set(text)
     match
       @check.check_parsed_with_evidence(
         actual,

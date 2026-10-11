@@ -74,7 +74,7 @@ fn graph_rows_check_limits() -> @check.CheckLimits {
 
 ///|
 test "Graph row source has an independently authored complete Program" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) FROM g |> node_rows() |> SELECT p, node_key",
   )
   let expected = @program.parse(
@@ -89,7 +89,7 @@ test "Graph row source has an independently authored complete Program" {
 
 ///|
 test "Graph row source lowers the existing node bridge and relational suffix" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_rows_prefix() +
     "FROM g |> node_rows() |> SELECT node_key, name |> WHERE node_key > 0 |> ORDER BY node_key",
   )
@@ -112,7 +112,7 @@ test "Graph row source lowers the existing node bridge and relational suffix" {
 
 ///|
 test "Graph row WITH alias lowers the existing edge bridge once" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_rows_prefix() +
     ", `rows` AS (FROM `g` |> edge_rows() |> SELECT edge_key, labels) FROM `rows` |> ORDER BY edge_key",
   )

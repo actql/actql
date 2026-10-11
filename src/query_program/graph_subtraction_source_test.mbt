@@ -13,7 +13,7 @@ fn graph_subtraction_expected() -> @program.Program {
 test "Graph subtraction source retains its binary peer and policy in independent Program" {
   let expected = graph_subtraction_expected()
   check_graph_union_source(expected)
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     graph_union_prefix() +
     "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}}) |> node_rows() |> SELECT p, node_key",
   )
@@ -23,7 +23,7 @@ test "Graph subtraction source retains its binary peer and policy in independent
 
 ///|
 test "Graph subtraction resolves quoted WITH peers without turning values into names" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_union_prefix() +
     ", `peer graph` AS (FROM g), remaining AS (FROM g |> subtract_graphs(with: `peer graph`, merge: {node_properties: {p: 'exact_equal'}})) FROM remaining |> node_rows() |> SELECT p, node_key",
   )
@@ -102,17 +102,17 @@ test "independent subtraction JSON controls preserve removal and shared-Graph ou
 ///|
 test "complete public subtraction sources retain empty NULL and nonempty endpoint contracts" {
   check_graph_union_source(
-    compile_data_set(
+    compile_with_set(
       "WITH n AS (SELECT 7 AS part, 1 AS node_key, 7 AS p UNION ALL SELECT 7 AS part, 2 AS node_key, 9 AS p), e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 2 AS dst_key, 5 AS w UNION ALL SELECT 7 AS part, 10 AS edge_key, 2 AS src_key, 2 AS dst_key, 2 AS w), g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))), selected AS (FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id), peer AS (FROM g |> subgraph(nodes: {from: selected, id: \"id\"})) FROM g |> subtract_graphs(with: peer) |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges",
     ),
   )
   check_graph_union_source(
-    compile_data_set(
+    compile_with_set(
       "WITH n AS (SELECT 7 AS part, 1 AS node_key, CAST(NULL AS FLOAT64) AS p), e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w), g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))) FROM g |> subtract_graphs(with: g) |> node_rows() |> SELECT p, part, node_key, labels |> ORDER BY node_key |> RESULT nodes",
     ),
   )
   check_graph_union_source(
-    compile_data_set(
+    compile_with_set(
       "WITH n AS (SELECT 7 AS part, 1 AS node_key, 0 AS p), e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w), g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))) FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}}) |> node_rows() |> SELECT p, part, node_key, labels |> ORDER BY node_key |> RESULT nodes",
     ),
   )

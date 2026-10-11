@@ -11,7 +11,7 @@ test "SGA DATA normalize lowers once and retains the existing Graph producer" {
     format=Json,
   ).unwrap()
   let source = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); DATA normalized = FROM g |> normalize_graph(); FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id"
-  let actual = compile_data_set(source)
+  let actual = compile_with_set(source)
   assert_eq(semantic(actual), semantic(expected))
   assert_eq(@program.stage_count(actual), 1)
   assert_eq(@program.export_count(actual), 1)
@@ -22,7 +22,7 @@ test "SGA DATA normalize lowers once and retains the existing Graph producer" {
 ///|
 test "SGA normalize can precede MATCH without a synthesized DATA or Result" {
   let source = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> normalize_graph() |> MATCH WALK (a:Node) |> SELECT a.id"
-  let actual = semantic(compile_data_set(source))
+  let actual = semantic(compile_with_set(source))
   assert_true(actual.contains("\"normalize_graph\":true"))
   assert_true(actual.contains("\"as\":\"aql_sga_3\""))
   assert_true(actual.contains("\"from\":\"aql_sga_3\""))
@@ -32,10 +32,10 @@ test "SGA normalize can precede MATCH without a synthesized DATA or Result" {
 ///|
 test "SGA graph alias reuse never introduces a Values copy or reacquisition" {
   let source = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); DATA copied = FROM g; FROM GRAPH copied |> MATCH WALK (a:Node) |> SELECT a.id"
-  let actual = semantic(compile_data_set(source))
+  let actual = semantic(compile_with_set(source))
   assert_true(actual.contains("\"from\":\"aql_data_2\",\"match_nodes\""))
   assert_false(actual.contains("normalize_graph"))
-  assert_eq(@program.export_count(compile_data_set(source)), 1)
+  assert_eq(@program.export_count(compile_with_set(source)), 1)
 }
 
 ///|

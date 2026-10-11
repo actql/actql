@@ -23,7 +23,7 @@ test "independent common Subgraph control is already checked" {
 
 ///|
 test "Subgraph source preserves its Relation selector in an independent complete Program" {
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA selected = FROM g |> node_rows() |> SELECT id; DATA slice = FROM g |> subgraph(nodes: {from: selected, id: 'id'}); FROM slice |> node_rows() |> SELECT p, node_key",
   )
   let expected = @program.parse(
@@ -123,7 +123,7 @@ test "Subgraph source preserves predicates across inline, DATA and MATCH boundar
       "FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_nodes(definition: 'n', bindings: {identity: 'element'}, where: {literal: true}, fields: ['name', 'element']) |> SELECT name, element",
       "DATA matched = FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_edges(definition: 'E', label: 'r', bindings: {identity: 'edge', source: 'source', target: 'target'}, fields: ['target', 'edge', 'source']); FROM matched |> SELECT target, edge, source",
     ] {
-    let actual = compile_data_set(prefix + suffix)
+    let actual = compile_with_set(prefix + suffix)
     match
       @check.check_parsed_with_evidence(
         actual,
@@ -150,7 +150,7 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
       // authored expression and let that owner reject it before admission.
        "subgraph(nodes: {where: {literal: true}})",
     ] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       graph_rows_prefix() +
       "DATA selected = FROM g |> node_rows() |> SELECT id, node_key; FROM g |> " +
       call +

@@ -7,7 +7,7 @@ test "Mean WITH generator retains its ordered occurrences in an independent Prog
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     graph_union_prefix() +
     ", combined AS (mean_graphs(with: [g, g, g], weights: [1, 2, 0], support: {nodes: 1, edges: 1}, properties: {nodes: {p: {mean: {missing: 'exclude', nulls: 'exclude'}}}, edges: {}})) FROM combined |> node_rows() |> SELECT p, node_key",
   )
@@ -37,7 +37,7 @@ test "Mean source leaves weight support and property admission to the common che
 
 ///|
 test "Mean source keeps differently produced samples in explicit port order" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_union_prefix() +
     ", doubled AS (FROM g |> union_graphs(with: [g], merge: {node_properties: {p: 'number_sum'}, edge_properties: {}})) " +
     ", combined AS (mean_graphs(with: [doubled, g, doubled], weights: [1, 2, 0], support: {nodes: 1, edges: 1}, properties: {nodes: {p: {mean: {missing: 'exclude', nulls: 'exclude'}}}, edges: {}})) " +

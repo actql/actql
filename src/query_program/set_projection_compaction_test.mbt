@@ -9,7 +9,7 @@ test "implicit set projection composes alignment without another value evaluatio
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_data_set(
+  let actual = compile_with_set(
     "DATA e = SELECT 10 AS id UNION ALL SELECT 11 AS other; FROM e |> SELECT id",
   )
   assert_eq(semantic(actual), semantic(expected))

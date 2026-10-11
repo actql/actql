@@ -8,14 +8,14 @@ test "Shortest WITH and terminal query share the authored Program and common adm
     format=Json,
   ).unwrap()
   let call = "FROM g |> shortest_path(source: {where: 'p = 7'}, target: {where: 'p = 7'}, selection: 'each_pair', direction: 'out', max_hops: 2)"
-  let terminal = compile_data_set(
+  let terminal = compile_with_set(
     graph_union_prefix() + call + " |> SELECT hop_count, total_cost",
   )
   assert_eq(semantic(terminal), semantic(expected))
   check_graph_union_source(expected)
   check_graph_union_source(terminal)
   check_graph_union_source(
-    compile_data_set(
+    compile_with_set(
       graph_union_prefix() +
       ", paths AS (" +
       call +

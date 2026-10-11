@@ -7,14 +7,14 @@ test "Reach public WITH and terminal query retain checked selector and Relation 
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let terminal = compile_data_set(
+  let terminal = compile_with_set(
     graph_union_prefix() +
     "FROM g |> reach(start: {where: 'p = 7'}, direction: 'out', max_depth: 2) |> SELECT depth",
   )
   assert_eq(semantic(terminal), semantic(expected))
   check_graph_union_source(expected)
   check_graph_union_source(terminal)
-  let data = compile_data_set(
+  let data = compile_with_set(
     graph_union_prefix() +
     ", reached AS (FROM g |> reach(start: {where: 'p = 7'}, direction: 'out', max_depth: 2)) FROM reached |> SELECT depth",
   )
@@ -25,7 +25,7 @@ test "Reach public WITH and terminal query retain checked selector and Relation 
 test "Reach finite array WITH checks connected property selectors" {
   let prefix = "WITH n AS (SELECT node_key, node_key AS seed FROM UNNEST([3, 2, 1]) node_key), e AS (SELECT 13 AS edge_key, 2 AS src, 3 AS dst UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS edge_key, 1 AS src, 2 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES))) "
   for direction in ["out", "in"] {
-    let program = compile_data_set(
+    let program = compile_with_set(
       prefix +
       ", reached AS (FROM g |> reach(start: {where: 'seed = 1'}, direction: '\{direction}', max_depth: 2)) FROM reached |> SELECT depth |> ORDER BY depth |> RESULT reached",
     )

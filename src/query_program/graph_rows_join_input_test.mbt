@@ -25,7 +25,7 @@ test "Graph rows join prefix reuses the existing Relation join owner" {
     NeedsInputs(_) => fail("independent Graph row JOIN needs no acquisition")
   }
   let source = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 2 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.p AS value, rr.tag AS tag"
-  let actual = compile_data_set(source)
+  let actual = compile_with_set(source)
   match
     @check.check_parsed_with_evidence(
       actual,
@@ -58,7 +58,7 @@ test "Graph row bindings pass through authored CTE and edge JOIN prefixes" {
       graph_rows_prefix() +
       "DATA r = SELECT 1 AS key; DATA picked = FROM g |> node_rows() |> WHERE node_key > 0 |> AS l |> JOIN r AS rr ON l.node_key = rr.key MAX_OUTPUT_ROWS 10 |> SELECT l.node_key, rr.key; FROM picked |> ORDER BY node_key",
     ] {
-    let actual = compile_data_set(source)
+    let actual = compile_with_set(source)
     match
       @check.check_parsed_with_evidence(
         actual,
