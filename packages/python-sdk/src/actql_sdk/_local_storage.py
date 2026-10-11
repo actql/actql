@@ -193,22 +193,25 @@ class LocalByteStore:
         self._key(key)
         with self._lock:
             self._open()
-            # CASE bounds the Python allocation even for a corrupted/foreign
-            # oversized row. SQLite length(BLOB) reads its size, not its value.
-            row = self._connection.execute('''SELECT generation,
-                CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
-                typeof(payload), length(payload)
-                FROM core_bytes WHERE key = ?''',
-                (self._max_record_bytes, key)).fetchone()
-            if row is None:
-                return None
-            generation, payload, kind, length = row
-            if (type(generation) is not int or generation < 0
-                    or type(payload) is not bytes or kind != 'blob'
-                    or type(length) is not int or length != len(payload)
-                    or length > self._max_record_bytes):
-                raise LocalStorageError('Invalid retained Local physical bytes')
-            return StoredBytes(generation, payload)
+            return self._read_bytes_locked(key)
+
+    def _read_bytes_locked(self, key: str) -> StoredBytes | None:
+        # CASE bounds the Python allocation even for a corrupted/foreign
+        # oversized row. SQLite length(BLOB) reads its size, not its value.
+        row = self._connection.execute('''SELECT generation,
+            CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
+            typeof(payload), length(payload)
+            FROM core_bytes WHERE key = ?''',
+            (self._max_record_bytes, key)).fetchone()
+        if row is None:
+            return None
+        generation, payload, kind, length = row
+        if (type(generation) is not int or generation < 0
+                or type(payload) is not bytes or kind != 'blob'
+                or type(length) is not int or length != len(payload)
+                or length > self._max_record_bytes):
+            raise LocalStorageError('Invalid retained Local physical bytes')
+        return StoredBytes(generation, payload)
 
     def compare_exchange(self, key: str, expected_generation: int | None,
                          payload: bytes) -> int | None:
@@ -423,9 +426,46 @@ class LocalByteStore:
             raise ValueError('Invalid original Local physical metadata batch')
         return self._compare_exchange_many(writes, capacity=None, originals=originals)
 
-    def _compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
-                               capacity: CapacityReservation | None,
-                               originals: tuple[tuple[ByteFence, CapacityReservation], ...] = ()) -> tuple[int, ...] | None:
+    def read_exchange_many_attached(
+            self, writes: tuple[ByteWrite, ...],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> tuple[StoredBytes, ...] | None:
+        """Observe this exact batch's successors under one physical read snapshot.
+
+        The original payload bytes/generations and reservations are checked in
+        that same transaction. Missing, changed or later metadata is unmatched,
+        never proof of absence or permission to replay the batch. Returned bytes
+        remain physical observations for the existing Core/authorization Owners.
+        A transaction cleanup failure keeps this Store handle pending and exposes
+        no partial observation. The Host reserves input/output retention itself.
+        """
+        keys = self._exchange_write_keys(writes)
+        self._validate_originals(originals, keys)
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN')
+            try:
+                result: tuple[StoredBytes, ...] | None = None
+                if self._originals_match_locked(originals):
+                    observed: list[StoredBytes] = []
+                    for write in writes:
+                        row = self._read_bytes_locked(write.key)
+                        successor = 0 if write.expected_generation is None else write.expected_generation + 1
+                        if row is None or row.generation != successor or row.payload != write.payload:
+                            break
+                        observed.append(row)
+                    if len(observed) == len(writes):
+                        result = tuple(observed)
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+            else:
+                # Do not publish observations or repeat cleanup if this fails.
+                database.execute('ROLLBACK')
+                return result
+
+    def _exchange_write_keys(self, writes: tuple[ByteWrite, ...]) -> set[str]:
         if type(writes) is not tuple or not 1 <= len(writes) <= self._max_records:
             raise ValueError('Invalid Local physical write batch')
         keys: set[str] = set()
@@ -442,15 +482,13 @@ class LocalByteStore:
                 raise ValueError('Invalid Local physical CAS generation')
             if type(write.payload) is not bytes or len(write.payload) > self._max_record_bytes:
                 raise ValueError('Invalid Local physical payload')
-        if capacity is not None:
-            if type(capacity) is not CapacityReservation:
-                raise ValueError('Invalid Local physical capacity observation')
-            self._capacity_name(capacity.namespace)
-            self._capacity_name(capacity.key)
-            self._capacity_amount(capacity.reserved_bytes)
-            self._capacity_amount(capacity.reserved_objects)
-            if capacity.key not in keys or originals:
-                raise ValueError('Local physical reservation names another record')
+        return keys
+
+    def _validate_originals(
+            self, originals: tuple[tuple[ByteFence, CapacityReservation], ...],
+            keys: set[str]) -> None:
+        if type(originals) is not tuple or not 1 <= len(originals) <= self._max_records:
+            raise ValueError('Invalid original Local physical metadata batch')
         original_keys: set[str] = set()
         for pair in originals:
             if type(pair) is not tuple or len(pair) != 2:
@@ -471,6 +509,39 @@ class LocalByteStore:
                     or reservation.key != fence.key):
                 raise ValueError('Invalid original Local physical record fence')
             original_keys.add(fence.key)
+
+    def _originals_match_locked(
+            self, originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> bool:
+        database = self._connection
+        for fence, reservation in originals:
+            retained = database.execute('''SELECT reserved_bytes, reserved_objects
+                FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                (reservation.namespace, reservation.key)).fetchone()
+            if retained != (reservation.reserved_bytes, reservation.reserved_objects):
+                return False
+            original = database.execute('''SELECT generation,
+                CASE WHEN length(payload) <= ? THEN payload ELSE NULL END
+                FROM core_bytes WHERE key = ?''',
+                (self._max_record_bytes, fence.key)).fetchone()
+            if original != (fence.generation, fence.payload):
+                return False
+        return True
+
+    def _compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
+                               capacity: CapacityReservation | None,
+                               originals: tuple[tuple[ByteFence, CapacityReservation], ...] = ()) -> tuple[int, ...] | None:
+        keys = self._exchange_write_keys(writes)
+        if capacity is not None:
+            if type(capacity) is not CapacityReservation:
+                raise ValueError('Invalid Local physical capacity observation')
+            self._capacity_name(capacity.namespace)
+            self._capacity_name(capacity.key)
+            self._capacity_amount(capacity.reserved_bytes)
+            self._capacity_amount(capacity.reserved_objects)
+            if capacity.key not in keys or originals:
+                raise ValueError('Local physical reservation names another record')
+        if originals:
+            self._validate_originals(originals, keys)
         with self._lock:
             self._open()
             database = self._connection
@@ -483,20 +554,9 @@ class LocalByteStore:
                     if retained != (capacity.reserved_bytes, capacity.reserved_objects):
                         database.execute('ROLLBACK')
                         return None
-                for fence, reservation in originals:
-                    retained = database.execute('''SELECT reserved_bytes, reserved_objects
-                        FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
-                        (reservation.namespace, reservation.key)).fetchone()
-                    if retained != (reservation.reserved_bytes, reservation.reserved_objects):
-                        database.execute('ROLLBACK')
-                        return None
-                    original = database.execute('''SELECT generation,
-                        CASE WHEN length(payload) <= ? THEN payload ELSE NULL END
-                        FROM core_bytes WHERE key = ?''',
-                        (self._max_record_bytes, fence.key)).fetchone()
-                    if original != (fence.generation, fence.payload):
-                        database.execute('ROLLBACK')
-                        return None
+                if not self._originals_match_locked(originals):
+                    database.execute('ROLLBACK')
+                    return None
                 generations: list[int] = []
                 inserted = replaced = 0
                 for write in writes:

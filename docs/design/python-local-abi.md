@@ -1427,3 +1427,14 @@ state. A lost commit acknowledgement is propagated without repeating writes;
 the caller observes exact successors and lets the original Owner decide the
 meaning. Schema format 2 and its bounds remain unchanged. Retained caller bytes
 and SQLite workspace require their existing Host reservations.
+
+The exact successor of an opaque metadata batch is observed with
+`read_exchange_many_attached` under one SQLite read transaction. All original
+payload bytes, generations and capacity reservations share that snapshot with
+all metadata reads. The method returns the complete exact batch or an unmatched
+observation; it never emits a partial prefix or converts a missing/later record
+to an absence proof or retry permission. Invalid retained bytes are errors.
+Only successful read-transaction cleanup exposes the observation; failed
+cleanup retains the original Store handle as pending. Current authorization and
+Core interpretation remain separate, and physical process-restart readback is
+not proof of restored Run state.
