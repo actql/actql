@@ -1209,3 +1209,34 @@ durable successor and the current original record must match every canonical
 field at that exact successor revision. This performs no second commit or CAS;
 later revisions and partial or changed records stay unresolved. It does not
 change the existing transition commit's refusal of a stale second commit.
+
+The private Python file port performs physical operations below an installed
+private root locked exclusively like the existing Native Store. Original
+Core-selected names are single ASCII components; the port never derives names
+from Program input or normalizes payload bytes. An exclusive file descriptor is
+registered before fallible identity/directory-sync observations. Acquisition
+failure exposes that same handle, and directory durability is retried without
+repeating creation. Only that descriptor can supply its device/inode facts.
+
+Writes are bounded by the original file byte ceiling and the Host's selected
+chunk ceiling. One call performs one physical write and returns the actual short
+write count. An uncertain write retains the same handle, refuses subsequent
+writes and cannot supply a seal fact. Read-only descriptor size is not a retry
+permit. The existing Core Store Owner must decide reconciliation and sealing.
+Host-provided capacity and workspace reservations remain separate obligations.
+
+Root close refuses live descriptors. Failed descriptor close retains the same
+handle; a lost reply is resolved by actual original descriptor observation,
+without closing a recycled foreign descriptor. Descriptor retirement neither
+unlinks files nor releases durable capacity, cancels a Run or grants publisher
+authority. Filesystem reclaim, final-name installation, persistent original
+ownership and public Local assembly remain separate Owner integrations.
+
+After an uncertain close, matching device/inode alone cannot prove that the
+numeric descriptor still denotes the same open-file description. A recycled
+descriptor can reopen the same inode. The port therefore retries only physical
+observation: an equal live descriptor remains unknown, without another close.
+EBADF or a different current identity proves the original descriptor retired;
+that fact still says nothing about file reclaim, durable capacity or a Run.
+If the original descriptor cannot be distinguished, the Host retains pending
+responsibility until an authoritative physical stop boundary resolves it.
