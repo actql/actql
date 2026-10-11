@@ -10,6 +10,7 @@ fn entry_gate_fixture(
   Execution,
   @model.ModelPreparedCallSet,
   @publication_host.ClientInferDispatchAdmission,
+  Int64,
 ) raise {
   let active = contract_capacity_start(calls, 2, 133072L)
   require_model_call_entry(active).unwrap()
@@ -24,7 +25,10 @@ fn entry_gate_fixture(
   ).unwrap()
   bind_egress_admission(active, egress_admission).unwrap()
   let (compiled, definition) = invocation_fixture_compiled(active)
-  assert_true(fixture_finish(active) is Waiting(_))
+  let prefix_work = match fixture_finish(active) {
+    Waiting(work) => work
+    _ => abort("ordinary preparation must wait for original entry binding")
+  }
   let prepared = prepared_call_set(active).unwrap()
   assert_eq(@model.prepared_model_call_count(prepared), Some(2))
   let artifact = @model.prepared_model_input_artifact(prepared).unwrap()
@@ -122,7 +126,7 @@ fn entry_gate_fixture(
     observe_current=() => Ok((current.val, now.val)),
   ).unwrap()
   assert_eq(calls.val, 0)
-  (active, prepared, admission)
+  (active, prepared, admission, prefix_work)
 }
 
 ///|
@@ -131,7 +135,7 @@ test "entry acknowledgement binds the original handle and starts each call once"
   let current = Ref(evidence_account(@authorization.Allow))
   let now = Ref("2026-10-02T00:00:00.000Z")
   let egress = Ref(Some(egress_fixture_observation()))
-  let (active, prepared, admission) = entry_gate_fixture(
+  let (active, prepared, admission, prefix_work) = entry_gate_fixture(
     calls, current, now, egress,
   )
   let saved : Array[@model.ModelCallEntryAcknowledgement] = []
@@ -152,13 +156,17 @@ test "entry acknowledgement binds the original handle and starts each call once"
     saved.push(acknowledgement)
     true
   }).unwrap()
+  let mut work = prefix_work
   for _ in 0..<2 {
-    assert_true(fixture_finish(active) is Settling(_, ..))
+    work = match fixture_finish(active, initial_work=work) {
+      Settling(_, work~) => work
+      _ => abort("each original entry must wait for its settlement")
+    }
     assert_true(
       @model.acknowledge_model_call_settlement(call_settlement(active).unwrap()),
     )
   }
-  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_true(fixture_finish(active, initial_work=work) is Complete(_, ..))
   assert_eq(calls.val, 2)
   assert_eq(saved.length(), 2)
   assert_eq(checks.length(), 4)
@@ -183,7 +191,7 @@ test "entry persistence cannot reuse earlier permission after cancellation revoc
     let current = Ref(evidence_account(@authorization.Allow))
     let now = Ref("2026-10-02T00:00:00.000Z")
     let egress = Ref(Some(egress_fixture_observation()))
-    let (active, prepared, admission) = entry_gate_fixture(
+    let (active, prepared, admission, prefix_work) = entry_gate_fixture(
       calls, current, now, egress,
     )
     let entries = Ref(0)
@@ -209,7 +217,7 @@ test "entry persistence cannot reuse earlier permission after cancellation revoc
       // and an unconfirmed durable write as false, never as permission to send.
       variant != "false" && variant != "unknown"
     }).unwrap()
-    let result = fixture_finish(active)
+    let result = fixture_finish(active, initial_work=prefix_work)
     match variant {
       "cancel" => assert_true(result is Stopped(_))
       "false" | "unknown" =>
