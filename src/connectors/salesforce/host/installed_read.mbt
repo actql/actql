@@ -174,12 +174,7 @@ pub fn restore_installed_salesforce_declaration(
   }
   let declaration = match
     @catalog.generate_static_declaration(
-      observation,
-      binding,
-      implementation,
-      connector_id,
-      described,
-      limits,
+      observation, binding, implementation, connector_id, described, limits,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Declaration(issue))
@@ -265,11 +260,7 @@ pub fn recheck_installed_salesforce_row_projection(
   }
   let plan = match
     @catalog.prepare_read_projection(
-      current,
-      binding,
-      resource,
-      fields,
-      max_soql_bytes,
+      current, binding, resource, fields, max_soql_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Projection(issue))
