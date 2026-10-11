@@ -131,6 +131,42 @@ fn publish_holder_effect_review(
 }
 
 ///|
+/// Drive only completed local custody under independently installed policy.
+/// This runs at completion or from the control process's local progress tick,
+/// never from a remote query. No task index or configuration comes in the tick.
+fn drive_holder_effect_review(
+  task : HolderTaskCustody,
+  tasks : Map[String, HolderTaskCustody],
+  journal : @journal.Journal,
+  resources : HolderOutputResources,
+  policy : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPolicy?,
+  publication : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication?,
+  authorize_evidence_read : () -> Bool,
+) -> Bool {
+  guard !task.released &&
+    !task.release_requested &&
+    task.executed is Some(_) &&
+    task.consumer is Some(_) &&
+    authorize_evidence_read() else {
+    return false
+  }
+  if task.effect_review is None {
+    guard policy(task.request) is Some(installed) else { return false }
+    if !prepare_holder_effect_review(task, tasks, journal, installed) {
+      report("effect-review-pending", [
+        ("request_cid", @remote.dispatch_request_identity(task.request)),
+        ("reason", "original-custody"),
+      ])
+      return false
+    }
+  }
+  guard publication(task.request) is Some(installed) else { return false }
+  publish_holder_effect_review(
+    task, installed, resources, authorize_evidence_read,
+  )
+}
+
+///|
 /// Selection is exact dispatch custody, not only the common Run or request ID.
 /// A missing original Review cannot be replaced by the query's report bytes.
 fn holder_effect_current_task(
