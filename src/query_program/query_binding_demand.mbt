@@ -23,8 +23,8 @@ fn trace_query_binding_demand(
   max_work : Int,
 ) -> Result[ScriptDemand, BindingDemandIssue] {
   let topology = checked.topology
-  if checked.sourceviews is Some(views) && !physical_equal(
-    @check_context.sourceview_checked_topology(views), topology) {
+  if checked.sourceviews is Some(views) &&
+    !physical_equal(@check_context.sourceview_checked_topology(views), topology) {
     return Err(ForeignStage)
   }
   let source = @stage_results.topology_source(topology)
@@ -112,7 +112,9 @@ fn trace_query_binding_demand(
     for index in 0..<@stage_results.topology_export_count(topology) {
       let root = @stage_results.topology_export_at(topology, index).unwrap()
       let stage = @stage_parameters.stage_index(
-        @stage_results.topology_stage_source(@stage_results.topology_export_stage(root)),
+        @stage_results.topology_stage_source(
+          @stage_results.topology_export_stage(root),
+        ),
       )
       enqueue(
         stage,

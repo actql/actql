@@ -29,7 +29,8 @@ fn prepare_query_bindings(
   context : Context,
   limits : Limits,
 ) -> Result[@stage_results.ResultWiring, BindingPreparationIssue] {
-  match prepare_query_bindings_internal(program, context, limits, check_only=false) {
+  match
+    prepare_query_bindings_internal(program, context, limits, check_only=false) {
     Ok(Publication(wiring)) => Ok(wiring)
     Ok(_) => abort("mixed binding preparation modes")
     Err(issue) => Err(issue)
@@ -50,9 +51,12 @@ priv enum BindingPreparation {
 
 ///|
 fn check_query_bindings(
-  program : @program.Program, context : Context, limits : Limits,
+  program : @program.Program,
+  context : Context,
+  limits : Limits,
 ) -> Result[BindingTopology, BindingPreparationIssue] {
-  match prepare_query_bindings_internal(program, context, limits, check_only=true) {
+  match
+    prepare_query_bindings_internal(program, context, limits, check_only=true) {
     Ok(Topology(topology)) => Ok(topology)
     Ok(_) => abort("mixed binding preparation modes")
     Err(issue) => Err(issue)
@@ -61,7 +65,9 @@ fn check_query_bindings(
 
 ///|
 fn prepare_query_bindings_internal(
-  program : @program.Program, context : Context, limits : Limits,
+  program : @program.Program,
+  context : Context,
+  limits : Limits,
   check_only~ : Bool,
 ) -> Result[BindingPreparation, BindingPreparationIssue] {
   let tree = limits.program.tree
@@ -105,24 +111,34 @@ fn prepare_query_bindings_internal(
         Err(issue) => return Err(SourceRegistration(issue))
       }
       if check_only {
-        match @check_context.check_sourceview_program(views, locals, pipeline_limits,
-          model_tasks=context.model_tasks) {
-          Ok((checked, _)) => Ok(Topology({
-            topology: @check_context.sourceview_checked_topology(checked), sourceviews: Some(checked),
-          }))
+        match
+          @check_context.check_sourceview_program(
+            views,
+            locals,
+            pipeline_limits,
+            model_tasks=context.model_tasks,
+          ) {
+          Ok((checked, _)) =>
+            Ok(
+              Topology({
+                topology: @check_context.sourceview_checked_topology(checked),
+                sourceviews: Some(checked),
+              }),
+            )
           Err(issue) => Err(SourceProgram(issue))
         }
       } else {
-      match
-        @check_context.prepare_sourceview_program(
-          views,
-          locals,
-          pipeline_limits,
-          model_tasks=context.model_tasks,
-        ) {
-        Ok((wiring, _)) => Ok(Publication(wiring))
-        Err(issue) => Err(SourceProgram(issue))
-      }      }
+        match
+          @check_context.prepare_sourceview_program(
+            views,
+            locals,
+            pipeline_limits,
+            model_tasks=context.model_tasks,
+          ) {
+          Ok((wiring, _)) => Ok(Publication(wiring))
+          Err(issue) => Err(SourceProgram(issue))
+        }
+      }
     }
     None => {
       let views = match
@@ -139,25 +155,32 @@ fn prepare_query_bindings_internal(
         return Err(MissingSourceCatalog(declaration))
       }
       if check_only {
-        match @stage_results.check_local_program(source,
-          { ..pipeline_limits, max_work: pipeline_limits.max_work - @sourceviews.work(views), },
-          model_tasks=context.model_tasks) {
+        match
+          @stage_results.check_local_program(
+            source,
+            {
+              ..pipeline_limits,
+              max_work: pipeline_limits.max_work - @sourceviews.work(views),
+            },
+            model_tasks=context.model_tasks,
+          ) {
           Ok((topology, _)) => Ok(Topology({ topology, sourceviews: None, }))
           Err(issue) => Err(LocalProgram(issue))
         }
       } else {
-      match
-        @stage_results.prepare_local_program(
-          source,
-          {
-            ..pipeline_limits,
-            max_work: pipeline_limits.max_work - @sourceviews.work(views),
-          },
-          model_tasks=context.model_tasks,
-        ) {
-        Ok((wiring, _)) => Ok(Publication(wiring))
-        Err(issue) => Err(LocalProgram(issue))
-      }      }
+        match
+          @stage_results.prepare_local_program(
+            source,
+            {
+              ..pipeline_limits,
+              max_work: pipeline_limits.max_work - @sourceviews.work(views),
+            },
+            model_tasks=context.model_tasks,
+          ) {
+          Ok((wiring, _)) => Ok(Publication(wiring))
+          Err(issue) => Err(LocalProgram(issue))
+        }
+      }
     }
   }
 }

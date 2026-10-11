@@ -60,12 +60,23 @@ test "demanded WITH capture still requires ordinary publication order" {
     "WITH kept AS (SELECT id, payload FROM objects) SELECT id, payload FROM kept",
     syntax_limits(),
   ).unwrap()
-  guard compile_query_script(parsed, source_member_context(captured=true), construction_limits())
-    is Err(BindingPreparation(SourceProgram(Program(Order(0, ResultOrder(issue)))))) else {
+  guard compile_query_script(
+      parsed,
+      source_member_context(captured=true),
+      construction_limits(),
+    )
+    is Err(
+      BindingPreparation(SourceProgram(Program(Order(0, ResultOrder(issue)))))
+    ) else {
     fail("demanded capture must not receive a fabricated publication order")
   }
   assert_eq(issue.kind, @relation_results.UnresolvedOrder)
-  assert_eq(@wire.cursor_path(issue.source), [Key("stages"), Index(0), Key("results"), Key("source")])
+  assert_eq(@wire.cursor_path(issue.source), [
+    Key("stages"),
+    Index(0),
+    Key("results"),
+    Key("source"),
+  ])
 }
 
 ///|
@@ -74,8 +85,14 @@ test "unused WITH LIMIT cannot defer its required input order" {
     "WITH unused AS (FROM objects |> LIMIT 1) SELECT 1 AS id",
     syntax_limits(),
   ).unwrap()
-  guard compile_query_script(parsed, source_member_context(captured=true), construction_limits())
-    is Err(BindingPreparation(SourceProgram(Program(Order(1, PipelineOrder(issue)))))) else {
+  guard compile_query_script(
+      parsed,
+      source_member_context(captured=true),
+      construction_limits(),
+    )
+    is Err(
+      BindingPreparation(SourceProgram(Program(Order(1, PipelineOrder(issue)))))
+    ) else {
     fail("unused LIMIT still requires original input order")
   }
   assert_eq(issue.kind, @pipeline.UnresolvedOrder)
