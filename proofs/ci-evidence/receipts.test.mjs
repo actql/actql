@@ -25,7 +25,8 @@ function sourceTree(catalog = null) {
     ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'kernel'],
     ['proofs/bounded-session/a.mjs', 'proof'],
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);
-  files.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
+  for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
+    files.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
   if (catalog) files.set(catalogPath, encode(catalog));
   return {entries: new Map([...files].map(([path]) => [path, {kind: 'blob', mode: '100644'}])),
     read: path => Buffer.from(files.get(path))};

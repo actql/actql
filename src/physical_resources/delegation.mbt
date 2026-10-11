@@ -41,6 +41,10 @@ pub fn reserve_execution_delegation(
     ledger.limits.holdings - u.holdings - ledger.delegated_holdings {
     return Err(HoldingLimit)
   }
+  match check_original_delegation_slot(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let reservation = match
     reserve_attempt(ledger, limits.transfer_bytes, retained, execution) {
     Err(issue) => return Err(issue)
@@ -49,7 +53,7 @@ pub fn reserve_execution_delegation(
   ledger.delegated_planning += limits.planning_work
   ledger.delegated_attempts += limits.attempts
   ledger.delegated_holdings += limits.holdings
-  Ok({
+  let delegation : ExecutionDelegation = {
     owner: ledger,
     reservation,
     limits,
@@ -58,7 +62,9 @@ pub fn reserve_execution_delegation(
     holdings: 0,
     transferred: 0L,
     uncertain: 0L,
-  })
+  }
+  record_original_delegation(ledger, delegation)
+  Ok(delegation)
 }
 
 ///|
