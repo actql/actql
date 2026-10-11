@@ -6,6 +6,7 @@ struct NativeClientEffectSourceWork {
   journal : NativeClientRunJournal
   request : @host.ClientRequestIdentity
   owner : @resident.ResidentSourceCompute
+  materials : @host.ClientEffectRunMaterials
   allowed : @host.ClientEffectAllowedRun
   definition : @publication.PublicationContract
   current_time : () -> String
@@ -62,6 +63,7 @@ pub fn open_native_client_effect_source_work(
   request : @host.ClientRequestIdentity,
   allowed : @host.ClientEffectAllowedRun,
   definition : @publication.PublicationContract,
+  materials : @host.ClientEffectRunMaterials,
   configuration : @resident.ResidentSourceComputeConfiguration,
   occurrence : String,
   current_time : () -> String,
@@ -72,6 +74,26 @@ pub fn open_native_client_effect_source_work(
     return Err(AuthorizationDenied)
   }
   let prepared = @host.client_effect_compilation_owner(allowed.compilation)
+  // Carry the original admitted material, including absent or retained
+  // normalization custody. Never synthesize a replacement material projection.
+  if !physical_equal(materials.prepared, prepared) ||
+    !physical_equal(materials.compilation, allowed.compilation) ||
+    !physical_equal(materials.allowed, allowed) ||
+    materials.request != Some(request) ||
+    @publication.publication_contract_identity(materials.run_definition) !=
+    @publication.publication_contract_identity(definition) ||
+    @host.bind_client_effect_compiled_run(
+      materials.prepared,
+      materials.allowed,
+      materials.run_definition,
+    )
+    is Err(_) {
+    return Err(Work(ForeignEffectMaterials))
+  }
+  if materials.normalization is Some(_) &&
+    @host.restore_client_effect_run_normalization(materials) is Err(_) {
+    return Err(Work(ForeignEffectMaterials))
+  }
   let checked = match
     @host.bind_client_effect_compiled_run(prepared, allowed, definition) {
     Ok(value) => value
@@ -100,13 +122,7 @@ pub fn open_native_client_effect_source_work(
       bound,
       configuration,
       occurrence,
-      materials={
-        prepared,
-        compilation: allowed.compilation,
-        allowed,
-        run_definition: definition,
-        request: Some(request),
-      },
+      materials~,
       observe=native_client_work_observer(
         journal,
         request,
@@ -126,6 +142,7 @@ pub fn open_native_client_effect_source_work(
         journal,
         request,
         owner,
+        materials,
         allowed,
         definition,
         current_time,

@@ -2,6 +2,24 @@
 // This is a Host connection test, not public CLI ingress or Provider apply.
 
 ///|
+// This component fixture has no original normalization custody. Absence is
+// explicit, not an empty journal or proof of completion-free applicability.
+fn local_client_effect_source_materials(
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  request : @host.ClientRequestIdentity,
+) -> @host.ClientEffectRunMaterials {
+  {
+    normalization: None,
+    prepared: @host.client_effect_compilation_owner(allowed.compilation),
+    compilation: allowed.compilation,
+    allowed,
+    run_definition: definition,
+    request: Some(request),
+  }
+}
+
+///|
 fn local_client_effect_source_original(
   root : String,
   name : String,
@@ -164,6 +182,7 @@ test "Native original accepted Effect Run acquires once computes its Result and 
       request,
       allowed,
       definition,
+      local_client_effect_source_materials(allowed, definition, request),
       configuration,
       name,
       () => "2099-01-01T00:00:00.000Z",
@@ -177,6 +196,7 @@ test "Native original accepted Effect Run acquires once computes its Result and 
       request,
       allowed,
       definition,
+      local_client_effect_source_materials(allowed, definition, request),
       configuration,
       name,
       () => "2026-10-10T00:00:01.000Z",
@@ -189,6 +209,7 @@ test "Native original accepted Effect Run acquires once computes its Result and 
     request,
     allowed,
     definition,
+    local_client_effect_source_materials(allowed, definition, request),
     configuration,
     name,
     () => now,
@@ -270,6 +291,7 @@ test "Native original accepted Effect Run acquires once computes its Result and 
       request,
       allowed,
       definition,
+      local_client_effect_source_materials(allowed, definition, request),
       configuration,
       name,
       () => "2026-10-10T00:00:03.000Z",
@@ -327,6 +349,7 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
     prepared, allowed, definition,
   ).unwrap()
   let original_materials : @host.ClientEffectRunMaterials = {
+    normalization: None,
     prepared,
     compilation: allowed.compilation,
     allowed,
@@ -342,6 +365,27 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
       { ..original_materials, run_definition: other_definition, },
       { ..original_materials, request: None, },
     ] {
+    assert_true(
+      @client.open_native_client_effect_source_work(
+        journal,
+        request,
+        allowed,
+        definition,
+        foreign_materials,
+        configuration,
+        name,
+        () => "2026-10-10T00:00:01.000Z",
+        () => authorized,
+        observe=event => {
+          if event is @resident.AcquisitionEntered {
+            acquisitions += 1
+          }
+          true
+        },
+      )
+      is Err(@client.Work(@resident.ForeignEffectMaterials)),
+    )
+    assert_eq(acquisitions, 0)
     let refused = @resident.open_resident_effect_source_compute(
       original_bound,
       configuration,
@@ -370,6 +414,7 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
     request,
     allowed,
     definition,
+    local_client_effect_source_materials(allowed, definition, request),
     configuration,
     name,
     () => "2026-10-10T00:00:01.000Z",
@@ -475,6 +520,7 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
   assert_true(
     owner.prepare_local_effect_capture_context(
       {
+        normalization: None,
         prepared: @host.client_effect_compilation_owner(allowed.compilation),
         compilation: allowed.compilation,
         allowed,

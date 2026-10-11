@@ -25,16 +25,9 @@ pub fn NativeClientEffectSourceWork::prepare_capture_context(
     Ok(_) => ()
     Err(issue) => return Err(Original(issue))
   }
-  let materials : @host.ClientEffectRunMaterials = {
-    prepared: @host.client_effect_compilation_owner(self.allowed.compilation),
-    compilation: self.allowed.compilation,
-    allowed: self.allowed,
-    run_definition: self.definition,
-    request: Some(self.request),
-  }
   self.owner
   .prepare_local_effect_capture_context(
-    materials,
+    self.materials,
     self.request,
     self.capture_started_at,
     self.capture_completed_at,
