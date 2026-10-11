@@ -21,6 +21,7 @@ struct NativeClientEffectPreparationFence {
   member_index : Int
   stage : Int
   effect_id : String
+  max_work : Int
   identity : @credential.LocalPreparationFenceIdentity
 }
 
@@ -159,6 +160,7 @@ pub fn NativeClientEffectSourceWork::prepare_observation_fence(
     member_index: descriptor.0,
     stage,
     effect_id,
+    max_work,
     identity,
   }
   fence.require_current().map(_ => fence)

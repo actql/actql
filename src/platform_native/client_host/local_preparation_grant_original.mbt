@@ -36,9 +36,10 @@ fn NativeLocalCredentialIssuerBinding::check_preparation_original_locked(
   // Reuse the existing locked read projection for callbacks inside this
   // transaction. Nested journal writes remain forbidden; original lookup reads
   // the same locked record. Always restore the flag before returning a Result.
+  let before = self.host.journal.publication_read_locked
   self.host.journal.publication_read_locked = true
   let operational = fence.require_current()
-  self.host.journal.publication_read_locked = false
+  self.host.journal.publication_read_locked = before
   if operational is Err(_) {
     return Err(AuthorizationDenied)
   }
@@ -75,16 +76,22 @@ fn NativeLocalCredentialIssuerBinding::check_preparation_original_locked(
 ///|
 fn NativeLocalCredentialIssuerBinding::retain_preparation_grant_original(
   self : NativeLocalCredentialIssuerBinding,
-  original : NativeLocalGrantOriginal,
-  fence : NativeClientEffectPreparationFence,
+  operation : NativeLocalPreparationGrantOperation,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  let original = operation.original
+  let fence = operation.target.fence
   // The opaque operational token is acquired outside this storage transaction;
   // bytes read from custody never mint a replacement Work or token on recovery.
-  if fence.require_current() is Err(_) {
+  if !physical_equal(self.host, operation.provider.host) ||
+    operation.require_current() is Err(_) {
     return Err(AuthorizationDenied)
   }
   self.host.journal.transaction(() => {
     match self.check_preparation_original_locked(original, fence) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    match operation.require_current_locked() {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -101,7 +108,11 @@ fn NativeLocalCredentialIssuerBinding::retain_preparation_grant_original(
       return Err(ChangedIntent)
     }
     self.append_grant_original_locked(original, () => {
-      self.check_preparation_original_locked(original, fence)
+      match self.check_preparation_original_locked(original, fence) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      operation.require_current_locked()
     })
   })
 }

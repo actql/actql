@@ -452,6 +452,55 @@ own checked binding before grant acknowledgement or physical entry. Closing
 the capture invalidates operational use of retained targets; retaining their
 public identities does not recreate a token or permit Source/Compute replay.
 
+### Current Host preparation binding and explicit grant acknowledgement
+
+The finite Provider original is another file in the initially selected bounded
+configuration set. It uses the existing configuration version, with no secret,
+grant, Site, Dispatch or future mutation claim:
+
+```json
+{"version":"actql-config/0.1","native":{"salesforce":{"connection_revision":"connection-original","connector_registration":"salesforce","connector_revision":"salesforce/0.1","environment":"local","namespace_id":"namespace-original","org_id":"00D000000000001EAA","resource_origin":"https://example.invalid"}}}
+```
+
+The closed file admits only an installed Salesforce implementation revision and
+a finite HTTPS origin. The existing Catalog and credential Owners still admit
+the actual org, target request and complete credential scope. This file selects
+installation identity; it supplies neither metadata nor secret installation.
+Its exact source generation/content and stored adoption custody are checked on
+each use. Missing originals or identical file replacements are refused.
+
+`bind_salesforce_preparation` binds the real Host and selected original to the
+same opaque live preparation fence. Current authorization requires the
+original principal/connection/authority scope, `run × submit`, and
+`<checked Effect resource> × read` through the existing Account Owner. The
+checked resource, authored stage/member and original admitted lookup budget
+come from the Work; caller resource strings cannot replace them. These read
+decisions do not grant issuer issue, mutation apply or Reviewer approval.
+
+`catalog_binding` derives the typed Direct Local Catalog identity from this
+actual adoption, account, installation and original Work. Target acceptance
+requires the same opaque fence and complete derived Catalog binding, not just
+matching public CIDs. Current checks bracket Account, capture and target
+callbacks. No fresh physical start is inferred from any of these projections.
+
+`prepare_grant_operation` constructs one bounded explicit operation with the
+selected issuer's original finite expiry/use allowance and the target's exact
+GET scope. It appends nothing and acquires no issuance permission.
+`adopt_grant_operation` separately obtains the existing current issuer decision
+bound to that exact operation CID. The same journal transaction checks the
+live original Work, current target read, selected installation/issuer, current
+started/cancelled/Checkpoint facts and exact scope before immutable append.
+It retains the original operation, grant bytes and capacity reservation.
+
+An opaque acknowledgement is returned only after commit, original custody
+readback and final current checks. Unknown commit, corrupt/missing originals
+or lost reservations return the existing typed refusal and never another
+grant. Retrieving acknowledged grant material rechecks that same custody and
+authority; it is not a Provider response or send receipt. Physical entry still
+requires the independently installed secret binding, original credential-use
+claim and transport entry checks. Restoring public operation identity never
+recreates a Work token or grants permission to resend an unknown observation.
+
 ## Independent acceptance requirements
 
 These expectations are fixed independently of implementation output. A contract
