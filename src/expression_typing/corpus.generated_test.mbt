@@ -1262,6 +1262,76 @@ test "expression type corpus accepted: 251" {
 }
 
 ///|
+test "expression type corpus accepted: 252" {
+  assert_type("{\"greatest\":[{\"literal\":1}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 253" {
+  assert_type("{\"greatest\":[{\"literal\":null}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 254" {
+  assert_type("{\"greatest\":[{\"literal\":null},{\"literal\":null}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 255" {
+  assert_type("{\"greatest\":[{\"field\":\"n\"},{\"literal\":3},{\"literal\":-4}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 256" {
+  assert_type("{\"greatest\":[{\"field\":\"nn\"},{\"literal\":3}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 257" {
+  assert_type("{\"greatest\":[{\"literal\":null},{\"field\":\"n\"}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 258" {
+  assert_type("{\"greatest\":[{\"field\":\"n\"},{\"$param\":\"q\"}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 259" {
+  assert_type("{\"least\":[{\"literal\":1}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 260" {
+  assert_type("{\"least\":[{\"literal\":null}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 261" {
+  assert_type("{\"least\":[{\"literal\":null},{\"literal\":null}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 262" {
+  assert_type("{\"least\":[{\"field\":\"n\"},{\"literal\":3},{\"literal\":-4}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 263" {
+  assert_type("{\"least\":[{\"field\":\"nn\"},{\"literal\":3}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 264" {
+  assert_type("{\"least\":[{\"literal\":null},{\"field\":\"n\"}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 265" {
+  assert_type("{\"least\":[{\"field\":\"n\"},{\"$param\":\"q\"}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
 test "expression type corpus rejected: 1" {
   assert_rejected("\"missing\"", corpus_fields(), corpus_parameters(), "UnknownField")
 }
@@ -2914,4 +2984,114 @@ test "expression type corpus rejected: 330" {
 ///|
 test "expression type corpus rejected: 331" {
   assert_rejected("{\"log10\":{\"field\":\"r\"}}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 332" {
+  assert_rejected("{\"greatest\":[{\"field\":\"s\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 333" {
+  assert_rejected("{\"greatest\":[{\"field\":\"b\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 334" {
+  assert_rejected("{\"greatest\":[{\"field\":\"dt\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 335" {
+  assert_rejected("{\"greatest\":[{\"field\":\"ts\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 336" {
+  assert_rejected("{\"greatest\":[{\"field\":\"d\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 337" {
+  assert_rejected("{\"greatest\":[{\"field\":\"a\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 338" {
+  assert_rejected("{\"greatest\":[{\"field\":\"o\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 339" {
+  assert_rejected("{\"greatest\":[{\"field\":\"v\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 340" {
+  assert_rejected("{\"greatest\":[{\"field\":\"j\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 341" {
+  assert_rejected("{\"greatest\":[{\"field\":\"r\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 342" {
+  assert_rejected("{\"greatest\":[{\"literal\":null},{\"field\":\"s\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 343" {
+  assert_rejected("{\"least\":[{\"field\":\"s\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 344" {
+  assert_rejected("{\"least\":[{\"field\":\"b\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 345" {
+  assert_rejected("{\"least\":[{\"field\":\"dt\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 346" {
+  assert_rejected("{\"least\":[{\"field\":\"ts\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 347" {
+  assert_rejected("{\"least\":[{\"field\":\"d\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 348" {
+  assert_rejected("{\"least\":[{\"field\":\"a\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 349" {
+  assert_rejected("{\"least\":[{\"field\":\"o\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 350" {
+  assert_rejected("{\"least\":[{\"field\":\"v\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 351" {
+  assert_rejected("{\"least\":[{\"field\":\"j\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 352" {
+  assert_rejected("{\"least\":[{\"field\":\"r\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 353" {
+  assert_rejected("{\"least\":[{\"literal\":null},{\"field\":\"s\"}]}", corpus_fields(), corpus_parameters(), "TypeMismatch")
 }

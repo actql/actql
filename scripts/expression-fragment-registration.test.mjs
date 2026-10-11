@@ -16,8 +16,8 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:5795ade60e4215357acc5df594c6202dd7e9110c42cde7e27c93083dad5dfbfb';
-const contractCid = 'sha256:383bd9742eae2fea714f000a9eae2fb060714efc40e534c83e32b131df7bf0ad';
+  'sha256:e54d1288d215787596a34d16333fb71cd337f1d88efcc0edbbdf6f0362e34753';
+const contractCid = 'sha256:e4cf24f9693931f691655f9f63144a1571afaff5ce715dddf65b43a1d6a76db0';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
   assert.equal(cid(body), selected, 'RegistryCidMismatch');

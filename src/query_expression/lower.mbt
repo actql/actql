@@ -220,6 +220,8 @@ fn scalar_call(
     "LTRIM" => ("LTRIM", "ltrim", 1, 2)
     "RTRIM" => ("RTRIM", "rtrim", 1, 2)
     "REPLACE" => ("REPLACE", "replace", 3, 3)
+    "GREATEST" => ("GREATEST", "greatest", 1, 2147483647)
+    "LEAST" => ("LEAST", "least", 1, 2147483647)
     "COALESCE" => ("COALESCE", "coalesce", 1, 2147483647)
     "IFNULL" => ("IFNULL", "coalesce", 2, 2)
     "IF" => ("IF", "if", 3, 3)
