@@ -175,6 +175,7 @@ fn flatten(
       | "byte_length"
       | "unicode"
       | "chr"
+      | "reverse"
       | "sqrt"
       | "exp"
       | "ln"

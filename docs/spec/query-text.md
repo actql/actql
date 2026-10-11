@@ -176,6 +176,19 @@ within the existing bounded String/finite Number domains. BYTES and distinct
 INT64 overloads remain coverage gaps. All spellings preserve one common child,
 operand nullability, lazy demand, failure, resources and cancellation.
 
+`REPEAT(value, count)` selects the ordered binary `repeat` common expression;
+`REVERSE(value)` selects direct unary `reverse`. REPEAT accepts a STRING and
+nonnegative integral finite Number count, returning empty for zero or an empty
+input after strict NULL propagation and domain validation. GoogleSQL's INT64
+count is explicitly adapted to ActQL's existing finite Number domain without a
+safe-integer or INT64 cap; nonempty outputs remain bounded by existing resource
+owners. REVERSE reverses Unicode scalar order, preserving astral scalars and
+combining marks without normalization or grapheme segmentation. These follow
+the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions)
+within the admitted STRING surface; BYTES and distinct INT64 remain coverage
+gaps. All demanded children run once in order before NULL propagation, preserving
+failure, enclosing lazy demand, resources, cancellation and canonical nodes.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive

@@ -200,6 +200,7 @@ fn emit_frames(
                   ByteLength => "byte_length"
                   Unicode => "unicode"
                   Chr => "chr"
+                  Reverse => "reverse"
                 },
               ),
             )
@@ -246,6 +247,7 @@ fn emit_frames(
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
+                  Repeat => "repeat"
                   Split => "split"
                   Substring => "substring"
                   LeftString => "left"
