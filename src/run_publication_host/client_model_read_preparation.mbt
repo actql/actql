@@ -103,7 +103,16 @@ fn client_model_read_origin_matches(
   definition : @publication.PublicationContract,
   plan : ClientInferPlanGraph,
 ) -> Bool {
-  let origin = value.origin
+  client_model_origin_matches(value.origin, compiled, definition, plan)
+}
+
+///|
+fn client_model_origin_matches(
+  origin : ClientModelReadOrigin,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Bool {
   physical_equal(origin.compiled, compiled) &&
   physical_equal(origin.plan, plan) &&
   @publication.publication_contract_identity(definition) ==
