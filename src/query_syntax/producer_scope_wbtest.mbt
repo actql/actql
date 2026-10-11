@@ -2,14 +2,27 @@
 // Seed admitted lexical coordinates independently of parser-generated names.
 // These controls exercise reference roles, not Carrier admission or execution.
 fn producer_scope_parser(text : String) -> QueryParser {
+  let lexical : LexicalLimits = {
+    max_source_bytes: 10000,
+    max_tokens: 1000,
+    max_literal_bytes: 10000,
+    max_work: 20000,
+  }
+  let limits : QueryLimits = {
+    lexical,
+    expression: { lexical, max_nodes: 1000, max_depth: 100, max_work: 10000, },
+    max_syntax_nodes: 100,
+    max_cte_count: 20,
+    max_work: 10000,
+  }
   let source = tokenize(
     text,
-    query_limits().lexical,
+    lexical,
     source_path="producer-scope.sql",
   ).unwrap()
   {
     source,
-    limits: query_limits(),
+    limits,
     index: 0,
     work: 0,
     expression_nodes: 0,

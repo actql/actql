@@ -41,6 +41,27 @@
       ],
       "owner_pid": 90296,
       "owner_group_lock_absent": true
+    },
+    "white_box_helper_compile_failure": {
+      "sha": "b4ee2a655",
+      "run": "run-A6nOEO",
+      "exit": 1,
+      "test_count": null,
+      "reason": "query_limits is a black-box test-local helper; specify the same independent limits in the white-box source. No product behavior change.",
+      "owner_pid": 90721,
+      "owner_group_lock_absent": true,
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-A6nOEO/summary.json",
+          "sha256": "a3f9bfadd8f0fa163d8c2fed83c4d2e295704f7435a59732fe0a006dd21449a7",
+          "bytes": 1819
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-mlnlgF/001.stderr.log",
+          "sha256": "86c07d80f1feaf3f97ad83eaa650e84564ea7c915820e92fa5f4ff97799300fa",
+          "bytes": 714
+        }
+      ]
     }
   },
   "source_files": [
@@ -61,8 +82,8 @@
     },
     {
       "path": "src/query_syntax/producer_scope_wbtest.mbt",
-      "bytes": 3692,
-      "sha256": "6aa5a8b2d167a437116231d16b0b91f3629b2a485b042fb8149467f75e94522a"
+      "bytes": 4000,
+      "sha256": "c4a61598c2d1debcce6311c77e1e506620d4b6da374eaa230f9f1927a190ec42"
     }
   ],
   "remaining": [
