@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync, readdirSync} from 'node:fs';
+import {mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync, readdirSync, readlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -40,15 +40,20 @@ process.exitCode=result.error||result.signal||result.status!==0?1:0;`);
     parent.stdout.on('data', b => { output += b; });
     parent.stderr.on('data', b => { output += b; });
     const closed = new Promise(resolve => parent.on('close', status => resolve(status)));
-    t.after(() => { if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGTERM'); });
+    t.after(async () => {
+      if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGTERM');
+      await closed;
+    });
     let leanPid;
     for (let i = 0; i < 3000 && !leanPid; i++) {
       assert.equal(parent.exitCode, null, output || 'Runner exited before real Lean startup');
       for (const name of readdirSync('/proc').filter(name => /^\d+$/.test(name))) {
         try {
           const status = readFileSync(`/proc/${name}/status`, 'utf8');
+          const command = readFileSync(`/proc/${name}/cmdline`, 'utf8').split('\0');
           if (new RegExp(`^PPid:\\s+${parent.pid}$`, 'm').test(status) &&
-              /(?:^|\/)lean\x00--stdin\x00/.test(readFileSync(`/proc/${name}/cmdline`, 'utf8'))) leanPid = Number(name);
+              readlinkSync(`/proc/${name}/exe`) === '/opt/lean-4.30.0-rc1-linux/bin/lean' &&
+              command.includes('--stdin')) leanPid = Number(name);
         } catch {}
       }
       if (!leanPid) await new Promise(resolve => setTimeout(resolve, 10));
