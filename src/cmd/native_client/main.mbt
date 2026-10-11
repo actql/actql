@@ -836,6 +836,10 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("read", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
+        @argparse.OptionArg("purpose"),
+        @argparse.OptionArg("format"),
+        @argparse.OptionArg("max-output-bytes"),
         @argparse.OptionArg("result-name", required=true),
         @argparse.OptionArg("attempt-id", required=true),
       ]),
@@ -865,7 +869,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     (
       operation == "lookup-cancellation" ||
       operation == "cancel" ||
-      operation == "delivery-attempt"
+      operation == "delivery-attempt" ||
+      operation == "read"
     ) &&
     optional(child, "submission-ref-file") is Some(_) {
     stop("Original Local submission binding is unavailable in Remote mode")
@@ -873,6 +878,13 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   if matches.subcommand is Some(("delivery-attempt", child)) &&
     optional(child, "purpose") is Some(_) {
     stop("Explicit Local delivery purpose is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some(("read", child)) {
+    for name in ["purpose", "format", "max-output-bytes"] {
+      if optional(child, name) is Some(_) {
+        stop("Explicit Local read options are unavailable in Remote mode")
+      }
+    }
   }
   let endpoint = endpoint_url(required(matches, "endpoint"))
   let request_max = positive_int(
@@ -1157,6 +1169,11 @@ fn main {
     }
   }
   if matches.subcommand is Some(("read", _)) {
+    // Local streams directly through the existing durable sink; never append
+    // a reply, newline or a second buffered copy to its payload.
+    if matches.values.get("mode") == Some(["local"]) {
+      return
+    }
     let bytes = @utf8.encode(value)
     if !write_stdout_ffi(bytes, bytes.length()) {
       fail_command("stdout write failed")

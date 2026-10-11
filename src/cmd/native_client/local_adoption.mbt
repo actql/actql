@@ -326,6 +326,8 @@ fn execute_native_local_adoption(
       )
     } else if operation == "delivery-attempt" {
       local_delivery_attempt_lookup(host, settings, crypto, sqlite, root, child)
+    } else if operation == "read" {
+      local_result_stream(host, settings, crypto, sqlite, root, child)
     } else if operation == "new-submission" {
       guard host.authorize({
           principal: settings.principal,
