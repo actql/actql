@@ -19,31 +19,25 @@ implemented syntax and public Host execution evidence.
 
 ## One Program and one operation vocabulary
 
-JSON and YAML remain public machine inputs. The retired internal fixture
-representation records the complete
-closed Program envelope: metadata, IDs, parameters, opaque bindings, stages,
-inputs, explicit steps, Results and Effects. Expression strings inside JSON
-bodies retain the existing expression grammar. Object order is immaterial;
-array order and explicit steps are preserved. Missing optional members and
-explicitly empty permitted members are not conflated. An empty Effect map can
-be represented by `EFFECTS {};` in the historical internal fixture language,
-not the current public source language.
+JSON and YAML remain public machine inputs. Their closed Program envelope
+preserves metadata, IDs, parameters, opaque bindings, stages, inputs, explicit
+steps, Results and Effects. Expression strings inside JSON bodies retain the
+existing expression grammar. Object order is immaterial; array order and
+explicit steps are preserved. Missing optional members and explicitly empty
+permitted members are not conflated.
 
-In historical fixtures only, `STEP` carries an ordinary JSON step, including its metadata and output name.
-`OP` selects a name from the existing closed operation inventory. The minimum
-structural `DATA` form chains only native operations, for example
-`DATA x = OP values {...};` and `DATA y = FROM x |> OP filter {...};`.
-These record historical productions, not current public examples. `WHERE`,
-`SELECT`, query expressions, domain aliases and `MATCH` use the query frontend.
-The entire old envelope is rejected by public source routing. Supported
-SQL/Pipe and Graph query syntax follows query-text.md; the adopted target is
-broader than implemented syntax. See [migration mapping](frontend-language-migration.md).
+Public SQL/Pipe and Graph queries use the common query parser/lowerer and
+logical WITH producer bindings. Their implemented grammar and static rules
+follow [query-text.md](../spec/query-text.md); the adopted target is broader
+than installed functionality. See [migration mapping](frontend-language-migration.md).
+The withdrawn structural-text envelope has no public parser, formatter or
+compatibility route. Historical fixture bytes and identity records remain
+immutable evidence; they do not authorize an alternate input surface.
 
-The internal fixture formatter reconstructs the admitted structure, including unused
-steps and explicit no-ops. It does not optimize the Program or preserve comments
-and whitespace. It does not use the metadata-stripped identity projection as
-its source. Source text and semantic identity are distinct: trivia can change
-source positions without changing the canonical Program.
+Source text and semantic identity are distinct. Common source construction
+retains the authored structure and original source origins, while canonical
+identity uses its declared projection. Trivia can change source positions
+without changing the canonical Program.
 
 ## Bounded construction and origins
 
