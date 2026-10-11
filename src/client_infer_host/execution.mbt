@@ -56,6 +56,7 @@ enum Source {
 ///|
 pub enum Poll {
   Continue(work~ : Int64)
+  AwaitIo(work~ : Int64)
   Waiting(work~ : Int64)
   Settling(Int, work~ : Int64)
   Complete(@relation.CompletedOutput, work~ : Int64)
@@ -811,6 +812,12 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
           }
           Waiting(work=active.work)
         }
+        Ok(@model.AwaitIo(_, work)) => {
+          if !account(active, work) {
+            return fail(active, InvalidAdvance)
+          }
+          AwaitIo(work=active.work)
+        }
         Ok(@model.Settling(slot, _, work)) => {
           if !account(active, work) {
             return fail(active, InvalidAdvance)
@@ -1057,6 +1064,7 @@ pub fn execution_stopped(active : Execution) -> Bool {
 pub fn poll_kind(poll : Poll) -> String {
   match poll {
     Continue(_) => "continue"
+    AwaitIo(_) => "await_io"
     Waiting(_) => "waiting"
     Settling(_, ..) => "settling"
     Complete(_, ..) => "complete"

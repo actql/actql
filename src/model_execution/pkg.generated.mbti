@@ -39,6 +39,8 @@ pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@
 
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
 
+pub fn bind_prepared_model_entry_persistence(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> ModelCallEntryPersistence?) -> Result[Unit, ModelExecutionIssue]
+
 pub fn bind_prepared_model_observation(ModelPreparedCallSet, (ModelPhysicalObservation) -> Unit) -> Bool
 
 pub fn bind_prepared_model_scope(ModelPreparedCallSet, @run_publication.BoundModelInvocationScope) -> Result[Unit, ModelExecutionIssue]
@@ -260,8 +262,9 @@ pub struct ModelCallEntryAcknowledgement {
 pub struct ModelCallEntryPersistence {
   mut entry : ModelCallEntry?
   mut poll : (() -> ModelEntryPersistenceObservation)?
-  mut terminal : ModelEntryPersistenceObservation?
+  mut terminal : Result[ModelEntryPersistenceObservation, ModelExecutionIssue]?
   mut polling : Bool
+  mut refused : Bool
 }
 
 pub struct ModelCallSettlement {
@@ -306,6 +309,7 @@ pub struct ModelExecution {
   state : ModelState
   mut progress : Int64
   mut work : Int64
+  mut advancing : Bool
 }
 
 pub(all) enum ModelExecutionIssue {
@@ -340,6 +344,7 @@ pub(all) struct ModelExecutionLimits {
 
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
+  AwaitIo(Int64, Int64)
   Waiting(Int64, Int64)
   Settling(Int, Int64, Int64)
   Completed(ModelCaptureBundle, Int64, Int64)

@@ -8,8 +8,9 @@ pub struct ModelPreparedCallSet {
 }
 
 ///|
-/// Available only during the synchronous physical entry callback. Historical
-/// attempt evidence remains readable separately and cannot recreate this token.
+/// Issued only by the physical owner during entry preparation, then retained
+/// across an admitted persistence wait. Historical attempt evidence remains
+/// readable separately and cannot recreate this token or grant a new send.
 pub struct ModelCallEntry {
   prepared : ModelPreparedCallSet
   slot : Int

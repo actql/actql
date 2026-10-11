@@ -41,6 +41,8 @@ pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun
 
 pub fn bind_model_dispatch(Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> Bool) -> Result[Unit, InvocationBindingIssue]
 
+pub fn bind_model_entry_persistence(Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> @model_execution.ModelCallEntryPersistence?) -> Result[Unit, InvocationBindingIssue]
+
 pub fn bind_model_observation(Execution, @model_execution.ModelPreparedCallSet, (@model_execution.ModelPhysicalObservation) -> Unit) -> Bool
 
 pub fn bind_model_scope(Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, InvocationBindingIssue]
@@ -281,6 +283,7 @@ type Phase
 
 pub enum Poll {
   Continue(work~ : Int64)
+  AwaitIo(work~ : Int64)
   Waiting(work~ : Int64)
   Settling(Int, work~ : Int64)
   Complete(@execution_relation.CompletedOutput, work~ : Int64)

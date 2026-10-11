@@ -18,6 +18,7 @@ pub struct ModelCallEntryPersistence {
   mut poll : (() -> ModelEntryPersistenceObservation)?
   mut terminal : Result[ModelEntryPersistenceObservation, ModelExecutionIssue]?
   mut polling : Bool
+  mut refused : Bool
 }
 
 ///|
@@ -39,6 +40,7 @@ pub fn model_call_entry_persistence(
     poll: Some(poll),
     terminal: None,
     polling: false,
+    refused: false,
   }
   entry.persistence = Some(operation)
   Some(operation)
@@ -86,10 +88,16 @@ pub fn poll_model_call_entry_persistence(
     NotRecorded | Unknown => operation.terminal = Some(Ok(observed))
   }
   if operation.terminal is Some(_) {
+    if operation.refused {
+      operation.terminal = Some(Err(CallEntryRefused))
+    }
     // Cached terminal observation needs no adapter closure or its captures.
     operation.poll = None
   }
-  Ok(observed)
+  match operation.terminal {
+    Some(result) => result
+    None => Ok(observed)
+  }
 }
 
 ///|
@@ -112,7 +120,10 @@ fn retire_model_entering(state : ModelState) -> Unit {
 }
 
 ///|
-fn retain_model_entry_attempt(state : ModelState, entry : ModelCallEntry) -> Unit {
+fn retain_model_entry_attempt(
+  state : ModelState,
+  entry : ModelCallEntry,
+) -> Unit {
   if !state.attempts.contains(entry.slot) {
     state.attempts[entry.slot] = entry.trace
     state.attempt_slots.push(entry.slot)
@@ -123,8 +134,7 @@ fn retain_model_entry_attempt(state : ModelState, entry : ModelCallEntry) -> Uni
 // Adopt persistence responsibility before any final stop or current check.
 // The actual send gate still distinguishes an acknowledged save from permission.
 fn model_entry_persistence_issue(state : ModelState) -> ModelExecutionIssue? {
-  guard state.entering is Some(entry) &&
-    entry.persistence is Some(operation) else {
+  guard state.entering is Some(entry) && entry.persistence is Some(operation) else {
     return None
   }
   match operation.terminal {

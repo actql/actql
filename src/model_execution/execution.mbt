@@ -530,11 +530,12 @@ fn advance_model(
   // entering physical I/O: invalid metadata, rejected content or cancellation
   // must not make that request unused when cleanup settles its reservation.
   if state.entering is None {
-    match @resources.mark_transfer_uncertain(
-      state.ledger,
-      reservation,
-      state.limits.max_request_bytes + state.limits.max_response_bytes,
-    ) {
+    match
+      @resources.mark_transfer_uncertain(
+        state.ledger,
+        reservation,
+        state.limits.max_request_bytes + state.limits.max_response_bytes,
+      ) {
       Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
       Ok(_) => ()
     }
@@ -545,9 +546,9 @@ fn advance_model(
       }
     }
   }
-  // The Host's synchronous callback durably records this exact owner-issued
-  // attempt. It is the final fallible admission before the retained provider
-  // call. No asynchronous boundary or fresh request construction follows it.
+  // Both persistence adapters retain this exact owner-issued attempt. The
+  // immediate adapter reports its save here; the polling adapter suspends with
+  // the same entry. Both resume through the original final one-shot send gate.
   if state.durable_calls {
     guard state.prepared_call_set is Some(prepared_set) &&
       attempt is Some(trace) &&
@@ -558,20 +559,26 @@ fn advance_model(
       Some(original) => original
       None => {
         let entry : ModelCallEntry = {
-      prepared: prepared_set,
-      slot: state.next_slot,
-      trace,
-      admission,
-      acknowledgement: None,
-      persistence: None,
-      gate_issued: false,
-      send_started: false,
+          prepared: prepared_set,
+          slot: state.next_slot,
+          trace,
+          admission,
+          acknowledgement: None,
+          persistence: None,
+          gate_issued: false,
+          send_started: false,
         }
         state.entering = Some(entry)
         if state.enter_persistence is Some(begin) {
           guard begin(entry) is Some(operation) &&
             entry.persistence is Some(original) &&
             physical_equal(operation, original) else {
+            if entry.persistence is Some(original) {
+              // A bad returned handle cannot erase a known in-flight save.
+              // Drain its owned observation, but never authorize transport.
+              original.refused = true
+              return @bounded.Continue(1, 1)
+            }
             // A begun save without an owned result is unconfirmed, not absent.
             retain_model_entry_attempt(state, entry)
             retire_model_entering(state)
@@ -934,7 +941,15 @@ fn start_model_owned(
     cleanup_model_physical_preflight,
     _ => true,
   )
-  Ok({ session, token, control, state, progress: 0L, work: 0L, advancing: false, })
+  Ok({
+    session,
+    token,
+    control,
+    state,
+    progress: 0L,
+    work: 0L,
+    advancing: false,
+  })
 }
 
 ///|
@@ -967,9 +982,9 @@ fn advance_model_execution_owned(
       return Ok(Settling(slot, execution.progress, execution.work))
     }
     if state.entering is Some(entry) && entry.persistence is Some(operation) {
-      match poll_model_call_entry_persistence(operation, entry, entry.prepared) {
-        Ok(Pending) =>
-          return Ok(AwaitIo(execution.progress, execution.work))
+      match
+        poll_model_call_entry_persistence(operation, entry, entry.prepared) {
+        Ok(Pending) => return Ok(AwaitIo(execution.progress, execution.work))
         Ok(_) | Err(_) => ()
       }
     }
