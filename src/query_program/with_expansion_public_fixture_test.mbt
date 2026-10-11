@@ -401,7 +401,23 @@ test "WITH public expansion joined-unnest-star-acquired-data" {
     Err(QueryLowering(UnknownColumn)) => fail("UnknownColumn")
     Err(QueryLowering(UnresolvedRelation(_))) => fail("UnresolvedRelation")
     Err(QueryLowering(BindingPreparation(_))) => fail("another binding preparation cause")
-    Err(_) => fail("another frontend cause")
+    Err(QuerySyntax(_)) => fail("QuerySyntax")
+    Err(QueryLowering(issue)) => {
+      match issue {
+        UnsupportedProjection => fail("UnsupportedProjection")
+        UnsupportedCte => fail("UnsupportedCte")
+        UnsupportedOrdering => fail("UnsupportedOrdering")
+        Construction(_) => fail("Construction")
+        Expression(_) => fail("Expression")
+        ExpressionTyping(_) => fail("ExpressionTyping")
+        Admission(_) => fail("Admission")
+        InvalidQuery => fail("InvalidQuery")
+        UnknownRelation => fail("UnknownRelation")
+        AmbiguousRelation => fail("AmbiguousRelation")
+        _ => fail("another QueryLowering cause")
+      }
+    }
+    Err(_) => fail("another frontend selection cause")
   }
   assert_true(lowered.program is Some(_))
 }
