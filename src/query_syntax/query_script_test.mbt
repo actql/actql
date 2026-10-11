@@ -52,12 +52,11 @@ test "WITH rejects duplicate names malformed and retired entry points" {
     ] {
     assert_true(parse_query_script(text, query_limits()) is Err(_), msg=text)
   }
-  assert_eq(
+  assert_true(
     starts_query(
       "DATA n = SELECT 1 AS id; SELECT id FROM n",
       query_limits().lexical,
-    ),
-    Ok(false),
+    ) is Ok(false),
   )
 }
 

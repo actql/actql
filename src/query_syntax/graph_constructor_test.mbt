@@ -76,7 +76,7 @@ test "Graph refuses unsupported mapping syntax without reinterpretation" {
     text in [
       "GRAPH (NODE TABLES (rows))", "GRAPH (NODE TABLES (rows KEY ()))", "GRAPH (NODE TABLES (rows KEY (id) LABEL Person PROPERTIES (id + 1 AS next)))",
       "GRAPH (NODE TABLES (rows KEY (id) DYNAMIC LABEL (kind)))", "GRAPH (NODE TABLES (rows KEY (id)) EDGE TABLES (edges KEY (id) SOURCE KEY (src) REFERENCES missing.part DESTINATION KEY (dst) REFERENCES rows))",
-      "CREATE GRAPH g NODE TABLES (rows KEY (id))", "graph(nodes: {from: rows, id: \"id\"})",
+      "CREATE PROPERTY GRAPH g NODE TABLES (rows KEY (id))", "graph(nodes: {from: rows, id: \"id\"})",
     ] {
     assert_true(parse_graph(text, query_limits()) is Err(_), msg=text)
   }
