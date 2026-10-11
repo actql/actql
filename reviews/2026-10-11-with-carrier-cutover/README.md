@@ -1,5 +1,29 @@
 # WITH Carrier cutover: B's bounded preparation
 
+## Latest finite P1 integration
+
+Common check-only PR #1502 is now integrated in published main
+`ece026dda6a48a5a86259f048ca55e553dd87f4f`, normally adopted after B's
+current guard terminated. The earlier `7c1e7ddb` JS15 result remains evidence
+for that source, not a main-wide result.
+
+[p1-source-replacement-execution.json](p1-source-replacement-execution.json)
+records the independent SGA selector shared-input census counterexample and its
+small correction using existing parser-issued Producer roles. It also records
+direct replacement of the inspected Graph fixture sources with WITH/GRAPH,
+independent producer-allocation preimages, early common static refusal checks,
+and all original failed or unexecuted attempts. Clean
+`4710de1543a1cdf14ac969daed526d64df342faf` executed the selected JS31/31 and
+read-only changed-file formatter check under the original 60-second/grace5
+non-Heavy guard. Owner86915, its process group and own lock were directly
+observed absent after completion. No public Run/provider execution is claimed.
+
+The whole cutover remains incomplete: remaining current DATA examples/fixtures,
+normative grammar and pins, LABELS retirement, P2's four-Carrier operation roles,
+and packed Local/HTTPS acceptance are subsequent obligations. The source census
+does not replace the common checked dependency topology or prove identity,
+presence, order or Catalog authority. Normal publication remains strict.
+
 The user assigns the reviewed DATA-to-WITH revision the highest next priority.
 INFER and full Debug completion are not start prerequisites. Root normally
 integrated the finite submitted correctness fixes #1474/#1476. B adopted
