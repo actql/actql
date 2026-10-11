@@ -513,13 +513,13 @@ fn local_original_run_reference(
   let original = @decode.open_object(
     local_input_cursor(@publication.publication_contract_json(definition)),
   ).unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
-  guard @decode.lookup(original, "scope_id") is Some(namespace) &&
-    @decode.text(namespace) is Ok(namespace) else {
+  guard @decode.lookup(original, "scope_id") is Some(namespace_value) &&
+    @decode.text(namespace_value) is Ok(run_namespace) else {
     stop("LocalOriginalRunUnavailable")
   }
   let reference = Json::object(
     Map([
-      ("namespaceId", Json::string(namespace)),
+      ("namespaceId", Json::string(run_namespace)),
       ("authorityScopeCid", Json::string(scope)),
       (
         "runDefinitionCid",
