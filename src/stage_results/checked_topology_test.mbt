@@ -5,7 +5,7 @@ fn topology_control_source(
   bad_type? : Bool = false,
 ) -> @parameters.Source {
   let first =
-    #|{"id":"first","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"additional_properties":false,"fields":{"score":{"type":"number","nullable":true}}}}}},"steps":[{"from":"rows","filter":{"literal":true}},{"select":["id","payload"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id","payload"]}}}
+    #|{"id":"first","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}}}},"steps":[{"from":"rows","filter":{"literal":true}},{"select":["id","payload"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id","payload"]}}}
   let first = if bad_type {
     first.replace(old="{\"literal\":true}", new="{\"literal\":1}")
   } else {

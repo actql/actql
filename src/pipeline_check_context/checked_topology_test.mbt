@@ -47,7 +47,10 @@ test "Catalog-backed check-only topology retains exact Source and pending captur
       is Err(Program(Order(0, ResultOrder(issue)))) else { abort("strict publication must still refuse") }
     assert_eq(issue.kind, @results.UnresolvedOrder)
     assert_eq(issue.path, [Key("stages"), Index(0), Key("results"), Key("source")])
-    let (foreign, _) = static_topology_registrations(source)
+    let (foreign, _) = prepare_source_registrations(source,
+      @sourceviews.catalog(@sourceviews.pipeline_resolution(views)),
+      { max_work: 1000000, max_nodes: 100000, max_depth: 100, max_text_bytes: 1000000, },
+      max_inputs=100, max_views=100, max_order_keys=100).unwrap()
     assert_true(check_sourceview_program(foreign, locals, local_program_context_source_limits()) is Err(ForeignPartition(0)))
   }
 }
@@ -64,6 +67,9 @@ test "unused Catalog-backed pipeline remains fully typed in check-only mode" {
 ///|
 test "check-only cannot promote a Source schema without its Catalog owner" {
   let source = static_topology_source(false)
-  assert_true(@stage_results.check_local_program(source, local_program_context_source_limits())
-    is Err(MissingSourceViewRegistrations(0)))
+  guard @stage_results.check_local_program(source, local_program_context_source_limits())
+    is Err(LocalInput(0, Declaration("objects", Decode(issue)))) else {
+    abort("Connector declaration requires its Catalog partition")
+  }
+  assert_eq(issue.path, [Key("stages"), Index(0), Key("inputs"), Key("objects"), Key("connector")])
 }
