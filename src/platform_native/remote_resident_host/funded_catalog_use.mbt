@@ -40,6 +40,22 @@ pub fn ResidentRetainedConsumer::read_initial_catalog_use(
 }
 
 ///|
+/// Select the original producer Ledger through the completed consumer edge,
+/// then inspect its existing preparation allowance. Claimed/unknown use and
+/// current Host authorization stay independent of this read-only coverage.
+pub fn ResidentRetainedConsumer::read_catalog_preparation_capacity(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+  producer : ResidentEffectProducerExecuted,
+  required : @journal.NativeInitialCatalogUseEnvelope,
+) -> Result[Unit, @journal.NativeInitialCatalogUseIssue] {
+  match self.funded_catalog_use_custody(journal, producer) {
+    Ok(custody) => journal.read_catalog_preparation_capacity(custody, required)
+    Err(issue) => Err(@journal.Journal(issue))
+  }
+}
+
+///|
 /// The actual Resource caller must retain this original nominal claim through
 /// use selection and Journal confirmation. Failed/uncertain claims remain
 /// pending; repeating this method cannot mint another initial eligibility.

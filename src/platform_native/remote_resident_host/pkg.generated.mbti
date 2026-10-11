@@ -674,6 +674,7 @@ pub fn ResidentRetainedConsumer::effect_source_binding_cid(Self, @remote_journal
 pub fn ResidentRetainedConsumer::execute(Self, @remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, String, () -> String, ((String) -> Bool)?, borrow_observe? : () -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
 pub fn ResidentRetainedConsumer::has_initial_catalog_use_custody(Self) -> Bool
 pub fn ResidentRetainedConsumer::prepare_effect_review_inputs(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.Journal, Int, Int, @actql/actql/run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectReviewInputContext, ResidentEffectReviewInputFailure]
+pub fn ResidentRetainedConsumer::read_catalog_preparation_capacity(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.NativeInitialCatalogUseEnvelope) -> Result[Unit, @remote_journal.NativeInitialCatalogUseIssue]
 pub fn ResidentRetainedConsumer::read_initial_catalog_use(Self, @remote_journal.Journal, ResidentEffectProducerExecuted) -> Result[Unit, @remote_journal.NativeRemoteJournalIssue]
 
 pub(all) struct ResidentRetainedExecutionFailure {

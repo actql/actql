@@ -120,7 +120,25 @@ fn open_holder_effect_catalog_installation(
   max_nodes : Int,
   max_depth : Int,
   configuration_current : () -> Bool,
+  preparation_envelope? : @journal.NativeInitialCatalogUseEnvelope? = None,
 ) -> HolderEffectCatalogInstallation? raise CommandStop {
+  // This explicit trusted Host envelope includes original Journal bytes and
+  // the whole overlapping snapshot/record/closure/control/workspace lifetime.
+  // No wire limit or positive placeholder selects an installed numeric profile.
+  // Missing layout funding remains unavailable, including restore-only setup.
+  guard preparation_envelope is Some(required) &&
+    original.current() &&
+    configuration_current() &&
+    original.consumer.read_catalog_preparation_capacity(
+      original.journal,
+      original.producer,
+      required,
+    )
+    is Ok(_) &&
+    original.current() &&
+    configuration_current() else {
+    return None
+  }
   guard original.invocation(max_bytes, max_nodes, max_depth)
     is Some((_, invocation)) else {
     return None
@@ -219,12 +237,26 @@ fn open_holder_effect_catalog_installation(
   let current = () => {
     original.current() &&
     configuration_current() &&
+    original.consumer.read_catalog_preparation_capacity(
+      original.journal,
+      original.producer,
+      required,
+    )
+    is Ok(_) &&
     snapshot.all(entry => {
       match @bounded_files.read_bounded_text_file(root, entry.0, file_limit) {
         Ok(value) => value == entry.1
         Err(_) => false
       }
-    })
+    }) &&
+    original.current() &&
+    configuration_current() &&
+    original.consumer.read_catalog_preparation_capacity(
+      original.journal,
+      original.producer,
+      required,
+    )
+    is Ok(_)
   }
   // Do not open a physical service after the last original/configuration read
   // has invalidated custody. Expiry and revocation remain credential-owned.
