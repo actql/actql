@@ -262,6 +262,9 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     assert store.read_capacity('publication_payload', key) == capacity
                     assert fixture.queries == expected['source_queries']
                     cases.append('exact_successor_and_current_authority_confirm_same_sealed_record')
+                    if names_observer is not None and names_observer.finalization is not None:
+                        names_observer.finalization.after_sealed(
+                            names_observer, physical.root, record, sealed_wire, store, key, capacity, copy)
                     held = fixture.call('allocated')
                     fixture.cleanup_ready = False
                     assert_status('payload_writing', 'close', -9, sealed)

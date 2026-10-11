@@ -7,9 +7,11 @@ from unittest.mock import patch
 
 
 class PayloadFinalizationCases:
-    def __init__(self):
+    def __init__(self, reader=None):
         self.expected = json.loads((Path(__file__).parent / 'python-local-payload-finalization.json').read_text())
         self.cases = []
+        self.reader = reader
+        self.cursor = None
 
     def finish_physical(self, names, root, physical, original_snapshot):
         body = json.loads(names.wire)
@@ -21,6 +23,7 @@ class PayloadFinalizationCases:
         assert original.physical_digest == self.expected['physical_digest']
         names.status('payload_names', 'validate', 0, names.child, names.configuration)
         cursor = root.begin_finalization(physical, original_snapshot, body['object_name'])
+        self.cursor = cursor
         slots = root._used_slots()
         queries = names.fixture.queries
         descriptor = physical.descriptor
@@ -64,12 +67,18 @@ class PayloadFinalizationCases:
         with patch('actql_sdk._local_files.os.link', side_effect=AssertionError('Original final link repeated')):
             assert root.advance_finalization(cursor) is original
         assert root._used_slots() == slots
-        assert root.close_finalization(cursor)
+        if self.reader is None:
+            assert root.close_finalization(cursor)
         assert root._used_slots() == slots
         names.status('payload_names', 'validate', 0, names.child, names.configuration)
         assert names.output() == names.wire
         self.cases.append('final_physical_facts_keep_original_writing_record_and_store_reservation')
         return actual
+
+    def after_sealed(self, names, root, record, sealed_wire, store, key, capacity, copy):
+        if self.reader is not None:
+            self.reader.consume_original(names, root, self.cursor, record, sealed_wire,
+                                         store, key, capacity, copy)
 
     def finish(self):
         assert self.cases == self.expected['cases']

@@ -36,6 +36,7 @@ payload_sealed = '--payload-sealed' in sys.argv[4:]
 payload_names = '--payload-names' in sys.argv[4:]
 payload_staging = '--payload-staging' in sys.argv[4:]
 payload_finalization = '--payload-finalization' in sys.argv[4:]
+payload_reader = '--payload-reader' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
@@ -51,7 +52,8 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization', '--payload-reader'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -71,6 +73,7 @@ payload_sealed_cases = []
 payload_names_cases = []
 payload_staging_cases = []
 payload_finalization_cases = []
+payload_reader_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -1027,7 +1030,11 @@ try:
                             finalization_observer = None
                             if payload_finalization:
                                 from python_local_payload_finalization import PayloadFinalizationCases
-                                finalization_observer = PayloadFinalizationCases()
+                                reader_observer = None
+                                if payload_reader:
+                                    from python_local_payload_reader import PayloadReaderCases
+                                    reader_observer = PayloadReaderCases()
+                                finalization_observer = PayloadFinalizationCases(reader_observer)
                             names_observer = PayloadNameCases(fixture, configuration, denied_configuration,
                                                               call, assert_status, new_output_ticket, staging_observer,
                                                               finalization_observer)
@@ -1040,6 +1047,8 @@ try:
                                 payload_staging_cases.extend(names_observer.staging.finish())
                             if names_observer.finalization is not None:
                                 payload_finalization_cases.extend(names_observer.finalization.finish())
+                                if names_observer.finalization.reader is not None:
+                                    payload_reader_cases.extend(names_observer.finalization.reader.finish())
                         assert fixture.queries == expected['source_queries']
                     if payload_replay:
                         replay_expected = json.loads((root / 'scripts/fixtures/python-local-payload-replay.json').read_text())
@@ -1467,6 +1476,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'payload_names_cases': payload_names_cases,
                   'payload_staging_cases': payload_staging_cases,
                   'payload_finalization_cases': payload_finalization_cases,
+                  'payload_reader_cases': payload_reader_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

@@ -1346,3 +1346,30 @@ Cursor retirement requires actual original writer stop and releases only cursor
 transport. It never removes remaining aliases, resolves unknown acquisition,
 returns durable Store capacity or finalizes a Run. Host reservation of the fixed
 cursor/OS workspace and whole-process resource accounting remain separate duties.
+
+The private final-file reader pins the original nominal completed final-name
+cursor and opens only its same identity/generation without following links. The
+trusted Host first confirms the original Core Sealed record, current context and
+separately reserved descriptor/hash/chunk workspace. Python neither reconstructs
+publication authority from a pathname nor treats a physical digest as a Core
+payload-value proof. Reader descriptors, original file handles and allocation
+areas share the existing root descriptor limit, including parallel readers.
+
+Each read returns at most one configured bounded chunk. That exact chunk stays
+retained and its offset stays unchanged while the original Core input borrow or
+buffer cleanup remains pending. Returning the same chunk rechecks descriptor and
+name generation without another read; copied chunks cannot release its custody.
+The Host releases a chunk only after its same Core borrow and buffer have actually
+retired. No whole-file input is retained by this reader. Current Core authority
+must still be evaluated at the consumer boundary before transferring bytes.
+
+Physical finish requires released EOF, original generation and the original
+physical digest, then actual descriptor stop. Uncertain close keeps the same
+handle, outstanding chunk and root/file pins; only original-descriptor stop
+observation can finish transport retirement. An early transport close cannot
+become a physical finish. Read/short-read/generation errors do not advance the
+offset or become payload verification, Store installation or Run completion.
+All named bytes and durable Store capacity remain with their existing Owners.
+The Core payload verifier, current publisher and public Local/recovery assembly
+remain separate integrations; descriptor/chunk limits are not aggregate process
+memory accounting.
