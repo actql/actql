@@ -14,6 +14,7 @@ struct EffectComputationCandidate {
 struct EffectProgramStaticCandidate {
   computation : EffectComputationCandidate
   effects : @results.EffectStaticCandidate
+  local_update_completion_free_audit : CompletionFreeAudit
 }
 
 ///|
@@ -219,7 +220,10 @@ pub fn close_effect_computation_static(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ computation: candidate, effects, })
+  let local_update_completion_free_audit = audit_local_update_completion_free(
+    candidate, effects,
+  )
+  Ok({ computation: candidate, effects, local_update_completion_free_audit, })
 }
 
 ///|

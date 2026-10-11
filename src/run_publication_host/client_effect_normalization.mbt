@@ -14,9 +14,15 @@ pub(all) enum ClientEffectNormalizationIssue {
 /// Original preparation owns the completion inventory and its issued bytes.
 /// The normative journal preimage has no additional Program binding fields;
 /// this opaque projection and the original materials chain own those links.
+priv enum ClientEffectNormalizationInventory {
+  MappedCreate(@checked.CompletionFreeInventory)
+  LocalUpdate(@checked.LocalUpdateCompletionFreeInventory)
+}
+
+///|
 struct ClientEffectNormalization {
   owner : PreparedClientEffectComputation
-  inventory : @checked.CompletionFreeInventory
+  inventory : ClientEffectNormalizationInventory
   journal : @publication.RunEvidenceValue
 }
 
@@ -26,13 +32,33 @@ pub fn client_effect_completion_free_catalog_cid() -> String {
 }
 
 ///|
+pub fn client_effect_local_update_completion_free_catalog_cid() -> String {
+  "sha256:9ba6d5dff43cd54b0d61d6923fd4cb3143e1a5e238bad20b297133393d783468"
+}
+
+///|
+/// Catalog selection follows the nominal inventory owned by the original
+/// preparation. A transported catalog field is not a profile selection.
+pub fn client_effect_normalization_catalog_cid(
+  value : ClientEffectNormalization,
+) -> String {
+  match value.inventory {
+    MappedCreate(_) => client_effect_completion_free_catalog_cid()
+    LocalUpdate(_) => client_effect_local_update_completion_free_catalog_cid()
+  }
+}
+
+///|
 /// Issue only from the inventory retained by the original checked preparation.
 /// No parse, compile, Source acquisition or physical Effect operation occurs.
 pub fn issue_prepared_client_effect_normalization(
   owner : PreparedClientEffectComputation,
 ) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue] {
   if owner.normalization is Some(original) {
-    return Ok(original)
+    return match original.inventory {
+      MappedCreate(_) => Ok(original)
+      LocalUpdate(_) => Err(Inventory(ProfileNotInstalled))
+    }
   }
   let inventory = match
     @checked.effect_program_completion_free_inventory(owner.candidate) {
@@ -49,7 +75,42 @@ pub fn issue_prepared_client_effect_normalization(
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  let issued = { owner, inventory, journal, }
+  let issued = { owner, inventory: MappedCreate(inventory), journal, }
+  owner.normalization = Some(issued)
+  Ok(issued)
+}
+
+///|
+/// Extend the same preparation-owned normalization issuer for the installed
+/// Local update slice. Checking, audit and current write authority are distinct
+/// obligations. This projection never starts an observation or physical write.
+pub fn issue_prepared_client_effect_local_update_normalization(
+  owner : PreparedClientEffectComputation,
+) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue] {
+  if owner.normalization is Some(original) {
+    return match original.inventory {
+      LocalUpdate(_) => Ok(original)
+      MappedCreate(_) => Err(Inventory(ProfileNotInstalled))
+    }
+  }
+  let inventory = match
+    @checked.effect_program_local_update_completion_free_inventory(
+      owner.candidate,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Inventory(issue))
+  }
+  let wire = "{\"entries\":[],\"rule_catalog_cid\":\"" +
+    client_effect_local_update_completion_free_catalog_cid() +
+    "\",\"version\":\"actql-normalization-journal/0.1\"}"
+  let journal = match
+    @publication.seal_run_evidence_value(
+      "normalization_journal", wire, 1024, 32, 8,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  let issued = { owner, inventory: LocalUpdate(inventory), journal, }
   owner.normalization = Some(issued)
   Ok(issued)
 }
@@ -62,12 +123,18 @@ pub fn prepared_client_effect_normalization_evidence(
   owner : PreparedClientEffectComputation,
   value : ClientEffectNormalization,
 ) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {
+  let matches = match value.inventory {
+    MappedCreate(inventory) =>
+      @checked.completion_free_inventory_matches(inventory, owner.candidate)
+    LocalUpdate(inventory) =>
+      @checked.local_update_completion_free_inventory_matches(
+        inventory,
+        owner.candidate,
+      )
+  }
   if !physical_equal(owner, value.owner) ||
     !(owner.normalization is Some(original) && physical_equal(original, value)) ||
-    !@checked.completion_free_inventory_matches(
-      value.inventory,
-      owner.candidate,
-    ) {
+    !matches {
     return Err(ForeignPreparation)
   }
   Ok(value.journal)
@@ -88,7 +155,7 @@ pub fn restore_prepared_client_effect_normalization(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if catalog_cid != client_effect_completion_free_catalog_cid() {
+  if catalog_cid != client_effect_normalization_catalog_cid(original) {
     return Err(ForeignCatalog)
   }
   if wire != @publication.run_evidence_value_json(expected) {
