@@ -10,6 +10,8 @@ pub fn admit_durable_publication_payload_record(Bytes) -> Result[DurablePublicat
 
 pub fn admit_publication_payload_request_json(String, String) -> Result[PublicationPayloadRequest, PublicationPayloadIssue]
 
+pub fn commit_observed_publication_payload_transition(PublicationPayloadTransition, String, String, Int64, DurablePublicationPayloadRecord) -> Result[PublicationPayloadRecord, PublicationPayloadIssue]
+
 pub fn commit_publication_payload_transition(PublicationPayloadTransition, Bool) -> Result[PublicationPayloadRecord, PublicationPayloadIssue]
 
 pub fn durable_publication_payload_record_material_identity(DurablePublicationPayloadRecord) -> String

@@ -172,6 +172,30 @@ class LocalByteStore:
         generations = self.compare_exchange_many((ByteWrite(key, expected_generation, payload),))
         return None if generations is None else generations[0]
 
+    def read_exchange(self, write: ByteWrite) -> StoredBytes | None:
+        """Read the exact successor of an original physical CAS without writing.
+
+        A lost acknowledgement is not permission to repeat the CAS. Missing,
+        changed or later bytes remain unmatched observations for the Core Owner.
+        This physical match is not publication authority or a Run outcome.
+        Caller-held expected bytes and returned bytes need separate reservations.
+        """
+        if type(write) is not ByteWrite:
+            raise ValueError('Invalid Local physical write')
+        self._key(write.key)
+        if (write.expected_generation is not None
+                and (type(write.expected_generation) is not int
+                     or not 0 <= write.expected_generation < 2**63 - 1)):
+            raise ValueError('Invalid Local physical CAS generation')
+        if type(write.payload) is not bytes or len(write.payload) > self._max_record_bytes:
+            raise ValueError('Invalid Local physical payload')
+        observed = self.read(write.key)
+        successor = 0 if write.expected_generation is None else write.expected_generation + 1
+        if (observed is None or observed.generation != successor
+                or observed.payload != write.payload):
+            return None
+        return observed
+
     def compare_exchange_many(self, writes: tuple[ByteWrite, ...]) -> tuple[int, ...] | None:
         """Install all opaque writes in one physical transaction or none.
 

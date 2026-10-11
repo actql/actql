@@ -675,6 +675,35 @@ pub fn commit_publication_payload_transition(
 }
 
 ///|
+/// Confirm one original transition from the trusted Store's exact durable
+/// observation. Admission of these bytes proves their format, not persistence;
+/// the physical adapter must read them from this material key and generation.
+/// This confirmation grants neither publisher authority nor a Run outcome.
+pub fn commit_observed_publication_payload_transition(
+  transition : PublicationPayloadTransition,
+  store_authority : String,
+  material_identity : String,
+  physical_revision : Int64,
+  durable : DurablePublicationPayloadRecord,
+) -> Result[PublicationPayloadRecord, PublicationPayloadIssue] {
+  if store_authority != transition.record.request.store_authority_cid ||
+    material_identity != transition.record.request.material_generation_cid ||
+    physical_revision != transition.expected_revision.to_int64() + 1L ||
+    durable.revision.to_int64() != physical_revision ||
+    durable.request.request_cid != transition.record.request.request_cid {
+    return Err(StateCollision)
+  }
+  let expected = match publication_payload_transition_durable_json(transition) {
+    Ok(body) => body
+    Err(issue) => return Err(issue)
+  }
+  if durable.body != expected {
+    return Err(StateCollision)
+  }
+  commit_publication_payload_transition(transition, true)
+}
+
+///|
 pub fn publication_payload_record_state(
   record : PublicationPayloadRecord,
 ) -> PublicationPayloadState {

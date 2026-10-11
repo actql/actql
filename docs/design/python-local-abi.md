@@ -1096,3 +1096,16 @@ the same chunk rather than consuming more bytes. Request close cancels only its
 child replay, retains live chunks and retries the same original input borrow.
 Python exposes exact bytes and the Core EOF marker. It does not infer durable
 payload sealing, Store installation, publisher authority or Run completion.
+
+The existing payload Owner can confirm a prepared transition from an admitted
+durable record using `commit_observed_publication_payload_transition`. It checks
+the original Store authority, material identity, expected successor revision,
+original request identity and exact canonical successor bytes before invoking
+the existing transition commit. Format admission alone proves no physical
+persistence: the trusted Host adapter must supply a real observation from that
+same Store and key. Python's private `LocalByteStore.read_exchange` reads the
+exact successor of an original physical CAS without repeating the write. Equal
+bytes at a later physical generation do not confirm the old CAS. Missing or
+mismatching observations remain unresolved, and neither API grants publisher
+authority or changes the Run. The portable Wasm persistence connection and
+filesystem payload installation are separate integration obligations.
