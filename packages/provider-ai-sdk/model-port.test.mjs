@@ -13,7 +13,7 @@ const limits = {maxBytes: 4096, maxChunkBytes: 4096, maxChunks: 8,
   maxHeaderBytes: 128, observedHeaders: ['content-type']};
 
 function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
-  transportThrow = false} = {}) {
+  transportThrow = false, cleanupRaw = () => false} = {}) {
   const request = Object.freeze({original: Symbol('request owner double')});
   const prepared = Object.freeze({original: Symbol('prepared owner double')});
   const entry = Object.freeze({original: Symbol('consumed Entry double')});
@@ -54,6 +54,7 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n,
       durationMs: 500n}, responseLimits: limits, checked: value => value,
     observeAt: () => '2026-10-12T00:00:00.000Z',
+    cleanupRaw,
     notify() { state.wakes++; }, fetch(url, init) {
       state.calls++;
       assert.equal(url, 'https://fixture.invalid/v1/chat/completions');
@@ -143,6 +144,29 @@ test('raw persistence failure preserves the original cleanup responsibility with
   assert.equal(f.state.saves, 1);
   // The original Core/Store parent retains this pending owner; no claim of
   // cleanup completion or public Run release is made by this private fixture.
+});
+
+test('same original raw cleanup completion retires the SDK without adopting an unknown response', async () => {
+  const failure = Object.assign(new Error('original raw save failed'),
+    {cleanupHandle: Object.freeze({original: Symbol('holding double')})});
+  let rawReleased = false;
+  let seenCall;
+  const f = fixture({persistRaw: call => { seenCall = call; throw failure; },
+    cleanupRaw(call) {
+      assert.equal(call, seenCall);
+      return rawReleased;
+    }});
+  const [, plan] = await planOf(f);
+  const call = plan.start(f.entry);
+  await until(() => call.poll(), value => value.kind === 'unknown');
+  assert.equal(f.port.preflight.cleanup(), false);
+  assert.equal(f.port.rawFailure(), failure);
+  rawReleased = true;
+  await release(f);
+  assert.equal(f.port.rawFailure(), failure);
+  assert.equal(plan.start(f.entry), undefined);
+  assert.equal(f.state.calls, 1);
+  assert.equal(f.state.saves, 1);
 });
 
 test('lost response has no invented raw body, no saved response and no second request', async () => {

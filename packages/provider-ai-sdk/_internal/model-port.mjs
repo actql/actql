@@ -8,10 +8,10 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 // execution state or scheduler is inferred here. Common owns every transition.
 export function createSdkModelPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt}) {
+  observeAt, cleanupRaw}) {
   if (typeof fetch !== 'function' || typeof persistRaw !== 'function' ||
       typeof notify !== 'function' || typeof checked !== 'function' ||
-      typeof observeAt !== 'function') {
+      typeof observeAt !== 'function' || typeof cleanupRaw !== 'function') {
     throw new TypeError('InvalidSdkModelPort');
   }
   let prepared;
@@ -54,7 +54,11 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     if (saving !== undefined) return false;
     // A failed raw save can retain commit/cleanup responsibility. Do not drop
     // it or return its capacity before the original Store owner reconciles it.
-    if (failure !== undefined) return false;
+    if (failure !== undefined) {
+      try {
+        if (cleanupRaw(call) !== true) return false;
+      } catch { return false; }
+    }
     if (!cleanupSdkPreparation(preparation)) return false;
     response = undefined;
     call = undefined;

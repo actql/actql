@@ -91,23 +91,45 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
 // holding before persistence, including callback/save failures. Core admits
 // the descriptor from the original call and registration, not hand-built JSON.
 export function createModelRawTransportPersistence({store, moon, registration,
-  retainHolding}) {
-  if (typeof retainHolding !== 'function') throw new TypeError('MissingRawHoldingCustody');
-  return async (call, raw) => {
+  retainHolding, notify}) {
+  if (typeof retainHolding !== 'function' || typeof notify !== 'function') {
+    throw new TypeError('MissingRawHoldingCustody');
+  }
+  // One original physical call per installed port. This is a retained adapter
+  // view, not another Slot owner. A retry reuses its exact Save/holding handles.
+  let originalCall;
+  let originalRaw;
+  let port;
+  let custodyRetained = false;
+  const wake = () => {
+    try { notify(); } catch { /* Cleanup wake is not a terminal Run fact. */ }
+  };
+  const persist = async (call, raw) => {
+    if (originalCall !== undefined &&
+        (originalCall !== call || originalRaw !== raw)) {
+      throw new TypeError('ForeignOriginalRawPersistence');
+    }
     if (!(raw?.body instanceof Uint8Array) ||
         typeof raw.transportComplete !== 'boolean' ||
         typeof raw.observedAt !== 'string') {
       throw new TypeError('MissingOriginalRawTransportFacts');
     }
-    const contentCid = `sha256:${createHash('sha256').update(raw.body).digest('hex')}`;
-    const view = checked(moon.clientProgramObserveInferRawCapture(call,
-      registration, contentCid, raw.body.byteLength, raw.status,
-      raw.transportComplete, raw.observedAt));
-    const port = createModelRawCaptureStorePort(store, moon, view, raw.body);
+    originalCall = call;
+    originalRaw = raw;
+    if (port === undefined) {
+      const contentCid = `sha256:${createHash('sha256').update(raw.body).digest('hex')}`;
+      const view = checked(moon.clientProgramObserveInferRawCapture(call,
+        registration, contentCid, raw.body.byteLength, raw.status,
+        raw.transportComplete, raw.observedAt));
+      port = createModelRawCaptureStorePort(store, moon, view, raw.body);
+    }
     try {
       // Outside Entry/commit boundaries. This transfers cleanup responsibility,
       // not permission to enter, persist, disclose or publish an answer.
-      retainHolding(port);
+      if (!custodyRetained) {
+        retainHolding(port);
+        custodyRetained = true;
+      }
       // No extra provider metadata was observed by this physical profile.
       // Unknown response fields remain in the authenticated raw Artifact.
       return await port.persistChat(undefined);
@@ -120,4 +142,25 @@ export function createModelRawTransportPersistence({store, moon, registration,
       throw retained;
     }
   };
+  // Called by this original Model physical cleanup port. It observes existing
+  // Store cleanup, not capture success, raw disclosure, whole Run release or
+  // authority to send. Never adopt a caller's substituted error/cleanup handle.
+  persist.cleanup = call => {
+    if (originalCall !== undefined && originalCall !== call) return false;
+    if (port === undefined) return true; // No holding was constructed.
+    const status = port.holding.status();
+    if (status.operationPending || status.preparedPending) {
+      if (!status.operationPending) {
+        void port.holding.abort().then(wake, wake);
+      }
+      return false;
+    }
+    if (status.abandoned) return true;
+    // Durable raw custody stays with the parent. This releases no Store data
+    // and does not claim that escaped Save/receipt/parent aliases have retired.
+    if (status.committed) return custodyRetained;
+    void port.holding.abort().then(wake, wake);
+    return false;
+  };
+  return Object.freeze(persist);
 }

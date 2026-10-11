@@ -34,7 +34,8 @@ async function fixture(t, options = {}) {
     byteCount: bytes.byteLength};
   const view = Object.freeze({original: Symbol('original Model view double')});
   const receipt = Object.freeze({view});
-  const state = {allowed: true, writes: 0, acknowledgements: 0, decoded: []};
+  const state = {allowed: true, writes: 0, acknowledgements: 0, decoded: [],
+    commits: 0, releases: 0};
   // Core installation/Entry/grant/receipt doubles only. Actual Store bytes,
   // encryption, original availability and reconfirmation run below. This does
   // not claim a joined real nominal Core receipt or public Provider acceptance.
@@ -69,14 +70,27 @@ async function fixture(t, options = {}) {
   const physical = {...store,
     async prepareModelRawEvidence(...args) {
       state.writes++;
-      return store.prepareModelRawEvidence(...args);
+      const originals = await store.prepareModelRawEvidence(...args);
+      if (!options.releaseFailure) return originals;
+      // Fault the original temporary writer's release, not its status or
+      // another Store/holding. Commit is refused before Store in this fixture.
+      return originals.map(value => ({...value, prepared: {
+        status: () => value.prepared.status(),
+        async release() {
+          if (++state.releases === 1) throw new Error('OriginalWriterReleaseFailed');
+          return value.prepared.release();
+        },
+      }}));
     },
     async commitPhysicalHolding(...args) {
+      state.commits++;
+      if (options.refuseCommit) throw new Error('BeforeOriginalHoldingCommit');
       await store.commitPhysicalHolding(...args);
       if (options.revokeAfterCommit) state.allowed = false;
     },
   };
-  return {store, physical, moon, view, receipt, state, bytes, binding};
+  return {store, physical, moon, view, receipt, state, bytes, binding,
+    originalObjectBytes: originals.reduce((sum, value) => sum + Buffer.byteLength(value.wire), 0)};
 }
 
 test('private raw port confirms same original Store bytes before acknowledging its view', async t => {
@@ -91,6 +105,134 @@ test('private raw port confirms same original Store bytes before acknowledging i
   assert.equal(port.holding.status().committed, true);
   await port.persist();
   assert.equal(f.state.writes, 1);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+async function rawFixtureCleanup(persist, call, wake) {
+  for (let i = 0; i < 40; i++) {
+    const prior = wake.count;
+    if (persist.cleanup(call)) return;
+    await wake.wait(prior);
+  }
+  assert.fail('Original raw temporary cleanup did not finish');
+}
+
+function cleanupWakeFixture() {
+  let count = 0;
+  let waiting;
+  return {
+    get count() { return count; },
+    notify() { count++; waiting?.(); waiting = undefined; },
+    wait(prior) {
+      if (count > prior) return Promise.resolve();
+      assert.equal(waiting, undefined);
+      return new Promise(resolve => { waiting = resolve; });
+    },
+  };
+}
+
+test('raw caller cleanup retries original failed writer release without replacement or early capacity return', async t => {
+  const f = await fixture(t, {refuseCommit: true, releaseFailure: true});
+  const call = Object.freeze({original: Symbol('original physical call double')});
+  let observes = 0;
+  f.moon.clientProgramObserveInferRawCapture = () => {
+    observes++;
+    return {$tag: 1, _0: f.view};
+  };
+  const retained = [];
+  const wake = cleanupWakeFixture();
+  const persist = createModelRawTransportPersistence({store: f.physical,
+    moon: f.moon, registration: {}, retainHolding: value => retained.push(value),
+    notify: () => wake.notify()});
+  const raw = Object.freeze({body: f.bytes, status: 503,
+    transportComplete: false, observedAt: '2026-10-12T00:00:00.000Z'});
+  // Store seal converts writer reservation to stored physical-object charge
+  // before the holding manifest commits. Independently count the two AES-GCM
+  // envelopes: 12-byte nonce/16-byte tag, base64 ciphertext exactly plaintext
+  // length, and the closed 0.1 JSON envelope. This is not Model heap funding.
+  const encryptedBytes = plaintextBytes => Buffer.byteLength(
+    '{"version":"actql-private-publication-evidence/0.1","nonce":"AAAAAAAAAAAAAAAA",' +
+    '"tag":"AAAAAAAAAAAAAAAAAAAAAAAA","ciphertext":""}',
+  ) + Math.ceil(plaintextBytes / 3) * 4;
+  const pendingBytes = encryptedBytes(f.bytes.byteLength) +
+    encryptedBytes(Buffer.byteLength(f.binding.wire));
+  assert.equal(f.store.status().storedBytes, f.originalObjectBytes);
+  await assert.rejects(persist(call, raw), {message: 'BeforeOriginalHoldingCommit'});
+  const original = retained[0];
+  assert.equal(original.holding.status().preparedPending, true);
+  assert.equal(f.store.status().storedBytes, f.originalObjectBytes + pendingBytes);
+  assert.equal(f.store.status().reservedBytes, 0);
+  assert.equal(persist.cleanup(call), false);
+  await wake.wait(0);
+  assert.equal(f.state.releases, 1);
+  assert.equal(original.holding.status().preparedPending, true);
+  assert.equal(f.store.status().storedBytes, f.originalObjectBytes + pendingBytes);
+  assert.equal(persist.cleanup({}), false);
+  await rawFixtureCleanup(persist, call, wake);
+  assert.equal(original.holding.status().preparedPending, false);
+  assert.equal(original.holding.status().abandoned, true);
+  assert.equal(f.store.status().reservedBytes, 0);
+  assert.equal(f.store.status().storedBytes, f.originalObjectBytes);
+  assert.equal(retained.length, 1);
+  assert.equal(observes, 1);
+  assert.equal(f.state.writes, 1);
+  assert.equal(f.state.commits, 1);
+  assert.equal(f.state.acknowledgements, 0);
+});
+
+test('raw persistence retry reuses the original Save and holding and refuses a substituted call or raw view', async t => {
+  const f = await fixture(t, {bytes: Buffer.from('{"opaque":"original"}')});
+  const call = Object.freeze({original: Symbol('original call double')});
+  let observes = 0;
+  f.moon.clientProgramObserveInferRawCapture = () => {
+    observes++;
+    return {$tag: 1, _0: f.view};
+  };
+  const retained = [];
+  const physical = {...f.physical, async commitPhysicalHolding(...args) {
+    if (f.state.commits++ === 0) throw new Error('BeforeOriginalCommit');
+    await f.store.commitPhysicalHolding(...args);
+  }};
+  const persist = createModelRawTransportPersistence({store: physical,
+    moon: f.moon, registration: {}, retainHolding: value => retained.push(value),
+    notify() {}});
+  const raw = Object.freeze({body: f.bytes, status: 200,
+    transportComplete: true, observedAt: '2026-10-12T00:00:00.000Z'});
+  await assert.rejects(persist(call, raw), {message: 'BeforeOriginalCommit'});
+  const original = retained[0];
+  assert.equal(original.holding.status().preparedPending, true);
+  await assert.rejects(persist({}, raw), {message: 'ForeignOriginalRawPersistence'});
+  await assert.rejects(persist(call, {...raw}), {message: 'ForeignOriginalRawPersistence'});
+  const saved = await persist(call, raw);
+  assert.equal(saved.receipt, f.receipt);
+  assert.equal(retained[0], original);
+  assert.equal(retained.length, 1);
+  assert.equal(observes, 1);
+  assert.equal(f.state.writes, 1);
+  assert.equal(f.state.commits, 2);
+  assert.equal(f.state.acknowledgements, 1);
+  assert.equal(persist.cleanup(call), true);
+  assert.notEqual(await f.store.inspectPhysicalHolding(f.binding.holdingCid), undefined);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('saved raw revocation cleanup preserves durable parent custody without issuing an ACK', async t => {
+  const f = await fixture(t, {revokeAfterCommit: true});
+  const call = Object.freeze({original: Symbol('original call double')});
+  f.moon.clientProgramObserveInferRawCapture = () => ({$tag: 1, _0: f.view});
+  const retained = [];
+  const persist = createModelRawTransportPersistence({store: f.physical,
+    moon: f.moon, registration: {}, retainHolding: value => retained.push(value),
+    notify() {}});
+  await assert.rejects(persist(call, Object.freeze({body: f.bytes, status: 503,
+    transportComplete: false, observedAt: '2026-10-12T00:00:00.000Z'})),
+  {code: 'MoonBitHostFailure'});
+  assert.equal(retained.length, 1);
+  assert.equal(retained[0].holding.status().committed, true);
+  assert.equal(persist.cleanup(call), true);
+  assert.equal(f.state.acknowledgements, 0);
+  assert.equal(f.state.writes, 1);
+  assert.notEqual(await f.store.inspectPhysicalHolding(f.binding.holdingCid), undefined);
   await f.store.retirePhysicalHolding(f.binding.holdingCid);
 });
 
@@ -182,7 +324,7 @@ test('installed raw transport caller binds actual bytes and facts before same St
     return {$tag: 1, _0: f.view};
   };
   const persist = createModelRawTransportPersistence({store: f.physical,
-    moon: f.moon, registration, retainHolding: port => retained.push(port)});
+    moon: f.moon, registration, retainHolding: port => retained.push(port), notify() {}});
   const saved = await persist(call, {body: bytes, status: 200,
     transportComplete: true, observedAt: '2026-10-12T00:00:00.000Z'});
   assert.equal(saved.receipt, f.receipt);
@@ -204,7 +346,7 @@ test('missing Host clock or foreign Core call refuses before raw persistence', a
     return {$tag: 0, _0: {kind: 'ForeignCall'}};
   };
   const persist = createModelRawTransportPersistence({store: f.physical,
-    moon: f.moon, registration: {}, retainHolding: () => { holdings++; }});
+    moon: f.moon, registration: {}, retainHolding: () => { holdings++; }, notify() {}});
   await assert.rejects(persist({}, {body: f.bytes, status: 503,
     transportComplete: false}), {message: 'MissingOriginalRawTransportFacts'});
   assert.equal(observations, 0);
@@ -220,7 +362,8 @@ test('parent custody refusal keeps same cleanup handle and performs no Store wri
   const f = await fixture(t);
   f.moon.clientProgramObserveInferRawCapture = () => ({$tag: 1, _0: f.view});
   const persist = createModelRawTransportPersistence({store: f.physical,
-    moon: f.moon, registration: {}, retainHolding: () => { throw 'custody refused'; }});
+    moon: f.moon, registration: {}, retainHolding: () => { throw 'custody refused'; },
+    notify() {}});
   let originalCleanup;
   await assert.rejects(persist({}, {body: f.bytes, status: 503,
     transportComplete: false, observedAt: '2026-10-12T00:00:00.000Z'}), error => {
