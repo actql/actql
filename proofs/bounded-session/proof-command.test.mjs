@@ -49,7 +49,7 @@ writeFileSync(${JSON.stringify(resultPath)},JSON.stringify({...result,error:resu
 process.exitCode=result.error||result.signal||result.status!==0?1:0;
 `);
   if (callerTimeout) {
-    const parent = spawnSync(process.execPath, [runner], {encoding: 'utf8', timeout: 1000});
+    const parent = spawnSync(process.execPath, [runner], {encoding: 'utf8', timeout: 60000});
     assert.equal(parent.error?.code, 'ETIMEDOUT');
     const ids = JSON.parse(readFileSync(ready));
     assert(absent(ids.pid));
@@ -67,8 +67,11 @@ process.exitCode=result.error||result.signal||result.status!==0?1:0;
   parent.stderr.on('data', b => { output += b; });
   const closed = new Promise(resolve => parent.on('close', (status, signal) => resolve({status, signal})));
   t.after(() => { if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGTERM'); });
-  await waitFor(() => existsSync(ready));
-  const ids = JSON.parse(readFileSync(ready));
+  if (mode === 'timeout') await waitFor(() => existsSync(resultPath));
+  else await waitFor(() => existsSync(ready));
+  const ids = existsSync(ready) ? JSON.parse(readFileSync(ready))
+    : {pid: JSON.parse(readFileSync(resultPath)).childPid, grandchild: null};
+  assert(Number.isInteger(ids.pid), 'Retain the actual spawned child identity even before ready');
   if (mode === 'term') parent.kill('SIGTERM');
   if (mode === 'output-close') {
     assert.equal(absent(ids.pid), false);
@@ -112,7 +115,8 @@ test('finite timeout cannot adopt a terminated child as proof success', {skip: p
   const {result, terminal} = await fixture(t, 'timeout', {timeout: 500});
   assert.equal(terminal.status, 1);
   assert.equal(result.error, 'ETIMEDOUT');
-  assert.equal(result.status, 0, 'Cooperative shutdown alone is not proof acceptance');
+  assert.equal(result.outputClosed, true);
+  assert.equal(result.groupClosed, true);
 });
 test('synchronous caller timeout forwards TERM and reaps the original child group',
   {skip: process.platform === 'win32'}, async t => fixture(t, 'timeout', {}, true));

@@ -90,7 +90,7 @@ export async function runProofCommand(command, args, {
         await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
-    return {...result, error, interrupted, outputClosed: true, groupClosed,
+    return {...result, childPid: child.pid ?? null, error, interrupted, outputClosed: true, groupClosed,
       stdout: Buffer.concat(stdout).toString('utf8'),
       stderr: Buffer.concat(stderr).toString('utf8')};
   } finally {

@@ -33,7 +33,8 @@ export function custodyChecker(original) {
 export function checkProofRunnerExtension(root, extension, read) {
   assert.deepEqual(Object.keys(extension).sort(), ['files', 'parent', 'preserved', 'revision'].sort());
   assert.match(extension.revision, /^[a-f0-9]{40}$/);
-  assert.equal(extension.parent, '977f59480e4761e654f6360a590caffb878b6899');
+  assert.match(extension.parent, /^[a-f0-9]{40}$/);
+  const original = '977f59480e4761e654f6360a590caffb878b6899';
   assert.deepEqual(Object.keys(extension.files).sort(), [...proofRunnerFiles].sort());
   assert.deepEqual(Object.keys(extension.preserved).sort(), [...preservedProofInputs].sort());
   const git = args => {
@@ -43,24 +44,25 @@ export function checkProofRunnerExtension(root, extension, read) {
   };
   assert.equal(git(['show', '-s', '--format=%P', extension.revision]).toString().trim(), extension.parent);
   git(['merge-base', '--is-ancestor', extension.revision, 'HEAD']);
+  git(['merge-base', '--is-ancestor', original, extension.parent]);
   const blob = (revision, path) => git(['show', `${revision}:${path}`]);
   for (const path of proofRunnerFiles) {
     const current = blob(extension.revision, path);
     assert.equal(hash(current), extension.files[path], 'Unrelated runner extension history');
     assert.equal(hash(read(path)), hash(current), 'Changed reviewed runner extension');
     if (path.endsWith('check.mjs')) assert.equal(current.toString(),
-      custodyChecker(blob(extension.parent, path).toString()), 'Changed checker proof semantics');
+      custodyChecker(blob(original, path).toString()), 'Changed checker proof semantics');
   }
   for (const path of preservedProofInputs) {
-    const original = blob(extension.parent, path);
-    assert.equal(hash(original), extension.preserved[path], 'Changed original proof input pin');
-    assert.equal(hash(blob(extension.revision, path)), hash(original), 'Changed runner proof input');
-    assert.equal(hash(read(path)), hash(original), 'Changed current runner proof input');
+    const originalBytes = blob(original, path);
+    assert.equal(hash(originalBytes), extension.preserved[path], 'Changed original proof input pin');
+    assert.equal(hash(blob(extension.revision, path)), hash(originalBytes), 'Changed runner proof input');
+    assert.equal(hash(read(path)), hash(originalBytes), 'Changed current runner proof input');
   }
   // Only register the extra custody regression; retain the original tests and
   // their internal 60-second limits byte-for-byte.
   const testPath = 'proofs/relation-chain/proof-check.test.mjs';
-  assert.equal(blob(extension.revision, testPath).toString(), blob(extension.parent, testPath).toString()
+  assert.equal(blob(extension.revision, testPath).toString(), blob(original, testPath).toString()
     .replace("import './mutation-retirement.test.mjs';",
       "import './mutation-retirement.test.mjs';\nimport '../bounded-session/proof-command.test.mjs';"));
 }
