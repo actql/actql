@@ -20,6 +20,11 @@ fn append_distinct_order_member_expression(
     scope_expression_slot(path, input_scope)
   }
   let resolve_order_input = fn(path : Array[@query.NamePart]) -> String? {
+    // An evaluated output owns its receiver before an old range can resolve
+    // a longer path. Preserve that boundary when proving selected-key reuse.
+    if path.length() > 1 && order_output_slot([path[0]], aliases) is Some(_) {
+      return None
+    }
     match order_output_slot(path, aliases) {
       Some(slot) => Some(slot)
       None => resolve_input(path)
