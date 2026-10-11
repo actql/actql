@@ -5,7 +5,11 @@ const selected = process.argv.includes('--vectors-events-only')
   : ['src/query_program/with_vectors_events_test.mbt',
     'src/query_program/with_binding_preparation_test.mbt',
     'src/query_program/with_binding_static_order_gap_test.mbt',
-    'src/query_program/source_member_test.mbt'];
+    'src/query_program/source_member_test.mbt',
+    'src/query_program/graph_projection_property_test.mbt',
+    'src/query_program/graph_member_test.mbt',
+    'src/query_program/quoted_graph_macro_test.mbt',
+    'src/query_program/grouped_graph_macro_test.mbt'];
 process.exitCode = await runLocalCheck({root:process.cwd(),heavy:false,
   timeoutSeconds:60,graceSeconds:5,steps:[{
     name:'WITH actual prefixes and strict common Source/type/order callers',
