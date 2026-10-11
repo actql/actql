@@ -1819,7 +1819,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 
 - arithmetic `add`, `subtract`, `multiply`, `divide`, and `modulo`;
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
-- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `cbrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
+- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `cbrt`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
 - the authoring-only string `template` form;
 - `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, `left`, `right`, `lpad`, `rpad`, `split`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
@@ -2000,6 +2000,69 @@ OCTET_LENGTH share `byte_length`; no canonical `octet_length` operation is
 added. UNICODE and CHR select their respective common nodes. Earlier pinned
 contract bodies retain their original meaning and identities.
 
+<!-- requirement-block: scalar-expressions.google-direct-trig-signatures -->
+`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `asinh`,
+`acosh` and `atanh` MUST accept exactly one finite binary64 Number operand;
+`atan2(first, second)` accepts exactly two ordered finite Number operands.
+Each returns Number, nullable exactly when any operand is nullable. Untyped
+NULL takes the unique Number signature. No implicit conversion, distinct
+INT64/NUMERIC/BIGNUMERIC, Decimal or non-finite overload is introduced.
+
+<!-- requirement-block: scalar-expressions.google-direct-trig-values -->
+`sin`, `cos` and `tan` MUST compute their circular functions with radians;
+`asin`, `acos` and `atan` return principal inverse values in radians, with
+ranges [-pi/2, pi/2], [0, pi] and [-pi/2, pi/2] respectively. `sinh`, `cosh`
+and `tanh` compute their hyperbolic functions; `asinh`, `acosh` and `atanh`
+compute the corresponding inverse functions. Reject non-finite operands and
+preserve the existing arithmetic failure for any non-finite result, including
+hyperbolic overflow. Canonicalize every zero result to positive zero.
+
+<!-- requirement-block: scalar-expressions.google-direct-trig-domains -->
+Demanded non-null `asin` and `acos` MUST fail outside [-1, 1], `acosh` below
+1, and `atanh` outside the strict interval (-1, 1), including both endpoints.
+These checks follow strict NULL propagation; the other direct operations add
+no finite-input domain restriction. A finite result is still required.
+
+<!-- requirement-block: scalar-expressions.google-direct-trig-atan2 -->
+`atan2(first, second)` MUST compute the principal inverse tangent of
+first/second in [-pi, pi], using the signs of both arguments for the quadrant
+and passing first then second directly to core `atan2`, without division or
+argument swapping. Raw signed-zero pairs (+0, +0) and (-0, +0) yield canonical
+positive zero, (+0, -0) selects positive pi, and (-0, -0) selects negative pi.
+Public canonical Number zero is positive, so public `atan2(0, 0)` is positive
+zero; the raw signed-zero diagnostic does not admit negative-zero wire values.
+
+<!-- requirement-block: scalar-expressions.google-direct-trig-algorithms -->
+Each direct trigonometric operation MUST use the same pinned portable MoonBit core Double
+primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native,
+with canonical finite-result validation. Reconstruction from other operations
+or a frontend/Host evaluator is forbidden. Preserve all existing numeric
+accuracy and exception contracts. Identical admitted inputs and selected
+semantic contracts preserve exact logical Number bits across targets;
+live-BigQuery last-bit equivalence is not claimed.
+
+<!-- requirement-block: scalar-expressions.google-direct-trig-typing -->
+Typing MUST check every authored Number operand without evaluating it and
+return Number, nullable exactly when any operand is nullable. Runtime domain
+checks do not narrow the static type or add a distinct numeric overload.
+
+<!-- requirement-block: scalar-expressions.google-direct-trig-demand-resources -->
+The common continuation MUST demand each child exactly once in authored
+left-to-right order, preserving child failures before strict NULL propagation
+and only then applying value-domain checks. Preserve enclosing lazy demand,
+retained roots, logical operand/result and control charges, live-value and
+workspace limits, and cooperative cancellation through the canonical scalar
+owner.
+
+<!-- requirement-block: scalar-expressions.google-direct-trig-identity -->
+Canonical lowering MUST retain each unary source `{name: expression}` and
+matching machine `{op: name, body: expression_node}`; `atan2` retains the
+ordered pair source `{atan2: [first, second]}` and matching machine
+`{op: atan2, body: [first_node, second_node]}`. SQL and expression-text calls
+select these same direct operations without folding, duplication, synthetic
+children or frontend evaluation, including constant arguments. Earlier pinned
+bodies retain their meaning and identities.
+
 <!-- requirement-block: scalar-expressions.google-cbrt-signature -->
 `cbrt(value)` MUST accept exactly one finite binary64 Number operand and return
 Number with exactly the operand nullability. Untyped NULL takes the unique
@@ -2146,6 +2209,11 @@ The conversion/boundary truth table is normative:
 | `to_timestamp(string)` | canonical millisecond UTC `Z` spelling only; offsets fail |
 | `modulo(a,b)` | truncating remainder with dividend sign; zero divisor fails |
 | `sqrt(x)` | negative fails |
+| `sin(x)`, `cos(x)`, `tan(x)` | finite Number circular functions in radians; null propagates |
+| `asin(x)`, `acos(x)`, `atan(x)` | principal inverse circular functions in radians; asin/acos require [-1,1]; null propagates |
+| `atan2(first, second)` | quadrant-aware inverse tangent in authored order; canonical public (0,0) yields zero |
+| `sinh(x)`, `cosh(x)`, `tanh(x)`, `asinh(x)` | direct hyperbolic and inverse sine functions; finite result required; null propagates |
+| `acosh(x)`, `atanh(x)` | acosh requires >=1; atanh requires strict (-1,1); null propagates |
 | `cbrt(x)` | real cube root of a finite Number, including negatives; canonical positive zero; null propagates |
 | `pow(x,y)` | negative base requires integral exponent; zero with negative exponent fails; zero to zero is one; overflow fails and underflow returns canonical zero |
 | `exp(x)` | natural exponential; finite-input overflow fails; underflow returns canonical zero |
@@ -2231,6 +2299,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | `starts_with`, `ends_with` | S, S → boolean | Default binary prefix/suffix comparison; result nullable exactly when either operand is nullable; both children evaluated once in authored order | RelA |
 | `pow`, `log` | N, N → N | Finite binary64 domains below; result nullable exactly when either operand is nullable; both ordered children evaluated once | RelA |
 | `exp`, `ln`, `log10` | N → N | Finite binary64 domains below; operand nullability preserved | RelA |
+| `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` | N → N | Direct finite Number functions with the domains above; operand nullability preserved; canonical positive zero | RelA |
+| `atan2` | N, N → N | Authored first/second quadrant-aware inverse tangent; nullable exactly when either operand is nullable | RelA |
 | `cbrt` | N → N | Real cube root over all finite Number inputs; canonical positive zero; operand nullability preserved | RelA |
 | `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; legacy safe division by zero returns null, overflow fails | RelA |
 | `safe_add`, `safe_subtract`, `safe_multiply`, `safe_divide` | (N, N) → N nullable | Own overflow returns null; safe_divide also returns null for zero divisor; child failures propagate | RelA |
@@ -2593,8 +2663,9 @@ an optional final argument, not expression syntax.
 <!-- requirement-block: expression-text.signatures-mapping-constraints-len-x-sqrt-x -->
 | Signatures | Mapping / constraints |
 | --- | --- |
-| `len(x)`, `sqrt(x)`, `cbrt(x)`, `exp(x)`, `ln(x)`, `log10(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
+| `len(x)`, `sqrt(x)`, `cbrt(x)`, `sin(x)`, `cos(x)`, `tan(x)`, `asin(x)`, `acos(x)`, `atan(x)`, `sinh(x)`, `cosh(x)`, `tanh(x)`, `asinh(x)`, `acosh(x)`, `atanh(x)`, `exp(x)`, `ln(x)`, `log10(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
 | `trim(x, characters)`, `ltrim(x, characters)`, `rtrim(x, characters)` | corresponding scalar trim with an explicit STRING code-point set |
+| `atan2(first, second)` | canonical `atan2` with two ordered Number expressions; preserve authored first/second quadrant order |
 | `pow(x, y)`, `power(x, y)` | canonical `pow` with two ordered Number expressions |
 | `log(x)` | canonical unary `ln` |
 | `log(x, base)` | canonical binary `log` |
@@ -10519,7 +10590,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:436b28a3c19b3ed01865c4243fc18fcb229705ec809cd7edd9b1f1af02af3c5f
+../../spec/contracts/actql-aoa.json# sha256:0e2e8ea3ecedc619afb85c479c2946abe320797e25360136bae91aab88be379d
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10528,13 +10599,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:cc7a9bddc5a021640e62a802e4610886aa88281b2ed0ab304aed614d838c1557
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:740f0139243ad0a9ea64dbb728709a609346cc3eba3d17a81eacf32df1882387
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:28271b290baad55d92db98818d231ee0c33dfecff584e7e3b4c0949ae497b972
+../../spec/contracts/actql-expressions.json# sha256:beadee8142d8cad2614551bb79efb93d1306d8b00f9e945e28e962d8dfc384f4
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:c4511cdd7ccbe6cdf6753d9464bba042c675b604ee99faacf3d9f9a4da0e28e1
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:86819d0eb7fe74883985f02b2df0498a42e525ca9ee13a9be9f46c02d4c02153
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:69df776529e431867f8d1e8f845582352f2d247fa3de778513d6e121a893eccc
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:42aac0c5d0c01dcaa5a3e41560233af5025d157e38c8e4a5a780e3b53974f51e
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:8acd72a79e2e6048de492139105adfa907feb0aa8ec36c0b400fc31abd3b1ae6
+../../spec/contracts/actql-expressions.json#/laws sha256:348c63275f6638444fb546a59f3a24821d12949feb9a2932fd9b8e21ecffa534
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:e54bb919a70ce82b8948963f8e37e40d34032015e0a8385aa13d8e77bc97905a
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:82a7f1ac5b45964400ae39b891bb82112ae2a41b4a8aa2397e86a8fcbc63a9dd
 ```
 
 <!-- stage-contract-pins:start -->

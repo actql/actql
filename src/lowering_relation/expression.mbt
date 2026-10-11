@@ -59,6 +59,18 @@ pub(all) enum UnaryOperator {
   Floor
   Sqrt
   Cbrt
+  Sin
+  Cos
+  Tan
+  Asin
+  Acos
+  Atan
+  Sinh
+  Cosh
+  Tanh
+  Asinh
+  Acosh
+  Atanh
   Exp
   Ln
   Log10
@@ -81,6 +93,7 @@ pub(all) enum BinaryOperator {
   SafeMultiply
   Modulo
   Pow
+  Atan2
   Log
   RoundAt
   TruncAt
@@ -239,6 +252,18 @@ fn expression_tag(
     | "floor"
     | "sqrt"
     | "cbrt"
+    | "sin"
+    | "cos"
+    | "tan"
+    | "asin"
+    | "acos"
+    | "atan"
+    | "sinh"
+    | "cosh"
+    | "tanh"
+    | "asinh"
+    | "acosh"
+    | "atanh"
     | "exp"
     | "ln"
     | "log10"
@@ -263,6 +288,7 @@ fn expression_tag(
     | "safe_multiply"
     | "modulo"
     | "pow"
+    | "atan2"
     | "log"
     | "strpos"
     | "starts_with"
@@ -363,6 +389,18 @@ fn expression_children(
     | "floor"
     | "sqrt"
     | "cbrt"
+    | "sin"
+    | "cos"
+    | "tan"
+    | "asin"
+    | "acos"
+    | "atan"
+    | "sinh"
+    | "cosh"
+    | "tanh"
+    | "asinh"
+    | "acosh"
+    | "atanh"
     | "exp"
     | "ln"
     | "log10"
@@ -967,6 +1005,18 @@ fn lower_typed_expression_measured(
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
         "cbrt" => Unary(Cbrt, args[0])
+        "sin" => Unary(Sin, args[0])
+        "cos" => Unary(Cos, args[0])
+        "tan" => Unary(Tan, args[0])
+        "asin" => Unary(Asin, args[0])
+        "acos" => Unary(Acos, args[0])
+        "atan" => Unary(Atan, args[0])
+        "sinh" => Unary(Sinh, args[0])
+        "cosh" => Unary(Cosh, args[0])
+        "tanh" => Unary(Tanh, args[0])
+        "asinh" => Unary(Asinh, args[0])
+        "acosh" => Unary(Acosh, args[0])
+        "atanh" => Unary(Atanh, args[0])
         "exp" => Unary(Exp, args[0])
         "ln" => Unary(Ln, args[0])
         "log10" => Unary(Log10, args[0])
@@ -1007,6 +1057,7 @@ fn lower_typed_expression_measured(
         "safe_multiply" => Binary(SafeMultiply, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
         "pow" => Binary(Pow, args[0], args[1])
+        "atan2" => Binary(Atan2, args[0], args[1])
         "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
