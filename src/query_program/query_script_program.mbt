@@ -47,14 +47,14 @@ fn lower_script_relation(
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
 ) -> Input raise Abort {
-  let (known, graphs) = if @query.cte_count(query) == 0 {
+  let (known, graphs) = if @query.query_binding_count(query) == 0 {
     (known, graphs)
   } else {
     validate_cte_scope(query, known, graphs~)
     let mut scoped = known.copy()
     let mut scoped_graphs = graphs.copy()
-    for index in 0..<@query.cte_count(query) {
-      let cte = @query.cte_at(query, index).unwrap()
+    for index in 0..<@query.query_binding_count(query) {
+      let cte = @query.query_binding_at(query, index).unwrap()
       let name = pipe_physical_name(reserved, "aql_script_cte_")
       reserved.push(name)
       let bound = lower_script_relation(

@@ -25,7 +25,7 @@ fn producer_scope_parser(text : String) -> QueryParser {
     syntax_nodes: 0,
     source_depth: 0,
     synthetic_sources: 0,
-    cte_scopes: [
+    binding_scopes: [
       [
         (
           { value: "rows", quoted: false, },
@@ -115,10 +115,10 @@ test "FROM GRAPH resolves the nearest binding before any Carrier check" {
   assert_eq(relation(query), [{ value: "inner_rows", quoted: false, }])
   assert_eq(relation_alias(query), None)
   assert_true(graph_query(query) is Some(_))
-  assert_eq(parser.cte_scopes.length(), 2)
+  assert_eq(parser.binding_scopes.length(), 2)
   // Resolving does not search an outer Graph to repair a nearer type mismatch.
   // The common checker, not this parser, decides that Carrier validity.
-  assert_eq(parser.resolve_cte([{ value: "rows", quoted: false, }]), [
+  assert_eq(parser.resolve_producer([{ value: "rows", quoted: false, }]), [
     { value: "inner_rows", quoted: false, },
   ])
 }

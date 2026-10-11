@@ -101,8 +101,8 @@ fn unshared_script_sources(
     }
   }
   while pending.pop() is Some(query) {
-    for index in 0..<@query.cte_count(query) {
-      pending.push(@query.cte_at(query, index).unwrap().query)
+    for index in 0..<@query.query_binding_count(query) {
+      pending.push(@query.query_binding_at(query, index).unwrap().query)
     }
     for index in 0..<@query.set_part_count(query) {
       pending.push(@query.set_part_at(query, index).unwrap().right)

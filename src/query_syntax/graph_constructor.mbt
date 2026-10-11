@@ -151,7 +151,7 @@ fn QueryParser::graph_element_name(
   }
   // Definition names use the authored path, while the Relation operand uses
   // the nearest lexical producer. REFERENCES remains constructor-local.
-  (self.resolve_cte(producer), name)
+  (self.resolve_producer(producer), name)
 }
 
 ///|
@@ -249,7 +249,7 @@ pub fn parse_graph(
     syntax_nodes: 0,
     source_depth: 0,
     synthetic_sources: 0,
-    cte_scopes: [],
+    binding_scopes: [],
   }
   try {
     let graph = parser.graph()

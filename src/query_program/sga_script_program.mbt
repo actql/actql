@@ -40,7 +40,7 @@ fn lower_script_graph_calls(
   known? : Array[Input] = [],
   graphs? : Array[ScriptGraph] = [],
 ) -> ScriptGraph raise Abort {
-  if @query.cte_count(query) > 0 ||
+  if @query.query_binding_count(query) > 0 ||
     @query.set_part_count(query) > 0 ||
     @query.join_part_count(query) > 0 ||
     @query.relation_alias(query) is Some(_) {

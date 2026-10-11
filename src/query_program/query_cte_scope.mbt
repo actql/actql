@@ -7,13 +7,13 @@ fn validate_cte_scope(
   inputs : Array[Input],
   graphs? : Array[ScriptGraph] = [],
 ) -> Unit raise Abort {
-  let used = Array::make(@query.cte_count(query), false)
-  for index in 0..<@query.cte_count(query) {
-    let cte = @query.cte_at(query, index).unwrap()
+  let used = Array::make(@query.query_binding_count(query), false)
+  for index in 0..<@query.query_binding_count(query) {
+    let cte = @query.query_binding_at(query, index).unwrap()
     for earlier in 0..<index {
       if same_relation_name(
           cte.name,
-          @query.cte_at(query, earlier).unwrap().name,
+          @query.query_binding_at(query, earlier).unwrap().name,
         ) {
         raise Abort(UnsupportedCte)
       }
@@ -26,7 +26,7 @@ fn validate_cte_scope(
         raise Abort(InvalidQuery)
       }
     }
-    if @query.cte_count(body) != 0 {
+    if @query.query_binding_count(body) != 0 {
       raise Abort(UnsupportedCte)
     }
     for term in query_terms(body) {
@@ -37,9 +37,9 @@ fn validate_cte_scope(
           script_has_graph_rows(term) &&
           script_graph_input(term, graphs) is Some(_)
         )
-      for future in index..<@query.cte_count(query) {
+      for future in index..<@query.query_binding_count(query) {
         if same_relation_path(body_relation, [
-            @query.cte_at(query, future).unwrap().name,
+            @query.query_binding_at(query, future).unwrap().name,
           ]) &&
           !known_outer {
           // A hidden outer producer can use this name before the CTE binds.
@@ -52,7 +52,7 @@ fn validate_cte_scope(
       let mut known_relation = known_outer
       for earlier in 0..<index {
         if same_relation_path(body_relation, [
-            @query.cte_at(query, earlier).unwrap().name,
+            @query.query_binding_at(query, earlier).unwrap().name,
           ]) {
           known_relation = true
         }
@@ -67,7 +67,7 @@ fn validate_cte_scope(
         })
         for earlier in 0..<index {
           if same_relation_path(right, [
-              @query.cte_at(query, earlier).unwrap().name,
+              @query.query_binding_at(query, earlier).unwrap().name,
             ]) {
             known_right = true
           }
@@ -98,13 +98,13 @@ fn validate_cte_scope(
   if !used.any(value => value) {
     raise Abort(UnsupportedCte)
   }
-  let mut index = @query.cte_count(query) - 1
+  let mut index = @query.query_binding_count(query) - 1
   while index >= 0 {
     if used[index] {
-      for term in query_terms(@query.cte_at(query, index).unwrap().query) {
+      for term in query_terms(@query.query_binding_at(query, index).unwrap().query) {
         let relation = @query.relation(term)
         for earlier in 0..<index {
-          let name = [@query.cte_at(query, earlier).unwrap().name]
+          let name = [@query.query_binding_at(query, earlier).unwrap().name]
           let mut joined = false
           for join_index in 0..<@query.join_part_count(term) {
             if same_relation_path(

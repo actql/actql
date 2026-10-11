@@ -374,7 +374,7 @@ fn lower_script_keyed_graph_query(
   }
   if pattern.nodes.is_empty() ||
     pattern_query.label_field is Some(_) ||
-    @query.cte_count(query) > 0 ||
+    @query.query_binding_count(query) > 0 ||
     @query.set_part_count(query) > 0 ||
     @query.join_part_count(query) > 0 {
     raise Abort(UnsupportedGraph)

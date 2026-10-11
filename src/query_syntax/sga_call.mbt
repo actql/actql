@@ -173,7 +173,7 @@ fn QueryParser::sga_argument(
   if sga_producer_argument(operation, path) {
     // Bare and backtick names are references. A quoted STRING is a value,
     // and cannot select an existing producer, including inside explicit lists.
-    return Producer(self.resolve_cte([self.name()])[0])
+    return Producer(self.resolve_producer([self.name()])[0])
   }
   if token.value == Symbol(123) {
     self.symbol(123)
@@ -295,7 +295,7 @@ pub fn parse_sga_call(
     syntax_nodes: 0,
     source_depth: 0,
     synthetic_sources: 0,
-    cte_scopes: [],
+    binding_scopes: [],
   }
   try {
     let call = parser.sga_call()

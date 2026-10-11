@@ -61,8 +61,8 @@ test "UNPIVOT row labels preserve decoded literals and omitted labels" {
       "FROM rows |> UNPIVOT(v FOR k IN(x AS 'first',x \"second\",y))", "SELECT * FROM rows UNPIVOT(v FOR k IN(x AS 'first',x \"second\",y))",
     ] {
     let query = parse_query(source, query_limits()).unwrap()
-    let body = if cte_count(query) == 1 {
-      cte_at(query, 0).unwrap().query
+    let body = if query_binding_count(query) == 1 {
+      query_binding_at(query, 0).unwrap().query
     } else {
       query
     }

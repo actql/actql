@@ -2,10 +2,10 @@
 test "nested WITH preserves lexical qualifiers within the original budgets" {
   let text = "WITH chosen AS (WITH hidden AS (SELECT a FROM rows) SELECT hidden.a FROM hidden) SELECT a FROM chosen"
   let query = parse_query(text, query_limits()).unwrap()
-  assert_eq(cte_count(query), 2)
-  let nested = cte_at(query, 0).unwrap()
+  assert_eq(query_binding_count(query), 2)
+  let nested = query_binding_at(query, 0).unwrap()
   assert_true(nested.name.value != "hidden")
-  let chosen = cte_at(query, 1).unwrap()
+  let chosen = query_binding_at(query, 1).unwrap()
   assert_eq(relation(chosen.query), [nested.name])
   assert_eq(
     relation_alias(chosen.query),
@@ -19,7 +19,7 @@ test "nested WITH preserves lexical qualifiers within the original budgets" {
     "WITH aql_cte_scope_0 AS (SELECT a FROM rows), chosen AS (WITH hidden AS (SELECT a FROM aql_cte_scope_0) SELECT a FROM hidden) SELECT a FROM chosen",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_at(collision, 1).unwrap().name.value, "aql_cte_scope_1")
+  assert_eq(query_binding_at(collision, 1).unwrap().name.value, "aql_cte_scope_1")
 }
 
 ///|
@@ -34,9 +34,9 @@ test "derived sources share SELECT and Pipe query heads" {
       Ok(query) => query
       Err(_) => fail(text)
     }
-    assert_eq(cte_count(query), 1)
+    assert_eq(query_binding_count(query), 1)
     assert_eq(
-      operation_count(cte_at(query, 0).unwrap().query),
+      operation_count(query_binding_at(query, 0).unwrap().query),
       if text.contains("LIMIT") {
         3
       } else {
@@ -59,7 +59,7 @@ test "nested Pipe source uses the original query budgets and source origin" {
     parse_query(text, { ..query_limits(), max_syntax_nodes: 1, }) is Err(_),
   )
   let query = parse_query(text, query_limits(), source_path="derived.pipe").unwrap()
-  let inner = cte_at(query, 0).unwrap().query
+  let inner = query_binding_at(query, 0).unwrap().query
   guard operation_at(inner, 0) is Some(Where(expression)) else {
     fail("WHERE is first")
   }

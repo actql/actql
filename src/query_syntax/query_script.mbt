@@ -75,7 +75,7 @@ pub fn parse_query_script(
     syntax_nodes: 0,
     source_depth: 0,
     synthetic_sources: 0,
-    cte_scopes: [],
+    binding_scopes: [],
   }
   try {
     let declarations : Array[DataDeclaration] = []
@@ -88,7 +88,7 @@ pub fn parse_query_script(
       }
       let name_at = parser.peek().start
       let name = parser.name()
-      if declarations.any(declaration => same_cte_name(declaration.name, name)) {
+      if declarations.any(declaration => same_binding_name(declaration.name, name)) {
         raise QueryAbort("Duplicate DATA name", name_at)
       }
       parser.symbol(61)

@@ -6772,7 +6772,7 @@ pub fn compile(
   }
   if has_nearest &&
     (
-      @query.cte_count(query) > 0 ||
+      @query.query_binding_count(query) > 0 ||
       @query.set_part_count(query) > 0 ||
       @query.join_part_count(query) > 0 ||
       @query.graph_query(query) is Some(_)
@@ -6804,9 +6804,9 @@ pub fn compile(
       limits,
     )
   }
-  if @query.cte_count(query) > 0 {
-    let positional_operand = Array::makei(@query.cte_count(query), index => {
-      @query.positional_output(@query.cte_at(query, index).unwrap().query)
+  if @query.query_binding_count(query) > 0 {
+    let positional_operand = Array::makei(@query.query_binding_count(query), index => {
+      @query.positional_output(@query.query_binding_at(query, index).unwrap().query)
     }).any(value => value)
     if positional_operand {
       // These parser-owned bindings can export values without authored names.
@@ -7070,7 +7070,7 @@ fn cte_capture_reference_count(
       let mut shadowed = false
       for index in 0..<visible_ctes {
         if same_relation_path(path, [
-            @query.cte_at(declarations, index).unwrap().name,
+            @query.query_binding_at(declarations, index).unwrap().name,
           ]) {
           shadowed = true
         }
@@ -7092,7 +7092,7 @@ fn compile_cte_query(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
-  if @query.cte_count(query) < 1 ||
+  if @query.query_binding_count(query) < 1 ||
     context.program_id == "" ||
     context.stage_id == "" ||
     context.stage_result == "" ||
@@ -7133,8 +7133,8 @@ fn compile_cte_query(
     let cte_inputs : Array[Input] = []
     let retained : Array[RetainedResult] = []
     let mut captured_owner = false
-    for index in 0..<@query.cte_count(query) {
-      let cte = @query.cte_at(query, index).unwrap()
+    for index in 0..<@query.query_binding_count(query) {
+      let cte = @query.query_binding_at(query, index).unwrap()
       let captures = known.filter(input => {
         input.source is Captured(_) &&
         query_terms(cte.query).any(term => {
@@ -7156,16 +7156,16 @@ fn compile_cte_query(
           cte_capture_reference_count(
             query,
             query,
-            @query.cte_count(query),
+            @query.query_binding_count(query),
             captures[0],
           ) >
           0
         )
-      for other in 0..<@query.cte_count(query) {
+      for other in 0..<@query.query_binding_count(query) {
         if captures_source &&
           other != index &&
           cte_capture_reference_count(
-            @query.cte_at(query, other).unwrap().query,
+            @query.query_binding_at(query, other).unwrap().query,
             query,
             other,
             captures[0],
@@ -7434,7 +7434,7 @@ fn compile_cte_query(
 ///|
 fn compile_cte_stage(
   construction : Construction,
-  cte : @query.CtePart,
+  cte : @query.QueryBinding,
   known : Array[Input],
   context : Context,
   limits : Limits,
@@ -7442,7 +7442,7 @@ fn compile_cte_stage(
   body_start : Int,
 ) -> (@builder.Node?, Input) raise Abort {
   let body = cte.query
-  if @query.set_part_count(body) != 0 || @query.cte_count(body) != 0 {
+  if @query.set_part_count(body) != 0 || @query.query_binding_count(body) != 0 {
     raise Abort(UnsupportedCte)
   }
   if @query.join_part_count(body) > 1 ||
