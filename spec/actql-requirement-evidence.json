@@ -2071,6 +2071,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/scalar-expressions.finite-math-target-independent-kernel",
+      "statement_sha256": "c89427725920aac09b6915a8af214f4c6e6c7eac8542ea7add4eaad6f0c104ba",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "scalar-expressions",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/scalar-expressions.round-trunc",
       "statement_sha256": "5dafdb8cc8a57448c75ef5ced0ce794901eedfdb2f9d59cb5e23d0797a1b91fb",
       "status": "pending",
@@ -8980,7 +8991,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "2b657043b75e9d44afa133b2b7b4c16eb8eaf7931a08871fe46fd89f2ae2f389",
+      "statement_sha256": "5d9a1500a075a1dc8be5dd277cf33a23d731e89d10c02adedca46c2906fec954",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13622,7 +13633,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "d9d787783a48264ac7c5ddf6cc7d527648a67444ff43718963f6827a0d7de351",
+      "statement_sha256": "10730542d200d37e66eeeb52bec1650b2461c2b79f2c6cf3047e2f878f222bcf",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -15102,6 +15113,281 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-routing",
+      "statement_sha256": "24b93cbcf8f588074a8655b0febac8a9a3ba3d09d7feb546ddde566553007bf2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-preservation",
+      "statement_sha256": "39156b5c94cb362ac19b2c8b60ad15635e17ab37e394c33af40e61de3554939f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-admission",
+      "statement_sha256": "a54136724934a5ce6aedbe7b7a4f40db851b10a9a1b93dda51cddc5e561a502a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-resume-pending",
+      "statement_sha256": "700d27ba051a1b6bba5b7bbc4a4271eaf4d3298c5f0cf49f70308006f0f0bb67",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the original retained holder admission and physical send boundary separately from routing.",
+      "source": {
+        "anchor": "resident-effect-resume-transport",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-query-binding",
+      "statement_sha256": "aa98d4791a986ad9bd14362a6174d087bac32199e06b241e3c03daa34c6b816b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-query-binding.2",
+      "statement_sha256": "1b113fb7af62350b8770a2471795740542a2a8079deda8eca73dd581ba73c757",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-query-binding.3",
+      "statement_sha256": "584ca7c6151445d0fe5d90efdacf8fab716287c565995cff1f17908c4fe71944",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding",
+      "statement_sha256": "24af20218a9a28eb7d562f9ae0437c6d139db35027fcab0a3d3a393ab6522bf1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding.2",
+      "statement_sha256": "f22b22b8d2b6fa4111d00eede08adb4617983a0d2c1c3594bb6cd1529aa85701",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding.3",
+      "statement_sha256": "2cb74b03480d935aaf6b4a0db722f8603cbe124c364f6a6a13d747a9f20336cc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-reply-binding.4",
+      "statement_sha256": "bf944bc9d11fbfe24222983fe9b9d32c98200871c4dd145c5e24415101b0eecb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness",
+      "statement_sha256": "ca0f26368b5c3943946d8b2669c323a03cd847023ac8d349eac5b60fd38a8285",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness.2",
+      "statement_sha256": "df1da833cd56667528254f1105bfa8f667492b6d279a550a2c33f60a7f0358be",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness.3",
+      "statement_sha256": "fb7989ce88274fb6ef1bd0552b792796f49c3a7de873c18e5831907fc0c3cc3e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resident-effect-current-transport-freshness.4",
+      "statement_sha256": "2fdb7e863a5bb831425631b278c6ef50f3c1e7c488b0ab4f732ab6f884a78c7d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify authenticated fresh-query transport and original Ledger evidence; protocol codec success is not execution or cleanup proof.",
+      "source": {
+        "anchor": "resident-effect-current-query",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-original-intent",
+      "statement_sha256": "2bab4ea380a8f31f0cb33b6dfb34343c81d5e32c6eba6340c5021d12d11491d6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-legacy-projection",
+      "statement_sha256": "97f1e66b3d9552c0a1c31853cadaa279059ba79a733299ed35fd6f53745d38e9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-control-cas",
+      "statement_sha256": "a7fa454a7abdb46ddc95f1efa8b5c5e3bdee9dd9ea2adc2c38d5dff48d1608d9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-receipt",
+      "statement_sha256": "49591e2a9e4bae38153fad82ac03de8e080948102d018e9ef502a48bc310d970",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-map",
+      "statement_sha256": "719b143a9ac3058cbf7de1c87c848a6a35c270512d6636765428b09aff649753",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-sample",
+      "statement_sha256": "395d0af48f62d94140efb4cd04145c51feb53bd6607f94deb15eff95692f9107",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-observation",
+      "statement_sha256": "8e403317a5a346e97c09e24eeb134e9c79e1ecf8085def9c2a287671871e3942",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-pending-observation",
+      "statement_sha256": "ed3bd6834e9c30c97e11948ebf1c820775937bba1aaa8b8db1610ee799f7097a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-pending-unknown",
+      "statement_sha256": "cf4c2d7d7bd559fc82cf28b71787a7ca5f91587907ce7bc3fee3b4333517d7f2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-capability",
+      "statement_sha256": "db406dbab3ddfa36ae668bde1e36bacdffee5732b3b5aa66992e43597bdb9408",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
         "kind": "prose"
       }
     },

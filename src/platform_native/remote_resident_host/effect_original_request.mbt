@@ -43,33 +43,24 @@ pub fn ResidentSourceCompute::request_for_effect_review(
 }
 
 ///|
-fn retained_effect_consumer_original_request(
+// Resolve original context through the existing producer journal before reading
+// candidate consumer materials. A candidate wire cannot supply its own expected
+// request; a lookup address grants neither input custody nor execution.
+fn retained_effect_consumer_materials(
   journal : @journal.Journal,
   producer : @remote.DispatchRequest,
   consumer : @remote.DispatchRequest,
   body : String,
   admission : ResidentRunAdmission,
   limits : @host.ClientEffectComputationLimits,
-) -> Result[Unit, ResidentRetainedExecutionIssue] {
-  let read = wire => {
-    @host.admit_client_effect_run_materials(
-      wire,
-      @remote.dispatch_request_task_scope(producer).0,
-      admission.expressions,
-      admission.operations,
-      admission.manifests,
-      admission.limits,
-      limits,
-    ).map_err(issue => ResidentRetainedExecutionIssue::EffectMaterials(issue))
-  }
-  let target = match read(body) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let selected = match
-    @host.client_effect_run_materials_request_for_dispatch(target, consumer) {
-    Ok(value) => value
-    Err(issue) => return Err(EffectMaterials(Request(issue)))
+) -> Result[@host.ClientEffectRunMaterials, ResidentRetainedExecutionIssue] {
+  if @remote.dispatch_request_task_scope(producer).0 !=
+    @remote.dispatch_request_task_scope(consumer).0 ||
+    @remote.dispatch_request_journal_key(producer)[0] !=
+    @remote.dispatch_request_journal_key(consumer)[0] ||
+    @remote.dispatch_request_execution_scope(producer) !=
+    @remote.dispatch_request_execution_scope(consumer) {
+    return Err(Input(@output.InvalidBinding))
   }
   let attempt = match @remote.dispatch_request_attempt_identity(producer) {
     Ok(value) => value
@@ -84,17 +75,50 @@ fn retained_effect_consumer_original_request(
     @remote.remote_poll_dispatch_run_materials(dispatch) is Some(original_wire) else {
     return Err(Host(EnvelopeMissing))
   }
+  let binding = @remote.remote_poll_dispatch_input_binding(dispatch)
+  let expected_request = match
+    @host.client_effect_source_binding_request(binding, producer) {
+    Ok(value) => value
+    Err(issue) => return Err(EffectDispatch(issue))
+  }
+  let read = wire => {
+    @host.admit_client_effect_run_materials(
+      wire,
+      @remote.dispatch_request_task_scope(producer).0,
+      admission.expressions,
+      admission.operations,
+      admission.manifests,
+      admission.limits,
+      limits,
+      expected_request~,
+    ).map_err(issue => ResidentRetainedExecutionIssue::EffectMaterials(issue))
+  }
   let original = match read(original_wire) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  // Validate the saved envelope against the original checked Source issuer.
+  // Matching a Root/request alone is not a producer dispatch binding.
+  match @host.bind_client_effect_source_dispatch(original, producer, binding) {
+    Ok(_) => ()
+    Err(issue) => return Err(EffectDispatch(issue))
   }
   let retained = match
     @host.client_effect_run_materials_request_for_dispatch(original, producer) {
     Ok(value) => value
     Err(issue) => return Err(EffectMaterials(Request(issue)))
   }
+  let target = match read(body) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let selected = match
+    @host.client_effect_run_materials_request_for_dispatch(target, consumer) {
+    Ok(value) => value
+    Err(issue) => return Err(EffectMaterials(Request(issue)))
+  }
   if selected != retained {
     return Err(EffectMaterials(Request(IdentityMismatch)))
   }
-  Ok(())
+  Ok(target)
 }

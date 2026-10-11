@@ -4,6 +4,7 @@
 priv struct StoredEnvironment {
   borrow : @buffers.BufferBorrow
   environment : @checked.CheckEnvironment
+  wire : String
   context : @preparation.LocalInputContext
 }
 
@@ -15,7 +16,7 @@ priv struct StoredPreparation {
   kind : Int
   mut started : Bool
   mut outcome : Result[
-    @host.PreparedClientProgram,
+    @preparation.LocalPreparedInput,
     @preparation.LocalPreparationIssue,
   ]?
 }
@@ -82,9 +83,83 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  value.environments[handle] = { borrow, environment, context, }
+  value.environments[handle] = { borrow, environment, wire: body, context, }
   value.next_handle += 1
   handle
+}
+
+///|
+/// Trusted installed environment and publication share one pre-reserved input.
+/// The common publication interpreter binds aliases to admitted Catalog facts;
+/// no caller-defined file, schema or Source read permission is accepted here.
+#export_name("actql_program_install_source_environment")
+pub fn install_source_environment(nonce : Int64, input : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.copies.get(input) is Some((slot, physical)) else {
+    return -2
+  }
+  if value.next_handle == 2147483647 {
+    return -4
+  }
+  guard input_cursor(value, slot) is Some(cursor) &&
+    @decode.closed_object(cursor, ["environment", "publication"]) is Ok(object) &&
+    required_text(object, "environment") is Some(body) &&
+    required_text(object, "publication") is Some(publication) else {
+    return -20
+  }
+  guard @host.admit_client_check_environment(
+      body,
+      environment_body_cid(body),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    )
+    is Some(environment) else {
+    return -20
+  }
+  let context = match
+    @preparation.bind_local_published_input_context(
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(context) => context
+    Err(_) => return -20
+  }
+  let handle = value.next_handle
+  let borrow = match
+    @buffers.borrow_buffer(value.pool, slot, () => {
+      physical_reader_stop(physical, handle) == 0
+    }) {
+    Ok(borrow) => borrow
+    Err(issue) => return issue_code(issue)
+  }
+  value.environments[handle] = { borrow, environment, wire: body, context, }
+  value.next_handle += 1
+  handle
+}
+
+///|
+fn environment_body_cid(body : String) -> String {
+  let node = match
+    @source.parse_json_bytes(@utf8.encode(body), {
+      max_input_bytes: 65536,
+      max_nodes: 4096,
+      max_depth: 64,
+    }) {
+    Ok(node) => node
+    Err(_) => return ""
+  }
+  guard @decode.admit(node, {
+      max_nodes: 4096,
+      max_depth: 64,
+      max_string_bytes: 65536,
+      max_total_string_bytes: 65536,
+    })
+    is Ok(cursor) &&
+    @decode.open_object(cursor) is Ok(object) else {
+    return ""
+  }
+  required_text(object, "evidence_bundle_cid").unwrap_or("")
 }
 
 ///|
@@ -169,7 +244,7 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   } else {
     @preparation.Aql(document)
   }
-  let outcome = @preparation.prepare_local_input(
+  let outcome = @preparation.prepare_local_input_material(
     input,
     configuration.environment,
     None,
@@ -186,7 +261,10 @@ pub fn prepared_results(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
   match record.outcome {
-    Some(Ok(prepared)) => @host.prepared_client_result_count(prepared)
+    Some(Ok(prepared)) =>
+      @host.prepared_client_result_count(
+        @preparation.local_prepared_program(prepared),
+      )
     Some(Err(_)) => -22
     None => -23
   }
@@ -199,7 +277,11 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
   guard value.preparations.get(handle) is Some(record) else { return -2 }
   match record.outcome {
     Some(Ok(prepared)) =>
-      @strategy.graph_task_count(@host.prepared_client_graph(prepared))
+      @strategy.graph_task_count(
+        @host.prepared_client_graph(
+          @preparation.local_prepared_program(prepared),
+        ),
+      )
     Some(Err(_)) => -22
     None => -23
   }
@@ -210,6 +292,9 @@ pub fn prepared_tasks(nonce : Int64, handle : Int) -> Int {
 pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.preparations.get(handle) is Some(record) else { return -2 }
+  if value.runs.values().any(run => run.preparation == handle) {
+    return -9
+  }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
     value.preparations.remove(handle) |> ignore

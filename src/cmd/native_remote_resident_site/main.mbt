@@ -2213,6 +2213,43 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("retained-current-unavailable", [("request_cid", identity)])
         }
       }
+      Ok(Some(@remote.EffectCurrent(query))) => {
+        backoff_ms = 0
+        let request = @remote.remote_poll_effect_current_request(query)
+        // Transport cannot fabricate a current Ledger observation. Preserve
+        // pending custody until the original review Owner is installed.
+        match
+          @resident.check_resident_dispatch_delegation(
+            site_delegation, request, generation,
+          ) {
+          Err(refusal) =>
+            report("effect-current-refused", [("reason", refusal_code(refusal))])
+          Ok(_) =>
+            report("effect-current-pending", [
+              ("request_cid", @remote.dispatch_request_identity(request)),
+              ("reason", "review-owner-unavailable"),
+            ])
+        }
+      }
+      Ok(Some(@remote.EffectResume(delivery))) => {
+        backoff_ms = 0
+        let request = @remote.remote_poll_effect_resume_request(delivery)
+        let identity = @remote.dispatch_request_identity(request)
+        // Routing alone cannot install a review Owner, verify a current claim
+        // or grant permission to send. Keep the original pending custody.
+        match
+          @resident.check_resident_dispatch_delegation(
+            site_delegation, request, generation,
+          ) {
+          Err(refusal) =>
+            report("effect-resume-refused", [("reason", refusal_code(refusal))])
+          Ok(_) =>
+            report("effect-resume-pending", [
+              ("request_cid", identity),
+              ("reason", "review-owner-unavailable"),
+            ])
+        }
+      }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
         backoff_ms = 0
         // Relay unchanged to the live holder. If it has exited, select only
@@ -2675,6 +2712,7 @@ fn serve_holder_output(
                     })
                   EffectComputation =>
                     @resident_host.resident_effect_retained_consumer_producer_identity(
+                      environment.journal,
                       admission,
                       resident_effect_limits(admission),
                       configuration,

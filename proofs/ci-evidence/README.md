@@ -367,6 +367,12 @@ to submit this bounded executor change; use its natural PR CI.
 
 ## Reviewed JS package configuration
 
+The current literal Local whitebox-import delta is reviewed against main
+`aae65b850faa3a6d02247c40f8270c8b5bd2d62c` in
+[the Local import configuration review](../../docs/reviews/2026-10-11-session-local-import-configuration-review.md).
+Unknown configuration still preserves full-source fallback and unresolved
+reuse; this review does not adopt a new finite experiment or claim execution.
+
 ### Physical source cohort
 
 The isolated `mutations-js` action stages the three existing mutation packages

@@ -36,7 +36,9 @@ test('Source Graph member selection is narrow while the normal corpus retains it
   assert.ok(driver.slice(start, end).includes("'--source-graph-member-only'"),
     'the explicit selection must not start the independent Planner/Effect campaigns');
   const sourceEnd = driver.indexOf("if (process.argv.includes('--source-graph-member-only')) return;", end);
-  const restart = driver.indexOf("['packed-query-restart-transports.mjs']", end);
+  // Defining the shared restart helper performs no I/O. Pin its actual
+  // unrelated String invocation, not the retained Graph helper's definition.
+  const restart = driver.indexOf('await exerciseRetainedQueryRestart();', end);
   const acceptance = driver.indexOf("['packed-query-transports.mjs']", end);
   assert.ok(acceptance >= 0 && sourceEnd > acceptance && restart > sourceEnd,
     'finish Source acceptance before any unrelated retained String restart');
@@ -180,7 +182,9 @@ test('packed analytic profiles are selected explicitly by both Host entrances', 
   assert.ok(fixture.includes('installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}'));
   assert.ok(fixture.includes('const directory = cohortDirectory(localDirectory, index);'));
   assert.ok(fixture.includes('const directory = cohortDirectory(remoteDirectory, index);'));
-  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy}'));
+  assert.ok(fixture.includes('installation: {directory,\n      sourceProfilePath, hostCapacityPolicy,'));
+  assert.equal(fixture.match(/const authorization = graphRemainingOperationsOnly \|\| inputStageResultOnly \|\| typedSubscriptOnly\s*\? createRetainedGraphAuthorization\(\) : undefined;/g)?.length, 2,
+    'observer credentials are limited to explicit Graph, input-only or typed-subscript cohorts on both Hosts');
   assert.ok(fixture.includes('directory, sourceProfilePath, hostCapacityPolicy,'));
 });
 
@@ -268,18 +272,18 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
-  assert.equal(pin.sourceBaseline, 'ce027a937cf780f617d5ed98bb4d56ecbb010877');
-  assert.equal(pin.totalCases, 3474);
-  assert.deepEqual(pin.counts, {successes: 2198, refusals: 1229, executionFailures: 47});
+  assert.equal(pin.sourceBaseline, '76916b2b57ca8e06d9e74099349b17c263ccb411');
+  assert.equal(pin.totalCases, 3869);
+  assert.deepEqual(pin.counts, {"successes":2446,"executionFailures":50,"refusals":1373});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {successes: 2145, executionFailures: 45, refusals: 1194}],
+    ['standard', {"successes":2393,"executionFailures":48,"refusals":1338}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
   ]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 43]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 44]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 46]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 47]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();

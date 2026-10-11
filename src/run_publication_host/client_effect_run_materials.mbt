@@ -2,6 +2,7 @@
 /// Original Effect Run reconstructed from bounded materials. No acquisition,
 /// Preview, approval or physical write occurs during this admission.
 pub(all) struct ClientEffectRunMaterials {
+  normalization : ClientEffectNormalizationMaterialCustody?
   prepared : PreparedClientEffectComputation
   compilation : ClientEffectCompilation
   allowed : ClientEffectAllowedRun
@@ -17,6 +18,7 @@ pub(all) enum ClientEffectRunMaterialsIssue {
   Binding(ClientEffectCompiledRunIssue)
   RunMismatch
   Request(ClientRequestIdentityIssue)
+  Normalization(ClientEffectNormalizationIssue)
 }
 
 ///|
@@ -63,6 +65,9 @@ pub fn issue_client_effect_run_materials(
   effect_limits : ClientEffectComputationLimits,
   request? : ClientRequestIdentity? = None,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
+  if allowed.compilation.normalization_profile {
+    return Err(Normalization(MissingOriginalJournal))
+  }
   let prepared = client_effect_compilation_owner(allowed.compilation)
   match bind_client_effect_compiled_run(prepared, allowed, definition) {
     Ok(_) => ()
@@ -148,11 +153,36 @@ pub fn admit_client_effect_run_materials(
   manifests : ClientCompilationManifests,
   limits : ClientValuesRunMaterialsLimits,
   effect_limits : ClientEffectComputationLimits,
+  original_materials? : ClientEffectIssuedNormalizationMaterials? = None,
+  expected_request? : ClientRequestIdentity? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(materials, expressions, operations) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
+  }
+  let normalization_profile = match original_materials {
+    Some(issued) => {
+      if body.normalization_wire is None ||
+        !original_effect_materials_match(
+          issued, materials, expected_run_definition_cid,
+        ) {
+        return Err(Normalization(UnverifiedOriginalMaterials))
+      }
+      issued.normalization_profile
+    }
+    None => body.normalization_wire is Some(_)
+  }
+  // A proposed profile is not evidence. Its reconstructed Template must match
+  // the saved invocation, authorization and externally selected original Run.
+  if normalization_profile {
+    guard body.normalization_wire is Some(wire) else {
+      return Err(Normalization(MissingOriginalJournal))
+    }
+    match admit_completion_free_material_journal(wire) {
+      Ok(_) => ()
+      Err(issue) => return Err(Normalization(issue))
+    }
   }
   let prepared = match
     prepare_client_effect_computation(
@@ -167,7 +197,7 @@ pub fn admit_client_effect_run_materials(
     Err(issue) => return Err(Program(issue))
   }
   let compilation = match
-    issue_prepared_client_effect_compilation(
+    issue_client_effect_compilation_internal(
       prepared,
       manifests,
       limits.sequence,
@@ -176,6 +206,7 @@ pub fn admit_client_effect_run_materials(
       limits.max_evidence_bytes,
       limits.max_evidence_nodes,
       limits.max_evidence_depth,
+      normalization_profile,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Compilation(issue))
@@ -201,7 +232,12 @@ pub fn admit_client_effect_run_materials(
   let allowed = match
     admit_client_effect_allowed_run(compilation, invocation, authorization) {
     Ok(value) => value
-    Err(issue) => return Err(Binding(issue))
+    Err(issue) => {
+      if normalization_profile && original_materials is None {
+        return Err(Normalization(UnverifiedOriginalMaterials))
+      }
+      return Err(Binding(issue))
+    }
   }
   let run_definition = match
     issue_client_effect_run_definition(
@@ -236,5 +272,44 @@ pub fn admit_client_effect_run_materials(
       Some(value)
     }
   }
-  Ok({ prepared, compilation, allowed, run_definition, request, })
+  // The original Run CID binds the compiler profile, not a logical caller
+  // request. Wire-only restoration also needs the original request selected
+  // independently by the trusted durable Host/journal context. Do not derive
+  // that expected identity from these candidate material bytes.
+  if normalization_profile &&
+    original_materials is None &&
+    request != expected_request {
+    return Err(Request(IdentityMismatch))
+  }
+  if normalization_profile {
+    let canonical = match
+      encode_prepared_client_effect_materials(
+        allowed,
+        run_definition,
+        body.request_wire,
+        body.normalization_wire,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if canonical != materials {
+      return Err(Normalization(UnverifiedOriginalMaterials))
+    }
+  }
+  let normalization = match body.normalization_wire {
+    None => None
+    Some(wire) => {
+      let custody : ClientEffectNormalizationMaterialCustody = {
+        issued: original_materials,
+        compilation,
+        run_cid: expected_run_definition_cid,
+        request,
+        journal_wire: wire,
+        materials_cid: "sha256:" + @sha.hex(@utf8.encode(materials)),
+      }
+      prepared.normalization_custody = Some(custody)
+      Some(custody)
+    }
+  }
+  Ok({ normalization, prepared, compilation, allowed, run_definition, request, })
 }

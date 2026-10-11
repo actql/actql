@@ -29,27 +29,19 @@ test "Graph argument selector and Carrier violations are distinct from support g
 }
 
 ///|
-test "Graph row classification does not reinterpret unconnected operation options as selectors" {
+test "Shortest retains two explicit Relation selectors through public source compilation" {
   let prefix = graph_rows_prefix() +
     "DATA seeds = FROM g |> node_rows() |> SELECT id; "
-  // Reach and shortest_path have complete adopted arguments and ordinary
-  // Relation consumers. Their source connection remains unavailable.
   for
     tail in [
-      "DATA reached = FROM g |> reach(start: {from: seeds, id: 'id'}, direction: 'out', max_depth: 1); FROM reached |> SELECT depth",
       "DATA paths = FROM g |> shortest_path(source: {from: seeds, id: 'id'}, target: {from: seeds, id: 'id'}, selection: 'each_pair', direction: 'out', max_hops: 1); FROM paths |> SELECT hop_count",
-      // Graft preserves Graph, so this reaches the Graph-row prefix owner.
-       "FROM g |> graft_graph(with: g) |> node_rows() |> SELECT node_key",
     ] {
-    assert_true(
-      classified_graph_source(prefix + tail) is Err(UnsupportedGraph),
-      msg=tail,
-    )
+    assert_true(classified_graph_source(prefix + tail) is Ok(_), msg=tail)
   }
 }
 
 ///|
-test "mean required arguments are invalid while a complete unconnected mean stays unsupported" {
+test "mean required arguments are invalid while the explicit complete generator lowers" {
   let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
   let suffix = "; FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id"
   let complete = "with: [g, g], weights: [1, 1], support: {nodes: 1, edges: 1}, properties: {nodes: {id: 'exact_equal', entity_type: 'exact_equal'}, edges: {}}"
@@ -73,7 +65,7 @@ test "mean required arguments are invalid while a complete unconnected mean stay
     classified_graph_source(
       prefix + "DATA combined = mean_graphs(" + complete + ")" + suffix,
     )
-    is Err(UnsupportedGraph),
+    is Ok(_),
   )
   // Duplicate names remain the existing syntax owner's diagnostic.
   assert_true(

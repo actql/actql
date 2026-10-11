@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import {checkBaseline,hash} from './inventory.mjs';
+import './proof-runner-extension.test.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const path='proofs/relation-pipeline/baseline.json';
 const baseline=JSON.parse(readFileSync(join(root,path)));

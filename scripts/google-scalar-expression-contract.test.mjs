@@ -622,7 +622,9 @@ test('Exponential and logarithmic contracts retain unary aliases and binary LOG 
   assert.match(expression.laws.log.value, /base to differ from one/);
   assert.match(expression.laws.log10.value, /less than or equal to zero/);
   for (const name of ['exp', 'ln', 'log', 'log10']) {
-    assert.match(expression.laws[name].algorithm, /last-bit equality.*not asserted/);
+    assert.match(expression.laws[name].algorithm, /same pinned portable MoonBit core Double algorithms/);
+    assert.match(expression.laws[name].algorithm, /preserve exact logical Number bits across targets/);
+    assert.match(expression.laws[name].algorithm, /no live-BigQuery last-bit equivalence is claimed/);
     const changed = structuredClone(expression);
     changed.laws[name].evaluation = 'skip child errors';
     assert.throws(() => updateGoogleScalarContracts(changed, protocol, grammar));

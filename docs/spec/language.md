@@ -2083,12 +2083,14 @@ return canonical positive zero for unrepresentable underflow.
 LN and LOG10 MUST require a positive argument; binary LOG requires a positive
 value and a positive base other than one.
 
-<!-- requirement-block: scalar-expressions.finite-math-demanded-evaluation -->
+<!-- requirement-block: scalar-expressions.finite-math-demanded-evaluation scalar-expressions.finite-math-target-independent-kernel -->
 These functions MUST evaluate demanded operands once in source order and
 preserve ordinary child failures before strict NULL handling, including a
 later demanded child failure after an earlier NULL. They do not catch child
-errors. General transcendental last-bit cross-target or live-BigQuery equality
-is not guaranteed.
+errors. The same pinned portable numeric kernel MUST be used across JS,
+WebAssembly and Native, preserving exact logical Number bits for identical
+admitted inputs and selected contracts. Live-BigQuery last-bit equality is not
+guaranteed.
 
 <!-- requirement-block: scalar-expressions.round-trunc scalar-expressions.round-trunc-evaluation scalar-expressions.round-trunc-precision-integrality scalar-expressions.round-trunc-precision-position-bounds scalar-expressions.round-trunc-precision-algorithm scalar-expressions.round-trunc-precision-final-scaling scalar-expressions.round-trunc-precision-operation-order scalar-expressions.round-trunc-precision-overflow scalar-expressions.round-trunc-budgets scalar-expressions.round-trunc-exclusions scalar-expressions.round-trunc-precision-identity -->
 `round(x)` and `trunc(x)` MUST each take one finite binary64 `number`,
@@ -10256,7 +10258,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:c00ae1e7c4fb2645ade666ab9c4fafe8676a0faa68b52c52b5105832d074d82c
+../../spec/contracts/actql-aoa.json# sha256:31f493d5baa8beec70e7229af486736a7fe8fdd81d36fa3a34472bddd092b0ba
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10265,11 +10267,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:624390b236d1b30699cd7fd25b72ff65d968bcf6443ead979d9200b84061d941
+../../spec/contracts/actql-expressions.json# sha256:2eadabccd02a8719efe795f32e21cd7736642027b28f74b438d7fdb79100caa0
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:6cb1de98a0f227ed95d3f5e4394b292c7c4ffa524e2ef1e8093dcba94679667c
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:37a0e5fb56275baa0dfeadfccdc630df12cdc0889b7ce816390ed83746606463
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:68a90c36801b9c2b72667c26d486894201dddd2fe1fb503b9957b7b5ef3a5f53
+../../spec/contracts/actql-expressions.json#/laws sha256:528278f332405c4d60eb3c1b0708fadbc17ac22ca5f8fe6451c6c2fcca4693d5
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:831a1c9700cdd04f1ee486432939b6fea33b0747a0d4f57b0873856e98fcce71
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:641a38e9f940e11163a42dc767f6a5cfe12d0a2e83db11081960eb3c20fc7c00
 ```

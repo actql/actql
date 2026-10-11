@@ -19,6 +19,7 @@ pub enum ExpressionBody {
   EmptyArray
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
+  Subscript(Expression, Expression)
   Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
@@ -168,6 +169,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     | TypedNull
     | EmptyArray
     | Property(_, _, _)
+    | Subscript(_, _)
     | Cast(_)
     | Unary(_, _)
     | Binary(_, _, _)
@@ -275,7 +277,7 @@ fn expression_tag(
     | "cast"
     | "if"
     | "case" => ()
-    "array" | "empty_array" | "object" | "property" => ()
+    "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
 }
@@ -300,6 +302,13 @@ fn expression_children(
     }
     "property" =>
       [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
+    "subscript" => {
+      let object = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(object, "value").unwrap(),
+        @decode.lookup(object, "index").unwrap(),
+      ]
+    }
     "object" => {
       let count = @decode.object_length(body).unwrap()
       if count > max_nodes {
@@ -600,15 +609,25 @@ fn lower_expression_measured(
         (@graph.predicate_expression(predicate), references)
       }
       GraphTraverseRows(checked) => {
-        let hop_index = binding_index / 2
-        guard binding_index >= 0 &&
-          @graph.traverse_hop_at(checked, hop_index) is Some(hop) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        let predicate = if binding_index % 2 == 0 {
-          @graph.hop_edge_predicate(hop)
+        let selector = @graph.traverse_start(checked)
+        let predicate = if binding_index ==
+          @graph.traverse_hop_count(checked) * 2 {
+          @graph.selector_predicate(selector)
+        } else if binding_index == @graph.traverse_hop_count(checked) * 2 + 1 {
+          @graph.traverse_shortest(checked)
+          .map(@graph.shortest_targets)
+          .bind(@graph.selector_predicate)
         } else {
-          @graph.hop_node_predicate(hop)
+          let hop_index = binding_index / 2
+          guard binding_index >= 0 &&
+            @graph.traverse_hop_at(checked, hop_index) is Some(hop) else {
+            expression_fail(step.source, MissingCheckedBinding)
+          }
+          if binding_index % 2 == 0 {
+            @graph.hop_edge_predicate(hop)
+          } else {
+            @graph.hop_node_predicate(hop)
+          }
         }
         guard predicate is Some(predicate) else {
           expression_fail(step.source, MissingCheckedBinding)
@@ -664,6 +683,7 @@ fn lower_expression_measured(
       | GraphNormalizeValue(_)
       | GraphDeltaValue(_)
       | GraphUnionValue(_)
+      | GraphMeanValue(_)
       | GraphSubtractionValue(_)
       | GraphComponentsRows(_)
       | GraphConstructionValue(_)
@@ -783,6 +803,7 @@ fn lower_typed_expression_measured(
       let lowered = match tag {
         "array" => Array(args)
         "empty_array" => EmptyArray
+        "subscript" => Subscript(args[0], args[1])
         "object" => {
           guard contract.shape is @contract.Object(contracts) else {
             expression_fail(cursor, MissingTypeAnnotation)
@@ -1029,6 +1050,7 @@ fn lower_typed_expression_measured(
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
           Property(child, _, _) => child.uses_veca
+          Subscript(value, index) => value.uses_veca || index.uses_veca
           Array(children) => children.any(child => child.uses_veca)
           Object(fields) => fields.any(field => field.1.uses_veca)
           Cast(child) => child.uses_veca

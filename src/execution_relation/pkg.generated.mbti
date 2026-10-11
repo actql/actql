@@ -41,6 +41,8 @@ pub fn admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOu
 
 pub fn admitted_output_row_count(AdmittedOutputRows) -> Int
 
+pub fn admitted_output_row_workspace_usage(AdmittedOutputRowCursor) -> (Int, Int)
+
 pub fn admitted_output_schema(AdmittedOutputRows) -> @relation_schema.Schema
 
 pub fn admitted_output_stream_progress(AdmittedOutputStream) -> (Int, Int, Int)?
@@ -1266,6 +1268,8 @@ pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, I
 pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
 
 pub fn start_prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerReadPreparation, ProducerReadIssue]
+
+pub fn start_producer_read_cell_recheck(ProducerRead, Int, Int, @value_admission.Limits) -> @value_admission.RecheckCursor?
 
 pub fn start_relation_schema_identity(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentityPreparation, RelationSchemaIdentityIssue]
 

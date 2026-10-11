@@ -482,12 +482,14 @@ LOG/LN synonym only at arity one. No generic lowered-operator fallback changes
 existing alias identities or malformed-arity behavior.
 
 Implementation reuses the existing canonical scalar, continuation, resource and
-cancellation owners with the pinned MoonBit core math primitives. Binary LOG
+cancellation owners with the pinned portable MoonBit core Double algorithms
+in `src/scalar_numeric_kernel`, selected identically on all three targets. Binary LOG
 uses ln(value)/ln(base), matching GoogleSQL `Logarithm` at selected revision
-`81c15b796138185c046aefe852321011fdf96615`. General transcendental last-bit equality across platform libraries,
-JavaScript, WebAssembly, native targets or live BigQuery is not asserted. Tests
-use exact identities where justified and independently specified numerical
-intervals otherwise. No frontend-local math engine or permissive fallback is
+`81c15b796138185c046aefe852321011fdf96615`. The target-selected platform-library exception is rejected because pure
+scalar observations retain exact capture/replay identity. Identical admitted
+inputs and selected contracts use identical pinned arithmetic across JS,
+WebAssembly and Native. The demonstrated exact-bit counterexamples are retained
+independently. Live BigQuery last-bit equality is not claimed. No frontend-local math engine or permissive fallback is
 introduced.
 
 References:

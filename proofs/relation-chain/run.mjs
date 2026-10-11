@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import {spawnProofCommand} from '../bounded-session/native-command.mjs';
 import { performance } from 'node:perf_hooks';
 import { modelExecution, modelObservationUnits, retirementModelExecution, retirementBindings, retirementFixture, executedRetirementCoverage, artifacts, bindings, stopBindings, pauseBindings, pauseFixture, executedPauseCoverage, stopFixture, checkBindings, executedCoverage, executedStopCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
 
@@ -24,7 +25,7 @@ if (compiler.status !== 0 || compiler.stdout.trim() !== pin.moonc) throw new Err
 
 function run(id, command, args, target = 'model', packagePath = null, expectedModel = modelExecution) {
   const start = performance.now();
-  const result = spawnSync(command, args, { cwd: root, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  const result = spawnProofCommand(command, args, target, { cwd: root, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   const milliseconds = Math.round(performance.now() - start);
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `${id}.log`), output);

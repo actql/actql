@@ -293,6 +293,12 @@ function fixtures() {
     }
     result.push({id: 'incoming gate ' + item.id, value: item.preimage, cid: item.expected_cid});
   }
+  const effectCurrent = read('spec/fixtures/remote-effect-current-vectors.json');
+  assert.equal(effectCurrent.version, 'actql-remote-effect-current-vectors/0.1');
+  for (const item of [{id: 'query', ...effectCurrent.query}, {id: 'poll', ...effectCurrent.poll}, ...effectCurrent.replies]) {
+    result.push({id: 'Remote Effect current ' + item.id,
+      value: item.body, cid: item.cid, text: item.canonical});
+  }
   return result;
 }
 

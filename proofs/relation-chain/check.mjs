@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import {runProofCommand} from '../bounded-session/proof-command.mjs';
 import { fileURLToPath } from 'node:url';
 
 const cwd = fileURLToPath(new URL('.', import.meta.url));
@@ -13,7 +13,8 @@ const model = modules.map(m => m.source).join('\n');
 const claims = ['Claims.lean', 'StopClaims.lean']
   .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
 const pin = readFileSync(new URL('lean-toolchain', import.meta.url), 'utf8').trim();
-const version = spawnSync('lean', ['--short-version'], { cwd, encoding: 'utf8' });
+const version = await runProofCommand('lean', ['--short-version'], {cwd});
+if (version.error) throw version.error;
 if (version.status !== 0 || version.stdout.trim() !== pin.split(':v')[1]) {
   throw new Error(`Expected ${pin}; got ${version.stdout || version.stderr}`);
 }
@@ -29,8 +30,8 @@ const names = modules.flatMap(m => {
   return names;
 });
 const audit = names.map(name => `#print axioms ${name}`).join('\n');
-const result = spawnSync('lean', ['-DwarningAsError=true', '--stdin'], {
-  cwd, encoding: 'utf8', input: `${model}\n${claims}\n${audit}\n`, maxBuffer: 4 * 1024 * 1024,
+const result = await runProofCommand('lean', ['-DwarningAsError=true', '--stdin'], {
+  cwd, input: `${model}\n${claims}\n${audit}\n`, maxBuffer: 4 * 1024 * 1024,
 });
 process.stdout.write(result.stdout || '');
 process.stderr.write(result.stderr || '');

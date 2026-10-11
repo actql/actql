@@ -51,6 +51,7 @@ import {
 
 options(
   targets: {
+    "effect_consumer_context_native_wbtest.mbt": [ "native" ],
     "stopped_retained_cleanup_native_wbtest.mbt": [ "native" ],
     "cancelled_receiver_cleanup_native_wbtest.mbt": [ "native" ],
   },

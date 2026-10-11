@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:714f9a7b2c580c983c3e5bc0ab05e0af8df34247635c32caf99bfad34360c3bf';
+  const currentExpected = 'sha256:28719117cf7c391c3fe4a5342d920eb7fdefe59a02a5f4109738d4989b61168a';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -474,14 +474,123 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_rules_sha256: '4635956e68e7d5862fd0553053bde9fc5a855e661c9cd4fd10339cdd1e61739a'});
   assert.deepEqual(currentBody, {...beforeStrposBody,
     source_grammar_cid: 'sha256:f984bace3d23b9c3f048dc7533de89ee8116ebacc1af07b4c10bdc0a4dbf07de',
-    expression_contract_cid: 'sha256:624390b236d1b30699cd7fd25b72ff65d968bcf6443ead979d9200b84061d941',
+    expression_contract_cid: 'sha256:2eadabccd02a8719efe795f32e21cd7736642027b28f74b438d7fdb79100caa0',
     expression_text_grammar_sha256: '84b432a182f567fb44895cc1caf37071d3e19dae741b88de50ecb923efba78e8',
     expression_text_rules_sha256: '2a2737d888339b214d971e4d301c2b414b7fc14bdbb832832a57625b38c64285',
-    query_text_rules_sha256: '5f4b8d4291d77b3823b7de1b262091a93ad6398d955843ebd58995b6edfc3766'});
+    query_text_grammar_sha256: 'f5fd5d0c89b7db4bea6992f4e5743242d38606b07fda51b9a3293d720f7fa1ee',
+    query_text_rules_sha256: '37c42f19f289e571ecb69d6657e4c1370597852d60ff3dcdc408860dfe2f994a'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
     assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), currentExpected);
   }
+});
+
+test('combined PIVOT argument roles only change source grammar and lowering rules pins', () => {
+  const before = read('scripts/fixtures/pre-pivot-argument-expression-values-identities.json').grammar;
+  // Compare the accepted PIVOT boundary with its retained predecessor; later
+  // expression extensions belong to the separate current-manifest checks.
+  const after = read('scripts/fixtures/adopted-pivot-argument-main-grammar.json').grammar;
+  const {grammar_manifest_cid: beforeCid, query_text_grammar_sha256: beforeSyntax,
+    query_text_rules_sha256: beforeRules, ...beforeCommon} = before;
+  const {grammar_manifest_cid: afterCid, query_text_grammar_sha256: afterSyntax,
+    query_text_rules_sha256: afterRules, ...afterCommon} = after;
+  assert.equal(cid({...beforeCommon, query_text_grammar_sha256: beforeSyntax,
+    query_text_rules_sha256: beforeRules}), beforeCid);
+  assert.deepEqual(afterCommon, beforeCommon);
+  assert.notEqual(afterSyntax, beforeSyntax);
+  assert.notEqual(afterRules, beforeRules);
+  assert.notEqual(afterCid, beforeCid);
+});
+
+test('FROM PIVOT only changes source grammar and source-lowering rules',()=>{
+ const before=read('scripts/fixtures/pre-from-pivot-values-identities.json').grammar;
+ const after=read('scripts/fixtures/pre-derived-scope-stack-values-identities.json').grammar;
+ const {grammar_manifest_cid:bc,query_text_grammar_sha256:bg,query_text_rules_sha256:br,...commonBefore}=before;
+ const {grammar_manifest_cid:ac,query_text_grammar_sha256:ag,query_text_rules_sha256:ar,...commonAfter}=after;
+ assert.deepEqual(commonAfter,commonBefore);
+ assert.equal(cid({...commonBefore,query_text_grammar_sha256:bg,query_text_rules_sha256:br}),bc);
+ assert.notEqual(ag,bg);assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+test('optional table aliases change only source grammar/rules pins',()=>{
+ const before=read('scripts/fixtures/pre-optional-derived-alias-values-identities.json').grammar;
+ const after=read('scripts/fixtures/pre-derived-value-table-alias-values-identities.json').grammar;
+ const {grammar_manifest_cid:bc,query_text_grammar_sha256:bg,query_text_rules_sha256:br,...commonBefore}=before;
+ const {grammar_manifest_cid:ac,query_text_grammar_sha256:ag,query_text_rules_sha256:ar,...commonAfter}=after;
+ assert.deepEqual(commonAfter,commonBefore);assert.notEqual(ag,bg);assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+
+test('derived value-table alias changes source rules but keeps syntax/common contracts',()=>{
+ const before=read('scripts/fixtures/pre-derived-value-table-alias-values-identities.json').grammar;
+ const after=read('scripts/fixtures/pre-whole-row-range-values-identities.json').grammar;
+ const {grammar_manifest_cid:bc,query_text_rules_sha256:br,...cb}=before;
+ const {grammar_manifest_cid:ac,query_text_rules_sha256:ar,...ca}=after;
+ assert.deepEqual(ca,cb);assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+
+
+test('ordinary row expression changes only source rules, preserving syntax and common contracts',()=>{
+ const before=read('scripts/fixtures/pre-whole-row-range-values-identities.json').grammar;
+ const after=read('scripts/fixtures/pre-range-name-precedence-values-identities.json').grammar;
+ const {grammar_manifest_cid:bc,query_text_rules_sha256:br,...cb}=before;
+ const {grammar_manifest_cid:ac,query_text_rules_sha256:ar,...ca}=after;
+ assert.deepEqual(ca,cb);assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+
+
+test('range precedence changes only query rules, not common contracts or syntax',()=>{
+ const before=read('scripts/fixtures/pre-range-name-precedence-values-identities.json').grammar;
+ const after=read('scripts/fixtures/submitted-range-name-precedence-identities.json').grammar;
+ const {grammar_manifest_cid:bc,query_text_rules_sha256:br,...cb}=before;
+ const {grammar_manifest_cid:ac,query_text_rules_sha256:ar,...ca}=after;
+ assert.deepEqual(ca,cb);assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+
+test('joined row scope changes query rules without a new expression or JOIN contract',()=>{
+ const before=read('scripts/fixtures/pre-joined-row-range-values-identities.json').grammar;
+ const after=read('scripts/fixtures/submitted-joined-row-identities.json').grammar;
+ const {grammar_manifest_cid:bc,query_text_rules_sha256:br,...commonBefore}=before;
+ const {grammar_manifest_cid:ac,query_text_rules_sha256:ar,...commonAfter}=after;
+ assert.deepEqual(commonAfter,commonBefore);
+ assert.equal(cid({...commonBefore,query_text_rules_sha256:br}),bc);
+ assert.equal(cid({...commonAfter,query_text_rules_sha256:ar}),ac);
+ assert.notEqual(ar,br);assert.notEqual(ac,bc);
+});
+
+
+test('PIVOT scalar argument only changes its source grammar and lowering rules pins', () => {
+  const before = read('scripts/fixtures/pre-pivot-argument-expression-values-identities.json').grammar;
+  const after = read('scripts/fixtures/adopted-pivot-argument-main-grammar.json').grammar;
+  const {grammar_manifest_cid: beforeCid, query_text_grammar_sha256: beforeSyntax,
+    query_text_rules_sha256: beforeRules, ...beforeCommon} = before;
+  const {grammar_manifest_cid: afterCid, query_text_grammar_sha256: afterSyntax,
+    query_text_rules_sha256: afterRules, ...afterCommon} = after;
+  assert.equal(cid({...beforeCommon, query_text_grammar_sha256: beforeSyntax,
+    query_text_rules_sha256: beforeRules}), beforeCid);
+  assert.deepEqual(afterCommon, beforeCommon);
+  assert.notEqual(afterSyntax, beforeSyntax);
+  assert.notEqual(afterRules, beforeRules);
+  assert.notEqual(afterCid, beforeCid);
+});
+
+
+test('integrated derived scopes preserve common contracts and both historical parent closures', () => {
+  const before = read('scripts/fixtures/pre-derived-scope-stack-values-identities.json').grammar;
+  // Preserve the accepted derived-scope boundary; later scalar extensions
+  // are checked by the separate current manifest and expression contracts.
+  const retained = read('scripts/fixtures/adopted-derived-scope-stack-grammar.json');
+  assert.equal(retained.source_revision, 'ec9b3966a2126eecf8880e1fe1608fce26a5f3bc');
+  const after = retained.grammar;
+  const {grammar_manifest_cid: bc, query_text_grammar_sha256: bg, query_text_rules_sha256: br, ...commonBefore} = before;
+  const {grammar_manifest_cid: ac, query_text_grammar_sha256: ag, query_text_rules_sha256: ar, ...commonAfter} = after;
+  assert.deepEqual(commonAfter, commonBefore);
+  assert.equal(cid({...commonBefore, query_text_grammar_sha256: bg, query_text_rules_sha256: br}), bc);
+  assert.equal(cid({...commonAfter, query_text_grammar_sha256: ag, query_text_rules_sha256: ar}), ac);
+  assert.notEqual(ag, bg); assert.notEqual(ar, br); assert.notEqual(ac, bc);
 });
