@@ -9,11 +9,33 @@ test "funded capacity handoff preserves original ledger and separate cleanup cus
   assert_true(funded_read_preparation_available(claim, origin, 5L))
   assert_false(funded_read_preparation_available(claim, origin, 6L))
   assert_false(funded_read_preparation_available(claim, origin, -1L))
+  // Synthetic exact charges isolate the pre-allocation guard, not a Node
+  // layout coefficient. Aggregate headroom includes bootstrap but cannot
+  // enlarge this exact original read token.
+  let before_guard = ledger_usage(ledger)
+  let serial_before_guard = ledger.next_capacity_serial
+  assert_true(
+    funded_read_preparation_available(claim, origin, 5L, retained_bytes=7L),
+  )
+  assert_false(
+    funded_read_preparation_available(claim, origin, 5L, retained_bytes=8L),
+  )
+  assert_false(
+    funded_read_preparation_available(claim, origin, 6L, retained_bytes=7L),
+  )
+  assert_false(
+    funded_read_preparation_available(claim, origin, 5L, retained_bytes=-1L),
+  )
+  assert_eq(ledger_usage(ledger), before_guard)
+  assert_eq(ledger.next_capacity_serial, serial_before_guard)
   assert_false(
     funded_read_preparation_available(claim, original_read_test_origin(), 5L),
   )
   let before_quantity = quantity_usage(ledger)
   let (same, capacity) = handoff_funded_read_capacity(claim, origin, 10L, 5L).unwrap()
+  assert_false(
+    funded_read_preparation_available(claim, origin, 5L, retained_bytes=7L),
+  )
   assert_true(physical_equal(ledger, same))
   assert_eq(ledger_usage(same).reserved_retention_bytes, 20L)
   assert_eq(ledger_usage(same).reserved_execution_bytes, 12L)
@@ -104,6 +126,9 @@ test "funded capacity handoff rejects changed originals and stopping spent seria
   assert_eq(ledger_usage(ledger), before)
   assert_true(funded_read_available(claim, origin))
   stop_funded_read(claim)
+  assert_false(
+    funded_read_preparation_available(claim, origin, 5L, retained_bytes=7L),
+  )
   assert_false(funded_read_preparation_available(claim, origin, 1L))
   assert_true(
     handoff_funded_read_capacity(claim, origin, 1L, 1L) is Err(SpentClaim),
