@@ -6912,7 +6912,51 @@
     },
     {
       "requirement_id": "actql.language/infer.the-resolved-modeltask-contract-must-fix-task-and-prompt-identity",
-      "statement_sha256": "5779fe68b003d702e3ea823f0a4d19b93f05da98195201dc5b0224e9f630de33",
+      "statement_sha256": "fe15479e750d6e8d472ebd7542c8b8b5b1756e1d1453c18e88c99cced8cf9d1c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.decision-task-and-prompt-binding",
+      "statement_sha256": "0a22ae560cc62af7a21513be0445d9b1524e0f12b50c52185f08d35f2b7a8283",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.decision-output-correspondence",
+      "statement_sha256": "85a015a6840bf6352b21c6ca30f9c36635068e2814c83bbd3c44bc8bd80efaf5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.decision-no-generation-defaults",
+      "statement_sha256": "d4f3bbdd3e7da1f67de20b4560d45ffaeff1f943d0ff244a7b37d3b150b819bc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.decision-empty-description-presence",
+      "statement_sha256": "f06f3a4d5c04b62c3efa4f59823ce7130af577cc1f36a212c11ca256450bd8f3",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -6978,7 +7022,18 @@
     },
     {
       "requirement_id": "actql.language/infer.every-successful-call-must-emit-versioned-evidence-binding-the-modeltask",
-      "statement_sha256": "f9f5a88014075fc23a7122524879baf5265feb806ab84079f211fb2d10d8f8d6",
+      "statement_sha256": "1aefa6f446dcea865e57ae323098e92dd1ca08c690d95eab6cc58e5a2c0fcf5e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.opaque-provider-metadata-preserves-observed-content",
+      "statement_sha256": "b726b3cd60a7d4c46ba6e0509a6456246206d0b8edbe94b1b31296f8d289d12f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

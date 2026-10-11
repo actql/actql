@@ -37,5 +37,8 @@ formatter(
     "lookup_capacity.generated_test.mbt",
     "lookup_execution.generated_test.mbt",
     "pushdown_vectors.generated_test.mbt",
+    "decision_profile.generated.mbt",
+    "decision_vectors.generated_test.mbt",
+    "decision_arithmetic.generated_wbtest.mbt",
   ],
 )

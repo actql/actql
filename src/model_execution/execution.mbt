@@ -745,6 +745,12 @@ fn start_model_owned(
   }
   let count = @relation.prepared_infer_rows_count(rows)
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+  // Task admission does not enable a native Decision transport in this
+  // synchronous profile. Refuse before acquiring inputs or creating a Ledger.
+  if source is Provider(_) &&
+    @environment.model_task_kind(task) == @environment.Decision {
+    return Err(InvalidProvider)
+  }
   if source is Provider(provider) &&
     provider.provider_id != @environment.model_task_connector(task) {
     return Err(InvalidProvider)

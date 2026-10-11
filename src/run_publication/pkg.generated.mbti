@@ -442,6 +442,8 @@ pub fn model_capture_bundle_record(ModelCaptureBundleRead, Int) -> Result[ModelC
 
 pub fn model_capture_record_evidence(ModelCaptureRecordRead) -> RunEvidenceValue
 
+pub fn model_capture_record_observation(ModelCaptureRecordRead) -> Result[ModelCaptureObservation, RunEvidenceValueIssue]
+
 pub fn model_capture_record_response(ModelCaptureRecordRead) -> @canonical_json.CanonicalValue
 
 pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
@@ -1227,6 +1229,28 @@ pub struct ModelCaptureBundleRead {
   storage : ModelCaptureStorage
   mut released : Bool
 }
+
+pub(all) struct ModelCaptureObservation {
+  origin : ModelCaptureObservationOrigin
+  provider_model : String?
+  provider_revision : String?
+  provider_request_id : String?
+  gateway_request_id : String?
+  input_tokens : Int64?
+  output_tokens : Int64?
+  provider_finish_reason : String?
+  historical_finish_reason : String?
+  response_profile_cid : String?
+  response_complete : Bool?
+  raw_response_artifact_cid : String?
+  provider_metadata : @canonical_json.CanonicalValue?
+  observed_at : String
+}
+
+pub(all) enum ModelCaptureObservationOrigin {
+  HistoricalAdmitted
+  Reported
+} derive(Eq, @debug.Debug)
 
 pub struct ModelCaptureRecordRead {
   evidence : RunEvidenceValue

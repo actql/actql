@@ -1085,7 +1085,7 @@ idempotency {support, key_schema, retention}, preview strength,
 reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 ```
 
-<!-- requirement-block: command-contracts.permissions-must-be-derived-from-this-contract command-contracts.they-must-not-be-authored-or-broadened-by-the-program command-item-contract.product-7dc55ab8c349 stamp-writes.product-de5edfbb89aa stamp-writes.product-54385477c89e model-task.product-e2cfca5b7129 planning-wire.product-a854b55d6c3e -->
+<!-- requirement-block: command-contracts.permissions-must-be-derived-from-this-contract command-contracts.they-must-not-be-authored-or-broadened-by-the-program command-item-contract.product-7dc55ab8c349 stamp-writes.product-de5edfbb89aa stamp-writes.product-54385477c89e model-task.product-e2cfca5b7129 -->
 The complete resolved contract, not only its authored reference, is bound as
 `resolved_command_contract_cid`. Permissions MUST be derived from this
 contract. They MUST NOT be authored or broadened by the Program.
@@ -1155,7 +1155,7 @@ their checked/admitted bodies. Neither a valid barrier CID nor a schema
 reference authorizes model access or supplies future observations.
 
 ModelTask contracts MUST fix finite retry classification and ceilings, immutable
-slot request/model/prompt/generation/output contracts, data handling and typed
+slot request/model/prompt/kind-specific settings/output contracts, data handling and typed
 attachment roles. Outcome classes and strict publication are defined by
 Language's infer. The Host produces outcome tags, not the model. Attempts retain
 private raw evidence, usage/reservations and adopted-attempt identity; public
@@ -1165,6 +1165,18 @@ worst-case reservation, transfer plan, issuer/scope and current egress.
 The adapter binds exact content bytes and full Ref identity independently.
 Media reservations are not fabricated exact text-token counts. ResourceRef,
 hidden tools/retrieval and cross-Run model cache remain outside this contract.
+
+<!-- requirement-block: model-task.decision-discriminator model-task.decision-contract-binding model-task.decision-original-values model-task.decision-physical-profile -->
+The `actql.model_task/0.2` reader MUST select exactly one of structured
+generation and Decision. The original `actql.model_task/0.1` body and CID
+preimage remain unchanged and generation-only. Decision MUST bind its closed
+input and question-derived output contracts, native probability source and
+required Choice/Score distributions without dummy generation settings.
+Validation MUST retain original answer values, reject missing, duplicate or
+extra answers and distribution entries, and check ranges before consistency.
+The selected finite physical profile MUST fix precision and tolerance; provider
+self-description cannot widen either. This registration does not change the
+original invocation-evidence or embedded capture-bundle bodies and readers.
 
 <a id="planning-wire"></a>
 
@@ -1188,6 +1200,7 @@ carries `runtime_support: unsupported`. `stored` reports artifact integrity,
 not a fresh validity or execution-admission judgment. No rejected or unbound
 result authorizes execution.
 
+<!-- requirement-block: planning-wire.product-a854b55d6c3e -->
 For the staged target, `pending_predecessor` is the closed variant registered in
 the stage contract's schemas.pending_predecessor. It requires version,
 status, semantic_status, runtime_support, execution_admission,
@@ -1424,6 +1437,45 @@ binding strings, stripping arbitrary metadata-shaped business fields, or
 interpreting supplied tags as proof of admission is not an alternative.
 
 <a id="model-call-slot-identity"></a>
+
+### Versioned Model response observations
+
+<!-- requirement-block: model-response-observation.exact-version-compatibility model-response-observation.refuse-mixed-versions -->
+Invocation evidence and embedded capture bundles have explicit 0.1 and 0.2
+readers. The original closed 0.1 body, identity exclusion and schema pin MUST
+remain unchanged. A bundle 0.1 embeds evidence 0.1; a bundle 0.2 embeds evidence
+0.2. Unknown versions, version mixing, modified self identity, foreign Slot
+and semantic-request bindings MUST be refused, not repaired or downgraded.
+
+<!-- requirement-block: model-response-observation.defined-unknown-and-provenance -->
+New evidence 0.2 MUST retain the original Task, Slot, attempt, input Artifact,
+typed-key identity, fixed request and checked output bindings. It binds a
+selected `response_profile_cid` and `response_complete: true` assertion for an
+adopted successful response. That structural assertion is not independent
+provider conformance or dispatch authority. Provider model/revision/request
+and gateway IDs, input/output token quantities, finish reason and raw response
+Artifact CID are independently nullable defined fields, with explicit NULL
+for unavailable observations. Do not synthesize observed zero, SDK default
+provider fields, raw bytes or success output for unresolved failure.
+Historical 0.1 fields are lifted with historical admitted provenance; its
+fixed `stop` remains a historical finish assertion, not a new provider report.
+
+<!-- requirement-block: model-response-observation.opaque-metadata -->
+`provider_metadata` MUST be a required field containing NULL for unobserved data or
+a finite opaque JSON object preserving its actual content. An observed empty
+object and unobserved metadata have distinct canonical bodies/CIDs. Unknown
+metadata keys are pure data, not interpreted references, completeness, answer
+precision, permission or retry policy. The same bounded canonical decoder and
+funded evidence/response envelope applies to all nested metadata, including
+aggregate byte/node/depth limits. Reuse existing original Artifact custody and
+immutable subtrees rather than creating an independent metadata Owner or copy.
+
+<!-- requirement-block: model-response-observation.original-replay -->
+Replay MUST retain the original evidence/CID and independently bind it to the
+original request, checked output and authenticated Store custody. Reading a
+compatible shape or CID alone is not executed-attempt, publication or resend
+authority. A raw HTTP artifact and a canonical structured response remain
+distinct, even when they contain the same observed metadata.
 
 ### Model call-slot identity
 
@@ -1934,6 +1986,14 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_v02 sha256:805e0cb2268f07fe3170ff6910fcb9dcd6144af9f938bbfbac5b9c374bd89507
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_v02 sha256:4189020dcd411ebb243807e6e4195d4672f1cb35e5959dd77adf7785b96b01e5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_compatible sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_compatible sha256:d81d8cd5930edcef76afe18085537b0c008a1c7cfeb5f000acd9c1fe121a0e54
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task_v02 sha256:23ef51950192891ab9c18e6c7c779ce4cd4fe17456f810bcdcc0c8b11229b38d
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_prompt sha256:dda24589bf95171a297fb7da656d4371b92a0db243065e77e4db160d975e4e38
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_answers sha256:9074415d38b503da958213551086f760cac638fecc5b422b6af591bfe3356ac2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_probability_profile sha256:c1430ae14968435f40f7238506e9b603bf575ec462e5665bf3eac0fbc87523b3
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f
 ../../../spec/contracts/actql-consumer-capacity.json#/laws sha256:a799f82a4a06d6b2402c434142dd6e13a265bef160f4143160de1770f0e52853
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94
