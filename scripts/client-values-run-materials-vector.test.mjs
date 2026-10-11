@@ -1029,7 +1029,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
+    'sha256:1cdb5f6a3ac980abc21d226a08ac0743a4f61a187e7115d08f14a7742d077918');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1225,13 +1225,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:f52d0f54f5978844918765df7f17867d32fba9a6e794aa0d0992ec73818d0617");
+    "sha256:3b96ad0e7bd78d3a64079de89d053e079dfec9b85073ab79e7ad7e47113d61b1");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:6842ad0cf59c9f50b5536aff2ebe402396861bd5f93a0ac93400a1571811bdd6");
+    "sha256:44b29035e8467832583cc58477aa991a8aee9e8b8b9cad7289fc65a91c932b0d");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:8060e2580d898b263f504371c2bb53190318c2c6c0718c084ed83b0701623a4c");
+    "sha256:37d4c4b8276649962bb17f8698fd2a730c6168234f1a937d3de5529aee7b877d");
   assert.equal(current.run.run_definition_cid,
-    "sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949");
+    "sha256:1cdb5f6a3ac980abc21d226a08ac0743a4f61a187e7115d08f14a7742d077918");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(
@@ -2749,4 +2749,15 @@ test('pre-direct-trig Values dependencies and complete Run preimages remain immu
     'sha256:4ef58e4ec48ac9e8cee146295cc4497ecfaa663b929c8b568224036c25ce85a6');
   assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
   assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+// The published main preimages remain explicit when only Frontend rules change.
+test('pre-grouped-LIMIT full normative identity closure remains reproducible', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-grouped-limit-operands-values-identities.json', 'utf8'));
+  const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, frozen.values_dependencies,
+    frozen.barrier_contract_manifest_cid, frozen.program_identity, {canonicalCandidates: true}), frozen.run_preimages);
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
 });
