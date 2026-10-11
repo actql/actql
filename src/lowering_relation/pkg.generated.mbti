@@ -1481,10 +1481,16 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
   Substring
+  LeftString
+  RightString
+  LPad
+  RPad
   Between
 } derive(Eq, @debug.Debug)
 

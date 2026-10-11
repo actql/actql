@@ -1819,9 +1819,9 @@ recursively parsed as expressions. The Core scalar grammar contains:
 
 - arithmetic `add`, `subtract`, `multiply`, `divide`, and `modulo`;
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
-- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, and `floor`;
+- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
 - the authoring-only string `template` form;
-- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, and literal `replace`;
+- `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, `left`, `right`, `lpad`, `rpad`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
 - explicit `to_number`, `to_string`, `to_boolean`, and `to_timestamp`;
 - `to_decimal`, `try_decimal`, `quantize`, and `decimal_divide`; and
@@ -1869,6 +1869,37 @@ Substring has no text-time envelope/profile requirement; nested profile calls
 retain their own obligations, input preflight and selected resource limits.
 All scalar logical-work, live-value, output-byte, workspace, failure and
 cooperative cancellation requirements remain applicable.
+
+<!-- requirement-block: scalar-expressions.google-side-slices-padding scalar-expressions.google-padding-length scalar-expressions.google-side-padding-eager-children scalar-expressions.google-side-padding-scalar-preservation scalar-expressions.google-side-padding-output-admission -->
+`left(value, length)` and `right(value, length)` MUST return at most the
+specified number of Unicode scalars from the corresponding end. Zero returns
+empty; a length at least the input scalar count returns the entire input.
+`lpad(value, length[, pattern])` and `rpad(value, length[, pattern])` MUST return
+exactly the requested scalar length. They truncate the original value to its
+leftmost requested scalars when the requested length does not exceed its
+length. Otherwise they prepend or append repetitions of the pattern, taking
+only the needed prefix of its final repetition. The omitted pattern is U+0020.
+An explicitly empty pattern is a domain failure even when no padding is needed.
+
+Every supplied child MUST evaluate once, left to right, before strict NULL
+propagation and then domain validation. A demanded, non-null call fails for
+negative, nonintegral or unsafe-integer lengths. Child failure identity and
+lazy branch demand remain unchanged. All lengths use ActQL finite binary64
+safe integers; full GoogleSQL INT64, BYTES and collation remain unsupported.
+Unicode scalars, including astral characters, combining marks, NUL and line
+breaks, MUST remain unchanged without normalization or grapheme segmentation.
+
+The common source bodies are ordered arrays: `{left: [value, length]}`,
+`{right: [value, length]}`, `{lpad: [value, length, pattern?]}` and
+`{rpad: [value, length, pattern?]}`, with corresponding machine operation/body
+arrays. Omission stays omitted; an implicit pattern expression is not inserted.
+Side slices retain input String maxima and drop minimum length. Padding drops
+input maxima because runtime padding can expand beyond them. All supplied
+operands contribute to result nullability. The existing scalar continuation
+owns cooperative counting, boundary location, exact output sizing and
+construction. Before output buffer allocation, all output logical bytes and
+workspace MUST be admitted. Retained operand roots, logical work, live values,
+control work and cancellation stay with the existing owners.
 
 Explicit String transformations follow their declared Unicode and locale-independent laws; ordinary String values are preserved. `replace`
 is literal substring replacement, not regex. `date_add` and `date_diff`
@@ -2002,6 +2033,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | `lower`, `upper` | S → S | Pinned Unicode mappings | RelA |
 | `trim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at both ends; exact interior preserved and strict-null | RelA |
 | `ltrim`, `rtrim` | S[, S] → S | Pinned Unicode 16.0 White_Space or explicit code-point set at the leading or trailing end respectively; exact remaining scalars preserved and strict-null | RelA |
+| `left`, `right` | S, N → S | Unicode scalar prefix/suffix; zero/oversize clamp; strict NULL; demanded length-domain failures | RelA |
+| `lpad`, `rpad` | S, N[, S] → S | Unicode scalar padding/truncation; omitted space; explicit empty pattern fails; strict NULL | RelA |
 | `substring` | S, N[, N] → S | GoogleSQL scalar positions; optional length; strict NULL; demanded index-domain failures; known input upper bounds retained | RelA |
 | `concat`, `concat_strict`, `replace` | S operands → S | [Scalar expressions](#scalar-expressions) string rules | RelA |
 | `contains` | S, S → boolean | Exact matching | RelA |
@@ -2013,6 +2046,7 @@ atomic, not null, except where the named function explicitly specifies it.
 | `safe_add`, `safe_subtract`, `safe_multiply`, `safe_divide` | (N, N) → N nullable | Own overflow returns null; safe_divide also returns null for zero divisor; child failures propagate | RelA |
 | `safe_negate` | N → N | Finite binary64 negation cannot overflow; preserves operand nullability | RelA |
 | `abs`, `sign` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
+| `greatest`, `least` | N × … × N → N (one or more) | Finite numeric order; strict NULL after once-only ordered child demand; nullable iff any child is nullable | RelA |
 | `round`, `trunc` | N → N or N × N → N | One or two children evaluated once on demand in authored order; result nullable exactly when any child is nullable; explicit decimal position must be integral when both values are non-null | RelA |
 | `to_number`, `to_boolean`, `to_timestamp` | S or the exact target type → indicated type | [Explicit casts](#casts) closed conversion table; same-type identity | RelA |
 | `to_string` | string, number, decimal, boolean, timestamp, or date → S | Canonical spelling; json/object/array/vector and both reference types are rejected | RelA |
@@ -2091,6 +2125,40 @@ errors. The same pinned portable numeric kernel MUST be used across JS,
 WebAssembly and Native, preserving exact logical Number bits for identical
 admitted inputs and selected contracts. Live-BigQuery last-bit equality is not
 guaranteed.
+
+<!-- requirement-block: scalar-expressions.number-extrema scalar-expressions.number-extrema-null scalar-expressions.number-extrema-demand scalar-expressions.number-extrema-order scalar-expressions.number-extrema-subset scalar-expressions.number-extrema-identity -->
+`greatest(x, ...)` and `least(x, ...)` MUST take one or more finite binary64
+`number` expressions.
+
+The result MUST be `number`, nullable exactly when any operand is nullable,
+with each immediate untyped NULL taking the unique number signature including
+an all-NULL list and any NULL producing NULL only after all demanded child
+evaluations succeed.
+
+ActQL's common expression continuation MUST evaluate each demanded child
+exactly once in authored left-to-right order, preserve the first child failure
+and enclosing lazy IF/CASE/COALESCE demand, and retain the existing
+entry/operand/result charges, live-root, frame, control/workspace and cancellation
+rules without charging fold accumulators as extra semantic results.
+
+For non-null operands the result MUST be the greatest or least operand in the
+existing finite numeric order, preserving its exact binary64 value with canonical
+positive zero for either zero sign, with singleton calls using the same zero
+rule and without arithmetic overflow or precision reduction.
+
+This finite Number subset MUST reject STRING, BOOLEAN, temporal, decimal,
+BYTES, non-finite and mixed-type overloads, explicit collation, and implicit
+conversions without adding a private STRING comparator or changing shared global
+comparison or canonical-key ordering. GoogleSQL string ordering is by Unicode
+code point, whereas the current canonical ActQL string owner orders UTF-16 code
+units. Other overloads remain implementation gaps, without imposing new
+language-wide restrictions.
+
+The closed source forms `{greatest: [first, ...]}` and `{least: [first, ...]}`
+MUST lower to the same operation with an ordered nonempty machine `body` array,
+retaining singleton calls and every authored child in order including repetitions,
+without sorting, deduplication or constant folding and without changing the
+meanings of earlier contract bodies or CIDs.
 
 <!-- requirement-block: scalar-expressions.round-trunc scalar-expressions.round-trunc-evaluation scalar-expressions.round-trunc-precision-integrality scalar-expressions.round-trunc-precision-position-bounds scalar-expressions.round-trunc-precision-algorithm scalar-expressions.round-trunc-precision-final-scaling scalar-expressions.round-trunc-precision-operation-order scalar-expressions.round-trunc-precision-overflow scalar-expressions.round-trunc-budgets scalar-expressions.round-trunc-exclusions scalar-expressions.round-trunc-precision-identity -->
 `round(x)` and `trunc(x)` MUST each take one finite binary64 `number`,
@@ -2351,6 +2419,8 @@ an optional final argument, not expression syntax.
 | `to_decimal(value, precision, scale)`, `try_decimal(value, precision, scale)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals |
 | `quantize(value, precision, scale, rounding)` | [Decimal expressions](#decimal-expressions) fields; precision/scale are integer literals and rounding is a string literal naming an admitted mode |
 | `decimal_divide(left, right, precision, scale, rounding)` | same literal constraints as `quantize` |
+| `left(value, length)`, `right(value, length)` | corresponding common scalar side slice |
+| `lpad(value, length[, pattern])`, `rpad(value, length[, pattern])` | corresponding common scalar padding; omitted pattern remains omitted |
 | `substring(value, start[, length])` | common scalar substring named body; omitted length is distinct from explicit NULL |
 | `split_part(value, delimiter, index)`, `utf8_truncate(value, max_bytes)` | [Text, time, and regular expressions](#text-time) fields and argument restrictions |
 | `try_number(value)`, `nfkc(value)`, `case_fold(value)` | [Text, time, and regular expressions](#text-time) unary expressions |
@@ -10258,7 +10328,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:cd67bbed5be66c57e0d0783ca5b6e55c09dc5779ada66edc92551dad3d520161
+../../spec/contracts/actql-aoa.json# sha256:c3d569a8c4eda55c83d90ae16bcc20220f1415ffab8389c66ba8aba12001488a
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10267,13 +10337,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:ef58a418013702af64b675602056153211dbdb4dad07ffa583d3e23a0c60342c
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:6cb1de98a0f227ed95d3f5e4394b292c7c4ffa524e2ef1e8093dcba94679667c
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:37a0e5fb56275baa0dfeadfccdc630df12cdc0889b7ce816390ed83746606463
+../../spec/contracts/actql-expressions.json# sha256:d97cf3d919a1cf0021bf1db32fcfa28ecf08c84db3ca37b0444d8f5169331e7f
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:a50a0479259c679fd9f75a750089a9bb0a0e0cbff0459aef65c932240fcfe9e3
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:3b0fedaa9e6331d8772942cda35613f9b5494c1c9c9c08a70df4829131dfd32d
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:d508d4260e24a4252672f5f67118a9d89d3f170f9af016be43254d64b5aa50cc
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:831a1c9700cdd04f1ee486432939b6fea33b0747a0d4f57b0873856e98fcce71
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:641a38e9f940e11163a42dc767f6a5cfe12d0a2e83db11081960eb3c20fc7c00
+../../spec/contracts/actql-expressions.json#/laws sha256:802d687f8299c123bad93fc4d22ec2b3f968f89eefa4e7f1fefcf38df88612d7
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:33b10585e0369404701f9e79839570e370e4f0d24aeb9412107ed0fa0b59af69
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:26a46eedefabe9ac5353040c0a7458a4efcda4fbc7f1c8170fb904f3cd4792e3
 ```
 
 <!-- stage-contract-pins:start -->

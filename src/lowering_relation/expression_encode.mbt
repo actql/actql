@@ -246,10 +246,16 @@ fn emit_frames(
                   And => "and"
                   Or => "or"
                   Coalesce => "coalesce"
+                  Greatest => "greatest"
+                  Least => "least"
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"
                   Substring => "substring"
+                  LeftString => "left"
+                  RightString => "right"
+                  LPad => "lpad"
+                  RPad => "rpad"
                   Between => "between"
                 },
               ),

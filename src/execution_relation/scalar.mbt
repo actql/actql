@@ -541,8 +541,18 @@ pub fn boolean_pair(
           Boolean(false)
         },
       )
-    Coalesce | Concat | ConcatStrict | Replace | Substring | Between =>
-      Err(InvalidOperand)
+    Coalesce
+    | Concat
+    | ConcatStrict
+    | Replace
+    | Substring
+    | LeftString
+    | RightString
+    | LPad
+    | RPad
+    | Between
+    | Greatest
+    | Least => Err(InvalidOperand)
   }
 }
 
@@ -558,5 +568,48 @@ fn membership_result(
     Null
   } else {
     Boolean(op == @lower.NotIn)
+  }
+}
+
+///|
+// Extrema reuse the common finite-number comparison owner. The common Many
+// continuation still evaluates later children after NULL and owns every root.
+fn number_extremum(
+  op : @lower.ManyOperator,
+  previous : Value,
+  value : Value,
+  first : Bool,
+) -> Result[Value, ScalarIssue] {
+  if op != @lower.Greatest && op != @lower.Least {
+    return Err(InvalidOperand)
+  }
+  match value {
+    Null => Ok(Null)
+    Number(n) => {
+      // Validate even after an earlier NULL, including a non-null singleton.
+      match compare(value, value) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      if first {
+        return finite(n)
+      }
+      match previous {
+        Null => Ok(Null)
+        Number(_) =>
+          match compare(previous, value) {
+            Err(issue) => Err(issue)
+            Ok(order) =>
+              if (op == @lower.Greatest && order < 0) ||
+                (op == @lower.Least && order > 0) {
+                finite(n)
+              } else {
+                Ok(previous)
+              }
+          }
+        _ => Err(InvalidOperand)
+      }
+    }
+    _ => Err(InvalidOperand)
   }
 }

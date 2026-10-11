@@ -31,6 +31,7 @@ test "Effect resume poll routes exact original dispatch without dispatch authori
   assert_false(remote_poll_operation_is_release(operation))
   assert_false(remote_poll_operation_is_cancel(operation))
   let routed = admit_remote_poll_effect_resume_json(fixed).unwrap()
+  assert_eq(remote_poll_effect_resume_envelope_json(routed), Ok(fixed))
   assert_eq(
     dispatch_request_identity(remote_poll_effect_resume_request(routed)),
     dispatch_request_identity(remote_effect_resume_delivery_dispatch(delivery)),

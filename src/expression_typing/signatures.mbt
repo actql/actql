@@ -280,7 +280,7 @@ fn infer(
     )
   }
   match tag {
-    "substring" => {
+    "substring" | "left" | "right" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let mut nullable = input.nullable
       for i in 1..<node.children.length() {
@@ -301,6 +301,18 @@ fn infer(
         ).unwrap(),
         source,
       )
+    }
+    "lpad" | "rpad" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let length = require_type(t, nodes, node.children[1], "number")
+      let mut nullable = input.nullable || length.nullable
+      if node.children.get(2) is Some(pattern) {
+        nullable = require_type(t, nodes, pattern, "string").nullable ||
+          nullable
+      }
+      // Runtime lengths may exceed every input bound. Do not evaluate authored
+      // children, preserve a false input ceiling or invent a padding ceiling.
+      primitive(t, StringType, nullable, source)
     }
     "#null" => put(t, Hole, true, source)
     "typed_literal" => {
@@ -574,6 +586,8 @@ fn infer(
     | "sign"
     | "round"
     | "trunc"
+    | "greatest"
+    | "least"
     | "safe_negate"
     | "safe_div"
     | "safe_divide"

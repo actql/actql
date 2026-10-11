@@ -102,10 +102,16 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
   Substring
+  LeftString
+  RightString
+  LPad
+  RPad
   Between
 } derive(Eq, Debug)
 
@@ -267,11 +273,17 @@ fn expression_tag(
     | "and"
     | "or"
     | "coalesce"
+    | "greatest"
+    | "least"
     | "concat"
     | "concat_strict"
     | "len"
     | "replace"
     | "substring"
+    | "left"
+    | "right"
+    | "lpad"
+    | "rpad"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -1004,11 +1016,17 @@ fn lower_typed_expression_measured(
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)
+        "greatest" => Many(Greatest, args)
+        "least" => Many(Least, args)
         "concat" => Many(Concat, args)
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
         "substring" => Many(Substring, args)
+        "left" => Many(LeftString, args)
+        "right" => Many(RightString, args)
+        "lpad" => Many(LPad, args)
+        "rpad" => Many(RPad, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

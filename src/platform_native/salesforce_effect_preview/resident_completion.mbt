@@ -14,11 +14,99 @@ pub(all) struct NativeResidentEffectCompletion {
 pub(all) enum NativeResidentEffectCompletionIssue {
   Unavailable
   EvidenceDenied
+  OutputForeign
+  OutcomeNotPublishable
   Row(NativeResidentEffectWriteIssue)
   Member(@effect.EffectMemberReceiptEvidenceIssue)
   Set(@publication.EffectSetApplyReceiptIssuanceIssue)
   Final(@publication.EffectfulFinalReceiptIssuanceIssue)
   Chain(@publication.EffectfulFinalChainIssue)
+}
+
+///|
+/// Expose the original consumer's retained output only after the existing
+/// saved-response and final Receipt chain confirm a publishable Effect outcome.
+/// No candidate Runtime/Result, new computation or Provider request is accepted.
+/// The returned Runtime still owns its payload, input borrow and formal release.
+pub fn NativeResidentEffectReview::completed_result_output(
+  self : NativeResidentEffectReview,
+  authorize_evidence_read : () -> Bool,
+  limits : NativeResidentEffectWriteLimits,
+) -> Result[
+  (@resident.ResidentExecuted, NativeResidentEffectCompletion),
+  NativeResidentEffectCompletionIssue,
+] {
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  guard self.current() &&
+    self.holder.completed_effect_execution(self.journal) is Some(executed) &&
+    @remote.dispatch_request_identity(executed.request) ==
+    self.dispatch_identity() else {
+    return Err(Unavailable)
+  }
+  guard self.journal.observation(executed.request) is Ok(saved) &&
+    @journal.recovered_site_dispatch_subject(saved) is Some(subject) else {
+    return Err(Unavailable)
+  }
+  let fields = @remote.remote_managed_output_subject_projection(subject)
+  if fields.length() < 2 {
+    return Err(OutputForeign)
+  }
+  let facts = match
+    executed.runtime.inspect_output_facts(executed.request, fields[1]) {
+    Ok(value) => value
+    Err(_) => return Err(Unavailable)
+  }
+  // Equal candidate bytes are not a substitute for the original holder. Match
+  // the independently captured Named Result against that Runtime's owned facts.
+  guard self.result.output.result_schema_cid() is Ok(schema) &&
+    self.result.output.logical_relation_cid() is Ok(logical) &&
+    self.result.output.codec_contract_cid() is Ok(codec) &&
+    self.result.output.row_count() is Ok(rows) &&
+    facts.result_schema_cid == schema &&
+    facts.logical_view_cid == logical &&
+    facts.representation_codec_cid == codec &&
+    facts.row_count == rows else {
+    return Err(OutputForeign)
+  }
+  let completion = match
+    self.complete_saved_effect(authorize_evidence_read, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let bounds = self.policy.preview_limits
+  // A reconciled rejected/unknown Effect does not become a successful Result.
+  // The existing disposition Owner decides; all original custody stays live.
+  guard @publication.effect_set_receipt_run_disposition(
+      completion.preview,
+      @publication.publication_contract_json(completion.set_receipt),
+      [@publication.publication_contract_json(completion.member_receipt)],
+      bounds.max_wire_bytes,
+      bounds.max_nodes,
+      bounds.max_depth,
+    )
+    is Ok(0) else {
+    return Err(OutcomeNotPublishable)
+  }
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  guard self.current() &&
+    self.holder.completed_effect_execution(self.journal) is Some(_) else {
+    return Err(Unavailable)
+  }
+  Ok(
+    (
+      {
+        ..executed,
+        result_definition_cid: Some(
+          @publication.publication_contract_identity(self.result.definition),
+        ),
+      },
+      completion,
+    ),
+  )
 }
 
 ///|

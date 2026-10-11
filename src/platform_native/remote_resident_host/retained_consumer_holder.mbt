@@ -778,3 +778,15 @@ pub fn ResidentRetainedConsumer::effect_computation(
   }
   Some(owner)
 }
+
+///|
+/// Select this holder's actual completed Effect computation output. The
+/// existing journal, receiver borrow and Runtime validation above remain
+/// required. This does not approve an Effect or make its Result publishable.
+pub fn ResidentRetainedConsumer::completed_effect_execution(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> ResidentExecuted? {
+  guard self.effect_computation(journal) is Some(_) else { return None }
+  self.executed
+}
