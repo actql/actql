@@ -248,6 +248,11 @@ _PUBLICATION_SIGNATURES = {
     'advance_commit': ('i64 i32 i32 i32', 'i32'),
     'commit_progress': ('i64 i32 i32', 'i64'),
     'finish_commit': ('i64 i32 i32', 'i32'),
+    'prepare_observation': ('i64 i32 i32 i32 i32', 'i32'),
+    'advance_observation': ('i64 i32 i32 i32', 'i32'),
+    'observation_progress': ('i64 i32 i32', 'i64'),
+    'finish_observation': ('i64 i32 i32', 'i32'),
+    'retire_observation': ('i64 i32', 'i32'),
 }
 _PUBLICATION_PREFLIGHT_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
@@ -263,6 +268,7 @@ _COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity'
 _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'count': ('i64 i32 i32', 'i32'),
     'result_count': ('i64 i32 i32', 'i32'),
+    'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
     'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
@@ -568,7 +574,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 41:
+            if self._exports['actql_host_abi_version'](self._store) != 42:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1196,6 +1202,70 @@ class LocalCore:
             self._check('finish_publication_commit', self._call(
                 'publication', 'finish_commit', value.handle, current_configuration))
 
+    def prepare_publication_observation(self, value: _Output, response: _Input,
+                                        publisher: _Output, current_configuration: int) -> None:
+        """Validate an original trusted Store response, retaining its same loan.
+
+        Host lookup uses the original Core key, File/six-fact fences and current
+        publisher before this call. Response is a closed physical observation,
+        never a Python scope/comparison/accepted/committed decision. Failed parse
+        or validation retains the same input until explicit physical cleanup.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._owned_input(response)
+            self._owned_output(publisher, 'publisher')
+            self._check('prepare_publication_observation', self._call(
+                'publication', 'prepare_observation', value.handle, response.handle,
+                publisher.handle, current_configuration))
+
+    def advance_publication_observation(self, value: _Output, current_configuration: int,
+                                       quantum: int) -> LocalResultProgress:
+        if type(quantum) is not int or not 0 < quantum < 2**31:
+            raise ValueError('Invalid Local publication observation quantum')
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('advance_publication_observation', self._call(
+                'publication', 'advance_observation', value.handle,
+                current_configuration, quantum))
+            ready = self._call('publication', 'observation_progress', value.handle, 0)
+            work = self._call('publication', 'observation_progress', value.handle, 1)
+            if type(ready) is not int or type(work) is not int or ready not in (0, 1) or not 0 <= work <= quantum:
+                raise LocalCoreError('publication_observation_progress', -33)
+            return LocalResultProgress(ready == 1, work)
+
+    def finish_publication_observation(self, value: _Output, current_configuration: int
+                                      ) -> Literal['append_unknown', 'confirm_uncommitted_failure', 'adopt_committed_index']:
+        """Read a Core action after current authorization/full-chain checks.
+
+        This is an instruction to the original publication flow, not a durable
+        ACK. AppendUnknown needs the existing durable record Owner; confirmed
+        NotFound grants no permission to replay an unknown operation. The Host
+        must recheck original six physical facts before adoption/publication.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            action = self._call('publication', 'finish_observation',
+                                value.handle, current_configuration)
+            if type(action) is not int or action not in (1, 3, 4):
+                code = action if type(action) is int and action < 0 else -33
+                raise LocalCoreError('finish_publication_observation', code)
+            if action == 1:
+                return 'append_unknown'
+            if action == 3:
+                return 'confirm_uncommitted_failure'
+            return 'adopt_committed_index'
+
+    def retire_publication_observation(self, value: _Output) -> bool:
+        """Retry the same response borrow's stop; no submit, commit or cancel."""
+        with self._lock:
+            self._owned_output(value, 'publication')
+            code = self._call('publication', 'retire_observation', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_publication_observation', code)
+            return True
+
     def reserve_publication_commit_export(self, publication: _Output, *,
                                           cleanup: Callable[[], bool]) -> _Output:
         """Read the original validated candidate; grants no Store permission."""
@@ -1295,6 +1365,22 @@ class LocalCore:
             self._check('produce_publication_commit_index_key', self._call(
                 'publication_commit_export', 'produce_index_key', value.handle,
                 current_configuration))
+
+    def produce_publication_observed_index(self, value: _Output,
+                                           current_configuration: int, *,
+                                           field: _CommitMaterialField = 'wire') -> None:
+        """Copy the actually stored index after a fresh current publisher check."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(field) is not str or field not in _COMMIT_MATERIAL_FIELDS:
+                raise ValueError('Invalid observed index field')
+            self._check('produce_publication_observed_index', self._call(
+                'publication_commit_export', 'produce_observed_index', value.handle,
+                current_configuration, _COMMIT_MATERIAL_FIELDS[field]))
 
     def produce_publication_commit_schema(self, value: _Output,
                                            current_configuration: int, result: int, *,

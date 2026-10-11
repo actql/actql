@@ -282,6 +282,14 @@ pub fn close_publisher(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   child.closing = true
+  if value.publications
+    .values()
+    .any(record => {
+      record.observation_publisher == Some(handle) &&
+      record.observation_input is Some(_)
+    }) {
+    return -9
+  }
   let code = status(@buffers.close_buffer(value.pool, child.slot))
   if code != 0 {
     return code

@@ -21,7 +21,7 @@ def worker(module_path, path, kind, phase):
     # Explicit diagnostic profile. Default 100M fuel is not changed or claimed.
     fixture = PhysicalFixture(Path(module_path).read_bytes(), 1701 + phase,
                               capacity=32 * 1024 * 1024, slots=128)
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 41
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 42
     ticket = 0
     def copy(value):
         nonlocal ticket

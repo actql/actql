@@ -4,6 +4,7 @@ priv enum PublicationCommitExportProjection {
   Material(Int, Int)
   IndexKey
   Schema(Int, Int)
+  ObservedIndex(Int)
 } derive(Eq)
 
 ///|
@@ -204,6 +205,77 @@ pub fn produce_publication_commit_material(
     1 => @publication.publication_contract_name(contract)
     2 => @publication.publication_contract_identity_field(contract)
     _ => @publication.publication_contract_identity(contract)
+  }
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
+  )
+  record.pending = false
+  if result == 0 {
+    record.produced = true
+  }
+  result
+}
+
+///|
+/// Copy the actually inspected stored index, never the original candidate.
+/// Current publisher is checked again; this projection is not Store ACK.
+#export_name("actql_publication_commit_export_produce_observed_index")
+pub fn produce_publication_observed_index(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+  field : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) &&
+    value.publications.get(record.publication) is Some(parent) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if record.closing || parent.observation_closing {
+    return -5
+  }
+  match publication_commit_export_view(value, parent, current.account) {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  guard parent.observation_checked &&
+    !parent.observation_failed &&
+    parent.observation_index is Some(index) &&
+    parent.observation_publisher is Some(publisher) else {
+    return -32
+  }
+  if field < 0 || field > 3 {
+    return -3
+  }
+  let auth = publication_observation_publisher(
+    value,
+    parent,
+    publisher,
+    current_configuration,
+    Some(index),
+  )
+  if auth != 0 {
+    return auth
+  }
+  let projection = PublicationCommitExportProjection::ObservedIndex(field)
+  if record.projection is Some(original) && original != projection {
+    return -33
+  }
+  if record.produced {
+    return 0
+  }
+  if record.invoked || record.pending {
+    return -33
+  }
+  record.projection = Some(projection)
+  record.invoked = true
+  record.pending = true
+  let text = match field {
+    0 => @publication.publication_contract_json(index)
+    1 => @publication.publication_contract_name(index)
+    2 => @publication.publication_contract_identity_field(index)
+    _ => @publication.publication_contract_identity(index)
   }
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
