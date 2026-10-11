@@ -12,4 +12,9 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
-formatter(ignore: [ "json_profile_identity.generated_wbtest.mbt" ])
+formatter(
+  ignore: [
+    "json_profile_identity.generated_wbtest.mbt",
+    "model_observation_vectors.generated_test.mbt",
+  ],
+)

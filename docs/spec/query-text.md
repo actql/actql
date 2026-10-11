@@ -55,6 +55,12 @@ and triple quotes, and raw and decoded chunks. Without separation they are
 rejected. Quoted identifiers do not concatenate. Decoded byte, token and work
 budgets apply to every chunk, and the resulting expression's source range
 covers the original chunks and intervening trivia.
+In an explicit STRING_AGG delimiter, grouping parentheses around these literal
+chunks preserve the decoded String value. This applies to ordinary and window
+aggregates. The delimiter remains a non-NULL String literal in the selected
+profile; grouping does not admit parameters, NULL, other scalar types or
+computed delimiter expressions. The ordinary aggregate's WHERE/ORDER and the
+window's OVER/frame keep their independent scope and bounds.
 
 Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
 a name. The explicit Graph `LABELS` annotation retains its separate historical
@@ -129,6 +135,91 @@ preserved without a synthetic length expression. The admitted number indices
 are safe-integer-valued finite binary64 numbers; full INT64 and BYTES remain
 coverage gaps. Quoted/case variants retain the same function identity.
 
+`SIN`, `COS`, `TAN`, `ASIN`, `ACOS`, `ATAN`, `SINH`, `COSH`, `TANH`,
+`ASINH`, `ACOSH` and `ATANH` select their direct unary common expressions;
+`ATAN2(first, second)` selects the ordered binary `atan2` common expression.
+The [GoogleSQL mathematical function rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions)
+apply within the existing finite Number domain: circular angles and inverse
+results are radians, ASIN/ACOS require [-1,1], ACOSH requires >=1 and ATANH
+requires strict (-1,1). ATAN2 preserves authored first/second ordering and
+quadrant signs rather than dividing or swapping; canonical public (0,0) is
+positive zero. NULL propagation precedes value-domain checks after demanded
+children succeed. The selected target's pinned core primitive and finite-result
+validation remain authoritative for execution; all prior numerical obligations
+remain unchanged. No reciprocal functions, implicit conversions, new numeric
+overloads or SAFE prefix are added by this increment.
+
+`CBRT(value)` selects the direct unary `cbrt` common expression, following the
+[GoogleSQL cube-root rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#cbrt)
+within the existing finite Number domain. Positive and negative finite inputs
+produce their real cube root, either zero sign produces canonical positive zero,
+and NULL produces NULL. The pinned MoonBit math primitive supplies the numerical
+operation with existing finite-result validation; this does not promise general
+last-bit equality across targets or live BigQuery. No implicit conversion,
+Decimal, distinct INT64/NUMERIC/BIGNUMERIC, non-finite overload or SAFE prefix is
+added. Arity, type, once-only child demand, failure, resources, cancellation and
+canonical identity remain with the common expression owner.
+
+The finite Number scalar functions `POW(x, y)` and `POWER(x, y)` lower to the
+same `pow` operation. `EXP(x)`, `LN(x)` and `LOG10(x)` are unary. `LOG(x)` is a
+synonym of `LN(x)`; `LOG(x, base)` is binary and retains its ordered arguments.
+The common expression finite-domain, NULL and arithmetic-failure rules apply.
+No distinct INT64/NUMERIC/BIGNUMERIC or non-finite overload is added. `MOD` is
+not admitted as a GoogleSQL FLOAT64 function; internal `%` remains unchanged.
+
+`LEFT(value, length)`, `RIGHT(value, length)`, `LPAD(value, length[, pattern])`
+and `RPAD(value, length[, pattern])` select the common String scalar operations
+with the same ordered argument arrays. Side slices select at most the requested
+number of Unicode scalars. Padding truncates to an original prefix or repeats
+the omitted U+0020/explicit nonempty pattern at the corresponding side, retaining
+only the needed final pattern prefix. Zero, NULL, failure, finite safe-integer
+length validation and cooperative resource rules belong to the common owner.
+Every supplied child remains present exactly once; quoted and case variants
+retain function identity. BYTES, explicit collation and the full INT64 length
+domain remain coverage gaps. No frontend evaluator or expansion that repeats
+the length child is introduced. Unquoted `LEFT` and `RIGHT` select function
+calls only when immediately followed by the opening-parenthesis token. They
+remain reserved as bare identifiers; `LEFT JOIN` and `RIGHT JOIN` retain their
+query syntax and are not reclassified as scalar calls.
+
+`SPLIT(value[, delimiter])` selects the common `split` expression, following the
+[GoogleSQL STRING rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#split).
+The optional delimiter is an ordinary STRING expression; literal matching
+excludes regular expressions but does not require a literal-valued argument.
+Omission selects comma and remains a one-element ordered argument array.
+Empty input produces one empty String; an empty delimiter on nonempty input
+selects Unicode scalars. The nullable Array result has non-null String elements
+and the common conservative input-derived bounds. Every supplied child remains
+once-only and ordered before strict NULL propagation; child errors, lazy demand,
+resource admission and cancellation remain with the common expression owner.
+BYTES and collation remain coverage gaps. No `split_part` profile or frontend
+split evaluator is introduced.
+
+`BYTE_LENGTH(value)` and its `OCTET_LENGTH(value)` alias select the same unary
+`byte_length` common expression for STRING UTF-8 byte counts. `UNICODE(value)`
+selects `unicode`, returning the first Unicode scalar code point or zero for
+empty input/leading NUL. `CHR(value)` selects `chr`, accepting integral finite
+Number code points from 0..0xD7FF or 0xE000..0x10FFFF. Zero returns an empty
+String; every other admitted code point produces one scalar. Fractional,
+negative, surrogate and out-of-range inputs fail after strict NULL propagation.
+These follow the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions),
+within the existing bounded String/finite Number domains. BYTES and distinct
+INT64 overloads remain coverage gaps. All spellings preserve one common child,
+operand nullability, lazy demand, failure, resources and cancellation.
+
+`REPEAT(value, count)` selects the ordered binary `repeat` common expression;
+`REVERSE(value)` selects direct unary `reverse`. REPEAT accepts a STRING and
+nonnegative integral finite Number count, returning empty for zero or an empty
+input after strict NULL propagation and domain validation. GoogleSQL's INT64
+count is explicitly adapted to ActQL's existing finite Number domain without a
+safe-integer or INT64 cap; nonempty outputs remain bounded by existing resource
+owners. REVERSE reverses Unicode scalar order, preserving astral scalars and
+combining marks without normalization or grapheme segmentation. These follow
+the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions)
+within the admitted STRING surface; BYTES and distinct INT64 remain coverage
+gaps. All demanded children run once in order before NULL propagation, preserving
+failure, enclosing lazy demand, resources, cancellation and canonical nodes.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive
@@ -139,6 +230,21 @@ retains the common lazy-demand, failure, cancellation and budget rules.
 This implements the finite FLOAT64 subset. INT64, NUMERIC, BIGNUMERIC and
 non-finite overload domains remain unsupported; no implicit conversion is
 introduced by the frontend.
+
+`GREATEST(expr, ...)` and `LEAST(expr, ...)` require at least one finite
+`number` expression and lower to the corresponding common nonempty argument
+array, retaining order, repetitions and singleton calls. They return the numeric
+maximum/minimum; any NULL yields NULL after every demanded child succeeds.
+A NULL operand does not suppress a later arithmetic error. Enclosing lazy
+conditional and COALESCE demand still applies. Immediate untyped NULL has the
+unique number signature, including all-NULL calls, and result nullability is the
+union of operand nullability. Empty calls are rejected before checking.
+
+Only the finite Number subset is implemented. STRING, BOOLEAN, decimal,
+temporal, BYTES, non-finite and mixed-type overloads, implicit conversions and
+collation are unsupported. GoogleSQL's Unicode-code-point STRING order differs
+from the canonical ActQL UTF-16 order; these functions do not redefine that
+shared ordering owner. No GoogleSQL NUMERIC/BIGNUMERIC support is implied.
 
 `ROUND(expr[, n])` and `TRUNC(expr[, n])` take one or two finite binary64
 `number` expressions and lower to the common `round` or `trunc` node.
@@ -245,7 +351,10 @@ constructs type, identity, uniqueness or order evidence. The
 is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
-parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
+parameter, including transparent grouping such as `LIMIT ((@count)) OFFSET (1)`.
+Grouping uses the existing expression budgets and does not evaluate arithmetic,
+casts, calls or row references. Names lower to the ordinary `take.count` and
+`take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no
 Frontend evaluation, coercion or default for an invalid/missing binding.
 Omitted OFFSET is the literal zero. The current common `take` contract still
@@ -348,10 +457,16 @@ syntax; the parameter is lowered to the common `preceding`/`following`
 Parameter slot. Declarations and bound values use ordinary Program checking,
 including safe-integer and interval-order validation; no default replaces a
 missing or invalid binding. This connection retains the current common
-contract's positive distances. GoogleSQL also permits zero numeric boundaries;
-that difference remains a common-contract coverage gap, not a restriction of
-GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
-are not implemented in this profile.
+contract's positive parameter distances. Literal `0 PRECEDING` and
+`0 FOLLOWING` retain their authored direction in syntax and lower to the
+existing common `current_row` boundary: the physical offset is zero. Authored
+boundary categories are checked before this projection, so an illegal
+`CURRENT ROW ... 0 PRECEDING` or `0 FOLLOWING ... CURRENT ROW` interval is not
+made legal by collapsing its endpoints. The same rule applies to named-window
+frames and the single-boundary `ROWS 0 PRECEDING` form. Bound parameter zero
+remains a common-contract coverage gap and is rejected; it is not replaced by
+an inferred default or special execution. Row-dependent and arithmetic boundary
+expressions, RANGE and GROUPS are not implemented in this profile.
 
 The selected GoogleSQL single-boundary `ROWS` form has an implicit
 `CURRENT ROW` upper boundary. `ROWS 2 PRECEDING`, `ROWS @before PRECEDING`,
@@ -430,7 +545,10 @@ Pipe `PIVOT(aggregate(expression) [AS prefix] FOR axis IN ('value' [AS name], ..
 to the ordinary common `pivot` operation. This initial surface supports one
 SUM, AVG, COUNT, MIN or MAX of a scalar expression over current or range-qualified
 input columns, parameters and existing scalar operations, or COUNT(*), a
-String axis and a nonempty list of static String bucket values. The current
+String axis and a nonempty list of static String bucket values. Parentheses
+around a bucket String literal are transparent, including nested parentheses.
+Grouping does not extend this selected subset to parameter, numeric, NULL or
+computed bucket expressions. The current
 columns not consumed by the aggregate argument or axis become implicit group
 keys in their current order. All input slots referenced by the argument, including
 receivers of property access, are consumed. A constant or parameter-only argument
@@ -586,7 +704,7 @@ invented. This connects the selected
 without a new executor, wire format or range-binding rule.
 
 Pipe `UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value_column FOR name_column
-IN (column, ...)) [AS alias]` connects the selected single-value
+IN (column [[AS] row_value_alias], ...)) [AS alias]` connects the selected
 [GoogleSQL UNPIVOT](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#unpivot_operator)
 to the common `unpivot` operation. The input columns are unqualified current
 column names, not expressions or references through a former range. Unmentioned
@@ -607,7 +725,37 @@ type/nullability requirement is a recorded common-profile gap for inputs whose
 selected columns differ only in nullability; the Frontend does not cast or infer
 types from rows to bypass it. Empty input retains the declared output contracts.
 
-The same single-value operation is accepted as a FROM postfix on a named table,
+Multi-column `UNPIVOT ((value_column, ...) FOR name_column IN
+((column, ...) [[AS] row_value_alias], ...))` rotates corresponding positions.
+Each input set MUST have the same arity as the output value columns. Component
+positions may have different types from one another, while corresponding
+positions across input sets retain the common exact type/nullability contract.
+The Frontend constructs an ordinary non-NULL closed object for each input set,
+expands those objects through common `unpivot`, and projects the components
+through ordinary property expressions. It does not add an evaluator, a cast,
+or a new wire/storage representation. Default and explicit EXCLUDE NULLS omit
+a tuple only when **all** emitted components are SQL NULL; partially NULL
+tuples survive. INCLUDE NULLS retains all tuples. Omitted row-value aliases
+join the current resolved input names with `_`; compiler slot names never
+become labels. The output scope consists of the unselected input columns in
+their original order, followed by the value columns in declared positional
+order and the name column. Existing fresh-scope and name-collision rules apply
+to every component. Integer row-value aliases remain outside the exact common
+value profile, as for single-value UNPIVOT. Differing corresponding nullability
+remains the recorded common-profile gap; it is not normalized by this lowering.
+
+String row-value aliases are decoded literal values, not identifiers. They may
+be empty, repeated, contain escapes, or differ only by Unicode normalization.
+They are preserved through the existing value contract. Omitted aliases use the
+resolved current column name. Each selected occurrence receives its own private
+projection slot before common UNPIVOT, then an ordinary conditional projection
+maps the emitted private name to its authored String label. Repeating the same
+input column with different labels therefore creates separate output rows;
+neither values nor labels are deduplicated. The copies reuse evaluated input
+slots and do not reevaluate input expressions. Private names remain unavailable
+as public labels or Result fields.
+
+The same single-value and multi-column operations are accepted as a FROM postfix on a named table,
 CTE or parenthesized Relation: `FROM input [AS original] UNPIVOT (...) [AS shaped]`.
 It transforms only that input before surrounding JOIN, WHERE or SELECT. Its output
 alias replaces the input range; selected columns and the old range do not survive.
@@ -617,7 +765,12 @@ Mixed CTE/ordinary JOIN ports use the existing producer-binding path and retain
 the authored JOIN kind, predicate and maximum output rows. No extra acquisition,
 new execution owner or inferred schema is introduced.
 
-This connection does not yet cover multiple value columns or row-value aliases. Those forms remain unimplemented coverage,
+This connection does not yet cover multiple value columns or INT64 row-value
+aliases. Integer literal syntax is retained and explicitly refused by lowering
+as an implementation limit: the current common numeric value contract is
+binary64, not exact INT64. The Frontend does not round an integer or reinterpret
+it as a String. Mixed alias types, or omitted aliases beside integer aliases,
+are syntax errors under the selected GoogleSQL rules. These forms remain unimplemented coverage,
 not permanent language prohibitions. They are not reinterpreted as this form.
 Value/name columns must differ from each other and from selected input names,
 under the existing identifier rules. Kept-name collisions remain ambiguous;

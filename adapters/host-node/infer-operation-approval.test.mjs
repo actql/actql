@@ -23,7 +23,7 @@ for (const [name, text] of [['decomposed', 'e\u0301'], ['composed', '\u00e9'],
 
 // Adapter lifetime tests. The Core ports are explicit doubles; public Store
 // authentication and process restart are covered by the installed acceptance.
-function fixture({count = 1, missingSlot = false, missingOwner = false} = {}) {
+function fixture({count = 1, missingSlot = false, missingOwner = false, cleanupResult = () => true} = {}) {
   const active = {}, inventory = {}, input = {}, artifact = {};
   let stopped = false;
   let advances = 0;
@@ -49,7 +49,7 @@ function fixture({count = 1, missingSlot = false, missingOwner = false} = {}) {
     clientProgramInferCallScopeSnapshot: () => ({$tag: 1, _0: 'original-scope'}),
     clientProgramCancelInferExecution: () => { stopped = true; },
     clientProgramInferExecutionStopped: () => stopped,
-    clientProgramCleanupInferExecution: () => ({$tag: 1, _0: true}),
+    clientProgramCleanupInferExecution: () => ({$tag: 1, _0: cleanupResult()}),
   };
   const operation = openNodeInferOperation({moon, preparedProgram: {}, step: 0,
     graph: {}, registry: '', values: '', fragment: '', ordered: '', provider: {},
@@ -70,6 +70,35 @@ test('prepared Waiting leaves the physical driver after one advance', async () =
   assert.deepEqual(facts.slotWires, ['slot']);
   assert.equal(Object.isFrozen(facts.slotWires), true);
   await f.operation.close();
+});
+
+test('prepared Model operation retires input lookup only after successful cleanup', async () => {
+  let pending = true, failure, cleanups = 0;
+  const f = fixture({cleanupResult() {
+    cleanups++;
+    if (failure !== undefined) throw failure;
+    return !pending;
+  }});
+  await f.operation.run();
+  assert.equal(f.operation.preparedFacts(f.inventory).input, f.input);
+  assert.equal(f.operation.cleanup(), false, 'no reclamation before physical stop');
+  assert.equal(cleanups, 0);
+  await f.operation.stop();
+  assert.equal(f.operation.cleanup(), false);
+  assert.equal(f.operation.preparedFacts(f.inventory).input, f.input, 'pending cleanup retains the original');
+  failure = new Error('ModelCleanupUnavailable');
+  assert.throws(() => f.operation.cleanup(), error => error === failure);
+  assert.equal(f.operation.cleanupPending(), true);
+  assert.equal(f.operation.preparedCallSet(), f.inventory);
+  failure = undefined;
+  pending = false;
+  assert.equal(f.operation.cleanup(), true);
+  assert.equal(f.operation.preparedCallSet(), undefined);
+  assert.throws(() => f.operation.preparedFacts(f.inventory), /InferPreparedOwnerUnavailable/);
+  assert.equal(f.operation.evaluationRequest(0), undefined);
+  assert.equal(f.operation.cleanup(), true);
+  assert.equal(cleanups, 3, 'successful reclamation is not repeated');
+  assert.equal(f.advances(), 1, 'cleanup retries do not restart Compute');
 });
 
 test('Waiting without the actual prepared owner is refused', async () => {

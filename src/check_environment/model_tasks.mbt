@@ -20,6 +20,7 @@ pub(all) enum ModelTaskIssueKind {
   DuplicateSelector(String)
   UnknownSelector(String)
   ReferenceMismatch
+  InvalidDecision(DecisionIssueKind)
 } derive(Eq, Debug)
 
 ///|
@@ -35,6 +36,12 @@ pub struct ModelGeneration {
   max_output_tokens : Int64
   seed_requested : Int64?
 }
+
+///|
+pub(all) enum ModelTaskKind {
+  StructuredGenerate
+  Decision
+} derive(Eq, Debug)
 
 ///|
 priv struct ModelDataHandling {
@@ -57,7 +64,9 @@ struct ModelTaskContract {
   output_schema_cid : String
   input : @value_contract.Contract
   output : @value_contract.Contract
-  generation : ModelGeneration
+  schema : String
+  kind : ModelTaskKind
+  generation : ModelGeneration?
   data_handling : ModelDataHandling
   max_items : Int64?
 }
@@ -372,13 +381,18 @@ fn model_task_read(
     [
       "schema", "task_id", "version", "connector_id", "task_kind", "authored_model_selector",
       "prompt_template_cid", "input_schema_cid", "input_contract", "output_schema_cid",
-      "output_contract", "generation_config", "tool_policy", "retrieval_policy",
+      "output_contract", "generation_config", "decision_config", "tool_policy", "retrieval_policy",
       "streaming", "data_handling", "max_items", "contract_cid",
     ],
     b,
   )
-  if model_task_string(o, "schema", root, b) != "actql.model_task/0.1" ||
-    model_task_string(o, "task_kind", root, b) != "structured_generate" ||
+  let schema = model_task_string(o, "schema", root, b)
+  let kind = match model_task_string(o, "task_kind", root, b) {
+    "structured_generate" => StructuredGenerate
+    "decision" if schema == "actql.model_task/0.2" => Decision
+    _ => model_task_fail(InvalidBody, root)
+  }
+  if (schema != "actql.model_task/0.1" && schema != "actql.model_task/0.2") ||
     model_task_string(o, "tool_policy", root, b) != "none" ||
     model_task_string(o, "retrieval_policy", root, b) != "none" {
     model_task_fail(InvalidBody, root)
@@ -412,10 +426,41 @@ fn model_task_read(
     model_task_fail(OutputSchemaMismatch, output_source)
   }
   let output = model_task_value_contract(output_source, item, b)
-  let generation = model_task_generation(
-    model_task_required(o, "generation_config", root),
-    b,
-  )
+  let generation = match kind {
+    StructuredGenerate => {
+      if @decode.lookup(o, "decision_config") is Some(_) {
+        model_task_fail(InvalidBody, root)
+      }
+      Some(
+        model_task_generation(
+          model_task_required(o, "generation_config", root),
+          b,
+        ),
+      )
+    }
+    Decision => {
+      if @decode.lookup(o, "generation_config") is Some(_) {
+        model_task_fail(InvalidBody, root)
+      }
+      let config_source = model_task_required(o, "decision_config", root)
+      let config = model_task_object(
+        config_source,
+        ["answer_profile", "probability_source", "distribution_policy"],
+        b,
+      )
+      for
+        (field, expected) in [
+          ("answer_profile", "actql.decision_answers/0.1"),
+          ("probability_source", "native"),
+          ("distribution_policy", "required_for_choice_and_score"),
+        ] {
+        if model_task_string(config, field, config_source, b) != expected {
+          model_task_fail(InvalidBody, config_source)
+        }
+      }
+      None
+    }
+  }
   let data_handling = model_task_handling(
     model_task_required(o, "data_handling", root),
     b,
@@ -436,6 +481,8 @@ fn model_task_read(
     output_schema_cid,
     input,
     output,
+    schema,
+    kind,
     generation,
     data_handling,
     max_items,
@@ -585,8 +632,18 @@ pub fn model_task_output(v : ModelTaskContract) -> @value_contract.Contract {
 }
 
 ///|
-pub fn model_task_generation_config(v : ModelTaskContract) -> ModelGeneration {
+pub fn model_task_generation_config(v : ModelTaskContract) -> ModelGeneration? {
   v.generation
+}
+
+///|
+pub fn model_task_kind(v : ModelTaskContract) -> ModelTaskKind {
+  v.kind
+}
+
+///|
+pub fn model_task_schema(v : ModelTaskContract) -> String {
+  v.schema
 }
 
 ///|

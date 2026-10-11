@@ -14,8 +14,8 @@ test "FROM UNPIVOT binds its authored table before the outer query" {
       fail("table postfix must use the existing UNPIVOT operation")
     }
     assert_eq(clause.include_nulls, modifier == "INCLUDE NULLS ")
-    assert_eq(clause.columns.map(column => column.value), ["x", "Y"])
-    assert_true(clause.columns[1].quoted)
+    assert_eq(clause.column_sets.map(columns => columns[0].value), ["x", "Y"])
+    assert_true(clause.column_sets[1][0].quoted)
     assert_eq(relation_alias(query).unwrap().value, "shaped")
   }
 }
@@ -25,7 +25,7 @@ test "FROM UNPIVOT rejects expressions qualified inputs and uncovered forms" {
   for
     source in [
       "SELECT * FROM rows UNPIVOT(value FOR label IN(rows.x))", "SELECT * FROM rows UNPIVOT(value FOR label IN(x+1))",
-      "SELECT * FROM rows UNPIVOT((v,w) FOR label IN((x,y)))", "SELECT * FROM rows UNPIVOT(value FOR label IN(x AS 'first'))",
+      "SELECT * FROM rows UNPIVOT(value FOR label IN(x AS id))",
     ] {
     assert_true(
       parse_query(source, query_limits()) is Err({ issue: Syntax(_), .. }),

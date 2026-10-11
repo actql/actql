@@ -1,0 +1,57 @@
+{
+  "query": {
+    "version": "actql-cloud-effect-resume-query/0.1",
+    "queryId": "fresh-query",
+    "dispatchCid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "reportCid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "checkpointCid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "resolutionCid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "intentId": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "claimant": "original-coordinator",
+    "generation": 7
+  },
+  "selected": {
+    "siteKey": "site-a",
+    "siteGeneration": 3,
+    "workspaceId": "workspace-original",
+    "authorityScopeCid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "installation": "local"
+  },
+  "reply": {
+    "version": "actql-cloud-effect-resume-reviewer-current/0.1",
+    "siteKey": "site-a",
+    "siteGeneration": 3,
+    "current": {
+      "version": "actql-cloud-effect-resume-current/0.1",
+      "queryId": "fresh-query",
+      "dispatchCid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reportCid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "claim": {
+        "intentId": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "checkpointCid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "resolutionCid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "state": "claimed",
+        "generation": 7,
+        "claimant": "original-coordinator",
+        "leaseExpiresMs": 2000,
+        "mode": "resume"
+      },
+      "observedAt": "1970-01-01T00:00:01.000Z"
+    },
+    "reviewer": {
+      "scheme": "ed25519-v1",
+      "checkpointCid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "installation": "local",
+      "workspaceId": "workspace-original",
+      "authorityScopeCid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "principalId": "original-person",
+      "reviewerId": "registered-signer",
+      "keyId": "original-key",
+      "publicKeyBase64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "approvalAuthorityScopeCid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "authorityContextCid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "policyCid": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  },
+  "nowMs": 1001
+}

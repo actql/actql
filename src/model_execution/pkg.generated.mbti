@@ -13,7 +13,11 @@ import {
 }
 
 // Values
+pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?
+
 pub fn acknowledge_model_call_settlement(ModelCallSettlement) -> Bool
+
+pub fn acknowledge_saved_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?
 
 pub fn acquire_model_outcomes(ModelExecution) -> ModelOutcomeRead?
 
@@ -66,6 +70,8 @@ pub fn model_attempt_authority(ModelAttemptEvidence) -> @run_publication.RunEvid
 pub fn model_attempt_identity(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
 
 pub fn model_attempt_outcome(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_call_entry_acknowledgement_current(ModelCallEntryAcknowledgement, ModelPreparedCallSet) -> Bool
 
 pub fn model_call_entry_current(ModelCallEntry, ModelPreparedCallSet) -> Bool
 
@@ -237,6 +243,13 @@ pub struct ModelCallEntry {
   slot : Int
   trace : ModelAttemptTrace
   admission : @run_publication_host.ClientInferDispatchAdmission
+  mut acknowledgement : ModelCallEntryAcknowledgement?
+  mut gate_issued : Bool
+  mut send_started : Bool
+}
+
+pub struct ModelCallEntryAcknowledgement {
+  entry : ModelCallEntry
 }
 
 pub struct ModelCallSettlement {

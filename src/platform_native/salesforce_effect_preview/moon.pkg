@@ -10,7 +10,9 @@ import {
   "actql/actql/canonical_json" @canonical,
   "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
   "actql/actql/program_check" @checked,
+  "actql/actql/check_environment" @environment,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/stage_results" @results,
@@ -27,3 +29,7 @@ import {
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/platform_native/publication_store" @store,
 }
+
+import {
+  "actql/actql/sha256" @sha,
+} for "wbtest"

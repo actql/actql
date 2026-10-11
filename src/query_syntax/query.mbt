@@ -122,11 +122,18 @@ pub(all) enum QueryOperation {
 
 ///|
 pub(all) struct UnpivotClause {
-  columns : Array[NamePart]
-  value_column : NamePart
+  column_sets : Array[Array[NamePart]]
+  row_labels : Array[UnpivotRowLabel?]
+  value_columns : Array[NamePart]
   name_column : NamePart
   include_nulls : Bool
 }
+
+///|
+pub(all) enum UnpivotRowLabel {
+  TextLabel(String)
+  IntegerLabel(String)
+} derive(Eq, Debug)
 
 ///|
 pub(all) struct KeepItem {
@@ -441,7 +448,14 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     UnnestSource(expression, element, offset) =>
       Some(UnnestSource(expression, element, offset))
     Unpivot(clause) =>
-      Some(Unpivot({ ..clause, columns: clause.columns.copy(), }))
+      Some(
+        Unpivot({
+          ..clause,
+          column_sets: clause.column_sets.map(columns => columns.copy()),
+          row_labels: clause.row_labels.copy(),
+          value_columns: clause.value_columns.copy(),
+        }),
+      )
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
@@ -1580,7 +1594,7 @@ fn QueryParser::frame_boundary(
     self.keyword("FOLLOWING")
     return FollowingParameter(self.source.identifier(name))
   }
-  let distance = self.safe_integer(false)
+  let distance = self.safe_integer(true)
   if self.has("PRECEDING") {
     self.keyword("PRECEDING")
     Preceding(distance)
@@ -1667,15 +1681,19 @@ fn QueryParser::aggregate(
   let delimiter = if function_name == "STRING_AGG" {
     if self.peek().value == Symbol(44) {
       ignore(self.advance())
-      guard self.peek().value is Text(_) else {
+      guard self.peek().value is Text(_) || self.peek().value == Symbol(40) else {
         raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
       }
-      // Literal chunks use the ordinary expression parser's decoding,
-      // separation, origins and budgets. Computed delimiters remain outside
-      // this profile; the common aggregate still receives one String value.
+      // Literal chunks and their grouping use the ordinary expression parser's
+      // decoding, separation, origins and budgets. Computed delimiters remain
+      // outside this profile; the common aggregate receives one String value.
       let expression = self.expression()
-      match
-        expression_node(expression, expression_root(expression)).unwrap().kind {
+      let mut root = expression_root(expression)
+      while expression_node(expression, root).unwrap().kind
+            is Parenthesized(child) {
+        root = child
+      }
+      match expression_node(expression, root).unwrap().kind {
         StringLiteral(value) => Some(value)
         _ =>
           raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
@@ -1894,6 +1912,16 @@ fn QueryParser::safe_integer(
     Numeric(text) => text
     _ => raise QueryAbort("Expected safe integer literal", token.start)
   }
+  self.safe_integer_text(text, token.start, zero_allowed)
+}
+
+///|
+fn QueryParser::safe_integer_text(
+  self : QueryParser,
+  text : String,
+  start : Int,
+  zero_allowed : Bool,
+) -> Int64 raise QueryAbort {
   let mut result = 0L
   for unit in text {
     self.spend(1)
@@ -1901,12 +1929,12 @@ fn QueryParser::safe_integer(
     if digit < 0 ||
       digit > 9 ||
       result > (9007199254740991L - digit.to_int64()) / 10L {
-      raise QueryAbort("Integer literal exceeds safe range", token.start)
+      raise QueryAbort("Integer literal exceeds safe range", start)
     }
     result = result * 10L + digit.to_int64()
   }
   if !zero_allowed && result == 0L {
-    raise QueryAbort("Expected positive integer literal", token.start)
+    raise QueryAbort("Expected positive integer literal", start)
   }
   result
 }
@@ -1929,7 +1957,24 @@ fn QueryParser::limit_integer(
   self : QueryParser,
   zero_allowed : Bool,
 ) -> QueryInteger raise QueryAbort {
-  if self.peek().value is Parameter(name) {
+  if self.peek().value == Symbol(40) {
+    // Use the bounded expression parser for transparent grouping, then retain
+    // an ordinary integer or Parameter slot. Do not evaluate constant calls,
+    // arithmetic or row references in the Frontend.
+    let expression = self.expression()
+    let mut root = expression_root(expression)
+    while expression_node(expression, root).unwrap().kind
+          is Parenthesized(child) {
+      root = child
+    }
+    let node = expression_node(expression, root).unwrap()
+    match node.kind {
+      Number(text) =>
+        Integer(self.safe_integer_text(text, node.start, zero_allowed))
+      ParameterReference(name) => BoundParameter(name)
+      _ => raise QueryAbort("Expected integer literal or parameter", node.start)
+    }
+  } else if self.peek().value is Parameter(name) {
     ignore(self.advance())
     BoundParameter(self.source.identifier(name))
   } else {

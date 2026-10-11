@@ -53,8 +53,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   function retain(receiptWire, receipt, snapshot, bytes) {
     let tokens = custody.get(receiptWire);
     if (tokens === undefined) custody.set(receiptWire, tokens = new Set());
-    const state = {available: true};
-    const token = Object.freeze({receipt, snapshot, get available() { return state.available; }});
+    const state = {available: true, snapshot};
+    const token = Object.freeze({receipt, get snapshot() { return state.snapshot; },
+      get available() { return state.available; }});
     leases.set(token, {receiptWire, tokens, state, bytes});
     tokens.add(token);
     retainedInputs++;
@@ -66,6 +67,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     const lease = leases.get(token);
     if (lease === undefined) return;
     lease.state.available = false;
+    // Retire only this lease's decoded input. Escaped borrows and
+    // independently retained consumers keep their own original custody.
+    lease.state.snapshot = undefined;
     leases.delete(token);
     lease.tokens.delete(token);
     if (lease.tokens.size === 0 && custody.get(lease.receiptWire) === lease.tokens) {

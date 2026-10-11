@@ -3,6 +3,7 @@ package "actql/actql/platform_native/publication_store"
 
 import {
   "actql/actql/checkpoint_runtime",
+  "actql/actql/connectors/salesforce/catalog",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
@@ -33,6 +34,12 @@ pub fn EffectCaptureCustody::reserved_bytes(Self) -> Int64
 pub fn EffectCaptureCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
 pub fn EffectCaptureCustody::same_binding(Self, Self) -> Bool
 
+type EffectCatalogCustody
+pub fn EffectCatalogCustody::confirm(Self) -> Result[NativeEffectCatalogResponse, NativePublicationStoreIssue]
+pub fn EffectCatalogCustody::persist(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn EffectCatalogCustody::reserved_bytes(Self) -> Int64
+pub fn EffectCatalogCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+
 type EffectCheckpointCustody
 pub fn EffectCheckpointCustody::confirm(Self) -> Result[(@checkpoint_runtime.PersistedCheckpoint, String), NativePublicationStoreIssue]
 pub fn EffectCheckpointCustody::persist(Self) -> Result[Unit, NativePublicationStoreIssue]
@@ -61,6 +68,13 @@ pub(all) struct NativeCommittedResult {
   retention : @run_publication.PublicationContract
   binding : @run_publication.PublicationContract
   read : @run_publication.CommittedResultRead
+}
+
+pub struct NativeEffectCatalogResponse {
+  catalog : @catalog.CatalogObservation
+  use_cid : String
+  status : Int
+  body : Bytes
 }
 
 pub(all) struct NativePublicationCommit {
@@ -209,6 +223,7 @@ pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Arra
 pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_effect_catalog_custody(Self, @catalog.CatalogObservation, @catalog.CatalogObservationBinding, String, String, Int, Bytes, @catalog.DescribeLimits, @signature.Library, Bytes) -> Result[EffectCatalogCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
@@ -219,6 +234,7 @@ pub fn Store::reconcile_payload(Self, @publication_payload.PublicationPayloadReq
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
 pub fn Store::resolve_committed_result(Self, String, String, String, String, Int, Int, Int) -> Result[NativeCommittedResult?, NativePublicationStoreIssue]
 pub fn Store::restore_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
+pub fn Store::restore_effect_catalog_custody(Self, @catalog.CatalogObservationBinding, String, String, @catalog.DescribeLimits, @signature.Library, Bytes) -> Result[EffectCatalogCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]

@@ -1,0 +1,129 @@
+# Negotiated Interactive Run Control boundaries
+
+The initial negotiated wire registry lives in
+[`actql-interactive-run-control.json`](../../spec/contracts/actql-interactive-run-control.json).
+Its closed shapes and identity domains are separate from the unchanged closed
+`actql-run-state/0.1`, legacy start intent, and Run Definition. Registration
+does not install a scheduler feature or confer execution authority.
+
+## Read-only current Run projection
+
+The initial Node Inspect service reads the original retained Run Definition and
+prepared/authorization evidence through the existing request journal. Current
+authorization is checked before acquisition and again before disclosure. The
+portable publication projection verifies original Plan, template, execution
+context, policy and Run-reference bindings, and verifies the existing Owner
+snapshot CID. Inspect neither recompiles the Program nor advances Run control.
+
+The resulting view is explicitly non-atomic and Owner-local. It retains the
+unchanged legacy Run state and its observed control revision. Missing pending
+flags remain omitted/unknown; unsupported pause, Sample and cost capabilities
+are separate facts. No logical map is reconstructed from physical tasks.
+
+This limited profile refuses Inspect when an older record lacks original policy
+evidence, or when a resuming state lacks the required continuation/fence origin
+observation. The underlying original Run and legacy status API remain usable.
+Missing evidence never authorizes reconstruction from current configuration,
+new execution or a fabricated revision/origin. New source-free Values admissions
+retain their existing prepared/authorization evidence in the journal's existing
+bounded evidence field without changing Run identity or execution meaning.
+
+The installed Node read profile reports both static planning and Inspect as
+Host support facts on either view. The Node consumer explicitly supplies that
+installation fact to the portable issuers; a common compiler or shape parser
+does not infer another Host's support. Unsupported control, Sample, full
+intermediate retention, cost and batch capabilities remain false or empty.
+Static observation and current Run provenance stay separate from those support
+facts. Capability flags and operation hints are not authorization tokens and
+do not replace current access checks or update the original policy identity.
+
+## Existing-Owner connection inventory
+
+| Boundary | Existing authority or fact | Negotiated connection |
+| --- | --- | --- |
+| Original request | Submission epoch/reference and request journal | Normalized requested Profile and optional expected Plan in original intent; duplicates restore that same intent. |
+| Original preparation | Checked logical IR and admitted Compiled Plan | External immutable map, deterministic Step/port keys, then resolved Profile/admission. Plan preimages are unchanged. |
+| Run state | Common Run/control revision and claim/fence | Separate negotiated projection; no second lifecycle, clock, or terminal decision. |
+| Formal resumption | Checkpoint/Resolution Owner | Genuine original evidence, distinct from a manual command origin. |
+| Operation lookup | Original accepted operation and journal | Immutable initial receipt plus separately linked later outcome; absence is not resend permission. |
+| Inspect | Existing currently authorized Owner-local observations | Explicit non-atomic composition and provenance; no global synchronized snapshot claim. |
+| Stored output | Existing material/publication/Store custody | Actual producer output or receiving input locator, not a synthetic produced Step. |
+| Local storage binding | `client_local_run.issue_local_result_durable_binding` | Existing original nominal Run/invocation/retention with current account validation and observed physical bytes; no Sample, commit, or Run outcome is inferred. |
+| Retention | Existing resource claims and cleanup | Separate Sample, full-intermediate, and continuation lifetimes; registering a Sample shape allocates none. |
+| Cost | Existing checked Ledger quantities and selected tariff/scope | New finite amount syntax only; no new price, currency Catalog, budget, or charging Owner. |
+
+The portable `run_publication` package admits canonical shapes and their
+registered self-CIDs with the existing parser, schema-validation cursor and
+canonical sealer. Its cross-record checks detect Plan/map/profile/request/Run
+substitution. These checks do not prove that a map was compiler-issued or that
+referenced Sample values were originally admitted under their Carrier/type
+contracts: those facts remain with the named Owners. An adapter cannot acquire
+authority by sealing an arbitrary sidecar.
+
+Logical Step keys bind the original Plan, checked Stage ordinal and actual
+semantic occurrence. Input-only Relation output uses `input_output`; it has
+exactly one actual input and output of the same Relation contract. Ordinary
+operation keys retain their checked operation ordinal and typed compiler tag.
+Port keys bind Plan, Step, role and ordinal. A receiving input retains its
+original producer/source locator. IDs are never physical task numbers or
+runtime dispatch order.
+
+## Legacy consumer truthfulness
+
+The old SDK continues to expose only its original RunState. A negotiated
+paused state, or manual-origin resuming state, refuses old projection with
+`RunStateVersionUnsupported`. Where an exact legacy projection exists, Run,
+status, timestamp and the original integer control revision must agree.
+Formal-origin resuming does not invent approval: real Resolution, continuation
+generation and fence evidence still require their existing Owner validation.
+
+The generated client-wire additions are types and shape validators, not
+pause/resume methods. Installed capability publication must distinguish static
+Plan reading, authorized Inspect, durable control, each Carrier's Sample
+capture, full intermediates, Cost Guards and execution batches. A missing
+runtime is not made available by recognizing its schema.
+
+The negotiated pending flags are optional observations. Only their existing
+Owner can supply a boolean; omission remains unknown and is never defaulted
+to false. A Host's unsupported pause or sampling capability does not prove
+that cleanup is complete or that an unobserved responsibility is absent.
+
+## Exact amounts and independent projections
+
+Negotiated `amount_micro` is a decimal string in the nonnegative signed-Int64
+domain, matching existing checked Ledger `cost_units` aggregation. Values
+above JavaScript's safe integer range retain exact digits. Decimal-unit facade
+normalization is distinct and never uses binary floating-point arithmetic.
+This finite protocol domain is not a language-wide mathematical Money limit.
+Currency syntax alone does not establish ISO support, a tariff, or a price.
+
+Relation presence is independent of NULL. Graph Samples retain original typed
+definition/domain/key/edge identity without inferring complete topology.
+Vectors preserve original dimensions, precision and component positions;
+Events preserve occurrence identity and only available order/clock evidence.
+These are bounded projections, not full snapshots, continuations or formal
+Results. `forbidden` carries no source, count, shape or references; ambiguous
+input selection is `selection_required`, not a silently chosen port.
+
+Read-only PlanView/Inspect may be connected independently. Durable execution
+control, Sample capture, Cost Guards and other Host/runtime profiles require
+separate original-Owner implementations and acceptance; they are not implied
+by these contract definitions.
+
+## Static compiler projection
+
+The Node read service prepares through the installed ordinary checker, then
+uses the existing Values or task compilation issuer. The shared MoonBit
+projection requires that compilation's exact original prepared owner and reads
+the checked Stage IR, including fused logical operations and input-only
+Relation Stages. It accepts no caller-authored map as compiler provenance.
+
+The `plan` request carries the authored input, supplied parameters and finite
+wire/node/depth limits, but no submission or Run identity. Its static service
+does not depend on the request journal, Source acquisition or execution driver.
+Current connection access is checked before preparation and again before
+returning the view. Unsupported compilation profiles refuse rather than
+running a probe or issuing an executable Run. Unknown work remains unknown;
+stop, Sample, intermediate retention, cost and batch capabilities remain
+uninstalled. The SDK checks the returned map's self-CID and Plan binding; this
+read grants no execution authority and does not install runtime control.

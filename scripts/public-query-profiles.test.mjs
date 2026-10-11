@@ -273,10 +273,10 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
   assert.equal(pin.sourceBaseline, '76916b2b57ca8e06d9e74099349b17c263ccb411');
-  assert.equal(pin.totalCases, 3858);
-  assert.deepEqual(pin.counts, {"successes":2440,"executionFailures":50,"refusals":1368});
+  assert.equal(pin.totalCases, 3916);
+  assert.deepEqual(pin.counts, {"successes":2469,"executionFailures":50,"refusals":1397});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [
-    ['standard', {"successes":2387,"executionFailures":48,"refusals":1333}],
+    ['standard', {"successes":2416,"executionFailures":48,"refusals":1362}],
     ['analytic-property', {successes: 13, executionFailures: 0, refusals: 7}],
     ['analytic-order', {successes: 35, executionFailures: 2, refusals: 19}],
     ['analytic-offset', {successes: 5, executionFailures: 0, refusals: 9}],
@@ -299,3 +299,5 @@ import './public-query-refusal-classifications.test.mjs';
 import './graph-refusal-classification-source-input.test.mjs';
 import './full-join-scope-source-input.test.mjs';
 import './pipe-join-input.test.mjs';
+
+import './unpivot-multicolumn-source-input.test.mjs';

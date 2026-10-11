@@ -1,0 +1,54 @@
+{
+  "upstream": "moonbitlang/core/math",
+  "toolchain": "0.10.12+1634b282e",
+  "license": "Apache-2.0; embedded Sun/FreeBSD notices retained",
+  "selection": "Portable Double algorithms on all targets; no JS host Math or Native sin/cos FFI selection",
+  "files": [
+    {
+      "path": "exp_double_nonjs.mbt",
+      "sha256": "73affa3b38baa8c19c17286c58e0527af82039c689467ac72c8b4c025dace2d9",
+      "upstreamSha256": "db6d51cd5674d1b85d137595da2a8ddb59fa2ff164c353c0a6a5cf0b3a22850f"
+    },
+    {
+      "path": "log_double_nonjs.mbt",
+      "sha256": "450dff59b01b5bdd2fe2e28faf5fab563b53c1ec1a014f2867a08a7c3598c6d8",
+      "upstreamSha256": "24b3a88b330ec47c9b80f707cd1ef682236464ec0033ef227b54f7f724715677"
+    },
+    {
+      "path": "pow_double_nonjs.mbt",
+      "sha256": "e7c3e099b4681a9b35f34bf3b8575675a81fbadc16e89bc3c4837359ec2e4859",
+      "upstreamSha256": "52fb06bb465da8f843442c24aa67e58965a75144cdcff94187b1d6cc1d7baff3"
+    },
+    {
+      "path": "scalbn.mbt",
+      "sha256": "9607018075aa398a2dc51a5a3d63b28564eefb59e3ed3ea8e8acc712cac4f878",
+      "upstreamSha256": "df6c00db0fa6bcf33a630cc32a3b5766ade6de398c7a6853a3ee4af321d97d27"
+    },
+    {
+      "path": "utils.mbt",
+      "sha256": "3c85278a25c15d1d7d3ff7b34ce7ca7f9e37ef690762cefb0d1f4e52ec04e220",
+      "upstreamSha256": "3c85278a25c15d1d7d3ff7b34ce7ca7f9e37ef690762cefb0d1f4e52ec04e220"
+    },
+    {
+      "path": "algebraic_double_nonjs.mbt",
+      "sha256": "0560596bc5fd791ebca6455018b34341ab76024852faddb35534adbb57ff5028",
+      "upstreamSha256": "22659d029eee75289adbde9c8c8d061b90b2e8275df3405036ed07d7fbe41d26"
+    },
+    {
+      "path": "hyperbolic_double_nonjs.mbt",
+      "sha256": "08f7d2583e94d0e108899b188b86ff950ee46a66391a6a8d8a2a800ad4664db5",
+      "upstreamSha256": "f0496a13f38d14f582ec58115d2bdaec043d006c3fc0be84339a47892ce26f80"
+    },
+    {
+      "path": "trig_double_nonjs.mbt",
+      "sha256": "4b3497f932fd72a53741ee4652af600fdedd3b7a5c57a827ced0a65fa7d0c7f2",
+      "upstreamSha256": "58e047d79d9f125c5f3f368bce8fba4d80078e5c039f6e8e8703fa89098a12f3"
+    },
+    {
+      "path": "trig_double_sincos_non_native_or_js.mbt",
+      "sha256": "8f6a4dc51fa4a0a17ebaa567ad2d958f768e0a9729a45103f6733ab6b2f20d4d",
+      "upstreamSha256": "3a4ec8f4007f126085242faab5bf931a29378a8e23810ca6a924a7bad4148cc4"
+    }
+  ],
+  "adaptation": "Documentation self-package references renamed and repository formatting applied; arithmetic algorithms and license notices unchanged."
+}

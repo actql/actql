@@ -778,3 +778,33 @@ pub fn ResidentRetainedConsumer::effect_computation(
   }
   Some(owner)
 }
+
+///|
+/// Project the exact admitted consumer binding only while the existing Effect
+/// computation, receiver borrow, journal and original request are current.
+/// The producer Source binding is a separate identity and is never substituted.
+pub fn ResidentRetainedConsumer::effect_source_binding_cid(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+  inputs : @strategy.CapturedEffectInputs,
+) -> String? {
+  guard self.effect_computation(journal) is Some(owner) &&
+    owner.request_for_effect_review(inputs) is Some(request) &&
+    owner.effect_materials_for_capture() is Some(materials) &&
+    materials.request == Some(request) else {
+    return None
+  }
+  Some(@remote.remote_input_binding_cid(self.binding))
+}
+
+///|
+/// Select this holder's actual completed Effect computation output. The
+/// existing journal, receiver borrow and Runtime validation above remain
+/// required. This does not approve an Effect or make its Result publishable.
+pub fn ResidentRetainedConsumer::completed_effect_execution(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> ResidentExecuted? {
+  guard self.effect_computation(journal) is Some(_) else { return None }
+  self.executed
+}

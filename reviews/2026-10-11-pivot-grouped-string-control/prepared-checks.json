@@ -1,0 +1,52 @@
+{
+  "baseline": "8305fdb52a5bca8a41d7f5278077035705cb6e9e",
+  "runtime_executed": false,
+  "public_executed": false,
+  "heavy_started": false,
+  "moon_js_commands": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_syntax/pivot_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/pipe_pivot_test.mbt src/query_program/from_pivot_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/run_publication_host/client_values_run_materials_wbtest.mbt"
+  ],
+  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/pipe-pivot-source-input.test.mjs scripts/client-values-run-materials-vector.test.mjs",
+  "public_route": "--pipe-pivot-only (existing cohort, shared Heavy allocation required)",
+  "expected_public_additions": {
+    "normal": 2,
+    "refusal": 4
+  },
+  "public_expected_rows": [
+    {
+      "product": "kale",
+      "second": 0,
+      "first": 2
+    }
+  ],
+  "public_expected_columns": [
+    {
+      "name": "product",
+      "contract": {
+        "type": "string",
+        "nullable": false,
+        "max_utf8_bytes": 4
+      }
+    },
+    {
+      "name": "second",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    {
+      "name": "first",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    }
+  ],
+  "authored_baseline": "fdd0c76c7975905740078e93c735f910135bafd1",
+  "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
+  "guard": "Use existing bounded wrapper; do not bypass B process-inspection rejection."
+}

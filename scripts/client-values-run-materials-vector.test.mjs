@@ -1,3 +1,4 @@
+import {readHistoricalJson} from './historical-json.mjs';
 // Independent, hand-assembled preimages for the fixed MoonBit Values fixture.
 // No product compiler/issuer/output is imported. Unchanged dependency CIDs
 // are the baseline vector's pins; all affected bodies are rehashed here.
@@ -1028,7 +1029,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:7b525c0fd2a452137b76a759a01241879f3377836d7ef4fc89a35c93deefefee');
+    'sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1172,11 +1173,11 @@ test('current contract inputs independently determine the Values Run and consumi
   const barrier = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
   const dependencies = valuesDependencyOracle();
   const identity = valuesProgramOracle();
-  assert.equal(dependencies.unit, "sha256:3522b8ccafab8ed2827786e015ec7712fb8ff18f1c6ff7c32d7006ce606dee60");
-  assert.equal(dependencies.proof, "sha256:50226a5bcaffe6d01dd9eeedbad4b8c4103d504dd07e5bb6f80d9b60c72ac665");
-  assert.equal(dependencies.resultPlan, "sha256:3a82d1c115c7c994ec009a6a421a3e41d5fe418bc78654ca1de79b5bd4867f82");
-  assert.equal(identity.programCid, "sha256:79463e7b76c6137c8278684d730f27297c5e9a3071c31136a089cb9994ced1ce");
-  assert.equal(identity.semanticsCid, "sha256:cd64304826e99d10cc122ffff5576d51124960c39582e864d5cf805c33853dfe");
+  assert.equal(dependencies.unit, "sha256:1e2793085f47729858f98d2a8d119938073e8ef1c01051b4a3b8f26c8a05a6ac");
+  assert.equal(dependencies.proof, "sha256:85c17ec3235e85821f5bf520ca3f05dd65ead67f496870c3f8f1c725eabc501d");
+  assert.equal(dependencies.resultPlan, "sha256:a17791e02291f77e27629cdfb41c958d1687c2c8640068581f650e0204be845f");
+  assert.equal(identity.programCid, "sha256:969ba2073a3de2a92c71d8b72df9af8a76e1faab2b5bf1082882cb5dbf6ae6a5");
+  assert.equal(identity.semanticsCid, "sha256:c44cef88fa1e03da6f44fc9faeb0dd634635906c420580590c8616e32c08b479");
   const submissionSource = readFileSync('adapters/host-node/client-submission-input.test.mjs', 'utf8');
   const submittedDefinition = submissionSource.match(
     /assert\.equal\(stored\[0\]\.program_definition_cid,\s*'(sha256:[a-f0-9]{64})'\)/u);
@@ -1186,17 +1187,14 @@ test('current contract inputs independently determine the Values Run and consumi
   const requestIntent = {version: 'actql-logical-request-intent/0.1',
     caller_input_intent_cid: pin('b'.repeat(64)), parameter_values_cid: parameterValues,
     program_definition_cid: identity.programCid};
-  assert.equal(cid(requestIntent), "sha256:9a6066b26dda8dbf2bb1a493910f665c9ec9fef2d6051fe885e639ab818b0848");
+  assert.equal(cid(requestIntent), "sha256:70224b6bb938c144a4fcb63d7cea9b55d178f4b5c94e6b2a4d5bb6ae4b4dd941");
   const current = vector(grammar.grammar_manifest_cid, cid(aoa), dependencies,
     barrier.barrier_contract_manifest_cid, identity, {canonicalCandidates: true});
   // Canonical witness order follows the new CIDs, not role-based order.
   const candidates = current.executable.resolved_limits[0].candidates;
   assert.deepEqual(candidates.map(candidate => candidate.role),
-    ['host_ceiling', 'proven_upper_bound']);
-  assert.deepEqual(candidates.map(candidate => candidate.witness_cid), [
-    'sha256:0be26207531164e3664cb1fa31b605f564607a01ac043f29acaa3c86e67a5568',
-    'sha256:0fcb7419382ff25554b2af474d3ae73cdbe0dda7fe2fb5c652c1977bd124b5de',
-  ]);
+    ["host_ceiling", "proven_upper_bound"]);
+  assert.deepEqual(candidates.map(candidate => candidate.witness_cid), ["sha256:0be26207531164e3664cb1fa31b605f564607a01ac043f29acaa3c86e67a5568", "sha256:3e7bf89f427344c690d9e7ec99ce1d42cdd158434351bb41d96c2afa8cb8a884"]);
   assert.deepEqual(current.executable.resolved_limits, valuesPublicationOracle().limits);
   assert.deepEqual(current.executable.limit_bindings, valuesPublicationOracle().bindings);
   const beforeUnpivot = JSON.parse(readFileSync('scripts/fixtures/pre-pipe-unpivot-grammar.json', 'utf8'));
@@ -1227,18 +1225,26 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:eaf6807904e7a9eb4ca32e5aaa8928ca349ca29dd45830a745b6e536a14ad79e');
+    "sha256:fc36c8ac16ef4ab3ba363d3b21ab10a7c1f4d7cf91c5b6e75b11b1e946027ac7");
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:55f889964c1a7ed8ba19bab36c3c81857d80e0e209330b7a5623653928788879');
+    "sha256:fca5e8eb227e0e3cd233e73f107230354fa9e021bb0712b3519b42144474a3a2");
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:55d0341a4e8a1afdf62adbd76581f6d007434418804fa8a0b610cb03b088688b');
+    "sha256:032eb2d4c80c3e7b195fd9607efa5128fa7689525674a08e4f5d0ae59fe82213");
   assert.equal(current.run.run_definition_cid,
-    'sha256:7b525c0fd2a452137b76a759a01241879f3377836d7ef4fc89a35c93deefefee');
+    "sha256:eb21384725cf00fd1f92cd651308d9918cd713547fce1aacdd35fb0b34212290");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
+  const consumingProgram = runSource.match(
+    /prepared_client_identity\(issuer_prepared\)\.program_definition_cid,\s*"(sha256:[a-f0-9]{64})",/u);
+  assert.ok(consumingProgram, 'missing fixed Values Program identity expectation');
+  assert.equal(consumingProgram[1], identity.programCid, 'stale consuming Values Program identity');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
   assert.ok(resultSource.includes(dependencies.unit));
   assert.ok(resultSource.includes(dependencies.resultPlan));
+  const resultProgram = resultSource.match(
+    /identity\.program_definition_cid,\s*"(sha256:[a-f0-9]{64})",/u);
+  assert.ok(resultProgram, 'missing fixed result Program identity expectation');
+  assert.equal(resultProgram[1], identity.programCid, 'stale result Program identity');
   assert.deepEqual(JSON.parse(resultSource.match(/let document =\s*#\|([^\r\n]+)/u)[1]), program);
   assert.ok(resultSource.includes('let input_cid = "sha256:" + "b".repeat(64)'));
   assert.equal(parameterValues, cid({version: 'actql-parameter-values/0.1', values: {}}));
@@ -2361,6 +2367,49 @@ test('pre-decimal-position-ROUND/TRUNC Values dependencies and complete Run prei
 });
 
 
+test('pre-finite-math Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = readHistoricalJson('scripts/fixtures/pre-finite-math-values-identities.json');
+  assert.equal(frozen.source_revision, 'db4f717a5f3a9aea094a027e51e308463c84d597');
+  assert.equal(cid(frozen), 'sha256:48ed34e2debe626f548d3dd6ed5e1697524217fd310fc44267b5d8dc99893326');
+  assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
+  assert.equal(frozen.recovery_revision, 'd01a44c24d14f176ecc9fbceae3163f6efbeddfe');
+  assert.equal(frozen.source_tree, 'bbe0535b0abb8f348af436651cc4fb214307a2cd');
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:3522b8ccafab8ed2827786e015ec7712fb8ff18f1c6ff7c32d7006ce606dee60');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:9a6066b26dda8dbf2bb1a493910f665c9ec9fef2d6051fe885e639ab818b0848');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:2da57178ca64d3fc86cc8ab2019d477d92546bb30983643c4a1c9f939ca3869c');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
 test('pre-FROM-UNPIVOT grammar retains its independently authored Values Run', () => {
   const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-from-unpivot-values-identities.json', 'utf8'));
   const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
@@ -2371,6 +2420,441 @@ test('pre-FROM-UNPIVOT grammar retains its independently authored Values Run', (
     frozen.run_preimages);
   assert.equal(frozen.run_preimages.run.run_definition_cid,
     'sha256:c8d92cdc183df51a63091f93d58a83808326e6f1e70047b5bbc57d4f2b349b25');
+  assert.notEqual(valuesDependencyOracle().unit, frozen.values_dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, frozen.program_identity.programCid);
+});
+
+
+test('pre-UNPIVOT-row-label grammar retains complete independent Values Run preimages', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-unpivot-row-label-values-identities.json', 'utf8'));
+  assert.equal(frozen.source_revision, '26d63b4060d25aded2cf469e421530b3b41fb2de');
+  const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, frozen.values_dependencies,
+    frozen.barrier_contract_manifest_cid, frozen.program_identity, {canonicalCandidates: true}),
+    frozen.run_preimages);
+  assert.equal(frozen.run_preimages.run.run_definition_cid, 'sha256:7b525c0fd2a452137b76a759a01241879f3377836d7ef4fc89a35c93deefefee');
+  assert.notEqual(valuesDependencyOracle().unit, frozen.values_dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, frozen.program_identity.programCid);
+});
+
+// The complete pre-tuple grammar-bound closure remains independent and immutable.
+test('multi-column UNPIVOT retains the preceding complete Values identity preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-unpivot-multicolumn-values-identities.json', 'utf8'));
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:c334933dd6c887daf6167eefae4c01f619d32fcd9a6382705153992c9659760b');
+});
+
+
+test('pre-number-extrema Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = readHistoricalJson('scripts/fixtures/pre-number-extrema-values-identities.json');
+  assert.equal(frozen.source_revision, "5b78417131cb4d2d7be2b2a862e643587ab282eb");
+  assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
+  assert.equal(frozen.recovery_revision, '4c59fe14d56a08ef3ada1352bee1de2bc3acbb49');
+  assert.equal(frozen.source_tree, "d18f5ad0eccc5b85806775dc85116ef10e2699bf");
+  assert.equal(cid(frozen), "sha256:607a2dc800e4e749fbe62a5895b312819f29585266c1d4fc2ff6a5fa83125c7e");
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:5a28cec87c1421ad0986aa77fa5361a3908256b74325e03151f7b0c76c72c655');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:4978328a5110e23c1bfb64de8361a9f682e7d628a5439d6cd7321d267d293152');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:1a3d131f3126d17e7d589042b53fb8e83978e3c3170c4bb76599de1c371425c0');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+test('pre-pad-sides Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = readHistoricalJson('scripts/fixtures/pre-pad-sides-values-identities.json');
+  assert.equal(frozen.source_revision, "584d01284b18411fcbaaa4c30094c6962dc46a52");
+  assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
+  assert.equal(frozen.recovery_revision, '3f8d0461dace5ebaf506e11c388c9b8b6757e128');
+  assert.equal(frozen.source_tree, "f8bb4257debbcc737d8595421f6dab2eaa3fbf91");
+  assert.equal(cid(frozen), "sha256:3a27a675623f8e1631e065875914bc07d799157586b1c601e9943d03d1a8d12b");
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:9b1456e9e0090a8af3b142c2f697a9be8138bb39f0672e0b7bae9146e9a3b8b0');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:f626f19b7412c016bb8e8a81a85d2f2d6886413bca0a4c85e5e0e9717f2d0051');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:d9f03e6c8233a2c28c3fb6fececb0c0a06b2390f735d676bfadeadc562a63bdd');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+test('pre-split Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = readHistoricalJson('scripts/fixtures/pre-split-values-identities.json');
+  assert.equal(frozen.source_revision, "789c412262d0ac6bf906896755c8b2525c0720ad");
+  assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
+  assert.equal(frozen.recovery_revision, 'd338cb0fdfd21d995e53e46a3c8de52d95a83d96');
+  assert.equal(frozen.source_tree, "ec58747fddf3a1f39b69aef154cb5c587af15bfb");
+  assert.equal(cid(frozen), "sha256:0ba72368ac4788e88998e206f1388f3d0c37923ca0fd2675834be5390e14ad14");
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:a6c707ba513130bdfb8817672d47a3bf49c0b9152c281837e520abab2fbaec4e');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:54bb3f146aad367ac8efd8fdf031d41d5748bbe1ff8005961284d97d1097fa6b');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:e354419a99cf1b548c8b8e51b9a0e070a62e3364a0b2f2f8dc559169b1219769');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+test('pre-unicode-scalars Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = readHistoricalJson('scripts/fixtures/pre-unicode-scalars-values-identities.json');
+  assert.equal(frozen.source_revision, "c7fe4309a9b9433fab1ed68b14b46a132256efb7");
+  assert.equal(frozen.source_revision_kind, "published-parent-with-exact-recovery-tree-match");
+  assert.equal(frozen.recovery_revision, '943ac358a07345c375b28eefd4d41670616ac1ea');
+  assert.equal(frozen.source_tree, "a1ba5254cfd1ddfe3f889e4778f1157362e12b4b");
+  assert.equal(cid(frozen), "sha256:c999055162696a5939cfb32953d6bf47fd639afa194668936b6b2f8b921c1e64");
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:3dff84e3ec2cfbd332b88f96c0ce7aafe4e050ee28fc64f371142839ef92ba7e');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:36c1811a8001b8769bd6e95d1ead27ccbee4ecf260c4c86edd1b0e8c57d1658b');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:f8a7b7116aa8efc55df2bfec345d9e3e904bc5b8efa0688bf27c7c5fed4db671');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+test('pre-repeat-reverse Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-repeat-reverse-values-identities.json', 'utf8'));
+  assert.equal(frozen.source_revision, "31649739ac4232d92e9e7410398b0497b38be18a");
+  assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
+  assert.equal(frozen.recovery_revision, '7817457fa70c03c27fa018c6b7ae4a87253c46cf');
+  assert.equal(frozen.source_tree, "d03501f93f7af741f2d1e0b68853d7e389d7a7b1");
+  assert.equal(cid(frozen), "sha256:d3ed27c0348ba869f77017a5afdc4443781b0a303b5e83d46cb454b8b77cfe30");
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:f198d5ecb7127535392f7bde75dec74d9e35f855cd4fa773403169a24d224024');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:81fa4133a0c6ea7a6c16b5d80ddeb91b090403096a88a3e52bfc012d2b67bb61');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:d0ba5adbdcd22a090609e3000a6ad75b471140ec871298ca7332d5089b701272');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+test('pre-cbrt Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-cbrt-values-identities.json', 'utf8'));
+  assert.equal(frozen.source_revision, "c748a112dd8e39e5f3219e06aec0520b091037c2");
+  assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
+  assert.equal(frozen.recovery_revision, '3d03c4f39793afc6bd36b9f265e45a4a75c39efa');
+  assert.equal(frozen.source_tree, "ad0d228f1d6b85741968ba66e466224a6c9662ee");
+  assert.equal(cid(frozen), "sha256:9340a1f5163ba6b02ce8cd1852cb34aad2ea84c4b3ce15b9f8c93b163c181add");
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:96e5256c4688106ec87e62a22c4a87403913641763de16cf9359af2d8241c717');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:8c4388e8849161d1566405247e911f69832ae57c32f72100010307e079dc6337');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:585fe8e6d5bccc21f3d05404e42f594f31985a2cf3d7466a9bf16f863d3bda1d');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+test('pre-direct-trig Values dependencies and complete Run preimages remain immutable', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-direct-trig-values-identities.json', 'utf8'));
+  assert.equal(frozen.source_revision, "745a2003524fc4000d978674e0a095ee46f038d1");
+  assert.equal(frozen.source_revision_kind, 'published-parent-with-exact-recovery-tree-match');
+  assert.equal(frozen.recovery_revision, '6502831d5b81de11b8486282cae39cb4faa01fd7');
+  assert.equal(frozen.source_tree, "c4d0ce434a62490bcef6b6287b58d4a120448dd7");
+  assert.equal(cid(frozen), "sha256:da9eece5f40fc613e96195a96881a8d1d867a1d0c03c95229c87703a7b38ec7a");
+  const {values_dependencies: dependencies, program_identity: identity} = frozen;
+  assert.equal(dependencies.unit, 'sha256:9718cad5a1f9e33a94d69790537936b67d6fa1d2ed948775157163a01bb89190');
+  assert.equal(cid({version: 'actql-local-unit-dependencies/0.1',
+    import_interface_cids: [], incoming_gate_contract_cids: [],
+    local_body_cid: cid(dependencies.local), used_parameter_declarations_cid: cid({}),
+    local_contract_closure_cid: cid({version: 'actql-local-contracts/0.1', contracts: dependencies.contracts}),
+    unit_namespace: {node_id: 'source', program_id: 'client-values'}}), dependencies.unit);
+  assert.equal(cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${dependencies.unit}#/steps/0`,
+    unit: 'rows', value: 2}), dependencies.proof);
+  assert.equal(cid(identity.semantics), identity.semanticsCid);
+  assert.equal(cid(identity.definition), identity.programCid);
+  // The predecessor request keeps its own Program identity even after the
+  // current consuming fixture moves to the extended expression contract.
+  const previousRequestIntent = {version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: pin('b'.repeat(64)),
+    parameter_values_cid: cid({version: 'actql-parameter-values/0.1', values: {}}),
+    program_definition_cid: identity.programCid};
+  assert.equal(cid(previousRequestIntent),
+    'sha256:a8065f24ff05f2d9d6f3142f790f2be207ad6516dbf3c5bbb036a7b8267c58d9');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = frozen.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}), frozen.run_preimages);
+  for (const [name, field] of [['template', 'bound_invocation_template_cid'],
+    ['executable', 'executable_plan_cid'], ['compiled', 'compiled_plan_cid'],
+    ['run', 'run_definition_cid']]) {
+    const {[field]: recorded, ...body} = frozen.run_preimages[name];
+    assert.equal(cid(body), recorded);
+  }
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:4ef58e4ec48ac9e8cee146295cc4497ecfaa663b929c8b568224036c25ce85a6');
+  assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
+  assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+
+test('grouped PIVOT Strings retain the complete predecessor Values identity preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-pivot-grouped-string-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, 'fdd0c76c7975905740078e93c735f910135bafd1');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:910cc551b68b334824b6869ea560cd64843ec035e3b6a0c67abb4b319ea60b52');
+  // Preserve the authored baseline even after main extends scalar contracts.
+  assert.equal(cid(prior.program_identity.definition), prior.program_identity.programCid);
+  assert.equal(cid(prior.program_identity.semantics), prior.program_identity.semanticsCid);
+});
+
+
+test('grouped PIVOT integration retains the exact adopted main preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-pivot-grouped-string-main-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, 'f17e9fb2c93c84d0008d09018692f2c0e3f90d17');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+
+test('grouped STRING_AGG delimiter retains the complete adopted predecessor preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-string-agg-grouped-delimiter-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, 'f17e9fb2c93c84d0008d09018692f2c0e3f90d17');
+  const {grammar_manifest_cid: grammarCid, ...body} = prior.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+
+test('grouped STRING_AGG integration retains the exact adopted main preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-string-agg-grouped-delimiter-main-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, '599f487bbb0be365320706ad28eab972448ed75d');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:a6cdbc4062a32d5d37d3d54de0e35f6d3e8e7ca2a3bfeddf367ca2515b5b8e04');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+test('pre-zero-ROWS main retains its complete independent grammar and Run preimages', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-zero-rows-boundary-values-identities.json', 'utf8'));
+  assert.equal(frozen.source_revision, '340f70afffcd828a6650929eb61c5dc124607658');
+  const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, frozen.values_dependencies,
+    frozen.barrier_contract_manifest_cid, frozen.program_identity,
+    {canonicalCandidates: true}), frozen.run_preimages);
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
   assert.deepEqual(valuesDependencyOracle(), frozen.values_dependencies);
   assert.deepEqual(valuesProgramOracle(), frozen.program_identity);
+});
+
+test('zero ROWS integration retains the exact adopted main preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-zero-rows-boundary-main-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, '27d36302a6e653cc4005603dddf7c1bae09f5f95');
+  const {grammar_manifest_cid: grammarCid, ...body} = prior.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:ae69a17eeeee065ed495074f3f909bd9f342cae6913f1a438fc1eb9cd0c2092a');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
+});
+
+// The published main preimages remain explicit when only Frontend rules change.
+test('pre-grouped-LIMIT full normative identity closure remains reproducible', () => {
+  const frozen = JSON.parse(readFileSync('scripts/fixtures/pre-grouped-limit-operands-values-identities.json', 'utf8'));
+  const {grammar_manifest_cid: grammarCid, ...body} = frozen.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, frozen.aoa_contract_cid, frozen.values_dependencies,
+    frozen.barrier_contract_manifest_cid, frozen.program_identity, {canonicalCandidates: true}), frozen.run_preimages);
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
+});
+
+test('grouped LIMIT integration retains the exact adopted main preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-grouped-limit-operands-main-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, '0580a867e19c94cd60723ba74ec4fe4ec88a479b');
+  const {grammar_manifest_cid: grammarCid, ...body} = prior.grammar;
+  assert.equal(cid(body), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:ed7f1bf1c519f1110597e678b82232e2e5e2e6108dc418a4e286c739a75e9bbb');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
 });

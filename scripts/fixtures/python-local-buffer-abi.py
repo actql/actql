@@ -43,6 +43,24 @@ try:
         left.store, left.nonce, handle, 0) == -2
     assert left.exports['actql_publication_finish_commit'](
         left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_publication_commit_export_reserve'](
+        left.store, left.nonce, handle, 2, 2097200) == -2
+    assert left.exports['actql_publication_commit_export_produce'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_publication_commit_export_length'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_publication_commit_export_close'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_publication_commit_export_close'](
+        left.store, right.nonce, handle) == -2
+    assert left.exports['actql_result_binding_reserve'](
+        left.store, left.nonce, handle, 0, handle, 2, 131300) == -2
+    assert left.exports['actql_result_binding_produce'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_result_binding_length'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_result_binding_close'](
+        left.store, left.nonce, handle) == -2
     assert left.call('allocated') == 2 * len(payload) + physical_bytes
     # Individually valid reservations still exceed one aggregate allowance.
     assert left.call('reserve', 2, len(payload), 128) == -4

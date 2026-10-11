@@ -373,7 +373,8 @@ pub fn ResidentEffectReviewInputContext::capture_result(Self, @remote_journal.Jo
 pub fn ResidentEffectReviewInputContext::close(Self) -> Bool
 pub fn ResidentEffectReviewInputContext::facts(Self, @remote_journal.Journal) -> ResidentEffectReviewInputFacts?
 pub fn ResidentEffectReviewInputContext::matches_holder(Self, ResidentRetainedConsumer, @remote_journal.Journal) -> Bool
-pub fn ResidentEffectReviewInputContext::retention_matches(Self, @actql/actql/run_publication.PublicationContract) -> Bool
+pub fn ResidentEffectReviewInputContext::retention_matches(Self, @run_publication.PublicationContract) -> Bool
+pub fn ResidentEffectReviewInputContext::source_binding_cid(Self, @remote_journal.Journal) -> String?
 
 pub(all) struct ResidentEffectReviewInputFacts {
   materials : @run_publication_host.ClientEffectRunMaterials
@@ -622,7 +623,9 @@ pub struct ResidentRetainedConsumer {
 }
 pub fn ResidentRetainedConsumer::accept(Self, @remote_journal.Journal, @http_client.Client, String, @remote_resident_site.ResidentSiteDelegation, Int, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String) -> Result[ResidentAcceptance, ResidentHostIssue]
 pub fn ResidentRetainedConsumer::close(Self) -> Bool
+pub fn ResidentRetainedConsumer::completed_effect_execution(Self, @remote_journal.Journal) -> ResidentExecuted?
 pub fn ResidentRetainedConsumer::effect_computation(Self, @remote_journal.Journal) -> ResidentSourceCompute?
+pub fn ResidentRetainedConsumer::effect_source_binding_cid(Self, @remote_journal.Journal, @physical_strategy.CapturedEffectInputs) -> String?
 pub fn ResidentRetainedConsumer::execute(Self, @remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, String, () -> String, ((String) -> Bool)?, borrow_observe? : () -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
 pub fn ResidentRetainedConsumer::prepare_effect_review_inputs(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.Journal, Int, Int, @actql/actql/run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectReviewInputContext, ResidentEffectReviewInputFailure]
 

@@ -148,6 +148,12 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
+pub fn check_interactive_admission_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, Int, Int, Int) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_interactive_logical_map_binding(RunEvidenceValue, PublicationContract, Int, Int, Int) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_interactive_profile_bounds(RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn check_model_invocation_attempt(BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, Int64) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
@@ -157,6 +163,8 @@ pub fn check_model_invocation_review(BoundModelInvocationScope, RunEvidenceValue
 pub fn check_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_original_run_binding(RunPublicationAdmission, PublicationContract) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_model_replayed_observation(RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
 
@@ -171,6 +179,8 @@ pub fn check_source_free_model_invocation_binding(RunEvidenceValue, RunEvidenceV
 pub fn check_source_free_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
+
+pub fn checked_publication_inventory_definition(CheckedPublicationInventory, Int) -> Result[PublicationContract, PublicationInventoryIssue]
 
 pub fn checked_publication_inventory_definition_cid(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
 
@@ -344,6 +354,8 @@ pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, Delive
 
 pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[(String, Int), CapturedRunIssuanceIssue]
 
+pub fn install_publication_publisher_port(PublicationContract, PublicationContract, String, () -> Bool, (PublicationPublisherAuthorization) -> Bool) -> Result[PublicationPublisherPort, PublicationPublisherIssue]
+
 pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], CapturedEffectDependencyLimits, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
 pub fn issue_captured_source_input_relation(RunEvidenceValue, RunEvidenceValue, String, Int, PublicationContract, Int, Int, Int) -> Result[(PublicationContract, PublicationContract, PublicationContract), AcquisitionRelationIssue]
@@ -436,11 +448,15 @@ pub fn model_capture_bundle_record(ModelCaptureBundleRead, Int) -> Result[ModelC
 
 pub fn model_capture_record_evidence(ModelCaptureRecordRead) -> RunEvidenceValue
 
+pub fn model_capture_record_observation(ModelCaptureRecordRead) -> Result[ModelCaptureObservation, RunEvidenceValueIssue]
+
 pub fn model_capture_record_response(ModelCaptureRecordRead) -> @canonical_json.CanonicalValue
 
 pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
 
 pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
+
+pub fn model_invocation_evidence_version(RunEvidenceValue) -> String?
 
 pub fn model_invocation_review_expires_at(RunEvidenceValue) -> String?
 
@@ -482,9 +498,15 @@ pub fn native_effect_source_custody_record_json(PublicationContract, CapturedEff
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
+pub fn normalize_control_amount_decimal(String) -> Result[String, RunControlMoneyIssue]
+
+pub fn parse_control_amount_micro(String) -> Result[Int64, RunControlMoneyIssue]
+
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
 pub fn parse_effect_preview_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
+
+pub fn parse_interactive_run_control_shape(String, String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
@@ -532,11 +554,17 @@ pub fn prepare_superseded_publication_finalization(PublicationContract?) -> Publ
 
 pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
 
+pub fn project_current_interactive_run_view(PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, Int, Int, Int, static_plan_installed? : Bool) -> Result[String, RunControlReadIssue]
+
 pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 
 pub fn project_durable_result_binding_read(PublicationContract) -> Result[DurableResultBindingRead, DeliveryIssuanceIssue]
 
+pub fn project_interactive_legacy_state(String, Int, Int, Int) -> Result[String, RunControlReadIssue]
+
 pub fn project_public_index_read(PublicationContract) -> Result[PublicIndexRead, DeliveryIssuanceIssue]
+
+pub fn project_publication_request_context(PublicationContract) -> Result[PublicationRequestContext, PublicationPublisherIssue]
 
 pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObservation) -> Result[PublicationSnapshot, PublicationSnapshotIssue]
 
@@ -1221,6 +1249,28 @@ pub struct ModelCaptureBundleRead {
   mut released : Bool
 }
 
+pub(all) struct ModelCaptureObservation {
+  origin : ModelCaptureObservationOrigin
+  provider_model : String?
+  provider_revision : String?
+  provider_request_id : String?
+  gateway_request_id : String?
+  input_tokens : Int64?
+  output_tokens : Int64?
+  provider_finish_reason : String?
+  historical_finish_reason : String?
+  response_profile_cid : String?
+  response_complete : Bool?
+  raw_response_artifact_cid : String?
+  provider_metadata : @canonical_json.CanonicalValue?
+  observed_at : String
+}
+
+pub(all) enum ModelCaptureObservationOrigin {
+  HistoricalAdmitted
+  Reported
+} derive(Eq, @debug.Debug)
+
 pub struct ModelCaptureRecordRead {
   evidence : RunEvidenceValue
   response : @canonical_json.CanonicalValue
@@ -1369,6 +1419,42 @@ pub(all) enum PublicationPreparedReleaseAction {
   PublicationAdvancePreparedRelease
   PublicationPreparedReleaseFinished
   PublicationPreparedReleaseInvalid
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PublicationPublisherAuthorization {
+  stage : String
+  namespace_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  publication_request_cid : String
+  public_index_entry_cid : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationPublisherIssue {
+  WrongContract
+  ReferenceMismatch
+  ForeignRequest
+  InvalidStore
+  NotCurrent
+  AccessDenied
+} derive(Eq, @debug.Debug)
+
+type PublicationPublisherPort
+pub fn PublicationPublisherPort::check(Self, PublicationContract, PublicationContract, String, PublicationPublisherStage, PublicationContract?) -> Result[Unit, PublicationPublisherIssue]
+
+pub(all) enum PublicationPublisherStage {
+  Request
+  Commit
+  ReturnCommitted
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PublicationRequestContext {
+  namespace_id : String
+  authority_scope_cid : String
+  run_definition_cid : String
+  publication_policy_cid : String
+  publication_target_cid : String
+  publication_request_cid : String
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PublicationSetupAction {
@@ -1552,6 +1638,17 @@ pub(all) enum ResultOrderingEvidenceIssue {
   OrderingMismatch
   WitnessMismatch
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunControlMoneyIssue {
+  InvalidControlAmount
+  ControlAmountOverflow
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunControlReadIssue {
+  ControlReadContract(PublicationContractIssue)
+  RunStateVersionUnsupported
+  LegacyProjectionMismatch(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunEvidenceChainIssue {

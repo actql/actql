@@ -179,6 +179,7 @@ struct ModelState {
   reconciled_responses : Map[Int, ModelResponse]
   response_reconciliations : Map[Int, ModelResponseReconciliation]
   ledger : @resources.Ledger
+  mut prepared_capacity : @resources.CapacityReservation?
   reservations : Map[Int, @resources.Reservation]
   send_mask : Array[Bool]?
   mut reservation_next_slot : Int
@@ -539,15 +540,42 @@ fn advance_model(
       slot: state.next_slot,
       trace,
       admission,
+      acknowledgement: None,
+      gate_issued: false,
+      send_started: false,
     }
     state.entering = Some(entry)
     let admitted = enter(entry)
-    state.entering = None
     if !admitted {
+      state.entering = None
       return @bounded.Failed(CallEntryRefused, 1, 1)
     }
+    // Preserve entered-attempt responsibility before final current checks.
+    // The legacy immediate adapter's true result reports actual persistence;
+    // it does not itself authorize transport or fabricate a new approval.
+    state.attempts[state.next_slot] = trace
+    state.attempt_slots.push(state.next_slot)
+    let started = match acknowledge_model_call_entry(entry, prepared_set) {
+      None =>
+        match model_call_start_current(entry, reader) {
+          Err(issue) => Err(issue)
+          Ok(_) => Err(CallEntryRefused)
+        }
+      Some(acknowledgement) =>
+        match issue_model_call_send_gate(acknowledgement, reader) {
+          Err(issue) => Err(issue)
+          Ok(gate) => consume_model_call_send_gate(gate, reader)
+        }
+    }
+    state.entering = None
+    match started {
+      Err(Cancelled) => return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+      Err(Deadline) => return @bounded.Stopped(@bounded.Deadline, 1, 1)
+      Err(issue) => return @bounded.Failed(issue, 1, 1)
+      Ok(_) => ()
+    }
   }
-  if attempt is Some(attempt) {
+  if !state.durable_calls && attempt is Some(attempt) {
     state.attempts[state.next_slot] = attempt
     state.attempt_slots.push(state.next_slot)
   }
@@ -706,6 +734,7 @@ fn start_model_owned(
   egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
   durable_calls? : Bool = false,
   send_mask? : Array[Bool]? = None,
+  prepared_capacity? : PreparedModelCapacity? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   if egress_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
@@ -745,6 +774,12 @@ fn start_model_owned(
   }
   let count = @relation.prepared_infer_rows_count(rows)
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+  // Task admission does not enable a native Decision transport in this
+  // synchronous profile. Refuse before acquiring inputs or creating a Ledger.
+  if source is Provider(_) &&
+    @environment.model_task_kind(task) == @environment.Decision {
+    return Err(InvalidProvider)
+  }
   if source is Provider(provider) &&
     provider.provider_id != @environment.model_task_connector(task) {
     return Err(InvalidProvider)
@@ -785,7 +820,21 @@ fn start_model_owned(
   if send_mask is Some(mask) && (!durable_calls || mask.length() != count) {
     return Err(RequestIdentity)
   }
+  // The internal caller must supply the complete extra holding envelope, not
+  // an eligible-send count or a spare portion of an attempt's evidence budget.
+  // No public caller supplies this descriptor yet; no new key is retained.
+  let capacity = match
+    reserve_prepared_model_capacity(ledger, count, prepared_capacity) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
+    if capacity is Some(reservation) {
+      match @resources.settle_capacity(ledger, reservation) {
+        Ok(_) => ()
+        Err(issue) => return Err(Ledger(issue))
+      }
+    }
     return Err(OutputIdentity)
   }
   let reservations : Map[Int, @resources.Reservation] = Map([])
@@ -807,6 +856,7 @@ fn start_model_owned(
     reconciled_responses: Map([]),
     response_reconciliations: Map([]),
     ledger,
+    prepared_capacity: capacity,
     reservations,
     send_mask: send_mask.map(mask => mask.copy()),
     reservation_next_slot: 0,
@@ -960,7 +1010,9 @@ pub fn cleanup_model_execution(
   execution : ModelExecution,
 ) -> Result[Bool, ModelExecutionIssue] {
   if execution.state.reclaimed {
-    return Ok(true)
+    // Settlement retry must keep the original token without repeating the
+    // physical cleanup or admitting another attempt.
+    return finish_prepared_model_capacity(execution.state)
   }
   if execution.state.output_uses > 0 {
     return Ok(false)
@@ -993,16 +1045,16 @@ pub fn cleanup_model_execution(
       }
       @relation.release_prepared_infer_rows_use(execution.state.input_use)
       |> ignore
-      execution.state.captures.clear()
-      execution.state.responses.clear()
-      execution.state.invocation_evidence.clear()
+      retire_model_owned_array(execution.state.captures)
+      retire_model_owned_array(execution.state.responses)
+      retire_model_owned_array(execution.state.invocation_evidence)
       execution.state.restored_evidence = None
       execution.state.restored_binding = None
-      execution.state.requests.clear()
+      retire_model_owned_array(execution.state.requests)
       execution.state.physical_plans.clear()
-      execution.state.physical_cursors.clear()
+      retire_model_owned_array(execution.state.physical_cursors)
       execution.state.physical_observer = None
-      execution.state.outcomes.clear()
+      retire_model_owned_array(execution.state.outcomes)
       for (_, saved) in execution.state.restored_calls {
         if saved.bundle is Some(bundle) {
           @publication.release_model_capture_bundle_read(bundle) |> ignore
@@ -1021,7 +1073,7 @@ pub fn cleanup_model_execution(
         release_model_slot_replay(read) |> ignore
       }
       execution.state.reclaimed = true
-      Ok(true)
+      finish_prepared_model_capacity(execution.state)
     }
     Err(issue) => Err(Session(issue))
   }

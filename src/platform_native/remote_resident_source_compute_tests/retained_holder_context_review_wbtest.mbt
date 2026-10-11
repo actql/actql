@@ -58,7 +58,12 @@ fn retained_holder_context_review(
       holder,
       journal,
       missing_journal,
-      retained_holder_review_policy(holder, missing_facts.inputs, invocation.1),
+      retained_holder_review_policy(
+        holder,
+        journal,
+        missing_facts.inputs,
+        invocation.1,
+      ),
     )
     is Err({ issue: Normalization(MissingOriginalJournal), pending: None, }),
   )
@@ -79,6 +84,7 @@ fn retained_holder_context_review(
       invocation.0,
       retained_holder_review_policy(
         holder,
+        journal,
         rejected_context.facts(journal).unwrap().inputs,
         invocation.1,
       ),
@@ -102,6 +108,53 @@ fn retained_holder_context_review(
   )
   let context = prepare(1, 0, 4, 10000).unwrap()
   let facts = context.facts(journal).unwrap()
+  let original_binding_cid = context.source_binding_cid(journal).unwrap()
+  let original_attempt = @remote.dispatch_request_attempt_identity(
+    @resident.resident_retained_consumer_request(holder),
+  ).unwrap()
+  let original_envelope = @remote.admit_remote_poll_dispatch_json(
+    journal.dispatch_envelope(original_attempt).unwrap().unwrap(),
+  ).unwrap()
+  assert_eq(
+    original_binding_cid,
+    @remote.remote_input_binding_cid(
+      @remote.remote_poll_dispatch_input_binding(original_envelope),
+    ),
+  )
+  assert_eq(
+    holder.effect_source_binding_cid(journal, facts.inputs),
+    Some(original_binding_cid),
+  )
+  assert_true(context.source_binding_cid(producer_journal) is None)
+  let producer_attempt = @remote.dispatch_request_attempt_identity(
+    producer.executed.request,
+  ).unwrap()
+  let producer_envelope = @remote.admit_remote_poll_dispatch_json(
+    producer_journal.dispatch_envelope(producer_attempt).unwrap().unwrap(),
+  ).unwrap()
+  let producer_binding_cid = @remote.remote_input_binding_cid(
+    @remote.remote_poll_dispatch_input_binding(producer_envelope),
+  )
+  assert_false(original_binding_cid == producer_binding_cid)
+  let foreign_binding_context = prepare(1, 0, 4, 10000).unwrap()
+  let foreign_binding_policy = retained_holder_review_policy(
+    holder,
+    journal,
+    foreign_binding_context.facts(journal).unwrap().inputs,
+    invocation.1,
+  )
+  // Reject the initial Source producer identity before normalization, export
+  // or Provider access; close only the rejected context's existing pins.
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_review_from_original_materials(
+      holder,
+      journal,
+      foreign_binding_context,
+      { ..foreign_binding_policy, source_binding_cid: producer_binding_cid, },
+    )
+    is Err({ issue: Unavailable, pending: None, }),
+  )
+  assert_true(foreign_binding_context.source_binding_cid(journal) is None)
   let materials = consumer.effect_materials_for_capture().unwrap()
   assert_eq(facts.materials.request, materials.request)
   assert_eq(
@@ -155,6 +208,7 @@ fn retained_holder_context_review(
   assert_true(context.close())
   assert_true(context.close())
   assert_true(context.facts(journal) is None)
+  assert_true(context.source_binding_cid(journal) is None)
   assert_true(
     context.capture_result(journal, normalization, 65536, 4096, 64)
     is Err(Unavailable),

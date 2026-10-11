@@ -1,0 +1,18 @@
+{
+  "committed_at": "2026-10-10T00:00:04.000Z",
+  "output_fields": ["attempt", "index_entry", "request"],
+  "index_fields": [
+    "authority_scope_cid", "captured_run_cid", "committed_at",
+    "durable_result_binding_cids", "invocation_cid", "namespace_id",
+    "publication_attempt_cid", "publication_request_cid", "public_index_entry_cid", "result_manifest_cid",
+    "run_definition_cid", "run_receipt_cid", "version"
+  ],
+  "index_version": "actql-public-index-entry/0.1",
+  "binding_count": 1,
+  "cases": [
+    "closed_candidate_input_and_original_binding_inventory",
+    "full_chain_validation_and_shared_work_budget",
+    "original_index_intent_and_current_authority",
+    "candidate_parent_pin_and_same_cleanup_retry"
+  ]
+}

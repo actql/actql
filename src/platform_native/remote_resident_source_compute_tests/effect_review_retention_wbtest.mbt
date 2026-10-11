@@ -589,7 +589,28 @@ fn retained_effect_review_retention_store(
       @remote.remote_effect_checkpoint_report_json(queued),
       @remote.remote_effect_checkpoint_report_json(report.unwrap()),
     )
-    retained_holder_upload_original_review(work, original_journal_path.unwrap())
+    retained_holder_upload_original_review(
+      work,
+      original_journal_path.unwrap(),
+      store,
+      {
+        crypto,
+        key,
+        checkpoint_id: "native-original-review-retention",
+        created_at: "2026-10-10T00:00:00.000Z",
+        expires_at: "2026-10-11T00:00:00.000Z",
+        limits,
+        report_url: @env.get_env_var(
+          "ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL",
+        ).unwrap(),
+        artifact_url: @env.get_env_var(
+          "ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL",
+        ).unwrap(),
+        access: (_, _) => {
+          abort("confirmed review repeated a Provider observation")
+        },
+      },
+    )
     Some(retained_holder_admit_resolution(work, report.unwrap()))
   } else {
     None

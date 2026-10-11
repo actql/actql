@@ -115,3 +115,12 @@ pub fn remote_poll_effect_current_query_json(
 ) -> String {
   value.query_json
 }
+
+///|
+/// Re-emit admitted control through the original transport issuer. This
+/// preserves exact routing bytes; it admits no report or Ledger evidence.
+pub fn remote_poll_effect_current_envelope_json(
+  value : RemotePollEffectCurrent,
+) -> Result[String, DispatchIssue] {
+  remote_poll_effect_current_body(value.request, value.query_json)
+}

@@ -7,6 +7,53 @@ import {machineCid} from './actql-spec-family.mjs';
 const stringSignature = 'Exactly two string operands; the result is boolean and is nullable exactly when either operand is nullable. Untyped NULL takes the unique string signature. No implicit conversion, BYTES overload or explicit collation is admitted.';
 const stringEvaluation = 'Evaluate the value and then the prefix or suffix once each when demanded, including both children when the first produces NULL. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical budgets. Exact matching does not skip logical operand charges.';
 export const googleScalarLaws = {
+  pow: {
+    "signature": "Exactly two finite binary64 Number operands; the result is Number and is nullable exactly when either operand is nullable. Untyped NULL takes the unique Number signature. No implicit conversion, distinct INT64, NUMERIC, BIGNUMERIC or non-finite overload is admitted.",
+    "value": "Return the first operand raised to the second. With non-null operands, a negative base requires an integral exponent, tested in binary64 without narrowing to a bounded integer. Either sign of zero with a negative exponent fails with the existing arithmetic failure. Zero to zero is one. A non-finite result from finite inputs fails with the existing arithmetic failure. Preserve representable subnormal results and return canonical positive zero for unrepresentable underflow or either zero sign. Either NULL operand produces NULL after both child evaluations succeed, before validating these value-domain rules.",
+    "algorithm": "Use the same pinned portable MoonBit core Double algorithms in src/scalar_numeric_kernel on JS, WebAssembly and Native (source manifest sha256:254e734f8e44242b835b0a6c2505011b5eea6b9883dfa3db8c1b74e061757e0b), through the existing canonical scalar owner and finite-result validation. Identical admitted inputs and selected semantic contracts preserve exact logical Number bits across targets; no live-BigQuery last-bit equivalence is claimed.",
+    "evaluation": "Evaluate the base then exponent exactly once when demanded, including the second child after a NULL result. Apply strict NULL only after both child evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical work, frame, workspace and live-value budgets. Reuse the canonical binary scalar evaluator; do not reevaluate children or add a frontend evaluator.",
+    "identity": "The closed source form is {pow: [base, exponent]}; the machine node is {op: pow, body: [base_node, exponent_node]}. SQL POW and POWER and expression-text pow and power lower to the same pow operation. Retain the operation and both ordered children, including constant or mathematically redundant arguments. Earlier contract CIDs retain their earlier meanings. GoogleSQL MOD has no FLOAT64 signature and is not an alias for the existing internal modulo operation."
+  },
+  exp: {
+    "signature": "Exactly one finite binary64 Number operand; the result is Number and is nullable exactly when the operand is nullable. Untyped NULL takes the unique Number signature. No implicit conversion, distinct INT64, NUMERIC, BIGNUMERIC or non-finite overload is admitted.",
+    "value": "Return e raised to the operand. Zero produces one. A non-finite result from a finite input fails with the existing arithmetic failure. Preserve representable subnormal results and return canonical positive zero for unrepresentable underflow. NULL produces NULL.",
+    "algorithm": "Use the same pinned portable MoonBit core Double algorithms in src/scalar_numeric_kernel on JS, WebAssembly and Native (source manifest sha256:254e734f8e44242b835b0a6c2505011b5eea6b9883dfa3db8c1b74e061757e0b), through the existing canonical scalar owner and finite-result validation. Identical admitted inputs and selected semantic contracts preserve exact logical Number bits across targets; no live-BigQuery last-bit equivalence is claimed.",
+    "evaluation": "Evaluate the demanded child exactly once. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical work, frame, workspace and live-value budgets. Reuse the canonical unary scalar evaluator.",
+    "identity": "The closed source form is {exp: expression}; the machine node is {op: exp, body: expression_node}. Retain the operation and child in canonical lowering, including constants. Earlier contract CIDs retain their earlier meanings."
+  },
+  ln: {
+    "signature": "Exactly one finite binary64 Number operand; the result is Number and is nullable exactly when the operand is nullable. Untyped NULL takes the unique Number signature. No implicit conversion, distinct INT64, NUMERIC, BIGNUMERIC or non-finite overload is admitted.",
+    "value": "Return the natural logarithm of a positive operand. A non-null operand less than or equal to zero fails with the existing arithmetic failure, including either zero sign. One produces canonical positive zero. NULL produces NULL.",
+    "algorithm": "Use the same pinned portable MoonBit core Double algorithms in src/scalar_numeric_kernel on JS, WebAssembly and Native (source manifest sha256:254e734f8e44242b835b0a6c2505011b5eea6b9883dfa3db8c1b74e061757e0b), through the existing canonical scalar owner and finite-result validation. Identical admitted inputs and selected semantic contracts preserve exact logical Number bits across targets; no live-BigQuery last-bit equivalence is claimed.",
+    "evaluation": "Evaluate the demanded child exactly once. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical work, frame, workspace and live-value budgets. Reuse the canonical unary scalar evaluator.",
+    "identity": "The closed source form is {ln: expression}; the machine node is {op: ln, body: expression_node}. SQL LN(x) and LOG(x), and expression-text ln(x) and log(x), normalize to this same unary operation. Retain the operation and child, including constants. Earlier contract CIDs retain their earlier meanings."
+  },
+  log: {
+    "signature": "Exactly two finite binary64 Number operands, value then base; the result is Number and is nullable exactly when either operand is nullable. Untyped NULL takes the unique Number signature. No implicit conversion, distinct INT64, NUMERIC, BIGNUMERIC or non-finite overload is admitted.",
+    "value": "Return the logarithm of the first operand to the second operand's base. With non-null operands, require the value and base to be positive and the base to differ from one; otherwise fail with the existing arithmetic failure. A base strictly between zero and one is valid. Normalize either result zero sign to canonical positive zero. Either NULL operand produces NULL after both child evaluations succeed, before validating these value-domain rules.",
+    "algorithm": "Use the same pinned portable MoonBit core Double algorithms in src/scalar_numeric_kernel on JS, WebAssembly and Native (source manifest sha256:254e734f8e44242b835b0a6c2505011b5eea6b9883dfa3db8c1b74e061757e0b), through the existing canonical scalar owner and finite-result validation. Compute ln(value)/ln(base) in that order. Identical admitted inputs and selected semantic contracts preserve exact logical Number bits across targets; no live-BigQuery last-bit equivalence is claimed.",
+    "evaluation": "Evaluate value then base exactly once when demanded, including the second child after a NULL result. Apply strict NULL only after both child evaluations succeed. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical work, frame, workspace and live-value budgets. Reuse the canonical binary scalar evaluator.",
+    "identity": "The closed source form is {log: [value, base]}; the machine node is {op: log, body: [value_node, base_node]}. Canonical JSON log is binary only. The one-argument SQL and expression-text LOG form normalizes to ln; the two-argument form retains log. Preserve both ordered children, including constants. Earlier contract CIDs retain their earlier meanings."
+  },
+  log10: {
+    "signature": "Exactly one finite binary64 Number operand; the result is Number and is nullable exactly when the operand is nullable. Untyped NULL takes the unique Number signature. No implicit conversion, distinct INT64, NUMERIC, BIGNUMERIC or non-finite overload is admitted.",
+    "value": "Return the base-ten logarithm of a positive operand. A non-null operand less than or equal to zero fails with the existing arithmetic failure, including either zero sign. One produces canonical positive zero. NULL produces NULL.",
+    "algorithm": "Use the same pinned portable MoonBit core Double algorithms in src/scalar_numeric_kernel on JS, WebAssembly and Native (source manifest sha256:254e734f8e44242b835b0a6c2505011b5eea6b9883dfa3db8c1b74e061757e0b), through the existing canonical scalar owner and finite-result validation. Identical admitted inputs and selected semantic contracts preserve exact logical Number bits across targets; no live-BigQuery last-bit equivalence is claimed.",
+    "evaluation": "Evaluate the demanded child exactly once. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical work, frame, workspace and live-value budgets. Reuse the canonical unary scalar evaluator.",
+    "identity": "The closed source form is {log10: expression}; the machine node is {op: log10, body: expression_node}. Retain the operation and child, including constants. Earlier contract CIDs retain their earlier meanings."
+  },
+  greatest: {
+    signature: 'One or more finite binary64 number operands; the result is number and is nullable exactly when any operand is nullable. Every immediate untyped NULL takes the unique number signature, including an all-NULL argument list. No implicit conversion, STRING, BOOLEAN, temporal, decimal, BYTES, non-finite value or collation overload is admitted.',
+    value: 'Return the greatest operand in the existing finite numeric order. Any NULL operand produces NULL, including a singleton NULL. A non-null singleton returns itself. Equal values and repeated operands preserve their value; zero uses the existing canonical positive zero. No arithmetic overflow, precision reduction or non-finite result is introduced.',
+    evaluation: 'Evaluate every demanded child exactly once in authored order, including all later children after NULL, and preserve the first child failure. NULL does not short-circuit the argument list. Enclosing lazy demand, logical entry/operand/result charges, retained live roots, control/workspace bounds and cancellation cleanup remain owned by the common expression continuation. Fold accumulators are not additional semantic expression results.',
+    identity: 'The closed source form is {greatest: [first, ...]} and the machine node is {op: greatest, body: [first_node, ...]} with a nonempty array. Retain the authored operation, argument order, repetitions and singleton node; do not sort, deduplicate or constant fold children. Earlier contract CIDs retain their earlier meanings.',
+  },
+  least: {
+    signature: 'One or more finite binary64 number operands; the result is number and is nullable exactly when any operand is nullable. Every immediate untyped NULL takes the unique number signature, including an all-NULL argument list. No implicit conversion, STRING, BOOLEAN, temporal, decimal, BYTES, non-finite value or collation overload is admitted.',
+    value: 'Return the least operand in the existing finite numeric order. Any NULL operand produces NULL, including a singleton NULL. A non-null singleton returns itself. Equal values and repeated operands preserve their value; zero uses the existing canonical positive zero. No arithmetic overflow, precision reduction or non-finite result is introduced.',
+    evaluation: 'Evaluate every demanded child exactly once in authored order, including all later children after NULL, and preserve the first child failure. NULL does not short-circuit the argument list. Enclosing lazy demand, logical entry/operand/result charges, retained live roots, control/workspace bounds and cancellation cleanup remain owned by the common expression continuation. Fold accumulators are not additional semantic expression results.',
+    identity: 'The closed source form is {least: [first, ...]} and the machine node is {op: least, body: [first_node, ...]} with a nonempty array. Retain the authored operation, argument order, repetitions and singleton node; do not sort, deduplicate or constant fold children. Earlier contract CIDs retain their earlier meanings.',
+  },
   starts_with: {
     signature: stringSignature,
     value: 'Return whether the second string is an exact prefix of the first, using their retained Unicode scalar sequences with default binary comparison. The empty prefix matches every non-null string, including the empty string. A longer prefix does not match. No normalization, case folding, trimming or locale rule is applied. Either NULL operand produces NULL.',
@@ -94,7 +141,7 @@ export const googleScalarLaws = {
     identity: 'The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
 };
-const templates = {starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', trim: 'abs', ltrim: 'abs', rtrim: 'abs', round: 'abs', trunc: 'abs', safe_add: 'contains', safe_subtract: 'contains', safe_multiply: 'contains', safe_divide: 'contains', safe_negate: 'abs'};
+const templates = {greatest: 'abs', least: 'abs', pow: 'contains', exp: 'abs', ln: 'abs', log: 'contains', log10: 'abs', starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', trim: 'abs', ltrim: 'abs', rtrim: 'abs', round: 'abs', trunc: 'abs', safe_add: 'contains', safe_subtract: 'contains', safe_multiply: 'contains', safe_divide: 'contains', safe_negate: 'abs'};
 
 // Unicode 16.0 PropList.txt White_Space, not host-language trim or regex \s.
 export const trimWhiteSpaceCodePoints = [
@@ -132,6 +179,11 @@ function visit(value, write, counts) {
           expected.required = [name];
           expected.properties = {[name]: expected.properties[template]};
         } else expected.properties.op.const = name;
+        if (['greatest', 'least'].includes(name)) {
+          const key = kind === 'source' ? name : 'body';
+          expected.properties[key] = {type: 'array', minItems: 1,
+            items: expected.properties[key]};
+        }
         if (['trim', 'ltrim', 'rtrim', 'round', 'trunc'].includes(name)) {
           const key = kind === 'source' ? name : 'body';
           const unary = expected.properties[key];

@@ -1,4 +1,5 @@
 export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
+export * from './interactive-control.generated.js';
 // Structural Client–Host wire admission only. The Host's MoonBit owners decide
 // identities, authorization, state transitions, publication and retry.
 import {validDeliveryAttempt, validDeliveryRecord,
@@ -319,12 +320,29 @@ export function prepareClientHostRequest(operation, original) {
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
-  if (['submit-intent', 'restart-intent', 'lookup-submission', 'owner-observations'].includes(operation)) {
+  if (['submit-intent', 'restart-intent', 'lookup-submission', 'owner-observations', 'plan', 'inspect-run'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
   }
   return Object.freeze({body, connection});
+}
+
+function validProgramInput(body) {
+  return (body.kind === 'aql' &&
+    (exact(body.input, ['text', 'format']) ||
+      exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
+    typeof body.input.text === 'string' &&
+    body.input.text.length > 0 && body.input.text.length <= 65536 &&
+    !body.input.text.includes('\u0000') &&
+    clientSourceFormats.includes(body.input.format) &&
+    (body.input.parameterDeclarations === undefined ||
+      ['aql-text', 'sql'].includes(body.input.format) &&
+      body.input.parameterDeclarations !== null &&
+      typeof body.input.parameterDeclarations === 'object' &&
+      !Array.isArray(body.input.parameterDeclarations)) ||
+    body.kind === 'program' && body.input !== null &&
+    typeof body.input === 'object' && !Array.isArray(body.input));
 }
 
 export function validClientBody(operation, body) {
@@ -347,22 +365,22 @@ export function validClientBody(operation, body) {
         !Array.isArray(body.parameters));
   }
   if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
+  if (operation === 'inspect-run') {
+    return validRunRef(body.ref) &&
+      Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= 65536 &&
+      Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
+      Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;
+  }
+  if (operation === 'plan') {
+    return validProgramInput(body) &&
+      (body.parameters === null || typeof body.parameters === 'object' &&
+        !Array.isArray(body.parameters)) &&
+      Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes > 0 && body.maxWireBytes <= 65536 &&
+      Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
+      Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;
+  }
   if (operation === 'submit') {
-    return boundedText(body.requestId) &&
-      (body.kind === 'aql' &&
-        (exact(body.input, ['text', 'format']) ||
-          exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
-        typeof body.input.text === 'string' &&
-        body.input.text.length > 0 && body.input.text.length <= 65536 &&
-        !body.input.text.includes('\u0000') &&
-        clientSourceFormats.includes(body.input.format) &&
-        (body.input.parameterDeclarations === undefined ||
-          ['aql-text', 'sql'].includes(body.input.format) &&
-          body.input.parameterDeclarations !== null &&
-          typeof body.input.parameterDeclarations === 'object' &&
-          !Array.isArray(body.input.parameterDeclarations)) ||
-        body.kind === 'program' && body.input !== null &&
-        typeof body.input === 'object' && !Array.isArray(body.input));
+    return boundedText(body.requestId) && validProgramInput(body);
   }
   // This validates the closed request envelope only. Program/language meaning
   // belongs to the same common checker selected by the Host.

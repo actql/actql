@@ -454,3 +454,209 @@ INT64, NUMERIC, BIGNUMERIC, Decimal and non-finite overloads are not implied.
 The initial 0.1 expression, scalar-manifest, schema and dependent identity
 contracts change together, retaining exact predecessor bodies and preimages.
 Registration alone is not execution conformance for an unverified target.
+
+## Finite Number powers, exponentials and logarithms
+
+The scalar surface adds POW/POWER, EXP, LN, LOG and LOG10 for the existing finite
+binary64 Number domain. GoogleSQL's mathematical-function documentation supplies
+the finite-FLOAT64 domain, strict NULL, overflow and underflow rules. This does
+not add distinct INT64, NUMERIC or BIGNUMERIC domains, coercions, non-finite values,
+or GoogleSQL MOD: MOD has no FLOAT64 overload. The existing internal modulo
+operation and `%` retain their existing meaning.
+
+POW requires an integral exponent for a negative base. Integrality is tested in
+binary64 before any bounded integer conversion, so representable integral
+exponents at and beyond 2^53 remain valid. Either sign of zero to a negative power
+fails; zero to zero is one. POW and EXP preserve representable subnormals, return
+canonical positive zero on unrepresentable underflow, and fail if a finite input
+produces a non-finite result. LN and LOG10 require positive input. Binary LOG
+requires a positive value and positive base other than one; bases between zero
+and one are allowed. Successfully evaluated NULL operands propagate before these
+value-domain checks, while demanded child errors retain their original owner.
+
+The canonical unary operators are exp, ln and log10, and the canonical binary
+operators are pow and log. SQL POW/POWER and expression-text pow/power share pow.
+SQL LOG(x) and expression-text log(x) normalize to unary ln; canonical JSON log
+remains a two-element argument array. Group-function identity recognizes the
+LOG/LN synonym only at arity one. No generic lowered-operator fallback changes
+existing alias identities or malformed-arity behavior.
+
+Implementation reuses the existing canonical scalar, continuation, resource and
+cancellation owners with the pinned portable MoonBit core Double algorithms
+in `src/scalar_numeric_kernel`, selected identically on all three targets. Binary LOG
+uses ln(value)/ln(base), matching GoogleSQL `Logarithm` at selected revision
+`81c15b796138185c046aefe852321011fdf96615`. The target-selected platform-library exception is rejected because pure
+scalar observations retain exact capture/replay identity. Identical admitted
+inputs and selected contracts use identical pinned arithmetic across JS,
+WebAssembly and Native. The demonstrated exact-bit counterexamples are retained
+independently. Live BigQuery last-bit equality is not claimed. No frontend-local math engine or permissive fallback is
+introduced.
+
+References:
+- https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions
+- https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/public/functions/math.h
+
+## Finite Number GREATEST and LEAST
+
+GoogleSQL accepts one or more compatible orderable arguments, propagates NULL,
+and evaluates ordinary function arguments before applying the function. Its
+STRING ordering is by Unicode code point. ActQL's existing shared comparison,
+ordering, aggregate extrema and canonical-name paths use UTF-16 code units.
+U+10000 sorts before U+E000 in UTF-16 but after it by Unicode code point.
+Changing that shared law would affect identities and callers outside numeric
+extrema, while a function-local STRING comparator would create a second meaning.
+
+The adopted bounded implementation therefore supports finite Number arguments
+only, reusing the common finite-number comparator and Many continuation. Other
+orderable overloads remain explicit implementation gaps, not claims of GoogleSQL
+conformance or new language-wide prohibitions. No IEEE specials or decimal
+coercions are added. NULL never skips another demanded argument; outer lazy
+branches remain lazy. Singletons, repetitions and authored order remain in
+canonical lowering. The unique number signature resolves immediate and all-NULL
+arguments to nullable Number. Existing work, live-root, frame and workspace
+limits and cancellation cleanup remain with their existing owners.
+
+Sources: [GoogleSQL mathematical functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#greatest),
+[STRING comparison](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#string_type),
+and [conditional expressions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/conditional_expressions).
+
+## GoogleSQL STRING side slices and padding
+
+The common scalar owner adopts GoogleSQL
+[LEFT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#left),
+[RIGHT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#right),
+[LPAD](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#lpad)
+and [RPAD](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#rpad)
+for STRING Unicode scalar counts in the finite safe-integer length domain.
+Negative/nonintegral/unsafe lengths and explicit empty pad patterns fail on a
+demanded non-null call after all children succeed. The pattern may be a dynamic
+String expression, unlike regex patterns; omission alone supplies a space.
+No BYTES or collation overload is introduced.
+
+Each operation has one ordered common source/machine array. Although LEFT can
+be expressed by a fixed-start substring, symmetric explicit side operations
+retain direct source identity and do not expand authored children. In particular,
+SUBSTR(value,-length,length) would duplicate RIGHT's length operand; this is not
+an acceptable lowering. Runtime sides and padding reuse substring's bounded
+count/boundary/sizing/construction continuation instead of adding a text engine.
+Padding repeats one scalar per charged poll during sizing and construction;
+output storage is allocated only after complete byte/workspace admission.
+Side slices preserve sound input maxima; padding drops them rather than assuming
+that a dynamic target length is bounded by the input.
+
+Existing immutable typed arrays can represent SPLIT's Array(String) result, but
+that operation is not added by this decision. It requires separate bounded
+split construction and array-accounting integration with the existing owners.
+
+
+## GoogleSQL STRING repetition and reversal
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+GoogleSQL [REPEAT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#repeat)
+takes a STRING and INT64 count, rejects negative counts and returns empty for
+empty input. [REVERSE](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#reverse)
+reverses STRING characters. The fixed Google reference at
+[`81c15b796138185c046aefe852321011fdf96615`](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/public/functions/string.cc#L1624-L1678)
+validates a negative count before the empty-input shortcut and traverses Unicode
+code points backward for reversal.
+
+ActQL's adopted increment uses its existing finite binary64 Number domain for
+REPEAT's nonnegative integral count. This is a new scoped adaptation, not a
+claim that a FLOAT64 overload exists in GoogleSQL or an earlier ActQL law.
+An additional safe-integer or INT64 ceiling would reject otherwise meaningful
+empty repetitions without solving a resource problem. Accordingly even an empty
+STRING with a very large valid count returns empty after successful demanded
+children, strict NULL propagation and domain validation. Nonempty output is
+bounded by existing storage limits before integer narrowing; complete output
+admission then uses the existing work, live-value, output-byte and workspace
+owners before allocation. Reversal preserves complete Unicode
+scalars, including combining marks, without grapheme segmentation or normalization.
+The separate existing safe-integer rules for SUBSTR and padding do not change.
+
+REPEAT has an ordered two-element common source/machine array; REVERSE has a
+direct unary body. Both preserve authored nodes and child order without folding
+or frontend evaluation. REVERSE preserves its input String bounds; REPEAT drops
+those bounds because a dynamic count can empty or expand the result. Their new
+closed shapes, laws, grammar and dependent identities change together within
+initial 0.1; complete predecessor bodies and preimages remain frozen under the
+actual published Unicode parent. No BYTES, new Number domain, profile obligation,
+production limit or global comparison law is introduced. Contract registration
+alone does not establish execution support on an unverified target or consumer.
+
+
+## GoogleSQL finite Number cube root
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+GoogleSQL [CBRT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#cbrt)
+returns a FLOAT64 cube root, including negative inputs, and propagates NULL.
+The adopted ActQL increment admits exactly its existing finite binary64 Number
+operand, with no implicit numeric conversion or new overload. Non-finite input
+and the separate SAFE prefix remain outside this increment. Canonical positive
+zero and the existing operand/arithmetic failure categories remain unchanged.
+
+The selected MoonBit core math `cbrt` primitive is the implementation owner.
+Using `pow(x, 1/3)` would lose the real negative-input operation and logarithmic
+reconstruction would introduce an unnecessary numerical algorithm. This choice
+preserves the existing finite-math accuracy/exception contracts; it does not
+weaken any earlier square-root, rounding, scalar arithmetic or other specified
+numeric obligation. GoogleSQL's displayed CBRT example itself illustrates that
+a general cross-library last-bit identity is not part of this scoped contract.
+
+The common direct unary source/machine body retains one authored child without
+folding, duplication or frontend evaluation. Typing preserves only the Number
+kind and input nullability. Grammar, closed schemas, declared laws and current
+dependent identities change together within initial 0.1; complete predecessor
+bodies and independent preimages remain frozen under the actual published
+REPEAT/REVERSE parent. No production limit, profile obligation, Decimal law or
+comparison rule changes. Registration alone does not establish execution on an
+unverified target or consumer.
+
+The implementation binding for this increment is the already adopted pinned
+portable numeric kernel in `src/scalar_numeric_kernel`, not target-selected
+platform math. Identical admitted inputs and selected contracts preserve exact
+logical Number bits across JS, WebAssembly and Native. Independent finite
+accuracy fixtures remain unchanged; they are not a universal accuracy bound
+or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
+new tolerance is introduced.
+
+
+## GoogleSQL finite Number direct trigonometric functions
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+This increment admits the 12 direct unary trigonometric/hyperbolic functions
+and ordered binary ATAN2 in the existing finite binary64 Number domain.
+[GoogleSQL mathematical functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions)
+define closed ASIN/ACOS domains [-1,1], ACOSH at or above 1, strict ATANH
+(-1,1), radians, and ATAN2's authored first/second quadrant interpretation.
+ATANH's prose interval excludes endpoints even though the illustrative table
+lists only inequalities outside them. No reciprocal or regex function belongs
+to this increment.
+
+Existing strict child demand, NULL propagation, finite-result validation,
+canonical positive-zero results and lazy outer expressions remain unchanged.
+ATAN2 uses the core primitive directly; reconstructing atan(first/second)
+would lose quadrants, zero handling and finite ratios. Raw signed zeros retain
+the primitive's quadrant behavior until result normalization, while canonical
+public Numbers cannot carry negative-zero wire values. This distinguishes an
+internal finite-value diagnostic from a new public value representation.
+
+Every operation uses the same already adopted pinned portable core Double
+primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native.
+Identical admitted inputs and selected contracts preserve exact logical Number
+bits; no live-BigQuery last-bit equivalence is claimed and no earlier accuracy
+obligation is weakened.
+Overflow remains an arithmetic failure; admitted finite input is not a promise
+that every hyperbolic result is representable. Closed schemas, grammar, laws,
+owned requirements and dependent identities change together within initial 0.1.
+The complete CBRT predecessor bodies and independent preimages are frozen at
+the actual published parent. Production limits, profiles and barrier bodies
+remain unchanged; target and public-boundary support need separate execution
+evidence.
+
+The implementation binding for this increment is the already adopted pinned
+portable numeric kernel in `src/scalar_numeric_kernel`, not target-selected
+platform math. Identical admitted inputs and selected contracts preserve exact
+logical Number bits across JS, WebAssembly and Native. Independent finite
+accuracy fixtures remain unchanged; they are not a universal accuracy bound
+or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
+new tolerance is introduced.

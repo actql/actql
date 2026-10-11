@@ -1,0 +1,8 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "moonbitlang/core/builtin",
+  "moonbitlang/core/double",
+  "moonbitlang/core/float",
+  "moonbitlang/core/int",
+}
