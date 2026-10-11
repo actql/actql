@@ -138,18 +138,3 @@ fn original_model_startup_matches(
     value.execution_bytes,
   )
 }
-
-///|
-// Proposed parent-transition fuel connection only. Child codecs, exports,
-// SDK/Store work and pre-start validation still need their own reviewed phase
-// connection. A successful parent charge is cumulative on the original Ledger;
-// cancellation/cleanup never refund it. No public caller selects this policy.
-fn charge_original_model_parent_work(
-  state : ModelState,
-) -> Result[Unit, ModelExecutionIssue] {
-  if state.original_startup is Some(_) {
-    @resources.charge_planning(state.ledger, 1).map_err(issue => Ledger(issue))
-  } else {
-    Ok(())
-  }
-}
