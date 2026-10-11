@@ -222,6 +222,8 @@ pub fn check_source_requests(ReconciledContexts, @source_request_slots.Slots, @s
 
 pub fn check_source_row_bounds(SourceRequestContexts, Array[Array[@capacity_program_step.TargetRows]], Int) -> Result[SourceRowContexts, SourceRowsIssue]
 
+pub fn check_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(SourceViewCheckedTopology, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
+
 pub fn check_text_bounds(PatternChecks, TextBoundsLimits) -> Result[TextBoundsChecks, TextBoundsIssue]
 
 pub fn check_timestamp_patterns(ExpressionValidationContext, TimestampPatternLimits) -> Result[TimestampPatternChecks, TimestampPatternIssue]
@@ -1120,6 +1122,8 @@ pub fn source_rows_stage(SourceRowContexts, Int) -> @sourceview_resolution.Keyed
 
 pub fn source_rows_work(SourceRowContexts) -> Int
 
+pub fn sourceview_checked_topology(SourceViewCheckedTopology) -> @stage_results.CheckedTopology
+
 pub fn sourceview_declaration_catalog(SourceViewDeclarationPreparation) -> @check_environment.SourceRequestContracts
 
 pub fn sourceview_declaration_topology_usage(SourceViewDeclarationPreparation) -> @stage_results.LocalProgramUsage
@@ -1213,6 +1217,10 @@ pub fn timestamp_pattern_policy(TimestampPatternResolution) -> @check_environmen
 pub fn timestamp_pattern_site(TimestampPatternResolution) -> ExpressionValidationSite
 
 pub fn timestamp_pattern_usage(TimestampPatternChecks) -> TimestampPatternUsage
+
+pub fn topology_sourceview_attachment_at(SourceViewCheckedTopology, Int) -> @sourceview_resolution.PipelineAttachment?
+
+pub fn topology_sourceviews(SourceViewCheckedTopology) -> @sourceview_resolution.PipelineInputs
 
 pub fn usage(PipelineContext) -> (Int, Int)
 
@@ -3393,6 +3401,8 @@ pub struct SourceStateRequirement {
   bytes : Int
   nodes : Int
 }
+
+type SourceViewCheckedTopology
 
 pub enum SourceViewContextIssue {
   InvalidLimits
