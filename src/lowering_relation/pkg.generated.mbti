@@ -1217,6 +1217,7 @@ pub enum ExpressionBody {
   EmptyArray
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
+  Subscript(Expression, Expression)
   Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
