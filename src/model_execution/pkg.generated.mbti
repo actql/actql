@@ -17,6 +17,8 @@ pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> Mod
 
 pub fn acknowledge_model_call_settlement(ModelCallSettlement) -> Bool
 
+pub fn acknowledge_saved_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?
+
 pub fn acquire_model_outcomes(ModelExecution) -> ModelOutcomeRead?
 
 pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
