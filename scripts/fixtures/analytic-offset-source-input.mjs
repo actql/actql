@@ -35,8 +35,8 @@ export const analyticOffsetProgram = {version: 'actql/0.1',
     {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
     results: {rows: {from: 'ordered', fields: ['id', 'previous', 'next']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-const sql = 'SELECT id, LAG(amount, ((2))) OVER (ORDER BY id) AS previous, '
-  + 'LEAD(amount, (@p)) OVER (ORDER BY id) AS next FROM records '
+const sql = 'SELECT id, LAG(amount, +((2))) OVER (ORDER BY id) AS previous, '
+  + 'LEAD(amount, (+@p)) OVER (ORDER BY id) AS next FROM records '
   + 'WHERE id > 0 ORDER BY id';
 const success = (name, text, extra = {}) => ({name: 'analytic-offset-' + name,
   format: 'sql', hostProfile: 'analytic-offset', text, sourceRows, expected, columns,
@@ -47,14 +47,14 @@ export const analyticOffsetSuccesses = [
     {format: 'json', parameterDeclarations: undefined}),
   success('sql-literal-parameter', sql),
   success('pipe-parameter-literal', 'FROM records |> WHERE id > 0 |> SELECT id, '
-    + 'LAG(amount, ((@p))) OVER (ORDER BY id) AS previous, '
-    + 'LEAD(amount, (2)) OVER (ORDER BY id) AS next |> ORDER BY id',
+    + 'LAG(amount, +((@p))) OVER (ORDER BY id) AS previous, '
+    + 'LEAD(amount, (+2)) OVER (ORDER BY id) AS next |> ORDER BY id',
   {format: 'aql-text', parameters: {p: 1}, expected: [
     {id: 1, previous: null, next: 20}, {id: 2, previous: null, next: 30},
     {id: 3, previous: 20, next: 30}, {id: 4, previous: 20, next: null},
     {id: 5, previous: 30, next: null}]}),
-  success('zero-preserves-duplicates', 'SELECT id, LAG(amount, (0)) '
-    + 'OVER (ORDER BY id) AS previous, LEAD(amount, ((@p))) OVER (ORDER BY id) '
+  success('zero-preserves-duplicates', 'SELECT id, LAG(amount, (+0)) '
+    + 'OVER (ORDER BY id) AS previous, LEAD(amount, (++(@p))) OVER (ORDER BY id) '
     + 'AS next FROM records WHERE id > 0 ORDER BY id',
   {parameters: {p: 0}, sourceRows: [
     {id: 2, amount: 20}, {id: 1, amount: null}, {id: 2, amount: 20}],
@@ -62,7 +62,7 @@ export const analyticOffsetSuccesses = [
     {id: 2, previous: 20, next: 20}, {id: 2, previous: 20, next: 20}]}),
   success('empty-typed', sql, {sourceRows: [], expected: []}),
 ];
-const parameterText = 'SELECT LAG(amount, ((@p))) OVER (ORDER BY id) AS previous FROM records';
+const parameterText = 'SELECT LAG(amount, +((@p))) OVER (ORDER BY id) AS previous FROM records';
 export const analyticOffsetRefusals = [
   {name: 'undeclared', text: parameterText},
   {name: 'missing', text: parameterText, parameterDeclarations: declarations},
@@ -72,4 +72,10 @@ export const analyticOffsetRefusals = [
     parameters: {p: value}})),
   {name: 'dynamic', text: 'SELECT LAG(amount, (id)) OVER (ORDER BY id) AS previous FROM records'},
   {name: 'arithmetic', text: 'SELECT LEAD(amount, (1 + 1)) OVER (ORDER BY id) AS next FROM records'},
+  ...['+(id)', '+(@p + 1)', '+NULL', '+(-1)'].map((offset, index) => ({
+    name: 'positive-invalid-' + index,
+    text: `SELECT LEAD(amount, ${offset}) OVER (ORDER BY id) AS next FROM records`,
+    parameterDeclarations: declarations, parameters: {p: 1},
+    expectedCode: 'ClientProgramInvalidInput',
+  })),
 ].map(item => ({format: 'sql', hostProfile: 'analytic-offset', ...item, name: 'analytic-offset-refuse-' + item.name}));

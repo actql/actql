@@ -63,7 +63,7 @@ test('OFFSET and existing analytic aggregate JOIN cases retain separate installe
   assert.deepEqual(offset.inputs, {successes: analyticOffsetSuccesses,
     refusals: analyticOffsetRefusals, executionFailures: []});
   assert.equal(offset.inputs.successes.length, 5);
-  assert.equal(offset.inputs.refusals.length, 9);
+  assert.equal(offset.inputs.refusals.length, 13);
   for (const group of groups) {
     assert.equal(Object.hasOwn(group.capacity, 'max_execution_bytes'), false);
     for (const kind of ['successes', 'refusals']) {
