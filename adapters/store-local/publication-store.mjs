@@ -998,16 +998,31 @@ export async function openLocalPublicationStore(
       if (error?.code === 'ENOENT') fail('PublicationObjectMissing');
       throw error;
     }
-    if (!state.isFile() || state.size > configuration.maxObjectBytes) {
+    if (!state.isFile() || !quantity(state.size) ||
+        state.size > configuration.maxObjectBytes) {
       fail('InvalidPublicationStoreObject');
     }
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+      constants.O_NONBLOCK);
     const hash = createHash('sha256');
     let bytes = 0;
     try {
       const before = await handle.stat();
+      if (!before.isFile() || !quantity(before.size) ||
+          before.size > configuration.maxObjectBytes ||
+          before.dev !== state.dev || before.ino !== state.ino ||
+          before.size !== state.size || before.mtimeMs !== state.mtimeMs) {
+        fail('InvalidPublicationStoreObject');
+      }
       const stream = handle.createReadStream({autoClose: false});
       for await (const chunk of stream) {
+        // Reject growth before charging this chunk to the hash/accepted byte
+        // inventory. The received chunk and stream backing remain a separate
+        // physical read cost, including the rejected in-flight chunk.
+        if (chunk.byteLength > before.size - bytes ||
+            chunk.byteLength > configuration.maxObjectBytes - bytes) {
+          fail('PublicationObjectCorrupt');
+        }
         hash.update(chunk);
         bytes += chunk.byteLength;
       }

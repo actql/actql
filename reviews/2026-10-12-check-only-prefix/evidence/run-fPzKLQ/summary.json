@@ -1,0 +1,53 @@
+{
+  "startedAt": "2026-10-11T20:07:50.487Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format only affected prefix owners and controls",
+      "command": [
+        "moon",
+        "fmt",
+        "src/stage_syntax/input.mbt",
+        "src/stage_syntax/stages.mbt",
+        "src/stage_syntax/prefix_test.mbt",
+        "src/stage_syntax/reuse.mbt",
+        "src/stage_parameters/source.mbt",
+        "src/stage_parameters/operations.mbt",
+        "src/stage_results/local_program.mbt",
+        "src/stage_results/wiring.mbt",
+        "src/stage_results/checked_topology.mbt",
+        "src/stage_results/prefix_topology_test.mbt",
+        "src/pipeline_check_context/prefix_sourceview_test.mbt"
+      ],
+      "startedAt": "2026-10-11T20:07:50.545Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:07:50.673Z",
+      "endedAt": "2026-10-11T20:07:50.674Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "a3e8a1ae-8457-4d3b-bd9a-9eb6d7e790c3",
+    "pid": 13290,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+    "startedAt": "2026-10-11T20:07:50.542Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/local-checks/attempts/run-fPzKLQ"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-f0581b6a95b2b92fe6323dbc34aedc0ea2de7b77c5a9411e8cb00854df3a25e6.lock"
+  ],
+  "endedAt": "2026-10-11T20:07:50.721Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

@@ -23,6 +23,8 @@ import {
   "actql/actql/platform_native/credential_resource" @resource,
   "actql/actql/remote_credential" @credential,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/execution_authorization" @authorization,
+  "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/signature",
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/platform_native/remote_journal" @journal,
