@@ -1,0 +1,46 @@
+{
+  "version": "actql-frontend-prepared-checks/0.1",
+  "status": "prepared; not executed by B",
+  "base": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "runtime": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/distinct_order_receiver_scope_test.mbt src/query_program/distinct_order_member_expression_test.mbt src/query_program/order_property_receiver_reuse_test.mbt",
+    "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/distinct-order-receiver-source-input.test.mjs scripts/public-query-profiles.test.mjs"
+  ],
+  "public": {
+    "command": "node scripts/test-packed-public-query.mjs --distinct-order-receiver-only",
+    "producerSeconds": 300,
+    "publicSeconds": 300,
+    "normalDeclarationsPerTransport": 5,
+    "refusalDeclarationsPerTransport": 5,
+    "transports": [
+      "Local",
+      "HTTPS"
+    ],
+    "sharedWindow": "not reserved; not started",
+    "packages": [
+      "client-wire",
+      "sdk",
+      "run-host-core",
+      "local-node",
+      "node"
+    ],
+    "preserve": [
+      "clean fixed source/tree",
+      "five package manifest/digests",
+      "independent rows/full ordered schema",
+      "same request and Source counters",
+      "Run admission zero/provider I/O zero for refusals",
+      "existing grace/work/capacity limits",
+      "command and terminal/Owner/children/groups/locks receipts"
+    ]
+  },
+  "notRequested": [
+    "full Core",
+    "all-target execution",
+    "proof campaign",
+    "Hosted CI",
+    "manual CI rerun",
+    "merge"
+  ],
+  "initialBase": "61655a2f732592d4ad07b11f2d15aaa4edcd61ac"
+}

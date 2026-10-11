@@ -1,0 +1,7 @@
+{
+  "source": "1887855e9bf867ba9c3abb724dc52ebe4be3daa1",
+  "tree": "2ee473058c247ff405427b70422b755caf5ec4c2",
+  "file": "src/query_program/query_order_grouped_expression.mbt",
+  "sha256": "33ebdb6e77aeacea402e03c1a8ea734ad1c91a3fa53ae5358fb75e2d7df5e174",
+  "evidence": "source inspection only; runtime counterexample not executed"
+}
