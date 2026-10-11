@@ -277,34 +277,47 @@ pub fn attach_imports(
   stage : @parameters.CollectedStage,
   max_work~ : Int,
 ) -> Result[AttachedImports, ImportIssue] {
+  match check_import_attachment(imports.source, imports.stage, imports.entries,
+    imports.work, stage, max_work, entry_name=input_name, entry_input=input_producer) {
+    Err(e) => return Err(e)
+    Ok(work) => Ok({ imports, stage, work, })
+  }
+}
+
+///|
+fn[T] check_import_attachment(
+  source : @parameters.Source, index : Int, entries : Array[T], prior_work : Int,
+  stage : @parameters.CollectedStage, max_work : Int,
+  entry_name~ : (T) -> String, entry_input~ : (T) -> @pipeline.ProducedInput,
+) -> Result[Int, ImportIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
-  if !physical_equal(imports.source, @parameters.source(stage)) {
+  if !physical_equal(source, @parameters.source(stage)) {
     return Err(ForeignSource)
   }
-  if imports.stage != @parameters.stage_index(stage) {
+  if index != @parameters.stage_index(stage) {
     return Err(InvalidStage)
   }
-  if imports.work > max_work ||
-    imports.entries.length() > max_work - imports.work {
+  if prior_work > max_work ||
+    entries.length() > max_work - prior_work {
     return Err(BudgetExceeded)
   }
   let pipeline = @collection.pipeline(@parameters.collection(stage))
-  for entry in imports.entries {
-    let index = match @pipeline.lookup(pipeline, entry.name) {
+  for entry in entries {
+    let index = match @pipeline.lookup(pipeline, entry_name(entry)) {
       Some(@pipeline.Input(i)) => i
-      _ => return Err(ForeignInput(entry.name))
+      _ => return Err(ForeignInput(entry_name(entry)))
     }
     match @pipeline.input_producer(pipeline, index) {
       Some(actual) =>
-        if !physical_equal(actual, input_producer(entry)) {
-          return Err(ForeignInput(entry.name))
+        if !physical_equal(actual, entry_input(entry)) {
+          return Err(ForeignInput(entry_name(entry)))
         }
-      None => return Err(ForeignInput(entry.name))
+      None => return Err(ForeignInput(entry_name(entry)))
     }
   }
-  Ok({ imports, stage, work: imports.work + imports.entries.length(), })
+  Ok(prior_work + entries.length())
 }
 
 ///|

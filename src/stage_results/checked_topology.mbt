@@ -43,6 +43,8 @@ struct CheckedTopology {
   local_environment : @local.ProgramEnvironmentInputs?
   reconciled_inputs : Array[@local.ReconciledAttachment]?
   usage : LocalProgramUsage
+  calendar_profile : @calendar_profile.Profile?
+  model_tasks : @environment.ModelTasks?
 }
 
 ///|
@@ -180,32 +182,11 @@ fn attach_program_imports(
         ProgramAttachedImports::Publication(v)
       })
     Topology(v) => {
-      if max_work < 0 {
-        return Err(InvalidLimits)
+      match check_import_attachment(v.source, v.index, v.entries, v.work,
+        stage, max_work, entry_name=fn(e) { e.name }, entry_input=fn(e) { e.input }) {
+        Err(e) => Err(e)
+        Ok(work) => Ok(Topology({ ..v, stage: Some(stage), work, }))
       }
-      if !physical_equal(v.source, @parameters.source(stage)) {
-        return Err(ForeignSource)
-      }
-      if v.index != @parameters.stage_index(stage) {
-        return Err(InvalidStage)
-      }
-      if v.work > max_work || v.entries.length() > max_work - v.work {
-        return Err(BudgetExceeded)
-      }
-      let pipeline = @collection.pipeline(@parameters.collection(stage))
-      for entry in v.entries {
-        let index = match @pipeline.lookup(pipeline, entry.name) {
-          Some(@pipeline.Input(i)) => i
-          _ => return Err(ForeignInput(entry.name))
-        }
-        if !(@pipeline.input_producer(pipeline, index) is Some(actual) &&
-          physical_equal(actual, entry.input)) {
-          return Err(ForeignInput(entry.name))
-        }
-      }
-      Ok(
-        Topology({ ..v, stage: Some(stage), work: v.work + v.entries.length(), }),
-      )
     }
   }
 }
@@ -230,6 +211,8 @@ fn finish_checked_topology(
   environment : @local.ProgramEnvironmentInputs?,
   reconciled : Array[@local.ReconciledAttachment],
   usage : LocalProgramUsage,
+  calendar_profile : @calendar_profile.Profile?,
+  model_tasks : @environment.ModelTasks?,
 ) -> Result[CheckedTopology, WiringIssue] {
   let checked_stages = stages.map(fn(stage) {
     guard stage is Topology(v) else { abort("mixed preparation modes") }
@@ -281,6 +264,8 @@ fn finish_checked_topology(
   }
   Ok({
     source,
+    calendar_profile,
+    model_tasks,
     stages: checked_stages,
     imports: checked_imports,
     exports,
@@ -450,3 +435,9 @@ pub fn topology_import_stage(
 ) -> @parameters.CollectedStage {
   value.stage.unwrap()
 }
+
+///|
+pub fn topology_calendar_profile(value : CheckedTopology) -> @calendar_profile.Profile? { value.calendar_profile }
+
+///|
+pub fn topology_model_tasks(value : CheckedTopology) -> @environment.ModelTasks? { value.model_tasks }
