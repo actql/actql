@@ -1,18 +1,18 @@
 ///|
 test "unified source lowers Graph to the ordinary keyed Program" {
-  let source = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id"
+  let source = "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id)))) FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id"
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   let result = lower(source, Text, Some(context)).unwrap()
   assert_true(result.document.contains("\"graph\""))
   assert_true(result.document.contains("\"match_nodes\""))
   assert_true(!result.document.contains("\"graph\":{\"nodes\""))
-  assert_true(lower(source, Sql, Some(context)) is Err(WrongQueryForm))
+  assert_true(lower(source, Sql, Some(context)) is Ok(_))
 }
 
 ///|
-test "unified dependency checkpoint keeps logical Relation DATA and explicit Results" {
+test "unified dependency checkpoint keeps logical Relation WITH and explicit Results" {
   let context = { ..test_context(), inputs: [], captured_stage: None, }
-  let source = "DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active"
+  let source = "WITH n AS (SELECT 2 AS id) FROM n |> RESULT original |> WHERE id > 0 |> RESULT active"
   let result = lower(source, Text, Some(context)).unwrap()
   assert_true(result.document.contains("\"original\""))
   assert_true(result.document.contains("\"active\""))
@@ -33,8 +33,8 @@ test "unified dependency checkpoint has no retired constructor fallback" {
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   for
     source in [
-      "DATA g = graph(nodes: n); FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
-      "DATA g = OP graph {}; FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+      "WITH g AS (graph(nodes: n)) FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+      "WITH g AS (OP graph {}) FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
     ] {
     assert_true(lower(source, Text, Some(context)) is Err(QuerySyntax(_)))
   }
@@ -42,20 +42,20 @@ test "unified dependency checkpoint has no retired constructor fallback" {
 
 ///|
 fn unified_graph_prefix() -> String {
-  "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); "
+  "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))))"
 }
 
 ///|
-test "unified Graph equality DATA lowers to its independent complete Program" {
+test "unified Graph equality WITH lowers to its independent complete Program" {
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   let source = unified_graph_prefix() +
-    "DATA same = FROM g |> graphs_equal(with: g); FROM same |> SELECT equal"
+    ", same AS (FROM g |> graphs_equal(with: g)) FROM same |> SELECT equal"
   let actual = lower(source, Text, Some(context), source_path="equality.aql").unwrap()
-  // Independently authored from the current Graph equality contract and DATA
+  // Independently authored from the current Graph equality contract and WITH
   // naming rules, not from serialized lowerer output or legacy SGA dispatch.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"frontend.route","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"id","to":"id"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","graphs_equal":{"with":"aql_data_2"},"as":"aql_sga_4"},{"from":"aql_sga_4","select":["equal"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["equal"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"frontend.route","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"id","to":"id"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","graphs_equal":{"with":"aql_with_graph_2"},"as":"aql_sga_4"},{"from":"aql_sga_4","select":["equal"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["equal"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     {
       source: { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
@@ -81,13 +81,13 @@ test "unified Graph equality DATA lowers to its independent complete Program" {
   ).unwrap()
   assert_eq(steps.length(), 6)
   let equality = lookup(steps[4], "graphs_equal")
-  assert_eq(@wire.text(lookup(equality, "with")).unwrap(), "aql_data_2")
+  assert_eq(@wire.text(lookup(equality, "with")).unwrap(), "aql_with_graph_2")
   // The retained Program keeps the authored call coordinates, not positions
   // in the generated JSON. These fixed ASCII offsets identify the whole call.
   let span = @wire.cursor_span(equality)
   assert_eq(span.source_path, "equality.aql")
-  assert_eq(span.start_byte, 131)
-  assert_eq(span.end_byte, 152)
+  assert_eq(span.start_byte, 120)
+  assert_eq(span.end_byte, 141)
 }
 
 ///|
@@ -95,13 +95,13 @@ test "unified Graph equality rejects malformed producer syntax at exact authored
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   for
     (call, reason, byte_offset) in [
-      ("graphs_equal(with: 'g')", "Expected identifier", 150),
-      ("graphs_equal(with: g, with: g)", "Duplicate SGA argument", 153),
+      ("graphs_equal(with: 'g')", "Expected identifier", 139),
+      ("graphs_equal(with: g, with: g)", "Duplicate SGA argument", 142),
     ] {
     let source = unified_graph_prefix() +
-      "DATA same = FROM g |> " +
+      ", same AS (FROM g |> " +
       call +
-      "; FROM same |> SELECT equal"
+      ") FROM same |> SELECT equal"
     guard lower(source, Text, Some(context), source_path="invalid-equality.aql")
       is Err(QuerySyntax(diagnostic)) else {
       fail("malformed equality producer syntax must be rejected")
@@ -132,9 +132,9 @@ test "unified Graph equality retains unresolved producer and invalid argument re
   ]
   for (call, unknown_producer) in cases {
     let source = unified_graph_prefix() +
-      "DATA same = FROM g |> " +
+      ", same AS (FROM g |> " +
       call +
-      "; FROM same |> SELECT equal"
+      ") FROM same |> SELECT equal"
     guard lower(source, Text, Some(context)) is Err(QueryLowering(actual)) else {
       fail("invalid equality arguments must retain a lowerer rejection")
     }
@@ -155,13 +155,13 @@ test "unified Graph equality retains unresolved producer and invalid argument re
 test "unified dependency separates invalid Mean arguments from a complete generator" {
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   let source = unified_graph_prefix() +
-    "DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id"
+    ", combined AS (mean_graphs(with: [g, g])) FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id"
   assert_true(
     lower(source, Text, Some(context))
     is Err(QueryLowering(@query.InvalidQuery)),
   )
   // The complete generator lowers through the same public source boundary.
   let complete = unified_graph_prefix() +
-    "DATA combined = mean_graphs(with: [g, g], weights: [1, 1], support: {nodes: 1, edges: 1}, properties: {nodes: {id: 'exact_equal'}, edges: {}}); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id"
+    ", combined AS (mean_graphs(with: [g, g], weights: [1, 1], support: {nodes: 1, edges: 1}, properties: {nodes: {id: 'exact_equal'}, edges: {}})) FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id"
   assert_true(lower(complete, Text, Some(context)) is Ok(_))
 }
