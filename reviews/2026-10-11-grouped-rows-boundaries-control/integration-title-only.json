@@ -1,0 +1,11 @@
+{
+  "original_capture_revision": "9777812bee444f3c9653c513e49e22057ab2fefd",
+  "integration_revision": "6d17f8e0ff3de2e886db3895a9184c0fc53cce34",
+  "original_preserved_branch": "baseline/frontend-grouped-rows-977",
+  "reason": "Normalize the unpublished integration commit title to Conventional Commits; published submitted heads remain unchanged. The original captured merge object is retained by an explicit branch.",
+  "old_tree": "2ea370e46cca67c1011ff76a3bb3c748b13a4142",
+  "new_tree": "2ea370e46cca67c1011ff76a3bb3c748b13a4142",
+  "old_parents": "03562477d6c5515249203c21205d8926ab0b51aa 1887855e9bf867ba9c3abb724dc52ebe4be3daa1",
+  "new_parents": "03562477d6c5515249203c21205d8926ab0b51aa 1887855e9bf867ba9c3abb724dc52ebe4be3daa1",
+  "diff_exit_code": 0
+}

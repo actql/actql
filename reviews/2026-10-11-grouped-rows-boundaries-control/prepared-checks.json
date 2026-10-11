@@ -1,0 +1,32 @@
+{
+  "source_baseline": "9777812bee444f3c9653c513e49e22057ab2fefd",
+  "adopted_main": "1887855e9bf867ba9c3abb724dc52ebe4be3daa1",
+  "unmerged_parent": {
+    "pr": 1469,
+    "head": "03562477d6c5515249203c21205d8926ab0b51aa",
+    "branch": "fix/frontend-positive-limit-operands"
+  },
+  "compile_executed": false,
+  "runtime_executed": false,
+  "public_executed": false,
+  "heavy_started": false,
+  "shared_interface_changed": false,
+  "moon_js_commands": [
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_syntax/grouped_rows_boundary_test.mbt src/query_syntax/analytic_frame_parameter_test.mbt src/query_syntax/short_rows_frame_test.mbt src/query_syntax/zero_rows_frame_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/grouped_rows_boundary_test.mbt src/query_program/analytic_frame_parameter_test.mbt src/query_program/zero_rows_frame_test.mbt",
+    "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/run_publication_host/client_values_run_materials_wbtest.mbt"
+  ],
+  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/grouped-rows-boundary-source-input.test.mjs scripts/public-query-profiles.test.mjs scripts/client-values-run-materials-vector.test.mjs",
+  "public_command": "node scripts/test-packed-public-query.mjs --grouped-rows-boundary-only",
+  "expected_public_cohort": {
+    "normal": 7,
+    "refusal": 7
+  },
+  "producer_cap_seconds": 300,
+  "public_cap_seconds": 300,
+  "public_allocation": "Unreserved/not started. Retain the existing guard, shared window, child limits, grace, fuel and capacity. No new selection driver or duplicate campaign.",
+  "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
+  "guard": "B does not retry or bypass the original process-inspection rejection; prepared runtime commands are for Root independently authorized review worktree.",
+  "integration_revision": "6d17f8e0ff3de2e886db3895a9184c0fc53cce34"
+}
