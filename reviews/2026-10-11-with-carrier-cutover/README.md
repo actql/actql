@@ -474,3 +474,22 @@ bounded formatter attempts completed with fixture whitespace only. Exact
 source/tree, commands, original callers, receipts/logs and SHA256 are retained,
 with actual Owner/group/ownlock release. Public Host/package/Local/HTTPS are
 unexecuted; JS26/26 is evidence for its exact source, not full Graph execution.
+
+## Current document terminology and normative import coherence
+
+[p1-current-document-retirement-execution.json](p1-current-document-retirement-execution.json)
+records clean `914597f67bd9d428217be83ea48cba499ba9e2f3`: read-only document
+metadata changes[], actual requirement family freshness and Node3/3 independent
+import checks (`run-AfEVIH`). Current Graph domain prose uses WITH binding names;
+the architecture no longer illustrates withdrawn structural source or its
+formatter. The constructor domain's provenance, key and snapshot semantics
+remain unchanged, as do JSON/YAML machine inputs and immutable historical bytes.
+
+Actual metadata/family generators (`run-vk6jxg`) update all four normative imports
+from the exact old language bytes to the exact current authored bytes. Only
+those document CIDs change; grammar, common contracts and Program/Unit/Run
+identity inputs do not. Requirement IDs/fingerprints and aggregate registry
+remain unchanged. Complete old source preimages, raw generator/validator receipts,
+commands and SHA256 are preserved with actual Owner/group/ownlock release.
+This is document/import verification, not executable four-Carrier or public
+Local/HTTPS acceptance. Remaining current callers and P2 surfaces stay incomplete.
