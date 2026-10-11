@@ -952,3 +952,37 @@ queryCompositionRefusals.push(...[
  ['quoted-cte','aql-text','WITH a AS (SELECT 1 AS l,2 AS id),b AS (SELECT 1 AS id) FROM a AS `L` |> JOIN b AS r ON `L`=r.id MAX_OUTPUT_ROWS 10 |> SELECT `L`.id'],
  ['acquired','sql','SELECT records.id FROM records JOIN (SELECT 1 AS id) r ON records=r.id MAX_OUTPUT_ROWS 10'],
 ].map(([name,format,text])=>({name:'join-on-range-refusal-'+name,format,text,expectedCode:'ClientProgramImplementationLimit'})));
+
+// Grouping parentheses preserve the same common equality key mapping.
+// NULL key rows do not match; duplicate keys retain all matching pairs.
+export const parenthesizedJoinControl = {version:'actql/0.1',id:'fixture.parenthesized_join',
+ stages:[{id:'main',inputs:{},steps:[
+  {values:{schema:{id:{type:'number',nullable:true}},rows:[{id:2},{id:null},{id:1},{id:2}]},as:'left'},
+  {values:{schema:{key:{type:'number',nullable:true},tag:{type:'number',nullable:false}},rows:[{key:2,tag:20},{key:null,tag:99},{key:2,tag:21},{key:3,tag:30}]},as:'right'},
+  {from:'left',join:{with:'right',kind:'inner',on:[{left:'id',right:'key'}],max_output_rows:10,select:{id:'left.id',tag:'right.tag'}},as:'joined'},
+  {from:'joined',sort:[{field:'tag',dir:'asc',nulls:'first'},{field:'id',dir:'asc',nulls:'first'}],as:'out'},
+ ],results:{rows:{from:'out',fields:['id','tag']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const parenthesizedLeft='SELECT 2 AS id UNION ALL SELECT NULL UNION ALL SELECT 1 UNION ALL SELECT 2';
+const parenthesizedRight='SELECT 2 AS key,20 AS tag UNION ALL SELECT NULL,99 UNION ALL SELECT 2,21 UNION ALL SELECT 3,30';
+const parenthesizedJoinCase=(name,text,format='sql')=>({name:'join-parenthesized-'+name,format,text,
+ expected:[{id:2,tag:20},{id:2,tag:20},{id:2,tag:21},{id:2,tag:21}],
+ columns:[relationNumber('id',true),relationNumber('tag')],sourceReadCount:0,sourceReadSessionCount:0});
+queryCompositionSuccesses.push(
+ parenthesizedJoinCase('json-control',JSON.stringify(parenthesizedJoinControl),'json'),
+ parenthesizedJoinCase('sql-null-duplicates',`SELECT l.id,r.tag FROM (${parenthesizedLeft}) l JOIN (${parenthesizedRight}) r ON (l.id)=((r.key)) MAX_OUTPUT_ROWS 10 ORDER BY tag,id`),
+ parenthesizedJoinCase('pipe-conjunction',`FROM (${parenthesizedLeft}) l |> JOIN (${parenthesizedRight}) r ON (((l.id)=(r.key)) AND ((r.key)=((l.id)))) MAX_OUTPUT_ROWS 10 |> SELECT l.id,r.tag |> ORDER BY tag,id`,'aql-text'),
+ {name:'join-parenthesized-quoted-cte',format:'aql-text',
+  text:'WITH a AS (SELECT 1 AS id),b AS (SELECT 1 AS id) FROM a AS `L` |> JOIN b AS r ON ((`L`.id))=(r.id) MAX_OUTPUT_ROWS 10 |> SELECT `L`.id',
+  expected:[{id:1}],columns:[relationNumber('id')],sourceReadCount:0,sourceReadSessionCount:0},
+ {name:'join-parenthesized-scalar-receivers',format:'sql',
+  text:'SELECT l AS value FROM (FROM UNNEST([1,2]) old_l) l JOIN (FROM UNNEST([2,3]) old_r) r ON ((l))=(r) MAX_OUTPUT_ROWS 10 ORDER BY value',
+  expected:[{value:2}],columns:[relationNumber('value')],sourceReadCount:0,sourceReadSessionCount:0},
+ {name:'join-parenthesized-acquired-source',format:'sql',
+  text:'SELECT records.amount,records.id FROM records JOIN (SELECT 2 AS key UNION ALL SELECT 3) r ON ((records.id))=(r.key) MAX_OUTPUT_ROWS 10 ORDER BY id',
+  expected:[{amount:20,id:2},{amount:30,id:3},{amount:30,id:3}],columns:[relationNumber('amount',true),relationNumber('id')],sourceReadSessionCount:1},
+);
+queryCompositionRefusals.push(...[
+ ['ordinary-row','SELECT l.id FROM (SELECT 1 AS l,2 AS id) l JOIN (SELECT 1 AS id) r ON (l)=((r.id)) MAX_OUTPUT_ROWS 10'],
+ ['arithmetic','SELECT l.id FROM (SELECT 1 AS id) l JOIN (SELECT 2 AS id) r ON (l.id+1)=(r.id) MAX_OUTPUT_ROWS 10'],
+ ['acquired-row','SELECT records.id FROM records JOIN (SELECT 1 AS id) r ON ((records))=(r.id) MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'join-parenthesized-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramImplementationLimit'})));
