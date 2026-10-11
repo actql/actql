@@ -244,6 +244,15 @@ _PAYLOAD_RECORD_SIGNATURES = {
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
+_PAYLOAD_RESERVATION_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'begin': ('i64 i32 i32', 'i32'),
+    'confirm': ('i64 i32 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _SOURCE_SIGNATURES = {
     'reserve_configuration': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
@@ -403,6 +412,8 @@ class LocalCore:
                              for name, value in _PAYLOAD_CHUNK_SIGNATURES.items()})
             expected.update({'actql_payload_record_' + name: value
                              for name, value in _PAYLOAD_RECORD_SIGNATURES.items()})
+            expected.update({'actql_payload_reservation_' + name: value
+                             for name, value in _PAYLOAD_RESERVATION_SIGNATURES.items()})
             expected.update({'actql_result_binding_' + name: value
                              for name, value in _RESULT_BINDING_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
@@ -442,7 +453,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 28:
+            if self._exports['actql_host_abi_version'](self._store) != 29:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1161,6 +1172,78 @@ class LocalCore:
 
     def close_payload_record(self, value: _Output) -> bool:
         return self._close_output(value, 'payload_record', 'close')
+
+    def reserve_payload_reservation(self, request: _Output, *,
+                               cleanup: Callable[[], bool]) -> _Output:
+        """Project the original Reserved transition; does not reserve disk capacity."""
+        with self._lock:
+            self._owned_output(request, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_reservation')))
+            handle = self._call('payload_reservation', 'reserve', request.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_reservation', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_reservation')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_reservation(self, value: _Output, observation: _Input,
+                                    current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            self._owned_input(observation)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_reservation', self._call(
+                'payload_reservation', 'produce', value.handle, observation.handle, current_configuration))
+
+    def read_payload_reservation(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_reservation', self._call(
+                'payload_reservation', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_reservation', 'length')
+
+    def begin_payload_reservation(self, value: _Output, current_configuration: int) -> None:
+        """Mark this one physical write; a repeated begin is not a resend permit."""
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('begin_payload_reservation', self._call(
+                'payload_reservation', 'begin', value.handle, current_configuration))
+
+    def confirm_payload_reservation(self, value: _Output, observation: _Input,
+                               current_configuration: int) -> None:
+        """Confirm the original Reserved transition from actual physical Store bytes."""
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            self._owned_input(observation)
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('confirm_payload_reservation', self._call(
+                'payload_reservation', 'confirm', value.handle, observation.handle, current_configuration))
+
+    def close_payload_reservation(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_reservation', 'close')
 
     def reserve_material(self, run: int, kind: int, *,
                          cleanup: Callable[[], bool]) -> _Output:

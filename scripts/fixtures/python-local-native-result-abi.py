@@ -29,6 +29,7 @@ commit_candidate = '--commit-candidate' in sys.argv[4:]
 payload_request = '--payload-request' in sys.argv[4:]
 payload_replay = '--payload-replay' in sys.argv[4:]
 payload_record = '--payload-record' in sys.argv[4:]
+payload_reservation = '--payload-reservation' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
@@ -37,7 +38,8 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -50,6 +52,7 @@ commit_cases = []
 payload_request_cases = []
 payload_replay_cases = []
 payload_record_cases = []
+payload_reservation_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -969,6 +972,19 @@ try:
                         assert fixture.queries == expected['source_queries']
                         payload_record_cases.append('pending_close_and_cleanup_retain_original_request_and_input')
                         assert payload_record_cases == record_expected['cases']
+                    if payload_reservation:
+                        from python_local_payload_reservation import check_payload_reservation
+
+                        def new_output_ticket():
+                            global ticket
+                            ticket += 1
+                            fixture.inputs[ticket] = b''
+                            return ticket
+
+                        payload_reservation_cases.extend(check_payload_reservation(
+                            fixture, payload_loan, payload_facts, configuration, denied_configuration,
+                            copy, call, assert_status, new_output_ticket))
+                        assert fixture.queries == expected['source_queries']
                     if payload_replay:
                         replay_expected = json.loads((root / 'scripts/fixtures/python-local-payload-replay.json').read_text())
                         assert_status('payload_request', 'start_replay', -32, child, denied_configuration)
@@ -1388,6 +1404,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'payload_request_cases': payload_request_cases,
                   'payload_replay_cases': payload_replay_cases,
                   'payload_record_cases': payload_record_cases,
+                  'payload_reservation_cases': payload_reservation_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 28; this private ABI
+before opening the instance. `actql_host_abi_version` returns 29; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1180,3 +1180,32 @@ close can be retried on that same record after confirmation; transport cleanup
 failure retains the original allocation. This private boundary still requires
 the portable durable-capacity, filesystem and recovery integrations before it
 can form the product Local persistence path.
+
+
+Private ABI29 retains a child Reserved transition under that same confirmed
+initial Intent. Its five-field closed input carries actual trusted Host capacity
+observations: `store_authority_cid`, `material_generation_cid`,
+`capacity_namespace`, `reserved_bytes`, and `reserved_objects`. The original
+payload Owner checks the original Store/material, fixed `publication_payload`
+namespace, original bounded max_bytes and one object. Preparing or reading the
+transition does not advance the original record or reserve physical capacity.
+Cached reads still recheck current original Run/Source authorization.
+
+The Host marks one original physical CAS attempt and uses the existing
+capacity-fenced byte transaction. Confirmation accepts the same closed physical
+record observation as ABI28, but requires the original exact successor revision
+and canonical Reserved bytes through the existing transition commit Owner.
+An uncertain CAS retains its child, parent record and original Source/input
+custody even while closing. Current authorization is required to resolve it.
+Transport cleanup failure retains the same allocation; successful child close
+releases transport only and never deletes the durable capacity row. The Host's
+original Store cleanup responsibility continues independently. Repeated begin
+is not permission to resend, and no publisher authority, filesystem ownership,
+payload sealing, Store installation or Run completion follows from this bridge.
+
+If the original Core commit completed but its reply was lost, the existing
+payload Owner can confirm that same nominal transition read-only. Both the real
+durable successor and the current original record must match every canonical
+field at that exact successor revision. This performs no second commit or CAS;
+later revisions and partial or changed records stay unresolved. It does not
+change the existing transition commit's refusal of a stale second commit.
