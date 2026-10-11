@@ -807,3 +807,44 @@ test('Native CLI refuses altered retention CID and invalid Result bounds before 
     await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
   }
 });
+
+// These refusal cases never construct a grant ACK, Work fence or use. The
+// absent/malformed caller reference cannot confer lookup or send authority.
+const preparationLookup = ['lookup-preparation-grant', '--grant-ref-file', 'original-grant.json',
+  '--operation-cid', `sha256:${'1'.repeat(64)}`, '--issuer-file', 'issuer.json'];
+
+test('Native CLI preparation grant lookup requires current Run read before reading caller references', async () => {
+  const f = await fixture('preparation-lookup-no-read');
+  success(invoke(f, ['adopt', '--json']));
+  const before = await journal(f);
+  refusal(invoke(f, preparationLookup), /LocalPreparationGrantLookupAuthorizationDenied/u);
+  assert.deepEqual(await journal(f), before);
+  await assert.rejects(stat(join(f.root, 'original-grant.json')), {code: 'ENOENT'});
+  await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
+});
+
+test('Native CLI preparation grant lookup cannot install an unselected issuer', async () => {
+  const f = await fixture('preparation-lookup-unselected-issuer', [runReadPermission]);
+  success(invoke(f, ['adopt', '--json']));
+  const before = await journal(f);
+  refusal(invoke(f, preparationLookup), /LocalPreparationGrantIssuerNotSelected/u);
+  assert.deepEqual(await journal(f), before);
+  await assert.rejects(stat(join(f.root, 'issuer.json')), {code: 'ENOENT'});
+  await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
+});
+
+test('Native CLI preparation grant lookup rejects malformed references without repairing custody', async () => {
+  const f = await fixture('preparation-lookup-malformed-reference', [runReadPermission]);
+  f.configuration.native.local.installation_files = ['issuer.json'];
+  await writeFile(join(f.root, 'issuer.json'), JSON.stringify({version: 'actql-config/0.1',
+    native: {credential_issuer: {enabled: true, issuer_authority: 'fixture-issuer',
+      principal: 'operator', connection: 'cli', max_uses: 1,
+      expires_at: '2099-01-01T00:00:00.000Z'}}}));
+  await f.save();
+  success(invoke(f, ['adopt', '--json']));
+  const before = await journal(f);
+  await writeFile(join(f.root, 'original-grant.json'), '{}');
+  refusal(invoke(f, preparationLookup), /InvalidLocalPreparationGrantReference/u);
+  assert.deepEqual(await journal(f), before);
+  await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
+});

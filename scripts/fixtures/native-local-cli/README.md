@@ -62,3 +62,30 @@ retry, all temporary holders released, or physical Source/Compute call counts.
 Those need their corresponding public Owner observations and acceptance. The
 `sourceAcquisitions` and reread count expectations remain in the independent
 fixture and must not be reported as measured by this harness.
+
+## Original preparation grant operation lookup
+
+The prepared Local CLI connection accepts an exact original reference packet
+created by `NativeLocalPreparationGrantOperation.reference_record`, together
+with that operation's CID and an issuer file selected at initial adoption:
+
+```sh
+actql --mode local --config-root /absolute/private-config-root \
+  --config-file actql.config.json lookup-preparation-grant \
+  --grant-ref-file original-grant.json --operation-cid sha256:ORIGINAL_OPERATION_DIGEST \
+  --issuer-file issuer.json
+```
+
+This invokes the existing current-authorized journal lookup and returns only
+the original operation identity and `retained` or `unresolved` history. An
+unresolved record does not establish that issuance, use or sending did not
+occur. The reference is identity only. This command cannot create an ACK,
+renew a grant, claim a use, re-create Work or call a Provider. It neither
+discloses the original grant packet nor installs a newly named issuer file.
+The existing Host close must complete before publishing the reply.
+
+The new command and three Native-process refusal cases are prepared but have
+not been compiled or physically executed. They are excluded from the fixed
+older 33-case diagnostic selector. Full grant issuance, target observation,
+durable credential installation restoration and failed-projection response
+custody remain separate incomplete connections.
