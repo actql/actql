@@ -330,15 +330,10 @@ test "Graph references resolve element definitions separately" {
 test "Graph rejects unresolved ambiguous and non-key mapping" {
   for
     (text, expected) in [
+      ("GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnresolvedRelation"),
+      ("GRAPH (NODE TABLES (nodes AS N KEY (missing)))", "UnknownColumn"),
       (
-        "GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnresolvedRelation",
-      ),
-      (
-        "GRAPH (NODE TABLES (nodes AS N KEY (missing)))", "UnknownColumn",
-      ),
-      (
-        "GRAPH (NODE TABLES (nodes AS N KEY (id), nodes AS `n` KEY (id)))",
-        "AmbiguousRelation",
+        "GRAPH (NODE TABLES (nodes AS N KEY (id), nodes AS `n` KEY (id)))", "AmbiguousRelation",
       ),
       (
         "GRAPH (NODE TABLES (nodes AS N KEY (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES N (missing) DESTINATION KEY (dst) REFERENCES N))",

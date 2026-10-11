@@ -493,3 +493,20 @@ remain unchanged. Complete old source preimages, raw generator/validator receipt
 commands and SHA256 are preserved with actual Owner/group/ownlock release.
 This is document/import verification, not executable four-Carrier or public
 Local/HTTPS acceptance. Remaining current callers and P2 surfaces stay incomplete.
+
+## WITH keyed Graph scope caller retirement
+
+[p1-graph-keyed-scope-retirement-execution.json](p1-graph-keyed-scope-retirement-execution.json)
+records clean `a3c80c2de2edcc6f24dd13bcde8568bcdb821805`: actual JS16/16
+(`run-wLr6Ij`). Independent complete Programs retain properties, labels,
+scoped identities, parallel definitions, source name rules and duplicate
+Append behavior. Only current constructor/WITH wrappers and deterministic
+producer names change. Authored hidden-reference bytes 141..161 derive from
+the exact unlabeled query text; old derivation used a different labeled query.
+Retired LABELS is refused by the existing parser with its exact Syntax reason.
+
+Initial JS12/16, JS15/16 and subsequent JS15/16 stay failed with raw receipts.
+The final bounded formatter changes one file's whitespace only; JS16/16
+remains evidence of its exact source. Owner/group/ownlock absence was checked
+after each terminal receipt. This is compile/check evidence, not Host rows,
+packages or Local/HTTPS. No shortest API, Graph Owner or validator is changed.
