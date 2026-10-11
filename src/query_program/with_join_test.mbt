@@ -93,10 +93,10 @@ test "WITH JOIN shares alias ORDER resolution and hides sort slots" {
 test "WITH JOIN refuses invalid names and output limits without fallback" {
   for
     text in [
-      "WITH seed = FROM orders |> SELECT id; WITH joined = SELECT a.id FROM seed AS a JOIN seed AS a ON a.id = a.id) FROM joined |> SELECT id",
-      "WITH seed = FROM orders |> SELECT id; WITH joined = SELECT id FROM seed AS a JOIN seed AS b ON a.id = b.id) FROM joined |> SELECT id",
-      "WITH seed = FROM orders |> SELECT id; WITH joined = SELECT a.amount FROM seed AS a JOIN seed AS b ON a.id = b.id) FROM joined |> SELECT amount",
-      "WITH seed = FROM orders |> SELECT id; WITH joined = SELECT a.id FROM seed AS a JOIN missing AS b ON a.id = b.id) FROM joined |> SELECT id",
+      "WITH seed AS (FROM orders |> SELECT id), joined AS (SELECT a.id FROM seed AS a JOIN seed AS a ON a.id = a.id) FROM joined |> SELECT id",
+      "WITH seed AS (FROM orders |> SELECT id), joined AS (SELECT id FROM seed AS a JOIN seed AS b ON a.id = b.id) FROM joined |> SELECT id",
+      "WITH seed AS (FROM orders |> SELECT id), joined AS (SELECT a.amount FROM seed AS a JOIN seed AS b ON a.id = b.id) FROM joined |> SELECT amount",
+      "WITH seed AS (FROM orders |> SELECT id), joined AS (SELECT a.id FROM seed AS a JOIN missing AS b ON a.id = b.id) FROM joined |> SELECT id",
     ] {
     assert_true(
       compile_query_script(
