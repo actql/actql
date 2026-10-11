@@ -32,6 +32,7 @@ pub(all) enum Issue {
   Capacity(@publication_host.ClientInferHostCapacityIssue)
   IdentityExport(@relation.CompletedExportIssue)
   CallScope(@publication_host.ClientInferCallScopeIssue)
+  OriginalCapacity(@publication_host.ClientModelInputCapacityIssue)
 }
 
 ///|
@@ -56,6 +57,7 @@ enum Source {
 ///|
 pub enum Poll {
   Continue(work~ : Int64)
+  AwaitIo(work~ : Int64)
   Waiting(work~ : Int64)
   Settling(Int, work~ : Int64)
   Complete(@relation.CompletedOutput, work~ : Int64)
@@ -95,6 +97,7 @@ pub struct Execution {
   mut child_work : Int64
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
+  mut original_preparation : OriginalModelPreparation?
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
   mut durable_calls : Bool
   mut model_send_mask : Array[Bool]?
@@ -479,6 +482,7 @@ fn start_occurrence(
     child_work: 0L,
     output_uses: 0,
     run_binding: None,
+    original_preparation: None,
     dispatch_admission: None,
     durable_calls: false,
     model_send_mask: None,
@@ -614,7 +618,39 @@ fn stopped(active : Execution) -> Poll {
 fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
   let started = match active.source {
-    Physical(provider) =>
+    Physical(provider) => if active.original_preparation is Some(original) {
+      guard active.run_binding is Some(bound) &&
+        active.plan is Some(plan) && active.call_scope is Some(scope) else {
+        return fail(active, InvalidAdvance)
+      }
+      // The seal is retained before attempting startup. A refused start must
+      // not lose its unconsumed original capacity or input cleanup custody.
+      let issued = match original.read {
+        Bound(read) => @model.prepare_original_model_startup(
+          read, bound.compiled, bound.definition, plan, scope, rows,
+          original.retained_bytes, original.execution_bytes,
+        )
+        Claimed(consumer) => @model.prepare_original_model_consumer_startup(
+          consumer, bound.compiled, bound.definition, plan, scope, rows,
+          original.retained_bytes, original.execution_bytes,
+        )
+      }
+      let startup = match issued {
+        Ok(value) => value
+        Err(issue) => return fail(active, OriginalCapacity(issue))
+      }
+      original.startup = Some(startup)
+      @model.start_original_model_execution(
+        startup, rows, provider, active.fixed_request_cid, active.limits.model,
+        scope,
+        dispatch_admission=active.dispatch_admission,
+        durable_calls=active.durable_calls,
+        send_mask=active.model_send_mask,
+        quantity_capacity=active.quantity_capacity,
+        physical_preflight=active.physical_preflight,
+        egress_admission=active.egress_admission,
+      )
+    } else {
       @model.start_model_execution(
         rows,
         provider,
@@ -628,6 +664,7 @@ fn begin_model(active : Execution) -> Poll {
         physical_preflight=active.physical_preflight,
         egress_admission=active.egress_admission,
       )
+    }
     Replay(capture) => {
       guard active.call_scope is Some(scope) else {
         return fail(active, Model(@model.OutputIdentity))
@@ -810,6 +847,12 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             return fail(active, InvalidAdvance)
           }
           Waiting(work=active.work)
+        }
+        Ok(@model.AwaitIo(_, work)) => {
+          if !account(active, work) {
+            return fail(active, InvalidAdvance)
+          }
+          AwaitIo(work=active.work)
         }
         Ok(@model.Settling(slot, _, work)) => {
           if !account(active, work) {
@@ -1005,6 +1048,10 @@ pub fn cancel(active : Execution) -> Bool {
     return false
   }
   active.cancelled = true
+  if active.original_preparation is Some(original) &&
+    original.read is Claimed(consumer) {
+    @publication_host.stop_client_model_read_consumer(consumer)
+  }
   match active.phase {
     Input => @input.cancel_client_infer_input(active.input) |> ignore
     Identity =>
@@ -1057,6 +1104,7 @@ pub fn execution_stopped(active : Execution) -> Bool {
 pub fn poll_kind(poll : Poll) -> String {
   match poll {
     Continue(_) => "continue"
+    AwaitIo(_) => "await_io"
     Waiting(_) => "waiting"
     Settling(_, ..) => "settling"
     Complete(_, ..) => "complete"
@@ -1332,6 +1380,14 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
   }
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
+      if active.original_preparation is Some(original) &&
+        original.startup is Some(startup) {
+        match @model.cleanup_original_model_startup(startup) {
+          Ok(true) => ()
+          Ok(false) => return Ok(false)
+          Err(issue) => return Err(Model(issue))
+        }
+      }
       if active.source is Replay(capture) {
         @model.release_verified_model_capture(capture) |> ignore
       }
@@ -1344,6 +1400,14 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       active.rows = None
       active.call_scope = None
       active.acquired_input = None
+      // Core retirement does not prove original FD/Store cleanup. The original
+      // read owner retains this stopped ticket until its own physical cleanup
+      // settles the read and severs both nominal back-references.
+      if active.original_preparation is Some(original) &&
+        original.read is Claimed(consumer) {
+        @publication_host.stop_client_model_read_consumer(consumer)
+      }
+      active.original_preparation = None
       active.reclaimed = true
       Ok(true)
     }
