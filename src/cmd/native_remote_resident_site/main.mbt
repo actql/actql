@@ -2649,7 +2649,7 @@ fn serve_holder_output(
     None
   },
   effect_evidence_read? : (@remote.DispatchRequest) -> Bool = _ => false,
-  effect_review_publication? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication? = _ => {
+  effect_review_publication? : (@remote.DispatchRequest) -> HolderEffectReviewPublication? = _ => {
     None
   },
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
