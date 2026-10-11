@@ -2,6 +2,8 @@ supported_targets = "native"
 
 import {
   "actql/actql/run_publication_host" @host,
+  "actql/actql/client_local_host" @local,
+  "actql/actql/query_planning" @planning,
   "actql/actql/program_check" @checked,
   "actql/actql/source_frontend" @frontend,
   "actql/actql/stage_syntax" @syntax,
