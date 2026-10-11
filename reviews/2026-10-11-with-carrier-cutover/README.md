@@ -3,7 +3,7 @@
 ## Current finite source
 
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally
-adopted published main `ece026dda6a48a5a86259f048ca55e553dd87f4f` after its
+adopted published main `23697f7430c227327b4b0b3735ad14806eed321a` after its
 previous gate terminated. Common check-only #1502 is integrated; INFER/Debug
 completion is not a start prerequisite. The reviewed revision remains fixed at
 `b5d03b1d38912c52a9ad333a4734155edbec0c70` on Root's design branch. Its 119
@@ -11,15 +11,27 @@ supplied IDs and all 130 IDs remain in [acceptance-id-inventory.json](acceptance
 No SQL compatibility sidequest, alternate checker/evaluator, compatibility
 parser or new acquisition/storage owner is added.
 
-The latest tested product source is `dcd402f4a196cbc8f0d0bd3d1964a89deb1ffa57`,
-tree `1248b74577adb18d2a21d4ff3abbeefb9137b8ea`.
-[p1-graph-row-alias-execution.json](p1-graph-row-alias-execution.json) preserves
-JS17/17 and five read-only freshness checks in `run-Ufj9hv`, and the two corrected
-independent current-vector assertions Node2/2 in `run-T6stAJ`, under the existing
-60-second/grace5 nonHeavy guard. Node91/93 on earlier `aedb20368` retains its two
-stale-current-literal failures; it is not Node93/93 on the latest source. Earlier
-`f3dd115f6` Node5/5 and JS7/7 remain separate caller-migration evidence. All actual
-Owner/group/own locks were observed released.
+Current product source is `5f80f15531ddb53ff2670da412de6201b3692ea0`, tree
+`6b24f545a708ff7ef9e43a174f304c7894be54f5`. It is a formatting-only follower
+of `bbcbec11e8ede3b97422f3760310342dc45027a0`, whose Graph core controls ran
+JS3/3 and authored fixture obligations Node5/5 plus shared-request Node1/1.
+This checks lowering/static admission, not public execution of the 38 normal,
+three runtime-failure and 25 refusal declarations.
+
+[p1-scalar-graph-core-execution.json](p1-scalar-graph-core-execution.json) retains
+the normal main integration and every command/receipt. On `cd38e9506`, the
+corrected vector ran Node1/1, SGA closure Node11/11, WITH/Graph and Values caller
+JS9/9, plus three read-only freshness checks. `397fedd63` retains Node2/3:
+its obsolete equality between adopted Scalar and old WITH AoA pins failed, and
+later commands were not reached. The corrected check separates the two complete
+closures; expected values were not obtained from runtime output.
+
+Earlier `dcd402f4` JS17/17, corrected Node2/2 and freshness5 remain in
+[p1-graph-row-alias-execution.json](p1-graph-row-alias-execution.json). They are
+not results of the Scalar-integrated source. Actual Owner/group/own locks were
+observed released for all current limited attempts. One initial sandbox guard
+preflight exited before steps because process inspection was unavailable; the
+normal escalated guard was accepted without modifying or bypassing checks.
 
 The direct connector caller is **not closed**: `run-T6stAJ` failed compilation
 before any JS test due to missing `QueryLowering(RangeAliasRequiresRelation |
@@ -63,6 +75,12 @@ Node77 successful assertions belong to that SHA. Original receipts are unchanged
   controls. Old authored text is retained in
   [pre-with-graph-row-source-input.json](pre-with-graph-row-source-input.json) only
   as history. Representative checker tests are not complete cohort execution.
+- Current core constructor/MATCH and shared Relation fixtures now use authored
+  WITH/GRAPH directly. All row/schema/order/Source-count/refusal obligations and
+  JSON controls remain unchanged. Old sources live in
+  [pre-with-graph-core-source-input.json](pre-with-graph-core-source-input.json).
+  The sole retained current DATA text in that core file is an explicit negative
+  test of the removed entry, not a supported caller or fallback.
 - Retired LABELS property annotations are refused at the authored token; their
   AST field and lexer flag are removed by actual pinned interface generation.
   Graph label membership and ordinary property/literal values remain distinct.
@@ -139,3 +157,18 @@ The following records keep their original source and evidence classifications:
 Unmodified failure receipts remain alongside these records. B preserves its
 incremental build and borrowed pinned yaml dependency; no foreign worktree,
 shared Heavy lock, custody or original package evidence was changed.
+
+## Scalar-main integration
+
+The normal merge retains both parent histories and all previous preimages.
+`pre-scalar-main-with-carrier-values-identities.json` freezes the submitted old
+WITH closure. `adopted-scalar-main-before-with-values-identities.json` records
+the independently reconstructed main23697 closure. The current WITH fixture
+uses that same dependency/Program closure with the newly authored query grammar.
+The current Run CID is independently hashed as
+`sha256:64f2fe7915e5a42f8e14904f8b24cb085d12107a5161241f7c0b61c8f0689183`.
+The recorded authoring recipe is [p1-scalar-independent-preimages.mjs](p1-scalar-independent-preimages.mjs); it imports normative-input oracles only, never runtime outputs.
+
+E owns the diagnostic caller projection. Four-Carrier/P2 and current caller/docs
+cutover remain incomplete. No package producer/public Host/provider/Heavy,
+Native/Wasm execution or Hosted CI was run for this integration.
