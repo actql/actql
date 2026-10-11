@@ -8,13 +8,17 @@ import {
   "actql/actql/publication_payload" @payload,
   "actql/actql/run_publication" @publication,
   "actql/actql/sha256" @sha,
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
 }
 
 import {
   "actql/actql/canonical_json" @json,
-  "actql/actql/encode_core" @encode,
-  "actql/actql/source_value" @source,
   "moonbitlang/core/env",
 } for "wbtest"
 
@@ -24,6 +28,9 @@ options(
     "store_native.mbt": [ "native" ],
     "effect_source_custody_native.mbt": [ "native" ],
     "effect_capture_custody_native.mbt": [ "native" ],
+    "effect_catalog_custody_native.mbt": [ "native" ],
+    "effect_catalog_custody_native_wbtest.mbt": [ "native" ],
+    "effect_catalog_custody_unsupported.mbt": [ "not", "native" ],
     "effect_capture_custody_unsupported.mbt": [ "not", "native" ],
     "effect_source_custody_unsupported.mbt": [ "not", "native" ],
     "store_native_wbtest.mbt": [ "native" ],
