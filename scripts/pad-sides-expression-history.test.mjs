@@ -1,3 +1,4 @@
+import {readHistoricalJson} from './historical-json.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -5,7 +6,7 @@ import test from 'node:test';
 // Independently hash fixed authored JSON and retained envelopes, never runtime output.
 const canonical=value=>Array.isArray(value)?'['+value.map(canonical).join(',')+']':value!==null&&typeof value==='object'?'{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}':JSON.stringify(value);
 const cid=value=>'sha256:'+createHash('sha256').update(canonical(value)).digest('hex');
-const read=p=>JSON.parse(readFileSync(p,'utf8'));
+const read = readHistoricalJson;
 const history=read('portability/corpus/historical/pre-pad-sides-contract-identities.json');
 const earlier=Object.fromEntries(history.contracts.map(v=>[v.id,v.body]));
 

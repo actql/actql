@@ -124,7 +124,9 @@
     "generate:relation-join": "node scripts/check-relation-join.mjs --write",
     "check:remote-site-wire": "node --test scripts/remote-site-wire.test.mjs",
     "build:runtime-packages": "node scripts/build-runtime-packages.mjs",
-    "precheck:salesforce-site": "node scripts/build-runtime-packages.mjs run-host-core"
+    "precheck:salesforce-site": "node scripts/build-runtime-packages.mjs run-host-core",
+    "check:historical-json": "node scripts/historical-json-archive.mjs check && node --test scripts/historical-json.test.mjs",
+    "precheck:expression-syntax": "npm run check:historical-json"
   },
   "devDependencies": {
     "@actql/client-wire": "file:packages/client-wire",
