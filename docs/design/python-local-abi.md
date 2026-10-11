@@ -127,6 +127,30 @@ return this allowance. The trusted physical adapter must supply observations
 of the exact reserved workspace; this binding does not authorize I/O or imply
 that the product's complete runtime footprint has been accounted for.
 
+## Validated commit material view
+
+`PublicationCommitPreparation.finish_view()` retains the original complete
+validated chain under the existing preparation. It exposes one immutable
+contract at a time, in fixed root order followed by the six original inventories.
+The view does not copy or re-admit contracts, create an index, authorize a
+publisher, install Store data, or acknowledge durability. The existing `finish()`
+continues to return only validation completion and releases its inputs.
+
+The active view reserves one descriptor within the original workspace ceiling.
+Count and ordinal selection inspect a fixed number of inventory boundaries;
+they do not scan inventories or contract bytes. Validation still advances through
+the existing bounded cursor and retains its quantum-independent logical work.
+Borrowed arrays must remain unchanged until the original view is released.
+
+Cancellation immediately refuses further view reads while retaining the same
+original inputs and descriptor. Physical output use and input borrows must stop
+and cleanup must succeed before the private Host calls `release_view()`.
+Cleanup failure retains that same view for explicit retry. Owner identity and
+the exact nominal view are checked; foreign or copied views cannot read or
+release originals. Successful release removes the input references and owner
+back-reference, retaining only the retired nominal token for idempotent cleanup.
+A later read, new finish, or cursor advance remains refused.
+
 ## Physical DuckDB boundary
 
 The private Python adapter loads an explicitly installed standalone DuckDB C

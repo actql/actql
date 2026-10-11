@@ -66,9 +66,12 @@ struct PublicationCommitPreparation {
   mut live : Int
   mut peak : Int
   mut closed : Bool
+  mut view : PublicationCommitReadView?
 }
 
 ///|
+/// Borrow original inputs through finish/cancel, or through release_view when
+/// finish_view retains them. The caller must not mutate the borrowed arrays.
 pub fn start_effect_free_publication_commit_check(
   run_definition : PublicationContract,
   invocation : PublicationContract,
@@ -117,6 +120,7 @@ pub fn start_effect_free_publication_commit_check(
     live: 12,
     peak: 12,
     closed: false,
+    view: None,
   }
 }
 
@@ -297,7 +301,7 @@ pub fn PublicationCommitPreparation::advance(
   preparation : PublicationCommitPreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), PublicationCommitIssue] {
-  if preparation.closed || quantum < 1 {
+  if preparation.closed || preparation.view is Some(_) || quantum < 1 {
     return Err(CommitEncoding)
   }
   let mut used = 0
@@ -317,7 +321,9 @@ pub fn PublicationCommitPreparation::advance(
 pub fn PublicationCommitPreparation::finish(
   preparation : PublicationCommitPreparation,
 ) -> Result[Unit, PublicationCommitIssue] {
-  if preparation.closed || !(preparation.phase is Done) {
+  if preparation.closed ||
+    preparation.view is Some(_) ||
+    !(preparation.phase is Done) {
     return Err(CommitEncoding)
   }
   preparation.cancel()
@@ -337,6 +343,12 @@ pub fn PublicationCommitPreparation::cancel(
     Computation(child) => child.cancel()
     References(child) => child.cancel()
     _ => ()
+  }
+  // A completed view still owns the borrowed originals until its physical
+  // output use has stopped and the caller explicitly releases that view.
+  if preparation.view is Some(_) {
+    preparation.closed = true
+    return
   }
   preparation.inputs = None
   preparation.phase = Done
