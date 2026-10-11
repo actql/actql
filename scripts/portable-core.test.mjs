@@ -45,6 +45,38 @@ test('direct and transitive external I/O are rejected despite aliases', t => {
   assert.throws(f.check, /UnreviewedExternal: helper/);
 });
 
+test('portable numeric primitive imports are reviewed only for their actual Owner', t => {
+  const f = fixture(t);
+  const paths = ['builtin', 'double', 'float', 'int'].map(name => `moonbitlang/core/${name}`);
+  f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/scalar_numeric_kernel" @math }');
+  f.put('scalar_numeric_kernel', 'moon.pkg', manifest + `import { ${paths.map(path => JSON.stringify(path)).join(', ')} }`);
+  f.put('scalar_numeric_kernel', 'main.mbt', 'pub fn identity(x : Double) -> Double { x }');
+  assert.deepEqual(Object.keys(f.check().external).sort(), [...paths].sort());
+  for (const path of paths) {
+    // A reviewed dependency of the kernel cannot become another Owner's import
+    // or public type merely because it appears in the same rooted closure.
+    f.put('root', 'moon.pkg', manifest + `import { "${path}" @math }`);
+    assert.throws(f.check, /UnreviewedExternal: root/);
+    f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/scalar_numeric_kernel" @math }');
+    f.put('root', 'pkg.generated.mbti', `import { "${path}" @math }`);
+    assert.throws(f.check, /UnreviewedPublicType: root/);
+  }
+});
+
+test('numeric Owner review retains unreviewed math, I/O and source-code refusal', t => {
+  const f = fixture(t);
+  f.put('root', 'moon.pkg', manifest + 'import { "actql/actql/scalar_numeric_kernel" }');
+  for (const path of ['moonbitlang/core/math', 'moonbitlang/core/env', 'vendor/neutral/numeric']) {
+    f.put('scalar_numeric_kernel', 'moon.pkg', manifest + `import { "${path}" @math }`);
+    assert.throws(f.check, /UnreviewedExternal: scalar_numeric_kernel/);
+  }
+  f.put('scalar_numeric_kernel', 'moon.pkg', manifest + 'import { "moonbitlang/core/builtin" }');
+  for (const source of ['extern "js" fn host() -> Int = "Math.random"', 'fn host() { println("output") }']) {
+    f.put('scalar_numeric_kernel', 'main.mbt', source);
+    assert.throws(f.check, /CoreEnvironmentAccess/);
+  }
+});
+
 test('unknown target, build and conditional import syntax fail closed', () => {
   for (const source of [
     'native_link("socket")', 'options(link: ["socket"])',
