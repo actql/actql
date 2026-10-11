@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
+import {open, readdir} from 'node:fs/promises';
+import {join} from 'node:path';
 import {prepareOpenAIChatRequest} from
   '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
 import {createSdkModelPreflight} from
@@ -39,7 +41,7 @@ async function until(read, predicate, io) {
 }
 
 async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
-  physicalFor = f => f.physical} = {}) {
+  physicalFor = f => f.physical, beforeStart = async () => {}} = {}) {
   const f = await rawCaptureStoreFixture(t, {bytes, ...storeFault});
   const notification = createInferIoNotification();
   const io = claimInferIoNotification(notification);
@@ -135,6 +137,7 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
   t.diagnostic('joined boundary: fixed SDK preflight prepared');
   assert.equal(serverState.requests, 0);
   assert.equal(physicalStarts, 0);
+  await beforeStart(f);
   const call = plan.start(entry);
   t.diagnostic('joined boundary: fixed transport started');
   assert.equal(physicalStarts, 1);
@@ -169,6 +172,86 @@ test('joined fixed SDK and original encrypted Store preserve exact raw bytes acr
   assert.equal(f.serverState.requests, 1);
   assert.deepEqual(f.counters(), {physicalStarts: 1, observes: 1});
   await reopened.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('joined actual raw reader close failure blocks SDK cleanup until the same FD closes', {timeout: 5000}, async t => {
+  let original, prototype, createReadStream;
+  let originalCleanup;
+  let closeAttempts = 0, captures = 0;
+  const failure = Object.assign(new Error('OriginalRawReaderClosePending'), {code: 'EIO'});
+  const restore = () => {
+    if (prototype !== undefined) prototype.createReadStream = createReadStream;
+  };
+  const f = await joinedFixture(t, {physicalFor: fixture => ({...fixture.physical,
+    async confirmModelRawEvidence(...args) {
+      try { return await fixture.store.confirmModelRawEvidence(...args); }
+      catch (error) {
+        originalCleanup ??= error.cleanupHandle;
+        throw error;
+      }
+    },
+  }), beforeStart: async fixture => {
+    const objects = join(fixture.storeOptions.directory, 'objects');
+    const [name] = await readdir(objects);
+    const probe = await open(join(objects, name), 'r');
+    prototype = Object.getPrototypeOf(probe);
+    createReadStream = prototype.createReadStream;
+    await probe.close();
+    // Fault only the actual consumeObject FD. Verification/metadata readers
+    // retain their own scope; no fake cleanup handle is supplied to the port.
+    prototype.createReadStream = function(options) {
+      if (captures === 0 && new Error().stack.includes('at consumeObject ')) {
+        captures++;
+        original = this;
+        const close = this.close;
+        this.close = function() {
+          closeAttempts++;
+          if (closeAttempts <= 2) return Promise.reject(failure);
+          return Reflect.apply(close, this, []);
+        };
+      }
+      return Reflect.apply(createReadStream, this, [options]);
+    };
+  }});
+  t.after(async () => {
+    restore();
+    // Preserve test failure evidence without leaking this test's original FD.
+    if (original?.fd >= 0) {
+      closeAttempts = Math.max(closeAttempts, 2);
+      await originalCleanup.retry();
+    }
+  });
+  await f.wait(() => f.call.poll(), value => value.kind === 'unknown');
+  t.diagnostic('joined failed original FD: terminal Unknown observed');
+  restore();
+  assert.equal(f.port.rawFailure(), failure);
+  assert.equal(captures, 1);
+  assert.equal(closeAttempts, 1);
+  assert.ok(original.fd >= 0);
+  assert.equal(f.state.commits, 1);
+  assert.equal(f.retained[0].holding.status().committed, false,
+    'durable Store commit is not the failed holding confirmation');
+  assert.equal(f.state.acknowledgements, 0);
+  const stored = f.store.status().storedBytes;
+  await assert.rejects(f.store.close(), {code: 'PublicationStoreCleanupPending'});
+  assert.equal((await f.store.retirePhysicalHolding(f.binding.holdingCid)).deleted, false);
+  assert.equal(f.port.preflight.cleanup(), false);
+  await f.wait(() => closeAttempts, attempts => attempts >= 2);
+  t.diagnostic('joined failed original FD: first cleanup retry failed');
+  assert.ok(original.fd >= 0, 'failed retry retains the original FD');
+  assert.equal(f.store.status().storedBytes, stored);
+  assert.equal(f.port.rawFailure(), failure);
+  assert.equal(f.call.poll().kind, 'unknown');
+  assert.deepEqual(f.counters(), {physicalStarts: 1, observes: 1});
+  await f.wait(() => f.port.preflight.cleanup(), Boolean);
+  t.diagnostic('joined failed original FD: original SDK cleanup completed');
+  assert.equal(original.fd, -1);
+  const completed = closeAttempts;
+  assert.equal(f.port.preflight.cleanup(), true);
+  assert.equal(closeAttempts, completed, 'settled cleanup does not close twice');
+  assert.equal(f.serverState.requests, 1);
+  assert.equal((await f.store.retirePhysicalHolding(f.binding.holdingCid)).deleted, true);
+  assert.equal(f.store.status().storedBytes, f.originalObjectBytes);
 });
 
 test('joined commit reply loss reconfirms one durable cell with one stable Promise and no second fetch', async t => {
