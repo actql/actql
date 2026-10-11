@@ -80,12 +80,19 @@ call = function_name, "(", expression, { ",", expression }, ")" ;
    binary canonical array. Circular angles and inverse results use radians.
    asin/acos require [-1,1], acosh requires >=1, and atanh requires (-1,1).
    Strict NULL propagation precedes demanded value-domain checks. *)
+(* translate takes exactly three STRING expressions in an ordered canonical array.
+   instr takes two to four expressions in an ordered canonical array: STRING
+   value and subvalue, then optional finite integral NUMBER position and occurrence.
+   Omitted position and occurrence mean one but remain omitted in canonical identity.
+   Position is nonzero; occurrence is positive. Negative position searches backward;
+   overlapping occurrences and empty-pattern scalar boundaries are counted.
+   BYTES, collation, regex and distinct INT64 overloads are not admitted. *)
 (* Vector profile calls: vector_score has exactly three arguments; the third
    is a string literal 'cosine', 'dot' or 'l2', lowered as a structural metric.
    vector_concat has at least two expression arguments. These spellings require
    the separately admitted VecA expression profile; grammar is not execution support. *)
 function_name = "len" | "contains" | "starts_with" | "ends_with" | "strpos" | "concat" | "concat_strict" | "safe_div" | "safe_divide" | "safe_add" | "safe_subtract" | "safe_multiply" | "safe_negate" | "sqrt" | "cbrt" | "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "atan2" | "sinh" | "cosh" | "tanh" | "asinh" | "acosh" | "atanh" | "pow" | "power" | "exp" | "ln" | "log" | "log10" | "abs" | "sign" | "round" | "trunc" | "greatest" | "least" | "floor"
-              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "repeat" | "reverse" | "nullif" | "negate"
+              | "lower" | "upper" | "trim" | "ltrim" | "rtrim" | "replace" | "left" | "right" | "lpad" | "rpad" | "split" | "byte_length" | "octet_length" | "unicode" | "chr" | "repeat" | "reverse" | "translate" | "instr" | "nullif" | "negate"
               | "vector_score" | "vector_concat"
               | "date_trunc" | "date_add" | "date_diff"
               | "to_number" | "to_string" | "to_boolean" | "to_timestamp"
