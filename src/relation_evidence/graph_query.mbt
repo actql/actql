@@ -54,6 +54,11 @@ pub fn graph_query_keys(
           if @graph.traverse_emission(op) == @graph.TraversedNodes {
             names.push(Unqualified("start_id"))
             names.push(Unqualified("node_id"))
+          } else if @graph.traverse_shortest(op) is Some(_) {
+            // The selected profile yields at most one path per typed pair;
+            // unlike arbitrary traversal, parallel paths cannot duplicate it.
+            names.push(Unqualified("source_id"))
+            names.push(Unqualified("target_id"))
           }
         ComponentsOperation(_) => names.push(Unqualified("node_id"))
       }

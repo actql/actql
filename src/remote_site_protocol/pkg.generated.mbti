@@ -33,6 +33,12 @@ pub fn admit_remote_effect_checkpoint_reply_json(String, RemoteEffectCheckpointR
 
 pub fn admit_remote_effect_checkpoint_report_json(String, DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn admit_remote_effect_current_query_json(String, RemoteEffectCheckpointReport, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentQuery, DispatchIssue]
+
+pub fn admit_remote_effect_current_reply_json(RemoteEffectCurrentQuery, String, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentReply, DispatchIssue]
+
+pub fn admit_remote_effect_resume_delivery_json(String, RemoteEffectCheckpointReport, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], @checkpoint_runtime.WireLimits) -> Result[RemoteEffectResumeDelivery, DispatchIssue]
+
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
 pub fn admit_remote_execution_evidence_json(String, String, DispatchRequest) -> Result[RemoteExecutionEvidence, DispatchIssue]
@@ -64,6 +70,10 @@ pub fn admit_remote_output_result_json(String, RemotePollOutput, @publication_pa
 pub fn admit_remote_poll_cancel_json(String) -> Result[DispatchRequest, DispatchIssue]
 
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
+
+pub fn admit_remote_poll_effect_current_json(String) -> Result[RemotePollEffectCurrent, DispatchIssue]
+
+pub fn admit_remote_poll_effect_resume_json(String) -> Result[RemotePollEffectResume, DispatchIssue]
 
 pub fn admit_remote_poll_not_seen_json(String, DispatchRequest) -> Result[Unit, DispatchIssue]
 
@@ -377,6 +387,12 @@ pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudg
 
 pub fn prepare_remote_effect_checkpoint_report(DispatchRequest, @checkpoint_runtime.PersistedCheckpoint, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCheckpointReport, DispatchIssue]
 
+pub fn prepare_remote_effect_current_query(RemoteEffectCheckpointReport, String, String, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentQuery, DispatchIssue]
+
+pub fn prepare_remote_effect_current_reply(RemoteEffectCurrentQuery, String?, Int, Bool, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectCurrentReply, DispatchIssue]
+
+pub fn prepare_remote_effect_resume_delivery(RemoteEffectCheckpointReport, @checkpoint_runtime.VerifiedResolution, @checkpoint_runtime.ResumeClaim, @checkpoint_runtime.WireLimits) -> Result[RemoteEffectResumeDelivery, DispatchIssue]
+
 pub fn prepare_remote_input_binding(String, Int) -> Result[RemoteInputBinding, DispatchIssue]
 
 pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
@@ -458,6 +474,32 @@ pub fn remote_effect_checkpoint_report_dispatch(RemoteEffectCheckpointReport) ->
 pub fn remote_effect_checkpoint_report_identity(RemoteEffectCheckpointReport) -> String
 
 pub fn remote_effect_checkpoint_report_json(RemoteEffectCheckpointReport) -> String
+
+pub fn remote_effect_current_query_effect_id(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_id(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_identity(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_json(RemoteEffectCurrentQuery) -> String
+
+pub fn remote_effect_current_query_report(RemoteEffectCurrentQuery) -> RemoteEffectCheckpointReport
+
+pub fn remote_effect_current_reply_facts(RemoteEffectCurrentReply) -> (String?, Int, Bool)
+
+pub fn remote_effect_current_reply_identity(RemoteEffectCurrentReply) -> String
+
+pub fn remote_effect_current_reply_json(RemoteEffectCurrentReply) -> String
+
+pub fn remote_effect_current_reply_query(RemoteEffectCurrentReply) -> RemoteEffectCurrentQuery
+
+pub fn remote_effect_resume_delivery_claim(RemoteEffectResumeDelivery) -> @checkpoint_runtime.ResumeClaim
+
+pub fn remote_effect_resume_delivery_dispatch(RemoteEffectResumeDelivery) -> DispatchRequest
+
+pub fn remote_effect_resume_delivery_json(RemoteEffectResumeDelivery) -> String
+
+pub fn remote_effect_resume_delivery_resolution(RemoteEffectResumeDelivery) -> @checkpoint_runtime.VerifiedResolution
 
 pub fn remote_execution_capability_scope(RemoteExecutionCapability) -> Array[String]
 
@@ -559,9 +601,29 @@ pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
 
 pub fn remote_poll_dispatch_run_materials(RemotePollDispatch) -> String?
 
+pub fn remote_poll_effect_current_envelope_json(RemotePollEffectCurrent) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_effect_current_json(RemoteEffectCurrentQuery) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_effect_current_query_json(RemotePollEffectCurrent) -> String
+
+pub fn remote_poll_effect_current_request(RemotePollEffectCurrent) -> DispatchRequest
+
+pub fn remote_poll_effect_resume_delivery_json(RemotePollEffectResume) -> String
+
+pub fn remote_poll_effect_resume_envelope_json(RemotePollEffectResume) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_effect_resume_json(RemoteEffectResumeDelivery) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_effect_resume_request(RemotePollEffectResume) -> DispatchRequest
+
 pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_operation_is_cancel(RemotePollOperation) -> Bool
+
+pub fn remote_poll_operation_is_effect_current(RemotePollOperation) -> Bool
+
+pub fn remote_poll_operation_is_effect_resume(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_output(RemotePollOperation) -> Bool
 
@@ -851,6 +913,12 @@ pub(all) enum RemoteEffectCheckpointReply {
 
 type RemoteEffectCheckpointReport
 
+type RemoteEffectCurrentQuery
+
+type RemoteEffectCurrentReply
+
+type RemoteEffectResumeDelivery
+
 type RemoteEvidenceIssuer
 
 pub(all) enum RemoteEvidenceState {
@@ -914,12 +982,18 @@ type RemoteOutputResult
 
 type RemotePollDispatch
 
+type RemotePollEffectCurrent
+
+type RemotePollEffectResume
+
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
   Plan(RemotePollOutput)
   RetainedPlan(RemotePollRetainedInput)
   RetainedTransfer(RemotePollRetainedTransfer)
   RetainedCurrent(RemotePollRetainedCurrent)
+  EffectCurrent(RemotePollEffectCurrent)
+  EffectResume(RemotePollEffectResume)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Cancel(DispatchRequest)

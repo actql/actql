@@ -1,0 +1,13 @@
+{
+  "description": "Independent canonical Result bytes/schema and physical fact fixture; not copied from product binding output.",
+  "payload": "[{\"next\":5}]",
+  "byte_count": 12,
+  "physical_sha256": "eb9a6cfb7dc9e43152fefb085f2004515b205c9b084ac6fbc785958eb3d8138d",
+  "schema": "{\"next\":{\"nullable\":false,\"type\":\"number\"}}",
+  "result_schema_cid": "sha256:84dcc72115b135da70582ddc17a0f38956d0e4a01d70023147b5a5d25d947057",
+  "codec_contract_cid": "sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1",
+  "row_count": 1,
+  "result_fields": ["next"],
+  "material_generation_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "store_authority_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+}

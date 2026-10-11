@@ -1,6 +1,7 @@
 // Exercise the actual checker with controlled Git object boundaries. Actual
 // repository/history checks remain mandatory in the pipeline-evidence job.
 import { mock } from 'node:test';
+import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { hash } from '../inventory.mjs';
@@ -59,14 +60,62 @@ const contents = JSON.stringify(current);
 write(currentPath, contents); blobs.set(`HEAD:${currentPath}`, contents);
 if (scenario === 'uncommitted-record') write(currentPath, `${contents}\n`);
 if (scenario === 'missing-record') unlinkSync(join(root, currentPath));
+const inspection = scenario.startsWith('inspection-');
+const checkpoint = '16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a';
+let compositionCalls = 0;
+if (inspection) {
+  write(`${prefix}foundation-baseline.json`, contents);
+  blobs.set(`${checkpoint}:${currentPath}`, contents);
+  unlinkSync(join(root, currentPath));
+  mock.module('../foundation.mjs', { namedExports: { composeFoundation: (inspectedRoot, options) => {
+    compositionCalls++;
+    assert.equal(inspectedRoot, root);
+    assert.equal(options.checkpoint, checkpoint);
+    assert(paths.every(path => options.paths.includes(path)));
+    assert.deepEqual(options.immutable, [
+      {path: baselinePath, revision: historicalRevision},
+      {path: `${prefix}foundation-baseline.json`, revision: checkpoint, sourcePath: currentPath},
+    ]);
+    if (scenario === 'inspection-composition-reject') throw new Error('Controlled composition rejection');
+    return {sourceRevision: revision, files: [{path: 'package.json', digest: hash('checked package')}]};
+  } } });
+}
 mock.module('node:child_process', { namedExports: { spawnSync: (command, args) => {
   if (command !== 'git') throw new Error('Unexpected command');
   if (args[0] === 'merge-base') return { status: scenario === 'non-ancestor' ? 1 : 0 };
+  if (inspection && ['ls-files', 'ls-tree'].includes(args[0])) return {status: 0, stdout: Buffer.alloc(0)};
   if (args[0] !== 'show') throw new Error('Unexpected Git command');
   let value = blobs.get(args[1]);
+  if (inspection && value === undefined && args[1].startsWith(checkpoint + ':'))
+    value = blobs.get(args[1].replace(checkpoint + ':', revision + ':'));
   if (value === undefined && args[1].startsWith('HEAD:') && args[1] !== `HEAD:${currentPath}`) value = blobs.get(args[1].replace('HEAD:', `${revision}:`));
   return { status: value === undefined ? 128 : 0, stdout: Buffer.from(value ?? '') };
 } } });
 // Preserve the old representation's negative cases at the frozen checkpoint.
-const { checkLegacyFoundation } = await import('../history.mjs');
-checkLegacyFoundation(root);
+const { checkLegacyFoundation, inspectFoundation, currentFoundation, checkFoundation } = await import('../history.mjs');
+if (!inspection) checkLegacyFoundation(root);
+else if (scenario === 'inspection-historical-edit') {
+  write(baselinePath, historical + '\n');
+  assert.throws(() => inspectFoundation(root), /Historical reuse baseline changed/);
+  assert.equal(compositionCalls, 0, 'Reject the changed original before composing');
+} else if (scenario === 'inspection-composition-reject') {
+  assert.throws(() => inspectFoundation(root), /Controlled composition rejection/);
+  assert.equal(compositionCalls, 1);
+} else {
+  const value = inspectFoundation(root);
+  assert.deepEqual(value.baseline, baseline);
+  assert.equal(value.current.sourceRevision, revision);
+  assert.equal(compositionCalls, 1, 'One complete inspection supplies both views');
+  assert.deepEqual(checkFoundation(root), baseline);
+  assert.equal(compositionCalls, 2, 'Separate validation must execute again');
+  assert.deepEqual(currentFoundation(root), value.current);
+  assert.equal(compositionCalls, 3);
+  value.baseline.common = {};
+  value.current.files = [];
+  assert.deepEqual(inspectFoundation(root).baseline, baseline);
+  assert.equal(compositionCalls, 4, 'A returned value cannot replace a new inspection');
+  write(baselinePath, historical + '\n');
+  assert.throws(() => inspectFoundation(root), /Historical reuse baseline changed/);
+  assert.equal(compositionCalls, 4, 'Prior inspection must not hide changed bytes');
+}
+if (inspection) console.log(JSON.stringify({scenario, compositionCalls, synthetic: true}));

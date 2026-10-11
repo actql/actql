@@ -237,12 +237,8 @@ pub fn[P, T] prepare_managed_completion_port(
     (managed_inputs is Some(_) && common_inputs is Some(_)) {
     return Err(ForeignInputs)
   }
-  let (_, _, bindings) = match
-    validate_trusted_output_contract(
-      preparation, target, max_entries, max_name_bytes, inputs,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  if max_entries < 0 || max_name_bytes < 0 {
+    return Err(InvalidLimits)
   }
   if managed_inputs is Some(values) {
     if values.length() > max_entries {
@@ -296,6 +292,22 @@ pub fn[P, T] prepare_managed_completion_port(
         return Err(ForeignInputs)
       }
     }
+  }
+  // Managed inputs carry their own exact receiving-port proof. Validate that
+  // proof above before asking the shared target/name admission to use it in
+  // place of materialized reads; an omitted proof still rejects Input targets.
+  let (_, _, bindings) = match
+    validate_trusted_output_contract(
+      preparation,
+      target,
+      max_entries,
+      max_name_bytes,
+      inputs,
+      verified_managed_inputs=managed_inputs is Some(_) ||
+        common_inputs is Some(_),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let owner = completion_preparation_owner(preparation)
   let selected_obligations = obligations.unwrap_or_else(() => {

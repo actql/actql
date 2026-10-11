@@ -3,7 +3,8 @@ import wasmtime
 
 
 class PhysicalFixture:
-    def __init__(self, module, nonce, capacity=256, slots=8, fuel=None):
+    def __init__(self, module, nonce, capacity=256, slots=8, fuel=None,
+                 execution_bytes=None, retained_bytes=200_000_000):
         self.inputs = {}
         self.cleanups = {}
         self.reads = 0
@@ -26,14 +27,20 @@ class PhysicalFixture:
         for name, params, callback in (
             ('input_byte', [i32, i32], self.read),
             ('input_cleanup', [i32], self.cleanup),
-            ('reader_stop', [i32, i32], self.stop)):
+            ('reader_stop', [i32, i32], self.stop),
+            ('native_settled', [i32], self.native_settled),
+            ('native_stopped', [i32], self.native_stopped),
+            ('native_cleaned', [i32], self.native_cleaned)):
             self.linker.define_func('actql_host', name,
                 wasmtime.FuncType(params, [i32]), callback)
         assert {(item.module, item.name) for item in self.module.imports} == {
-            ('actql_host', 'input_byte'), ('actql_host', 'input_cleanup'), ('actql_host', 'reader_stop')}
+            ('actql_host', 'input_byte'), ('actql_host', 'input_cleanup'), ('actql_host', 'reader_stop'),
+            ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned')}
         self.instance = self.linker.instantiate(self.store, self.module)
         self.exports = self.instance.exports(self.store)
-        assert self.call('open', capacity, slots, 1048576) == 0
+        envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
+        assert self.call('open', capacity, slots, 1048576, 100000, slots + 2, slots,
+                              32000000, retained_bytes, envelope) == 0
 
     def call(self, name, *args):
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)
@@ -41,6 +48,18 @@ class PhysicalFixture:
     def read(self, ticket, index):
         self.reads += 1
         return 256 if self.invalid_byte else self.inputs[ticket][index]
+
+    def unexpected_native(self, handle):
+        raise AssertionError('This non-Native fixture cannot acknowledge Source physical facts')
+
+    def native_settled(self, handle):
+        return self.unexpected_native(handle)
+
+    def native_stopped(self, handle):
+        return self.unexpected_native(handle)
+
+    def native_cleaned(self, handle):
+        return self.unexpected_native(handle)
 
     def cleanup(self, ticket):
         self.cleanups[ticket] = self.cleanups.get(ticket, 0) + 1
@@ -59,7 +78,8 @@ class PhysicalFixture:
         handle = self.call('reserve', ticket, len(payload), retained_bytes)
         assert handle > 0
         self.inputs[ticket] = payload
-        assert self.call('fill', handle, 0, len(payload)) == 0
+        for start in range(0, len(payload), 16_384):
+            assert self.call('fill', handle, start, min(16_384, len(payload) - start)) == 0
         assert self.call('seal', handle) == 0
         output = bytes(self.call('byte', handle, index) for index in range(len(payload)))
         assert output == payload

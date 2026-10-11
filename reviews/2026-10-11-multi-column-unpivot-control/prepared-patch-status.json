@@ -1,0 +1,23 @@
+{
+  "status": "incomplete prepared patch; not applied or compiled",
+  "baseSha": "b7fa92700cced13ad296b7920e4bb63f8ab48ced",
+  "patchSha256": "f32d2be2fe2b94d84b5e16af9d7dd312762101aded1baafa84c31073671daeb4",
+  "files": [
+    "src/query_program/compile.mbt",
+    "src/query_program/pipe_unpivot.mbt",
+    "src/query_program/unpivot_row_labels.mbt",
+    "src/query_syntax/from_unpivot_test.mbt",
+    "src/query_syntax/query.mbt",
+    "src/query_syntax/unpivot.mbt",
+    "src/query_syntax/unpivot_test.mbt"
+  ],
+  "missing": [
+    "apply and typecheck prepared AST/lowerer as a separate unit after control proof",
+    "install and execute independent lowering fixtures",
+    "generated MoonBit API, grammar pins and independent identity vectors",
+    "normal checker proof and public execution"
+  ],
+  "reason": "Keep the current shared Heavy window and frozen String-label unit separate from the next unit.",
+  "patchFile": "ast-connection.prepared.patch.json",
+  "preparedLowerer": "lowering.prepared.mbt"
+}

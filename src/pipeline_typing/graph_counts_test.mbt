@@ -66,35 +66,22 @@ test "explicit empty keyed node universe excludes edges without importing edge c
 }
 
 ///|
-test "unsupported structural counts cannot propagate invented extents into current MATCH" {
-  for name in ["graft_graph"] {
-    let issue = @pipeline_typing.check_carriers(
-      cursor(
-        "[" +
-        keyed_graph_count_prefix(3, 3) +
-        ",{\"" +
-        name +
-        "\":{\"with\":\"g\"},\"as\":\"combined\"},{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}]",
-      ),
-      [],
-      None,
-      None,
-      limits(),
-    ).unwrap_err()
-    assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
-    assert_eq(issue.path, [Index(3), Key(name)])
-  }
-}
-
-///|
-test "supported union structural counts include repeated occurrences without inventing exact extents" {
-  for n in [0, 3] {
+test "supported union and graft counts include repeated occurrences without inventing exact extents" {
+  for
+    (operation, n) in [
+      ("union_graphs", 0),
+      ("union_graphs", 3),
+      ("graft_graph", 0),
+      ("graft_graph", 3),
+    ] {
     let pipeline = graph_count_checked(
       @pipeline_typing.check_carriers(
         cursor(
           "[" +
           keyed_graph_count_prefix(n, 3) +
-          ",{\"from\":\"g\",\"union_graphs\":{\"with\":\"g\"},\"as\":\"combined\"}" +
+          ",{\"from\":\"g\",\"" +
+          operation +
+          "\":{\"with\":\"g\"},\"as\":\"combined\"}" +
           ",{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}" +
           ",{\"from\":\"combined\",\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"element\"},\"fields\":[\"element\"]}}]",
         ),

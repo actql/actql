@@ -296,3 +296,12 @@ pub fn cleanup_admitted_output_row(cursor : AdmittedOutputRowCursor) -> Bool {
   cursor.cleaned = true
   workspace_healthy(cursor.workspace) && cursor.workspace.live == 0
 }
+
+///|
+/// Read-only accounting for the caller's encompassing workspace reservation.
+/// This does not grant access to provisional cells or completion authority.
+pub fn admitted_output_row_workspace_usage(
+  cursor : AdmittedOutputRowCursor,
+) -> (Int, Int) {
+  (cursor.workspace.live, cursor.workspace.peak)
+}

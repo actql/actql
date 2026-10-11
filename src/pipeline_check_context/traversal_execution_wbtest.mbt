@@ -4,6 +4,7 @@ fn traversal_checked_fixture(
   guard_text? : String = "",
   parameters? : @parameter.Declarations? = None,
   bindings? : @parameter.BoundValues? = None,
+  shortest? : Bool = false,
 ) -> (@pipeline.CheckedPipeline, @step_bounds.TraversalLimits) raise {
   let producer = property_execution_pipeline()
   guard @pipeline.output_carrier(producer) is Some(@carrier.GraphValue(graph)) else {
@@ -17,18 +18,26 @@ fn traversal_checked_fixture(
     .strip_suffix("]")
     .unwrap()
     .to_owned()
+  let operation_name = if shortest { "shortest_path" } else { "traverse" }
+  let operation_body = if shortest {
+    "{\"shortest_path\":{\"source\":" +
+    identity +
+    ",\"target\":" +
+    identity +
+    ",\"direction\":\"out\",\"max_hops\":3" +
+    guard_text +
+    "}}]"
+  } else {
+    "{\"traverse\":{\"start\":{\"ids\":[" +
+    identity +
+    "]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"" +
+    emission +
+    "\"" +
+    guard_text +
+    "}}]"
+  }
   let pipeline = @pipeline.check_carriers(
-    asof_test_cursor(
-      producer_prefix +
-      "," +
-      "{\"traverse\":{\"start\":{\"ids\":[" +
-      identity +
-      "]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"" +
-      emission +
-      "\"" +
-      guard_text +
-      "}}]",
-    ),
+    asof_test_cursor(producer_prefix + "," + operation_body),
     [],
     parameters,
     None,
@@ -70,7 +79,7 @@ fn traversal_checked_fixture(
       text +
       "],\"effective_max\":7,\"enforcement\":\"engine_atomic\""
     let tail = ",\"subject_ref\":\"" +
-      "traverse" +
+      operation_name +
       ":checked-step:2" +
       suffix +
       "\",\"unit\":\"" +
@@ -135,6 +144,56 @@ fn traversal_checked_fixture(
     max_work=1000,
   ).unwrap()
   (pipeline, limits)
+}
+
+///|
+test "Shortest owns separate checked search and selected-output capacity scopes" {
+  let (pipeline, limits) = traversal_checked_fixture("paths", shortest=true)
+  let step = @pipeline.step_at(pipeline, 2).unwrap()
+  let group = @pipeline.operation_obligation_group_at(step.operation, 0).unwrap()
+  let mut found = 0
+  for index in 0..<@pipeline.operation_obligations_count(group) {
+    let requirement = @pipeline.operation_obligations_at(group, index).unwrap()
+    guard requirement
+      is @pipeline.TraverseRequirement(
+        ShortestRequirement(ResolveShortestResources)
+      ) else {
+      continue
+    }
+    let site : OperationRequirementSite = {
+      stage: 0,
+      producer_visit: 2,
+      step: 2,
+      group: 0,
+      index,
+      pipeline,
+      obligations: group,
+      requirement,
+    }
+    guard traversal_limits_check(
+        site,
+        limits,
+        @step_bounds.traversal_limit_policy(limits),
+      )
+      is Ok(TraversalLimits(check)) else {
+      fail("Shortest capacity owner")
+    }
+    for
+      (scope, suffix) in [
+        (@step_bounds.SearchPaths, ":paths"),
+        (@step_bounds.OutputRows, ""),
+      ] {
+      let claim = @step_bounds.traversal_limit_claim(check.limits, scope)
+      assert_eq(
+        @wire.limit_subject(claim),
+        "shortest_path:checked-step:2" + suffix,
+      )
+      assert_eq(@derivation.minimum_value(@wire.limit_minimum(claim)), 7L)
+      assert_eq(@wire.limit_enforcement(claim), @wire.EngineAtomic)
+    }
+    found += 1
+  }
+  assert_eq(found, 1)
 }
 
 ///|
