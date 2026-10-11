@@ -1,0 +1,1451 @@
+{
+  "version": "actql-decision-vectors/0.1",
+  "prompt": {
+    "version": "actql-model-prompt/0.1",
+    "payload": {
+      "format": "actql.decision_prompt/0.1",
+      "state_input": "state",
+      "questions": [
+        {
+          "id": "__proto__",
+          "type": "choice",
+          "instructions": "Choose a routing label.\r\né",
+          "options": [
+            {
+              "id": "toString",
+              "description": "toString"
+            },
+            {
+              "id": "__proto__",
+              "description": "__proto__"
+            },
+            {
+              "id": "constructor",
+              "description": "constructor"
+            }
+          ]
+        },
+        {
+          "id": "constructor",
+          "type": "score",
+          "instructions": "Score the state.",
+          "levels": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        {
+          "id": "enabled",
+          "type": "boolean",
+          "instructions": "P(true) for eligibility."
+        }
+      ]
+    },
+    "self_cid": "sha256:3cb49cca43b2ada3360038ff65eb699c5c79e93c2630bd3e3e4ed2fdd980db80"
+  },
+  "task": {
+    "schema": "actql.model_task/0.2",
+    "task_id": "model-task:decision-fixture",
+    "version": "1",
+    "connector_id": "models/fixture",
+    "task_kind": "decision",
+    "authored_model_selector": "fixture-native",
+    "input_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "state": {
+          "type": "json",
+          "nullable": true
+        }
+      }
+    },
+    "output_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "__proto__": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "choice": {
+              "type": "string",
+              "nullable": false
+            },
+            "probabilities": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "option": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "probability": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "constructor": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "score": {
+              "type": "number",
+              "nullable": false
+            },
+            "probabilities": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "level": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "probability": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "enabled": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "probability": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        }
+      }
+    },
+    "decision_config": {
+      "answer_profile": "actql.decision_answers/0.1",
+      "probability_source": "native",
+      "distribution_policy": "required_for_choice_and_score"
+    },
+    "tool_policy": "none",
+    "retrieval_policy": "none",
+    "streaming": false,
+    "data_handling": {
+      "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "accepted_classifications": [
+        "public"
+      ],
+      "training_use": "forbidden",
+      "retention": "none",
+      "allowed_regions": [
+        "fixture"
+      ]
+    },
+    "max_items": 4,
+    "input_schema_cid": "sha256:3b945d01674c1d9006497d459e110bfde9e836e5686fcca3b6dd1fc7b82f9466",
+    "output_schema_cid": "sha256:4ce8bfaf60dd4fe01d0f7df2cc73fb8303c9daef9c06adb09e72385be34ff3f9",
+    "prompt_template_cid": "sha256:3cb49cca43b2ada3360038ff65eb699c5c79e93c2630bd3e3e4ed2fdd980db80",
+    "contract_cid": "sha256:def45fa15b898ea3ae17c7920d24ea8c11af6cfc7dee7b5a39ef7566d5e96d4e"
+  },
+  "generation": {
+    "schema": "actql.model_task/0.2",
+    "task_id": "model-task:decision-fixture",
+    "version": "1",
+    "connector_id": "models/fixture",
+    "task_kind": "structured_generate",
+    "authored_model_selector": "fixture-native",
+    "input_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "state": {
+          "type": "json",
+          "nullable": true
+        }
+      }
+    },
+    "output_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "__proto__": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "choice": {
+              "type": "string",
+              "nullable": false
+            },
+            "probabilities": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "option": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "probability": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "constructor": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "score": {
+              "type": "number",
+              "nullable": false
+            },
+            "probabilities": {
+              "type": "array",
+              "nullable": true,
+              "items": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "level": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "probability": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "enabled": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "probability": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        }
+      }
+    },
+    "tool_policy": "none",
+    "retrieval_policy": "none",
+    "streaming": false,
+    "data_handling": {
+      "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "accepted_classifications": [
+        "public"
+      ],
+      "training_use": "forbidden",
+      "retention": "none",
+      "allowed_regions": [
+        "fixture"
+      ]
+    },
+    "max_items": 4,
+    "input_schema_cid": "sha256:3b945d01674c1d9006497d459e110bfde9e836e5686fcca3b6dd1fc7b82f9466",
+    "output_schema_cid": "sha256:4ce8bfaf60dd4fe01d0f7df2cc73fb8303c9daef9c06adb09e72385be34ff3f9",
+    "prompt_template_cid": "sha256:3cb49cca43b2ada3360038ff65eb699c5c79e93c2630bd3e3e4ed2fdd980db80",
+    "generation_config": {
+      "temperature": 0,
+      "top_p": 1,
+      "max_output_tokens": 32
+    },
+    "contract_cid": "sha256:2a429743ad2291d2f0961a5427f1fb5b99096a39bae6bb7a0bffa72d62c31b6a"
+  },
+  "execution": {
+    "version": "actql-model-execution-contract/0.1",
+    "model_task_contract_cid": "sha256:def45fa15b898ea3ae17c7920d24ea8c11af6cfc7dee7b5a39ef7566d5e96d4e",
+    "retry_classification_contract_cid": "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90",
+    "backoff_contract_cid": "sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56",
+    "default_publication": "outcomes",
+    "max_attempts_per_slot": 1,
+    "max_total_attempts": 1,
+    "max_total_cost_units": 0,
+    "max_total_duration_ms": 1000,
+    "max_total_token_reservation": 128,
+    "max_total_wire_bytes": 2048,
+    "media_input_contracts": {},
+    "self_cid": "sha256:de6383143d932950e1472a28c5dc61a44fa473df3c0848e82f5310a3bbaea334"
+  },
+  "retry": {
+    "version": "actql-model-retry-policy/0.1",
+    "retryable_failures": [],
+    "self_cid": "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90"
+  },
+  "backoff": {
+    "version": "actql-model-backoff/0.1",
+    "delays_ms": [],
+    "self_cid": "sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56"
+  },
+  "answers": [
+    {
+      "id": "rounded native distribution",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": null
+    },
+    {
+      "id": "tie retains chosen member",
+      "body": {
+        "__proto__": {
+          "choice": "constructor",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": null
+    },
+    {
+      "id": "zero and one",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 1
+            },
+            {
+              "option": "__proto__",
+              "probability": 0
+            },
+            {
+              "option": "constructor",
+              "probability": 0
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0
+        }
+      },
+      "issue": null
+    },
+    {
+      "id": "fractional weighted score",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 0.75,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.5
+            },
+            {
+              "level": 1,
+              "probability": 0.25
+            },
+            {
+              "level": 2,
+              "probability": 0.25
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 1
+        }
+      },
+      "issue": null
+    },
+    {
+      "id": "unknown chosen option",
+      "body": {
+        "__proto__": {
+          "choice": "unknown",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "ChoiceMaximum"
+    },
+    {
+      "id": "nonmaximal chosen option",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.2
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.4
+            },
+            {
+              "option": "constructor",
+              "probability": 0.4
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "ChoiceMaximum"
+    },
+    {
+      "id": "sum too low",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.32
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "Distribution"
+    },
+    {
+      "id": "grid violation",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.501
+        }
+      },
+      "issue": "Precision"
+    },
+    {
+      "id": "boolean is not probability",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": true
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "negative probability",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": -0.01
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "probability exceeds one",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 1.01
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "missing question",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "extra question",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        },
+        "extra": {
+          "probability": 0
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "unknown answer member",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5,
+          "confidence": 1
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "absent required distribution",
+      "body": {
+        "__proto__": {
+          "choice": "toString"
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "NULL required distribution",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": null
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "missing option",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "extra option",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            },
+            {
+              "option": "extra",
+              "probability": 0
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "duplicate option",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "reordered options",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "constructor",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "toString",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "level not integral",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1.5,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "duplicate level",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "score out of range",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 2.01,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "InvalidAnswer"
+    },
+    {
+      "id": "score inconsistent",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1.02,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "ScoreConsistency"
+    },
+    {
+      "id": "score precision",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1.001,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5
+        }
+      },
+      "issue": "Precision"
+    },
+    {
+      "id": "grid floating-error boundary",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.500000000001
+        }
+      },
+      "issue": null
+    },
+    {
+      "id": "next grid representation outside",
+      "body": {
+        "__proto__": {
+          "choice": "toString",
+          "probabilities": [
+            {
+              "option": "toString",
+              "probability": 0.33
+            },
+            {
+              "option": "__proto__",
+              "probability": 0.33
+            },
+            {
+              "option": "constructor",
+              "probability": 0.33
+            }
+          ]
+        },
+        "constructor": {
+          "score": 1,
+          "probabilities": [
+            {
+              "level": 0,
+              "probability": 0.33
+            },
+            {
+              "level": 1,
+              "probability": 0.33
+            },
+            {
+              "level": 2,
+              "probability": 0.33
+            }
+          ]
+        },
+        "enabled": {
+          "probability": 0.5000000000010001
+        }
+      },
+      "issue": "Precision"
+    }
+  ]
+}

@@ -1085,7 +1085,7 @@ idempotency {support, key_schema, retention}, preview strength,
 reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 ```
 
-<!-- requirement-block: command-contracts.permissions-must-be-derived-from-this-contract command-contracts.they-must-not-be-authored-or-broadened-by-the-program command-item-contract.product-7dc55ab8c349 stamp-writes.product-de5edfbb89aa stamp-writes.product-54385477c89e model-task.product-e2cfca5b7129 planning-wire.product-a854b55d6c3e -->
+<!-- requirement-block: command-contracts.permissions-must-be-derived-from-this-contract command-contracts.they-must-not-be-authored-or-broadened-by-the-program command-item-contract.product-7dc55ab8c349 stamp-writes.product-de5edfbb89aa stamp-writes.product-54385477c89e model-task.product-e2cfca5b7129 -->
 The complete resolved contract, not only its authored reference, is bound as
 `resolved_command_contract_cid`. Permissions MUST be derived from this
 contract. They MUST NOT be authored or broadened by the Program.
@@ -1155,7 +1155,7 @@ their checked/admitted bodies. Neither a valid barrier CID nor a schema
 reference authorizes model access or supplies future observations.
 
 ModelTask contracts MUST fix finite retry classification and ceilings, immutable
-slot request/model/prompt/generation/output contracts, data handling and typed
+slot request/model/prompt/kind-specific settings/output contracts, data handling and typed
 attachment roles. Outcome classes and strict publication are defined by
 Language's infer. The Host produces outcome tags, not the model. Attempts retain
 private raw evidence, usage/reservations and adopted-attempt identity; public
@@ -1165,6 +1165,18 @@ worst-case reservation, transfer plan, issuer/scope and current egress.
 The adapter binds exact content bytes and full Ref identity independently.
 Media reservations are not fabricated exact text-token counts. ResourceRef,
 hidden tools/retrieval and cross-Run model cache remain outside this contract.
+
+<!-- requirement-block: model-task.decision-discriminator model-task.decision-contract-binding model-task.decision-original-values model-task.decision-physical-profile -->
+The `actql.model_task/0.2` reader MUST select exactly one of structured
+generation and Decision. The original `actql.model_task/0.1` body and CID
+preimage remain unchanged and generation-only. Decision MUST bind its closed
+input and question-derived output contracts, native probability source and
+required Choice/Score distributions without dummy generation settings.
+Validation MUST retain original answer values, reject missing, duplicate or
+extra answers and distribution entries, and check ranges before consistency.
+The selected finite physical profile MUST fix precision and tolerance; provider
+self-description cannot widen either. This registration does not change the
+original invocation-evidence or embedded capture-bundle bodies and readers.
 
 <a id="planning-wire"></a>
 
@@ -1188,6 +1200,7 @@ carries `runtime_support: unsupported`. `stored` reports artifact integrity,
 not a fresh validity or execution-admission judgment. No rejected or unbound
 result authorizes execution.
 
+<!-- requirement-block: planning-wire.product-a854b55d6c3e -->
 For the staged target, `pending_predecessor` is the closed variant registered in
 the stage contract's schemas.pending_predecessor. It requires version,
 status, semantic_status, runtime_support, execution_admission,
@@ -1934,6 +1947,10 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task_v02 sha256:23ef51950192891ab9c18e6c7c779ce4cd4fe17456f810bcdcc0c8b11229b38d
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_prompt sha256:dda24589bf95171a297fb7da656d4371b92a0db243065e77e4db160d975e4e38
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_answers sha256:9074415d38b503da958213551086f760cac638fecc5b422b6af591bfe3356ac2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_probability_profile sha256:c1430ae14968435f40f7238506e9b603bf575ec462e5665bf3eac0fbc87523b3
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f
 ../../../spec/contracts/actql-consumer-capacity.json#/laws sha256:a799f82a4a06d6b2402c434142dd6e13a265bef160f4143160de1770f0e52853
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94

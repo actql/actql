@@ -7637,7 +7637,9 @@ satisfy it. This is not a blanket prohibition on subsequent joins or Effects.
 ### Model acquisition: `infer`
 
 The public operation name is `infer`; the module profile is
-`actql-infer/0.1`, and the contract schema is `actql.model_task/0.1`.
+`actql-infer/0.1`. ModelTask readers retain `actql.model_task/0.1` for
+structured generation and admit `actql.model_task/0.2` for the explicit
+structured-generation or Decision discriminator.
 Model inference is acquisition of an externally generated observation. It is
 neither pure algebra nor a business-state mutation Effect.
 
@@ -7684,9 +7686,31 @@ There is no implicit source-row copy or join-back.
 
 <!-- requirement-block: infer.the-resolved-modeltask-contract-must-fix-task-and-prompt-identity -->
 The resolved ModelTask contract MUST fix task and prompt identity, an authored
-model selector, exact closed input and output contracts, generation settings,
+model selector, exact closed input and output contracts, kind-specific settings,
 accepted data classifications and regions, forbidden training use, and
 `tool_policy: none`, `retrieval_policy: none`, and `streaming: false`.
+
+<!-- requirement-block: infer.decision-task-and-prompt-binding infer.decision-output-correspondence infer.decision-no-generation-defaults -->
+A Decision Task MUST bind the registered `actql.decision_prompt/0.1` payload
+through its existing Model prompt envelope and CID, and its declared output
+contract MUST equal the closed answer object derived from every question.
+Question `type` is exactly `choice`, `score`, or `boolean`; no `kind` alias or
+Boolean `criteria` is admitted in this initial payload. Decision settings and
+generation settings MUST NOT coexist or supply defaults for one another.
+
+<!-- requirement-block: infer.decision-empty-description-presence -->
+Instructions, option descriptions and level descriptions MUST be present String
+values, preserving empty Strings, Unicode and newlines; absence and null are
+not empty Strings. Question IDs, state-input selectors, type and format remain
+nonempty under the existing contract.
+
+The generic `actql.decision_answers/0.1` shape does not impose two decimal
+places. The initial TypeSafe/Jev physical probability profile selects two
+places, half-unit tolerance 0.005, arithmetic margin 0.000001 and scaled-grid
+margin 0.0000000001. Other precision requires an explicit supported binding,
+not a provider-reported tolerance. Profile selection is not evidence that a
+provider implements Decision; unsupported execution profiles reject before
+dispatch. See [Decision contracts](../design/infer-decision-contracts.md).
 
 <!-- requirement-block: infer.the-runtime-must-materialize-and-count-the-distinct-key-tuples infer.product-d0477b0c1e56 infer.product-f78f50e77109 -->
 `max_items` is an author guard as defined in [Author guards, resolved limits, and Plan facts](#resolved-limits), counting distinct input key
