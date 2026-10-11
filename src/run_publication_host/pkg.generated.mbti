@@ -136,6 +136,8 @@ pub fn bind_client_table_preview(ClientTableInput, @physical_strategy.CapturedEf
 
 pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue]
 
+pub fn bind_prepared_client_effect_original_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientEffectIssuedNormalizationMaterials, request? : ClientRequestIdentity?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
+
 pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectRunIssue]
 
 pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, @effect_application.StorageMappingReference, String, Int, Int, Int, Int, Int, Int) -> Result[RecoveredClientTablePreview, ClientTableInputIssue]
@@ -1398,7 +1400,7 @@ pub(all) enum ClientEffectCheckpointMembersIssue {
 pub struct ClientEffectCompilation {
   owner : PreparedClientEffectComputation
   compiled : ClientTaskCompilation
-  normalization_profile : Bool
+  normalization_profile : ClientEffectNormalizationInventory?
 }
 
 pub(all) enum ClientEffectCompilationAdmissionIssue {
@@ -1538,6 +1540,8 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
 } derive(@debug.Debug)
 
 type ClientEffectNormalization
+
+type ClientEffectNormalizationInventory
 
 pub(all) enum ClientEffectNormalizationIssue {
   Inventory(@program_check.CompletionFreeInventoryIssue)

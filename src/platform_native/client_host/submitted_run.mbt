@@ -270,8 +270,13 @@ fn NativeClientRunJournal::accept_original_submitted_run(
   definition : @publication.PublicationContract,
   authority_scope_cid : String,
   current_authorization : Bool,
+  effect_material_originals? : String? = None,
+  current_fence? : (() -> Bool)? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
   self.transaction(() => {
+    if current_fence is Some(current) && !current() {
+      return Err(AuthorizationDenied)
+    }
     match
       self.verify_submission_locked(
         authority, reference, authority_scope_cid, current_authorization,
@@ -299,6 +304,15 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     if !@host.client_submitted_intent_transition(before, "ready") {
       return Err(CustodyLost)
     }
+    // An original packet must enter with first admission, not as backfill of
+    // an accepted or merely pre-existing Run after custody was lost.
+    if effect_material_originals is Some(_) && original.run_admission is None {
+      match self.retained(request) {
+        Ok(None) => ()
+        Ok(Some(_)) => return Err(MissingEffectMaterialOriginal)
+        Err(issue) => return Err(issue)
+      }
+    }
     let run = match self.bind_run_locked(request, definition) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -310,7 +324,30 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         @publication.publication_contract_identity(definition) {
         return Err(ChangedIntent)
       }
+      if effect_material_originals is Some(packet) {
+        match run.effect_material_originals {
+          None => return Err(MissingEffectMaterialOriginal)
+          Some(existing) if existing != packet =>
+            return Err(ChangedEffectMaterialOriginal)
+          Some(_) => ()
+        }
+      }
+      if current_fence is Some(current) && !current() {
+        return Err(AuthorizationDenied)
+      }
       return Ok(original)
+    }
+    let run = match effect_material_originals {
+      None => run
+      Some(packet) => {
+        if current_fence is Some(current) && !current() {
+          return Err(AuthorizationDenied)
+        }
+        match self.save({ ..run, effect_material_originals: Some(packet), }) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+      }
     }
     let run_admission : NativeClientSubmittedRunAdmission = {
       request,
@@ -325,6 +362,9 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
+    }
+    if current_fence is Some(current) && !current() {
+      return Err(AuthorizationDenied)
     }
     self.database
     .compare_exchange(
