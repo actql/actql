@@ -8837,10 +8837,8 @@ fn join_keys(
           pending.push(left)
         }
         Binary("=", left, right) => {
-          guard @query.expression_node(expression, left).unwrap().kind
-            is Reference(left_path) &&
-            @query.expression_node(expression, right).unwrap().kind
-            is Reference(right_path) else {
+          guard join_key_reference(expression, left) is Some(left_path) &&
+            join_key_reference(expression, right) is Some(right_path) else {
             raise Abort(UnsupportedJoin)
           }
           let a = join_field(
