@@ -1,0 +1,114 @@
+{
+  "source": "c8e9de9973820ee84a0dfeb186acaf6a1abb505e",
+  "derivation": [
+    "Context reserves t and r; binding keyed reserves cte2; imported Values reserves seed3.",
+    "ASSERT UNIQUE emits one from seed3 step named cte2 with original unique_by x; both JOIN ports refer to cte2.",
+    "The ordinary JOIN adapter reserves its twelve fixed roles at length4: output5 and result14. No input range survives this authored WITH binding.",
+    "FULL explicit projections map x=left.x,y=left.y,k=right.x with original ON x=x and max10. ORDER continuation emits from output5/sort k ASC NULLS LAST/as result14.",
+    "The main rows Result exports x,y,k in declared order; original staged complete Program is retained separately and checked."
+  ],
+  "expected_program": {
+    "version": "actql/0.1",
+    "id": "fixture.pipe_slots",
+    "stages": [
+      {
+        "id": "main",
+        "inputs": {},
+        "steps": [
+          {
+            "values": {
+              "schema": {
+                "x": {
+                  "type": "number",
+                  "nullable": false
+                },
+                "y": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              "rows": [
+                {
+                  "x": 1,
+                  "y": 20
+                },
+                {
+                  "x": 2,
+                  "y": 10
+                }
+              ]
+            },
+            "as": "aql_script_seed_3"
+          },
+          {
+            "from": "aql_script_seed_3",
+            "assert_rows": {
+              "unique_by": [
+                "x"
+              ]
+            },
+            "as": "aql_script_cte_2"
+          },
+          {
+            "from": "aql_script_cte_2",
+            "join": {
+              "with": "aql_script_cte_2",
+              "kind": "full",
+              "on": [
+                {
+                  "left": "x",
+                  "right": "x"
+                }
+              ],
+              "max_output_rows": 10,
+              "select": {
+                "x": "left.x",
+                "y": "left.y",
+                "k": "right.x"
+              }
+            },
+            "as": "aql_join_output_5"
+          },
+          {
+            "from": "aql_join_output_5",
+            "sort": [
+              {
+                "field": "k",
+                "dir": "asc",
+                "nulls": "last"
+              }
+            ],
+            "as": "aql_join_result_14"
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": "aql_join_result_14",
+            "fields": [
+              "x",
+              "y",
+              "k"
+            ]
+          }
+        }
+      }
+    ],
+    "results": {
+      "answer": {
+        "from": {
+          "stage": "main",
+          "result": "rows"
+        }
+      }
+    }
+  },
+  "preserved": [
+    "both original input-key assertions",
+    "FULL/LEFT/RIGHT/CROSS and USING/ON",
+    "JOIN ceiling10",
+    "nullable row objects",
+    "qualified and output-alias receiver distinction",
+    "all independently authored original machine controls"
+  ],
+  "public_execution": "not performed"
+}
