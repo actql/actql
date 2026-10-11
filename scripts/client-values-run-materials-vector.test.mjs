@@ -1029,7 +1029,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:a6cdbc4062a32d5d37d3d54de0e35f6d3e8e7ca2a3bfeddf367ca2515b5b8e04');
+    'sha256:ae69a17eeeee065ed495074f3f909bd9f342cae6913f1a438fc1eb9cd0c2092a');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
