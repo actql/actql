@@ -7,6 +7,7 @@ priv struct StoredPayloadRequest {
   index : Int
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
+  mut request : @payload.PublicationPayloadRequest?
   mut invoked : Bool
   mut produced : Bool
   mut closing : Bool
@@ -62,6 +63,7 @@ pub fn reserve_payload_request(
     index,
     borrow,
     slot,
+    request: None,
     invoked: false,
     produced: false,
     closing: false,
@@ -94,7 +96,7 @@ pub fn produce_payload_request(
     return -32
   }
   if record.produced {
-    return 0
+    return if record.request is Some(_) { 0 } else { -33 }
   }
   if record.invoked {
     return -33
@@ -132,6 +134,9 @@ pub fn produce_payload_request(
     Ok(wire) => wire
     Err(_) => return -34
   }
+  // Keep the original typed intent for the later physical payload Owner.
+  // A copied wire or a newly decoded request cannot replace this custody.
+  record.request = Some(request)
   let code = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),
   )
