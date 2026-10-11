@@ -129,6 +129,20 @@ preserved without a synthetic length expression. The admitted number indices
 are safe-integer-valued finite binary64 numbers; full INT64 and BYTES remain
 coverage gaps. Quoted/case variants retain the same function identity.
 
+`SIN`, `COS`, `TAN`, `ASIN`, `ACOS`, `ATAN`, `SINH`, `COSH`, `TANH`,
+`ASINH`, `ACOSH` and `ATANH` select their direct unary common expressions;
+`ATAN2(first, second)` selects the ordered binary `atan2` common expression.
+The [GoogleSQL mathematical function rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions)
+apply within the existing finite Number domain: circular angles and inverse
+results are radians, ASIN/ACOS require [-1,1], ACOSH requires >=1 and ATANH
+requires strict (-1,1). ATAN2 preserves authored first/second ordering and
+quadrant signs rather than dividing or swapping; canonical public (0,0) is
+positive zero. NULL propagation precedes value-domain checks after demanded
+children succeed. The selected target's pinned core primitive and finite-result
+validation remain authoritative for execution; all prior numerical obligations
+remain unchanged. No reciprocal functions, implicit conversions, new numeric
+overloads or SAFE prefix are added by this increment.
+
 `CBRT(value)` selects the direct unary `cbrt` common expression, following the
 [GoogleSQL cube-root rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#cbrt)
 within the existing finite Number domain. Positive and negative finite inputs

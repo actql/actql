@@ -1078,6 +1078,7 @@ pub(all) enum BinaryOperator {
   SafeMultiply
   Modulo
   Pow
+  Atan2
   Log
   RoundAt
   TruncAt
@@ -1884,6 +1885,18 @@ pub(all) enum UnaryOperator {
   Floor
   Sqrt
   Cbrt
+  Sin
+  Cos
+  Tan
+  Asin
+  Acos
+  Atan
+  Sinh
+  Cosh
+  Tanh
+  Asinh
+  Acosh
+  Atanh
   Exp
   Ln
   Log10

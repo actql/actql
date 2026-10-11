@@ -608,3 +608,34 @@ bodies and independent preimages remain frozen under the actual published
 REPEAT/REVERSE parent. No production limit, profile obligation, Decimal law or
 comparison rule changes. Registration alone does not establish execution on an
 unverified target or consumer.
+
+
+## GoogleSQL finite Number direct trigonometric functions
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+This increment admits the 12 direct unary trigonometric/hyperbolic functions
+and ordered binary ATAN2 in the existing finite binary64 Number domain.
+[GoogleSQL mathematical functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions)
+define closed ASIN/ACOS domains [-1,1], ACOSH at or above 1, strict ATANH
+(-1,1), radians, and ATAN2's authored first/second quadrant interpretation.
+ATANH's prose interval excludes endpoints even though the illustrative table
+lists only inequalities outside them. No reciprocal or regex function belongs
+to this increment.
+
+Existing strict child demand, NULL propagation, finite-result validation,
+canonical positive-zero results and lazy outer expressions remain unchanged.
+ATAN2 uses the core primitive directly; reconstructing atan(first/second)
+would lose quadrants, zero handling and finite ratios. Raw signed zeros retain
+the primitive's quadrant behavior until result normalization, while canonical
+public Numbers cannot carry negative-zero wire values. This distinguishes an
+internal finite-value diagnostic from a new public value representation.
+
+Every operation selects the pinned target core primitive. This adds no universal
+cross-library last-bit identity and weakens no earlier accuracy obligation.
+Overflow remains an arithmetic failure; admitted finite input is not a promise
+that every hyperbolic result is representable. Closed schemas, grammar, laws,
+owned requirements and dependent identities change together within initial 0.1.
+The complete CBRT predecessor bodies and independent preimages are frozen at
+the actual published parent. Production limits, profiles and barrier bodies
+remain unchanged; target and public-boundary support need separate execution
+evidence.

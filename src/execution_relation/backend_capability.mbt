@@ -150,6 +150,7 @@ fn check_backend_capabilities(
             | SafeMultiply
             | Modulo
             | Pow
+            | Atan2
             | Log
             | RoundAt
             | TruncAt
