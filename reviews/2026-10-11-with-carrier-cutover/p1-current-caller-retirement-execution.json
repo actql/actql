@@ -1,0 +1,462 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "base": "main",
+  "adopted_main": "2e8fa9308f13de328a6e1eae43b9c16090f4c982",
+  "scope": "Current CTE/set/Graph, positional and composition callers; no product semantics or independent public values, contracts, limits or counts were changed.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "runs": [
+    {
+      "run": "run-yGPamy",
+      "source": "47d280350d4e8749b3999c0bb99686e52cbe344b",
+      "tree": "a8dd9873bf1978515e86132e5fabec868823b9b3",
+      "complete": false,
+      "exit_code": 1,
+      "owner_pid": 46475,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_cte_composition_test.mbt",
+          "src/query_program/with_set_composition_test.mbt",
+          "src/source_frontend/graph_union_test.mbt",
+          "src/source_frontend/graph_subtraction_test.mbt"
+        ]
+      ],
+      "counts": [],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/summary.json",
+          "sha256": "9fad6ed5209507af6450194aac2501607ad269be89f05a2a79342c7f8df6719f"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/output.log",
+          "sha256": "60b23a2c0c754d784fa3ac4f7418b19bcbc46bcc5c7af994fe2456c557684d3a"
+        },
+        "focused-test-zeGlAA/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/0001.summary.json",
+          "sha256": "ffb5dd0e4cd6c04189688171d34d3448caef8bf3f5d3f3b36aebe4c8a779a1cc"
+        },
+        "focused-test-zeGlAA/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/0002.summary.json",
+          "sha256": "ad2aeab24dcae0d10b3388da20349f675c14af43018992b27d528cf389b951c8"
+        },
+        "focused-test-zeGlAA/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/0003.summary.json",
+          "sha256": "9aec438521f53dc33a9ade2b090d2832ff54b41506b5236fe13a6ca66c0414ca"
+        },
+        "focused-test-zeGlAA/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/0004.summary.json",
+          "sha256": "0743a3d363a55a875108051c1f5d6aa916791dde382cb16f89ec993262afde42"
+        },
+        "focused-test-zeGlAA/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/001.result.json",
+          "sha256": "447dadc191035f002b14b2781aa41efed712867db95ce311d4807f91205b58e2"
+        },
+        "focused-test-zeGlAA/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/001.started.json",
+          "sha256": "e2974d0a540c5543ac1f039f54c622ccbd196f5eb2fce4f540de9849498a5292"
+        },
+        "focused-test-zeGlAA/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/001.stderr.log",
+          "sha256": "464cd177598b9231c51b440aec537acf890fa6c0453bb70affa843ae15579982"
+        },
+        "focused-test-zeGlAA/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/001.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-zeGlAA/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-yGPamy/focused-test-zeGlAA/summary.json",
+          "sha256": "0743a3d363a55a875108051c1f5d6aa916791dde382cb16f89ec993262afde42"
+        }
+      },
+      "failure": "Compilation failed before any selected test executed: shared test helper callers were not renamed. The subsequent correction changes test symbols only."
+    },
+    {
+      "run": "run-eZIUxT",
+      "source": "ec2a3a88bbeeef3d13ddbb161b7ddfc13f9309f8",
+      "tree": "3091e0a5ce16ee69be79d4dd0c386fcb5743316d",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 48147,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_cte_composition_test.mbt",
+          "src/query_program/with_set_composition_test.mbt",
+          "src/source_frontend/graph_union_test.mbt",
+          "src/source_frontend/graph_subtraction_test.mbt"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/array-literal-source-input.test.mjs",
+          "scripts/group-by-all-source-input.test.mjs"
+        ]
+      ],
+      "counts": [
+        {
+          "target": "JS",
+          "tests": 10,
+          "passed": 10,
+          "failed": 0,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        },
+        {
+          "target": "Node",
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        }
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/summary.json",
+          "sha256": "691a1039740de9ec398b1ed2be2a4ee7163435dd11cde61e3c351de64c8ca603"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/output.log",
+          "sha256": "7292d88669c6429c0250a505654f46b5d800b59035c3091ac9da94029aa356a2"
+        },
+        "focused-test-qq69xA/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/0001.summary.json",
+          "sha256": "046181f79a785bc497510fcb2bed34f1e4046202377c39b1ca839f2905793f3c"
+        },
+        "focused-test-qq69xA/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/0002.summary.json",
+          "sha256": "e3fd08354e57975ca85504860fb73941e9685404b3d3f4f211ababda7cf33223"
+        },
+        "focused-test-qq69xA/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/0003.summary.json",
+          "sha256": "ac02ec7a0260d2dee93f1f4463cb4845ecd4c4f84f3946be90aac822fd46b324"
+        },
+        "focused-test-qq69xA/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/0004.summary.json",
+          "sha256": "21012d334be304aafe27ce83eff9a13f9bfbdb346ce0bd2ceeebf2a43c7e4591"
+        },
+        "focused-test-qq69xA/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/001.result.json",
+          "sha256": "387df3de8e507e16375cec2db3527207aa29910d88b524294a235bd0b8dfb189"
+        },
+        "focused-test-qq69xA/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/001.started.json",
+          "sha256": "40902ea4e537e4c44414989e9afa8117b19e39176040b1d8ca06b2566c7bb666"
+        },
+        "focused-test-qq69xA/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-qq69xA/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/001.stdout.log",
+          "sha256": "fe181a16b4ba8108dc0e0792dd5f56a8655414d9a3c5ee8b77129291e78080eb"
+        },
+        "focused-test-qq69xA/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-qq69xA/summary.json",
+          "sha256": "21012d334be304aafe27ce83eff9a13f9bfbdb346ce0bd2ceeebf2a43c7e4591"
+        },
+        "focused-test-6jVBnq/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/0001.summary.json",
+          "sha256": "cb8b77d223dcf8c8ca4cbcba8462e5f93b80cb9c2ec405e792e040a015c6c6f0"
+        },
+        "focused-test-6jVBnq/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/0002.summary.json",
+          "sha256": "aeeadab97fa884e0fa98680a5b8cf1e6f11f77b95c4cb0d9aeea76dfeb11c890"
+        },
+        "focused-test-6jVBnq/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/0003.summary.json",
+          "sha256": "2424968d99664daba2df3d7d66d3ca2078c8e60484810f76f9a7eec71bf7be56"
+        },
+        "focused-test-6jVBnq/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/0004.summary.json",
+          "sha256": "38ce0cd176bc4482a8d296dc6779f6e2f063279e56e7a232bd87cb4222049f33"
+        },
+        "focused-test-6jVBnq/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/001.result.json",
+          "sha256": "e932f1b294a12c13434d541e0d3da5d2c35c4e3846f687d0a6bc08dd6204a013"
+        },
+        "focused-test-6jVBnq/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/001.started.json",
+          "sha256": "968f36985deaee49f9b54ded6a61101fb4a31c41e3eafc431ec036af2e1baeed"
+        },
+        "focused-test-6jVBnq/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-6jVBnq/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/001.stdout.log",
+          "sha256": "de4a4da89bf268d90afa7431f0508c58236f8f704b419cddfb5c1af040c028e3"
+        },
+        "focused-test-6jVBnq/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-eZIUxT/focused-test-6jVBnq/summary.json",
+          "sha256": "38ce0cd176bc4482a8d296dc6779f6e2f063279e56e7a232bd87cb4222049f33"
+        }
+      }
+    },
+    {
+      "run": "run-uhhwga",
+      "source": "ec2a3a88bbeeef3d13ddbb161b7ddfc13f9309f8",
+      "tree": "3091e0a5ce16ee69be79d4dd0c386fcb5743316d",
+      "complete": false,
+      "exit_code": -2,
+      "owner_pid": 49918,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_cte_composition_test.mbt",
+          "src/query_program/with_set_composition_test.mbt",
+          "src/source_frontend/graph_union_test.mbt",
+          "src/source_frontend/graph_subtraction_test.mbt",
+          "src/query_program/query_script_set.mbt"
+        ]
+      ],
+      "counts": [],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-uhhwga/summary.json",
+          "sha256": "463496642f09d0a78c85c0f3250a52e8abf30596c0a28f46a8c7147e94041f53"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-uhhwga/output.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "failure": "moon was not started (ENOENT): pinned toolchain PATH was missing. Not a formatter pass."
+    },
+    {
+      "run": "run-VsZN0C",
+      "source": "ec2a3a88bbeeef3d13ddbb161b7ddfc13f9309f8",
+      "tree": "3091e0a5ce16ee69be79d4dd0c386fcb5743316d",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 50167,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_cte_composition_test.mbt",
+          "src/query_program/with_set_composition_test.mbt",
+          "src/source_frontend/graph_union_test.mbt",
+          "src/source_frontend/graph_subtraction_test.mbt",
+          "src/query_program/query_script_set.mbt"
+        ]
+      ],
+      "counts": [],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-VsZN0C/summary.json",
+          "sha256": "2f35da8e2ed816e445f109de057fcefefcde6d9056dfe79675ec1ca437f8628c"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-VsZN0C/output.log",
+          "sha256": "d94b40ba384e37837f8b9409f7dc6f3fa46a51ae4b3caef39e23284e58076471"
+        }
+      }
+    },
+    {
+      "run": "run-JDccH9",
+      "source": "67025176033a7df6221ca3130fca7504553f2e62",
+      "tree": "74a548de069dcb054216bd3b66089e110613bdd8",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 51224,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_positional_set_test.mbt",
+          "src/query_syntax/composition_controls_test.mbt"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/public-query-cases.test.mjs"
+        ]
+      ],
+      "counts": [
+        {
+          "target": "JS",
+          "tests": 5,
+          "passed": 5,
+          "failed": 0,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        },
+        {
+          "target": "Node",
+          "tests": 14,
+          "passed": 14,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        }
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/summary.json",
+          "sha256": "38c8167e078cb842c47e0b91dddb7ec168d6819259d7ed0ac6ac3cdfe0e1b124"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/output.log",
+          "sha256": "f53f2dea0128c7324987827db26937a4308ebd943188ddafe272a8b7bd46392f"
+        },
+        "focused-test-71yVBS/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/0001.summary.json",
+          "sha256": "9069c2411e99e34d29ea422e9df0c5f18a2229b1de28b337053a6824039b30f1"
+        },
+        "focused-test-71yVBS/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/0002.summary.json",
+          "sha256": "86c39c90e6276921bf1bd326644d3788712ad606f2a93e91121b29267fa12e66"
+        },
+        "focused-test-71yVBS/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/0003.summary.json",
+          "sha256": "17df0c983ee8d03b650ba5092c76b568ed6adc1273949c5d3954e1284df7b6c0"
+        },
+        "focused-test-71yVBS/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/0004.summary.json",
+          "sha256": "f9f190062974e36a2a696c32ed95c8d7d2da9769d80ff761c3f7b8ea5e3c153b"
+        },
+        "focused-test-71yVBS/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/001.result.json",
+          "sha256": "89931a6f0d6148cfc509ec9a37a0a9709394620ed058903ed371b78fc91d7383"
+        },
+        "focused-test-71yVBS/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/001.started.json",
+          "sha256": "d871c713b1431493758f87f5c7b72f85fadc99ce874586669b5a93a17e73ed69"
+        },
+        "focused-test-71yVBS/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-71yVBS/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/001.stdout.log",
+          "sha256": "30a04d9fb9b3e8b0c88d173d0654b97191bd61de5cd6b067b91b74f25115ca4a"
+        },
+        "focused-test-71yVBS/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-71yVBS/summary.json",
+          "sha256": "f9f190062974e36a2a696c32ed95c8d7d2da9769d80ff761c3f7b8ea5e3c153b"
+        },
+        "focused-test-E2T7kh/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/0001.summary.json",
+          "sha256": "d3f2e3e719af9df727221470587d83728e0db472cd80f8c75bb07ff616fc7d48"
+        },
+        "focused-test-E2T7kh/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/0002.summary.json",
+          "sha256": "90894cbfec010e6501039eda27d6d93e826944c450ba92e30b16f74786712ebd"
+        },
+        "focused-test-E2T7kh/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/0003.summary.json",
+          "sha256": "21f679e3b1167c53e945616750d1be8423cb32286b18e5f0e6a4fc0ed1aa3879"
+        },
+        "focused-test-E2T7kh/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/0004.summary.json",
+          "sha256": "ad34ef7047db88a58d896e51b73dd0c9e033fc9c722bbe6a2df68e1339c2487c"
+        },
+        "focused-test-E2T7kh/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/001.result.json",
+          "sha256": "22cf8d052853f6b9529d9041d581b8620799810aba54ae0e8e536b18a9f80aaf"
+        },
+        "focused-test-E2T7kh/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/001.started.json",
+          "sha256": "3df36bd4bc4b959f2a0af5d25a9dba2d212cccf176a21edccd1b3b02761dacf2"
+        },
+        "focused-test-E2T7kh/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-E2T7kh/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/001.stdout.log",
+          "sha256": "cf1f6c0cfd636b2926b8d65629369531e95f43795887b539f0e4f9ee1d0d9a62"
+        },
+        "focused-test-E2T7kh/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-JDccH9/focused-test-E2T7kh/summary.json",
+          "sha256": "ad34ef7047db88a58d896e51b73dd0c9e033fc9c722bbe6a2df68e1339c2487c"
+        }
+      }
+    },
+    {
+      "run": "run-V4slD3",
+      "source": "67025176033a7df6221ca3130fca7504553f2e62",
+      "tree": "74a548de069dcb054216bd3b66089e110613bdd8",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 51656,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_positional_set_test.mbt",
+          "src/query_syntax/composition_controls_test.mbt"
+        ]
+      ],
+      "counts": [],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-V4slD3/summary.json",
+          "sha256": "8f791cc00399ac96e1bfa7c9847fc79782bf1136ed293fd31c0561f7f0692590"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-caller-retirement-evidence/run-V4slD3/output.log",
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        }
+      }
+    }
+  ],
+  "unexecuted": [
+    "fresh packed Local/HTTPS for changed sources",
+    "four-Carrier/P2 completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "expectation_basis": [
+    "Original source snapshots are retained in with-cte-set-original-callers.json and with-positional-composition-original-callers.json.",
+    "Complete Program names were independently updated from WITH producer allocation; predicates, Values, set arguments, key/column order and Result fields remain original.",
+    "Incompatible set contracts now fail in WITH static binding check with the same common typed Append cause; nested publication remains forbidden."
+  ],
+  "environment": "Pinned Node22.22.0 and moonbit0.10.12+1634b282e; the initial formatter ENOENT did not start moon and is not a formatting pass."
+}

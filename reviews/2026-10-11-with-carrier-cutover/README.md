@@ -29,6 +29,33 @@ Full four-Carrier/P2, remaining current DATA callers/examples and public
 Local/HTTPS acceptance are **incomplete**. No new Heavy, producer or hosted CI
 was started. The 119 supplied and 130 complete acceptance IDs are unchanged.
 
+## Current CTE, set and composition caller retirement
+
+[p1-current-caller-retirement-execution.json](p1-current-caller-retirement-execution.json)
+records clean `ec2a3a88bbeeef3d13ddbb161b7ddfc13f9309f8`: JS10/10
+and Node5/5. The later clean `67025176033a7df6221ca3130fca7504553f2e62`
+records positional-set/composition JS5/5 and independent public fixture Node14/14.
+These are different fixed sources and selected checks, not whole-cutover PASS.
+Both bounded formatters completed; the first unit's whitespace-only changes are
+separate from its tested source. The original shared-helper compilation failure
+and formatter ENOENT are retained as failures, with exact commands and receipts.
+Actual Owner/group/ownlock absence was checked for all six attempts.
+
+Positive callers now use authored WITH bodies, including nested CTE/set and
+Graph union/subtraction, positionally aligned UNION, terminal composition syntax
+and the full USING public source. Complete JSON controls keep their independently
+authored operations and field order; only deterministic binding names change.
+The Source predicate `id = id`, explicit JOIN bound 10, public NULL extension,
+row multiplicity and independent result metadata are unchanged. All shared test
+helper callers are renamed; no old helper alias or runtime migrator is restored.
+
+Old sources remain in [with-cte-set-original-callers.json](with-cte-set-original-callers.json)
+and [with-positional-composition-original-callers.json](with-positional-composition-original-callers.json).
+Retired-entry refusal fixtures and private machine-Program names are not public
+compatibility paths and are preserved. Remaining positive DATA callers and
+current examples, the full adopted P2 adapter scope, and fresh Local/HTTPS
+publication acceptance remain unfinished; no Heavy/producer was started.
+
 ## Earlier finite evidence
 
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally
@@ -40,7 +67,7 @@ supplied IDs and all 130 IDs remain in [acceptance-id-inventory.json](acceptance
 No SQL compatibility sidequest, alternate checker/evaluator, compatibility
 parser or new acquisition/storage owner is added.
 
-Current tested source is `0ebb257ad38f5c8206dd632eacfdb65ce5188223`, tree
+That earlier tested source was `0ebb257ad38f5c8206dd632eacfdb65ce5188223`, tree
 `14ce5c3216b4a786472745913fd188b24c685fd7`. It normally adopts E diagnostic source
 `54d7852347e087b01de17f698eff154cd050c74b` through merge `787ecc42d9f45ca2ad9e883a9105849419299433`.
 `run-88GD0X` completed focused JS25/25 and Node7/7, including six actual Core
@@ -188,14 +215,14 @@ Unmodified failure receipts remain alongside these records. B preserves its
 incremental build and borrowed pinned yaml dependency; no foreign worktree,
 shared Heavy lock, custody or original package evidence was changed.
 
-## Scalar-main integration
+## Earlier Scalar-main integration
 
 The normal merge retains both parent histories and all previous preimages.
 `pre-scalar-main-with-carrier-values-identities.json` freezes the submitted old
 WITH closure. `adopted-scalar-main-before-with-values-identities.json` records
 the independently reconstructed main23697 closure. The current WITH fixture
 uses that same dependency/Program closure with the newly authored query grammar.
-The current Run CID is independently hashed as
+At that earlier phase the Run CID was independently hashed as
 `sha256:64f2fe7915e5a42f8e14904f8b24cb085d12107a5161241f7c0b61c8f0689183`.
 The recorded authoring recipe is [p1-scalar-independent-preimages.mjs](p1-scalar-independent-preimages.mjs); it imports normative-input oracles only, never runtime outputs.
 
@@ -203,7 +230,7 @@ E owns the diagnostic projection, now adopted and locally verified. Four-Carrier
 and current caller/docs cutover remain incomplete. No package producer/public Host/provider/Heavy,
 Native/Wasm execution or Hosted CI was run for this integration.
 
-## Current Graph operation callers and prefix boundary
+## Earlier Graph operation callers and superseded prefix experiment
 
 Traversal, shortest-path and Graph-diagnostic fixture sources now use authored
 WITH/GRAPH directly. Their independent rows, full ordered schemas, source counts,
@@ -219,6 +246,6 @@ Its first actual failure is `Admission.Structure(EmptyDeclarations,
 stages[0].results)`; the common prefix checker was not reached. See
 [p1-carrier-prefix-boundary.json](p1-carrier-prefix-boundary.json).
 No synthetic Result, weakened complete-Program admission or alternate checker
-is substituted. B's delegated common retained-Cursor prefix seam remains to be
-implemented before restoring that frontend connection. This is one finite
-unfinished boundary, not a reason to stop independent caller cutover.
+was substituted. The delegated common Prefix seam has since been normally
+integrated and connected by the typed Carrier unit recorded above. This original
+failure remains historical evidence, not the current connection status.

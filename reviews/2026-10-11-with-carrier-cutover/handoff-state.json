@@ -1,7 +1,7 @@
 {
   "owner": "B",
   "integration_owner": "Root",
-  "phase": "WITH Carrier prefix uses the normally integrated common Prefix Owner; limited JS/Node and identity coherence verified, whole cutover/public acceptance incomplete",
+  "phase": "Normally integrated common Prefix and current CTE/set/positional/composition callers are limited-checked; full WITH/P2/current caller cutover and public acceptance remain incomplete",
   "branch": "feat/frontend-with-carrier-cutover",
   "base": "main",
   "pending_integration": [],
@@ -14,7 +14,7 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4; final formatter/evidence source distinguished. No Host/Local/HTTPS acceptance.",
+  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4. p1-current-caller-retirement-execution.json: ec2a JS10/10 Node5/5; 670251 JS5/5 Node14/14. Each fixed source and formatter receipt is distinct; no Host/Local/HTTPS acceptance.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,

@@ -1,0 +1,53 @@
+Total tests: 10, passed: 10, failed: 0.
+["moon","test","--target","js","src/query_program/with_cte_composition_test.mbt","src/query_program/with_set_composition_test.mbt","src/source_frontend/graph_union_test.mbt","src/source_frontend/graph_subtraction_test.mbt"]: executed; counts={"tests":10,"passed":10,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-qq69xA
+TAP version 13
+# Subtest: ARRAY fixtures retain independently authored types order multiplicity and NULLs
+ok 1 - ARRAY fixtures retain independently authored types order multiplicity and NULLs
+  ---
+  duration_ms: 4.174708
+  type: 'test'
+  ...
+# Subtest: ordinary public campaign and narrow consumer both include ARRAY fixtures
+ok 2 - ordinary public campaign and narrow consumer both include ARRAY fixtures
+  ---
+  duration_ms: 10.24825
+  type: 'test'
+  ...
+# Subtest: DOUBLE fixtures retain the independent numeric CAST and ARRAY contracts
+ok 3 - DOUBLE fixtures retain the independent numeric CAST and ARRAY contracts
+  ---
+  duration_ms: 0.75875
+  type: 'test'
+  ...
+# Subtest: GROUP BY ALL fixtures discriminate key inference and preserve multiplicity
+ok 4 - GROUP BY ALL fixtures discriminate key inference and preserve multiplicity
+  ---
+  duration_ms: 3.426791
+  type: 'test'
+  ...
+# Subtest: GROUP BY ALL is included in ordinary and focused public acceptance
+ok 5 - GROUP BY ALL is included in ordinary and focused public acceptance
+  ---
+  duration_ms: 5.448416
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 114.486042
+ACTQL_TEST_CASE {"name":"ARRAY fixtures retain independently authored types order multiplicity and NULLs","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/array-literal-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary public campaign and narrow consumer both include ARRAY fixtures","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/array-literal-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"DOUBLE fixtures retain the independent numeric CAST and ARRAY contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/array-literal-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"GROUP BY ALL fixtures discriminate key inference and preserve multiplicity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-by-all-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"GROUP BY ALL is included in ordinary and focused public acceptance","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-by-all-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":23.569708,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/array-literal-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":19.985666,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/group-by-all-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":114.486042}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/array-literal-source-input.test.mjs","scripts/group-by-all-source-input.test.mjs"]: executed; counts={"tests":5,"passed":5,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-6jVBnq
