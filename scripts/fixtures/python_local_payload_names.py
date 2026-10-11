@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class PayloadNameCases:
-    def __init__(self, fixture, configuration, denied, call, assert_status, ticket, staging=None):
+    def __init__(self, fixture, configuration, denied, call, assert_status, ticket, staging=None, finalization=None):
         self.fixture = fixture
         self.configuration = configuration
         self.denied = denied
@@ -20,6 +20,7 @@ class PayloadNameCases:
         self.child = None
         self.wire = None
         self.staging = staging
+        self.finalization = finalization
 
     def unowned(self, record):
         self.status('payload_names', 'reserve', -2, record, self.ticket(),

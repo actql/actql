@@ -1320,3 +1320,29 @@ allocation custody and reservations for reconciliation/reclaim after process
 exit. The Host must reserve the fixed cursor and OS workspace before this port.
 This connects staging only: physical final-name sealing, durable publication and
 normal Python Local assembly remain separate integrations.
+
+The private final-name port requires the completed nominal bounded snapshot of
+the original file and the object name selected by its same original Core record.
+It flushes and rechecks the staged bytes, then physically stops the original
+writer before any exclusive final link. Close uncertainty uses the existing
+original-descriptor observation rule: EBADF or a different recycled identity
+proves original stop, whereas an equal live inode remains unknown and cannot
+trigger another close or link. The same stop rule is shared with transport close.
+
+The final-name cursor retains the file slot and root while stopped I/O remains
+pending. A known linked final is generation-checked and directory-flushed before
+removing only the owned staging name. Link uncertainty never becomes ownership
+from pathname equality or a second link call. Unlink and directory-sync failures
+retain the same cursor; only original owned-name cleanup/observation can continue.
+Original byte generation/mtime must survive owned metadata operations, and cached
+final reuse checks the complete final timestamp/identity stamp. No new payload
+bytes are written or acquired while final work is pending.
+
+A successful physical result carries the original snapshot's device, inode, byte
+count and digest; it is not a Core Sealed/Commit witness. The existing payload
+Owner still needs the original typed preparation and exact durable successor,
+and Store publication needs its separate current authority/Policy/target checks.
+Cursor retirement requires actual original writer stop and releases only cursor
+transport. It never removes remaining aliases, resolves unknown acquisition,
+returns durable Store capacity or finalizes a Run. Host reservation of the fixed
+cursor/OS workspace and whole-process resource accounting remain separate duties.

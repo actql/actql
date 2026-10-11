@@ -34,7 +34,7 @@ class LocalFileError(RuntimeError):
 class _PayloadFile:
     __slots__ = ('root', 'name', 'descriptor', 'identity', 'max_bytes', 'written',
                  'creation_synced', 'write_unknown', 'closing', 'close_pending',
-                 'write_stopped', 'snapshot', 'adoption')
+                 'write_stopped', 'snapshot', 'adoption', 'finalization')
 
     def __init__(self, root: 'LocalFileRoot', name: str, descriptor: int, max_bytes: int) -> None:
         self.root = root
@@ -50,6 +50,7 @@ class _PayloadFile:
         self.write_stopped = False
         self.snapshot: _FileSnapshot | None = None
         self.adoption: _NameAdoption | None = None
+        self.finalization: _FileFinalization | None = None
 
 
 class _NameAdoption:
@@ -74,6 +75,30 @@ class _NameAdoption:
         self.source_removed = False
         self.remove_unknown = False
         self.complete = False
+
+
+class _FileFinalization:
+    """Original stopped-file name work; not a Core Sealed or Commit witness."""
+
+    __slots__ = ('root', 'file', 'snapshot', 'original_name', 'name', 'stopped',
+                 'linked', 'link_unknown', 'refused', 'source_removed',
+                 'remove_unknown', 'final_stamp', 'result')
+
+    def __init__(self, root: 'LocalFileRoot', value: _PayloadFile,
+                 snapshot: '_FileSnapshot', name: str) -> None:
+        self.root = root
+        self.file = value
+        self.snapshot = snapshot
+        self.original_name = value.name
+        self.name = name
+        self.stopped = False
+        self.linked = False
+        self.link_unknown = False
+        self.refused = False
+        self.source_removed = False
+        self.remove_unknown = False
+        self.final_stamp: tuple[int, ...] | None = None
+        self.result: PhysicalFileSnapshot | None = None
 
 
 class _FileSnapshot:
@@ -137,6 +162,7 @@ class LocalFileRoot:
         self._files: dict[int, _PayloadFile] = {}
         self._areas: dict[int, _AllocationArea] = {}
         self._name_transfers: dict[int, _NameAdoption] = {}
+        self._finalizations: dict[int, _FileFinalization] = {}
         self._capacity_root: LocalFileRoot = self
         self._parent_area: _AllocationArea | None = None
         self._max_files = max_files
@@ -295,6 +321,7 @@ class LocalFileRoot:
             child._files = {}
             child._areas = {}
             child._name_transfers = {}
+            child._finalizations = {}
             child._capacity_root = self
             child._parent_area = value
             child._max_files = self._max_files
@@ -432,7 +459,8 @@ class LocalFileRoot:
             if target._capacity_root is not self._capacity_root or target._lock is not self._lock:
                 raise ValueError('Foreign Local adoption capacity family')
             target._open()
-            if (value.closing or value.adoption is not None or value.write_unknown
+            if (value.closing or value.adoption is not None or value.finalization is not None
+                    or value.write_unknown
                     or value.write_stopped or value.snapshot is not None
                     or not value.creation_synced or value.descriptor is None
                     or target is self and name == value.name):
@@ -551,7 +579,8 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._open()
-            if (value.closing or value.adoption is not None or value.write_unknown
+            if (value.closing or value.adoption is not None or value.finalization is not None
+                    or value.write_unknown
                     or value.write_stopped or not value.creation_synced
                     or value.descriptor is None):
                 raise LocalFileError('Original Local file write is unavailable or unknown')
@@ -575,7 +604,8 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._observation_root()
-            if (value.closing or value.adoption is not None or value.write_unknown
+            if (value.closing or value.adoption is not None or value.finalization is not None
+                    or value.write_unknown
                     or value.descriptor is None):
                 raise LocalFileError('Original Local file cannot be confirmed from an unknown write')
             observed = self.observe(value)
@@ -613,7 +643,8 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._open()
-            if (value.closing or value.adoption is not None or value.write_unknown
+            if (value.closing or value.adoption is not None or value.finalization is not None
+                    or value.write_unknown
                     or not value.creation_synced
                     or value.descriptor is None):
                 raise LocalFileError('Original Local snapshot is pending or unknown')
@@ -652,6 +683,9 @@ class LocalFileRoot:
         disk reservations for the existing Store Owner.
         """
         with self._lock:
+            if (type(cursor) is _FileSnapshot and cursor.file.root is self
+                    and cursor.file.snapshot is cursor and cursor.file.finalization is not None):
+                raise LocalFileError('Original Local snapshot has final-name work')
             value = self._validate_snapshot(cursor)
             if cursor.result is not None:
                 return cursor.result
@@ -677,6 +711,131 @@ class LocalFileRoot:
                 'sha256:' + cursor.hash.hexdigest())
             return cursor.result
 
+    def begin_finalization(self, value: _PayloadFile, snapshot: _FileSnapshot,
+                           name: str) -> _FileFinalization:
+        """Retain original stopped bytes and Core-selected final-name work.
+
+        The trusted Host first confirms original Core ownership, validates the
+        original name projection/current context, and reserves cursor workspace.
+        The completed nominal bounded snapshot belongs to this exact file. No
+        names are acquired and no Core or Store transition happens here.
+        """
+        self._name(name)
+        with self._lock:
+            self._owned(value)
+            self._open()
+            if self._validate_snapshot(snapshot) is not value:
+                raise ValueError('Foreign Local final-name snapshot')
+            if (value.closing or value.write_unknown or value.adoption is not None
+                    or value.finalization is not None or value.close_pending
+                    or value.descriptor is None or snapshot.result is None
+                    or name == value.name):
+                raise LocalFileError('Original Local final-name work is unavailable or incomplete')
+            cursor = _FileFinalization(self, value, snapshot, name)
+            value.finalization = cursor
+            self._finalizations[id(cursor)] = cursor
+            return cursor
+
+    def _owned_finalization(self, cursor: _FileFinalization) -> _PayloadFile:
+        if (type(cursor) is not _FileFinalization or cursor.root is not self
+                or self._finalizations.get(id(cursor)) is not cursor
+                or cursor.file.finalization is not cursor):
+            raise ValueError('Foreign, copied or retired Local final-name cursor')
+        value = cursor.file
+        self._owned(value)
+        return value
+
+    def _final_name_stamp(self, root: int, name: str, cursor: _FileFinalization) -> tuple[int, ...]:
+        expected = cursor.snapshot.stamp
+        self._match_name(root, name, PhysicalFileIdentity(expected[0], expected[1]), expected[2])
+        named = os.stat(name, dir_fd=root, follow_symlinks=False)
+        stamp = (named.st_dev, named.st_ino, named.st_size, named.st_mtime_ns, named.st_ctime_ns)
+        # Original byte generation/mtime must survive our own link/unlink. ctime
+        # changes with those owned metadata operations; cached final reuse checks
+        # the complete new stamp after those operations finish.
+        if (not stat.S_ISREG(named.st_mode) or named.st_uid != os.getuid()
+                or named.st_mode & 0o077 or stamp[:4] != expected[:4]):
+            raise LocalFileError('Original Local stopped byte generation changed')
+        return stamp
+
+    def advance_finalization(self, cursor: _FileFinalization) -> PhysicalFileSnapshot:
+        """Physically stop the original writer before exclusive final linking.
+
+        Stop uncertainty observes the same original descriptor without another
+        close. Unknown link acquisition never becomes a retry grant. Known-link
+        sync/unlink failures retain the same cursor and only original owned-name
+        cleanup. Returning physical facts is not Core Sealed/Commit/publication.
+        """
+        with self._lock:
+            value = self._owned_finalization(cursor)
+            self._open()
+            if value.closing or cursor.link_unknown or cursor.refused:
+                raise LocalFileError('Original Local final-name work is unavailable or unknown')
+            root = self._transfer_root()
+            if cursor.result is not None:
+                if self._final_name_stamp(root, cursor.name, cursor) != cursor.final_stamp:
+                    raise LocalFileError('Original Local final-name generation changed')
+                return cursor.result
+            if not cursor.stopped:
+                if not value.close_pending:
+                    self._validate_snapshot(cursor.snapshot)
+                    assert value.descriptor is not None
+                    os.fsync(value.descriptor)
+                    self._validate_snapshot(cursor.snapshot)
+                if not self._stop_writer_descriptor(value):
+                    raise LocalFileError('Original Local writer physical stop remains unknown')
+                cursor.stopped = True
+            if not cursor.linked:
+                if self._final_name_stamp(root, cursor.original_name, cursor) != cursor.snapshot.stamp:
+                    raise LocalFileError('Original Local staging generation changed before final link')
+                try:
+                    os.link(cursor.original_name, cursor.name, src_dir_fd=root,
+                            dst_dir_fd=root, follow_symlinks=False)
+                except FileExistsError:
+                    cursor.refused = True
+                    raise
+                except BaseException:
+                    cursor.link_unknown = True
+                    raise
+                cursor.linked = True
+            self._final_name_stamp(root, cursor.name, cursor)
+            os.fsync(root)
+            if not cursor.source_removed:
+                try:
+                    self._final_name_stamp(root, cursor.original_name, cursor)
+                except FileNotFoundError:
+                    if not cursor.remove_unknown:
+                        raise LocalFileError('Original Local stage disappeared outside unlink work')
+                    cursor.source_removed = True
+                if not cursor.source_removed:
+                    try:
+                        os.unlink(cursor.original_name, dir_fd=root)
+                    except BaseException:
+                        cursor.remove_unknown = True
+                        raise
+                    cursor.source_removed = True
+            os.fsync(root)
+            cursor.final_stamp = self._final_name_stamp(root, cursor.name, cursor)
+            cursor.result = cursor.snapshot.result
+            assert cursor.result is not None
+            value.name = cursor.name
+            return cursor.result
+
+    def close_finalization(self, cursor: _FileFinalization) -> bool:
+        """Retire transport only after actual original writer stop.
+
+        This neither unlinks remaining aliases nor settles unknown acquisition,
+        releases durable Store capacity or supplies a Run cleanup/Sealed fact.
+        The original Store/file custody remains for separate Owner reconciliation.
+        """
+        with self._lock:
+            value = self._owned_finalization(cursor)
+            if value.descriptor is not None:
+                return False
+            del self._finalizations[id(cursor)]
+            value.finalization = None
+            return True
+
     @staticmethod
     def _closed_after_uncertainty(descriptor: int, identity: PhysicalFileIdentity | None) -> bool | None:
         try:
@@ -692,29 +851,36 @@ class LocalFileRoot:
         # recycled descriptor can reopen the original file. Keep it unknown.
         return None
 
+    def _stop_writer_descriptor(self, value: _PayloadFile) -> bool:
+        """Existing original-descriptor stop rule shared by close and final IO."""
+        if value.descriptor is None:
+            return True
+        if value.close_pending:
+            try:
+                closed = self._closed_after_uncertainty(value.descriptor, value.identity)
+            except OSError:
+                return False
+            if closed is not True:
+                return False
+            value.descriptor = None
+            value.close_pending = False
+            return True
+        try:
+            os.close(value.descriptor)
+        except OSError:
+            value.close_pending = True
+            return False
+        value.descriptor = None
+        return True
+
     def close_writer(self, value: _PayloadFile) -> bool:
         """Stop this descriptor only; retain bytes/capacity for the Store Owner."""
         with self._lock:
             self._owned(value)
             value.closing = True
-            if value.descriptor is not None:
-                if value.close_pending:
-                    try:
-                        closed = self._closed_after_uncertainty(value.descriptor, value.identity)
-                    except OSError:
-                        return False
-                    if closed is None:
-                        return False
-                    if closed:
-                        value.descriptor = None
-                if value.descriptor is not None:
-                    try:
-                        os.close(value.descriptor)
-                    except OSError:
-                        value.close_pending = True
-                        return False
-                    value.descriptor = None
-            if value.adoption is not None:
+            if not self._stop_writer_descriptor(value):
+                return False
+            if value.adoption is not None or value.finalization is not None:
                 # The descriptor is physically stopped, but original name work
                 # still pins both roots. No unlink or capacity return occurs.
                 return False
@@ -726,7 +892,7 @@ class LocalFileRoot:
         with self._lock:
             self._nominal_root()
             self._closing = True
-            if self._files or self._areas or self._name_transfers:
+            if self._files or self._areas or self._name_transfers or self._finalizations:
                 return False
             if self._descriptor is None:
                 return True

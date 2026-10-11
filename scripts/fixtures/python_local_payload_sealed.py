@@ -185,6 +185,11 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     assert physical_path.read_bytes() == independent['payload'].encode()
                     assert fixture.queries == expected['source_queries']
                     cases.append('bounded_original_result_replay_and_file_digest_without_redispatch')
+                    if names_observer is not None and names_observer.finalization is not None:
+                        snapshot = names_observer.finalization.finish_physical(
+                            names_observer, physical.root, physical, cursor)
+                        physical_path = files_path / names_observer.finalization.expected['object_name']
+                        assert physical_path.read_bytes() == independent['payload'].encode()
 
                     sealed = call('payload_writing', 'reserve', record, 3, new_output_ticket(), expected['physical_copy_bytes'])
                     assert sealed > 0
