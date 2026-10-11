@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 17; this private ABI
+before opening the instance. `actql_host_abi_version` returns 18; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 17 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 18 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -769,7 +769,7 @@ projection; an old authenticator is not a permanent authorization grant.
 
 ### Captured Source publication facts
 
-Private ABI 17 borrows the original Native capture from its configured Compute
+Private ABI 18 borrows the original Native capture from its configured Compute
 Host. Source identity uses the existing bounded Relation identity frame. Each
 advance retains its cursor, limits, cancellation and monotone logical work; it
 neither reacquires the Source nor releases the acquisition reservation. The
@@ -787,3 +787,22 @@ explicit close succeeds. Failed output cleanup or input stop retains the same
 child handle; successful output cleanup is not repeated. These typed facts
 are inputs to the existing invocation/publication chain, not Run admission,
 terminal success, durable Result publication or recovery permission.
+
+### Original Local normalization and captured invocation
+
+Private ABI 18 adds material kind 5 for the original completion-free Local
+normalization journal. It issues the journal through the original checked
+preparation and compiled Run Plan owners. A real semantic completion, an
+uninstalled profile or exhausted audit is refused; successful compilation is
+not a substitute for the completion inventory. The original nominal projection
+remains with that Run handle, and the output uses the existing reserved buffer
+and retryable cleanup custody. It does not grant execution or durable recovery.
+
+Source publication requests include `capture_started_at` and
+`capture_completed_at`, supplied by the physical Host for its original capture,
+in addition to `observed_at` and the bounded identity-scan limits. The closed
+output contains exact `logical`, `evidence`, `observation` and `invocation` wire
+strings issued by the existing publication owners. Issuance rechecks current
+Run and Source authorization against the exact original Compute and capture;
+it neither reacquires Source nor starts another task. These records remain
+intermediate publication materials, not a terminal Run or durable publication.

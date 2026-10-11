@@ -371,7 +371,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 17:
+            if self._exports['actql_host_abi_version'](self._store) != 18:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -665,7 +665,7 @@ class LocalCore:
         """
         with self._lock:
             if (self._closing or type(run) is not int or run <= 0 or
-                    type(kind) is not int or kind not in (1, 2, 3, 4)):
+                    type(kind) is not int or kind not in (1, 2, 3, 4, 5)):
                 raise ValueError('Invalid Local material projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
