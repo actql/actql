@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 import hashlib
+import json
 from importlib import import_module
 import secrets
 import sys
@@ -108,11 +109,58 @@ class _NativeAttempt:
     handle: int
 
 
+@dataclass(frozen=True, slots=True)
+class _PublisherFact:
+    """Original six Owner facts; not a policy body, grant or Store outcome."""
+
+    stage: str
+    namespace_id: str
+    authority_scope_cid: str
+    run_definition_cid: str
+    publication_request_cid: str
+    public_index_entry_cid: str | None
+
+
+@dataclass(slots=True)
+class _PublisherCallbacks:
+    current: Callable[[], bool]
+    authorize: Callable[[_PublisherFact], bool]
+    buffer: bytearray | None = None
+    received: int = 0
+
+
+_PUBLISHER_LIMIT = 8192
+
+
+def _publisher_fact(payload: bytearray) -> _PublisherFact:
+    def closed_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate publisher fact field')
+            result[key] = value
+        return result
+
+    value = json.loads(payload, object_pairs_hook=closed_pairs)
+    fields = ('stage', 'namespace_id', 'authority_scope_cid', 'run_definition_cid',
+              'publication_request_cid', 'public_index_entry_cid')
+    if (type(value) is not dict or set(value) != set(fields)
+            or any(type(value[key]) is not str or not value[key] for key in fields[:-1])
+            or value['stage'] not in ('request', 'commit', 'return_committed')
+            or (value['public_index_entry_cid'] is not None
+                and (type(value['public_index_entry_cid']) is not str
+                     or not value['public_index_entry_cid']))
+            or ((value['stage'] == 'request') != (value['public_index_entry_cid'] is None))):
+        raise ValueError('Invalid original publisher facts')
+    return _PublisherFact(**value)
+
+
 @dataclass(slots=True)
 class _PhysicalInput:
     payload: bytes
     cleanup: Callable[[], bool]
     stopped: Callable[[int], bool]
+    publisher: _PublisherCallbacks | None = None
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -345,6 +393,12 @@ _WORKSPACE_SIGNATURES = {
     'close': ('i64 i32', 'i32'),
     'root_reserved': ('i64', 'i64'),
 }
+_PUBLISHER_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'install': ('i64 i32 i32', 'i32'),
+    'authorize': ('i64 i32 i32 i32 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _IMPORT_SIGNATURES = {
     'input_byte': ('i32 i32', 'i32'),
     'input_cleanup': ('i32', 'i32'),
@@ -352,6 +406,10 @@ _IMPORT_SIGNATURES = {
     'native_settled': ('i32', 'i32'),
     'native_stopped': ('i32', 'i32'),
     'native_cleaned': ('i32', 'i32'),
+    'publisher_current': ('i32', 'i32'),
+    'publisher_begin': ('i32 i32', 'i32'),
+    'publisher_byte': ('i32 i32 i32', 'i32'),
+    'publisher_finish': ('i32', 'i32'),
 }
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
@@ -466,6 +524,8 @@ class LocalCore:
                              for name, value in _TASK_SIGNATURES.items()})
             expected.update({'actql_result_' + name: value
                              for name, value in _RESULT_SIGNATURES.items()})
+            expected.update({'actql_publisher_' + name: value
+                             for name, value in _PUBLISHER_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -486,14 +546,18 @@ class LocalCore:
                                    ('reader_stop', self._stopped),
                                    ('native_settled', self._native_settled),
                                    ('native_stopped', self._native_stopped),
-                                   ('native_cleaned', self._native_cleaned)]:
+                                   ('native_cleaned', self._native_cleaned),
+                                   ('publisher_current', self._publisher_current),
+                                   ('publisher_begin', self._publisher_begin),
+                                   ('publisher_byte', self._publisher_byte),
+                                   ('publisher_finish', self._publisher_finish)]:
                 params = [wasmtime.ValType.i32()
                           for _ in _IMPORT_SIGNATURES[name][0].split()]
                 self._linker.define_func('actql_host', name,
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 34:
+            if self._exports['actql_host_abi_version'](self._store) != 35:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -558,6 +622,135 @@ class LocalCore:
             return 0 if observers[fact]() is True else 1
         except BaseException:
             return 1
+
+    def _publisher_callbacks(self, ticket: int) -> _PublisherCallbacks | None:
+        value = self._inputs.get(ticket)
+        return None if value is None else value.publisher
+
+    def _publisher_current(self, ticket: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if callbacks is None:
+            return -2
+        try:
+            value = callbacks.current()
+            return 0 if value is True else (-1 if value is False else -2)
+        except BaseException:
+            return -2
+
+    def _publisher_begin(self, ticket: int, length: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if (callbacks is None or callbacks.buffer is not None or type(length) is not int
+                or not 0 < length <= _PUBLISHER_LIMIT):
+            return -2
+        # Core already holds the collector/decoder allowance in its buffer pool.
+        try:
+            callbacks.buffer = bytearray(length)
+            callbacks.received = 0
+        except BaseException:
+            return -2
+        return 0
+
+    def _publisher_byte(self, ticket: int, index: int, byte: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if (callbacks is None or callbacks.buffer is None or type(index) is not int
+                or index != callbacks.received or not 0 <= index < len(callbacks.buffer)
+                or type(byte) is not int or not 0 <= byte < 256):
+            return -2
+        callbacks.buffer[index] = byte
+        callbacks.received += 1
+        return 0
+
+    def _publisher_finish(self, ticket: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if callbacks is None or callbacks.buffer is None:
+            return -2
+        try:
+            if callbacks.received != len(callbacks.buffer):
+                return -2
+            fact = _publisher_fact(callbacks.buffer)
+            value = callbacks.authorize(fact)
+            return 0 if value is True else (-1 if value is False else -2)
+        except BaseException:
+            return -2
+        finally:
+            # No successful grant or facts survive for reuse by another stage.
+            callbacks.buffer = None
+            callbacks.received = 0
+
+    def reserve_publisher(self, preflight: _Output, request: _Input, *,
+                          current: Callable[[], bool],
+                          authorize: Callable[[_PublisherFact], bool],
+                          cleanup: Callable[[], bool]) -> _Output:
+        """Private trusted Host port, never a public SDK authorization option.
+
+        The installed Host must supply its independent current publisher Owner
+        bound to original Policy/target/Store. No portable issuer is provided by
+        this transport. Callback-owned resources require their own reservations.
+        """
+        with self._lock:
+            self._owned_output(preflight, 'publication_preflight')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if not all(callable(value) for value in (current, authorize, cleanup)):
+                raise ValueError('Publisher requires trusted Host callbacks')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            callbacks = _PublisherCallbacks(current, authorize)
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True, callbacks)
+            # Collector + UTF-8 decode + six Unicode strings + closed parser
+            # containers, including overlap. This is not a global memory claim.
+            allowance = (128 * _PUBLISHER_LIMIT + 4096 + sys.getsizeof(callbacks)
+                         + sys.getsizeof(self._inputs[ticket]))
+            handle = self._call('publisher', 'reserve', preflight.handle, request.handle,
+                                ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_publisher', handle)
+            value = _Output(self._identity, ticket, handle, _PUBLISHER_LIMIT, 'publisher')
+            self._loans[ticket] = value
+            return value
+
+    def install_publisher(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'publisher')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publisher configuration')
+            self._check('install_publisher', self._call(
+                'publisher', 'install', value.handle, current_configuration))
+
+    def authorize_publisher(self, value: _Output, current_configuration: int, *,
+                            stage: str, publication: _Output | None = None) -> None:
+        """Check original stage permission; neither commit nor acknowledge Store."""
+        with self._lock:
+            self._owned_output(value, 'publisher')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            stages = {'request': 0, 'commit': 1, 'return_committed': 2}
+            if (type(current_configuration) is not int or not 0 < current_configuration < 2**31
+                    or type(stage) is not str or stage not in stages
+                    or ((stage == 'request') != (publication is None))):
+                raise ValueError('Invalid original publisher stage')
+            if publication is not None:
+                self._owned_output(publication, 'publication')
+            self._check('authorize_publisher', self._call(
+                'publisher', 'authorize', value.handle, current_configuration,
+                stages[stage], 0 if publication is None else publication.handle))
+
+    def close_publisher(self, value: _Output) -> bool:
+        with self._lock:
+            self._owned_output(value, 'publisher')
+            code = self._call('publisher', 'close', value.handle)
+            if code == -9:
+                return False
+            self._check('close_publisher', code)
+            self._loans.pop(value.ticket)
+            self._released.discard(value.ticket)
+            return True
 
     def _cleanup(self, ticket: int) -> int:
         if ticket in self._released:

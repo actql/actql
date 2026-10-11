@@ -41,7 +41,7 @@ def material(run, kind):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 34
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 35
     assert call('run', 'reserve_physical_start', 1, 2, 3) == -2
     assert call('run', 'confirm_physical_start', 2147483647) == -2
     assert call('run', 'physical_start_ready', 2147483647) == -2

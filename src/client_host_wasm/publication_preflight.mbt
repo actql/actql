@@ -304,7 +304,8 @@ pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
-  if value.publications.values().any(child => child.preflight == handle) ||
+  if value.publishers.values().any(child => child.parent == handle) ||
+    value.publications.values().any(child => child.preflight == handle) ||
     value.tasks.values().any(child => child.compute == record.compute) {
     return -9
   }

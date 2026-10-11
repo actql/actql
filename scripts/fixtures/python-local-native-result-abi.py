@@ -15,6 +15,7 @@ from python_local_publication_policy import publication_policy as frozen_publica
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/python-sdk/src'))
 from actql_sdk._local_command import native_command
+from actql_sdk._local_core import LocalCore, _PhysicalInput, _PublisherCallbacks
 from actql_sdk._local_duckdb import DuckDBLibrary, DuckDBConnection, DuckDBTransferLimits
 
 
@@ -38,12 +39,14 @@ payload_staging = '--payload-staging' in sys.argv[4:]
 payload_finalization = '--payload-finalization' in sys.argv[4:]
 payload_reader = '--payload-reader' in sys.argv[4:]
 payload_binding = '--payload-binding' in sys.argv[4:]
+publisher_port = '--publisher-port' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--publisher-port'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record'],
@@ -77,6 +80,7 @@ payload_staging_cases = []
 payload_finalization_cases = []
 payload_reader_cases = []
 payload_binding_cases = []
+publisher_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -90,6 +94,13 @@ class NativeFixture(PhysicalFixture):
         self.queries = 0
         self.native_stop_ready = True
         self.native_cleanup_ready = True
+        # Private independent authority fixture, not an installed product issuer.
+        self.publisher_bridge = LocalCore.__new__(LocalCore)
+        self.publisher_bridge._inputs = {}
+        self.publisher_fence_ready = True
+        self.publisher_answer = True
+        self.publisher_revoke_after_auth = False
+        self.publisher_seen = []
         super().__init__(module, 1001, capacity=8_388_608, slots=64,
                          fuel=None, execution_bytes=536_870_912,
                          retained_bytes=536_870_912 if inventory_root else 200_000_000)
@@ -105,6 +116,18 @@ class NativeFixture(PhysicalFixture):
     def native_cleaned(self, handle):
         assert handle == self.attempt and self.view is not None
         return 0 if self.native_cleanup_ready and self.view.close() else 1
+
+    def publisher_current(self, ticket):
+        return self.publisher_bridge._publisher_current(ticket)
+
+    def publisher_begin(self, ticket, length):
+        return self.publisher_bridge._publisher_begin(ticket, length)
+
+    def publisher_byte(self, ticket, index, byte):
+        return self.publisher_bridge._publisher_byte(ticket, index, byte)
+
+    def publisher_finish(self, ticket):
+        return self.publisher_bridge._publisher_finish(ticket)
 
     def stop(self, ticket, reader):
         if ticket == self.workspace_ticket:
@@ -224,7 +247,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 34
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 35
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -1333,6 +1356,83 @@ try:
                         commit_cases.append('original_index_intent_and_current_authority')
                         preflight_retirement_cases.append('original_commit_candidate_uses_same_retired_output_preflight')
                         publication_retirement_cases.append('original_commit_candidate_and_children_use_retired_parent_output')
+                        if publisher_port:
+                            publisher_expected = json.loads((root / 'scripts/fixtures/python-local-publisher-port.json').read_text())
+                            store_input = copy({'store_authority_cid': facts['store_authority_cid']})
+                            ticket += 1
+                            publisher_ticket = ticket
+                            fixture.inputs[publisher_ticket] = b''
+
+                            def publisher_authority(fact):
+                                # Expect the exact original request context. This
+                                # fixture callback is not a product policy issuer.
+                                assert fact.namespace_id == intent_facts['namespace_id']
+                                assert fact.authority_scope_cid == CONFIGURATION['authority_scope_cid']
+                                assert fact.run_definition_cid == original_request['run_definition_cid']
+                                assert fact.publication_request_cid == original_request['publication_request_cid']
+                                assert fact.public_index_entry_cid == (None if fact.stage == 'request' else index['public_index_entry_cid'])
+                                fixture.publisher_seen.append(fact)
+                                if fixture.publisher_revoke_after_auth:
+                                    fixture.publisher_fence_ready = False
+                                return fixture.publisher_answer
+
+                            callbacks = _PublisherCallbacks(lambda: fixture.publisher_fence_ready,
+                                                            publisher_authority)
+                            fixture.publisher_bridge._inputs[publisher_ticket] = _PhysicalInput(
+                                b'', lambda: True, lambda _: True, callbacks)
+                            port = call('publisher', 'reserve', preflight, store_input, publisher_ticket,
+                                        128 * 8192 + 4096 + sys.getsizeof(callbacks) +
+                                        sys.getsizeof(fixture.publisher_bridge._inputs[publisher_ticket]))
+                            assert port > 0
+                            assert_status('publisher', 'install', 0, port, configuration)
+                            assert fixture.publisher_seen == []
+                            for stage in publisher_expected['stage_ordinals']:
+                                assert_status('publisher', 'authorize', 0, port, configuration, stage,
+                                              0 if stage == 0 else value)
+                            assert [fact.stage for fact in fixture.publisher_seen] == publisher_expected['stages']
+                            publisher_cases.append('original_six_facts_and_owner_generated_index_all_stages')
+                            before = len(fixture.publisher_seen)
+                            assert_status('publisher', 'authorize', -32, port, denied_configuration, 0, 0)
+                            assert_status('publisher', 'authorize', -2, port, configuration, 1, value + 100000)
+                            assert len(fixture.publisher_seen) == before
+                            publisher_cases.append('current_run_source_and_foreign_index_refuse_before_callback')
+                            fixture.publisher_answer = False
+                            assert_status('publisher', 'authorize', -35, port, configuration, 0, 0)
+                            fixture.publisher_answer = None
+                            assert_status('publisher', 'authorize', -36, port, configuration, 0, 0)
+                            fixture.publisher_answer = True
+                            publisher_cases.append('independent_denial_and_unknown_do_not_cache_or_resend')
+                            fixture.publisher_revoke_after_auth = True
+                            assert_status('publisher', 'authorize', -32, port, configuration, 0, 0)
+                            fixture.publisher_revoke_after_auth = False
+                            before = len(fixture.publisher_seen)
+                            assert_status('publisher', 'authorize', -32, port, configuration, 0, 0)
+                            assert len(fixture.publisher_seen) == before
+                            fixture.publisher_fence_ready = True
+                            publisher_cases.append('authority_revocation_during_callback_is_fenced_afterwards')
+                            assert fixture.call('close', store_input) == -9
+                            allocated = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('publisher', 'close', -9, port)
+                            assert fixture.call('allocated') == allocated
+                            assert_status('publisher', 'authorize', -5, port, configuration, 0, 0)
+                            assert fixture.call('close', store_input) == -9
+                            fixture.cleanup_ready = True
+                            fixture.stop_ready = False
+                            assert_status('publisher', 'close', -9, port)
+                            assert fixture.call('close', store_input) == -9
+                            fixture.stop_ready = True
+                            assert_status('publisher', 'close', 0, port)
+                            assert_status('publisher', 'close', -2, port)
+                            assert fixture.call('close', store_input) == 0
+                            del fixture.publisher_bridge._inputs[publisher_ticket]
+                            publisher_cases.append('same_transport_cleanup_then_original_input_borrow_stop_retry')
+                            assert fixture.queries == expected['source_queries']
+                            assert proposal['request'] == preflight_body['request']
+                            assert proposal['attempt'] == preflight_body['attempt']
+                            publisher_cases.append('no_source_compute_retry_or_store_commit_acknowledgement')
+                            assert publisher_cases == publisher_expected['cases'][:-1]
+
                     loan, input_handle = binding_loan(facts)
                     assert_status('result_binding', 'produce', 0, loan, configuration)
                     assert_status('publication', 'close', -9, value)
@@ -1397,10 +1497,28 @@ try:
         # Output is already retired. The original input reader's physical
         # stop, rather than former output cleanup, keeps this borrow pending.
         fixture.stop_ready = False
+        if publisher_port:
+            # Reserve a new transport before the original parent begins close.
+            # No permission can be installed once that original parent closes.
+            publisher_parent_input = copy({'store_authority_cid': facts['store_authority_cid']})
+            ticket += 1
+            fixture.inputs[ticket] = b''
+            publisher_parent_child = call('publisher', 'reserve', preflight, publisher_parent_input,
+                                          ticket, 128 * 8192 + 8192)
+            assert publisher_parent_child > 0
         reserved = fixture.call('reserved')
         assert_status('publication_preflight', 'close', -9, preflight)
         assert fixture.call('reserved') == reserved
         assert_status('source_publication', 'close', -9, source_pin)
+        if publisher_port:
+            assert_status('publisher', 'install', -2, publisher_parent_child, configuration)
+            assert fixture.call('close', publisher_parent_input) == -9
+            fixture.cleanup_ready = True
+            fixture.stop_ready = True
+            assert_status('publisher', 'close', 0, publisher_parent_child)
+            assert fixture.call('close', publisher_parent_input) == 0
+            publisher_cases.append('original_preflight_close_waits_for_same_transport_custody')
+            assert publisher_cases == publisher_expected['cases']
         fixture.cleanup_ready = True
         fixture.stop_ready = False
         assert_status('publication_preflight', 'close', -9, preflight)
@@ -1482,6 +1600,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'payload_finalization_cases': payload_finalization_cases,
                   'payload_reader_cases': payload_reader_cases,
                   'payload_binding_cases': payload_binding_cases,
+                  'publisher_port_cases': publisher_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

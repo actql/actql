@@ -43,6 +43,7 @@ priv struct Instance {
   computes : Map[Int, StoredNativeCompute]
   source_publications : Map[Int, StoredSourcePublication]
   publication_preflights : Map[Int, StoredPublicationPreflight]
+  publishers : Map[Int, StoredPublisher]
   publications : Map[Int, StoredPublication]
   result_bindings : Map[Int, StoredResultBinding]
   commit_exports : Map[Int, StoredPublicationCommitExport]
@@ -163,6 +164,7 @@ pub fn open(
         computes: {},
         source_publications: {},
         publication_preflights: {},
+        publishers: {},
         publications: {},
         result_bindings: {},
         commit_exports: {},
@@ -337,6 +339,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     !value.computes.is_empty() ||
     !value.source_publications.is_empty() ||
     !value.publication_preflights.is_empty() ||
+    !value.publishers.is_empty() ||
     !value.publications.is_empty() ||
     !value.result_bindings.is_empty() ||
     !value.commit_exports.is_empty() ||
@@ -383,6 +386,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.computes.clear()
     value.source_publications.clear()
     value.publication_preflights.clear()
+    value.publishers.clear()
     value.publications.clear()
     value.result_bindings.clear()
     value.commit_exports.clear()

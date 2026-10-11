@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 34; this private ABI
+before opening the instance. `actql_host_abi_version` returns 35; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1438,3 +1438,42 @@ Only successful read-transaction cleanup exposes the observation; failed
 cleanup retains the original Store handle as pending. Current authorization and
 Core interpretation remain separate, and physical process-restart readback is
 not proof of restored Run state.
+
+## Independent publisher callback transport
+
+The private `actql_publisher_*` child uses the original checked publication
+preflight and an original borrowed Store input, not copied contracts or an SDK
+permission boolean. Installation grants nothing. `authorize` selects the
+original request or the matching Core-produced commit index, then delegates to
+`install_local_preflight_publisher_port`. The existing port revalidates current
+Run/Source access and the installed Host fence before and after its independent
+publisher callback at every stage. Permission for `return_committed` is not a
+Store acknowledgement or a completed public Run.
+
+`publisher_current`, `publisher_begin`, `publisher_byte` and `publisher_finish`
+are private scalar imports. Facts contain exactly stage, namespace, authority,
+Run, original request and optional original index. Policy and target remain in
+the original request preimage. The installed trusted Host must supply the
+actual current publisher Owner bound to that original policy/target and Store;
+this bridge supplies no portable settings issuer or authorization registry.
+Source or Run access cannot implement publisher authority.
+
+The six-field transfer is bounded to 8,192 UTF-8 bytes using the existing
+encoder. Ordered scalar bytes avoid interpreting MoonBit object pointers.
+The existing buffer pool reserves overlapping encoder text/bytes and the
+physical collector/decoder allowance before callbacks allocate their transfer.
+The physical allowance is conservatively 128 times the transfer limit plus
+measured descriptors and container overhead. Independent callback resources
+still require their own reservations; this is not aggregate memory accounting.
+Budget refusal is unknown, never publisher permission. Callback true, false,
+and exception/unknown remain distinct: success is 0, denied permission -35,
+unavailable original authority -32, and physical callback failure -36.
+No completed grant is cached between stages.
+
+Parent close waits for the child. Child close blocks new checks immediately,
+then retries existing buffer cleanup and the same original input borrow stop.
+Cleanup failure retains the original child and reservation. Neither close nor
+permission checks submit, execute, resend, or cancel a Run. Remote-only import
+has no additional engine dependency. A private bridge and strict caller compile
+are distinct from actual Wasm execution, durable Store publication and wheel
+acceptance.
