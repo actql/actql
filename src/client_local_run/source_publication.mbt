@@ -22,6 +22,10 @@ pub struct LocalSourcePublicationPreparation {
 ///|
 /// Typed facts for publication only. They do not admit, start or restore a Run.
 pub struct LocalSourcePublication {
+  configuration : LocalNativeSourceConfiguration
+  host : LocalComputeHost
+  capture : @acquisition_host.NativeHostSourceCapture
+  identity : @query.CapturedSourceRelationIdentity
   logical : @publication.RunEvidenceValue
   evidence : @publication.RunEvidenceValue
 }
@@ -142,7 +146,14 @@ pub fn LocalSourcePublicationPreparation::finish(
     Ok(evidence) => evidence
     Err(issue) => return Err(Evidence(issue))
   }
-  Ok({ logical, evidence, })
+  Ok({
+    configuration: self.configuration,
+    host: self.host,
+    capture: self.capture,
+    identity,
+    logical,
+    evidence,
+  })
 }
 
 ///|
