@@ -516,7 +516,7 @@
   "acquired_control_boundary": {
     "text": "unchanged acquired-data public source",
     "local_typing": "Exact authored Source rows id2/amountNULL and id1/amount10 via existing GeneratedValues; not capture/Host evidence",
-    "catalog_control": "Existing source_member_context with missing capture order stays Order(0, ResultOrder(UnresolvedOrder)) at stages/0/results/source",
+    "catalog_control": "Existing admitted source_member_context without capture input-order facts reaches Order(1, PipelineOrder(UnresolvedOrder)). Stage 0 captures the Catalog source; stage 1 executes the expansion. Required operation input order is preserved, not deferred away.",
     "prior_failures": "Legacy schema-only Captured context returned UnsupportedProjection; real Catalog without order reached SourceProgram/Order; all raw attempts retained",
     "host": "Actual standard Host Catalog and acquisition remain unexecuted; no product defect asserted from limited contexts"
   }
