@@ -618,3 +618,45 @@ logical Number bits across JS, WebAssembly and Native. Independent finite
 accuracy fixtures remain unchanged; they are not a universal accuracy bound
 or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
 new tolerance is introduced.
+
+
+## GoogleSQL finite Number direct trigonometric functions
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+This increment admits the 12 direct unary trigonometric/hyperbolic functions
+and ordered binary ATAN2 in the existing finite binary64 Number domain.
+[GoogleSQL mathematical functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions)
+define closed ASIN/ACOS domains [-1,1], ACOSH at or above 1, strict ATANH
+(-1,1), radians, and ATAN2's authored first/second quadrant interpretation.
+ATANH's prose interval excludes endpoints even though the illustrative table
+lists only inequalities outside them. No reciprocal or regex function belongs
+to this increment.
+
+Existing strict child demand, NULL propagation, finite-result validation,
+canonical positive-zero results and lazy outer expressions remain unchanged.
+ATAN2 uses the core primitive directly; reconstructing atan(first/second)
+would lose quadrants, zero handling and finite ratios. Raw signed zeros retain
+the primitive's quadrant behavior until result normalization, while canonical
+public Numbers cannot carry negative-zero wire values. This distinguishes an
+internal finite-value diagnostic from a new public value representation.
+
+Every operation uses the same already adopted pinned portable core Double
+primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native.
+Identical admitted inputs and selected contracts preserve exact logical Number
+bits; no live-BigQuery last-bit equivalence is claimed and no earlier accuracy
+obligation is weakened.
+Overflow remains an arithmetic failure; admitted finite input is not a promise
+that every hyperbolic result is representable. Closed schemas, grammar, laws,
+owned requirements and dependent identities change together within initial 0.1.
+The complete CBRT predecessor bodies and independent preimages are frozen at
+the actual published parent. Production limits, profiles and barrier bodies
+remain unchanged; target and public-boundary support need separate execution
+evidence.
+
+The implementation binding for this increment is the already adopted pinned
+portable numeric kernel in `src/scalar_numeric_kernel`, not target-selected
+platform math. Identical admitted inputs and selected contracts preserve exact
+logical Number bits across JS, WebAssembly and Native. Independent finite
+accuracy fixtures remain unchanged; they are not a universal accuracy bound
+or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
+new tolerance is introduced.

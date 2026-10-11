@@ -72,6 +72,7 @@ fn advance_binary_comparison(
     | SafeMultiply
     | Modulo
     | Pow
+    | Atan2
     | Log
     | In
     | NotIn
