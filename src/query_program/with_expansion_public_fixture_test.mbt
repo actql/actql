@@ -384,7 +384,8 @@ test "WITH public expansion joined-unnest-star-acquired-data" {
   ).unwrap()
   // Prefix typing for correlated object star needs the admitted Catalog.
   // Reuse its numeric id contract under this query's records binding. The
-  // Catalog's unused payload field is not a public Source/schema assertion.
+  // Catalog projection exposes only the numeric id used by this query;
+  // the public fixture's full id/amount capture still requires Host acceptance.
   let captured = source_member_context(captured=true)
   let context = {
     ..captured,
@@ -393,6 +394,7 @@ test "WITH public expansion joined-unnest-star-acquired-data" {
       ..captured.inputs[0],
       relation: [{ value: "records", quoted: false, }],
       name: "records",
+      visible_fields: ["id"],
     }],
     parameter_declarations: Some(declarations),
   }
