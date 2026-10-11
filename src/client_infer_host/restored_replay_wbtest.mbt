@@ -56,7 +56,7 @@ test "saved capture replays under a fresh input without retaining old execution"
   )
   assert_eq(
     capture(replay).unwrap().captures[0].provider_request_id,
-    "request-1",
+    Some("request-1"),
   )
   let usage = @model.model_execution_resource_usage(replay.model.unwrap())
   assert_eq(usage.attempts, 0)

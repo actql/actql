@@ -185,6 +185,8 @@ pub fn client_program_bind_infer_invocation(@client_infer_host.Execution, @run_p
 
 pub fn client_program_bind_infer_model_dispatch(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> Bool) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_infer_model_entry_persistence(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> @model_execution.ModelCallEntryPersistence?) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
+
 pub fn client_program_bind_infer_model_observation(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, (@model_execution.ModelPhysicalObservation) -> Unit) -> Bool
 
 pub fn client_program_bind_infer_model_scope(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @client_infer_host.InvocationBindingIssue]
@@ -360,6 +362,8 @@ pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparat
 pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
 
 pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedClientProgram) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
+
+pub fn client_program_create_infer_call_entry_persistence(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet, () -> @model_execution.ModelEntryPersistenceObservation) -> @model_execution.ModelCallEntryPersistence?
 
 pub fn client_program_current_run_view(@run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, Int, Int, Int) -> Result[String, @run_publication.RunControlReadIssue]
 
@@ -648,6 +652,12 @@ pub fn client_program_infer_attempt_records(@run_publication.RunEvidenceValue, @
 pub fn client_program_infer_call_entry_current(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> Bool
 
 pub fn client_program_infer_call_entry_originals(@model_execution.ModelCallEntry) -> (Int, String, String, String)?
+
+pub fn client_program_infer_call_entry_persistence_pending() -> @model_execution.ModelEntryPersistenceObservation
+
+pub fn client_program_infer_call_entry_persistence_saved(@model_execution.ModelCallEntryAcknowledgement) -> @model_execution.ModelEntryPersistenceObservation
+
+pub fn client_program_infer_call_entry_persistence_unknown() -> @model_execution.ModelEntryPersistenceObservation
 
 pub fn client_program_infer_call_scope_snapshot(@client_infer_host.Execution) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
 

@@ -131,6 +131,12 @@ let physical_preflight_metadata_bytes : Int64 = 256L
 
 ///|
 fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
+  if state.entering is Some(entry) {
+    if entry.persistence is Some(operation) && operation.terminal is None {
+      return false
+    }
+    retire_model_entering(state)
+  }
   // The bounded session must keep its cleanup pending until all physical
   // cursors release successfully. Its cleanup result reports a transition,
   // not an idempotent success flag.

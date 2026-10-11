@@ -2333,6 +2333,24 @@ function publicationControl(moon) {
         admitted, enterCall));
       return admitted;
     },
+    // Installation-only async port. It uses the same original scoped
+    // admission issuer; a persistence observation is never a fresh permit.
+    bindCheckedClientInferModelEntryPersistence(compiled, execution, definition,
+      preparedCallSet, scope, {account, principalId, at, delegated,
+        observeAccount, observeAt, beginEntry}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof observeAccount !== 'function' || typeof observeAt !== 'function' ||
+          typeof beginEntry !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer dispatch');
+      }
+      const admitted = checked(moon.clientProgramIssueScopedInferDispatchAdmission(
+        value, token(definition), scope, account, principalId, at, delegated,
+        observeAccount, observeAt));
+      checked(moon.clientProgramBindInferModelEntryPersistence(execution,
+        preparedCallSet, admitted, beginEntry));
+      return admitted;
+    },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {
       const value = compiledRunTokens.get(compiled);
