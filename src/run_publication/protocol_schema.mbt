@@ -7,6 +7,8 @@ priv enum ProtocolSchemaRule {
   NullRule
   BoolRule(Bool?)
   StringRule(String?, Array[String], Int, Int)
+  StringCeilingRule(Int)
+  ObjectCeilingRule(Int)
   NumberRule
   IntegerRule(Int64?, Int64?)
   ArrayRule(Int, Int, Bool, Int)
@@ -29,6 +31,23 @@ priv struct ProtocolValidationBudget {
 ///|
 fn protocol_any_rule() -> ProtocolSchemaRule {
   AnyRule
+}
+
+///|
+/// JSON Schema lengths count Unicode scalar values. Admitted canonical text
+/// already excludes unpaired surrogates; do not count a pair as two cells.
+fn protocol_scalar_length(text : String) -> Int {
+  let mut count = 0
+  let mut i = 0
+  while i < text.length() {
+    count += 1
+    let unit = text[i].to_int()
+    if unit >= 55296 && unit <= 56319 {
+      i += 1
+    }
+    i += 1
+  }
+  count
 }
 
 ///|
@@ -173,6 +192,58 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
           valid
         }
       }
+    8 =>
+      if value == "0" {
+        true
+      } else if value.length() == 0 ||
+        value[0].to_int() < 49 ||
+        value[0].to_int() > 57 {
+        false
+      } else {
+        let mut valid = true
+        for index = 1; index < value.length(); index = index + 1 {
+          let char = value[index].to_int()
+          if char < 48 || char > 57 {
+            valid = false
+          }
+        }
+        valid
+      }
+    9 => {
+      let mut valid = value.length() > 0
+      for char in value.to_array() {
+        if char.to_int() < 32 || char.to_int() == 127 {
+          valid = false
+        }
+      }
+      valid
+    }
+    10 =>
+      if !value.has_prefix("ACTQL_E_") || value.length() <= 8 {
+        false
+      } else {
+        let mut valid = true
+        for index = 8; index < value.length(); index = index + 1 {
+          let char = value[index].to_int()
+          if !((char >= 65 && char <= 90) ||
+            (char >= 48 && char <= 57) ||
+            char == 95) {
+            valid = false
+          }
+        }
+        valid
+      }
+    11 => value.length() > 0
+    12 => parse_control_amount_micro(value) is Ok(_)
+    13 => {
+      let mut valid = value.length() == 3
+      for char in value.to_array() {
+        if char.to_int() < 65 || char.to_int() > 90 {
+          valid = false
+        }
+      }
+      valid
+    }
     _ => false
   }
 }
@@ -230,6 +301,17 @@ fn validate_protocol_node(
 }
 
 ///|
+// Private immutable metadata generated from the pinned protocol contract.
+// Construct it at module initialization, before Native calls can run in parallel.
+// Validation state/budget is per call; no caller value or result is retained.
+let retained_protocol_schema_nodes : Array[ProtocolSchemaRule] = generated_protocol_schema_nodes()
+
+///|
+fn protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
+  retained_protocol_schema_nodes
+}
+
+///|
 fn validate_generated_protocol_shape(
   name : String,
   value : @json.CanonicalValue,
@@ -241,7 +323,7 @@ fn validate_generated_protocol_shape(
   guard generated_protocol_schema_root(name, complete) is Some(root) else {
     return false
   }
-  let nodes = generated_protocol_schema_nodes()
+  let nodes = protocol_schema_nodes()
   let validation_work = if max_nodes > 268435455 {
     2147483647
   } else {

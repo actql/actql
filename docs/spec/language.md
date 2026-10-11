@@ -2033,12 +2033,13 @@ Public canonical Number zero is positive, so public `atan2(0, 0)` is positive
 zero; the raw signed-zero diagnostic does not admit negative-zero wire values.
 
 <!-- requirement-block: scalar-expressions.google-direct-trig-algorithms -->
-Each direct trigonometric operation MUST use its selected target's pinned
-MoonBit core math primitive and canonical finite-result validation, without
-reconstruction from other operations or a frontend/Host evaluator. Preserve
-all existing numeric accuracy and exception contracts; general last-bit
-equality across Native, Wasm, JS, platform math libraries or live BigQuery is
-not asserted.
+Each direct trigonometric operation MUST use the same pinned portable MoonBit core Double
+primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native,
+with canonical finite-result validation. Reconstruction from other operations
+or a frontend/Host evaluator is forbidden. Preserve all existing numeric
+accuracy and exception contracts. Identical admitted inputs and selected
+semantic contracts preserve exact logical Number bits across targets;
+live-BigQuery last-bit equivalence is not claimed.
 
 <!-- requirement-block: scalar-expressions.google-direct-trig-typing -->
 Typing MUST check every authored Number operand without evaluating it and
@@ -2076,12 +2077,13 @@ value-domain failure. Reject non-finite operands and preserve the existing
 arithmetic failure for an unexpected non-finite result.
 
 <!-- requirement-block: scalar-expressions.google-cbrt-algorithm -->
-`cbrt` MUST use the selected target's pinned MoonBit core math cube-root primitive
-and canonical finite-result validation, without substituting `pow(x, 1/3)`,
-logarithmic reconstruction or a frontend/Host evaluator. Its compatibility
-target is the GoogleSQL finite-FLOAT64 cube-root operation. Preserve all existing
-numeric accuracy and exception contracts; general last-bit equality across
-Native, Wasm, JS, platform math libraries or live BigQuery is not asserted.
+`cbrt` MUST use the same pinned portable MoonBit core Double
+cube-root primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native,
+with canonical finite-result validation. Substitution with `pow(x, 1/3)` or logarithmic reconstruction
+or a frontend/Host evaluator is forbidden. Preserve all existing numeric
+accuracy and exception contracts. Identical admitted inputs and selected
+semantic contracts preserve exact logical Number bits across targets;
+live-BigQuery last-bit equivalence is not claimed.
 
 <!-- requirement-block: scalar-expressions.google-cbrt-typing -->
 Typing MUST check the sole Number operand without evaluating it and return
@@ -2375,12 +2377,14 @@ return canonical positive zero for unrepresentable underflow.
 LN and LOG10 MUST require a positive argument; binary LOG requires a positive
 value and a positive base other than one.
 
-<!-- requirement-block: scalar-expressions.finite-math-demanded-evaluation -->
+<!-- requirement-block: scalar-expressions.finite-math-demanded-evaluation scalar-expressions.finite-math-target-independent-kernel -->
 These functions MUST evaluate demanded operands once in source order and
 preserve ordinary child failures before strict NULL handling, including a
 later demanded child failure after an earlier NULL. They do not catch child
-errors. General transcendental last-bit cross-target or live-BigQuery equality
-is not guaranteed.
+errors. The same pinned portable numeric kernel MUST be used across JS,
+WebAssembly and Native, preserving exact logical Number bits for identical
+admitted inputs and selected contracts. Live-BigQuery last-bit equality is not
+guaranteed.
 
 <!-- requirement-block: scalar-expressions.number-extrema scalar-expressions.number-extrema-null scalar-expressions.number-extrema-demand scalar-expressions.number-extrema-order scalar-expressions.number-extrema-subset scalar-expressions.number-extrema-identity -->
 `greatest(x, ...)` and `least(x, ...)` MUST take one or more finite binary64
@@ -10586,7 +10590,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:85737f1db43af7961c5e61b3fe1c18268de9920d12a8bda1340a295d4865a3f8
+../../spec/contracts/actql-aoa.json# sha256:0e2e8ea3ecedc619afb85c479c2946abe320797e25360136bae91aab88be379d
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10595,11 +10599,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:252840128de5c1f3e2e2c749b3304d1ffba7c8f39448ea222d6c76f48694a0d3
+../../spec/contracts/actql-expressions.json# sha256:beadee8142d8cad2614551bb79efb93d1306d8b00f9e945e28e962d8dfc384f4
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:c4511cdd7ccbe6cdf6753d9464bba042c675b604ee99faacf3d9f9a4da0e28e1
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:86819d0eb7fe74883985f02b2df0498a42e525ca9ee13a9be9f46c02d4c02153
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:636abe75da6a384b94cf061b04bc37767a63169c9f1129ac6cca41a8c22b2497
+../../spec/contracts/actql-expressions.json#/laws sha256:348c63275f6638444fb546a59f3a24821d12949feb9a2932fd9b8e21ecffa534
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:e54bb919a70ce82b8948963f8e37e40d34032015e0a8385aa13d8e77bc97905a
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:82a7f1ac5b45964400ae39b891bb82112ae2a41b4a8aa2397e86a8fcbc63a9dd
 ```

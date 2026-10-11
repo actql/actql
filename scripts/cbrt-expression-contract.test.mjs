@@ -62,10 +62,12 @@ test('CBRT laws independently preserve finite Number and existing numerical cont
   assert.match(law.value, /NULL produces NULL/u);
   assert.match(law.value, /reject non-finite operands/u);
   assert.match(law.value, /existing arithmetic failure/u);
-  assert.match(law.algorithm, /pinned MoonBit core math cbrt primitive/u);
+  assert.match(law.algorithm, /pinned portable MoonBit core Double cbrt primitive/u);
   assert.match(law.algorithm, /Do not substitute pow\(x, 1\/3\)/u);
   assert.match(law.algorithm, /Preserve every existing numeric accuracy and exception contract/u);
-  assert.match(law.algorithm, /last-bit equality.*not asserted/u);
+  assert.match(law.algorithm, /exact logical Number bits across targets/u);
+  assert.match(law.algorithm, /source manifest sha256:254e734f8e44242b835b0a6c2505011b5eea6b9883dfa3db8c1b74e061757e0b/u);
+  assert.match(law.algorithm, /no live-BigQuery last-bit equivalence/u);
   assert.match(law.evaluation, /exactly once/u);
   assert.match(law.evaluation, /before strict NULL propagation/u);
   assert.match(law.evaluation, /lazy demand/u);

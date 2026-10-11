@@ -6,6 +6,8 @@ import { spawnSync } from 'node:child_process';
 // Keep the concrete Carrier instance beside the existing common-mechanism
 // proof admission. This does not add a reusable action or change its evidence kind.
 import '../events-bridge/proof-check.test.mjs';
+// The ordinary CI proof selection also exercises the real child stack scope.
+import './native-command.test.mjs';
 
 test('Lean rejects an existing theorem name with a weakened proposition', () => {
   const model = readFileSync(new URL('Session.lean', import.meta.url), 'utf8');

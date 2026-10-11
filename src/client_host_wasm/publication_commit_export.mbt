@@ -1,0 +1,174 @@
+///|
+/// Borrow the original validator's accepted candidate, never Store authority.
+/// The parent retains the original commit input and completed Result custody.
+priv struct StoredPublicationCommitExport {
+  publication : Int
+  slot : @buffers.BufferSlot
+  mut invoked : Bool
+  mut pending : Bool
+  mut produced : Bool
+  mut closing : Bool
+}
+
+///|
+#export_name("actql_publication_commit_export_reserve")
+pub fn reserve_publication_commit_export(
+  nonce : Int64,
+  publication : Int,
+  physical_ticket : Int,
+  physical_copy_bytes : Int64,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(publication)
+    is Some(
+      { closing: false, commit_finished: true, commit_index: Some(_), .. }
+    ) else {
+    return -2
+  }
+  if value.closing || value.runtime_closing {
+    return -5
+  }
+  if physical_ticket <= 0 ||
+    value.next_handle == 2147483647 ||
+    value.copies.values().any(pair => pair.1 == physical_ticket) ||
+    value.native_commands
+    .values()
+    .any(command => command.physical_ticket == physical_ticket) ||
+    value.result_chunks
+    .values()
+    .any(chunk => chunk.physical_ticket == physical_ticket) ||
+    value.workspaces.values().any(pair => pair.0 == physical_ticket) {
+    return -3
+  }
+  let slot = match
+    @buffers.reserve_output_buffer(value.pool, 1048576, physical_copy_bytes, () => {
+      physical_input_cleanup(physical_ticket) == 0
+    }) {
+    Ok(slot) => slot
+    Err(issue) => return issue_code(issue)
+  }
+  let handle = value.next_handle
+  value.commit_exports[handle] = {
+    publication,
+    slot,
+    invoked: false,
+    pending: false,
+    produced: false,
+    closing: false,
+  }
+  value.copies[handle] = (slot, physical_ticket)
+  value.next_handle += 1
+  handle
+}
+
+///|
+/// Return exact Core contract bytes after full-chain validation and current
+/// Run/Source access. A Client still needs separate current publisher authority
+/// and actual physical Store acceptance before reporting a durable commit.
+#export_name("actql_publication_commit_export_produce")
+pub fn produce_publication_commit_export(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) &&
+    value.publications.get(record.publication) is Some(parent) &&
+    parent.commit_index is Some(index_entry) &&
+    value.publication_preflights.get(parent.preflight)
+    is Some({ preflight: Some(preflight), .. }) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if value.closing || record.closing || parent.closing {
+    return -5
+  }
+  if !parent.commit_finished ||
+    parent.commit_failed ||
+    parent.pending ||
+    !publication_current(value, parent, current.account) {
+    return -32
+  }
+  if record.produced {
+    return 0
+  }
+  if record.invoked || record.pending {
+    return -33
+  }
+  record.invoked = true
+  record.pending = true
+  let (request, attempt) = @local_run.local_publication_preflight_contracts(
+    preflight,
+  )
+  let writer = @encode.writer(1048576, 8, 1) catch {
+    _ => {
+      record.pending = false
+      return -34
+    }
+  }
+  let wire = try {
+    @encode.begin_object(writer)
+    for
+      (name, contract) in [
+        ("request", request),
+        ("attempt", attempt),
+        ("index_entry", index_entry),
+      ] {
+      @encode.key(writer, name)
+      @encode.string_value(
+        writer,
+        @publication.publication_contract_json(contract),
+      )
+    }
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => {
+      record.pending = false
+      return -34
+    }
+  }
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),
+  )
+  record.pending = false
+  if result == 0 {
+    record.produced = true
+  }
+  result
+}
+
+///|
+#export_name("actql_publication_commit_export_length")
+pub fn publication_commit_export_length(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) else {
+    return -2
+  }
+  if !record.produced || record.closing {
+    return -33
+  }
+  match @buffers.buffer_length(value.pool, record.slot) {
+    Some(length) => length
+    None => -33
+  }
+}
+
+///|
+#export_name("actql_publication_commit_export_close")
+pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) else {
+    return -2
+  }
+  record.closing = true
+  if record.pending {
+    return -33
+  }
+  let result = status(@buffers.close_buffer(value.pool, record.slot))
+  if result == 0 {
+    value.commit_exports.remove(handle) |> ignore
+    value.copies.remove(handle) |> ignore
+  }
+  result
+}

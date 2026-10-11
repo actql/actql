@@ -31,6 +31,7 @@ pub(all) enum OperationObligation {
   NormalizeRequirement(@graph.NormalizeObligation)
   DeltaRequirement(@graph.DeltaObligation)
   UnionRequirement(@graph.UnionObligation)
+  MeanRequirement(@graph.MeanObligation)
   SubtractionRequirement(@graph.SubtractionObligation)
   ComponentsRequirement(@graph.ComponentsObligation)
   SubgraphRequirement(@graph.SubgraphObligation)
@@ -68,6 +69,7 @@ priv enum ObligationOwner {
   NormalizeOwner(@graph.CheckedNormalize)
   DeltaOwner(@graph.CheckedDelta)
   UnionOwner(@graph.CheckedUnion)
+  MeanOwner(@graph.CheckedMean)
   SubtractionOwner(@graph.CheckedSubtraction)
   ComponentsOwner(@graph.CheckedComponents)
   SubgraphOwner(@graph.CheckedSubgraph)
@@ -120,6 +122,7 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     NormalizeOwner(c) => @graph.normalize_source(c)
     DeltaOwner(c) => @graph.delta_source(c)
     UnionOwner(c) => @graph.union_source(c)
+    MeanOwner(c) => @graph.mean_options_source(@graph.checked_mean_options(c))
     SubtractionOwner(c) => @graph.subtraction_source(c)
     ComponentsOwner(c) => @graph.components_source(c)
     SubgraphOwner(c) => @graph.subgraph_source(c)
@@ -251,6 +254,16 @@ pub fn operation_obligations_graph_union(
 }
 
 ///|
+pub fn operation_obligations_graph_mean(
+  v : OperationObligations,
+) -> @graph.CheckedMean? {
+  match v.owner {
+    MeanOwner(operation) => Some(operation)
+    _ => None
+  }
+}
+
+///|
 pub fn operation_obligations_graph_subtraction(
   v : OperationObligations,
 ) -> @graph.CheckedSubtraction? {
@@ -305,6 +318,7 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     NormalizeOwner(c) => @graph.normalize_pending_count(c)
     DeltaOwner(c) => @graph.delta_pending_count(c)
     UnionOwner(c) => @graph.union_pending_count(c)
+    MeanOwner(c) => @graph.mean_pending_count(c)
     SubtractionOwner(c) => @graph.subtraction_pending_count(c)
     ComponentsOwner(c) => @graph.components_pending_count(c)
     SubgraphOwner(c) => @graph.subgraph_pending_count(c)
@@ -376,6 +390,8 @@ pub fn operation_obligations_at(
       @graph.delta_pending_at(c, index).map(x => DeltaRequirement(x))
     UnionOwner(c) =>
       @graph.union_pending_at(c, index).map(x => UnionRequirement(x))
+    MeanOwner(c) =>
+      @graph.mean_pending_at(c, index).map(x => MeanRequirement(x))
     SubtractionOwner(c) =>
       @graph.subtraction_pending_at(c, index).map(x => SubtractionRequirement(x))
     ComponentsOwner(c) =>
@@ -433,6 +449,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphNormalize(_)
     | GraphDelta(..)
     | GraphUnion(..)
+    | GraphMean(..)
     | GraphSubtraction(..)
     | GraphComponents(_)
     | GraphConstruction(..)
@@ -477,6 +494,7 @@ pub fn operation_obligation_group_at(
       GraphNormalize(c) => { scope: Body, owner: NormalizeOwner(c), }
       GraphDelta(checked=c, ..) => { scope: Body, owner: DeltaOwner(c), }
       GraphUnion(checked=c, ..) => { scope: Body, owner: UnionOwner(c), }
+      GraphMean(checked=c, ..) => { scope: Body, owner: MeanOwner(c), }
       GraphSubtraction(checked=c, ..) =>
         { scope: Body, owner: SubtractionOwner(c), }
       GraphComponents(c) => { scope: Body, owner: ComponentsOwner(c), }

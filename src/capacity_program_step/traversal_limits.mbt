@@ -63,10 +63,30 @@ pub fn check_traversal_limits(
     checked.operation {
     @pipeline.Traverse(checked=op, ..) =>
       (
-        "traverse",
+        if @graph.traverse_shortest(op) is Some(_) {
+          "shortest_path"
+        } else if @graph.traverse_is_reach(op) {
+          "reach"
+        } else {
+          "traverse"
+        },
         @graph.traverse_output_guard(op),
-        Some("actql.bound.traverse-nodes"),
-        Some(@pipeline.TraverseOutputRows),
+        Some(
+          if @graph.traverse_shortest(op) is Some(_) {
+            "actql.bound.shortest-path"
+          } else if @graph.traverse_is_reach(op) {
+            "actql.bound.reach-nodes"
+          } else {
+            "actql.bound.traverse-nodes"
+          },
+        ),
+        Some(
+          if @graph.traverse_shortest(op) is Some(_) {
+            @pipeline.ShortestOutputRows
+          } else {
+            @pipeline.TraverseOutputRows
+          },
+        ),
       )
     _ => return Err(WrongOperation)
   }

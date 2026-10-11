@@ -63,10 +63,12 @@ test('direct trigonometric laws independently preserve numeric and demand obliga
     assert.match(law.value, /Reject non-finite operands/u);
     assert.match(law.value, /Canonicalize every zero result to positive zero/u);
     assert.match(law.value, /existing arithmetic failure/u);
-    assert.match(law.algorithm, new RegExp(`pinned MoonBit core math ${name} primitive`, 'u'));
+    assert.match(law.algorithm, new RegExp(`pinned portable MoonBit core Double ${name} primitive`, 'u'));
     assert.match(law.algorithm, /Do not reconstruct it/u);
     assert.match(law.algorithm, /Preserve every existing numeric accuracy and exception contract/u);
-    assert.match(law.algorithm, /last-bit equality.*not asserted/u);
+    assert.match(law.algorithm, /exact logical Number bits across targets/u);
+    assert.match(law.algorithm, /source manifest sha256:254e734f8e44242b835b0a6c2505011b5eea6b9883dfa3db8c1b74e061757e0b/u);
+    assert.match(law.algorithm, /no live-BigQuery last-bit equivalence/u);
     assert.match(law.evaluation, /exactly once/u);
     assert.match(law.evaluation, /before strict NULL propagation/u);
     assert.match(law.evaluation, /lazy demand/u);

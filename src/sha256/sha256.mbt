@@ -271,12 +271,15 @@ pub fn finish_digest(h : Hasher) -> Bytes raise HashFailure {
 ///|
 fn hex_bytes(bytes : Bytes) -> String {
   let builder = StringBuilder(size_hint=64)
+  let digits : FixedArray[Char] = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+  ]
   for byte in bytes {
-    let part = byte.to_hex()
-    if part.length() == 1 {
-      builder.write_char('0')
-    }
-    builder.write_string(part)
+    // Emit exactly two lowercase digits without allocating a temporary
+    // StringBuilder and String for each of the 32 digest bytes.
+    let value = byte.to_int()
+    builder.write_char(digits[value >> 4])
+    builder.write_char(digits[value & 15])
   }
   builder.to_string()
 }

@@ -57,6 +57,23 @@ test('direct-trig adds only its exact closed source and machine alternatives and
   const before=withoutIncrement(expression);
   for(const name of names){assert.ok(expression.laws[name]);delete before.laws[name];}
   before.grammar_sha256=earlier.expression_contract.grammar_sha256;
+  // The earlier public parent retains its original target-selected laws.
+  // The normally adopted #1375 repair is a separate, byte-pinned increment;
+  // never rewrite that predecessor or infer this delta from product output.
+  const kernel=read('portability/corpus/historical/adopted-portable-numeric-kernel-laws.json');
+  assert.equal(cid(kernel), 'sha256:78336d1cbf683b75363fd316cbf52b9880c6ed6092ba6d908b28b231cfa4b286');
+  assert.equal(kernel.source_revision, '4dff63ffc946926dd17b100aea445b4ef5a31ef5');
+  for(const [name,law] of Object.entries(kernel.laws)){
+    assert.deepEqual(before.laws[name], law, name+' adopted kernel law');
+    before.laws[name]=structuredClone(earlier.expression_contract.laws[name]);
+  }
+  // The CBRT integration adopted the same existing portable scalar Owner.
+  // Validate that separate immutable law before comparing the earlier raw recipe.
+  const cbrtRepair=read('portability/corpus/historical/adopted-portable-cbrt-law.json');
+  assert.equal(cid(cbrtRepair),'sha256:91d644b0fee614e94da4ec9eae7c424e038806433370da61af2020fa148f3b8d');
+  assert.equal(cbrtRepair.source_revision,'52c7b73424ff08f2cf1acc45506152405eda2efd');
+  assert.deepEqual(before.laws.cbrt,cbrtRepair.laws.cbrt);
+  before.laws.cbrt=structuredClone(earlier.expression_contract.laws.cbrt);
   assert.deepEqual(before,earlier.expression_contract);
   assert.deepEqual(withoutIncrement(program),earlier.program_schema);
   assert.deepEqual(Object.keys(counts).sort(),[...names].sort());

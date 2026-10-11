@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "applicability",
+    "profile",
+    "rules",
+    "version"
+  ],
+  "properties": {
+    "applicability": {
+      "const": {
+        "checked_operations": [
+          "filter",
+          "select",
+          "values"
+        ],
+        "effect_kind": "mapped_create",
+        "expression_nodes": [
+          "$param",
+          "and",
+          "eq",
+          "field",
+          "gt",
+          "gte",
+          "literal",
+          "lt",
+          "lte",
+          "neq",
+          "not",
+          "or",
+          "typed_literal"
+        ],
+        "max_source_inputs": 1,
+        "max_stages": 2,
+        "proof": "original-checked-owner-audit",
+        "source_selection": "explicit"
+      }
+    },
+    "profile": {
+      "const": "actql-resident-effect-completion-free/0.1"
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "version": {
+      "const": "actql-normalization-rule-catalog/0.1"
+    }
+  }
+}

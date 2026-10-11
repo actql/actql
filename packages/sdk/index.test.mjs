@@ -29,7 +29,7 @@ import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
 import {connect, ClientError, getCheckInput, getSubmissionInput, getSubmissionOutcome, explainSubmission, explainRunObservationFailure, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
-import {submissionEpoch, originalSubmission, readySubmissionAttempt} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmissionAttempt, submissionAttempt} from './submission-fixture.mjs';
 
 test('check presentation revisions are immutable and separate from schema identity', () => {
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'en'}, 'en'],
@@ -473,7 +473,7 @@ test('document submit, attach and reads use one reference without replay', async
   const client = await connect(options);
   assert.equal(client.profile.durability, 'durable');
   const execution = await client.startSource('{"version":"actql/0.1"}',
-    {format: 'json', submissionRef: originalSubmission('request-a')});
+    {format: 'json', submissionRef: originalSubmission('request-a'), attemptId: 'document-invocation'});
   assert.deepEqual(execution.ref, ref);
   assert.deepEqual(await execution.status(), state);
   const result = execution.result('answer');
@@ -492,6 +492,7 @@ test('document submit, attach and reads use one reference without replay', async
   assert.deepEqual(requests.find(value => value.operation === 'submit-intent').body,
     {connection: {mode: 'remote', owner: 'remote', consentRefs: [],
       runners: []}, submissionRef: originalSubmission('request-a'),
+    attemptRef: {operation:'submit', attemptId:'document-invocation'},
     intentCid: 'sha256:a864f0d32df74b3483b14834268c1d961c44696307ddc5538fb4e5458ffa81b0', kind: 'aql',
     input: {text: '{"version":"actql/0.1"}', format: 'json'},
     parameters: null});
@@ -510,10 +511,12 @@ test('query declarations travel with source without entering the SDK',
     await client.startSource('SELECT id FROM records WHERE id = @p', {
       format: 'sql', parameterDeclarations: {p: {type: 'number'}},
       parameters: {p: 1}, submissionRef: originalSubmission('saved-query-id'),
+      attemptId: 'declared-query-invocation',
     });
     assert.deepEqual(requests[1].body, {
       connection: {mode: 'remote', owner: 'remote', consentRefs: [],
         runners: []}, submissionRef: originalSubmission('saved-query-id'),
+      attemptRef: {operation:'submit', attemptId:'declared-query-invocation'},
       intentCid: 'sha256:39a8b8f7c3f9718e05109363c87ffb67d79a9b96a206fdd178a1a8a85e7b8252', kind: 'aql',
       input: {text: 'SELECT id FROM records WHERE id = @p', format: 'sql',
         parameterDeclarations: {p: {type: 'number'}}},
@@ -532,9 +535,9 @@ test('a durable query input rejection stays bound to its original HTTP submissio
     operations.push(operation);
     const body = JSON.parse(init.body);
     return operation === 'connect' ? Response.json(profile) :
-      Response.json({kind: 'not_accepted', submissionRef: body.submissionRef,
+      Response.json(submissionAttempt(body, {kind: 'not_accepted', submissionRef: body.submissionRef,
         intentCid: body.intentCid, problem: {code: 'ClientProgramInvalidInput',
-          classification: 'invalid_input'}});
+          classification: 'invalid_input'}}));
   });
   t.after(() => mock.restoreAll());
   const client = await connect(options);
@@ -994,6 +997,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     const parameters = {value: 'original'};
     const submitted = client.start(program, {
       submissionRef: originalSubmission('saved-id'), parameters,
+      attemptId: 'captured-before-token',
     });
     program.marker = 'changed';
     parameters.value = 'changed';
@@ -1003,6 +1007,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
       connection: {mode: 'remote', owner: 'remote',
         consentRefs: [], runners: []},
       submissionRef: originalSubmission('saved-id'),
+      attemptRef: {operation:'submit', attemptId:'captured-before-token'},
       intentCid: 'sha256:7f1eb8be5dc842465208f4b5cf5833d4d4662c6c0380bd0aee726b43b07ec957', kind: 'program',
       input: {version: 'actql/0.1', marker: 'original'},
       parameters: {value: 'original'},

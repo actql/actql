@@ -138,11 +138,17 @@ fn lower_script_graph_rows(
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
+    // Mean cannot inherit this Graph input before a Relation projection.
+    if call.operation == "mean_graphs" {
+      raise Abort(InvalidQuery)
+    }
     if row_input is Some(_) {
       // The preceding operation already established an ordinary Relation.
       raise Abort(InvalidQuery)
     }
-    if call.operation == "union_graphs" || call.operation == "subtract_graphs" {
+    if call.operation == "union_graphs" ||
+      call.operation == "subtract_graphs" ||
+      call.operation == "graft_graph" {
       current = lower_script_graph_composition(
         construction, query, call, current, graphs, known, limits, steps, reserved,
       )
@@ -187,7 +193,9 @@ fn lower_script_graph_rows(
       current = row_input.unwrap().name
       continue
     }
-    if call.operation == "traverse" {
+    if call.operation == "traverse" ||
+      call.operation == "reach" ||
+      call.operation == "shortest_path" {
       row_input = Some(
         lower_script_traversal_rows(
           construction, query, call, current, known, limits, steps, reserved,

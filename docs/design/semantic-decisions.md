@@ -482,12 +482,14 @@ LOG/LN synonym only at arity one. No generic lowered-operator fallback changes
 existing alias identities or malformed-arity behavior.
 
 Implementation reuses the existing canonical scalar, continuation, resource and
-cancellation owners with the pinned MoonBit core math primitives. Binary LOG
+cancellation owners with the pinned portable MoonBit core Double algorithms
+in `src/scalar_numeric_kernel`, selected identically on all three targets. Binary LOG
 uses ln(value)/ln(base), matching GoogleSQL `Logarithm` at selected revision
-`81c15b796138185c046aefe852321011fdf96615`. General transcendental last-bit equality across platform libraries,
-JavaScript, WebAssembly, native targets or live BigQuery is not asserted. Tests
-use exact identities where justified and independently specified numerical
-intervals otherwise. No frontend-local math engine or permissive fallback is
+`81c15b796138185c046aefe852321011fdf96615`. The target-selected platform-library exception is rejected because pure
+scalar observations retain exact capture/replay identity. Identical admitted
+inputs and selected contracts use identical pinned arithmetic across JS,
+WebAssembly and Native. The demonstrated exact-bit counterexamples are retained
+independently. Live BigQuery last-bit equality is not claimed. No frontend-local math engine or permissive fallback is
 introduced.
 
 References:
@@ -609,6 +611,14 @@ REPEAT/REVERSE parent. No production limit, profile obligation, Decimal law or
 comparison rule changes. Registration alone does not establish execution on an
 unverified target or consumer.
 
+The implementation binding for this increment is the already adopted pinned
+portable numeric kernel in `src/scalar_numeric_kernel`, not target-selected
+platform math. Identical admitted inputs and selected contracts preserve exact
+logical Number bits across JS, WebAssembly and Native. Independent finite
+accuracy fixtures remain unchanged; they are not a universal accuracy bound
+or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
+new tolerance is introduced.
+
 
 ## GoogleSQL finite Number direct trigonometric functions
 
@@ -630,8 +640,11 @@ the primitive's quadrant behavior until result normalization, while canonical
 public Numbers cannot carry negative-zero wire values. This distinguishes an
 internal finite-value diagnostic from a new public value representation.
 
-Every operation selects the pinned target core primitive. This adds no universal
-cross-library last-bit identity and weakens no earlier accuracy obligation.
+Every operation uses the same already adopted pinned portable core Double
+primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native.
+Identical admitted inputs and selected contracts preserve exact logical Number
+bits; no live-BigQuery last-bit equivalence is claimed and no earlier accuracy
+obligation is weakened.
 Overflow remains an arithmetic failure; admitted finite input is not a promise
 that every hyperbolic result is representable. Closed schemas, grammar, laws,
 owned requirements and dependent identities change together within initial 0.1.
@@ -639,3 +652,11 @@ The complete CBRT predecessor bodies and independent preimages are frozen at
 the actual published parent. Production limits, profiles and barrier bodies
 remain unchanged; target and public-boundary support need separate execution
 evidence.
+
+The implementation binding for this increment is the already adopted pinned
+portable numeric kernel in `src/scalar_numeric_kernel`, not target-selected
+platform math. Identical admitted inputs and selected contracts preserve exact
+logical Number bits across JS, WebAssembly and Native. Independent finite
+accuracy fixtures remain unchanged; they are not a universal accuracy bound
+or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
+new tolerance is introduced.

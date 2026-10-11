@@ -4,6 +4,8 @@
 fn retained_holder_upload_original_review(
   work : @effect_provider.NativeResidentEffectReview,
   journal_path : String,
+  store : @store.Store,
+  publication : @effect_provider.NativeResidentEffectReviewPublication,
 ) -> Unit raise {
   let required = name => @env.get_env_var(name).unwrap()
   let http = @http.load_library(required("ACTQL_TEST_NATIVE_HTTP_LIBRARY")).unwrap()
@@ -107,7 +109,37 @@ fn retained_holder_upload_original_review(
     is Err(Review(_)),
   )
   assert_eq(reads.val, 5)
-  work.upload_review_projection(client, report_url, url, () => true).unwrap()
+  let target_reads = Ref(0)
+  let configured = {
+    ..publication,
+    access: (_, _) => {
+      target_reads.val += 1
+      abort("confirmed review repeated a Provider observation")
+    },
+  }
+  assert_true(
+    work.publish_review(store, client, configured, () => false)
+    is Err(ReadAuthorityDenied),
+  )
+  // Changed retry crypto custody cannot replace the original report or send
+  // another Checkpoint. Its first retention configuration remains authoritative.
+  assert_true(
+    work.publish_review(
+      store,
+      client,
+      { ..configured, key: Bytes::make(32, 255), },
+      () => true,
+    )
+    is Err(EvidencePersistence(Unavailable)),
+  )
+  let published = work
+    .publish_review(store, client, configured, () => true)
+    .unwrap()
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(published),
+    @remote.remote_effect_checkpoint_report_json(before_report),
+  )
+  assert_eq(target_reads.val, 0)
   let (after_report, after_wire) = work
     .review_projection(() => true, 65536)
     .unwrap()

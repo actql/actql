@@ -7,6 +7,7 @@ declare const taskCompilationBrand: unique symbol;
 declare const effectPreparationBrand: unique symbol;
 declare const effectCompilationBrand: unique symbol;
 declare const effectAllowedBrand: unique symbol;
+declare const issuedEffectMaterialsBrand: unique symbol;
 declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
@@ -72,7 +73,10 @@ export function prepareProgram(document: string, format: 'json' | 'yaml',
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
-export function compileEffect(prepared: PreparedEffectProgram): EffectCompilation;
+/** Explicit finite normalization profile, selected before original Run issuance.
+ * Actual semantic completions refuse; current authority/approval stay separate. */
+export function compileEffect(prepared: PreparedEffectProgram,
+  options?: Readonly<{normalizationProfile?: 'completion-free'}>): EffectCompilation;
 export function effectExecutionShape(prepared: PreparedEffectProgram,
   compilation: EffectCompilation): Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>;
 /** Checked coordinates only; these grant no acquisition, start or approval. */
@@ -90,6 +94,9 @@ export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
     checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
     runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
     continuationCid: string}>;
+/** Project only the members of the original checked unit/Checkpoint. */
+export function effectReviewCheckpointMembers(allowed: AllowedEffectRun,
+  definition: RunDefinition, checkpointWire: string): readonly string[];
 /** Original Catalog evidence; current read authority remains a separate check. */
 export function effectSourceEvidenceFacts(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, stage: number, sourceIndex: number): Readonly<{
@@ -110,11 +117,25 @@ export function issueEffectRunMaterials(allowed: AllowedEffectRun,
   definition: RunDefinition, retained: Readonly<{format: 'json'; document: string;
     environment: CheckEnvironment; environmentWire: string;
     parametersWire?: string}>, request?: RequestIdentity): string;
+/** Process-local opaque issuance proof. Copying its visible wire loses custody. */
+export interface IssuedEffectRunMaterials {
+  readonly [issuedEffectMaterialsBrand]: true;
+  readonly wire: string;
+}
+/** Original checked preparation owns completion-free issuance; no replacement inputs. */
+export function issuePreparedEffectRunMaterials(allowed: AllowedEffectRun,
+  definition: RunDefinition, request?: RequestIdentity): IssuedEffectRunMaterials;
+export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
+  compilation: EffectCompilation; allowed: AllowedEffectRun;
+  definition: RunDefinition; request?: RequestIdentity}>;
+/** definitionCid and expectedRequest must come from trusted original durable
+ * context, independently of candidate wire. This is not current authorization. */
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
-    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>):
-  Readonly<{prepared: PreparedEffectProgram; compilation: EffectCompilation;
-    allowed: AllowedEffectRun; definition: RunDefinition; request?: RequestIdentity}>;
+    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>,
+  original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity): RestoredEffectRun;
+/** Requires the exact admitted material object; does not grant approval. */
+export function restoreEffectRunNormalization(materials: RestoredEffectRun): RunEvidence;
 /** Original saved policy lifetime, not current Host authority or approval. */
 export function effectRunStartCurrent(allowed: AllowedEffectRun,
   definition: RunDefinition, at: string): boolean;
@@ -122,7 +143,7 @@ export function effectRunStartCurrent(allowed: AllowedEffectRun,
 /** Caller identity only; no Source permission or Effect approval. */
 export function prepareEffectRequest(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, authorityScopeCid: string, requestId: string): RequestIdentity;
-export function effectSourceInputBinding(compilation: EffectCompilation): string;
+export function effectSourceInputBinding(compilation: EffectCompilation, request?: RequestIdentity): string;
 export function issueEffectSourceDispatch(allowed: AllowedEffectRun,
   definition: RunDefinition, request: RequestIdentity,
   selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
