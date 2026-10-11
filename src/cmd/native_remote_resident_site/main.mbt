@@ -2648,9 +2648,7 @@ fn serve_holder_output(
   effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody? = _ => {
     None
   },
-  effect_host_admission? : (HolderEffectOriginalPolicyContext) -> HolderEffectHostAdmission? = _ => {
-    None
-  },
+  effect_host_operator? : HolderEffectHostOperatorInstallation? = None,
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
     None
   },
@@ -2692,9 +2690,11 @@ fn serve_holder_output(
       is Some(context) else {
       return false
     }
-    holder_effect_evidence_allowed(
-      context, resources, purpose, effect_host_admission,
-    )
+    holder_effect_evidence_allowed(context, resources, purpose, original => {
+      holder_effect_operator_admission(
+        original, resources, effect_host_operator,
+      )
+    })
   }
   if holder_effect_computation(original, environment.journal) is Some(_) {
     report("effect-computation-custody-retained", [("request_cid", identity)])
