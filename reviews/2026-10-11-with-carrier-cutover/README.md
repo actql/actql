@@ -174,9 +174,16 @@ and nested Source controls remain rejected before demand by strict publication
 order preparation. The exact `UnresolvedOrder` refusal, original source and
 independent expected Program are retained in
 [p1-demand-common-order-handoff.json](p1-demand-common-order-handoff.json).
-A separate delegated common check-only Stage API will preserve checked topology
-and pending obligations without issuing publication ports; ordinary publication
-preparation remains strict. The diagnostic common refusal control passed 1/1 at
+The delegated common check-only Stage API is now independently submitted as
+[Draft #1502](https://github.com/actql/actql/pull/1502). B normally adopted it and
+connected demand through original checked producers and projected Result inputs.
+[p1-demand-check-only-execution.json](p1-demand-check-only-execution.json) records
+actual JS **15/15** at clean `7c1e7ddb42046cc66a2369ab50994456734a00ae`, including
+the original captured/nested independent controls. Demanded unresolved Result
+order and unused LIMIT input-order refusal remain strict. The SourceView wrapper
+and its actual Catalog/local attachments are retained during demand; no handle
+is transferred onto the new pruned source. This completes that bounded metadata
+connection, not P1/P2 or public execution acceptance. The diagnostic common refusal control passed 1/1 at
 `f8daf63ed89fe8e309369b76ccee7f1fb8999fd9` (`run-bHEPyk`); read-only formatting
 completed at the same source (`run-rsC3iM`). These are not captured-binding or
 public execution successes.
