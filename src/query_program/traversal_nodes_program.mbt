@@ -26,9 +26,14 @@ fn script_traversal_argument(
     NumberValue(text) =>
       // Unary plus has no value effect. The existing decoder still owns
       // precision, finite/hex admission and negative-zero rejection.
-      match @expression.numeric_literal(
-        if text.has_prefix("+") { text[1:].to_owned() } else { text },
-      ) {
+      match
+        @expression.numeric_literal(
+          if text.has_prefix("+") {
+            text[1:].to_owned()
+          } else {
+            text
+          },
+        ) {
         Ok(value) => construction.add(Number(value))
         Err(issue) =>
           raise Abort(

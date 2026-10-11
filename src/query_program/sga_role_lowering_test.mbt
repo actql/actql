@@ -1,7 +1,12 @@
 ///|
 fn p2_sga_compile(text : String) -> @program.Program raise {
   let script = @query.parse_query_script(text, syntax_limits()).unwrap()
-  match compile_query_script(script, {..fixture_context(), inputs: []}, construction_limits()) {
+  match
+    compile_query_script(
+      script,
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    ) {
     Ok(program) => program
     Err(Expression(diagnostic)) => fail(@debug.to_string(diagnostic.issue))
     Err(_) => fail("Unexpected non-expression lowering failure")
