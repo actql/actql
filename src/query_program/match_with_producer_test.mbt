@@ -120,7 +120,9 @@ test "MATCH WITH retains pure-body publication restrictions and nested producers
       ", chosen AS (FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value |> RESULT hidden) FROM chosen",
       syntax_limits(),
     )
-    is Err({ issue: @query.Syntax("RESULT is not allowed in a producer body"), .. }),
+    is Err(
+      { issue: @query.Syntax("RESULT is not allowed in a producer body"), .. }
+    ),
   )
   for operator in ["INFER", "EFFECT"] {
     assert_true(
@@ -134,14 +136,20 @@ test "MATCH WITH retains pure-body publication restrictions and nested producers
       is Err(_),
     )
   }
-  for text in [
-    ", outer_rows AS (WITH chosen AS (FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value) SELECT value FROM chosen) SELECT value FROM outer_rows",
-    "SELECT value FROM (FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value)",
-  ] {
+  for
+    text in [
+      ", outer_rows AS (WITH chosen AS (FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value) SELECT value FROM chosen) SELECT value FROM outer_rows",
+      "SELECT value FROM (FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value)",
+    ] {
     let actual = compile_with_set(match_with_prefix() + text)
-    match @check.check_parsed_with_evidence(
-      actual, graph_rows_environment(), None, [], graph_rows_check_limits(),
-    ) {
+    match
+      @check.check_parsed_with_evidence(
+        actual,
+        graph_rows_environment(),
+        None,
+        [],
+        graph_rows_check_limits(),
+      ) {
       Checked(_) => ()
       Rejected(diagnostic) => graph_rows_rejected(diagnostic)
       NeedsInputs(_) => fail("nested MATCH WITH adds no acquisition")
