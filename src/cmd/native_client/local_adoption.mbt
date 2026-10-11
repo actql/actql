@@ -12,6 +12,7 @@ priv struct LocalHostSettings {
   ttl_ms : Double
   record_limit : Int
   snapshot_bytes : Int64
+  installation_files : Array[String]
 }
 
 ///|
@@ -50,7 +51,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   let fields = @decode.closed_object(fields, [
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
-    "journal_snapshot_bytes",
+    "journal_snapshot_bytes", "installation_files",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -70,6 +71,21 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     snapshot > 536870912L {
     stop("InvalidLocalHostLimits")
   }
+  let installation_files : Array[String] = []
+  if @decode.lookup(fields, "installation_files") is Some(files) {
+    guard @decode.elements(files) is Ok(files) && files.length() <= 6 else {
+      stop("InvalidLocalInstallationSelection")
+    }
+    for file in files {
+      guard @decode.text(file) is Ok(name) &&
+        !name.is_empty() &&
+        name.length() <= 128 &&
+        !installation_files.contains(name) else {
+        stop("InvalidLocalInstallationSelection")
+      }
+      installation_files.push(name)
+    }
+  }
   let settings : LocalHostSettings = {
     account_file: local_settings_text(root, "account_config"),
     account_id: local_settings_text(fields, "account_id"),
@@ -83,6 +99,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     ttl_ms: ttl.to_double(),
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
+    installation_files,
   }
   if settings.principal.length() > 512 || settings.connection.length() > 512 {
     stop("InvalidLocalHostConfiguration")
@@ -151,6 +168,16 @@ fn execute_native_local_adoption(
     current == root_ownership else {
     stop("LocalConfigurationRootUntrusted")
   }
+  // The operator selects installation originals separately from submitted
+  // Program data. Their bytes and generations join the same adoption intent;
+  // naming a file installs no Source, Policy, credential or execution grant.
+  let selected_files = [name, environment_file]
+  for file in settings.installation_files {
+    if selected_files.contains(file) || file == settings.account_file {
+      stop("InvalidLocalInstallationSelection")
+    }
+    selected_files.push(file)
+  }
   let crypto = @local_crypto.load_library(settings.signature_library).unwrap_or_else(() => {
       stop("NativeLocalSignatureUnavailable")
     },
@@ -167,7 +194,7 @@ fn execute_native_local_adoption(
       settings.account_file,
       settings.account_id,
       crypto,
-      configuration_files=[name, environment_file],
+      configuration_files=selected_files,
       managed_root_path=Some(settings.managed_root),
       existing_only=operation != "adopt",
     ),
@@ -209,7 +236,9 @@ fn execute_native_local_adoption(
   }
   // Produce the reply before closing, but never publish it before confirmed close.
   let reply = try {
-    if operation == "new-submission" {
+    if operation == "lookup-submission" {
+      local_submission_lookup(host, settings, crypto, root, child)
+    } else if operation == "new-submission" {
       guard host.authorize({
           principal: settings.principal,
           connection: settings.connection,
@@ -281,4 +310,109 @@ fn execute_native_local_adoption(
     stop("LocalHostCleanupPending")
   }
   reply
+}
+
+///|
+// Observe the original journal only. A missing record cannot authorize a new
+// submission, preparation, acquisition or physical start. The epoch Owner
+// authenticates the original token, including after its admission expiry.
+fn local_submission_lookup(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  input_root : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  guard host.authorize({
+      principal: settings.principal,
+      connection: settings.connection,
+      resource: "run",
+      operation: "submit",
+    })
+    is Ok(Allow(_)) else {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
+  let reference = @local_host.admit_native_client_submission_reference(
+    text_file(input_root, required(child, "submission-ref-file"), 4096L),
+  ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+  let scope = local_host_result(
+    host.authority_scope_cid(settings.principal, settings.connection, crypto),
+  )
+  let journal = local_host_result(host.run_journal())
+  let epoch = local_host_result(host.epoch_authority())
+  let observed = journal
+    .lookup_submitted_intent(
+      epoch,
+      reference,
+      scope,
+      true,
+      @env.now().to_double(),
+    )
+    .unwrap_or_else(() => stop("LocalSubmissionLookupUnavailable"))
+  // Recheck the same adopted account/configuration after the durable clock and
+  // journal read. No saved reference is a substitute for current authority.
+  guard host.authorize({
+      principal: settings.principal,
+      connection: settings.connection,
+      resource: "run",
+      operation: "submit",
+    })
+    is Ok(Allow(_)) else {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
+  let reference_json = @json.parse(
+    @local_host.native_client_submission_reference_wire(reference),
+  ) catch {
+    _ => stop("InvalidSubmissionRef")
+  }
+  let fields : Map[String, Json] = Map([
+    ("kind", Json::string("local_submission_lookup")),
+    ("submissionRef", reference_json),
+    (
+      "requestId",
+      Json::string(@local_host.native_client_submission_request_id(reference)),
+    ),
+  ])
+  match observed {
+    UnresolvedSubmissionHistory =>
+      fields.set("history", Json::string("unresolved"))
+    Submitted(record) => {
+      fields.set("history", Json::string("retained"))
+      fields.set(
+        "intentCid",
+        Json::string(
+          @run_host.client_submitted_intent_cid(
+            @local_host.native_client_submitted_intent(record),
+          ),
+        ),
+      )
+      fields.set(
+        "revision",
+        Json::string(
+          @local_host.native_client_submitted_intent_revision(record).to_string(),
+        ),
+      )
+      match @local_host.native_client_submitted_run_admission(record) {
+        None => fields.set("phase", Json::string("preparing"))
+        Some(admission) => {
+          fields.set("phase", Json::string("ready"))
+          fields.set(
+            "runDefinitionCid",
+            Json::string(
+              @local_host.native_client_submitted_run_definition_cid(admission),
+            ),
+          )
+          fields.set(
+            "admittedRevision",
+            Json::string(
+              @local_host.native_client_submitted_run_admission_revision(
+                admission,
+              ).to_string(),
+            ),
+          )
+        }
+      }
+    }
+  }
+  encode_request_json(Json::object(fields), 4096)
 }

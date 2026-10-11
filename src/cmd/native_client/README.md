@@ -52,6 +52,19 @@ the `principal × connection × run × submit` tuple. A reference is not accepta
 or Provider read/apply authority. No-match and delegated permission are refused
 in this first slice.
 
+`lookup-submission --submission-ref-file <file>` opens the retained Host and
+authenticates the saved original epoch/nonce through its existing journal. The
+reference file is read from the explicitly selected configuration root. Current
+account permission for the same submit scope is required; the reference itself
+grants no authority. Lookup never prepares, acquires or executes a Program, and
+does not replace an expired epoch. Its Local CLI JSON has
+`kind: local_submission_lookup` and the exact `submissionRef`; `history:
+unresolved` is not evidence of nonexecution or permission to resubmit. Retained
+records expose `preparing` or `ready` admission facts with exact decimal
+revisions. A ready admission is not an execution outcome or published Result.
+This source connection does not yet complete Local submit/attach execution or
+establish fixed-artifact process acceptance.
+
 In addition to the preparation settings, the selected `actql-config/0.1`
 document requires `account_config` (one file name in the selected private root)
 and `native.local`:
@@ -68,7 +81,8 @@ and `native.local`:
   "signature_library": "/absolute/path/to/installed/crypto-library",
   "submission_ttl_ms": 60000,
   "journal_record_limit": 8,
-  "journal_snapshot_bytes": 8388608
+  "journal_snapshot_bytes": 8388608,
+  "installation_files": ["source-installation.json"]
 }
 ```
 
@@ -81,7 +95,13 @@ at most 1024, and snapshot bytes at most 512 MiB. `state_dir`, if supplied, must
 equal `state_parent + "/" + state_name` exactly.
 
 The config file and Check Environment original are durably bound with the
-account and managed-root identity. Changing selected content, replacing a
+account and managed-root identity. Optional `installation_files` explicitly
+selects up to six additional originals in the same private configuration root,
+each bounded to 64 KiB. Names must be distinct single components and cannot
+repeat the account, config or environment file. The same adoption transaction
+stores their exact bytes and generations; reconnect cannot replace or repair
+them. Selecting an original is custody only: it does not install a Source or
+Policy, prove a normalization journal, or grant Provider access. Changing selected content, replacing a
 source file even with identical bytes, or losing custody refuses reconnection.
 No missing original is repaired from current source files. Source/Result,
 original Run recovery, typed Direct Local credentials and approval-backed

@@ -101,7 +101,8 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
   }
   if operation == "adopt" ||
     operation == "connect" ||
-    operation == "new-submission" {
+    operation == "new-submission" ||
+    operation == "lookup-submission" {
     return execute_native_local_adoption(matches, operation, child)
   }
   if operation != "check" {

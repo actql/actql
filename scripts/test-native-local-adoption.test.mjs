@@ -101,6 +101,57 @@ test('Native CLI issues a reference only under an explicit account submit permis
   assert.match(reference.epoch.authorityScopeCid, /^sha256:[0-9a-f]{64}$/u);
 });
 
+const submitPermission = {entry_id: 'run-submit', outcome: 'allow',
+  principal: {any_of: ['operator']}, connection: {any_of: ['cli']},
+  resource: {any_of: ['run']}, operation: {any_of: ['submit']}, exclusions: []};
+
+test('Native CLI original Submission lookup stays unresolved across separate exited processes', async () => {
+  const f = await fixture('lookup-unaccepted', [submitPermission]);
+  success(invoke(f, ['adopt', '--json']));
+  const reference = success(invoke(f, ['new-submission', '--request-id', 'unaccepted-request']));
+  await writeFile(join(f.root, 'original-submission.json'), JSON.stringify(reference));
+  const first = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  const second = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.deepEqual(Object.keys(first).sort(), ['history', 'kind', 'requestId', 'submissionRef']);
+  assert.equal(first.kind, 'local_submission_lookup');
+  assert.equal(first.history, 'unresolved');
+  assert.deepEqual(first.submissionRef, reference);
+  assert.deepEqual(second, first);
+  // Missing intent history is not an acceptance, Run or permission to replay.
+  assert.equal(Object.hasOwn(first, 'runDefinitionCid'), false);
+  assert.equal(Object.hasOwn(first, 'phase'), false);
+});
+
+test('Native CLI Submission lookup rejects a foreign or altered original epoch', async () => {
+  const original = await fixture('lookup-original', [submitPermission]);
+  const foreign = await fixture('lookup-foreign', [submitPermission]);
+  success(invoke(original, ['adopt', '--json']));
+  success(invoke(foreign, ['adopt', '--json']));
+  const reference = success(invoke(original, ['new-submission', '--request-id', 'original']));
+  await writeFile(join(foreign.root, 'original-submission.json'), JSON.stringify(reference));
+  refusal(invoke(foreign, ['lookup-submission', '--submission-ref-file', 'original-submission.json']),
+    /LocalSubmissionLookupUnavailable/u);
+  const changed = structuredClone(reference);
+  changed.epoch.authorityScopeCid = `sha256:${'0'.repeat(64)}`;
+  await writeFile(join(original.root, 'changed-submission.json'), JSON.stringify(changed));
+  refusal(invoke(original, ['lookup-submission', '--submission-ref-file', 'changed-submission.json']),
+    /LocalSubmissionLookupUnavailable/u);
+});
+
+test('Native CLI Submission lookup requires current account permission and retained Host custody', async () => {
+  const f = await fixture('lookup-denied');
+  success(invoke(f, ['adopt', '--json']));
+  const before = await journal(f);
+  // Current authority is checked before opening caller-supplied references.
+  refusal(invoke(f, ['lookup-submission', '--submission-ref-file', 'absent.json']),
+    /LocalSubmissionAuthorizationDenied/u);
+  assert.deepEqual(await journal(f), before);
+  const absent = await fixture('lookup-no-host', [submitPermission]);
+  refusal(invoke(absent, ['lookup-submission', '--submission-ref-file', 'absent.json']),
+    /LocalHostCustodyLost/u);
+  await assert.rejects(stat(join(absent.root, 'host')), {code: 'ENOENT'});
+});
+
 test('Native CLI rejects changed selected settings without replacing original custody', async () => {
   const f = await fixture('changed');
   success(invoke(f, ['adopt', '--json']));
@@ -160,4 +211,55 @@ test('Native CLI refuses an untrusted root before loading selected physical libr
   await chmod(f.root, 0o755);
   refusal(invoke(f, ['adopt', '--json']), /LocalConfigurationRootUntrusted/u);
   await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+});
+
+
+test('Native CLI retains explicitly selected installation originals across exited processes', async () => {
+  const f = await fixture('installation-original');
+  const original = '{"mapping":{"label":"e\\u0301","line":"a\\r\\nb","null":null}}\r\n';
+  await writeFile(join(f.root, 'source-installation.json'), original);
+  f.configuration.native.local.installation_files = ['source-installation.json'];
+  await f.save();
+  const adopted = success(invoke(f, ['adopt', '--json']));
+  const before = await journal(f);
+  const connected = success(invoke(f, ['connect', '--json']));
+  assert.equal(connected.adoptionCid, adopted.adoptionCid);
+  assert.deepEqual(await readFile(join(f.root, 'source-installation.json'), 'utf8'), original);
+  assert.deepEqual(await journal(f), before);
+  // A selected original is configuration custody, never a read/submit grant.
+  refusal(invoke(f, ['new-submission', '--request-id', 'source-request']), /LocalSubmissionAuthorizationDenied/u);
+  await writeFile(join(f.root, 'source-installation.json'), original.replace('e\\u0301', 'é'));
+  refusal(invoke(f, ['connect', '--json']), /LocalConfigurationChanged/u);
+  assert.deepEqual(await journal(f), before);
+});
+
+test('Native CLI refuses replaced or missing installation originals without repair', async () => {
+  for (const missing of [false, true]) {
+    const f = await fixture(`installation-custody-${missing}`);
+    const selected = join(f.root, 'source-installation.json');
+    await writeFile(selected, '{"mapping":"selected"}\n');
+    f.configuration.native.local.installation_files = ['source-installation.json'];
+    await f.save();
+    success(invoke(f, ['adopt', '--json']));
+    const before = await journal(f);
+    await rename(selected, join(f.root, 'original-source-installation.json'));
+    if (!missing) await copyFile(join(f.root, 'original-source-installation.json'), selected);
+    refusal(invoke(f, ['connect', '--json']), /LocalConfigurationChanged|LocalHostCustodyLost/u);
+    if (missing) await assert.rejects(stat(selected), {code: 'ENOENT'});
+    assert.deepEqual(await journal(f), before);
+  }
+});
+
+test('Native CLI rejects ambiguous or excessive installation selections before Host creation', async () => {
+  for (const [index, files] of [
+    ['source.json', 'source.json'], ['account.json'], ['actql.config.json'],
+    ['environment.json'], ['../outside.json'], [''], [null],
+    Array.from({length: 7}, (_, i) => `source-${i}.json`),
+  ].entries()) {
+    const f = await fixture(`installation-selection-${index}`);
+    f.configuration.native.local.installation_files = files;
+    await f.save();
+    refusal(invoke(f, ['adopt', '--json']), /InvalidLocalInstallationSelection|LocalHostAdoptionRefused/u);
+    await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+  }
 });
