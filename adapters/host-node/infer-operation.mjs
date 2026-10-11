@@ -111,7 +111,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Cancellation delivery alone never permits releasing the execution.
     if (!moon.clientProgramInferExecutionStopped(active)) return false;
     reclaimed = checked(moon.clientProgramCleanupInferExecution(active));
-    if (reclaimed) signal?.removeEventListener('abort', requestStop);
+    if (reclaimed) {
+      signal?.removeEventListener('abort', requestStop);
+      originalPreparedCallSet = undefined;
+    }
     return reclaimed;
   }
 
@@ -227,6 +230,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
     evaluationRequest: slot => {
+      if (reclaimed) return undefined;
       const physical = moon.clientProgramInferEvaluationRequest(active, slot);
       if (physical !== undefined) return physical;
       if (restoredInput?.token.available !== true ||
@@ -251,7 +255,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
-    preparedCallSet: () => moon.clientProgramInferPreparedCallSet(active),
+    preparedCallSet: () => reclaimed ? undefined : moon.clientProgramInferPreparedCallSet(active),
     pendingSettlement: () => moon.clientProgramInferCallSettlement(active),
     exportPreparedInput: (preparedCallSet, binding) => {
       const exported = checked(moon.clientProgramExportInferPreparedInput(active, preparedCallSet, binding));
@@ -261,6 +265,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         current: () => moon.clientProgramInferPreparedInputExportMatches(active, preparedCallSet, exported)});
     },
     preparedFacts: preparedCallSet => {
+      if (reclaimed) throw new Error('InferPreparedOwnerUnavailable');
       originalPreparedCallSet = preparedCallSet;
       const count = moon.clientProgramInferPreparedCallCount(preparedCallSet);
       const input = moon.clientProgramInferPreparedInput(preparedCallSet);
