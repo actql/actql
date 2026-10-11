@@ -59,6 +59,7 @@ fn Parser::call(
     | "reverse"
     | "len"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"

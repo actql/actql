@@ -177,6 +177,7 @@ fn flatten(
       | "chr"
       | "reverse"
       | "sqrt"
+      | "cbrt"
       | "exp"
       | "ln"
       | "log10"

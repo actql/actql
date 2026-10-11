@@ -31,8 +31,9 @@ test('repeat-reverse retains complete predecessor bodies and identity preimages'
 });
 
 test('repeat-reverse adds only its exact closed source and machine alternatives and laws',()=>{
-  const expression=read('spec/contracts/actql-expressions.json');
-  const program=read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  const successor=Object.fromEntries(read('portability/corpus/historical/pre-cbrt-contract-identities.json').contracts.map(v=>[v.id,v.body]));
+  const expression=successor.expression_contract;
+  const program=successor.program_schema;
   const shapes={"repeat":{"min":2,"max":2},"reverse":{}},names=new Set(Object.keys(shapes)),counts={};
   function withoutIncrement(value){
     if(Array.isArray(value))return value.map(withoutIncrement);

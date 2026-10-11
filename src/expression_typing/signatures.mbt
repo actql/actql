@@ -633,6 +633,7 @@ fn infer(
       )
     }
     "sqrt"
+    | "cbrt"
     | "pow"
     | "exp"
     | "ln"

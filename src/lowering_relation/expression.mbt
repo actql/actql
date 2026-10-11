@@ -57,6 +57,7 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
   Exp
   Ln
   Log10
@@ -235,6 +236,7 @@ fn expression_tag(
     | "rtrim"
     | "floor"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -351,6 +353,7 @@ fn expression_children(
     | "lower"
     | "floor"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -942,6 +945,7 @@ fn lower_typed_expression_measured(
           }
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
+        "cbrt" => Unary(Cbrt, args[0])
         "exp" => Unary(Exp, args[0])
         "ln" => Unary(Ln, args[0])
         "log10" => Unary(Log10, args[0])

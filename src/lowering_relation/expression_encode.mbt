@@ -182,6 +182,7 @@ fn emit_frames(
                   RTrim => "rtrim"
                   Floor => "floor"
                   Sqrt => "sqrt"
+                  Cbrt => "cbrt"
                   Exp => "exp"
                   Ln => "ln"
                   Log10 => "log10"

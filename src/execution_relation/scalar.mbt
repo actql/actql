@@ -142,12 +142,14 @@ pub fn unary(
         Number(n) => finite(if n < 0.0 { -n } else { n })
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
-    Exp | Ln | Log10 =>
+    Cbrt | Exp | Ln | Log10 =>
       match value {
         Null => Ok(Null)
         Number(n) =>
           if n.is_nan() || n.is_inf() {
             Err(InvalidOperand)
+          } else if op == @lower.Cbrt {
+            finite(@math.cbrt(n))
           } else if op == @lower.Exp {
             finite(@math.exp(n))
           } else if n <= 0.0 {
