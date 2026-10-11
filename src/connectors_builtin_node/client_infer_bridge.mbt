@@ -2322,6 +2322,17 @@ pub fn client_program_infer_call_entry_originals(
 }
 
 ///|
+/// A trusted installed journal reports actual persistence of these originals.
+/// This nominal saved observation does not authorize dispatch after an await.
+#export_name("clientProgramAcknowledgeSavedInferCallEntry")
+pub fn client_program_acknowledge_saved_infer_call_entry(
+  entry : @model.ModelCallEntry,
+  prepared : @model.ModelPreparedCallSet,
+) -> @model.ModelCallEntryAcknowledgement? {
+  @model.acknowledge_saved_model_call_entry(entry, prepared)
+}
+
+///|
 #export_name("clientProgramBindInferModelObservation")
 pub fn client_program_bind_infer_model_observation(
   active : @infer_host.Execution,
