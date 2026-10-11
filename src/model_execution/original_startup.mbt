@@ -28,7 +28,7 @@ fn prepare_original_model_startup(
   execution_bytes : Int64,
 ) -> Result[OriginalModelStartup, @publication_host.ClientModelInputCapacityIssue] {
   if retained_bytes <= 0L || execution_bytes < 0L {
-    return Err(Read(Resource(@resources.InvalidCharge)))
+    return Err(Read(Resource(@resources.Resource(@resources.InvalidCharge))))
   }
   let (ledger, capacity) = match @publication_host.handoff_client_model_read_input_capacity(
     read, compiled, definition, plan, scope, rows, retained_bytes, execution_bytes,
