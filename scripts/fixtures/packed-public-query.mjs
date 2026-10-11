@@ -1,5 +1,6 @@
 import {cteValueTableSuccesses, cteValueTableRefusals} from './cte-value-table-source-input.mjs';
-import {createCteValueTableReceipts} from './cte-value-table-receipts.mjs';
+import {createCteValueTableReceipts, createVerifiedCaseReceipts} from './cte-value-table-receipts.mjs';
+import {fromUnpivotSuccesses, fromUnpivotRefusals} from './from-unpivot-source-input.mjs';
 import {pipePivotSuccesses, pipePivotRefusals} from './pipe-pivot-source-input.mjs';
 import {graphRelationJoinSuccesses, graphRelationJoinRefusals, graphRelationJoinExecutionFailures} from './graph-relation-join-source-input.mjs';
 import {traversalJoinSuccesses, traversalJoinRefusals, traversalJoinExecutionFailures} from './traversal-join-source-input.mjs';
@@ -260,6 +261,7 @@ const arrayLiteralOnly = process.env.ACTQL_TEST_ARRAY_LITERAL_ONLY === '1';
 const correlatedUnnestOnly = process.env.ACTQL_TEST_CORRELATED_UNNEST_ONLY === '1';
 const unnestCheckedArrayOnly = process.env.ACTQL_TEST_UNNEST_CHECKED_ARRAY_ONLY === '1';
 const unnestParameterPathOnly = process.env.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY === '1';
+const fromUnpivotOnly = process.env.ACTQL_TEST_FROM_UNPIVOT_ONLY === '1';
 const pipeUnpivotOnly = process.env.ACTQL_TEST_PIPE_UNPIVOT_ONLY === '1';
 const unnestOnly = process.env.ACTQL_TEST_UNNEST_SOURCE_ONLY === '1';
 const inputStageResultOnly = process.env.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY === '1';
@@ -326,7 +328,7 @@ const namedWindowOnly = process.env.ACTQL_TEST_NAMED_WINDOW_ONLY === '1';
 const countifDistinctOnly = process.env.ACTQL_TEST_COUNTIF_DISTINCT_ONLY === '1';
 const analyticDistinctFrameOnly = process.env.ACTQL_TEST_ANALYTIC_DISTINCT_FRAME_ONLY === '1';
 const distinctAggregateOrderOnly = process.env.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY === '1';
-const scopeOnly = pipePivotOnly || pipeUnpivotOnly || matchDataProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
+const scopeOnly = fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchDataProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -374,6 +376,7 @@ const scopeInputs = inputStageResultOnly ? {successes: inputStageResultSuccesses
   : correlatedUnnestOnly ? {successes: correlatedUnnestSuccesses, refusals: correlatedUnnestRefusals}
   : unnestCheckedArrayOnly ? {successes: unnestCheckedArraySuccesses, refusals: unnestCheckedArrayRefusals}
   : unnestParameterPathOnly ? {successes: unnestParameterPathSuccesses, refusals: unnestParameterPathRefusals}
+  : fromUnpivotOnly ? {successes: fromUnpivotSuccesses, refusals: fromUnpivotRefusals}
   : pipeUnpivotOnly ? {successes: pipeUnpivotSuccesses, refusals: pipeUnpivotRefusals}
   : unnestOnly ? {successes: unnestSuccesses, refusals: unnestRefusals}
   : fullJoinScopeOnly ? {successes: fullJoinScopeSuccesses, refusals: fullJoinScopeRefusals}
@@ -523,6 +526,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...inUnnestLiteralArrayRefusals);
   scopeInputs.successes.push(...arrayLiteralSuccesses);
   scopeInputs.refusals.push(...arrayLiteralRefusals);
+  scopeInputs.successes.push(...fromUnpivotSuccesses);
+  scopeInputs.refusals.push(...fromUnpivotRefusals);
   scopeInputs.successes.push(...pipeUnpivotSuccesses);
   scopeInputs.refusals.push(...pipeUnpivotRefusals);
   scopeInputs.successes.push(...unnestSuccesses);
@@ -796,6 +801,9 @@ function publicQueryCohorts(inputs) {
 }
 const retainedCohorts = [];
 const cteValueTableReceipts = createCteValueTableReceipts(transport ?? 'both', writeFile);
+const fromUnpivotReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'from-unpivot', version: 'actql-from-unpivot-acceptance/0.1',
+});
 let expectedRetainedCohorts = 0;
 const expectedInventory = [], completedInventory = [];
 const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executionFailures', 'refusals']
@@ -1111,6 +1119,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return async item => {
     recordString(mode)(item);
+    if (item.name.startsWith('from-unpivot-')) await fromUnpivotReceipts.record(item, mode);
     if (item.name.startsWith('cte-value-table-')) {
       // Persist after each verified case so a later failure keeps actual Run
       // and read values. No resubmission, extra read or test oracle is added.
@@ -1221,6 +1230,7 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
   await cteValueTableReceipts.complete();
+  await fromUnpivotReceipts.complete();
   assert.equal(retainedCohorts.length, expectedRetainedCohorts * (transport === undefined ? 2 : 1));
   if (graphRemainingOperationsOnly) for (const cohort of retainedCohorts) {
     assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,
