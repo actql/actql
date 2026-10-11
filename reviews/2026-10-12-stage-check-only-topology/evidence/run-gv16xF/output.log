@@ -1,0 +1,17 @@
+Total tests: 7, passed: 7, failed: 0.
+["moon","test","--target","js","src/stage_results/checked_topology_test.mbt","src/pipeline_check_context/checked_topology_test.mbt"]: executed; counts={"tests":7,"passed":7,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Warning: [0027]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/pipeline_check_context/checked_topology_test.mbt:7:5 ]
+   │
+ 7 │     #|{"id":"main","inputs":{"objects":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"objects","select":["id"],"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id"]}}}
+   │     ──────────────────────────────────────────────────────────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────  
+   │                                                                                                       ╰──────────────────────────────────────────────────────────────────────────────────────────────────── Warning (deprecated_syntax): Using a multiline string directly, except in `let` bindings, FFI, or parentheses, is deprecated. Consider using `let x = #| ...` or wrapping it in `()`.
+───╯
+Warning: [0027]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/pipeline_check_context/checked_topology_test.mbt:9:5 ]
+   │
+ 9 │     #|{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id"]}}}
+   │     ─────────────────────────────────────────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────  
+   │                                                                                                  ╰────────────────────────────────────────────────────────────────────────────────────────────── Warning (deprecated_syntax): Using a multiline string directly, except in `let` bindings, FFI, or parentheses, is deprecated. Consider using `let x = #| ...` or wrapping it in `()`.
+───╯
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/_build/focused-evidence/focused-test-38eNrE
