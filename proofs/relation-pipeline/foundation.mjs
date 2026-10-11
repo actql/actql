@@ -98,13 +98,19 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     if (!allowedFailure) assert.equal(result.status, 0, `Missing foundation Git history: git ${args.join(' ')}\n${result.stderr}`);
     return result;
   }
-  assert.equal(git(['rev-parse', '--is-shallow-repository']).stdout.toString().trim(), 'false',
+  // Read the invocation's shallow state and commit identity in one real Git
+  // process. Graft paths remain a separate read because paths may contain LF.
+  // This is transport batching, not a cached history or admission result.
+  const metadata = git(['rev-parse', '--is-shallow-repository', '--verify', 'HEAD^{commit}']);
+  const metadataLines = metadata.stdout.toString().trim().split('\n');
+  assert.equal(metadataLines[0], 'false',
     'Incomplete foundation Git history: fetch full history');
+  assert.equal(metadataLines.length, 2, 'Invalid foundation Git head metadata');
+  const head = metadataLines[1];
+  assert.match(head, sha);
   const grafts = git(['rev-parse', '--git-path', 'info/grafts']).stdout.toString().trim();
   assert(!existsSync(resolve(root, grafts)) || !readFileSync(resolve(root, grafts)).length, 'Grafted foundation Git history');
   assert(!git(['for-each-ref', '--format=%(refname)', 'refs/replace']).stdout.length, 'Replaced foundation Git history');
-  const head = git(['rev-parse', '--verify', 'HEAD^{commit}']).stdout.toString().trim();
-  assert.match(head, sha);
   // Walk the complete unsimplified ancestry once. These are Git-derived parent
   // facts, not receipt labels. Missing objects still fail before any declaration
   // is accepted; retain parent order and reject incomplete/ambiguous output.
