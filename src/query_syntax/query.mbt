@@ -122,9 +122,9 @@ pub(all) enum QueryOperation {
 
 ///|
 pub(all) struct UnpivotClause {
-  columns : Array[NamePart]
+  column_sets : Array[Array[NamePart]]
   row_labels : Array[UnpivotRowLabel?]
-  value_column : NamePart
+  value_columns : Array[NamePart]
   name_column : NamePart
   include_nulls : Bool
 }
@@ -451,8 +451,9 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
       Some(
         Unpivot({
           ..clause,
-          columns: clause.columns.copy(),
+          column_sets: clause.column_sets.map(columns => columns.copy()),
           row_labels: clause.row_labels.copy(),
+          value_columns: clause.value_columns.copy(),
         }),
       )
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))

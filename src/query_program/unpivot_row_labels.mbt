@@ -107,7 +107,7 @@ fn lower_unpivot_row_labels(
     steps,
     keep +
     [
-      (clause.value_column.value, value_slot),
+      (clause.value_columns[0].value, value_slot),
       (clause.name_column.value, label_slot),
     ],
     keep.map(column => column.1) + [name_slot, value_slot, label_slot],
