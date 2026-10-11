@@ -7,7 +7,10 @@ const step = (name, kind, args) => ({name, command: 'node',
 const repairedOnly = process.argv.includes('--repaired-callers');
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5,
-  steps: repairedOnly ? [step('Corrected WITH static Graph callers', 'moon', [
+  steps: process.argv.includes('--traversal-refusal') ? [step('Exact traversal static refusals', 'moon', [
+    '--target', 'js', 'src/query_program/traversal_nodes_test.mbt',
+    '--filter', 'Graph traversal retains malformed authored bodies for common refusal',
+  ])] : repairedOnly ? [step('Corrected WITH static Graph callers', 'moon', [
     '--target', 'js', 'src/query_program/graph_diagnostics_test.mbt',
     'src/query_program/traversal_nodes_test.mbt',
   ])] : [

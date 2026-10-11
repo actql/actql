@@ -68,7 +68,9 @@ test "Graph traversal retains malformed authored bodies for common refusal" {
     ] {
     expect_with_graph_static_refusal(
       traversal_nodes_source() + "FROM g |> " + tail + " |> SELECT depth",
-      expected=if tail.contains("id: 'missing'") {
+      expected=if tail.contains("max_hops: 0") {
+        Some(@pipeline.GraphMatch(Structure(InvalidCount)))
+      } else if tail.contains("id: 'missing'") {
         None
       } else {
         Some(@pipeline.InvalidBody)
