@@ -4,11 +4,11 @@ test "Graph LABELS property annotation is retired at the authored token" {
   let source = prefix +
     "LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Node) |> SELECT a.id"
   match parse_query(source, query_limits()) {
-    Err(diagnostic) => {
-      assert_eq(diagnostic.issue, Syntax("Graph LABELS annotation is retired"))
-      assert_eq(diagnostic.range.start_byte, 13)
+    Err({ issue: Syntax(message), span: Some(span), }) => {
+      assert_eq(message, "Graph LABELS annotation is retired")
+      assert_eq(span.start_byte, 13)
     }
-    Ok(_) => fail("retired LABELS must not reach lowering")
+    _ => fail("retired LABELS must not reach lowering")
   }
 }
 
