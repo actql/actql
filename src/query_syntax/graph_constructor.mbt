@@ -149,7 +149,9 @@ fn QueryParser::graph_element_name(
   } else {
     producer.last().unwrap()
   }
-  (producer, name)
+  // Definition names use the authored path, while the Relation operand uses
+  // the nearest lexical producer. REFERENCES remains constructor-local.
+  (self.resolve_cte(producer), name)
 }
 
 ///|

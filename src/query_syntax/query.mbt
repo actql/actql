@@ -2592,7 +2592,7 @@ fn QueryParser::pipe(
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
     }
     self.keyword("GRAPH")
-    let relation = self.path()
+    let relation = self.resolve_cte(self.path())
     let label_field = self.graph_labels()
     graph = Some({ label_field, pattern: None, })
     (relation, None, [])

@@ -1,0 +1,53 @@
+{
+  "unit": "P1 producer-role lexical seams; shared WITH AST/cutover still in progress",
+  "adopted_main": "ab5460e2422f59da69dcf873c5498dc8a5d7997e",
+  "changes": [
+    "Graph constructor Relation operands resolve nearest existing lexical binding after selecting authored default element name. Constructor-local REFERENCES and labels are unchanged.",
+    "SGA declared Producer roles including lists resolve through the same scope lookup. ID/field/literal values remain values.",
+    "FROM GRAPH uses nearest lexical binding before common Carrier checking; no search for a type-compatible outer producer."
+  ],
+  "independent_controls": "producer_scope_test.mbt supplies outer_rows/inner_rows/outer_peer identities as independent input coordinates; no product-generated expected name.",
+  "execution": "Not executed for this new slice. Existing legacy constructor spelling in this leaf control is transitional and must be replaced at complete P1 cutover; not a compatibility entry or completion claim.",
+  "checks": {
+    "previous_slice": {
+      "sha": "91f3679aa",
+      "run": "run-unBfQJ",
+      "js": "28/28",
+      "exit": 0,
+      "heavy": false,
+      "cap_seconds": 60,
+      "grace_seconds": 5
+    },
+    "new_slice": "not executed",
+    "lowering_common_checker": "not executed",
+    "public": "not executed"
+  },
+  "source_files": [
+    {
+      "path": "src/query_syntax/graph_constructor.mbt",
+      "bytes": 6815,
+      "sha256": "f58f1f2b34f2f43d28a39141b36a03b66ceed1c39a1091bbef7408f1bee1de2c"
+    },
+    {
+      "path": "src/query_syntax/sga_call.mbt",
+      "bytes": 9335,
+      "sha256": "e882f4fd832ca1f401ff77d898c84ac26cbb61b17e6e1e8eb94d49cde3a543dc"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "bytes": 99156,
+      "sha256": "ad1fb7ce773cab5096758ff97ea5b74b9dd9d6024872cc1b0223ac5fb664bce4"
+    },
+    {
+      "path": "src/query_syntax/producer_scope_test.mbt",
+      "bytes": 3692,
+      "sha256": "6aa5a8b2d167a437116231d16b0b91f3629b2a485b042fb8149467f75e94522a"
+    }
+  ],
+  "remaining": [
+    "Separate authored WithBinding and relational internal continuation AST",
+    "Four Carrier binding static admission and demanded lowering",
+    "Complete GRAPH spelling and old DATA entry/API/current explanation removal",
+    "Grammar/pins/source maps/README and coherent public Local/HTTPS acceptance"
+  ]
+}
