@@ -418,6 +418,8 @@ pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScop
 
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
+pub fn client_local_completion_free_catalog_cid() -> String
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
@@ -808,6 +810,8 @@ pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check
 
 pub fn issue_prepared_client_infer_prefix_fragment(PreparedClientProgram, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
 
+pub fn issue_prepared_client_local_normalization(PreparedClientProgram) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
+
 pub fn issue_prepared_client_multi_infer_compilation(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
 pub fn issue_prepared_client_multi_infer_task_plan_graph(PreparedClientProgram, Array[ClientInferPlanGraph], @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue]
@@ -1044,6 +1048,8 @@ pub fn prepared_client_infer_step(PreparedClientProgram) -> Int?
 
 pub fn prepared_client_infer_target_name(PreparedClientProgram, Int) -> String?
 
+pub fn prepared_client_local_normalization_evidence(PreparedClientProgram, ClientLocalNormalization) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
+
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> String?
@@ -1091,6 +1097,8 @@ pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_public
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
 
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
+
+pub fn restore_prepared_client_local_normalization(PreparedClientProgram, ClientLocalNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
 
 pub fn source_free_caller_input_intent_cid() -> String
 
@@ -1730,6 +1738,16 @@ pub struct ClientInferSavedCallScope {
 }
 
 type ClientInferSourceInput
+
+type ClientLocalNormalization
+
+pub(all) enum ClientLocalNormalizationIssue {
+  Inventory(@program_check.CompletionFreeInventoryIssue)
+  ForeignPreparation
+  ForeignCatalog
+  SubstitutedJournal
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
 
 pub(all) struct ClientProgramIdentity {
   program_definition_cid : String
@@ -2532,6 +2550,7 @@ pub fn PublicationOutputExport::finish(Self) -> Result[String, PublicationOutput
 pub fn PublicationOutputExport::issue_artifact(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::issue_result_evidence(Self, String, Array[String], String, String, String, Int, Int, Int) -> Result[Unit, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::logical_relation_cid(Self) -> Result[String, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::matches_captured_run(Self, @physical_strategy.CapturedDAG) -> Bool
 pub fn PublicationOutputExport::measurement(Self) -> Result[@execution_relation.CompletedRelationExportMeasurement, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::next(Self) -> Result[String?, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::ordering(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]

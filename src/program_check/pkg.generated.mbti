@@ -343,6 +343,12 @@ pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
+pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
+
+pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
+
+pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]
+
 pub fn nest_limits_claim(NestLimits, NestResourceScope) -> @capacity_witness.LimitClaim
 
 pub fn nest_limits_empty_proof(NestLimits) -> @capacity_witness.ProgramProofClaim
@@ -1074,6 +1080,8 @@ pub struct KeyedExecution {
 }
 
 type KeyedInputProof
+
+type LocalCompletionFreeInventory
 
 pub(all) enum LocalDependencyBodyIssue {
   MissingUnit

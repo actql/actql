@@ -31,6 +31,7 @@ struct PreparedClientProgram {
   check_environment_cid : String
   source : @syntax.Program
   local_values_max_rows : Int
+  mut local_normalization : ClientLocalNormalization?
 }
 
 ///|
@@ -1299,6 +1300,7 @@ pub fn prepare_parsed_effect_free_client_program(
         graph,
         check_environment_cid: @checked.checking_environment_cid(environment),
         source: parsed,
+        local_normalization: None,
         local_values_max_rows: client_standard_values_sequence_limits().max_rows,
       })
     Err(issue) => Err(Graph(issue))
