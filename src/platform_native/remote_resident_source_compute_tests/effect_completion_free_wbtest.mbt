@@ -10,11 +10,9 @@ let native_completion_free_document : String =
   #|{"version":"actql/0.1","id":"finite-source-compute","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r","view":"v"}},"steps":[{"filter":{"gt":[{"field":"id"},{"literal":0}]}},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"x":{"result":{"stage":"acquire","result":"r"}}},"steps":[{"filter":{"gt":[{"field":"id"},{"literal":2}]}},{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"r"}}}}}],"results":{"answer":{"from":{"stage":"compute","result":"r"}}}}
 
 ///|
-fn native_completion_free_effect_fixture() -> (
-  @host.ClientEffectRunMaterials,
-  @host.ClientRequestIdentity,
-  String,
-) raise {
+fn native_completion_free_effect_fixture(
+  authoring? : (String, String, String)? = None,
+) -> (@host.ClientEffectRunMaterials, @host.ClientRequestIdentity, String) raise {
   // Compose authoring configuration, then validate it through the ordinary
   // Check Environment Owner. These hashes confer no original material proof.
   let value = provider_json(native_completion_free_environment)
@@ -34,7 +32,13 @@ fn native_completion_free_effect_fixture() -> (
   let environment_cid = "sha256:" +
     @sha.hex(@utf8.encode(provider_canonical(value)))
   fields["evidence_bundle_cid"] = Json::string(environment_cid)
-  let environment_wire = provider_canonical(value)
+  let (environment_wire, environment_cid, document) = authoring.unwrap_or(
+    (
+      provider_canonical(value),
+      environment_cid,
+      native_completion_free_document,
+    ),
+  )
   let environment = @host.admit_client_check_environment(
     environment_wire,
     environment_cid,
@@ -42,7 +46,7 @@ fn native_completion_free_effect_fixture() -> (
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   let prepared = @host.prepare_client_effect_computation(
-    native_completion_free_document,
+    document,
     Json,
     environment,
     None,

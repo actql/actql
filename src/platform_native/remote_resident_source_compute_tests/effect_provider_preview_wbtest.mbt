@@ -137,7 +137,7 @@ fn resident_provider_preview(
   )
   assert_true(
     @strategy.captured_effect_plan_proof_matches(
-      prepared.proof,
+      prepared.proof.unwrap(),
       prepared.preview,
       0,
     ),
@@ -184,7 +184,7 @@ fn resident_provider_preview(
   assert_eq(repeated.wire, prepared.wire)
   assert_true(
     @strategy.captured_effect_plan_proof_matches(
-      repeated.proof,
+      repeated.proof.unwrap(),
       repeated.preview,
       0,
     ),

@@ -27,3 +27,7 @@ import {
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/platform_native/publication_store" @store,
 }
+
+import {
+  "actql/actql/sha256" @sha,
+} for "wbtest"

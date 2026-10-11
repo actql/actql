@@ -26,6 +26,8 @@ fn retained_consumer_holder_case(
   effect_materials? : @host.ClientEffectRunMaterials? = None,
   effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
   provider? : Bool = false,
+  completion_free_review? : Bool = false,
+  mapped_create_write? : Bool = false,
 ) -> Unit raise {
   // Every completed resident consumer has durable file custody. Chain cases
   // additionally make the original Source path unavailable to later tasks.
@@ -183,16 +185,29 @@ fn retained_consumer_holder_case(
       "another-effect-caller",
       @host.source_free_caller_input_intent_cid(),
     ).unwrap()
-    let changed_wire = @host.issue_client_effect_run_materials(
-      effect.allowed,
-      effect.run_definition,
-      effect_environment_owner,
-      effect_environment,
-      effect_document,
-      None,
-      retained_compute_effect_limits(),
-      request=Some(changed),
-    ).unwrap()
+    let changed_wire = if completion_free_review {
+      // Deliberately substitute a valid foreign request in a refusal candidate.
+      // This is never used as positive original material evidence.
+      let candidate = provider_json(wire)
+      guard candidate is Object(fields) else {
+        fail("material refusal candidate")
+      }
+      fields["client_request_identity"] = Json::string(
+        @host.client_request_identity_record_wire(changed).unwrap(),
+      )
+      provider_canonical(candidate)
+    } else {
+      @host.issue_client_effect_run_materials(
+        effect.allowed,
+        effect.run_definition,
+        effect_environment_owner,
+        effect_environment,
+        effect_document,
+        None,
+        retained_compute_effect_limits(),
+        request=Some(changed),
+      ).unwrap()
+    }
     let changed_poll = @remote.admit_remote_poll_dispatch_json(
       @remote.remote_poll_dispatch_materials_json(
         dispatch, binding, changed_wire,
@@ -547,20 +562,31 @@ fn retained_consumer_holder_case(
         duplicate.effect_computation(journal).unwrap(),
       ),
     )
-    if !provider {
+    if completion_free_review {
+      native_mapped_create_context_review(
+        owner,
+        journal,
+        effect_producer.unwrap(),
+        producer_journal,
+        approved_row=mapped_create_write,
+        journal_path=Some(root_path + "/" + name + ".runtime/execution.sqlite3"),
+      )
+    } else if !provider {
       retained_holder_effect_capture(owner, journal, effect_materials.unwrap())
     }
-    retained_holder_effect_transfer_capture(
-      owner,
-      journal,
-      effect_producer.unwrap(),
-      producer_journal,
-      input,
-      site,
-      provider~,
-      root_path~,
-      name~,
-    )
+    if !completion_free_review {
+      retained_holder_effect_transfer_capture(
+        owner,
+        journal,
+        effect_producer.unwrap(),
+        producer_journal,
+        input,
+        site,
+        provider~,
+        root_path~,
+        name~,
+      )
+    }
     assert_eq(entries.val, 1)
     assert_eq(borrows.val, 1)
   } else {

@@ -1,0 +1,60 @@
+{
+  "parameterDeclarations": {
+    "rows": {
+      "type": "array",
+      "nullable": false,
+      "max_items": 3,
+      "items": {
+        "type": "object",
+        "nullable": false,
+        "fields": {
+          "id": {
+            "type": "number",
+            "nullable": false
+          },
+          "jan_amount": {
+            "type": "number",
+            "nullable": true
+          },
+          "jan_note": {
+            "type": "string",
+            "nullable": true
+          },
+          "feb_amount": {
+            "type": "number",
+            "nullable": true
+          },
+          "feb_note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "parameters": {
+    "rows": [
+      {
+        "id": 2,
+        "jan_amount": null,
+        "jan_note": null,
+        "feb_amount": 7,
+        "feb_note": "B"
+      },
+      {
+        "id": 1,
+        "jan_amount": 5,
+        "jan_note": null,
+        "feb_amount": null,
+        "feb_note": "kept"
+      },
+      {
+        "id": 2,
+        "jan_amount": null,
+        "jan_note": null,
+        "feb_amount": 7,
+        "feb_note": "B"
+      }
+    ]
+  }
+}

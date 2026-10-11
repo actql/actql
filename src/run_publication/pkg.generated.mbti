@@ -178,6 +178,8 @@ pub fn check_source_free_model_observation_binding(RunEvidenceValue, RunEvidence
 
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 
+pub fn checked_publication_inventory_definition(CheckedPublicationInventory, Int) -> Result[PublicationContract, PublicationInventoryIssue]
+
 pub fn checked_publication_inventory_definition_cid(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
 
 pub fn checked_publication_inventory_definition_json(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]

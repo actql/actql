@@ -236,3 +236,46 @@ normalization-bearing materials, including a finite-profile candidate with an
 absent request. Its shared material decoder can compare an independently trusted
 absent expected identity, but the direct executor cannot select that expectation
 from the candidate. Ordinary absent-journal materials retain their existing path.
+
+## Mapped-create Preview from a retained consumer Result
+
+The Native review connection projects create requests from the actual held
+consumer Result through the existing checked proposal export and Catalog request
+Owners. It checks the original preparation, Run definition, typed request,
+member, mapping and current receiver borrow. Only a complete export with its
+matching Receipt produces the opaque, bounded `NativeResidentEffectCreatedTargets`
+projection. Its request array is private; callers cannot replace rows after
+projection. Failure leaves physical input and cleanup custody with the original
+Owners and grants no write permission.
+
+The shared create-row inventory Owner derives sorted content/occurrence
+correlations from those requests. A create Preview has absent before-state and a
+`not_applicable` guard, rather than an observed existing target or an update
+version guard. The Native review therefore makes no Provider target-read call for
+this operation. Duplicate equal rows retain distinct occurrences. Source,
+local-artifact, request-scope, capability and Preview binding remain with the
+existing Owners.
+
+Mapped create has a checked create-row terminal, not a correlated update Plan
+terminal. It does not mint a substitute update Plan proof. The existing captured
+Run path requires that proof only when a Plan identity is present; update review
+continues to require and verify its Plan proof. The nominal create projection is
+process-local and remains tied to the same consumer and captured inputs. It is
+not durable approval, a physical target observation or a mutation permit.
+
+The approved-row adapter supports one admitted create or update request. For
+create it retains the original Catalog binding's origin, validates the exact
+content/occurrence correlation against the held request, and does not fabricate
+a target observation. Update continues to require its original observed target
+and version guard. A current credential scope must match the typed request's
+distinct mutation operation, original invocation, dispatch, Site generation and
+resource origin. Only create selects POST; only a guarded update selects PATCH.
+
+The original review and resolution Owners still establish approval and the
+current resume fence. Before either verb is sent, the same journal claims the
+existing Ledger dispatch; an existing claim is a reconciliation obligation,
+not permission for another send. Both operations retain their raw response
+through the same save/retry and typed outcome projection. Reconstructing row
+custody never grants permission to write. Empty or multiple create rows remain
+explicitly unsupported by this single-row adapter; those implementation
+boundaries are not restrictions on the language's create semantics.
