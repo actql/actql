@@ -73,6 +73,8 @@ fn advance_binary_comparison(
     | Modulo
     | In
     | NotIn
+    | RoundAt
+    | TruncAt
     | TrimSet
     | LTrimSet
     | RTrimSet

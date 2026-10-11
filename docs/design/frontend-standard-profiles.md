@@ -210,24 +210,54 @@ extent; the search does not add an unrelated language-length restriction.
 Canonical schemas, registries and their current dependent identities include
 the added common node; complete predecessor preimages retain their old CIDs.
 
-### Unary finite-number ROUND and TRUNC
+### Finite-number ROUND and TRUNC with decimal positions
 
-`ROUND(X)` and `TRUNC(X)` select the common unary expression Owner for finite
-binary64 numbers. ROUND chooses the nearest integer and breaks exact ties away
-from zero; TRUNC chooses the nearest integer toward zero. Neither changes an
-already-integral value or overflows on an admitted finite input. ActQL's existing
-arithmetic canonicalizes zero results to positive zero. The operand remains a
-single retained subtree with the ordinary nullable type, demand, failure,
-cancellation and bounded-execution rules.
+`ROUND(X[, N])` and `TRUNC(X[, N])` select the common expression Owner for
+finite binary64 numbers. Unary ROUND chooses the nearest integer and breaks
+exact ties away from zero; unary TRUNC chooses the nearest integer toward
+zero. Neither unary form changes an already-integral value or overflows.
+Adding the optional decimal-position expression preserves existing unary
+canonical bodies; explicit positions retain the ordered two-child body, even
+for `N = 0` or a position whose value rule leaves the input unchanged.
 
-The finite unary value rules follow Google's
+Both children are evaluated once, value before position, including the second
+child after a NULL value. After both evaluations succeed, strict NULL applies;
+otherwise N must be integral. Fractional N fails with the existing arithmetic
+error. The result has nullable-OR typing. Integral N above 323 preserves the
+input and N below -308 yields positive zero, without narrowing large binary64
+integers first. ActQL uses its existing number representation for N and does
+not claim a distinct INT64 overload or exact representation of every INT64.
+ActQL's existing arithmetic canonicalizes all zero results to positive zero.
+The common failure, lazy-demand, cancellation and bounded-execution Owners
+remain responsible for this work, including logical charges for no-op cases.
+
+The selected decimal-position behavior is `DecimalRounding<is_trunc>`, exposed
+as `RoundDecimal`/`TruncDecimal`, in
+[GoogleSQL `round_decimal.cc` at revision
+`81c15b796138185c046aefe852321011fdf96615`](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/common/round_decimal.cc),
+with the portable `ComputeDekkerProduct`/`Split` path of
+[`Full<double>` at the same revision](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/common/double_double.h).
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+The fixed high/low powers of five, explicitly rounded double-double operation
+order, `2^-105` correction, sticky-bit adjustment, signed integer selection and
+two-stage final binary scaling are part of the selected value contract. FMA,
+reassociation, multiplying by a single binary64 `10^N`, or substituting an ideal
+exact-rational result can change the selected result and are not equivalent
+implementations. For example, `ROUND(1.005,2) = 1`, `ROUND(2.675,2) = 2.67`
+and `TRUNC(0.3,1) = 0.2`; subnormal and large-magnitude cases also expose
+one-ULP differences from exact-rational proxies. ROUND overflow fails, while
+TRUNC cannot overflow for admitted finite inputs and integral positions.
+
+This extends the selected finite-FLOAT64 profile described by Google's
 [ROUND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#round)
 and [TRUNC](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#trunc)
-references. Optional decimal-position N, explicit rounding modes, distinct
-INT64/NUMERIC/BIGNUMERIC overloads and non-finite values are unimplemented
-coverage, not restrictions claimed for GoogleSQL. Existing CIDs retain their
-predecessor meaning; new expression/schema/registry identities are propagated
-through the ordinary contract Owners. No adapter-specific evaluator is added.
+references. Explicit rounding modes, distinct INT64/NUMERIC/BIGNUMERIC
+overloads and non-finite values remain unimplemented coverage, not restrictions
+claimed for GoogleSQL. The pinned algorithm selection does not establish live
+BigQuery equivalence or execution coverage on all targets. Existing contract
+CIDs retain their predecessor meanings; new expression/schema/registry
+identities propagate through the ordinary contract Owners. No adapter-specific
+evaluator is added.
 
 
 ### STRING SUBSTR and SUBSTRING
