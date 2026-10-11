@@ -630,7 +630,9 @@ static void *actql_open_database(
   moonbit_bytes_t path,
   int32_t length,
   int64_t max_body_bytes,
-  bool existing
+  int mode,
+  uint64_t expected_device,
+  uint64_t expected_inode
 ) {
   actql_native_sqlite_database *database = moonbit_make_external_object(
     actql_native_sqlite_database_finalize,
@@ -644,7 +646,9 @@ static void *actql_open_database(
     actql_replace_error(&database->error, "SQLite library is unavailable");
     return database;
   }
-  if (existing && (length < 2 || length > 4096 || path[0] != '/' ||
+  bool contained = mode != 0;
+  bool existing = mode == 1;
+  if (contained && (length < 2 || length > 4096 || path[0] != '/' ||
       memchr(path, 0, (size_t)length) != NULL)) {
     actql_replace_error(&database->error, "invalid existing database path");
     return database;
@@ -656,10 +660,13 @@ static void *actql_open_database(
   }
   int pinned = -1;
   struct stat original;
-  if (existing) {
+  if (contained) {
     pinned = open(path_text, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
     if (pinned < 0 || fstat(pinned, &original) != 0 ||
-        !S_ISREG(original.st_mode) || original.st_size < 1) {
+        !S_ISREG(original.st_mode) ||
+        (existing ? original.st_size < 1 : original.st_size != 0) ||
+        (mode == 2 && ((uint64_t)original.st_dev != expected_device ||
+          (uint64_t)original.st_ino != expected_inode))) {
       if (pinned >= 0) close(pinned);
       free(path_text);
       actql_replace_error(&database->error, "existing database is unavailable");
@@ -667,14 +674,14 @@ static void *actql_open_database(
     }
   }
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
-  flags |= existing ? SQLITE_OPEN_NOFOLLOW : SQLITE_OPEN_CREATE;
+  flags |= contained ? SQLITE_OPEN_NOFOLLOW : SQLITE_OPEN_CREATE;
   int code = library->open_v2(
     path_text,
     &database->database,
     flags,
     NULL
   );
-  if (code == SQLITE_OK && existing) {
+  if (code == SQLITE_OK && contained) {
     struct stat selected;
     if (lstat(path_text, &selected) != 0 || !S_ISREG(selected.st_mode) ||
         selected.st_dev != original.st_dev || selected.st_ino != original.st_ino)
@@ -720,7 +727,7 @@ void *actql_native_sqlite_open_database(
   int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, false);
+  return actql_open_database(library, path, length, max_body_bytes, 0, 0, 0);
 }
 
 void *actql_native_sqlite_open_existing_database(
@@ -729,7 +736,20 @@ void *actql_native_sqlite_open_existing_database(
   int32_t length,
   int64_t max_body_bytes
 ) {
-  return actql_open_database(library, path, length, max_body_bytes, true);
+  return actql_open_database(library, path, length, max_body_bytes, 1, 0, 0);
+}
+
+// Only the exact exclusively created, still-empty file may receive a schema.
+// The Host must bind that physical proof to its durable one-time intent first.
+void *actql_native_sqlite_initialize_owned_database(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path,
+  int32_t length,
+  uint64_t device,
+  uint64_t inode,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, 2, device, inode);
 }
 
 // Whitebox-only loss of one schema constituent in an owner-created fixture.
