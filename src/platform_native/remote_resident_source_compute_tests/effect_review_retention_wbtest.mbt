@@ -100,6 +100,7 @@ fn retained_effect_review_retention_store(
     None => prepare(materials, key, limits).unwrap()
   }
   assert_true(retention.report() is Err(Unavailable))
+  assert_true(retention.original_approval_scope() is Err(Unavailable))
   let request = materials.request.unwrap()
   let confirm = () => {
     retention.confirm_original_checkpoint(
@@ -297,6 +298,23 @@ fn retained_effect_review_retention_store(
     )
   }
   let persisted = confirm().unwrap()
+  let approval_scope = retention.original_approval_scope().unwrap()
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(materials.run_definition),
+      persisted.artifact.checkpoint_cid,
+    ),
+    Some(@host.client_request_authority_scope_cid(request)),
+  )
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(materials.run_definition),
+      "sha256:" + "f".repeat(64),
+    ),
+    None,
+  )
   if report is Some(remote_report) {
     assert_eq(
       persisted.artifact.checkpoint_cid,
@@ -320,6 +338,22 @@ fn retained_effect_review_retention_store(
     "foreign-original-review",
     @host.client_request_input_cid(request),
   ).unwrap()
+  assert_eq(
+    approval_scope.current_for(
+      foreign_request,
+      @publication.publication_contract_identity(materials.run_definition),
+      persisted.artifact.checkpoint_cid,
+    ),
+    None,
+  )
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(foreign_run),
+      persisted.artifact.checkpoint_cid,
+    ),
+    None,
+  )
   assert_true(
     retention.confirm_original_checkpoint(
       consumer,
@@ -920,6 +954,14 @@ fn retained_effect_review_retention_store(
     )
   }
   assert_true(retention.retry_cleanup().unwrap())
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(materials.run_definition),
+      persisted.artifact.checkpoint_cid,
+    ),
+    None,
+  )
   assert_false(retention.retry_cleanup().unwrap())
   assert_true(retention.restore_store(store) is Err(Unavailable))
   assert_true(retention.report() is Err(Unavailable))
