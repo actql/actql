@@ -1,0 +1,61 @@
+{
+  "baseline": "fdd0c76c7975905740078e93c735f910135bafd1",
+  "scope": "Edited working source; read-only freshness and static checks only",
+  "checks": [
+    {
+      "label": "manifests",
+      "chunk_id": "58237b",
+      "wall_time_seconds": 0.044502625,
+      "exit_code": 0,
+      "original_token_count": 52,
+      "output": "{\"grammar_manifest_cid\":\"sha256:4651e2819082c8cddcfee1349b78c44f034d618d7e6036307a2a99ac367027e8\",\"barrier_contract_manifest_cid\":\"sha256:37d13c552a2a923fe135961e3fd859ed6439c90d8900b0f52310bdb97e871fda\"}\n"
+    },
+    {
+      "label": "metadata",
+      "chunk_id": "1b75de",
+      "wall_time_seconds": 0.971625542,
+      "exit_code": 0,
+      "original_token_count": 10,
+      "output": "{\n  \"changes\": [],\n  \"writes\": false\n}\n"
+    },
+    {
+      "label": "family",
+      "chunk_id": "84a7ad",
+      "wall_time_seconds": 0.917335,
+      "exit_code": 0,
+      "original_token_count": 33,
+      "output": "{\"documents\":10,\"requirements\":1440,\"document_imports\":23,\"machine_imports\":309,\"informative_references\":52,\"conformance\":false}\n"
+    },
+    {
+      "label": "canonical",
+      "chunk_id": "5c711e",
+      "wall_time_seconds": 1.122751375,
+      "exit_code": 0,
+      "original_token_count": 19,
+      "output": "545 canonical JSON identities verified; generated tests match their inputs.\n"
+    },
+    {
+      "label": "links",
+      "chunk_id": "a49ba2",
+      "wall_time_seconds": 3.4120644159999998,
+      "exit_code": 0,
+      "original_token_count": 17,
+      "output": "{\"local_links\":1765,\"json_files\":416,\"runtime_conformance\":false}\n"
+    }
+  ],
+  "format": {
+    "command": "moonfmt -w (five changed handwritten MoonBit files)",
+    "exit_code": 0
+  },
+  "javascript_syntax": {
+    "command": "node --check (four changed handwritten JavaScript files)",
+    "exit_code": 0
+  },
+  "whitespace": {
+    "command": "git diff --check",
+    "exit_code": 0
+  },
+  "runtime_tests_executed": 0,
+  "public_acceptance_executed": 0,
+  "ci_success": false
+}

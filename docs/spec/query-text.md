@@ -430,7 +430,10 @@ Pipe `PIVOT(aggregate(expression) [AS prefix] FOR axis IN ('value' [AS name], ..
 to the ordinary common `pivot` operation. This initial surface supports one
 SUM, AVG, COUNT, MIN or MAX of a scalar expression over current or range-qualified
 input columns, parameters and existing scalar operations, or COUNT(*), a
-String axis and a nonempty list of static String bucket values. The current
+String axis and a nonempty list of static String bucket values. Parentheses
+around a bucket String literal are transparent, including nested parentheses.
+Grouping does not extend this selected subset to parameter, numeric, NULL or
+computed bucket expressions. The current
 columns not consumed by the aggregate argument or axis become implicit group
 keys in their current order. All input slots referenced by the argument, including
 receivers of property access, are consumed. A constant or parameter-only argument

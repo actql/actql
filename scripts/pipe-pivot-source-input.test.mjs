@@ -34,9 +34,9 @@ test('PIVOT independent controls preserve duplicates NULLs grouping and declared
     cases.get('pipe-pivot-anonymous-count-identity-source').expected);
   assert.deepEqual(cases.get('pipe-pivot-anonymous-count-json-control').columns,
     cases.get('pipe-pivot-anonymous-count-identity-source').columns);
-  assert.equal(pipePivotSuccesses.length, 53);
-  assert.equal(pipePivotRefusals.length, 28);
-  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 81);
+  assert.equal(pipePivotSuccesses.length, 55);
+  assert.equal(pipePivotRefusals.length, 32);
+  assert.equal(new Set([...pipePivotSuccesses, ...pipePivotRefusals].map(input => input.name)).size, 87);
 });
 
 test('PIVOT uses the same cases in the normal corpus and scoped packed execution', async () => {
@@ -82,4 +82,25 @@ test('COUNT star includes NULL rows while retaining every unconsumed current key
   const newRefusals = pipePivotRefusals.filter(item => item.name.startsWith('pipe-pivot-refuse-'));
   assert.equal(newRefusals.length, 5);
   assert.ok(newRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+
+test('grouped PIVOT String buckets retain independent counts full schemas and explicit refusals', () => {
+  const cases = new Map(pipePivotSuccesses.map(input => [input.name, input]));
+  for (const name of ['pipe-pivot-grouped-string-pipe', 'pipe-pivot-grouped-string-from']) {
+    assert.deepEqual(cases.get(name).expected, [{product: 'kale', second: 0, first: 2}]);
+    assert.deepEqual(cases.get(name).columns, [
+      {name: 'product', contract: {type: 'string', nullable: false, max_utf8_bytes: 4}},
+      {name: 'second', contract: {type: 'number', nullable: false}},
+      {name: 'first', contract: {type: 'number', nullable: false}},
+    ]);
+    assert.equal(cases.get(name).sourceReadCount, 0);
+    assert.equal(cases.get(name).sourceReadSessionCount, 0);
+  }
+  assert.match(cases.get('pipe-pivot-grouped-string-pipe').text, /IN \(\(\('Q2'\)\) AS second, \("Q1"\) AS first\)/u);
+  assert.match(cases.get('pipe-pivot-grouped-string-from').text, /ORDER BY shaped\.product$/u);
+  for (const kind of ['parameter', 'number', 'null', 'computed']) {
+    const input = pipePivotRefusals.find(input => input.name === 'pipe-pivot-refusal-grouped-string-' + kind);
+    assert.equal(input.expectedCode, 'ClientProgramInvalidInput');
+  }
 });
