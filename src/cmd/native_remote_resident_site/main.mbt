@@ -2710,17 +2710,9 @@ fn serve_holder_output(
                 ])
                 continue
               }
-              if task.effect_review is None &&
-                effect_review_policy(task.request) is Some(policy) {
-                ignore(
-                  prepare_holder_effect_review(
-                    task,
-                    tasks,
-                    environment.journal,
-                    policy,
-                  ),
-                )
-              }
+              // Remote Current only observes an existing original Review.
+              // Preparation is driven by completed local custody under the
+              // independently installed policy, never by query routing input.
               guard task.effect_review is Some(review) else {
                 report("effect-current-pending", [
                   ("reason", "review-owner-unavailable"),
