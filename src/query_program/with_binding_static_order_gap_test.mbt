@@ -19,7 +19,12 @@ test "check-only WITH capture gap is Result order closure, not pipeline typing" 
   let (views, locals) = @check_context.prepare_source_registrations(
     source,
     context.source_catalog.unwrap(),
-    { max_work: 100000, max_nodes: 10000, max_depth: 100, max_text_bytes: 100000, },
+    {
+      max_work: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+      max_text_bytes: 100000,
+    },
     max_inputs=100,
     max_views=100,
     max_order_keys=100,
@@ -41,5 +46,10 @@ test "check-only WITH capture gap is Result order closure, not pipeline typing" 
     fail("expected exact common Result-order preparation boundary")
   }
   assert_eq(issue.kind, @relation_results.UnresolvedOrder)
-  assert_eq(@wire.cursor_path(issue.source), [Key("stages"), Index(0), Key("results"), Key("source")])
+  assert_eq(@wire.cursor_path(issue.source), [
+    Key("stages"),
+    Index(0),
+    Key("results"),
+    Key("source"),
+  ])
 }

@@ -1,5 +1,5 @@
 {
-  "source": "WITH unused AS (SELECT id FROM objects) SELECT 1 AS id",
+  "source": "46b9a8f145c29ab48ea59eccec5104e71dc90932",
   "run": "run-CaCZxB",
   "focused": "focused-test-9Baoqs",
   "tests": 4,
@@ -46,5 +46,6 @@
       "sha256": "12e6e2462e3483430de9a8cd99f0b10cfd6509d851bc3062a7dbe519f0515761"
     }
   ],
-  "fixed_product_source": "46b9a8f145c29ab48ea59eccec5104e71dc90932"
+  "fixed_product_source": "46b9a8f145c29ab48ea59eccec5104e71dc90932",
+  "authored_source": "WITH unused AS (SELECT id FROM objects) SELECT 1 AS id"
 }

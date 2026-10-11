@@ -1,34 +1,58 @@
 ///|
-fn with_demand_program(result : Result[@program.Program, Issue]) -> @program.Program raise {
+fn with_demand_program(
+  result : Result[@program.Program, Issue],
+) -> @program.Program raise {
   match result {
     Ok(program) => program
     Err(BindingPreparation(Demand(WorkLimit))) => fail("Demand WorkLimit")
     Err(BindingPreparation(Demand(ForeignStage))) => fail("Demand ForeignStage")
     Err(BindingPreparation(Demand(InvalidRange))) => fail("Demand InvalidRange")
-    Err(BindingPreparation(Demand(MissingImport))) => fail("Demand MissingImport")
+    Err(BindingPreparation(Demand(MissingImport))) =>
+      fail("Demand MissingImport")
     Err(BindingPreparation(SourceProgram(Program(Pipeline(stage, issue))))) =>
       fail("Source pipeline stage \{stage}: " + @debug.to_string(issue.kind))
-    Err(BindingPreparation(SourceProgram(BudgetExceeded))) => fail("SourceProgram budget")
+    Err(BindingPreparation(SourceProgram(BudgetExceeded))) =>
+      fail("SourceProgram budget")
     Err(BindingPreparation(LocalProgram(Pipeline(stage, issue)))) =>
       fail("Local pipeline stage \{stage}: " + @debug.to_string(issue.kind))
-    Err(BindingPreparation(LocalProgram(BudgetExceeded))) => fail("LocalProgram budget")
+    Err(BindingPreparation(LocalProgram(BudgetExceeded))) =>
+      fail("LocalProgram budget")
     Err(Construction(issue)) => fail("Construction " + @debug.to_string(issue))
     Err(Admission(issue)) => fail("Admission " + @debug.to_string(issue))
-    Err(Expression(issue)) => fail("Expression " + @debug.to_string(issue.issue))
-    Err(ExpressionTyping(issue)) => fail("Expression typing " + @debug.to_string(issue.kind))
+    Err(Expression(issue)) =>
+      fail("Expression " + @debug.to_string(issue.issue))
+    Err(ExpressionTyping(issue)) =>
+      fail("Expression typing " + @debug.to_string(issue.kind))
     Err(UnresolvedRelation(_)) => fail("UnresolvedRelation")
     Err(UnsupportedCte) => fail("UnsupportedCte")
     Err(UnknownColumn) => fail("UnknownColumn")
-    Err(BindingPreparation(SourceProgram(Program(Order(stage, PipelineOrder(issue)))))) =>
-      fail("Source order stage \{stage}: " + @debug.to_string(issue.kind))
-    Err(BindingPreparation(SourceProgram(Program(Order(stage, ProducerOrder(issue)))))) =>
-      fail("Source producer order stage \{stage}: " + @debug.to_string(issue.issue.kind))
-    Err(BindingPreparation(SourceProgram(Program(Order(stage, ResultOrder(issue)))))) =>
-      fail("Source result order stage \{stage}: " + @debug.to_string(issue.kind))
+    Err(
+      BindingPreparation(
+        SourceProgram(Program(Order(stage, PipelineOrder(issue))))
+      )
+    ) => fail("Source order stage \{stage}: " + @debug.to_string(issue.kind))
+    Err(
+      BindingPreparation(
+        SourceProgram(Program(Order(stage, ProducerOrder(issue))))
+      )
+    ) =>
+      fail(
+        "Source producer order stage \{stage}: " +
+        @debug.to_string(issue.issue.kind),
+      )
+    Err(
+      BindingPreparation(
+        SourceProgram(Program(Order(stage, ResultOrder(issue))))
+      )
+    ) =>
+      fail(
+        "Source result order stage \{stage}: " + @debug.to_string(issue.kind),
+      )
     Err(BindingPreparation(SourceProgram(Program(Results(stage, issue))))) =>
       fail("Source Result stage \{stage}: " + @debug.to_string(issue.kind))
     Err(BindingPreparation(SourceRegistration(_))) => fail("SourceRegistration")
-    Err(BindingPreparation(SourceProgram(_))) => fail("Other SourceProgram refusal")
+    Err(BindingPreparation(SourceProgram(_))) =>
+      fail("Other SourceProgram refusal")
     Err(BindingPreparation(_)) => fail("Other BindingPreparation refusal")
     Err(_) => fail("Other lowerer refusal")
   }
@@ -44,14 +68,16 @@ test "valid unused WITH Source emits the independent source-free Program" {
     format=Json,
   ).unwrap()
   for captured in [false, true] {
-    let actual = with_demand_program(compile_query_script(
-      @query.parse_query_script(
-        "WITH unused AS (SELECT id FROM objects) SELECT 1 AS id",
-        syntax_limits(),
-      ).unwrap(),
-      source_member_context(captured~),
-      construction_limits(),
-    ))
+    let actual = with_demand_program(
+      compile_query_script(
+        @query.parse_query_script(
+          "WITH unused AS (SELECT id FROM objects) SELECT 1 AS id",
+          syntax_limits(),
+        ).unwrap(),
+        source_member_context(captured~),
+        construction_limits(),
+      ),
+    )
     assert_eq(semantic(actual), semantic(expected))
     assert_eq(@program.stage_count(actual), 1)
     // An actual provider call and its zero-I/O public receipt remain separate
