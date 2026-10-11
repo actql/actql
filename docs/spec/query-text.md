@@ -55,6 +55,12 @@ and triple quotes, and raw and decoded chunks. Without separation they are
 rejected. Quoted identifiers do not concatenate. Decoded byte, token and work
 budgets apply to every chunk, and the resulting expression's source range
 covers the original chunks and intervening trivia.
+In an explicit STRING_AGG delimiter, grouping parentheses around these literal
+chunks preserve the decoded String value. This applies to ordinary and window
+aggregates. The delimiter remains a non-NULL String literal in the selected
+profile; grouping does not admit parameters, NULL, other scalar types or
+computed delimiter expressions. The ordinary aggregate's WHERE/ORDER and the
+window's OVER/frame keep their independent scope and bounds.
 
 Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
 a name. The explicit Graph `LABELS` annotation retains its separate historical
@@ -345,7 +351,10 @@ constructs type, identity, uniqueness or order evidence. The
 is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
-parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
+parameter, including transparent grouping such as `LIMIT ((@count)) OFFSET (1)`.
+Grouping uses the existing expression budgets and does not evaluate arithmetic,
+casts, calls or row references. Names lower to the ordinary `take.count` and
+`take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no
 Frontend evaluation, coercion or default for an invalid/missing binding.
 Omitted OFFSET is the literal zero. The current common `take` contract still
@@ -448,10 +457,16 @@ syntax; the parameter is lowered to the common `preceding`/`following`
 Parameter slot. Declarations and bound values use ordinary Program checking,
 including safe-integer and interval-order validation; no default replaces a
 missing or invalid binding. This connection retains the current common
-contract's positive distances. GoogleSQL also permits zero numeric boundaries;
-that difference remains a common-contract coverage gap, not a restriction of
-GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
-are not implemented in this profile.
+contract's positive parameter distances. Literal `0 PRECEDING` and
+`0 FOLLOWING` retain their authored direction in syntax and lower to the
+existing common `current_row` boundary: the physical offset is zero. Authored
+boundary categories are checked before this projection, so an illegal
+`CURRENT ROW ... 0 PRECEDING` or `0 FOLLOWING ... CURRENT ROW` interval is not
+made legal by collapsing its endpoints. The same rule applies to named-window
+frames and the single-boundary `ROWS 0 PRECEDING` form. Bound parameter zero
+remains a common-contract coverage gap and is rejected; it is not replaced by
+an inferred default or special execution. Row-dependent and arithmetic boundary
+expressions, RANGE and GROUPS are not implemented in this profile.
 
 The selected GoogleSQL single-boundary `ROWS` form has an implicit
 `CURRENT ROW` upper boundary. `ROWS 2 PRECEDING`, `ROWS @before PRECEDING`,
@@ -530,7 +545,10 @@ Pipe `PIVOT(aggregate(expression) [AS prefix] FOR axis IN ('value' [AS name], ..
 to the ordinary common `pivot` operation. This initial surface supports one
 SUM, AVG, COUNT, MIN or MAX of a scalar expression over current or range-qualified
 input columns, parameters and existing scalar operations, or COUNT(*), a
-String axis and a nonempty list of static String bucket values. The current
+String axis and a nonempty list of static String bucket values. Parentheses
+around a bucket String literal are transparent, including nested parentheses.
+Grouping does not extend this selected subset to parameter, numeric, NULL or
+computed bucket expressions. The current
 columns not consumed by the aggregate argument or axis become implicit group
 keys in their current order. All input slots referenced by the argument, including
 receivers of property access, are consumed. A constant or parameter-only argument

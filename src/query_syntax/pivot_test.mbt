@@ -80,3 +80,37 @@ test "PIVOT COUNT star keeps its distinct argument role and the axis path" {
     _ => fail("COUNT star must remain a PIVOT")
   }
 }
+
+///|
+test "PIVOT grouping retains the decoded String bucket and explicit alias" {
+  let query = parse_query(
+    "FROM rows |> PIVOT(COUNT(amount) FOR status IN ((('open')) AS opened, (\"closed\")))",
+    query_limits(),
+  ).unwrap()
+  match operation_at(query, 0) {
+    Some(Pivot(clause)) => {
+      assert_eq(clause.values[0].0, "open")
+      assert_eq(clause.values[0].1.unwrap().value, "opened")
+      assert_eq(clause.values[1].0, "closed")
+      assert_true(clause.values[1].1 is None)
+    }
+    _ => fail("grouped literals must remain ordinary PIVOT buckets")
+  }
+}
+
+///|
+test "PIVOT grouping does not admit parameters other scalar types or computed values" {
+  for value in ["((@p))", "((1))", "((NULL))", "(('o' || 'pen'))"] {
+    let result = parse_query(
+      "FROM rows |> PIVOT(COUNT(amount) FOR status IN (" + value + "))",
+      query_limits(),
+    )
+    assert_true(
+      result
+      is Err(
+        { issue: Syntax("PIVOT currently requires constant String values"), .. }
+      ),
+      msg=value,
+    )
+  }
+}

@@ -115,7 +115,7 @@ rows_frame = "ROWS", ( "BETWEEN", frame_boundary, "AND", frame_boundary
                      | frame_boundary ) ;
 frame_boundary = "CURRENT", "ROW"
                | "UNBOUNDED", ( "PRECEDING" | "FOLLOWING" )
-               | limit_integer, ( "PRECEDING" | "FOLLOWING" ) ;
+               | ( integer | parameter_token ), ( "PRECEDING" | "FOLLOWING" ) ;
 select_list   = select_item, { ",", select_item } ;
 select_item   = ( "*" | expression, ".", "*" ), [ star_except ], [ star_replace ]
               | expression, [ "AS", identifier ] ;
@@ -126,7 +126,7 @@ order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
 limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
-limit_integer = integer | parameter_token ;
+limit_integer = integer | parameter_token | "(", limit_integer, ")" ;
 set_operator  = "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ;
 set_names     = "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
@@ -183,7 +183,8 @@ pivot_operator = "PIVOT", "(", pivot_call,
                  [ [ "AS" ], identifier ] ;
 pivot_call = pivot_aggregate, "(", expression, ")" | "COUNT", "(", "*", ")" ;
 pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
-pivot_value = query_string, [ [ "AS" ], identifier ] ;
+pivot_value = pivot_string, [ [ "AS" ], identifier ] ;
+pivot_string = query_string | "(", pivot_string, ")" ;
 unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
                    "(", unpivot_column_set, "FOR", identifier, "IN", "(",
                    unpivot_input, { ",", unpivot_input }, ")", ")", [ source_alias ] ;
