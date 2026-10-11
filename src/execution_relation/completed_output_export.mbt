@@ -364,7 +364,12 @@ fn prepare_completed_export(
     return Err(Unavailable)
   }
   guard source.table is Some(_) else { return Err(NotCellRepresentation) }
-  guard source.target is Step(_) else { return Err(InvalidTarget) }
+  guard admitted_relation_output_target(
+    @lower.sequence_owner(source.completion.sequence),
+    source.target,
+  ) else {
+    return Err(InvalidTarget)
+  }
   let rows = match result_view {
     None => completed_output_export_rows(source)
     Some((occurrence, limits)) =>

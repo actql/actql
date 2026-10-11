@@ -51,7 +51,13 @@ fn lower_script_graph_calls(
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
-    if call.operation == "union_graphs" || call.operation == "subtract_graphs" {
+    // Mean is an explicit generator, never an implicit-input Graph step.
+    if call.operation == "mean_graphs" {
+      raise Abort(InvalidQuery)
+    }
+    if call.operation == "union_graphs" ||
+      call.operation == "subtract_graphs" ||
+      call.operation == "graft_graph" {
       current = lower_script_graph_composition(
         construction, query, call, current, graphs, known, limits, steps, reserved,
       )

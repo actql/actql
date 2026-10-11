@@ -149,6 +149,8 @@ fn retained_effect_result_capture(
     Err(Receipt(_)) => ()
     Err(Context(_)) =>
       fail("missing Source evidence failed before Receipt: context")
+    Err(Bindings(_)) =>
+      fail("missing Source evidence failed before Receipt: original bindings")
     Err(Native(Export(Retain(PreviewWorkLimit)))) =>
       fail("public Result borrow refused: pin ceiling")
     Err(Native(Export(Retain(_)))) => fail("public Result borrow refused")

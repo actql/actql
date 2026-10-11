@@ -329,6 +329,7 @@ pub fn append_with_properties(
   builder : @builder.Builder,
   max_work : Int,
   resolve_parameter? : ((String) -> Result[String, Issue])? = None,
+  resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
 ) -> Result[@builder.Node, Diagnostic] {
   append_resolved(
     ast,
@@ -338,6 +339,7 @@ pub fn append_with_properties(
     max_work,
     true,
     resolve_parameter,
+    resolve_row,
   )
 }
 
@@ -353,9 +355,11 @@ pub fn append_with_macros(
   max_work : Int,
   resolve_properties? : Bool = false,
   resolve_parameter? : ((String) -> Result[String, Issue])? = None,
+  resolve_row? : ((Array[@query.NamePart]) -> Array[(String, String)]?)? = None,
 ) -> Result[@builder.Node, Diagnostic] {
   append_resolved(
     ast, resolve, resolve_macro, builder, max_work, resolve_properties, resolve_parameter,
+    resolve_row,
   )
 }
 
@@ -368,6 +372,7 @@ fn append_resolved(
   max_work : Int,
   resolve_properties : Bool,
   resolve_parameter : ((String) -> Result[String, Issue])?,
+  resolve_row : ((Array[@query.NamePart]) -> Array[(String, String)]?)?,
 ) -> Result[@builder.Node, Diagnostic] {
   if max_work < 0 {
     return Err({ issue: InvalidLimits, origin: None, })
@@ -472,11 +477,37 @@ fn append_resolved(
                 length -= 1
                 name = resolve(parts[:length].to_owned())
               }
-              let name = match name {
-                Some(name) => name
-                None => raise Abort(UnknownReference)
+              let mut value = match name {
+                Some(name) => lowering.form("field", lowering.add(String(name)))
+                None => {
+                  guard parts.length() == 1 &&
+                    resolve_row.bind(resolver => resolver(parts))
+                    is Some(fields) else {
+                    raise Abort(UnknownReference)
+                  }
+                  // The scope supplies only field names and evaluated slots.
+                  // Charge construction before appending; the common object
+                  // checker/evaluator owns field typing and value demand.
+                  if max_work - work < 2 {
+                    raise Abort(WorkLimit)
+                  }
+                  work += 2
+                  let properties : Array[(String, @builder.Node)] = []
+                  for (property, slot) in fields {
+                    if max_work - work < 3 {
+                      raise Abort(WorkLimit)
+                    }
+                    work += 3
+                    properties.push(
+                      (
+                        property,
+                        lowering.form("field", lowering.add(String(slot))),
+                      ),
+                    )
+                  }
+                  lowering.form("object", lowering.object(properties))
+                }
               }
-              let mut value = lowering.form("field", lowering.add(String(name)))
               for part in parts[length:] {
                 if work >= max_work {
                   raise Abort(WorkLimit)

@@ -1,5 +1,7 @@
 ///|
 struct CheckedProgram {
+  completion_free_audit : CompletionFreeAudit
+  local_completion_free_audit : CompletionFreeAudit
   has_effects : Bool
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
@@ -105,6 +107,8 @@ fn check_supported_source(
               | "match_nodes"
               | "match_edges"
               | "traverse"
+              | "reach"
+              | "shortest_path"
               | "subgraph"
               | "degree"
               | "graph_bounds"
@@ -113,6 +117,8 @@ fn check_supported_source(
               | "apply_graph_delta"
               | "graph_diff"
               | "union_graphs"
+              | "graft_graph"
+              | "mean_graphs"
               | "subtract_graphs"
               | "components"
               | "to_vectors"
@@ -305,6 +311,12 @@ fn check(
     error => raise Units(error)
   }
   {
+    completion_free_audit: audit_completion_free_units(units),
+    local_completion_free_audit: if effect_headers is Some(_) {
+      ProfileNotInstalled
+    } else {
+      audit_local_completion_free_units(program, units)
+    },
     has_effects: effect_headers is Some(_),
     keyed_input_proofs,
     nest_limits,

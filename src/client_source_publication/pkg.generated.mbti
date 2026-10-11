@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_source_publication"
+
+import {
+  "actql/actql/program_check",
+  "actql/actql/query_program",
+  "actql/actql/source_frontend",
+}
+
+// Values
+pub fn bind_published_query_context(@program_check.CheckEnvironment, String, String?) -> Result[@query_program.Context, PublicationIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum PublicationIssue {
+  Publication
+  Limit
+  UnsupportedCarrier
+  Declarations
+  Alias(@source_frontend.AliasIssue)
+}
+
+// Type aliases
+
+// Traits

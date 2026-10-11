@@ -21,7 +21,7 @@ does not check a Program or admit a Run.
 
 An allocation is retired before cleanup. Readers must acknowledge physical stop
 before their exact borrow is returned. Failed stop or cleanup retains the same
-handle and allocation for retry. The root reservation is settled only after all
+handle and allocation for retry. The pool's reservation is settled only after all
 allocations are released. Closing a pool blocks further admission immediately.
 
 ## Instance-private Wasm facade
@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 1; this private ABI
+before opening the instance. `actql_host_abi_version` returns 20; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -59,8 +59,12 @@ Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
 
 All exports use scalar arguments. Input chunks are ordered, at most 16,384 bytes,
-and admitted before the physical callback runs. The three imports are
-`actql_host.input_byte`, `input_cleanup` and `reader_stop`. Bytes must be in
+and admitted before the physical callback runs. Input imports are
+`actql_host.input_byte`, `input_cleanup` and `reader_stop`. Native physical facts
+use distinct `native_settled`, `native_stopped` and `native_cleaned` imports.
+Only exact boolean true is acknowledged; unknown handles, exceptions and truthy
+values remain pending. Stop or cleanup does not imply a committed read view,
+and a committed view does not imply stop or cleanup. Bytes must be in
 0..255. Cleanup and stop return zero only when the corresponding physical fact
 has completed; nonzero retains custody. Adapters must convert physical failures
 to pending results rather than destroy the instance holding cleanup obligations.
@@ -90,6 +94,94 @@ not account for parsed object metadata, the complete Wasm heap, Python retained
 objects, DuckDB workspace or aggregate Local execution. A product Host must
 reserve and account for those resources using their existing Owners before
 claiming an aggregate execution bound.
+
+`open_pool_on_ledger` composes the existing transfer pool with an installed
+Host root Ledger. Its shared reservation competes with the same root's
+workspace and other pools before transfer allocation. Closing the pool settles
+only that pool's lease; it cannot return another workspace reservation or hide
+another pool's cleanup. Failed cleanup retains the same root reservation and
+allocation, including when independently valid concurrent pools exhaust the
+aggregate allowance. Standalone `open_pool` uses the same implementation with
+its own bounded Ledger. This composition hook does not establish that all
+product components are already connected to the root.
+
+`reserve_workspace` reserves the configured physical allowance on that same
+existing Ledger before physical allocation. `close_workspace` marks cleanup
+pending, then waits separately for physical stop and physical cleanup. It
+retains the same loan/reservation on either failure and remembers successful
+observations, so settlement retry does not repeat physical cleanup. Logical
+Compute completion, cancellation requests and transfer-pool closure cannot
+return this allowance. The trusted physical adapter must supply observations
+of the exact reserved workspace; this binding does not authorize I/O or imply
+that the product's complete runtime footprint has been accounted for.
+
+## Physical DuckDB boundary
+
+The private Python adapter loads an explicitly installed standalone DuckDB C
+library with a verified digest and selected version. It neither discovers a
+Node package at runtime nor falls back to the Python extension's unbounded
+row-fetch APIs. The existing native adapter's C layouts and scalar row/field
+codec are shared boundary references. Canonical environment settings are
+generated from `adapters/connectors/duckdb/environment-contract.json`.
+
+Before opening a database, the product Host must reserve the native workspace
+through the existing Core resource Owner. The adapter applies a memory limit,
+one worker, disabled external access and extension loading, and no temporary
+spill. These physical settings alone are not an aggregate memory guarantee.
+
+SQL arrives from the existing checked acquisition Owner. The physical adapter
+does not parse, authorize or repair it. The private physical binding profile accepts the existing Core BOOLEAN,
+DOUBLE and VARCHAR projections, including explicit NULL. DOUBLE is transferred
+using the existing sixteen lowercase hexadecimal IEEE-bit payload; text uses
+length-aware binding and preserves Unicode, CR/LF and embedded NULL. DATE,
+TIMESTAMP and DECIMAL binding are not yet supported by this physical profile.
+These capabilities must be checked before product dispatch. Missing parameters
+are a count mismatch, not NULL or a default value. Unsupported native types are rejected before rows
+are fetched. Core remains responsible for pre-execution Capability admission.
+
+Row and metadata encoding writes only into a bounded, caller-reserved bytearray.
+Native VARCHAR length is inspected before any Python cell copy. JSON escaping
+cannot grow that buffer, numeric payloads follow the existing native codec,
+and raw Unicode, embedded NULL and line endings are preserved. Parameter input
+is an immutable tuple of at most 32 scalar projections. Each text copy is
+counted in UTF-8 before allocation against both the cell ceiling and the
+remaining shared parameter-copy allowance (the row-byte ceiling). All payload
+checks precede native preparation; exact native arity and binding checks
+precede execution. The product reservation must account for simultaneous Core
+input, Python encoded parameters and DuckDB-owned parameter copies. A capacity
+failure does not deliver a partial row, claim EOF or authorize a repeated query.
+
+For the existing Native receipt decoder, `read_column_row` writes one-row
+column vectors directly into that same reserved buffer. For example, native
+row `["7",null]` becomes `[["7"],[null]]` with a claimed row count of one.
+No intermediate parsed row or transposed copy is retained. Both framing
+methods consume the same native cursor and share its row and byte ceilings.
+The existing Core receiver validates column shape, counts, schema, values and
+cumulative limits; the physical encoding does not certify a Source receipt.
+
+`begin_read_view` retains one physical transaction on the same connection used
+for metadata, validation and processed-result queries. The fixed transaction
+control commands do not introduce a query parser or authorize Source access.
+Only a successful observed COMMIT sets the physical `committed` fact. All query
+streams must release their exact native handles before commit or view teardown.
+The Core Native attempt Owner still decides whether that settled view belongs
+to its issued attempt and whether the receipts establish a capture.
+
+A missing control reply is not settlement or permission to repeat the command.
+Failed BEGIN/COMMIT/ROLLBACK retains the same read-view and result handles. After
+result cleanup, disconnect physically terminates an unresolved view without
+replaying control I/O. Closing a readable, unfinished view rolls back once;
+rollback never reports commit. A known COMMIT survives a later result-cleanup
+failure, while connection release remains pending until the result is actually
+destroyed. Busy I/O or failed destruction retains custody for the same-handle
+retry. Read-view close is physical cleanup, not cancellation of a Run.
+
+Statement, result, chunk and logical-type handles belong to the exact physical
+connection and stream. Copied handles are refused. Interrupt delivery is not
+physical-stop acknowledgement or a Run cancellation result. While native I/O
+is active, close remains pending; failed destruction retains the same handles
+for retry. Closing a connection waits for its stream custody to settle and
+never starts another query or decides a Run outcome.
 
 ## Execution boundary
 
@@ -121,4 +213,799 @@ no bindings and grants no Run admission, execution or Result access.
 Run admission, checked task progress, publication, cancellation eligibility and
 durable recovery remain MoonBit Owner responsibilities. Python provides physical
 callbacks and persistence, not a second Run or recovery state machine. This
-transfer facade provides no execution or recovery operation.
+transfer facade provides no task dispatch or durable recovery start.
+
+## Checked task Host
+
+The single-Source relation profile defines its Run before acquisition using the
+same request, compilation and publication Owners as the source-free profile.
+Neither profile grants physical Source access. Unsupported Graph/Model/Effect
+paths remain outside this installed profile.
+
+The existing physical-start Owner's accepted decision is retained against the
+exact plan before Source I/O. The verified capture is then borrowed by the
+existing captured Local Host. Compute binds that retained decision rather than
+claiming the Run is still physically unstarted after acquisition. A decision
+from another plan cannot authorize this Host. Current authorization is still
+checked at each task activation.
+
+The private `actql_run_reserve_physical_start` scalar entry retains one exact
+immutable fact loan and the installed current account configuration against the
+original Run handle. Its closed object contains the original request record,
+`definition_cid`, and explicit boolean facts `reserved`, `physically_unstarted`,
+`cancellation_requested` and `pre_start_failure_confirmed`. Missing or NULL
+facts are malformed physical Host input, never false or a default value. The
+physical adapter must obtain these facts from its durable original journal and
+resource reservations; neither a Client payload nor preparation can supply
+proof that they are true.
+
+`actql_run_confirm_physical_start` admits the retained request through its
+existing codec and calls the common Run start Owner under current subject-bound
+authorization. The input loan and Run remain live during an interrupted call.
+One original Run handle reserves at most one start invocation, including after
+that invocation closes. A known result may be observed again without redoing
+the evaluation. Unknown, interrupted or malformed invocations cannot silently
+replace their facts, reserve another start or imply unstarted physical work.
+The readiness status is not a durable Submission response or evidence that I/O
+was dispatched. Closing this loan requires physical reader-stop acknowledgement
+and does not cancel or rewrite the original Run.
+
+Captured root inputs and completed Compute producers use the existing managed
+driver's distinct input variants. The common compute Host refreshes its normal
+estimates/selection before dispatch; no Python task counter or replacement
+selector is introduced. Source capture custody outlives its consumers, and
+closing Compute does not revoke the caller's acquisition Owner.
+
+`configure_captured_source_local_compute_on_ledger` routes the single verified
+capture through the same existing captured DAG and retained Compute driver
+using the installed Host root Ledger. The Local Host does not create another
+Ledger for this path. Transfer pools and independent Host workspace can remain
+reserved on that root while tasks run. Task/output cleanup settles its own
+reservations; it neither returns the workspace lease nor fabricates cleanup
+for another component. Run and per-task authorization checks remain required.
+The existing two-Source path retains its exact prefix and binding checks.
+
+`configure_local_native_source` binds one existing checked query requirement to
+the installed physical database/schema/table and its read account, access tuple
+and context. The configured Native candidate requires the existing registered
+receipt Capabilities; publication or a general Allow entry cannot manufacture
+them. The caller principal must match the original Run, while physical read
+authority remains separate from Run activation authority.
+
+`start_local_native_source` requires that exact plan's retained pre-I/O start
+decision and a current Acquisition permit bound to the requirement CID, read
+tuple and context. Revoked authority, a different database, another requirement
+or another Run's start decision is refused before an attempt is issued. The
+existing Native acquisition Owner alone validates metadata, both receipts and
+the settled read-view observation. The installing Host must retain the issued
+attempt and durably record its physical invocation; these in-process adapter
+values neither reserve the whole runtime nor establish process recovery.
+
+The private `actql_source_reserve_configuration` entry retains the installed
+physical configuration loan against the original Run. `actql_source_configure`
+selects its explicit checked `stage` and `source_index` through the existing
+query-requirement Owner; no frontend or Python pipeline scanner derives another
+query. Its closed object carries the installed engine/receipt contract bodies,
+database schema/table, read account/tuple and context. Optional fragment and
+ordered contract bodies may be absent; explicit NULL is malformed configuration
+rather than an absent contract or a query value. Core admits all supplied
+contracts and the registered receipt Capability before configuration is ready.
+
+An interrupted or malformed configuration cannot silently invoke its constructor
+again. Its borrow keeps both the original Run and input alive until physical
+stop acknowledgement. Configuration readiness performs no physical database
+operation, reserves no Native workspace, and grants no read or completion
+authority. Native invocation, both receipt streams and the exact settled
+read-view callback remain separate from configuration readiness.
+
+One original Run handle reserves one Native configuration, and that
+configuration reserves one attempt, including after either closes. The private
+`reserve_attempt` entry retains the exact accepted original Run-start token and
+an immutable current-read-account/attempt-nonce loan before construction can
+trap. `start` delegates current read authorization and issuance to the existing
+Owners. Its settlement verifier accepts only its exact issued Native attempt
+and the trusted physical read-view fact for that private handle. Another
+attempt, a Run activation permit or a fabricated completion cannot substitute.
+
+`actql_source_accept` admits one closed physical event at a time under the
+current read account: kind 1 metadata (`rows`, `fields`, `columns`), kinds 2/3
+ValidationScan/NativeResult begin (`fields`), kind 4 chunk (`rows`, `columns`),
+kind 5 receipt finish, and kind 6 completion. All envelopes also contain
+`read_account`; fields/columns use the existing bounded physical codecs.
+Existing Native Owners enforce receipt order, schema, counts, values, limits
+and exact settlement. Malformed or refused events abort that attempt rather
+than allow a later valid chunk to hide the rejected input. An interrupted
+event leaves its invocation pending and its input borrow retained.
+
+`close_event` only retires the already evaluated input borrow after physical
+reader-stop acknowledgement; retry never evaluates that event again.
+`completed` reports Native receipt completion, not Run success or publication.
+Attempt close blocks further events, waits for actual physical stop, closes its
+Native Owner, and then waits separately for physical cleanup and both input
+borrow retirements. Failure retains the same handle and parent loans. Run,
+configuration and start-token release cannot bypass those obligations. The
+Host must still reserve aggregate workspace and durably record physical query
+invocations before using this connection for execution.
+
+The private Python bridge registers settlement, physical-stop and cleanup
+observers against the exact issued attempt before its start call. It retains
+those observers and the same identity-bearing loan until Core acknowledges
+retirement. A copied/foreign loan cannot start, feed events or close the attempt.
+Pending cleanup and trapped calls retain custody; neither invokes a replacement
+attempt. Receipt completion is exposed separately from the Run outcome.
+
+`reserve_command` retains current account input and reserves a 100,000-byte
+output allowance before `produce_command` emits the existing Core Native SQL
+and prepared physical parameters. Command kinds 1/2/3 project metadata,
+validation and processed-result queries. The shared parameter codec preserves
+type identity even for NULL; the initial installed Python binding profile is
+BOOLEAN/DOUBLE/VARCHAR. Unsupported native parameter types are refused before
+physical Source I/O. Python consumes this closed projection with its shared
+JSON admission and existing physical binding adapter; it does not parse,
+lower, repair or rebuild SQL.
+
+An output-reservation refusal still returns the issued command custody handle
+when its account loan already exists. Producing that handle reports the retained
+reservation refusal. Output cleanup, including an unallocated registered
+physical destination, completes before account-borrow retirement. Cleanup
+failure retains the same descriptor quota and parent attempt, and successful
+physical cleanup is remembered if later input-stop acknowledgement is pending.
+Interrupted production cannot silently produce again. Projecting or reading
+these bytes is neither physical dispatch nor permission to resend them.
+
+The private Python bridge keeps command and Run-material output loans distinct.
+Both use the same bounded byte-copy and cleanup implementation; cross-family,
+copied and foreign loans fail before Wasm I/O. Command reservation registers the
+physical destination before entering Core, and a refused issued reservation
+remains available for retirement through that exact loan. No partial copy is
+cached as a command, and a Core trap does not automatically invoke it again.
+
+`client_local_run` installs the existing retained Local compute driver for a
+checked source-free plan. Configuration opens task Owners and resource accounting
+without physical dispatch. Registry, Values, ordered derive and expression
+fragment bodies are admitted through the existing engine contracts. The existing
+registry generator supplies these bodies to the focused Core consumer; expected
+rows remain independently authored.
+
+Before the first task activation, the physical Host must supply the original
+durable request, definition identity, reservation, physical-start and cancellation
+facts to `confirm_local_compute_start`. The existing Run start Owner decides
+whether those facts permit work. Its accepted result is retained as an opaque
+`LocalComputeStart` bound to the exact configured Host. Configuration alone,
+another Host's decision, or a cancelled/pre-start-failed request cannot authorize
+task dispatch. These in-process values do not constitute durable journal records.
+
+Every `start_local_compute_task` matches the original subject, account, access
+tuple and context against the current authorization. The checked DAG supplies
+the next task and exact producer occurrences; the managed driver checks the
+completed input materials and resource obligations. Activation consumes the
+existing task Owner's exact revision-bound, single-use grant. The authorization
+Owner projects its already evaluated dispatch action; callers cannot manufacture
+the read-only action constructor. No Python task counter or recovery decision is
+introduced.
+
+Managed operations retain their existing quantum, finalization, stop and cleanup
+interfaces. Their retained outputs remain charged until those Owners release
+them. A missing next task proves neither public Run success nor Named Result
+publication. Durable admission, publication storage and restoration of completed
+materials must be connected separately before the ordinary Python Client can
+advertise Local execution.
+
+## Physical persistence
+
+The private Python `LocalByteStore` provides opaque byte storage and an atomic
+compare-and-exchange. It does not decode Program, Submission, Run, task or Result
+records. The existing Core must issue and re-admit their closed records, original
+identities and transitions. A missing physical row is not a Source absence fact
+or permission to retry an operation. A store generation is only a physical CAS
+token; it is not a Run revision, observation cursor or execution epoch.
+
+The SQLite file uses a closed private physical schema and format identity. An
+unknown format is refused without migration or deletion. The trusted Host supplies
+a private owned directory; files are created with owner-only permissions and
+existing symlinks or nonprivate files are refused. This physical adapter requires
+POSIX ownership checks and SQLite STRICT-table support. Those requirements do not
+apply to importing or using the Remote Client.
+
+Transactions use SQLite's existing exclusive write serialization and FULL
+synchronization. Competing generations cannot replace one another. A failed
+commit acknowledgement remains an exception; the adapter neither reports success
+nor repeats the write. The Host must read the same original bytes and let Core
+decide the next operation. If both commit and rollback fail, the retained connection cannot return its
+uncommitted bytes or accept another write. Only its pending cleanup may proceed.
+Close releases the connection, preserves persisted records and performs no Run
+cancellation or recovery. Failed close retains its
+exact cleanup handle, including initialization failures.
+
+Record count, individual byte length and aggregate payload length have explicit
+physical ceilings. Oversized retained rows are refused before returning their
+payload to Python. These payload limits do not cover the SQLite page cache,
+rollback journal, file/schema overhead, Python descriptors, Core Wasm memory or
+DuckDB workspace. Their simultaneous holdings still require the existing shared
+resource Owner; a byte-store test alone establishes no aggregate Local bound or
+successful Run recovery.
+
+## Original Core material transfer
+
+The private `actql_material_*` family projects records from an existing prepared
+Run. `reserve` selects checked materials (1), the original request record (2),
+the original definition CID (3), or exact authored input bytes (4). It reserves
+a 1 MiB output allowance before invoking an encoder. Its physical copy allowance
+covers simultaneous Python destination and immutable byte copies. This is a
+transfer reservation, not an aggregate Core encoding or execution guarantee.
+The existing materials encoder retains its stricter closed-record limits.
+
+`produce` uses existing Owner projections. Its handle is issued before encoding,
+retained on interruption, and never implicitly retried after a trap. Repeating
+a completed projection reads the same output. Output slots cannot be filled or
+sealed as authoring inputs and expose no parsed source-node capability. Their
+actual byte length is independent of the reserved upper bound; empty output is
+distinct from incomplete output. `actql_buffer_byte` reads these immutable bytes
+under the same instance and loan. The original Run cannot close while an output
+handle remains live. Output retirement requires the same physical cleanup
+acknowledgement as input transfer and retains its capacity on failure.
+
+Python retains an exact output-loan object; copied or foreign objects cannot
+retrieve or release its bytes. Allocation of the large destination follows Core
+reservation. Reads are bounded to the admitted length and do not store partial
+records on invalid lengths, invalid bytes or traps. A physical adapter must
+finish consuming the borrowed bytes before acknowledging output cleanup.
+
+`reserve_restoration` retains an immutable input loan before codec admission.
+Its closed physical envelope contains `materials` and
+`expected_run_definition_cid`, both strings. The trusted Host supplies the
+retained original CID; neither field is a caller grant. `restore` invokes the
+existing task-Run materials Owner and keeps the exact typed outcome. `restored`
+reports private readiness only: 0 is codec admission, -32 a typed rejection,
+and -33 no completed outcome. Closing restoration waits for physical stop.
+
+These projections and codec admissions perform no Run acceptance, durable
+commit, Source acquisition, task dispatch, publication or recovery start. The
+saved exact authored input and request are separate records from lowered Program
+materials. The product Host still needs to connect original journal facts,
+current authorization, completed retained outputs and publication Owners before
+it can resume the original Run. Earlier ABI modules are refused by the ABI 23 bridge;
+no compatibility adapter or alternate runtime route is retained.
+
+## Original execution Owner restoration
+
+The captured-Source profile uses
+`restore_captured_source_local_run_from_materials` against the same readmitted
+task materials Owner. The restored compilation, admission and Run definition
+remain one physically bound set. Fresh authored provenance must have identical
+checked Program/parameter and environment identities; it cannot substitute its
+execution Owner. The exact original request, authority scope, current account,
+execution context and policy remain required. Source-free and captured profiles
+are selected explicitly from the checked acquisition inventory, not retried as
+fallbacks after semantic refusal.
+
+Restoring that plan is distinct from restoring completed Source bytes. The
+existing Source capture codec binds the saved descriptor and rows to its exact
+requirement CID and original Run binding. Receiving custody owns its own
+lifetime: loss or close cannot acquire or revoke the original capture. Neither
+codec readmission nor configuration authorizes Source I/O, proves a completed
+task or starts replacement work. Durable process recovery must subsequently
+re-admit the saved completed Source/Compute and publication facts through their
+existing Owners before deciding the next permitted action.
+
+`restore_source_free_local_run` retains the material codec's original checked
+Owner, task compilation, admission and definition. It does not issue a new Run
+definition or refresh its lifetime. Fresh preparation of the saved authored
+input supplies provenance separately; its identity and checking environment
+must match the retained execution Owner. An equivalent fresh checked object
+cannot replace the exact Owner retained by the compilation. Compute setup and
+activation therefore consume `local_run_prepared`, while authored diagnostics
+retain the separate original input.
+
+Restoration checks the current subject-bound authorization, original request
+relation, authority scope, execution context and Host policy through existing
+Owners. The typed-material overload checks physical compilation binding even
+when callers assemble the public material fields themselves. Neither overload
+changes durable reservation, physical-start, completed-task or publication facts.
+
+The private `actql_run_restore` entry consumes an already readmitted material
+handle and a Run handle reserved against the saved request record. It does not
+decode and compile the materials a second time. Its installed configuration
+supplies the current Account Owner, tuple, context, policy and authority scope.
+A handle selects compilation or restoration once; another operation or material
+handle cannot replace a completed or interrupted invocation. The material loan
+remains live until dependent Run handles close. This is plan restoration only;
+original process recovery still requires durable completed-output, start,
+publication and cleanup observations from their existing Owners.
+
+## Installed Source publication
+
+The private `actql_program_install_source_environment` takes one
+pre-reserved, closed Host configuration with `environment` and `publication`
+strings. The original canonical environment is admitted by the existing Check
+Environment Owner. `client_source_publication` contains the same publication
+interpretation used by the Node Host: generation, Source View, schema, policy,
+Source reference and alias checks precede query binding. The Source-backed
+profile and source-free profile remain explicit supported configurations;
+neither performs Source I/O or grants read authority during installation.
+
+The installed input loan outlives all dependent preparation and Run handles.
+Exported original Run materials carry the admitted environment wire, rather
+than mistaking its outer Host configuration for an environment. Publication
+metadata and authored Program/AQL remain distinct. The scalar Run adapter
+selects the existing single-Source or source-free compilation profile from the
+checked acquisition inventory; unsupported profiles are refused by those
+Owners before physical dispatch. This boundary does not provide durable
+acceptance, an acquisition callback or recovery of completed physical work.
+
+## Interrupted physical bridge calls
+
+An exception after entering Wasm puts the private bridge into closing mode.
+It retains the instance, original physical tickets and issued loans; fresh
+reservation, transfer production, Native start and receipt feed are refused
+before further I/O. Explicit retirement of an existing loan remains possible.
+This barrier does not assert that a trapped Core retired its resources, refill
+instruction fuel, retry the interrupted operation or dispose a pending Run.
+
+## Installed Host root capacity
+
+The installed Host requires explicit trusted Host resource limits when opening the
+instance. The existing Ledger reserves the fixed 16 MiB linear-memory allowance
+and the configured transfer pool. Physical workspace loans reserve against
+that exact Ledger; concurrent workspace and transfer allowances cannot each
+spend the same remaining capacity. The scalar configuration is range-checked
+before optional engine import and admitted again by the existing Core Ledger.
+The instruction fuel policy is independent and unchanged.
+
+`actql_workspace_reserve` registers a pre-I/O workspace loan and
+`actql_workspace_close` retires that same loan after separate physical-stop
+and cleanup callbacks. A workspace ticket cannot also select a transfer or
+command output. Python keeps the issued identity-bearing loan; copied, foreign
+and cross-family loans fail before I/O. Rejected reservation removes the
+unissued Python registration, while a trap retains it and closes admission.
+
+`actql_buffer_reserved` reports that pool's live lease; the new
+`actql_workspace_root_reserved` reports all live execution-resource reservations
+on the shared root. Pool close releases only the pool and waits for workspace
+retirement before acknowledging Host retirement. The fixed Wasm lease is marked
+cleanup pending and remains reserved while the Store is still alive. Physical
+Store/Linker/Module/Engine disposal belongs to the same Python bridge and keeps
+failed handles for retry. No logical operation reports that live Wasm memory
+has already been returned.
+
+Bootstrap loads the bounded installed module before its own in-module Ledger
+can run; it starts no Run or Source I/O. This connection does not yet establish
+full product accounting for Wasmtime compilation/code memory, Python metadata,
+parsed command values, SQLite cache or DuckDB workspace. The installed assembly
+must bind the remaining physical limits and reservations before advertising an
+aggregate runtime guarantee.
+
+## Physical DuckDB workspace assembly
+
+The private `DuckDBWorkspace` obtains an existing Core workspace loan before
+entering database configuration/open/connect. Root-capacity rejection therefore
+starts no native database operation. Its callbacks bind the same connection
+and original loan; failed native construction keeps its original cleanup handle
+and Root reservation rather than opening another database.
+
+Stop observation first seals new connection I/O and then inspects the original
+I/O lock. Busy physical work remains pending; coroutine cancellation does not
+substitute for that observation. Statement and read-view handles must still
+complete cleanup before the connection can close and release its reservation.
+The assembly neither requests interruption nor changes a Run's terminal state.
+
+The trusted Host must obtain Source/Run authorization from existing Core Owners
+before calling this physical assembly. Its configured workspace envelope and
+DuckDB buffer-manager memory limit are distinct. This connection does not claim
+that the buffer-manager setting limits every DuckDB allocation, or that all
+Python/native runtime memory is already covered by the product Root budget.
+
+## Exact Native capture into Compute
+
+Private ABI 8 adds `actql_compute_reserve/configure/configured/close`. Reservation
+borrows the immutable configuration before evaluation and is issued only once
+for the exact completed Native attempt. It does not activate a task. The closed
+configuration carries current `read_account`, `registry`, `values`, optional
+`fragment` and optional `ordered` bodies; explicit NULL is not an omitted body.
+
+Configuration rechecks the existing read Account Owner, asks the Native Owner
+for the exact bounded buffered capture, and configures existing captured Compute on the
+same root Ledger. It binds the original accepted `LocalRunPhysicalStart`; no
+fresh physically-unstarted assertion or replacement Run start is manufactured.
+The Host reference is retained before start binding. Interrupted construction
+keeps its pending record, input borrow and Native parent rather than declaring
+cleanup safe or silently invoking construction again.
+
+Native attempt closure waits for its Compute children. Compute retirement stops
+new work, closes each existing result port and refreshes the existing task
+Owner. `captured_task_retirement_pending` observes tracked task/result records
+and pins, independent of other root workspace reservations. It excludes
+caller-owned Source captures and resident-environment responsibilities, which
+remain with their existing Owners. The sealed Local profile preserves those
+boundaries. Configuration/readiness is not dispatch, publication or success.
+
+## Managed task custody
+
+Private ABI 9 adds opaque task reservation, activation, bounded input feeding,
+execution, finalization and retirement. Reservation selects the next task from
+the existing captured strategy; Python cannot supply a task identity, rows or a
+completion assertion. Activation rechecks the current Account and binds the
+original accepted Compute start through `start_local_compute_task`.
+
+Input feeding copies only the original Native capture or an exact completed
+producer from the same Compute Host. Each call advances within its explicit
+positive quantum. Completion requires the existing driver's distinct execution
+and finalization progress, settlement and completed-output decision. Progress is
+cleared between execution and finalization, so execution completion cannot be
+reused as finalization evidence. These facts do not establish public Run success
+or Named Result publication.
+
+A task retains its Compute and current-configuration parents until existing
+physical-stop and cleanup observations allow retirement. A producer cannot
+retire while another retained task refers to its output. Failure or an
+interrupted invocation keeps the original handle; the bridge neither replaces
+the invocation nor manufactures completion. Result publication, durable
+recovery and the ordinary Client facade remain separate connections.
+
+## Checked Result export custody
+
+Private ABI 10 adds Result preparation and bounded physical chunk loans. A
+reservation selects the checked Named Result occurrence from the same captured
+Compute graph and accepts only its exact live completed task. Python cannot
+replace the producer with a schema-equivalent output. The existing managed
+publication bridge re-admits original retained rows, and the existing captured
+Result transformation Owner holds the Result pin through preparation and its
+transfer to the export. Input feeding and transformation advance with explicit
+positive quanta.
+
+The private profile limits each payload batch to 65,536 bytes, total export
+wire to 1,000,000 bytes and rows to 100,000. Existing value, schema, mapping,
+ordering and workspace limits remain separate enforced obligations. These
+ceilings do not override a checked Program or its root capacity. They are not
+a guarantee that every Python, Wasmtime or native allocation is already covered
+by the product memory budget.
+
+Each chunk obtains its existing buffer reservation before advancing the export
+or allocating a Python destination. Only one issued chunk can remain live per
+export. Repeating production of a known chunk reads its retained decision;
+neither an acknowledgement loss nor another Python copy advances the exporter.
+Capacity refusal still returns cleanup custody. A pending close seals the chunk
+against production and retains that original handle for cleanup retry. Physical
+ticket uniqueness applies across inputs, workspaces, Native commands, materials
+and Result chunks, including refused output reservations.
+
+The final marker comes only from the export Owner's successful finish. It is
+neither durable publication nor Run success. Closing an export waits for its
+physical chunks and releases only its existing Result pin/bridge; closing its
+parent task waits for retained exports. Public read authorization, durable
+publication/replay, original Run admission and the ordinary Python Client
+connection remain additional boundaries. This ABI grants no public Result
+access and performs no Run cancellation or automatic execution/replay.
+
+Private ABI 11 adds a scalar projection of the retained Native configuration
+issue for trusted physical Host diagnosis. It preserves the original typed
+failure and distinguishes setup boundaries without interpreting messages or
+dispatching a replacement attempt. These private categories are not public
+Source reasons; caller disclosure and public diagnostic contracts remain
+separate gates.
+
+The current receipt ABI selects the existing non-streaming Native receiver.
+Before constructing that receiver, Core reserves its declared buffered retention
+and materialization capacity on the same Root Ledger. Compute captures that
+receiver through `capture_native_host_source` with the buffered profile; it does
+not request a retained stream material that was never staged. The reservation
+outlives every Compute and Result consumer and is settled only after physical
+stop, Native closure and physical cleanup. A failed cleanup keeps the original
+attempt handle and its reservation. Root pool closure refuses remaining Native
+and downstream custody instead of clearing those records. This is a declared
+bounded envelope, not a claim about total Python/JIT/allocator RSS.
+
+Private ABI 12 exposes the original retained task issue category to the trusted
+physical Host. It does not infer failure from an error message or expose Source
+metadata to a caller.
+
+Private ABI 13 reads an existing strategy assessment and its exact Root capacity
+and reservation quantities. It does not rerun search, derive admission from
+explanation text, or change a Run. The trusted Host may inspect the reported
+resource rejection before fixing its preflight inventory. A single assessment
+is not a claim that all strategies were explored.
+
+
+Private ABI 14 exposes the existing single-capture Local capacity inventory
+through `actql_source_capacity`: retained, execution ceiling and transfer bytes.
+The checked requirement must match the installed Native configuration; the same
+Compute sequence/store inventory sizes the retained suffix. Native retained
+capacity is additional to that suffix, under the existing 512 MiB inventory
+ceiling. This query starts no physical I/O and grants no reservation, Source
+permission or execution guarantee. Root admission still checks overlapping
+Wasm, transfer, DuckDB, Native and Compute reservations. Earlier modules are
+rejected rather than adapted.
+
+## Durable dispatch reservation boundary
+
+Private ABI 15 projects `actql_run_dispatch_action` from the existing common
+Run-start Owner. The trusted Host supplies the exact retained request record,
+Run Definition CID and closed physical journal facts. Current installed Account
+authorization and the original context/tuple are checked in Core. The result
+is either ReserveDispatch or ReconcileReservedDispatch; malformed records,
+foreign handles, changed intent, Run identity and authority are rejected.
+
+The physical Python adapter performs one compare-and-exchange after that
+decision. A competing generation or lost commit acknowledgement is unknown;
+there is no automatic retry. Reconciliation reads the original record and
+evaluates current Core authority again. Physical CAS generation is distinct
+from the Run/control revision. A dispatch reservation is neither Submission
+admission nor a physical-start claim, and cannot authorize Source or Compute.
+The separate existing physical-start Owner and atomic start claim remain
+mandatory before physical I/O. No missing record supplies evidence about
+previous execution. Closing the byte store cancels no Run.
+
+The journal adapter stores physical flags with the original Core-issued request
+kept as an exact string. It does not normalize or reissue the request. Original
+materials, public Submission/epoch binding, durable Result publication and
+whole-product resource accounting are separate required product connections.
+
+### Submission epoch and identity projection
+
+Private ABI 16 adds `actql_submission_reserve`, `produce`, `length`, and
+`close`. The trusted Local Host installs its current account/access tuple and
+authority scope before reserving an epoch or reference projection. Core checks
+that tuple through the existing Account Owner, binds the exact authority scope,
+and delegates epoch encoding, CID, caller identity and half-open validity to
+the existing Submission Owner. This projection never admits a Run or starts
+Source, Compute, Model or Effect. Expired references retain their identity for
+original-operation lookup; that does not authorize a new admission.
+
+The output has a 4 KiB bound reserved before encoding and retains its exact
+input loan and configuration. A producer interruption cannot re-evaluate the
+same invocation. Output cleanup and input-reader stop are separate facts:
+failed close preserves the same handle and configuration pin, and a successful
+output cleanup is not repeated while input stop remains pending. Earlier
+private ABI modules are refused; the public Client–Host contract is unchanged.
+
+The Python physical adapter authenticates the exact Core-issued epoch wire with
+HMAC-SHA-256 and persists its key and monotonic clock in the existing opaque-byte
+store. Bootstrap consumes an exclusive, empty new-file observation once.
+Missing material after reopen or a failed bootstrap does not create a new key.
+Each clock advance uses one physical CAS; conflict or lost acknowledgement is
+unknown and does not cause an automatic retry. The physical generation is not
+a Run revision. Current account/scope evaluation remains mandatory on each Core
+projection; an old authenticator is not a permanent authorization grant.
+
+### Captured Source publication facts
+
+Private ABI 19 borrows the original Native capture from its configured Compute
+Host. Source identity uses the existing bounded Relation identity frame. Each
+advance retains its cursor, limits, cancellation and monotone logical work; it
+neither reacquires the Source nor releases the acquisition reservation. The
+retained-wire representation continues to use its own existing identity path.
+
+The portable Local wrapper issues logical input and Source evidence using the
+existing checked graph, exact capture, Catalog membership and Source issuers.
+It checks current read authority before preparation and again after the final
+yield. Authority scope and effective policy come from the original Run and
+checked Source facts, not authored input or arbitrary caller CIDs.
+
+A Source projection reserves its complete 64 KiB output and physical-copy
+allowance before encoding. It pins the original Compute/acquisition until
+explicit close succeeds. Failed output cleanup or input stop retains the same
+child handle; successful output cleanup is not repeated. These typed facts
+are inputs to the existing invocation/publication chain, not Run admission,
+terminal success, durable Result publication or recovery permission.
+
+### Original Local normalization and captured invocation
+
+Private ABI 19 retains material kind 5 for the original completion-free Local
+normalization journal. It issues the journal through the original checked
+preparation and compiled Run Plan owners. A real semantic completion, an
+uninstalled profile or exhausted audit is refused; successful compilation is
+not a substitute for the completion inventory. The original nominal projection
+remains with that Run handle, and the output uses the existing reserved buffer
+and retryable cleanup custody. It does not grant execution or durable recovery.
+
+Source publication requests include `capture_started_at` and
+`capture_completed_at`, supplied by the physical Host for its original capture,
+in addition to `observed_at` and the bounded identity-scan limits. The closed
+output contains exact `logical`, `evidence`, `observation` and `invocation` wire
+strings issued by the existing publication owners. Issuance rechecks current
+Run and Source authorization against the exact original Compute and capture;
+it neither reacquires Source nor starts another task. These records remain
+intermediate publication materials, not a terminal Run or durable publication.
+
+### Bounded final Result publication capture
+
+Private ABI 19 reserves one complete output before projecting the exact live
+Source invocation and completed Result exports. The closed trusted Host request
+contains `results` (original export handles), `retention` (admitted policy wire),
+`max_work` and `max_workspace_slots`. Duplicate, foreign, unfinished or closing
+parents are refused. The full declared Result inventory is validated by the
+existing Manifest Owner; a selected subset is not a complete publication.
+
+Each Result snapshot advances through the existing bounded output/snapshot
+Owner. The original normalization journal and Source evidence bind the single
+Receipt. Captured Run assembly uses the original prepared Program's distinct
+authoring-context sidecar and an empty Model inventory for this Effect-free
+profile. Grammar-owned metadata is extracted without collecting business
+values named `meta`. The final Manifest, Receipt, snapshots and authoring
+sidecar feed the existing bounded Captured Run Owner. Every advance and final export
+rechecks live original pins and current Run/Source authority; no Source or task
+is executed by this projection. The closed output contains `manifest`,
+`receipt` and `captured_run` wire strings. It does not commit durable storage,
+produce a public Run state, or refresh the original provenance.
+
+`max_work` bounds the reported snapshot/capture cursor work. It does not claim
+that synchronous contract projections or the full product fit the default
+fuel envelope; those remain separate verification boundaries.
+
+The child retains its Source and Result parents through cancellation and failed
+physical output cleanup. Parent close seals further production but cannot
+release those pins until the same child finishes cleanup. Closing the child
+cancels its snapshot/capture preparations without cancelling the original Run,
+then retires its output and input loan through their existing cleanup Owners.
+
+
+### Original Result storage binding
+
+The portable completed-export Owner can issue a durable representation binding
+for its original live receipt, Result definition, ordering evidence and artifact.
+It derives the row count, field order, schema and existing canonical row-wire
+codec pin from that export. The physical Host supplies the observed byte count,
+SHA256, material generation and Store authority identities. A different size or
+digest is refused before the existing durable-binding issuer is called. This
+entry describes the original canonical export bytes, not another physical codec.
+
+The Local wrapper obtains the Run definition, invocation and retention from the
+original nominal LocalResultPublication and rechecks current Run/Source authority.
+No adapter-generated semantic JSON or replacement provenance is accepted there.
+Cancelling a borrowed snapshot leaves its parent export facts live; releasing the
+parent revokes binding issuance. Issuance alone proves neither physical retention,
+Store commit, publication permission nor a Run outcome. A durable Store must
+still verify its actual payload and current publication authority separately.
+
+### Original checked publication intent and preflight
+
+`prepare_local_publication_intent` reads every Named Result name and producer
+from the original LocalRunPlan's checked graph. The existing checked inventory
+Owner creates their Result definitions, and the existing publication issuers
+create the request and attempt. No supplied subset, semantic JSON or replacement
+Result definition enters this path. A Host-selected inventory limit rejects the
+whole preparation when exceeded; it never shortens the inventory. Result names
+retain the existing Result Definition Owner's canonical-text requirements.
+The Host supplies the original fence CID and optional external idempotency key
+to the existing attempt issuer. This fixes intent; it does not prove a live fence
+or turn an idempotency key into permission to repeat an unknown operation.
+
+`check_local_source_publication_preflight` requires the exact captured Source
+invocation and its original plan. It checks current Run and Source access and
+live Source identity, then delegates the complete immutable scope to the existing
+publication preflight. Preparation must precede the first Compute activation;
+an active or completed Compute frontier or a pending activation grant is
+refused. The Host must retain this preparation before invoking its existing
+task activation Owner.
+
+The resulting opaque LocalPublicationPreflight retains the original intent,
+invocation and a copy of the aligned retention array. Mutable policy arrays are
+not exposed. `issue_local_preflight_result_publication` checks the exact Result
+definition and derives its retention from that preparation, then calls the
+existing completed-output and Local Result publication Owners. It rechecks
+current access and live Source custody, so an old preparation is not permanent
+authority. Preparation performs no Source acquisition or Compute activation.
+
+These facts grant neither Run admission nor Store publication permission. The
+physical publisher must separately check its current publication authority and
+durable transaction boundary. The preparation's original admission, compiled
+plan, Program definition, Source logical input, policy and authority references
+must remain bound through final Receipt, Captured Run and commit validation.
+
+### Private preflight custody before activation
+
+Private ABI 22 adds `actql_publication_preflight_reserve`,
+`actql_publication_preflight_prepare`, `actql_publication_preflight_length` and
+`actql_publication_preflight_close`. The original completed Source publication
+and a sealed intent input are retained by one nominal child. The input is a
+closed object of Host namespace, policy/target CIDs, request/attempt timestamps,
+fence, optional external idempotency key and the complete aligned retention
+array. Neither semantic Result definitions nor a replacement Run or invocation
+are supplied. The existing checked intent and preflight Owners validate it and
+return the original request/attempt bytes. NULL does not mean absent.
+
+`actql_task_start` requires this retained preflight and checks current Run/Source
+access before calling the existing activation Owner. It does not derive a task
+grant from preflight success. Cached start and preflight reuse also check current
+access. The child remains attached to its original Compute and Source; it cannot
+be replaced while live. Parent close seals further use while retaining custody.
+
+Publication accepts only the complete original Result occurrence list and work
+limits. A late `retention` field is refused; policies come from the retained
+preflight. The existing nominal cache/reuse guard retains original Receipt and
+artifact identity after a cancelled snapshot, and each Result must match its
+checked inventory index. Commit request, attempt and index are derived from that original intent by
+the existing issuers before the existing commit Owner is invoked.
+
+Close retains the child while tasks or publication children exist. Output
+cleanup and the exact input-borrow stop/return must both succeed before removing
+the handle. A failed cleanup can be retried on that same handle; closing a loan
+neither certifies Run cancellation nor changes the durable outcome. Python
+preserves the same nominal family, refuses copies before I/O, and returns exact
+Core bytes without reconstructing intent. Its loader checks the four scalar
+signatures together with the current private ABI and accepts no older fallback.
+
+This preflight does not establish a live physical publication fence, current
+publisher permission, Store installation or durable Run recovery. Those remain
+separate obligations through the original final Receipt and commit chain.
+
+### Original publication commit validation
+
+Private ABI 20 adds `actql_publication_prepare_commit`,
+`actql_publication_advance_commit`, `actql_publication_commit_progress` and
+`actql_publication_finish_commit` on the original publication handle. Preparation
+now borrows a closed input containing only `bindings` and `committed_at`.
+Bindings are an array of admitted durable binding contract strings. Private
+ABI 23 derives the request, attempt and candidate index from the original
+retained preflight using the existing index issuer. Supplied replacements for
+these contracts are refused as unknown fields; Python does not build their CIDs.
+The Receipt, Captured Run, Manifest, original normalization and Result inventory
+come from the retained Core handle rather than supplied replacements.
+The physical Host supplies binding facts; consistency validation does not prove
+that physical payload bytes were written.
+
+The existing bounded publication commit Owner checks the complete chain. Capture
+and commit validation share the original `max_work` budget and workspace limit.
+Every advancing or finishing call checks current Run and Source authority. Once
+preparation starts, a different input cannot restart that handle's validation;
+traps and cleanup failures retain the same input and original parent custody.
+Closing cancels the existing Owner and returns its borrowed input only after the
+physical stop callback succeeds. Earlier ABI modules are rejected, with no
+compatibility fallback.
+
+Successful finish proves chain validation only. The physical Store must separately
+verify actual payload facts, current publication authority and the durable commit
+boundary. This ABI does not write an index, acknowledge persistence, admit a Run,
+retry an unknown operation or supply saved-Run recovery.
+
+### Validated commit candidate export
+
+Private ABI 23 adds `actql_publication_commit_export_reserve`,
+`actql_publication_commit_export_produce`,
+`actql_publication_commit_export_length` and
+`actql_publication_commit_export_close`. Reservation requires successful finish
+of the original complete-chain validator. Encoding returns exactly the existing
+Core's `request`, `attempt` and `index_entry` contract strings, within a reserved
+1 MiB output buffer and separately reserved physical copy allowance. Current
+Run and Source access is checked before initial and cached production.
+
+The child pins its original publication. Parent close seals new production and
+retains custody; failed output cleanup retains the same child and reservation
+for explicit retry. The parent still owns its original immutable commit input
+borrow and nominal Result/Receipt/artifact. No source acquisition, task
+activation, Receipt reissuance or physical Store call occurs during export.
+
+The index is a candidate accepted by the semantic validator. Its `committed_at`
+is a supplied physical observation, not proof that a Store transaction committed.
+The physical Host must separately check current publisher authority, verify
+payloads and obtain durable acceptance. A copied export never supplies those
+permissions. Python returns the exact bytes and treats closing this loan as
+resource cleanup, without cancelling a Run or resending a publication.
+
+### Original Result storage binding output
+
+Private ABI 21 adds `actql_result_binding_reserve`,
+`actql_result_binding_produce`, `actql_result_binding_length` and
+`actql_result_binding_close`. The strict Python loader requires their exact
+signatures and ABI version; earlier modules are rejected without a fallback.
+Reservation selects one Result index from the original completed publication
+handle and borrows an original sealed input. That input is a closed object of
+`material_generation_cid`, `store_authority_cid`, `byte_count` and
+`physical_sha256`. Missing, NULL and additional fields are refused. The Host
+supplies physical observations; the existing Local publication wrapper derives
+all semantic fields from the original Result and checks the observed bytes.
+
+Producing, including reuse of an already produced output, rechecks current Run
+and Source authority. A separate 65,536-byte output reservation carries the
+unchanged canonical binding bytes. Python tracks only physical loans and does
+not reconstruct semantic contracts. Copied or foreign Python handles are
+refused before I/O. Once generation has begun, invalid observations cannot be
+replaced on that handle.
+
+The child retains its original publication until output cleanup and return of
+the exact input borrow both succeed. Parent close seals new production but
+retains parent custody while a child exists. A failed physical stop or cleanup
+keeps the same child and reservation available for cleanup retry. No Source or
+Compute replay is part of this operation. Binding output proves neither Store
+commit nor durable publication, admission, recovery or a Run outcome. The
+physical Store must still verify its payload and current publication authority.

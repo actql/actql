@@ -78,6 +78,8 @@ for (const [path, body] of [
     compilerBodies.join('\n') + '\n'],
   ['src/execution_relation/registry_vectors.generated_wbtest.mbt', lines.join('\n') + '\n'],
   ['src/execution_relation/registry_vectors.generated_test.mbt', consumerLines.join('\n') + '\n'],
+  ['src/client_local_run/pinned_engine_contracts_wbtest.mbt',
+    consumerLines.join('\n') + '\n'],
   ['src/query_integration/pinned_engine_contracts_wbtest.mbt',
     consumerLines.join('\n') + '\n'],
   ['src/native_values_integration/pinned_engine_contracts_wbtest.mbt',

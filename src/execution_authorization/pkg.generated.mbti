@@ -54,6 +54,8 @@ pub fn denial_error_code(Denial) -> String
 
 pub fn deny_reason_error_code(DenyReason) -> String
 
+pub fn dispatch_authorization_action(DispatchAuthorization) -> RuntimeAction
+
 pub fn dispatch_authorization_basis(DispatchAuthorization) -> DispatchBasis
 
 pub fn dispatch_authorization_configuration(DispatchAuthorization) -> AdmittedAccountConfiguration

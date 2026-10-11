@@ -95,7 +95,8 @@ const compositionFoundation = ['foundation.mjs', 'foundation.test.mjs',
   'fixed-js-replay.test.mjs', 'fixtures/fixed-js-original.mjs',
   'fixtures/mutation-action-sample.mjs',
   'capacity/finish.mjs', 'executor-close.test.mjs'].map(path => `proofs/relation-pipeline/${path}`);
-export function currentFoundation(root) {
+// Return both views from one complete inspection; never cache across calls.
+export function inspectFoundation(root) {
   const baseline = checkLegacyFoundation(root, { recordPath: checkpointPath,
     reference: foundationCheckpoint, compareWorkingTree: false });
   const manifest = composeFoundation(root, { checkpoint: foundationCheckpoint,
@@ -107,14 +108,17 @@ export function currentFoundation(root) {
   assert.equal(obsolete.status, 0); assert.equal(committedObsolete.status, 0);
   assert(!obsolete.stdout.length && !committedObsolete.stdout.length && !existsSync(`${root}/${currentPath}`),
     'Obsolete shared foundation manifest: retain the immutable migration record and generate only the ignored artifact');
-  return { ...manifest, historicalBaseline: { revision: historicalRevision, path: baselinePath,
+  const current = { ...manifest, historicalBaseline: { revision: historicalRevision, path: baselinePath,
     digest: hash(gitBlob(root, historicalRevision, baselinePath)), foundationRevision: baseline.revision },
     migrationBaseline: { revision: foundationCheckpoint, path: checkpointPath,
       digest: hash(gitBlob(root, foundationCheckpoint, currentPath)) } };
+  return { baseline, current };
+}
+export function currentFoundation(root) {
+  return inspectFoundation(root).current;
 }
 export function checkFoundation(root) {
-  currentFoundation(root);
-  return JSON.parse(gitBlob(root, historicalRevision, baselinePath));
+  return inspectFoundation(root).baseline;
 }
 // No tracked generated manifest: CI archives the exact-source deterministic file.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
