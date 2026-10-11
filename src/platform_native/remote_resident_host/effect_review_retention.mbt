@@ -118,6 +118,7 @@ pub fn ResidentSourceCompute::prepare_effect_review_retention(
 pub fn ResidentEffectReviewRetention::persist(
   self : ResidentEffectReviewRetention,
   store : @publication_store.Store,
+  computation_capacity? : ResidentEffectComputationCapacity? = None,
 ) -> Result[
   @remote.RemoteEffectCheckpointReport,
   ResidentEffectReviewRetentionIssue,
@@ -141,6 +142,7 @@ pub fn ResidentEffectReviewRetention::persist(
         self.limits.max_wire_bytes,
         self.limits.max_nodes,
         self.limits.max_depth,
+        computation_capacity~,
       ) {
       Ok(owner) => {
         self.capture_owner = Some(owner)
