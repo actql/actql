@@ -39,6 +39,8 @@ pub fn confirm_local_run_physical_start(LocalRunPlan, @run_publication_host.Clie
 
 pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[String, LocalRunIssue]
 
+pub fn issue_local_result_durable_binding(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
+
 pub fn issue_local_result_publication(LocalComputeHost, LocalSourceInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalResultPublicationIssue]
 
 pub fn issue_local_run_manifest(LocalComputeHost, LocalSourceInvocation, Array[LocalResultPublication], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalRunManifest, LocalResultPublicationIssue]
