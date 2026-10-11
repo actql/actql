@@ -1,0 +1,15 @@
+{
+  "description": "Independently authored policy preimage and expected original Result; not generated from product output.",
+  "retention_preimage": "{\"available_until\":\"2099-01-01T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"effective_data_policy_cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"retention_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"version\":\"actql-result-retention-policy/0.1\"}",
+  "retention_policy_cid": "sha256:92241f901b8ffbd5d2b692e2619fb66c9cbe9c18fde9692ebe25d2746a17a82a",
+  "result_name": "answer",
+  "result_rows": [
+    {
+      "next": 5
+    }
+  ],
+  "result_fields": [
+    "next"
+  ],
+  "source_queries": 3
+}
