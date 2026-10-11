@@ -6739,7 +6739,7 @@ pub fn compile(
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
   }
-  if query_has_join_set_operand(query) {
+  if query_has_join_set_operand(query) || query_has_mixed_cte_join_input(query) {
     return compile_query_script(
       @query.single_query_script(query),
       context,

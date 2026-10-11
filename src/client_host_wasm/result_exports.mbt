@@ -12,6 +12,9 @@ priv struct StoredResultExport {
   mut preparation : @host.CapturedClientResultTransformation?
   mut progress : (Bool, Int)?
   mut stream : @host.PublicationOutputExport?
+  // Keep the original issued roots with the Result, independently of child
+  // snapshot cancellation. Closing the Result releases this cache as well.
+  mut publication : @local_run.LocalResultPublication?
   mut ended : Bool
   mut issue : StoredResultExportIssue?
 }
@@ -113,6 +116,7 @@ pub fn reserve_result_export(nonce : Int64, task : Int, result : Int) -> Int {
     preparation: None,
     progress: None,
     stream: None,
+    publication: None,
     ended: false,
     issue: None,
   }
@@ -546,6 +550,11 @@ pub fn close_result_export(nonce : Int64, handle : Int) -> Int {
     return -33
   }
   if value.result_chunks.values().any(chunk => chunk.result == handle) {
+    return -9
+  }
+  if value.publications
+    .values()
+    .any(publication => publication.results.contains(handle)) {
     return -9
   }
   record.pending = true

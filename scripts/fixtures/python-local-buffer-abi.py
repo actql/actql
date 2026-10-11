@@ -34,6 +34,15 @@ try:
     assert left.exports['actql_result_produce_chunk'](left.store, left.nonce, handle) == -2
     assert left.exports['actql_result_close_chunk'](left.store, left.nonce, handle) == -2
     assert left.exports['actql_result_close'](left.store, left.nonce, handle) == -2
+    # Arbitrary transfer handles cannot claim original publication custody.
+    assert left.exports['actql_publication_prepare_commit'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_publication_advance_commit'](
+        left.store, left.nonce, handle, handle, 1) == -2
+    assert left.exports['actql_publication_commit_progress'](
+        left.store, left.nonce, handle, 0) == -2
+    assert left.exports['actql_publication_finish_commit'](
+        left.store, left.nonce, handle, handle) == -2
     assert left.call('allocated') == 2 * len(payload) + physical_bytes
     # Individually valid reservations still exceed one aggregate allowance.
     assert left.call('reserve', 2, len(payload), 128) == -4

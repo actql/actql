@@ -187,6 +187,19 @@ _MATERIAL_SIGNATURES = {
     'restored': ('i64 i32', 'i32'),
     'close_restoration': ('i64 i32', 'i32'),
 }
+_PUBLICATION_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'prepare': ('i64 i32 i32', 'i32'),
+    'advance': ('i64 i32 i32 i32', 'i32'),
+    'progress': ('i64 i32 i32', 'i64'),
+    'finish': ('i64 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+    'prepare_commit': ('i64 i32 i32 i32', 'i32'),
+    'advance_commit': ('i64 i32 i32 i32', 'i32'),
+    'commit_progress': ('i64 i32 i32', 'i64'),
+    'finish_commit': ('i64 i32 i32', 'i32'),
+}
 _SOURCE_SIGNATURES = {
     'reserve_configuration': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
@@ -334,6 +347,8 @@ class LocalCore:
                              for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
             expected.update({'actql_material_' + name: value
                              for name, value in _MATERIAL_SIGNATURES.items()})
+            expected.update({'actql_publication_' + name: value
+                             for name, value in _PUBLICATION_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
                              for name, value in _SOURCE_SIGNATURES.items()})
             expected.update({'actql_workspace_' + name: value
@@ -371,7 +386,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 18:
+            if self._exports['actql_host_abi_version'](self._store) != 20:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -655,6 +670,114 @@ class LocalCore:
 
     def close_source_publication(self, value: _Output) -> bool:
         return self._close_output(value, 'source_publication', 'close')
+
+    def reserve_publication(self, source: _Output, request: _Input, *,
+                            cleanup: Callable[[], bool]) -> _Output:
+        """Private complete Result capture; not a durable publication commit."""
+        with self._lock:
+            self._owned_output(source, 'source_publication')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1_048_576
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'publication')))
+            handle = self._call('publication', 'reserve', source.handle, request.handle,
+                                ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_publication', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'publication')
+            self._loans[ticket] = value
+            return value
+
+    def _publication_configuration(self, value: _Output, current_configuration: int) -> None:
+        self._owned_output(value, 'publication')
+        if self._closing:
+            raise RuntimeError('Local Core is closing')
+        if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+            raise ValueError('Invalid current publication configuration')
+
+    def prepare_publication(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('prepare_publication', self._call(
+                'publication', 'prepare', value.handle, current_configuration))
+
+    def advance_publication(self, value: _Output, current_configuration: int,
+                            quantum: int) -> LocalResultProgress:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local publication quantum')
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('advance_publication', self._call(
+                'publication', 'advance', value.handle, current_configuration, quantum))
+            ready = self._call('publication', 'progress', value.handle, 0)
+            work = self._call('publication', 'progress', value.handle, 1)
+            if ready not in (0, 1) or not 0 <= work <= quantum:
+                raise LocalCoreError('publication_progress', -33)
+            return LocalResultProgress(ready == 1, work)
+
+    def publication_work(self, value: _Output) -> int:
+        with self._lock:
+            self._owned_output(value, 'publication')
+            work = self._call('publication', 'progress', value.handle, 2)
+            if work < 0:
+                raise LocalCoreError('publication_work', work)
+            return work
+
+    def finish_publication(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('finish_publication', self._call(
+                'publication', 'finish', value.handle, current_configuration))
+
+    def read_publication(self, value: _Output) -> bytes:
+        return self._read_output(value, 'publication', 'length')
+
+    def close_publication(self, value: _Output) -> bool:
+        return self._close_output(value, 'publication', 'close')
+
+    def prepare_publication_commit(self, value: _Output, request: _Input,
+                                   current_configuration: int) -> None:
+        """Validate proposed Store facts against original Core custody.
+
+        This is neither a Store write nor permission to publish or retry.
+        Core retains the immutable input until this publication closes.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._owned_input(request)
+            self._check('prepare_publication_commit', self._call(
+                'publication', 'prepare_commit', value.handle, request.handle,
+                current_configuration))
+
+    def advance_publication_commit(self, value: _Output, current_configuration: int,
+                                   quantum: int) -> LocalResultProgress:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local publication commit quantum')
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('advance_publication_commit', self._call(
+                'publication', 'advance_commit', value.handle,
+                current_configuration, quantum))
+            ready = self._call('publication', 'commit_progress', value.handle, 0)
+            work = self._call('publication', 'commit_progress', value.handle, 1)
+            if ready not in (0, 1) or not 0 <= work <= quantum:
+                raise LocalCoreError('publication_commit_progress', -33)
+            return LocalResultProgress(ready == 1, work)
+
+    def finish_publication_commit(self, value: _Output, current_configuration: int) -> None:
+        """Finish Core chain validation, without a durable acknowledgement."""
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('finish_publication_commit', self._call(
+                'publication', 'finish_commit', value.handle, current_configuration))
 
     def reserve_material(self, run: int, kind: int, *,
                          cleanup: Callable[[], bool]) -> _Output:
