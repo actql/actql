@@ -2256,8 +2256,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         backoff_ms = 0
         let request = @remote.remote_poll_effect_resume_request(delivery)
         let identity = @remote.dispatch_request_identity(request)
-        // Routing alone cannot install a review Owner, verify a current claim
-        // or grant permission to send. Keep the original pending custody.
+        // Relay only to exact existing holder custody. The receiving Review
+        // must independently admit approval and observe the current claim.
         match
           @resident.check_resident_dispatch_delegation(
             site_delegation, request, generation,
@@ -2265,10 +2265,28 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Err(refusal) =>
             report("effect-resume-refused", [("reason", refusal_code(refusal))])
           Ok(_) =>
-            report("effect-resume-pending", [
-              ("request_cid", identity),
-              ("reason", "review-owner-unavailable"),
-            ])
+            match
+              (
+                holder,
+                @remote.remote_poll_effect_resume_envelope_json(delivery),
+              ) {
+              (Some(current), Ok(body)) if holder_can_receive(
+                  current.request,
+                  request,
+                ) =>
+                report("effect-resume-relayed", [
+                  ("request_cid", identity),
+                  (
+                    "sent",
+                    current.channel.send("effect-resume " + body).to_string(),
+                  ),
+                ])
+              _ =>
+                report("effect-resume-pending", [
+                  ("request_cid", identity),
+                  ("reason", "review-owner-unavailable"),
+                ])
+            }
         }
       }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
@@ -2634,6 +2652,9 @@ fn serve_holder_output(
   effect_review_publication? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication? = _ => {
     None
   },
+  effect_resume_configuration? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectResumeConfiguration? = _ => {
+    None
+  },
 ) -> Unit {
   let request = executed.request
   let control = resources.control
@@ -2677,6 +2698,8 @@ fn serve_holder_output(
           "effect-review"
         } else if line.has_prefix("effect-current ") {
           "effect-current"
+        } else if line.has_prefix("effect-resume ") {
+          "effect-resume"
         } else if line.has_prefix("consumer ") {
           "consumer"
         } else if line.has_prefix("retained-plan ") {
@@ -2701,10 +2724,7 @@ fn serve_holder_output(
           // A remote Current query cannot prepare a Review, refresh policy,
           // perform a Provider read or advance publication responsibility.
           for task_identity in order {
-            guard tasks.get(task_identity) is Some(task) &&
-              !task.released &&
-              !task.release_requested &&
-              task.consumer is Some(_) else {
+            guard tasks.get(task_identity) is Some(task) && !task.released else {
               continue
             }
             let current_authority = () => {
@@ -2717,6 +2737,18 @@ fn serve_holder_output(
               )
               is Ok(_)
             }
+            // Response custody can be retried during release, but never sent
+            // again. No approval or new credential is selected by this tick.
+            if current_authority() && task.effect_review is Some(review) {
+              match review.retry_approved_row_custody() {
+                Ok(true) =>
+                  report("effect-row-settled", [("request_cid", task_identity)])
+                _ => ()
+              }
+            }
+            if task.release_requested || task.consumer is None {
+              continue
+            }
             ignore(
               drive_holder_effect_review(
                 task,
@@ -2728,6 +2760,42 @@ fn serve_holder_output(
                 current_authority,
               ),
             )
+          }
+        } else if line.has_prefix("effect-resume ") {
+          let body = line.unsafe_substring(start=14, end=line.length())
+          match @remote.admit_remote_poll_effect_resume_json(body) {
+            Ok(delivery) => {
+              let selected = @remote.remote_poll_effect_resume_request(delivery)
+              let current_site = () => {
+                exclusive_current() &&
+                @resident.check_resident_dispatch_delegation(
+                  delegation,
+                  selected,
+                  @site.site_generation(environment.site),
+                )
+                is Ok(_)
+              }
+              guard current_site() &&
+                holder_effect_current_task(tasks, selected) is Some(task) &&
+                !task.release_requested &&
+                task.effect_review is Some(_) &&
+                effect_resume_configuration(task.request) is Some(installed) else {
+                report("effect-resume-pending", [
+                  ("request_cid", @remote.dispatch_request_identity(selected)),
+                  ("reason", "review-owner-unavailable"),
+                ])
+                continue
+              }
+              ignore(
+                execute_holder_effect_resume(
+                  task,
+                  @remote.remote_poll_effect_resume_delivery_json(delivery),
+                  installed,
+                  current_site,
+                ),
+              )
+            }
+            Err(_) => report("holder-input-invalid", [])
           }
         } else if line.has_prefix("effect-current ") {
           let body = line.unsafe_substring(start=15, end=line.length())
