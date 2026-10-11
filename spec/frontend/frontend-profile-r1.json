@@ -849,13 +849,22 @@
     {
       "feature_id": "query.cte",
       "surface_forms": [
-        "WITH name AS (Pure producer body), ... query"
+        "WITH name AS (Pure producer body), ... query",
+        "|> to_vectors(id: field, vector: field)",
+        "|> normalize_vectors()",
+        "|> score_vectors(query: value, metric: string)",
+        "|> vectors()",
+        "|> to_events(id: field, time: field)",
+        "|> session(by: [fields], gap: string)",
+        "|> events()"
       ],
       "canonical_lowering": "common checked producer topology, followed by demanded emission",
       "preconditions": [
         "nonrecursive nearest lexical scope across Carrier kinds",
         "all bindings statically checked; execution follows explicit demand",
-        "table/set operands and authored row aliases require Relation"
+        "table/set operands and authored row aliases require Relation",
+        "typed field roles resolve through ordinary scope; Carrier/schema remain common-checker evidence",
+        "Vectors/Events require an explicit common bridge before Relation operations"
       ],
       "spec_section": "7.8",
       "execution_evidence_ids": [],

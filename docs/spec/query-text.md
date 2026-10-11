@@ -1501,9 +1501,17 @@ it does not waive input-required order, type, Catalog or profile obligations.
 Normal Host preparation and Result publication remain strict.
 
 WITH can retain Relation, Graph, Vectors or Events according to the admitted
-common contract. The installed P1 constructor and Graph consumer connections
-are described below; the adopted P2 vector/temporal syntax and public execution
-remain separate implementation obligations. A typed producer is not an
+common contract. The installed constructor and Graph consumer connections
+are described below. Typed Pipe calls also connect `to_vectors(id: field,
+vector: field)`, `normalize_vectors()`, `score_vectors(query: value, metric:
+string)`, `vectors()`, `to_events(id: field, time: field)`, `session(by:
+[fields], gap: string)` and `events()` to their existing common operations.
+Relation-input session additionally requires its existing `id` and `time`
+roles. Field roles resolve visible columns; they are not String values or
+producer aliases. The common checker determines the output Carrier and schema.
+Vectors/Events retain their Carrier across bindings; only an explicit common
+bridge supplies rows to ordinary Relation operators. Full four-Carrier public
+execution remains a separate acceptance obligation. A typed producer is not an
 invented external Source alias or a row schema inferred by the frontend.
 
 `FROM p` preserves the resolved Carrier. `FROM GRAPH p` adds a Graph expectation;

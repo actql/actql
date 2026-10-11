@@ -109,10 +109,10 @@ const dependencies=valuesDependencyOracle();
 const aoa=cid(read('spec/contracts/actql-aoa.json'));
 const barrierCid=read('spec/manifests/actql-barrier-contracts-0.1.json').barrier_contract_manifest_cid;
 const mainSha='23697f7430c227327b4b0b3735ad14806eed321a';
-for(const [name,grammar,revision] of [
+for(const [name,grammar,revision] of ([
  ['adopted-scalar-main-before-with-values-identities.json',JSON.parse(execFileSync('git',['show',mainSha+':spec/manifests/actql-grammar-0.1.json'],{encoding:'utf8'})),mainSha],
  ['submitted-with-carrier-cutover-values-identities.json',read('spec/manifests/actql-grammar-0.1.json'),'authored-with-scalar-main-grammar']
-]){
+]).filter(([name])=>!process.argv.includes('--current-only')||name==='submitted-with-carrier-cutover-values-identities.json')){
  const result={...prior,source_revision:revision,source_baseline:mainSha,grammar,program_identity:identity,values_dependencies:dependencies,aoa_contract_cid:aoa,barrier_contract_manifest_cid:barrierCid,run_preimages:vector(grammar.grammar_manifest_cid,aoa,dependencies,barrierCid,identity,{canonicalCandidates:true})};
  writeFileSync('scripts/fixtures/'+name,JSON.stringify(result,null,2)+'\n');
  console.log(name,JSON.stringify({grammar:grammar.grammar_manifest_cid,unit:dependencies.unit,program:identity.programCid,run:result.run_preimages.run.run_definition_cid}));

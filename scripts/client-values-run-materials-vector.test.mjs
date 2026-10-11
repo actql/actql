@@ -2989,12 +2989,17 @@ test('WITH cutover preserves the old complete Values closure and independently p
   const adoptedMain = JSON.parse(readFileSync('scripts/fixtures/adopted-scalar-main-before-with-values-identities.json', 'utf8'));
   const after = JSON.parse(readFileSync('scripts/fixtures/submitted-with-carrier-cutover-values-identities.json', 'utf8'));
   const priorWith = JSON.parse(readFileSync('scripts/fixtures/pre-with-graph-range-alias-values-identities.json', 'utf8'));
+  const beforeTypedCalls = JSON.parse(readFileSync('scripts/fixtures/pre-with-typed-carrier-calls-values-identities.json', 'utf8'));
+  assert.equal(beforeTypedCalls.run_preimages.run.run_definition_cid,
+    'sha256:64f2fe7915e5a42f8e14904f8b24cb085d12107a5161241f7c0b61c8f0689183');
+  assert.equal(after.run_preimages.run.run_definition_cid,
+    'sha256:1b65662553b0ec3d4e55ec07eff0f9060b7a8ad6860466712cfb68576bc8d76a');
   assert.equal(priorWith.run_preimages.run.run_definition_cid, 'sha256:6d206c334a24421dbe9ad8543a6ff1bf8e1c89299112f21a4e14a80f0d384266');
   assert.deepEqual(priorWith.program_identity, preScalarWith.program_identity);
   assert.deepEqual(priorWith.values_dependencies, preScalarWith.values_dependencies);
   assert.notEqual(priorWith.grammar.grammar_manifest_cid, after.grammar.grammar_manifest_cid);
   assert.equal(before.source_revision, 'f01d05b7ee93364b804aeb0e934c2981da089ac8');
-  for (const fixture of [before, priorWith, preScalarWith, adoptedMain, after]) {
+  for (const fixture of [before, priorWith, preScalarWith, adoptedMain, beforeTypedCalls, after]) {
     const {grammar_manifest_cid: grammarCid, ...body} = fixture.grammar;
     assert.equal(cid(body), grammarCid);
     assert.deepEqual(vector(grammarCid, fixture.aoa_contract_cid,

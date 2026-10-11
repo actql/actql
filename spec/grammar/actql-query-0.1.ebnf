@@ -43,8 +43,8 @@ producer_body = [ with_clause ],
                 ( relational_sql | cte_pipe | producer_primary, { "|>", cte_pipe_item } ) ;
 producer_primary = graph_constructor | graph_generator ;
 graph_generator = "mean_graphs", "(", [ sga_argument, { ",", sga_argument } ], ")" ;
-(* These are the installed P1 primaries; adopted P2 VecA/TEA generators are
-   tracked separately and are not advertised as already accepted syntax. *)
+(* Primaries construct Graph values. Existing Vectors/Events are reached
+   through typed named Pipe calls, without changing the common value wire. *)
 relational_body = producer_body ;
 (* Derived tables and set operands require a Relation after static checking. *)
 relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
@@ -149,11 +149,13 @@ sga_operation = "reach" | "traverse" | "shortest_path" | "components"
               | "normalize_graph" | "subgraph" | "graft_graph"
               | "union_graphs" | "subtract_graphs" | "graphs_equal"
               | "graph_diff" | "apply_graph_delta" | "mean_graphs"
-              | "node_rows" | "edge_rows" ;
+              | "node_rows" | "edge_rows"
+              | "to_vectors" | "normalize_vectors" | "score_vectors" | "vectors"
+              | "to_events" | "session" | "events" ;
 sga_argument  = identifier, ":", sga_value ;
 sga_value     = query_string | [ "-" ], numeric_token | "TRUE" | "FALSE"
               | "NULL" | parameter_token
-              | identifier (* only an operation-defined producer position *)
+              | path (* only an operation-defined producer or field-reference position *)
               | "{", [ sga_argument, { ",", sga_argument } ], "}"
               | "[", [ sga_value, { ",", sga_value } ], "]" ;
 result_operator = "RESULT", identifier ;
