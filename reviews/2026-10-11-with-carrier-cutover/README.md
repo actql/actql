@@ -140,6 +140,40 @@ Affected formatter and all three actual Owner/group/ownlock releases are
 preserved. This is frontend/common checking, not Host, paths runtime or public
 Named Result evidence. Full P2/current caller/docs retirement remains unfinished.
 
+## Acquisition, Result and JOIN caller retirement
+
+[p1-acquisition-result-join-retirement-execution.json](p1-acquisition-result-join-retirement-execution.json)
+records clean `185a915c`: JS11/11 (`run-ejpUac`). Existing callers and their
+test-only helper names now use WITH; three caller files are renamed without a
+legacy alias. Complete independent Programs retain the original declared inputs,
+full capture schema, shared capture/import, projections, `amount > 10`, both
+prefix/terminal Results, JOIN predicates, alias ORDER and resource ceilings.
+The intentionally bare schema Graph controls still refuse
+`MissingPropertyProducerDefinition`; name resolution does not invent Source
+provenance. This refusal now occurs during common static binding preparation.
+The original `bfe03a69` JS10/11 failure is preserved: four negative JOIN sources
+had incompletely migrated declaration grammar, so the intended lowering boundary
+was not reached. Correcting WITH parentheses retains those invalid aliases,
+fields, ON expressions and output-bound refusal.
+
+[p1-join-chain-retirement-execution.json](p1-join-chain-retirement-execution.json)
+records clean `2634fa7b`: JS14/14 (`run-v2ON0X`) on three additional changed
+JOIN/Pipe/range callers. Complete controls retain row values, SET expressions,
+ON keys, ORDER/LIMIT, `max_output_rows: 10`, hidden slots and field order.
+Nested Pipe prefixes are hoisted before the enclosing binding, so their name
+is independently allocated as cte4 rather than the old cte5. Original e873
+JS11/14 and exact-refusal probe 7348 JS13/14 remain failures. Source rules for
+terminal AS and ordinary `join_field` establish UnknownColumn for missing
+qualifiers/fields; duplicate qualifiers remain AmbiguousRelation. No product
+scope implementation changed and no old alias was restored. Current product
+comments no longer describe DATA producer paths.
+
+Both units preserve full original callers, bounded formatter receipts, actual
+Owner/group/ownlock release and exact source/tree/hash. The later evidence-only
+submitted source is distinct from executed sources above. Neither unit executed
+Host, new packages or Local/HTTPS publication; full current caller/docs and
+four-Carrier/P2 cutover remain incomplete.
+
 ## Earlier finite evidence
 
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally
