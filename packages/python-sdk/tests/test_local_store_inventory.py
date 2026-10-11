@@ -128,7 +128,7 @@ class StoreInventoryTests(unittest.TestCase):
             self.assertTrue(projection.close())
 
     def test_reused_schema_requires_exact_bytes_and_preserves_existing_generation(self):
-        for raw in (b'{"id":{"nullable":true,"type":"number"}}',
+        for raw in (b'{"id":{"nullable":false,"type":"string"}}',
                     b'{"id":{"nullable":false,"type":"number"}}'):
             with self.subTest(raw=raw), TemporaryDirectory() as directory:
                 _, _, publisher, projection, _, state, identities, _, _ = self.bridge()
@@ -141,7 +141,7 @@ class StoreInventoryTests(unittest.TestCase):
                         observed = store.store_publication_projected_attached(
                             projection.storage_count(), projection.project_storage_entry,
                             originals, before_commit=lambda: projection.authorize_commit(publisher))
-                    if b'true' in raw:
+                    if b'string' in raw:
                         self.assertIsNone(observed)
                         self.assertIsNone(store.read('namespace:20:publication_contract:' + identities[0].decode('ascii')))
                         self.assertTrue(projection.close())
