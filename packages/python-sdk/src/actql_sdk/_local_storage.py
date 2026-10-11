@@ -21,6 +21,14 @@ class StoredBytes:
     payload: bytes
 
 
+@dataclass(frozen=True)
+class ByteWrite:
+    # These are physical keys/generations and opaque Core-issued bytes.
+    key: str
+    expected_generation: int | None
+    payload: bytes
+
+
 class LocalStorageError(RuntimeError):
     """Physical storage failure; it grants no execution, retry or absence fact."""
 
@@ -161,42 +169,71 @@ class LocalByteStore:
     def compare_exchange(self, key: str, expected_generation: int | None,
                          payload: bytes) -> int | None:
         """Atomic physical CAS; a conflict performs no replacement or resend."""
-        self._key(key)
-        if (expected_generation is not None
-                and (type(expected_generation) is not int
-                     or not 0 <= expected_generation < 2**63 - 1)):
-            raise ValueError('Invalid Local physical CAS generation')
-        if type(payload) is not bytes or len(payload) > self._max_record_bytes:
-            raise ValueError('Invalid Local physical payload')
+        generations = self.compare_exchange_many((ByteWrite(key, expected_generation, payload),))
+        return None if generations is None else generations[0]
+
+    def compare_exchange_many(self, writes: tuple[ByteWrite, ...]) -> tuple[int, ...] | None:
+        """Install all opaque writes in one physical transaction or none.
+
+        The trusted Host must first obtain the Core's full-chain validation and
+        current authority. Atomic bytes do not attest a Run or publication.
+        An exception, including a lost commit acknowledgement, is returned to
+        that Owner without repeating the transaction. Caller-held bytes and
+        SQLite workspace remain separately reserved by the Host.
+        """
+        if type(writes) is not tuple or not 1 <= len(writes) <= self._max_records:
+            raise ValueError('Invalid Local physical write batch')
+        keys: set[str] = set()
+        for write in writes:
+            if type(write) is not ByteWrite:
+                raise ValueError('Invalid Local physical write')
+            self._key(write.key)
+            if write.key in keys:
+                raise ValueError('Duplicate Local physical write key')
+            keys.add(write.key)
+            if (write.expected_generation is not None
+                    and (type(write.expected_generation) is not int
+                         or not 0 <= write.expected_generation < 2**63 - 1)):
+                raise ValueError('Invalid Local physical CAS generation')
+            if type(write.payload) is not bytes or len(write.payload) > self._max_record_bytes:
+                raise ValueError('Invalid Local physical payload')
         with self._lock:
             self._open()
             database = self._connection
             database.execute('BEGIN IMMEDIATE')
             try:
-                existing = database.execute(
-                    'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
-                    (key,)).fetchone()
-                if (existing is None) != (expected_generation is None) or (
-                        existing is not None and existing[0] != expected_generation):
-                    database.execute('ROLLBACK')
-                    return None
+                generations: list[int] = []
+                inserted = replaced = 0
+                for write in writes:
+                    existing = database.execute(
+                        'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
+                        (write.key,)).fetchone()
+                    if (existing is None) != (write.expected_generation is None) or (
+                            existing is not None and existing[0] != write.expected_generation):
+                        database.execute('ROLLBACK')
+                        return None
+                    if existing is None:
+                        inserted += 1
+                        generations.append(0)
+                    else:
+                        replaced += existing[1]
+                        generations.append(existing[0] + 1)
                 count, total = database.execute(
                     'SELECT count(*), coalesce(sum(length(payload)), 0) FROM core_bytes'
                 ).fetchone()
-                replaced = 0 if existing is None else existing[1]
-                if (count > self._max_records or
-                        existing is None and count == self._max_records or
-                        total - replaced + len(payload) > self._max_payload_bytes):
+                if (count + inserted > self._max_records or
+                        total - replaced + sum(len(write.payload) for write in writes)
+                        > self._max_payload_bytes):
                     raise LocalStorageError('Local physical payload capacity exceeded')
-                generation = 0 if existing is None else existing[0] + 1
-                if existing is None:
-                    database.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
-                                     (key, generation, payload))
-                else:
-                    database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
-                                     (generation, payload, key))
+                for write, generation in zip(writes, generations):
+                    if write.expected_generation is None:
+                        database.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
+                                         (write.key, generation, write.payload))
+                    else:
+                        database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
+                                         (generation, write.payload, write.key))
                 database.execute('COMMIT')
-                return int(generation)
+                return tuple(generations)
             except BaseException:
                 # COMMIT failure is not a successful write or permission to
                 # resend. Preserve the exception and the original store handle.
