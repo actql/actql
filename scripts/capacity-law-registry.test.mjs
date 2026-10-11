@@ -33,13 +33,19 @@ test('operation count checker law literals have semantic bodies, not only regist
   // The historical quantity body remains pinned and independently tested
   // below. Definition-selected MATCH and entity-to-row projection retain
   // applicable quantity rules. Projection uses the registered graph-* name.
-  // Current TRAIL emits paths, so the old minimum-depth node-emission bound
-  // is not an applicable law. Construction has its separate keyed body.
-  for (const [operation, status] of Object.entries(classification)) {
-    if (status !== 'partial') continue;
-    const prefix = operation === 'node_rows' || operation === 'edge_rows' ? 'graph-' : '';
-    const law = `actql.bound.${prefix}${operation.replaceAll('_', '-')}`;
-    if (graph.law_ids.includes(law)) visit({law_id:law});
+  // Execution coverage does not establish a count-proof application. Traverse
+  // (including Shortest) currently refuses count proofs; its separate limit
+  // checker can validate conditional candidates without deriving their counts.
+  // Construction has its separate keyed body.
+  for (const [operation, law] of [
+    ['match_nodes', 'actql.bound.match-nodes'],
+    ['match_edges', 'actql.bound.match-edges'],
+    ['node_rows', 'actql.bound.graph-node-rows'],
+    ['edge_rows', 'actql.bound.graph-edge-rows'],
+  ]) {
+    assert.equal(classification[operation], 'partial');
+    assert.ok(graph.law_ids.includes(law));
+    visit({law_id:law});
   }
   const source = readFileSync(new URL('../src/capacity_program_step/check.mbt',import.meta.url),'utf8');
   const emitted = new Set([...source.matchAll(/"(actql\.bound\.[a-z.-]+)"/g)].map(m => m[1]));
