@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 20 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 21 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -917,3 +917,31 @@ Successful finish proves chain validation only. The physical Store must separate
 verify actual payload facts, current publication authority and the durable commit
 boundary. This ABI does not write an index, acknowledge persistence, admit a Run,
 retry an unknown operation or supply saved-Run recovery.
+
+### Original Result storage binding output
+
+Private ABI 21 adds `actql_result_binding_reserve`,
+`actql_result_binding_produce`, `actql_result_binding_length` and
+`actql_result_binding_close`. The strict Python loader requires their exact
+signatures and ABI version; earlier modules are rejected without a fallback.
+Reservation selects one Result index from the original completed publication
+handle and borrows an original sealed input. That input is a closed object of
+`material_generation_cid`, `store_authority_cid`, `byte_count` and
+`physical_sha256`. Missing, NULL and additional fields are refused. The Host
+supplies physical observations; the existing Local publication wrapper derives
+all semantic fields from the original Result and checks the observed bytes.
+
+Producing, including reuse of an already produced output, rechecks current Run
+and Source authority. A separate 65,536-byte output reservation carries the
+unchanged canonical binding bytes. Python tracks only physical loans and does
+not reconstruct semantic contracts. Copied or foreign Python handles are
+refused before I/O. Once generation has begun, invalid observations cannot be
+replaced on that handle.
+
+The child retains its original publication until output cleanup and return of
+the exact input borrow both succeed. Parent close seals new production but
+retains parent custody while a child exists. A failed physical stop or cleanup
+keeps the same child and reservation available for cleanup retry. No Source or
+Compute replay is part of this operation. Binding output proves neither Store
+commit nor durable publication, admission, recovery or a Run outcome. The
+physical Store must still verify its payload and current publication authority.

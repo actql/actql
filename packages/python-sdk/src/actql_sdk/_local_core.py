@@ -200,6 +200,12 @@ _PUBLICATION_SIGNATURES = {
     'commit_progress': ('i64 i32 i32', 'i64'),
     'finish_commit': ('i64 i32 i32', 'i32'),
 }
+_RESULT_BINDING_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _SOURCE_SIGNATURES = {
     'reserve_configuration': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
@@ -349,6 +355,8 @@ class LocalCore:
                              for name, value in _MATERIAL_SIGNATURES.items()})
             expected.update({'actql_publication_' + name: value
                              for name, value in _PUBLICATION_SIGNATURES.items()})
+            expected.update({'actql_result_binding_' + name: value
+                             for name, value in _RESULT_BINDING_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
                              for name, value in _SOURCE_SIGNATURES.items()})
             expected.update({'actql_workspace_' + name: value
@@ -386,7 +394,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 20:
+            if self._exports['actql_host_abi_version'](self._store) != 21:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -742,6 +750,50 @@ class LocalCore:
 
     def close_publication(self, value: _Output) -> bool:
         return self._close_output(value, 'publication', 'close')
+
+    def reserve_result_binding(self, publication: _Output, index: int,
+                               observations: _Input, *,
+                               cleanup: Callable[[], bool]) -> _Output:
+        """Bind observed Store bytes to an original Result, without committing."""
+        with self._lock:
+            self._owned_output(publication, 'publication')
+            self._owned_input(observations)
+            if type(index) is not int or not 0 <= index < 2**31:
+                raise ValueError('Invalid original Result index')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'result_binding')))
+            handle = self._call('result_binding', 'reserve', publication.handle,
+                                index, observations.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_result_binding', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'result_binding')
+            self._loans[ticket] = value
+            return value
+
+    def produce_result_binding(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'result_binding')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            self._check('produce_result_binding', self._call(
+                'result_binding', 'produce', value.handle, current_configuration))
+
+    def read_result_binding(self, value: _Output) -> bytes:
+        return self._read_output(value, 'result_binding', 'length')
+
+    def close_result_binding(self, value: _Output) -> bool:
+        return self._close_output(value, 'result_binding', 'close')
 
     def prepare_publication_commit(self, value: _Output, request: _Input,
                                    current_configuration: int) -> None:
