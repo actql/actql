@@ -23,6 +23,17 @@ fn local_submit_allowed(
   crypto : @local_crypto.Library,
   scope : String,
 ) -> Bool {
+  local_run_operation_allowed(host, settings, crypto, scope, "submit")
+}
+
+///|
+fn local_run_operation_allowed(
+  host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
+  crypto : @local_crypto.Library,
+  scope : String,
+  operation : String,
+) -> Bool {
   host.authority_scope_cid(settings.principal, settings.connection, crypto)
   is Ok(current) &&
   current == scope &&
@@ -30,7 +41,7 @@ fn local_submit_allowed(
     principal: settings.principal,
     connection: settings.connection,
     resource: "run",
-    operation: "submit",
+    operation,
   })
   is Ok(Allow(_))
 }

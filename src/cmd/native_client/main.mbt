@@ -826,6 +826,7 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("lookup-cancellation", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
         @argparse.OptionArg("cancel-id", required=true),
         @argparse.OptionArg("expected-revision", required=true),
       ]),
@@ -856,6 +857,10 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         stop("operation requires an explicit Local configuration")
       }
     _ => stop("unsupported Client mode")
+  }
+  if matches.subcommand is Some(("lookup-cancellation", child)) &&
+    optional(child, "submission-ref-file") is Some(_) {
+    stop("Original Local submission binding is unavailable in Remote mode")
   }
   let endpoint = endpoint_url(required(matches, "endpoint"))
   let request_max = positive_int(

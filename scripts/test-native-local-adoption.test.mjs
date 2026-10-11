@@ -105,6 +105,10 @@ const submitPermission = {entry_id: 'run-submit', outcome: 'allow',
   principal: {any_of: ['operator']}, connection: {any_of: ['cli']},
   resource: {any_of: ['run']}, operation: {any_of: ['submit']}, exclusions: []};
 
+const cancelPermission = {entry_id: 'run-cancel', outcome: 'allow',
+  principal: {any_of: ['operator']}, connection: {any_of: ['cli']},
+  resource: {any_of: ['run']}, operation: {any_of: ['cancel']}, exclusions: []};
+
 test('Native CLI original Submission lookup stays unresolved across separate exited processes', async () => {
   const f = await fixture('lookup-unaccepted', [submitPermission]);
   success(invoke(f, ['adopt', '--json']));
@@ -278,8 +282,8 @@ async function sourceFixture(name, update = () => {}, entries = []) {
   return f;
 }
 
-async function submissionFixture(name) {
-  const f = await sourceFixture(name, () => {}, [submitPermission]);
+async function submissionFixture(name, entries = [submitPermission]) {
+  const f = await sourceFixture(name, () => {}, entries);
   await copyFile(fileURLToPath(new URL('./fixtures/native-local-cli/source-environment.json', import.meta.url)),
     join(f.root, 'environment.json'));
   f.configuration.native.check_environment.evidence_bundle_cid =
@@ -352,6 +356,74 @@ test('Native CLI admitted Source Run still requires read authority before loadin
   assert.equal(looked.runDefinitionCid, admitted.runDefinitionCid);
   assert.deepEqual(looked.ref, admitted.ref);
   assert.equal(looked.controlRevision, admitted.controlRevision);
+});
+
+async function cancellationLookupFixture(name, entries = [submitPermission, cancelPermission]) {
+  const {f, reference} = await submissionFixture(name, entries);
+  await copyFile(fileURLToPath(new URL('./fixtures/native-local-cli/source-program.json', import.meta.url)),
+    join(f.root, 'input.json'));
+  refusal(invoke(f, originalStart), /LocalSourceAuthorizationDenied/u);
+  const admitted = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(admitted.phase, 'ready');
+  assert.equal(admitted.ref.namespaceId, 'local-example');
+  await writeFile(join(f.root, 'original-run.json'), JSON.stringify(admitted.ref));
+  await unlink(join(f.root, 'input.json'));
+  const lookup = ['lookup-cancellation', '--submission-ref-file', 'original-submission.json',
+    '--ref-file', 'original-run.json', '--cancel-id', 'cancel-original',
+    '--expected-revision', admitted.controlRevision];
+  return {f, reference, admitted, lookup};
+}
+
+test('Native CLI original cancellation lookup remains unresolved across exited processes without execution', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-lookup-original');
+  const storeFile = join(f.root, 'managed', 'results', '.actql-publication.sqlite3');
+  const originalStore = await readFile(storeFile);
+  const expected = {kind: 'local_cancellation_lookup', history: 'unresolved', ref: admitted.ref,
+    cancelRef: {...admitted.ref, cancelId: 'cancel-original', expectedRevision: Number(admitted.controlRevision)}};
+  assert.deepEqual(success(invoke(f, lookup)), expected);
+  assert.deepEqual(success(invoke(f, lookup)), expected);
+  assert.deepEqual(await readFile(storeFile), originalStore, 'Lookup must not open or rewrite the publication Store');
+  const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.deepEqual(original.ref, admitted.ref);
+  assert.equal(original.controlRevision, admitted.controlRevision, 'Missing cancellation history cannot issue a cancellation');
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+});
+
+test('Native CLI cancellation lookup requires independent current cancel authority', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-lookup-denied', [submitPermission]);
+  refusal(invoke(f, lookup), /LocalCancellationAuthorizationDenied/u);
+  const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.deepEqual(original.ref, admitted.ref);
+  assert.equal(original.controlRevision, admitted.controlRevision);
+});
+
+test('Native CLI cancellation lookup rejects substituted namespace authority and Run before original operation lookup', async () => {
+  const {f, admitted, lookup} = await cancellationLookupFixture('cancel-lookup-target');
+  for (const [field, value] of [['namespaceId', 'foreign-namespace'],
+    ['authorityScopeCid', `sha256:${'0'.repeat(64)}`], ['runDefinitionCid', `sha256:${'0'.repeat(64)}`]]) {
+    await writeFile(join(f.root, 'original-run.json'), JSON.stringify({...admitted.ref, [field]: value}));
+    refusal(invoke(f, lookup), /LocalOriginalRunReferenceMismatch/u);
+  }
+  await writeFile(join(f.root, 'original-run.json'), JSON.stringify(admitted.ref));
+  assert.equal(success(invoke(f, lookup)).history, 'unresolved');
+  await assert.rejects(stat(join(f.root, 'managed', 'records.duckdb')), {code: 'ENOENT'});
+});
+
+test('Native CLI cancellation lookup refuses absent Run admission and altered Submission without recreating either', async () => {
+  const {f, reference} = await submissionFixture('cancel-lookup-unaccepted', [submitPermission, cancelPermission]);
+  await writeFile(join(f.root, 'original-run.json'), JSON.stringify({namespaceId: 'local-example',
+    authorityScopeCid: reference.epoch.authorityScopeCid, runDefinitionCid: `sha256:${'0'.repeat(64)}`}));
+  const lookup = ['lookup-cancellation', '--submission-ref-file', 'original-submission.json',
+    '--ref-file', 'original-run.json', '--cancel-id', 'cancel-original', '--expected-revision', '0'];
+  refusal(invoke(f, lookup), /LocalOriginalRunUnavailable/u);
+  const original = success(invoke(f, ['lookup-submission', '--submission-ref-file', 'original-submission.json']));
+  assert.equal(original.history, 'unresolved');
+  assert.equal(Object.hasOwn(original, 'ref'), false);
+  const altered = structuredClone(reference);
+  altered.epoch.authorityScopeCid = `sha256:${'0'.repeat(64)}`;
+  await writeFile(join(f.root, 'original-submission.json'), JSON.stringify(altered));
+  refusal(invoke(f, lookup), /LocalOriginalRunUnavailable/u);
+  await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
 });
 
 test('Native CLI refuses conflicting request assertion before durable acceptance', async () => {

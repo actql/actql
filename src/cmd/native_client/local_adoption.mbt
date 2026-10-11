@@ -292,6 +292,8 @@ fn execute_native_local_adoption(
       )
     } else if operation == "lookup-submission" {
       local_submission_lookup(host, settings, crypto, root, child)
+    } else if operation == "lookup-cancellation" {
+      local_cancellation_lookup(host, settings, crypto, root, child)
     } else if operation == "new-submission" {
       guard host.authorize({
           principal: settings.principal,
@@ -451,25 +453,10 @@ fn local_submission_lookup(
         Some(admission) => {
           // Resolve the original durable Run rather than rebuilding a reference
           // from current settings or treating admission revision as control.
-          let request = @local_host.native_client_submitted_run_request(
-            admission,
-          )
-          if @run_host.client_request_authority_scope_cid(request) != scope {
-            stop("LocalOriginalRunScopeMismatch")
-          }
-          let run = match
-            journal.lookup(
-              request,
-              local_submit_allowed(host, settings, crypto, scope),
-            ) {
-            Ok(Retained(run)) => run
-            _ => stop("LocalOriginalRunUnavailable")
-          }
+          let (_, run) = local_resolve_admitted_run(journal, admission, scope, () => {
+            local_submit_allowed(host, settings, crypto, scope)
+          })
           let definition = @local_host.native_client_run_definition(run)
-          if @publication.publication_contract_identity(definition) !=
-            @local_host.native_client_submitted_run_definition_cid(admission) {
-            stop("LocalOriginalRunUnavailable")
-          }
           if !local_submit_allowed(host, settings, crypto, scope) {
             stop("LocalSubmissionAuthorizationDenied")
           }

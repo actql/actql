@@ -89,6 +89,26 @@ Current submit and Source read authority are independent. A publication error
 retains original Store materials for reconciliation rather than deleting them
 or opening another Source. Pending cleanup is reported as incomplete.
 
+The source candidate also connects Local `lookup-cancellation` to the existing
+original-operation journal. Provide both `--submission-ref-file` and
+`--ref-file`, together with the original `--cancel-id` and
+`--expected-revision`. The Host authenticates the original Submission, resolves
+its retained admitted Run, requires an exact Run-reference match and rechecks
+current `principal × connection × run × cancel` authority. Submit permission
+does not supply cancel authority. Remote mode refuses the Local-only Submission
+binding; the existing Remote request and wire remain unchanged.
+
+The Local reply has `kind: local_cancellation_lookup`, the exact `ref` and
+`cancelRef`, and `history: unresolved` or `retained`. A retained record projects
+only its original `action` and exact decimal `recordedControlRevision`; this is
+not a new Run-control snapshot. An unresolved history certifies neither refusal
+nor absence of side effects, physical stop or resource release. Lookup does not
+issue a cancellation, reopen payloads, load a Provider, recompile or resubmit.
+The Host must close successfully before stdout publishes the reply. Local
+cancel execution, physical-stop/cleanup restoration and retained cancellation
+CLI acceptance remain unfinished. These new process fixtures are defined and
+typechecked separately from actual fresh-artifact runtime acceptance.
+
 In addition to the preparation settings, the selected `actql-config/0.1`
 document requires `account_config` (one file name in the selected private root)
 and `native.local`:
