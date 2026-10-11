@@ -29,7 +29,6 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/pipeline_parameters",
-  "actql/actql/relation_results",
 }
 
 import {
@@ -42,6 +41,7 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/source_frontend" @frontend,
+  "actql/actql/relation_results",
 } for "test"
 
 import {
