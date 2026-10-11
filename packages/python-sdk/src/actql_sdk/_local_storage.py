@@ -200,14 +200,15 @@ class LocalByteStore:
             self._open()
             return self._read_bytes_locked(key)
 
-    def _read_bytes_locked(self, key: str) -> StoredBytes | None:
+    def _read_bytes_locked(self, key: str, *, max_bytes: int | None = None) -> StoredBytes | None:
         # CASE bounds the Python allocation even for a corrupted/foreign
         # oversized row. SQLite length(BLOB) reads its size, not its value.
         row = self._connection.execute('''SELECT generation,
             CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
             typeof(payload), length(payload)
             FROM core_bytes WHERE key = ?''',
-            (self._max_record_bytes, key)).fetchone()
+            (self._max_record_bytes if max_bytes is None else
+             min(self._max_record_bytes, max_bytes), key)).fetchone()
         if row is None:
             return None
         generation, payload, kind, length = row
@@ -469,6 +470,109 @@ class LocalByteStore:
                 # Do not publish observations or repeat cleanup if this fails.
                 database.execute('ROLLBACK')
                 return result
+
+    def inspect_publication_projected_attached(
+            self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            current: Callable[[], object]) -> None:
+        """Transport bounded original-key reads under one physical snapshot.
+
+        The trusted Host holds Core, then File, before this Store lock. It
+        supplies each key from the original Core scope or stored-contract
+        projection, and forwards the raw row synchronously to that Owner. No
+        candidate-byte equality, scope parsing, content comparison or commit
+        decision happens here. A missing row is only a physical observation;
+        query/fence/cleanup failures raise instead of becoming NotFound.
+
+        current must recheck the original six facts and independent publisher
+        port, returning None only on success. It runs before lookup, before
+        consumption and before returning from the snapshot. The callback is not
+        an authorization supplier. Original fences/capacity are checked in this
+        same snapshot; no replacement or replay follows a failure.
+
+        Each consumer finishes the same output/input loan's required transfer
+        and cleanup before returning None. It must not retain the borrowed row
+        outside its reserved Core input. Failure retains that original loan in
+        its caller. SQLite/Python workspace, original fences and simultaneously
+        retained Core inputs are separately accounted by the Host. This method
+        neither releases those resources nor acknowledges a publication.
+
+        Existing record/store limits bound the number and cumulative bytes of
+        reads, including repeats. Only one physical row is copied at a time.
+        A captured reader cannot be used later, concurrently or recursively.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local publication inspection callback')
+        self._validate_originals(originals, set())
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN')
+            active = True
+            reading = False
+            thread = get_ident()
+            reads = copied = 0
+            failure: BaseException | None = None
+
+            def fence() -> None:
+                if not self._originals_match_locked(originals):
+                    raise LocalStorageError('Original Local publication observation changed')
+                if current() is not None:
+                    raise ValueError('Invalid Local publication current callback result')
+                if not self._originals_match_locked(originals):
+                    raise LocalStorageError('Original Local publication observation changed')
+
+            def read(key: str, consume: Callable[[StoredBytes | None], object]) -> None:
+                nonlocal reading, reads, copied, failure
+                entered = False
+                try:
+                    if (not active or reading or get_ident() != thread
+                            or failure is not None):
+                        raise ValueError('Local publication snapshot reader is not active')
+                    self._key(key)
+                    if not callable(consume):
+                        raise ValueError('Invalid Local publication observation consumer')
+                    if reads >= self._max_records:
+                        raise LocalStorageError('Local publication inspection capacity exceeded')
+                    reading = entered = True
+                    fence()
+                    # Bound the cumulative copy before SQLite fetches a BLOB.
+                    row = self._read_bytes_locked(
+                        key, max_bytes=self._max_payload_bytes - copied)
+                    reads += 1
+                    if row is not None:
+                        copied += len(row.payload)
+                    fence()
+                    if consume(row) is not None:
+                        raise ValueError('Invalid Local publication observation consumer result')
+                    del row
+                    fence()
+                except BaseException as error:
+                    failure = error
+                    raise
+                finally:
+                    if entered:
+                        reading = False
+
+            try:
+                fence()
+                result = inspect(read)
+                # Swallowing a consumer/query/permission failure is not success.
+                if failure is not None:
+                    raise failure
+                if result is not None or reads == 0:
+                    raise ValueError('Incomplete Local publication inspection')
+                fence()
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+            else:
+                # Read-only transaction end, never a Store commit or durable ACK.
+                # Failure leaves this same connection pending; no automatic retry.
+                database.execute('ROLLBACK')
+            finally:
+                active = False
 
     def compare_exchange_projected_attached(
             self, count: int,

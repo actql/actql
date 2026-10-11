@@ -146,6 +146,23 @@ class OriginalReaderFacts:
                     self._record, self._input, self._projection._configuration)
                 self._root.observe_completed_reader(self._reader)
 
+    def before_lookup(self, publisher: _Output) -> None:
+        """Recheck original physical facts around the current Request stage.
+
+        This is neither Commit nor ReturnCommitted. Core validates/adopts the
+        actually stored index and independently rechecks its publisher stage.
+        """
+        core = self._projection._core
+        with core._lock:
+            self._ready()
+            with self._root._lock:
+                if not self._active:
+                    raise RuntimeError('Local reader facts require the original serialized transaction')
+                self.validate()
+                core.authorize_publisher(publisher, self._projection._configuration,
+                                         stage='request')
+                self.validate()
+
     def before_commit(self, publisher: _Output) -> None:
         """Recheck before physical COMMIT; neither write nor acknowledge it."""
         core = self._projection._core
