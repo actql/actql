@@ -17,7 +17,11 @@ fn script_traversal_argument(
       guard input.source is StepReference else { raise Abort(UnsupportedGraph) }
       construction.text(input.name)
     }
-    FieldReference(_) => raise Abort(InvalidQuery)
+    FieldReference(path) => {
+      guard path.length() == 1 else { raise Abort(InvalidQuery) }
+      construction.text(path[0].value)
+    }
+    OutputName(name) => construction.text(name.value)
     TextValue(value) => construction.text(value)
     NumberValue(text) =>
       match @expression.numeric_literal(text) {
@@ -31,15 +35,32 @@ fn script_traversal_argument(
     NullValue => construction.add(Null)
     ParameterValue(name) =>
       construction.object([("$param", construction.parameter_text(name))])
-    ObjectValue(fields) =>
+    ObjectValue(fields) => {
+      if fields.length() == 1 && fields[0].0 == "field" &&
+        fields[0].1 is FieldReference(path) {
+        return script_sga_expression_field(construction, path)
+      }
+      // A Relation selector's field belongs to its declared operand, not the
+      // current Graph or the global producer scope. The common selector still
+      // checks identity/type/presence after ordinary source name resolution.
+      let operand = fields.filter(field => field.0 == "from")
+      let selector_input = if operand.length() == 1 && operand[0].1 is Producer(name) {
+        Some((name, resolve_relation_input([name], known)))
+      } else {
+        None
+      }
       construction.object(
         fields.map(field => {
-          (
-            field.0,
-            script_traversal_argument(construction, field.1, known, limits),
-          )
+          let value = if field.0 == "id" && field.1 is FieldReference(path) &&
+            selector_input is Some((name, input)) {
+            script_sga_selector_field(construction, path, name, input)
+          } else {
+            script_traversal_argument(construction, field.1, known, limits)
+          }
+          (field.0, value)
         }),
       )
+    }
     ListValue(items) =>
       construction.array(
         items.map(item => {
@@ -108,4 +129,42 @@ fn lower_script_traversal_rows(
     visible_fields: fields,
     graph_bindings: [],
   }
+}
+
+
+///|
+// Preserve a genuine property path as ordinary common expression nodes. A
+// quoted dotted identifier remains one field; no sampled value or new evaluator.
+fn script_sga_expression_field(
+  construction : Construction,
+  path : Array[@query.NamePart],
+) -> @builder.Node raise Abort {
+  guard !path.is_empty() else { raise Abort(InvalidQuery) }
+  let mut value = construction.object([("field", construction.text(path[0].value))])
+  for index = 1; index < path.length(); index = index + 1 {
+    value = construction.object([
+      ("property", construction.object([
+        ("value", value), ("name", construction.text(path[index].value)),
+      ])),
+    ])
+  }
+  value
+}
+
+///|
+fn script_sga_selector_field(
+  construction : Construction,
+  path : Array[@query.NamePart],
+  operand : @query.NamePart,
+  input : Input,
+) -> @builder.Node raise Abort {
+  guard path.length() == 1 ||
+    (path.length() == 2 && same_name(path[0], operand)) else {
+    raise Abort(UnknownColumn)
+  }
+  let selected = columns(input).filter(field => {
+    same_name(path.last().unwrap(), {value: field, quoted: false})
+  })
+  guard selected.length() == 1 else { raise Abort(UnknownColumn) }
+  construction.text(selected[0])
 }

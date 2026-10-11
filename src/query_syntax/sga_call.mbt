@@ -4,6 +4,7 @@
 pub(all) enum SgaArgument {
   Producer(NamePart)
   FieldReference(Array[NamePart])
+  OutputName(NamePart)
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
@@ -178,13 +179,11 @@ fn QueryParser::sga_argument(
     self.symbol(93)
     return ListValue(items)
   }
-  if path.length() == 1 &&
-    (
-      (operation == "to_vectors" && ["id", "vector"].contains(path[0])) ||
-      (operation == "to_events" && ["id", "time"].contains(path[0])) ||
-      (operation == "session" && ["id", "time", "by"].contains(path[0]))
-    ) {
+  if sga_field_argument(operation, path) {
     return FieldReference(self.path())
+  }
+  if sga_output_argument(operation, path) {
+    return OutputName(self.name())
   }
   if sga_producer_argument(operation, path) {
     // Bare and backtick names are references. A quoted STRING is a value,
@@ -214,10 +213,10 @@ fn QueryParser::sga_argument(
     Word(name) if ascii_upper(name) == "TRUE" => BooleanValue(true)
     Word(name) if ascii_upper(name) == "FALSE" => BooleanValue(false)
     Word(name) if ascii_upper(name) == "NULL" => NullValue
-    Symbol(45) => {
+    Symbol(43 | 45 as sign) => {
       let number = self.advance()
       match number.value {
-        Numeric(value) => NumberValue("-" + value)
+        Numeric(value) => NumberValue((if sign == 45 { "-" } else { "+" }) + value)
         _ => raise QueryAbort("Expected SGA numeric value", number.start)
       }
     }
@@ -242,7 +241,8 @@ fn QueryParser::sga_arguments(
     // Fold typed argument vocabulary only. Object-valued data (for
     // example a predicate's literal object) retains its authored field names.
     // Folding every nested String key would change a value before admission.
-    let key = if path.is_empty() || sga_selector_object(operation, path) {
+    let key = if path.is_empty() || sga_selector_object(operation, path) ||
+      sga_expression_position(operation, path) {
       ascii_upper(name.value).to_lower()
     } else {
       name.value
