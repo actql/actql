@@ -96,7 +96,7 @@ test "query numbers keep exact spelling and unary signs are separate" {
     Numeric(".5"),
     End,
   ])
-  for text in ["1e", "1e+", "1e--2", "1.2.3", "2abc", "0x10"] {
+  for text in ["1e", "1e+", "1e--2", "1.2.3", "2abc"] {
     assert_true(tokenize(text, limits()) is Err(_), msg=text)
   }
 }
