@@ -50,11 +50,11 @@ test "model capture replay validates task and fixed request without provider cal
     input_key_cid: "sha256:4444444444444444444444444444444444444444444444444444444444444444",
     fixed_request_cid: fixed,
     provider_id: "models/fixture",
-    provider_model: "fixture-risk-model",
-    provider_request_id: "request-1",
+    provider_model: Some("fixture-risk-model"),
+    provider_request_id: Some("request-1"),
     value: model_execution_test_output(task),
-    input_tokens: 1L,
-    output_tokens: 2L,
+    input_tokens: Some(1L),
+    output_tokens: Some(2L),
     observed_at: "2026-10-01T00:00:00.000Z",
   }
   let bundle : ModelCaptureBundle = {
@@ -79,10 +79,10 @@ test "model capture replay validates task and fixed request without provider cal
   for
     invalid in [
       { ..capture, provider_id: "models/foreign", },
-      { ..capture, provider_model: "", },
+      { ..capture, provider_model: Some(""), },
       { ..capture, observed_at: "", },
-      { ..capture, input_tokens: -1L, },
-      { ..capture, output_tokens: -1L, },
+      { ..capture, input_tokens: Some(-1L), },
+      { ..capture, output_tokens: Some(-1L), },
     ] {
     assert_true(
       replay_model_capture(task, fixed, { ..bundle, captures: [invalid], })
@@ -91,7 +91,7 @@ test "model capture replay validates task and fixed request without provider cal
   }
   // The private observation preserves integer bytes, without rounding an
   // Int64 through binary64 or claiming canonical public Run evidence.
-  let large = { ..capture, input_tokens: 9223372036854775807L, }
+  let large = { ..capture, input_tokens: Some(9223372036854775807L), }
   let wire = model_capture_bundle_json(
     { ..bundle, captures: [large], },
     4096,

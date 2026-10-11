@@ -4,22 +4,31 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
-export function preparePrivatePublicationHolding(store, binding) {
-  if (!store || typeof store.confirmPrivateEvidence !== 'function' ||
-      typeof store.preparePrivateEvidence !== 'function' ||
+export function preparePrivatePublicationHolding(store, binding, rawBytes) {
+  const raw = binding?.name === 'model_raw_response';
+  if (!store || typeof (raw ? store.confirmModelRawEvidence :
+      store.confirmPrivateEvidence) !== 'function' ||
+      typeof (raw ? store.prepareModelRawEvidence :
+        store.preparePrivateEvidence) !== 'function' ||
       typeof store.commitPhysicalHolding !== 'function' ||
       !binding || !['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
         'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
         'model_attempt_outcome', 'model_dispatch_authority', 'observation_set',
-        'run_invocation', 'source_evidence']
+        'run_invocation', 'source_evidence', 'model_raw_response']
         .includes(binding.name) ||
       typeof binding.semanticCid !== 'string' ||
       typeof binding.holdingCid !== 'string' ||
-      typeof binding.wire !== 'string') {
+      typeof binding.wire !== 'string' ||
+      (raw && !(rawBytes instanceof Uint8Array)) ||
+      (!raw && rawBytes !== undefined)) {
     fail('InvalidPrivatePublicationHolding');
   }
   const owned = Object.freeze({...binding});
+  // This is the original transport backing, not a reconstructed String.
+  // Its retention is part of the Model caller's funded phase until retirement.
+  let originalBytes = rawBytes;
   let prepared;
+  let constructionCleanup;
   let record;
   let committed = false;
   let abandoned = false;
@@ -27,13 +36,25 @@ export function preparePrivatePublicationHolding(store, binding) {
   let flight;
   let abortFlight;
   const releaseUnused = async () => {
-    if (prepared?.status().pending === true) await prepared.release();
+    if (constructionCleanup !== undefined) {
+      await constructionCleanup.release();
+      constructionCleanup = undefined;
+    }
+    for (const handle of prepared ?? []) {
+      if (handle.status().pending === true) await handle.release();
+    }
   };
-  const confirm = () => store.confirmPrivateEvidence(owned);
+  const rawBinding = raw ? Object.freeze({semanticCid: owned.semanticCid,
+    holdingCid: owned.holdingCid, wire: owned.wire, contentCid: owned.contentCid,
+    byteCount: owned.byteCount}) : undefined;
+  const confirm = async () => raw
+    ? (await store.confirmModelRawEvidence(rawBinding))?.record
+    : store.confirmPrivateEvidence(owned);
   const status = () => Object.freeze({
     committed, abandoned, abandoning,
     operationPending: flight !== undefined || abortFlight !== undefined,
-    preparedPending: prepared?.status().pending === true,
+    preparedPending: constructionCleanup !== undefined ||
+      prepared?.some(handle => handle.status().pending === true) === true,
   });
   const owner = {
     binding: owned,
@@ -53,25 +74,40 @@ export function preparePrivatePublicationHolding(store, binding) {
           await releaseUnused();
           record = existing;
           committed = true;
+          originalBytes = undefined;
           return existing;
         }
         if (prepared === undefined) {
-          const encrypted = await store.preparePrivateEvidence(
-            owned.name, owned.wire, owned.semanticCid,
-          );
-          prepared = encrypted.prepared;
+          if (constructionCleanup !== undefined) {
+            await constructionCleanup.release();
+            constructionCleanup = undefined;
+          }
+          let encrypted;
+          try {
+            encrypted = raw ? await store.prepareModelRawEvidence(
+              rawBinding, originalBytes,
+            ) : [await store.preparePrivateEvidence(
+              owned.name, owned.wire, owned.semanticCid,
+            )];
+          } catch (error) {
+            if (error.cleanupPending === true && error.cleanupHandle !== undefined) {
+              constructionCleanup = error.cleanupHandle;
+            }
+            throw error;
+          }
+          prepared = encrypted.map(object => object.prepared);
           record = Object.freeze({
             version: 'actql-local-physical-holding/0.1',
             namespace: 'publication-private',
             holding_cid: owned.holdingCid,
             manifest_cid: owned.semanticCid,
-            objects: Object.freeze([Object.freeze({
-              cid: encrypted.physicalCid, byte_count: encrypted.bytes,
-            })]),
+            objects: Object.freeze(encrypted.map(object => Object.freeze({
+              cid: object.physicalCid, byte_count: object.bytes,
+            }))),
           });
         }
         try {
-          await store.commitPhysicalHolding(record, [prepared]);
+          await store.commitPhysicalHolding(record, prepared);
         } catch (error) {
           let reconciled;
           try { reconciled = await confirm(); }
@@ -83,9 +119,11 @@ export function preparePrivatePublicationHolding(store, binding) {
         await releaseUnused();
         record = verified;
         committed = true;
+        originalBytes = undefined;
         return verified;
       })().catch(error => {
-        if (prepared?.status().pending === true) {
+        if ((record !== undefined && !committed) || constructionCleanup !== undefined ||
+            prepared?.some(handle => handle.status().pending === true)) {
           error.cleanupPending = true;
           error.cleanupHandle = owner;
         }
@@ -107,12 +145,15 @@ export function preparePrivatePublicationHolding(store, binding) {
         }
         const existing = await confirm();
         if (existing !== undefined) {
+          await releaseUnused();
           record = existing;
           committed = true;
+          originalBytes = undefined;
           return false;
         }
         await releaseUnused();
         abandoned = true;
+        originalBytes = undefined;
         return true;
       })().finally(() => {
         if (abortFlight === operation) abortFlight = undefined;

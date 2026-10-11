@@ -8,19 +8,20 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/physical_resources" @resources,
   "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_json" @canonical,
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,
   "actql/actql/value_contract" @contract,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
 }
 
 import {
   "actql/actql/carrier_contract" @carrier,
-  "actql/actql/decode_core" @decode,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/source_value" @source,
   "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",

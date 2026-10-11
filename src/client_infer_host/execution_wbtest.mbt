@@ -108,6 +108,7 @@ fn fixture_finish(active : Execution, initial_work? : Int64 = 0L) -> Poll raise 
     let poll = advance(active, 1).unwrap()
     let work = match poll {
       Waiting(work~)
+      | AwaitIo(work~)
       | Settling(_, work~)
       | Continue(work~)
       | Complete(_, work~)
@@ -212,9 +213,9 @@ test "model response admission charges exact steps and retains provider observat
   )
   assert_true(fixture_finish(active) is Complete(_, ..))
   let captured = capture(active).unwrap().captures[0]
-  assert_eq(captured.provider_model, "fixture-risk-model")
-  assert_eq(captured.input_tokens, 1L)
-  assert_eq(captured.output_tokens, 2L)
+  assert_eq(captured.provider_model, Some("fixture-risk-model"))
+  assert_eq(captured.input_tokens, Some(1L))
+  assert_eq(captured.output_tokens, Some(2L))
   assert_eq(captured.observed_at, "2026-10-01T00:00:00.000Z")
   assert_eq(calls.val, 1)
   assert_true(cleanup(active).unwrap())
@@ -364,7 +365,7 @@ test "model response has independent exact and one-short node boundaries" {
   assert_true(fixture_finish(active) is Complete(_, ..))
   assert_eq(
     capture(active).unwrap().captures[0].provider_model,
-    "fixture-array-model",
+    Some("fixture-array-model"),
   )
   assert_true(cleanup(active).unwrap())
   let short_calls = Ref(0)
