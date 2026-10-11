@@ -1,0 +1,164 @@
+{
+  "excludeNulls": {
+    "rows": [
+      {
+        "id": 1,
+        "amount": null,
+        "note": "kept",
+        "month": "Feb"
+      },
+      {
+        "id": 1,
+        "amount": 5,
+        "note": null,
+        "month": "Jan"
+      },
+      {
+        "id": 2,
+        "amount": 7,
+        "note": "B",
+        "month": "Feb"
+      },
+      {
+        "id": 2,
+        "amount": 7,
+        "note": "B",
+        "month": "Feb"
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "amount",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "note",
+        "contract": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      {
+        "name": "month",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "includeNulls": {
+    "rows": [
+      {
+        "id": 1,
+        "amount": null,
+        "note": "kept",
+        "month": "Feb"
+      },
+      {
+        "id": 1,
+        "amount": 5,
+        "note": null,
+        "month": "Jan"
+      },
+      {
+        "id": 2,
+        "amount": 7,
+        "note": "B",
+        "month": "Feb"
+      },
+      {
+        "id": 2,
+        "amount": 7,
+        "note": "B",
+        "month": "Feb"
+      },
+      {
+        "id": 2,
+        "amount": null,
+        "note": null,
+        "month": "Jan"
+      },
+      {
+        "id": 2,
+        "amount": null,
+        "note": null,
+        "month": "Jan"
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "amount",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "note",
+        "contract": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      {
+        "name": "month",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "empty": {
+    "rows": [],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "amount",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "note",
+        "contract": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      {
+        "name": "month",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "executionVerified": false
+}
