@@ -147,6 +147,50 @@ test "checked original model read capacity handoff binds Run and preserves clean
   let read = prepare_client_model_read(scope, 7L, 5L).unwrap()
   let before = @resources.ledger_usage(ledger)
   let quantities = @resources.quantity_usage(ledger)
+  // Exact fixture charges are not an adopted physical layout. This caller
+  // guards before allocating its additional control; no second token is made.
+  assert_true(
+    client_model_read_preparation_available(
+      read,
+      compiled,
+      definition,
+      plan,
+      5L,
+      retained_bytes=7L,
+    ),
+  )
+  assert_false(
+    client_model_read_preparation_available(
+      read,
+      compiled,
+      definition,
+      plan,
+      5L,
+      retained_bytes=8L,
+    ),
+  )
+  assert_false(
+    client_model_read_preparation_available(
+      read,
+      compiled,
+      definition,
+      plan,
+      5L,
+      retained_bytes=-1L,
+    ),
+  )
+  assert_false(
+    client_model_read_preparation_available(
+      read,
+      compiled,
+      foreign_definition,
+      plan,
+      5L,
+      retained_bytes=7L,
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(@resources.quantity_usage(ledger), quantities)
   assert_true(
     client_model_read_preparation_available(
       read, compiled, definition, plan, 5L,
@@ -181,6 +225,16 @@ test "checked original model read capacity handoff binds Run and preserves clean
     read, compiled, definition, plan, 10L, 5L,
   ).unwrap()
   assert_true(physical_equal(same, ledger))
+  assert_false(
+    client_model_read_preparation_available(
+      read,
+      compiled,
+      definition,
+      plan,
+      5L,
+      retained_bytes=7L,
+    ),
+  )
   assert_true(@resources.capacity_reservation_matches(same, token, 10L, 5L))
   assert_true(@resources.quantity_configuration_matches(same, Some(amounts)))
   assert_eq(@resources.quantity_usage(same), quantities)
