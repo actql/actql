@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-10-11T19:56:12.525Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Generate actual prefix Owner interfaces",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/stage_syntax",
+        "src/stage_parameters",
+        "src/stage_results"
+      ],
+      "startedAt": "2026-10-11T19:56:12.583Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:56:14.961Z",
+      "endedAt": "2026-10-11T19:56:14.964Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "9e5780b4-190f-49ec-a5d5-a0cef66c1be6",
+    "pid": 5276,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+    "startedAt": "2026-10-11T19:56:12.577Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/local-checks/attempts/run-ReCQ6j"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-f0581b6a95b2b92fe6323dbc34aedc0ea2de7b77c5a9411e8cb00854df3a25e6.lock"
+  ],
+  "endedAt": "2026-10-11T19:56:15.076Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

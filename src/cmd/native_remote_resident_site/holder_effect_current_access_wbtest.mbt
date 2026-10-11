@@ -147,3 +147,59 @@ test "current evidence decision rechecks permission after binding" {
   )
   assert_eq(checks[0], 2)
 }
+
+///|
+/// Native compile-only caller fences; these authored callbacks do not install
+/// a real Host admission or claim physical HTTP/Account acceptance.
+test "current evidence decision rejects original identity loss after permission selection" {
+  let reads = [0]
+  let read = (_ : HolderEffectEvidencePurpose) => {
+    Some({
+      configuration: evidence_account(),
+      delegated_action: None,
+      current: () => true,
+    })
+  }
+  assert_false(
+    holder_effect_current_decision(
+      evidence_subject(),
+      "sha256:" + "a".repeat(64),
+      Read,
+      read,
+      current_original=() => {
+        reads[0] += 1
+        reads[0] == 1
+      },
+    ),
+  )
+  assert_eq(reads[0], 2)
+}
+
+///|
+test "current evidence decision rechecks Account revocation after final original identity read" {
+  let current = [true]
+  let reads = [0]
+  let read = (_ : HolderEffectEvidencePurpose) => {
+    Some({
+      configuration: evidence_account(),
+      delegated_action: None,
+      current: () => current[0],
+    })
+  }
+  assert_false(
+    holder_effect_current_decision(
+      evidence_subject(),
+      "sha256:" + "a".repeat(64),
+      Read,
+      read,
+      current_original=() => {
+        reads[0] += 1
+        if reads[0] == 2 {
+          current[0] = false
+        }
+        true
+      },
+    ),
+  )
+  assert_eq(reads[0], 2)
+}

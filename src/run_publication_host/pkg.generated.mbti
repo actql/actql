@@ -716,6 +716,8 @@ pub fn handoff_client_model_read(ClientModelReadPreparation, ClientCompiledRun, 
 
 pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelReadPreparationIssue]
 
+pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
+
 pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteEffectTaskProgress, ClientRemoteEffectTaskProgressIssue]
 
 pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
@@ -1824,6 +1826,12 @@ pub(all) enum ClientLocalNormalizationIssue {
   SubstitutedJournal
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
+
+pub(all) enum ClientModelInputCapacityIssue {
+  ForeignCallScope
+  ForeignInput
+  Read(ClientModelReadPreparationIssue)
+} derive(Eq, @debug.Debug)
 
 type ClientModelReadPreparation
 
