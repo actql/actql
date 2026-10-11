@@ -27,6 +27,8 @@ pub(all) enum NativeClientRunJournalIssue {
   InvalidSubmission
   SubmissionEpochRejected(@scope.SubmissionEpochValidity)
   UnsupportedPreparation
+  MissingEffectMaterialOriginal
+  ChangedEffectMaterialOriginal
   PublicationPolicy(@checked.LocalDependencyBodyIssue)
   Checkpoint(NativeClientCheckpointIssue)
   CancellationIdentity(@host.ClientCancellationIdentityIssue)
@@ -43,6 +45,7 @@ struct NativeClientRunRecord {
   cancellation_requested : Bool
   publication_binding : String?
   publication_policy_originals : String?
+  effect_material_originals : String?
   revision : Int64
   checkpoint : NativeClientCheckpointRecord?
 }
@@ -95,6 +98,11 @@ fn run_record_body(
     }
     @encode.key(writer, "dispatch_reserved")
     @encode.bool_value(writer, record.dispatch_reserved)
+    // Optional private originals preserve absent-field bytes for older rows.
+    if record.effect_material_originals is Some(original) {
+      @encode.key(writer, "effect_material_originals")
+      @encode.string_value(writer, original)
+    }
     @encode.key(writer, "physical_start_claimed")
     @encode.bool_value(writer, record.physical_start_claimed)
     @encode.key(writer, "publication_binding")
@@ -119,6 +127,7 @@ fn run_record_body(
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
+    @encode.OutputLimit => Err(CapacityExceeded)
     _ => Err(Encoding)
   }
 }
@@ -149,6 +158,7 @@ fn read_run_record(
   guard @decode.closed_object(cursor, [
       "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
       "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
+      "effect_material_originals",
     ])
     is Ok(object) &&
     epoch_text(object, "version") == Some("actql-native-client-run-row/0.1") &&
@@ -200,6 +210,17 @@ fn read_run_record(
       Some(value) => {
         guard @decode.text(value) is Ok(wire) &&
           read_run_policy_originals(wire) is Ok(_) else {
+          return Err(CustodyLost)
+        }
+        Some(wire)
+      }
+    },
+    effect_material_originals: match
+      @decode.lookup(object, "effect_material_originals") {
+      None => None
+      Some(value) => {
+        guard @decode.text(value) is Ok(wire) &&
+          read_effect_material_original_packet(wire) is Ok(_) else {
           return Err(CustodyLost)
         }
         Some(wire)
@@ -659,6 +680,7 @@ fn NativeClientRunJournal::bind_run_locked(
     cancellation_requested: false,
     publication_binding: None,
     publication_policy_originals: None,
+    effect_material_originals: None,
     revision: 0L,
     checkpoint: None,
   }
