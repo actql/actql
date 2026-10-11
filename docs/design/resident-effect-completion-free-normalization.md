@@ -100,9 +100,17 @@ custody rather than silently dropping it.
 
 `issue_prepared_client_effect_normalization_materials` issues exact material
 bytes under the original preparation's normalization Owner and returns an opaque
-`ClientEffectIssuedNormalizationMaterials`. That Owner retains the issuance
-projection; copied projections are refused. The wire accessor does not confer
+`ClientEffectIssuedNormalizationMaterials`. Its private nominal issuer identity
+is checked together with the original preparation, exact bytes and Run CID.
+There is no public wire-to-proof constructor. The wire accessor does not confer
 trust on another string.
+
+The proof belongs to its caller and any admitted material custody. The original
+preparation has no reverse index of issued Runs or material bytes. The private
+issuer identity retains no proof or preparation, so dropping the last caller or
+custody reference makes those per-Run bytes reclaimable by the runtime. Repeated
+issuance can return another valid proof; wire equality does not acquire proof.
+This adds neither a Run count limit nor a new resource reservation Owner.
 
 Effect material admission requires this original projection when the wire
 contains a normalization journal. It verifies exact original bytes and Run CID

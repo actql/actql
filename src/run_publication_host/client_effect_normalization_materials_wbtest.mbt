@@ -252,7 +252,7 @@ test "fixed empty journal appended after issuance cannot mint original custody" 
 }
 
 ///|
-test "original issuance proof cannot be copied or applied to other exact bytes" {
+test "unissued nominal proof and changed exact material bytes are refused" {
   let (prepared, allowed, definition) = original_effect_materials_fixture()
   let original = issue_prepared_client_effect_normalization(prepared).unwrap()
   let proof = issue_prepared_client_effect_normalization_materials(
@@ -260,7 +260,10 @@ test "original issuance proof cannot be copied or applied to other exact bytes" 
   ).unwrap()
   let wire = client_effect_issued_normalization_materials_wire(proof)
   let run = @publication.publication_contract_identity(definition)
+  // A public caller cannot construct this opaque type or obtain its private
+  // issuer identity. Model an unissued lookalike within this white-box test.
   let copied : ClientEffectIssuedNormalizationMaterials = {
+    issuer: Ref(()),
     original: proof.original,
     run_cid: proof.run_cid,
     wire: proof.wire,
@@ -293,14 +296,72 @@ test "original issuance proof cannot be copied or applied to other exact bytes" 
     normalization_materials_untrusted_admission(wire, run)
     is Err(Normalization(UnverifiedOriginalMaterials)),
   )
-  assert_true(
-    physical_equal(
-      proof,
-      issue_prepared_client_effect_normalization_materials(
-        allowed, definition, original,
-      ).unwrap(),
-    ),
-  )
+  let repeated = issue_prepared_client_effect_normalization_materials(
+    allowed, definition, original,
+  ).unwrap()
+  assert_eq(client_effect_issued_normalization_materials_wire(repeated), wire)
+  assert_true(original_effect_materials_match(repeated, wire, run))
   let restored = normalization_materials_admit(wire, run, original=Some(proof))
+  assert_true(restore_client_effect_run_normalization(restored) is Ok(_))
+}
+
+///|
+test "distinct Runs and requests use caller-owned proofs without preparation retention" {
+  let (prepared, allowed, definition) = original_effect_materials_fixture()
+  let original = issue_prepared_client_effect_normalization(prepared).unwrap()
+  let first = issue_prepared_client_effect_normalization_materials(
+    allowed, definition, original,
+  ).unwrap()
+  let first_wire = client_effect_issued_normalization_materials_wire(first)
+  let first_run = @publication.publication_contract_identity(definition)
+  // One unchanged preparation may issue multiple Runs. No Run count policy
+  // or issuance registry is involved; the preparation stores only its journal.
+  for index in 0..<4 {
+    let suffix = index.to_string()
+    let next_definition = issue_client_effect_run_definition(
+      allowed,
+      "original-scope",
+      "distinct-original-run-" + suffix,
+      "2026-10-09T00:00:00.000Z",
+      "2026-10-10T00:00:00.000Z",
+    ).unwrap()
+    let request = prepare_client_effect_request_identity(
+      prepared,
+      "sha256:" + "c".repeat(64),
+      "distinct-original-caller-" + suffix,
+      source_free_caller_input_intent_cid(),
+    ).unwrap()
+    let issued = issue_prepared_client_effect_normalization_materials(
+      allowed,
+      next_definition,
+      original,
+      request=Some(request),
+    ).unwrap()
+    let wire = client_effect_issued_normalization_materials_wire(issued)
+    let run = @publication.publication_contract_identity(next_definition)
+    assert_true(run != first_run && wire != first_wire)
+    assert_true(physical_equal(issued.original, original))
+    assert_true(original_effect_materials_match(issued, wire, run))
+    assert_true(!original_effect_materials_match(first, wire, run))
+    let restored = normalization_materials_admit(
+      wire,
+      run,
+      original=Some(issued),
+    )
+    assert_eq(restored.request, Some(request))
+    assert_true(restore_client_effect_run_normalization(restored) is Ok(_))
+    assert_true(original_effect_materials_match(first, first_wire, first_run))
+    assert_true(
+      physical_equal(
+        original,
+        issue_prepared_client_effect_normalization(prepared).unwrap(),
+      ),
+    )
+  }
+  let restored = normalization_materials_admit(
+    first_wire,
+    first_run,
+    original=Some(first),
+  )
   assert_true(restore_client_effect_run_normalization(restored) is Ok(_))
 }

@@ -1,14 +1,20 @@
 ///|
+/// Private nominal issuer identity. It retains no material, Run or preparation.
+/// Proofs refer to this constant; the issuer never refers back to a proof.
+let original_effect_materials_issuer : Ref[Unit] = Ref(())
+
+///|
 /// Exact bytes issued under the original preparation's normalization Owner.
 /// This process-local projection is not a serializable transport credential.
 struct ClientEffectIssuedNormalizationMaterials {
+  issuer : Ref[Unit]
   original : ClientEffectNormalization
   run_cid : String
   wire : String
 }
 
 ///|
-/// Issue and retain the original bytes before dispatch. Caller-supplied wire
+/// Issue caller-owned original bytes before dispatch. Caller-supplied wire
 /// cannot create this projection. Approval and current authority stay separate.
 pub fn issue_prepared_client_effect_normalization_materials(
   allowed : ClientEffectAllowedRun,
@@ -30,14 +36,9 @@ pub fn issue_prepared_client_effect_normalization_materials(
     Err(issue) => return Err(issue)
   }
   let run_cid = @publication.publication_contract_identity(definition)
-  for issued in original.issued_materials {
-    if issued.wire == wire && issued.run_cid == run_cid {
-      return Ok(issued)
-    }
-  }
-  let issued = { original, run_cid, wire, }
-  original.issued_materials.push(issued)
-  Ok(issued)
+  // No reverse index on the preparation: each Run's bytes are retained only
+  // by its caller/admitted custody. The opaque type has no public constructor.
+  Ok({ issuer: original_effect_materials_issuer, original, run_cid, wire, })
 }
 
 ///|
@@ -55,9 +56,7 @@ fn original_effect_materials_match(
 ) -> Bool {
   issued.wire == wire &&
   issued.run_cid == run_cid &&
-  issued.original.issued_materials.any(fn(original) {
-    physical_equal(original, issued)
-  }) &&
+  physical_equal(issued.issuer, original_effect_materials_issuer) &&
   prepared_client_effect_normalization_evidence(
     issued.original.owner,
     issued.original,
