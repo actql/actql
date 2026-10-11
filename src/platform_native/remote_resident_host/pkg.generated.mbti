@@ -220,6 +220,7 @@ pub(all) struct ResidentEffectComputationCapacity {
   contract_bytes : Int64
   control_bytes : Int64
   workspace_bytes : Int64
+  max_utf16_units : Int
 } derive(Eq)
 
 pub(all) enum ResidentEffectDependencyCaptureIssue {

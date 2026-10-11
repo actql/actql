@@ -42,6 +42,7 @@ fn retained_effect_review_retention_store(
     contract_bytes: 1048576L,
     control_bytes: 4096L,
     workspace_bytes: 65536L,
+    max_utf16_units: 1048576,
   }
   let prepare = (material, secret, bounds) => {
     consumer.prepare_effect_review_retention(

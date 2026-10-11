@@ -65,6 +65,7 @@ fn retained_effect_capture_store(
     contract_bytes: 1048576L,
     control_bytes: 4096L,
     workspace_bytes: 65536L,
+    max_utf16_units: 1048576,
   }
   let metadata_bytes = computation_capacity.contract_bytes +
     computation_capacity.control_bytes

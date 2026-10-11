@@ -6,12 +6,14 @@ pub(all) struct ResidentEffectComputationCapacity {
   contract_bytes : Int64
   control_bytes : Int64
   workspace_bytes : Int64
+  max_utf16_units : Int
 } derive(Eq)
 
 ///|
 fn original_computation_capacity_valid(
   capacity : ResidentEffectComputationCapacity,
 ) -> Bool {
+  capacity.max_utf16_units > 0 &&
   capacity.contract_bytes > 0L &&
   capacity.control_bytes > 0L &&
   capacity.workspace_bytes > 0L &&
@@ -44,4 +46,24 @@ priv struct FundedResidentEffectComputation {
   reservation : @resources.CapacityReservation
   mut evidence : OriginalResidentEffectComputationEvidence?
   mut physical_cleanup_confirmed : Bool
+}
+
+///|
+/// Wire/body limits do not bound simultaneous contract Strings and canonical
+/// tree retention. Use the independent trusted measurement bound instead.
+fn original_computation_contract_extent(
+  contract : @publication.PublicationContract,
+  capacity : ResidentEffectComputationCapacity,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.PublicationRepresentationExtent,
+  @publication.PublicationContractIssue,
+] {
+  @publication.publication_contract_representation_extent(
+    contract,
+    max_nodes,
+    max_depth,
+    capacity.max_utf16_units,
+  )
 }

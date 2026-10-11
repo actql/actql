@@ -172,8 +172,8 @@ pub fn ResidentSourceCompute::persist_effect_capture(
           evidence.receipt,
         ] {
         match
-          @publication.publication_contract_representation_extent(
-            contract, max_nodes, max_depth, max_bytes,
+          original_computation_contract_extent(
+            contract, capacity, max_nodes, max_depth,
           ) {
           Ok(_) => ()
           Err(_) =>

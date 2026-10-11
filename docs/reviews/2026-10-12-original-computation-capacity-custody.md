@@ -12,6 +12,8 @@ this connection accepts a Host-declared `ResidentEffectComputationCapacity`.
 contract Strings. `control_bytes` covers the additional active six-reference
 record and its funding/cleanup control. `workspace_bytes` separately covers the
 bounded traversal frames, temporary six-reference array and extent descriptors.
+The separate `max_utf16_units` bounds measurement of the simultaneously
+retained contract Strings and canonical tree; it is not the Store wire limit.
 These are independent representation bounds; encrypted Store length is not
 their substitute. A positive envelope is not a proof of the Native layout.
 
@@ -20,7 +22,9 @@ same capture Owner is installed before admitting the metadata reservation, so
 metadata admission failure retains the physical cleanup responsibility. Existing
 `reserve_capacity` admits contract plus control retention and scratch before the
 six-reference record or measurement is retained. Measurement uses the original
-contracts and #1540, with the existing per-contract node/depth/text bounds.
+contracts and #1540, with the existing per-contract node/depth bounds and the independently
+configured representation text bound. A contract within the unchanged wire
+limit may have a larger combined retained text extent.
 Measurement failure retains the same nominal token for cleanup and sends no
 report. It does not create a replacement computation chain.
 
@@ -63,9 +67,11 @@ preparation/persistence. This is a private installer gap, not a restriction on
 Programs. Existing production callers default to no envelope; no permissive
 default, synthetic Allow or automatic profile is installed.
 
-Three portable tests use small independent charges to check exact retention vs
+Four portable tests use small independent charges to check exact retention vs
 scratch, no send/attempt allowance, crossed-Ledger refusal, atomic one-short
-admission, missing components and overflow. The existing physical Native capture
+admission, missing components and overflow. An original issued ResultDefinition reproduces
+the incorrect wire-derived text refusal and succeeds under the independent
+measurement bound, without changing its wire/CID or any wire limit. The existing physical Native capture
 and review fixtures receive explicitly test-only charges and distinguish Store
 bytes from Ledger representation retention. Their reopen/retry and final cleanup
 assertions remain strict. They also check missing configuration, unchanged token
