@@ -113,6 +113,7 @@ fn validate_trusted_output_contract(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[ProducerRead]?,
+  verified_managed_inputs? : Bool = false,
 ) -> Result[
   (String, Array[String], Array[ProducerBindingIdentity]),
   TrustedOutputIssue,
@@ -123,6 +124,7 @@ fn validate_trusted_output_contract(
     max_entries,
     max_name_bytes,
     inputs.map(values => values.map(trusted_output_relation_input)),
+    verified_managed_inputs~,
   )
 }
 
@@ -133,13 +135,14 @@ fn validate_trusted_output_contract_with_inputs(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[TrustedOutputInput]?,
+  verified_managed_inputs? : Bool = false,
 ) -> Result[
   (String, Array[String], Array[ProducerBindingIdentity]),
   TrustedOutputIssue,
 ] {
   let cursor = match
     start_trusted_output_preparation(
-      generated, target, max_entries, max_name_bytes, inputs,
+      generated, target, max_entries, max_name_bytes, inputs, verified_managed_inputs~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -182,6 +185,7 @@ fn start_trusted_output_preparation(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[TrustedOutputInput]?,
+  verified_managed_inputs? : Bool = false,
 ) -> Result[TrustedOutputPreparation, TrustedOutputIssue] {
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
@@ -189,7 +193,7 @@ fn start_trusted_output_preparation(
   let owner = completion_preparation_owner(generated)
   let prepared = @lower.bound_preparation(owner)
   let input_bindings = []
-  if target is Input(_) && inputs is None {
+  if target is Input(_) && inputs is None && !verified_managed_inputs {
     // An input-only completion must retain the exact receiving authority;
     // material validation alone is not proof that this input was acquired.
     return Err(ForeignInputs)

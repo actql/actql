@@ -166,6 +166,36 @@ test "input-only completion requires receiving proof and the exact input port" {
     )
     is Err(InvalidTarget),
   )
+  let verify = fn(_ : Unit) -> ManagedRetainedOutput[Unit]? { None }
+  let profile = selected_managed_execution_profile()
+  assert_true(
+    prepare_managed_completion_port(
+      profile, generated, @pipeline.Input(0), 10000, 10000, verify,
+    )
+    is Err(ForeignInputs),
+  )
+  assert_true(
+    prepare_managed_completion_port(
+      profile,
+      generated,
+      @pipeline.Input(0),
+      10000,
+      10000,
+      verify,
+      common_inputs=[],
+    )
+    is Err(ForeignInputs),
+  )
+  let managed_port = prepare_managed_completion_port(
+    profile,
+    generated,
+    @pipeline.Input(0),
+    10000,
+    10000,
+    verify,
+    common_inputs=[ordinary_relation_input_binding(read)],
+  ).unwrap()
+  assert_true(cancel_managed_completion_port(managed_port))
   assert_true(@bounded.request_cancel(control))
   let mut stopped = false
   for _ in 0..<1000 {

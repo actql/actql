@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {independentCid, valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
+import {inputStageResultProgram} from '../../scripts/fixtures/input-stage-result.mjs';
 import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -1972,6 +1973,32 @@ test('checked source-free Program executes through the standard Local Host',
       assert.equal(execution.cleanupPending(), false);
     }
   });
+
+test('input-only Stage completes through the checked standard Host', async () => {
+  const {environment} = await checkedFixture();
+  const prepared = moon.clientProgramPrepareEffectFree(
+    JSON.stringify(inputStageResultProgram), 'json', environment);
+  assert.ok(prepared);
+  const [registry, contract] = await Promise.all([
+    readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
+    readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
+  ]);
+  const bodies = JSON.parse(contract).execution_contracts;
+  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, registry,
+    JSON.stringify(bodies['REL.values']), 1n, 0n, 0n, 0n,
+    JSON.stringify(bodies['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(bodies['REL.derive.ordered']));
+  assert.ok(setup);
+  const execution = await runCapturedStrategy(setup);
+  try {
+    assert.equal(execution.status, 'host-tasks-completed', inspect(execution.failure, {depth: 12}));
+    assert.deepEqual(execution.completed.map(value => value.task), [0, 1]);
+    assert.deepEqual(execution.resultInventory.map(value => value.name), ['answer']);
+  } finally {
+    await execution.close();
+    assert.equal(execution.cleanupPending(), false);
+  }
+});
 
 test('normal Node Run issuance rejects a valid foreign Definition before journaling',
   async t => {

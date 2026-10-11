@@ -81,3 +81,30 @@ test "input-only Stage Result compiles the unchanged independent Program" {
     "{\"output\":\"source\",\"sources\":{\"source\":{\"sort\":\"relation\"}},\"steps\":[],\"version\":\"aoa-pipeline/0.1\"}",
   )
 }
+
+///|
+test "input-only Stage Result opens the checked source-free Run" {
+  let prepared = input_result_prepared(input_result_document)
+  let opened = open_prepared_source_free_client_run(prepared, {
+    planning_work: 10000,
+    attempts: 2,
+    holdings: 2,
+    transfer_bytes: 1000000L,
+    retained_bytes: 1000000L,
+    execution_bytes: 1000000L,
+  })
+  match opened {
+    Ok(run) => {
+      assert_eq(@strategy.next_captured_task(run), Some(0))
+      assert_eq(
+        @strategy.captured_task_target(run, 1),
+        Some(@pipeline.Input(0)),
+      )
+      @strategy.stop_captured_dag(run)
+      @strategy.refresh_captured_retention(run)
+    }
+    Err(Run(UnsupportedGraph)) =>
+      fail("issue #1350: physical Run opening rejects an input-only task")
+    Err(_) => fail("input-only Stage Result Run opening rejected")
+  }
+}
