@@ -125,11 +125,13 @@ for (const cohort of cohorts) {
     await readRetainedCohort(cohort, {mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: cohort.directory, sourceProfilePath: cohort.sourceProfilePath,
         hostCapacityPolicy: cohort.hostCapacityPolicy,
+        ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
         ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {})}});
   } else {
     assert.equal(cohort.mode, 'remote');
     const host = await openInstalledRemoteHttpHost({directory: cohort.directory,
       sourceProfilePath: cohort.sourceProfilePath, hostCapacityPolicy: cohort.hostCapacityPolicy,
+      ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
       ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {}),
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     const server = createServer({key: await readFile('remote.key'),

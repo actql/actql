@@ -15,6 +15,47 @@ struct ManagedPublicationBridge[T] {
 }
 
 ///|
+/// Re-admission inherits the exact receiving identities already verified by
+/// managed completion. It does not reacquire or require a live upstream input.
+/// This private constructor cannot turn raw material into completion proof.
+fn[T] prepare_managed_bridge_output_port(
+  output : ManagedCompletedOutput[T],
+  max_entries : Int,
+  max_name_bytes : Int,
+  verify : (Unit) -> AdmittedOutputRows?,
+) -> Result[TrustedOutputPort[Unit], TrustedOutputIssue] {
+  if max_entries < 0 || max_name_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  if !managed_completed_output_available(output) {
+    return Err(Unverified)
+  }
+  if output.bindings.length() > max_entries {
+    return Err(Limit)
+  }
+  let (id, names, _) = match
+    validate_trusted_output_contract(
+      output.preparation,
+      output.target,
+      max_entries,
+      max_name_bytes,
+      None,
+      verified_managed_inputs=true,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    generated: output.preparation,
+    target: output.target,
+    id,
+    names,
+    verify,
+    input_bindings: output.bindings.copy(),
+  })
+}
+
+///|
 pub fn[T] prepare_managed_publication_bridge(
   output : ManagedCompletedOutput[T],
   material : ManagedRetainedOutput[T],
@@ -49,19 +90,15 @@ pub fn[T] prepare_managed_publication_bridge(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let port = match
-    prepare_trusted_output_port(
-      output.preparation,
-      output.target,
-      max_entries,
-      max_name_bytes,
-      fn(_) {
-        if live.val && managed_completed_output_available(output) {
-          rows.val
-        } else {
-          None
-        }
-      },
+    prepare_managed_bridge_output_port(output, max_entries, max_name_bytes, fn(
+      _,
     ) {
+      if live.val && managed_completed_output_available(output) {
+        rows.val
+      } else {
+        None
+      }
+    }) {
     Ok(value) => value
     Err(issue) => {
       cancel_admitted_output(admitted) |> ignore

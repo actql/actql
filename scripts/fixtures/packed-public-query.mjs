@@ -52,6 +52,7 @@ import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
   from './graph-shortest-source-input.mjs';
 import {graphMeanSourceOracles, graphMeanSourceRefusals}
   from './graph-mean-source-input.mjs';
+import {inputStageResultSuccesses} from './input-stage-result.mjs';
 import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
   from './graph-remaining-operation-inputs.mjs';
 import {createRetainedGraphAuthorization, observeRetainedGraphDispatch}
@@ -118,6 +119,8 @@ import * as publicCheckSdk from '@actql/sdk';
 import {exerciseUnaliasedColumnOrigins} from './unaliased-column-origin.mjs';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
+const {createLocalRetainedStore} = await import(new URL(
+  './adapters/store-local/files.mjs', import.meta.resolve('@actql/local-node')));
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures, relationDataSuccesses, relationDataRefusals}
   from './public-query-input.mjs';
 
@@ -255,7 +258,8 @@ const unnestCheckedArrayOnly = process.env.ACTQL_TEST_UNNEST_CHECKED_ARRAY_ONLY 
 const unnestParameterPathOnly = process.env.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY === '1';
 const pipeUnpivotOnly = process.env.ACTQL_TEST_PIPE_UNPIVOT_ONLY === '1';
 const unnestOnly = process.env.ACTQL_TEST_UNNEST_SOURCE_ONLY === '1';
-const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
+const inputStageResultOnly = process.env.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY === '1';
+const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1' || inputStageResultOnly;
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
@@ -337,7 +341,8 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = graphRemainingOperationsOnly ? graphRemainingOperationInputs
+const scopeInputs = inputStageResultOnly ? {successes: inputStageResultSuccesses, refusals: []}
+  : graphRemainingOperationsOnly ? graphRemainingOperationInputs
   : concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
   : analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
   : countifDistinctOnly ? {successes: countifDistinctSuccesses, refusals: countifDistinctRefusals}
@@ -1061,13 +1066,33 @@ const recordString = mode => item => {
 };
 const cohortDirectory = (root, index) => index === 0 ? root : `${root}-cohort-${index + 1}`;
 const cohortRunCount = cohort => cohort.successes.length + cohort.executionFailures.length;
+function observeInputStageStore(authorization, leases) {
+  if (!inputStageResultOnly) return authorization;
+  Object.assign(authorization.faultInjection, {async localSnapshotStoreFactory({key,bytes,frame,parentDirectory}) {
+    const store = await createLocalRetainedStore({parentDirectory,
+      capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
+    leases.push({key,store});
+    return store;
+  }});
+  return authorization;
+}
+function verifyInputStageStore(leases) {
+  if (!inputStageResultOnly) return;
+  assert.ok(leases.some(lease => lease.key === 'task-1'),
+    'Input-only task must transfer its output through the real retained Store');
+  for (const {store} of leases) {
+    assert.equal(store.status().reservedBytes,0);
+    assert.equal(store.status().cleanupPending,false);
+  }
+}
 const recordCohort = (mode, directory, cohort, authorization) => {
   // Save independently authored boundary oracles for the existing fresh-process
   // public Client regression; it never imports or reruns the partition helper.
   const boundaryNames = new Set([cohort.successes[0]?.name,
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
-  if (graphRemainingOperationsOnly) {
+  if (inputStageResultOnly) saved.retainedRelationOutput = true;
+  if (graphRemainingOperationsOnly || inputStageResultOnly) {
     saved.expectedSampleNames = [...boundaryNames];
     saved.authorization = authorization;
   }
@@ -1085,17 +1110,22 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0;
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
-  const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+  const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+    ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
+  const retainedLeases = [];
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
       sourceProfilePath, hostCapacityPolicy,
+      ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
       ...(authorization === undefined ? {} : {
-        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)})}}, {requestPrefix: 'packed-local',
+        authorization: observeInputStageStore(
+          observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)})}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
     completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
   if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
-    'Initial Graph execution proves the actual dispatch hook is live');
+    'Initial retained execution proves the actual dispatch hook is live');
+  verifyInputStageStore(retainedLeases);
   const acceptedRuns = observe(directory)().acceptedRuns;
   assert.equal(acceptedRuns, cohortRunCount(cohort));
   localAcceptedRuns += acceptedRuns;
@@ -1110,12 +1140,16 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0;
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
-    const authorization = graphRemainingOperationsOnly ? createRetainedGraphAuthorization() : undefined;
+    const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+      ? createRetainedGraphAuthorization() : undefined;
     const physicalDispatches = [];
+    const retainedLeases = [];
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,
+      ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
       ...(authorization === undefined ? {} : {
-        authorization: observeRetainedGraphDispatch(authorization, physicalDispatches)}),
+        authorization: observeInputStageStore(
+          observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)}),
       authenticate: header => header === 'Bearer fixture-token'
         ? userInfo().username : undefined,
     });
@@ -1141,6 +1175,7 @@ let remoteAcceptedRuns = 0;
       await new Promise(resolve => server.close(resolve));
       await host.close();
     }
+    verifyInputStageStore(retainedLeases);
   }
   assert.equal(remoteAcceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
