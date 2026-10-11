@@ -1594,7 +1594,7 @@ fn QueryParser::frame_boundary(
     self.keyword("FOLLOWING")
     return FollowingParameter(self.source.identifier(name))
   }
-  let distance = self.safe_integer(false)
+  let distance = self.safe_integer(true)
   if self.has("PRECEDING") {
     self.keyword("PRECEDING")
     Preceding(distance)
@@ -1681,15 +1681,19 @@ fn QueryParser::aggregate(
   let delimiter = if function_name == "STRING_AGG" {
     if self.peek().value == Symbol(44) {
       ignore(self.advance())
-      guard self.peek().value is Text(_) else {
+      guard self.peek().value is Text(_) || self.peek().value == Symbol(40) else {
         raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
       }
-      // Literal chunks use the ordinary expression parser's decoding,
-      // separation, origins and budgets. Computed delimiters remain outside
-      // this profile; the common aggregate still receives one String value.
+      // Literal chunks and their grouping use the ordinary expression parser's
+      // decoding, separation, origins and budgets. Computed delimiters remain
+      // outside this profile; the common aggregate receives one String value.
       let expression = self.expression()
-      match
-        expression_node(expression, expression_root(expression)).unwrap().kind {
+      let mut root = expression_root(expression)
+      while expression_node(expression, root).unwrap().kind
+            is Parenthesized(child) {
+        root = child
+      }
+      match expression_node(expression, root).unwrap().kind {
         StringLiteral(value) => Some(value)
         _ =>
           raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
