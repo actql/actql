@@ -93,3 +93,21 @@ test "P2 MATCH references preserve literal values and the unchanged complete Pro
   p2_sga_checked(expected)
   p2_sga_checked(actual)
 }
+
+///|
+test "P2 nullable property paths reach the existing Graph expression checker" {
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":2,"payload":{"score":10}},{"id":1,"payload":{"score":20}},{"id":3,"payload":null},{"id":4,"payload":{"score":null}}]},"as":"aql_script_seed_2"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_seed_2","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"payload","to":"payload"}]}}]}],"edges":[]},"as":"aql_with_graph_1"},{"from":"aql_with_graph_1","match_nodes":{"definition":"N","label":"Person","where":{"gt":[{"property":{"value":{"field":"payload"},"name":"score"}},{"literal":10}]},"fields":["id"]},"as":"aql_sga_3"},{"from":"aql_sga_3","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ), construction_limits().program, format=Json,
+  ).unwrap()
+  let script = @query.parse_query_script("WITH g AS (GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload)))) FROM g |> match_nodes(definition: 'N', label: 'Person', where: {gt: [{field: payload.score}, {literal: 10}]}, fields: [id]) |> SELECT id", syntax_limits()).unwrap()
+  let actual = match compile_query_script(script, graph_property_predicate_context(), construction_limits()) {
+    Ok(program) => program
+    Err(Expression(diagnostic)) => fail(@debug.to_string(diagnostic.issue))
+    Err(_) => fail("Nullable member reference must reach common checking")
+  }
+  assert_eq(semantic(actual), semantic(expected))
+  p2_sga_checked(expected)
+  p2_sga_checked(actual)
+}
