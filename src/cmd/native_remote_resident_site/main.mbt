@@ -2666,6 +2666,8 @@ fn serve_holder_output(
   let coordinator_authority = resources.coordinator_authority
   let site_key = resources.site_key
   let site_generation = resources.site_generation
+  let resume_current_url = holder_effect_resume_current_url(observation_url)
+  let mut resume_query_sequence = 0L
   let identity = @remote.dispatch_request_identity(request)
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
@@ -2779,7 +2781,8 @@ fn serve_holder_output(
                 holder_effect_current_task(tasks, selected) is Some(task) &&
                 !task.release_requested &&
                 task.effect_review is Some(_) &&
-                effect_resume_configuration(task.request) is Some(installed) else {
+                effect_resume_configuration(task.request) is Some(installed) &&
+                resume_current_url is Some(current_url) else {
                 report("effect-resume-pending", [
                   ("request_cid", @remote.dispatch_request_identity(selected)),
                   ("reason", "review-owner-unavailable"),
@@ -2791,6 +2794,23 @@ fn serve_holder_output(
                   task,
                   @remote.remote_poll_effect_resume_delivery_json(delivery),
                   installed,
+                  {
+                    client: control,
+                    url: current_url,
+                    current_site,
+                    next_query_id: () => {
+                      if resume_query_sequence >= 9007199254740991L {
+                        return ""
+                      }
+                      resume_query_sequence += 1L
+                      holder_effect_resume_query_id(
+                        @remote.dispatch_request_identity(task.request),
+                        @env.now().reinterpret_as_int64(),
+                        resume_query_sequence,
+                      ).unwrap_or("")
+                    },
+                    now_ms: () => @env.now().reinterpret_as_int64(),
+                  },
                   current_site,
                 ),
               )
