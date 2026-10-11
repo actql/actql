@@ -148,6 +148,23 @@ fn cloud_resume_reply(
         max_total_string_bytes: limits.max_wire_bytes,
       }),
     )
+    cloud_resume_reply_cursor(root, expected, query_id, now_ms)
+  } catch {
+    InvalidRead => None
+  }
+}
+
+///|
+fn cloud_resume_reply_cursor(
+  root : @decode.Cursor,
+  expected : CloudResumeExpected,
+  query_id : String,
+  now_ms : Int64,
+) -> NativeEffectResumeObservation? {
+  if now_ms < 0L || now_ms > 9007199254740991L {
+    return None
+  }
+  try {
     let fields = cloud_resume_decoded(
       @decode.closed_object(root, [
         "version", "queryId", "dispatchCid", "reportCid", "claim", "observedAt",
