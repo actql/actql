@@ -38,7 +38,7 @@ test "Cloud Reviewer final row fence refuses context failure and role or Site lo
     }
     assert_false(
       native_cloud_reviewer_read_current(read, () => site_current, () => {
-        role_current
+        return role_current
       }),
     )
     assert_eq(reads, 1)
