@@ -12,6 +12,9 @@ _SCHEMA = '''CREATE TABLE core_bytes (
     generation INTEGER NOT NULL CHECK(generation >= 0),
     payload BLOB NOT NULL CHECK(typeof(payload) = 'blob')
 ) STRICT, WITHOUT ROWID'''
+# Match the existing Native SQLite physical reservation fields. Core supplies
+# the namespace, material key and amounts; this table carries no Run state.
+_CAPACITY_SCHEMA = '''CREATE TABLE actql_capacity(namespace TEXT NOT NULL,reservation_key TEXT NOT NULL,reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),PRIMARY KEY(namespace, reservation_key)) STRICT'''
 
 
 @dataclass(frozen=True)
@@ -27,6 +30,20 @@ class ByteWrite:
     key: str
     expected_generation: int | None
     payload: bytes
+
+
+@dataclass(frozen=True)
+class CapacityReservation:
+    namespace: str
+    key: str
+    reserved_bytes: int
+    reserved_objects: int
+
+
+@dataclass(frozen=True)
+class CapacityUsage:
+    reserved_bytes: int
+    reserved_objects: int
 
 
 class LocalStorageError(RuntimeError):
@@ -97,10 +114,11 @@ class LocalByteStore:
                 version = self._connection.execute('PRAGMA user_version').fetchone()[0]
                 if not schema and application == 0 and version == 0:
                     self._connection.execute(_SCHEMA)
+                    self._connection.execute(_CAPACITY_SCHEMA)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
-                    self._connection.execute('PRAGMA user_version = 1')
-                elif (schema != [('core_bytes', _SCHEMA)]
-                      or application != _APPLICATION_ID or version != 1):
+                    self._connection.execute('PRAGMA user_version = 2')
+                elif (schema != [('actql_capacity', _CAPACITY_SCHEMA), ('core_bytes', _SCHEMA)]
+                      or application != _APPLICATION_ID or version != 2):
                     raise LocalStorageError('Unknown Local physical storage format')
                 self._connection.execute('COMMIT')
             except BaseException:
@@ -131,7 +149,9 @@ class LocalByteStore:
             if not self._created or self._creation_claimed:
                 return False
             self._creation_claimed = True
-            return bool(self._connection.execute('SELECT EXISTS(SELECT 1 FROM core_bytes)').fetchone()[0] == 0)
+            return bool(self._connection.execute('''SELECT
+                EXISTS(SELECT 1 FROM core_bytes) OR
+                EXISTS(SELECT 1 FROM actql_capacity)''').fetchone()[0] == 0)
 
     def _open(self) -> None:
         if self._closed or not self._ready:
@@ -195,6 +215,127 @@ class LocalByteStore:
                 or observed.payload != write.payload):
             return None
         return observed
+
+    @staticmethod
+    def _capacity_name(name: str) -> None:
+        if type(name) is not str or not 1 <= len(name.encode('utf-8')) <= 512:
+            raise ValueError('Invalid Local physical capacity name')
+
+    @staticmethod
+    def _capacity_amount(amount: int) -> None:
+        if type(amount) is not int or not 0 <= amount <= 2**63 - 1:
+            raise ValueError('Invalid Local physical capacity amount')
+
+    def read_capacity(self, namespace: str, key: str) -> CapacityReservation | None:
+        """Observe the original reservation without acquiring or releasing it.
+
+        Missing rows and read failures are not permission to retry a write or
+        acknowledge Core's Reserved transition. The Host binds this store to
+        the original Store authority before passing any observation to Core.
+        """
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        with self._lock:
+            self._open()
+            row = self._connection.execute('''SELECT reserved_bytes, reserved_objects
+                FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                (namespace, key)).fetchone()
+            if row is None:
+                return None
+            if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
+                raise LocalStorageError('Invalid retained Local physical capacity')
+            return CapacityReservation(namespace, key, row[0], row[1])
+
+    def capacity_usage(self, namespace: str) -> CapacityUsage:
+        self._capacity_name(namespace)
+        with self._lock:
+            self._open()
+            return self._capacity_usage_locked(namespace)
+
+    def _capacity_usage_locked(self, namespace: str) -> CapacityUsage:
+        row = self._connection.execute('''SELECT coalesce(sum(reserved_bytes), 0),
+            coalesce(sum(reserved_objects), 0) FROM actql_capacity WHERE namespace = ?''',
+            (namespace,)).fetchone()
+        if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
+            raise LocalStorageError('Invalid retained Local physical capacity usage')
+        return CapacityUsage(row[0], row[1])
+
+    def reserve_capacity(self, namespace: str, key: str, reserved_bytes: int,
+                         reserved_objects: int, max_bytes: int, max_objects: int) -> bool:
+        """Atomically reserve exact physical amounts using Native's contract.
+
+        Limits come from trusted Host configuration, never Program input.
+        True means inserted; False means the exact reservation already existed.
+        Neither is publication authority, Run admission or a retry instruction.
+        Commit errors remain unknown and are never automatically repeated.
+        """
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        for amount in (reserved_bytes, reserved_objects, max_bytes, max_objects):
+            self._capacity_amount(amount)
+        if reserved_bytes > max_bytes or reserved_objects > max_objects:
+            raise LocalStorageError('Local physical capacity exceeded')
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN IMMEDIATE')
+            try:
+                existing = database.execute('''SELECT reserved_bytes, reserved_objects
+                    FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                    (namespace, key)).fetchone()
+                if existing is not None:
+                    if existing != (reserved_bytes, reserved_objects):
+                        raise LocalStorageError('Local physical capacity reservation collision')
+                    database.execute('COMMIT')
+                    return False
+                used = self._capacity_usage_locked(namespace)
+                count = database.execute('SELECT count(*) FROM actql_capacity').fetchone()[0]
+                if (count >= self._max_records or used.reserved_bytes > max_bytes
+                        or used.reserved_objects > max_objects
+                        or reserved_bytes > max_bytes - used.reserved_bytes
+                        or reserved_objects > max_objects - used.reserved_objects):
+                    raise LocalStorageError('Local physical capacity exceeded')
+                database.execute('INSERT INTO actql_capacity VALUES (?, ?, ?, ?)',
+                                 (namespace, key, reserved_bytes, reserved_objects))
+                database.execute('COMMIT')
+                return True
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+
+    def release_capacity(self, namespace: str, key: str,
+                         reserved_bytes: int, reserved_objects: int) -> bool:
+        """Release only the original exact reservation after Owner cleanup.
+
+        The adapter does not infer cleanup from close or from missing bytes.
+        True means removed; False means absent. A mismatch leaves the row intact.
+        """
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        self._capacity_amount(reserved_bytes)
+        self._capacity_amount(reserved_objects)
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN IMMEDIATE')
+            try:
+                existing = database.execute('''SELECT reserved_bytes, reserved_objects
+                    FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                    (namespace, key)).fetchone()
+                if existing is None:
+                    database.execute('COMMIT')
+                    return False
+                if existing != (reserved_bytes, reserved_objects):
+                    raise LocalStorageError('Local physical capacity reservation collision')
+                database.execute('''DELETE FROM actql_capacity
+                    WHERE namespace = ? AND reservation_key = ?''', (namespace, key))
+                database.execute('COMMIT')
+                return True
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
 
     def compare_exchange_many(self, writes: tuple[ByteWrite, ...]) -> tuple[int, ...] | None:
         """Install all opaque writes in one physical transaction or none.

@@ -437,6 +437,40 @@ DuckDB workspace. Their simultaneous holdings still require the existing shared
 resource Owner; a byte-store test alone establishes no aggregate Local bound or
 successful Run recovery.
 
+### Durable physical capacity
+
+Private byte-store format 2 adds the existing Native SQLite `actql_capacity`
+reservation fields alongside `core_bytes`. Format 1 is refused without migration
+or deletion; retained evidence and saved records are not relabeled. This is the
+Python byte store's closed physical format, not Native publication Store format
+interoperability.
+
+The private `reserve_capacity`, `read_capacity`, `capacity_usage` and
+`release_capacity` port preserves the Native physical contract: namespace and
+material key remain exact UTF-8 strings, amounts are nonnegative signed 64-bit
+integers, identical acquisition returns an existing reservation, and different
+amounts collide. SQLite serializes acquisition and checks both byte and object
+totals before inserting. Trusted Host configuration supplies the limits. Capacity
+metadata has a separate row ceiling equal to the byte store's `max_records`,
+including zero-amount reservations; byte-record ceilings remain unchanged.
+
+A lost commit acknowledgement remains unknown. `read_capacity` only reads the
+original namespace/key and returns physical amounts; it neither inserts nor
+releases. The Host must bind that actual store and observation to the original
+Core request's Store authority, material identity and maximum before confirming
+the existing Core transition. A read miss does not grant a retry. Releasing
+requires the exact original amounts and is called only after the existing Owner
+acknowledges physical cleanup. Failed deletion retains the original reservation;
+failed transaction rollback leaves the same connection pending and unreadable.
+Closing the connection preserves durable capacity and does not cancel a Run.
+
+This port alone does not install a Store, complete filesystem payload custody,
+authorize a publisher or acknowledge `Reserved`, `Writing`, `Sealed` or Run
+completion. SQLite workspace, Core Wasm memory, transfer buffers, DuckDB workspace
+and the durable file reservation remain separate holdings for the existing shared
+resource Owner. Physical capacity tests do not establish global memory accounting
+or public Local recovery.
+
 ## Original Core material transfer
 
 The private `actql_material_*` family projects records from an existing prepared
