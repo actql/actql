@@ -140,7 +140,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 15
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 16
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)

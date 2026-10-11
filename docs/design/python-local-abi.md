@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 15; this private ABI
+before opening the instance. `actql_host_abi_version` returns 16; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 15 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 16 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -739,3 +739,30 @@ The journal adapter stores physical flags with the original Core-issued request
 kept as an exact string. It does not normalize or reissue the request. Original
 materials, public Submission/epoch binding, durable Result publication and
 whole-product resource accounting are separate required product connections.
+
+### Submission epoch and identity projection
+
+Private ABI 16 adds `actql_submission_reserve`, `produce`, `length`, and
+`close`. The trusted Local Host installs its current account/access tuple and
+authority scope before reserving an epoch or reference projection. Core checks
+that tuple through the existing Account Owner, binds the exact authority scope,
+and delegates epoch encoding, CID, caller identity and half-open validity to
+the existing Submission Owner. This projection never admits a Run or starts
+Source, Compute, Model or Effect. Expired references retain their identity for
+original-operation lookup; that does not authorize a new admission.
+
+The output has a 4 KiB bound reserved before encoding and retains its exact
+input loan and configuration. A producer interruption cannot re-evaluate the
+same invocation. Output cleanup and input-reader stop are separate facts:
+failed close preserves the same handle and configuration pin, and a successful
+output cleanup is not repeated while input stop remains pending. Earlier
+private ABI modules are refused; the public Client–Host contract is unchanged.
+
+The Python physical adapter authenticates the exact Core-issued epoch wire with
+HMAC-SHA-256 and persists its key and monotonic clock in the existing opaque-byte
+store. Bootstrap consumes an exclusive, empty new-file observation once.
+Missing material after reopen or a failed bootstrap does not create a new key.
+Each clock advance uses one physical CAS; conflict or lost acknowledgement is
+unknown and does not cause an automatic retry. The physical generation is not
+a Run revision. Current account/scope evaluation remains mandatory on each Core
+projection; an old authenticator is not a permanent authorization grant.
