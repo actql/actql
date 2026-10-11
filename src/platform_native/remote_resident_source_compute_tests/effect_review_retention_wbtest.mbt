@@ -285,6 +285,7 @@ fn retained_effect_review_retention_store(
       assert_eq(read_original(() => true).unwrap().1, projection_wire)
       assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
     }
+    let (upload_context, upload_journal) = original_context.unwrap()
     retained_holder_upload_original_review(
       work,
       original_journal_path.unwrap(),
@@ -306,6 +307,9 @@ fn retained_effect_review_retention_store(
           abort("confirmed review repeated a Provider observation")
         },
       },
+      upload_context,
+      upload_journal,
+      authority,
     )
     Some(retained_holder_admit_resolution(work, report))
   } else {
