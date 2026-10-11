@@ -22,7 +22,8 @@ class OriginalObservationTransfer:
 
     A failure retains the same workspace/input. Discard retained row/encoding
     references and failure tracebacks after physical cleanup, then explicitly
-    close. The original Core borrower must return its loan first; close does not
+    close. Raw rows that survive a Store callback are sealed into individual
+    Core inputs before callback return; only nominal handles escape. The original Core borrower must return its loan first; close does not
     retire another borrow, close parents, cancel a Run or replay a Store operation.
     """
 
@@ -54,6 +55,8 @@ class OriginalObservationTransfer:
         self._workspace_stopped = workspace_stopped
         self._workspace: _Workspace | None = None
         self._input: _Input | None = None
+        self._sources: list[_Input] = []
+        self._source_bytes = 0
         self._uncertain_ticket: int | None = None
         self._active = False
         self._closing = False
@@ -105,6 +108,92 @@ class OriginalObservationTransfer:
                     self._uncertain_ticket = ticket
                 raise
 
+    @property
+    def pending_sources(self) -> tuple[_Input, ...]:
+        """Original raw-row cleanup handles, not contract or publisher authority."""
+        with self._projection._core._lock:
+            self._nominal()
+            return tuple(self._sources)
+
+    def retain_source(self, raw: bytes) -> _Input:
+        """Seal one actual Store row before its synchronous consumer returns.
+
+        The same workspace was reserved before the row was physically copied.
+        Core separately charges each retained raw input/Wasm copy. At most three
+        original rows fit this packet, including empty/corrupt rows; retention
+        grants no semantic validity or publication permission.
+        """
+        core = self._projection._core
+        with core._lock:
+            self._ready()
+            if self._workspace is None or self._input is not None:
+                raise RuntimeError('Original Store row requires its reserved workspace')
+            if (type(raw) is not bytes or len(self._sources) >= 3
+                    or self._source_bytes + len(raw) > self._source_limit):
+                raise ValueError('Original Store row retention exceeds its bound')
+            self._active = True
+            try:
+                source = self._reserve_input(raw)
+                self._sources.append(source)
+                self._source_bytes += len(raw)
+                core.fill_input(source, 0, len(raw))
+                core.seal_input(source)
+                return source
+            except BaseException:
+                self._failed = True
+                raise
+            finally:
+                self._active = False
+
+    def _source(self, source: _Input) -> bytes:
+        core = self._projection._core
+        core._owned_input(source)
+        if not any(source is original for original in self._sources):
+            raise ValueError('Foreign original Store row transfer loan')
+        return core._inputs[source.ticket].payload
+
+    def consume_source(self, source: _Input, consume: Callable[[bytes], object]) -> None:
+        """Borrow retained raw bytes synchronously into another accounted input.
+
+        The consumer must return None and retain bytes only in its original Core
+        input, not an unaccounted list or traceback. Failure keeps this exact raw
+        input/workspace. No row is fetched again, parsed or normalized here.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original Store row consumer')
+        with self._projection._core._lock:
+            self._ready()
+            raw = self._source(source)
+            self._active = True
+            try:
+                if consume(raw) is not None:
+                    raise ValueError('Invalid synchronous original Store row consumer result')
+            except BaseException:
+                self._failed = True
+                raise
+            finally:
+                self._active = False
+
+    def transfer_lookup_inputs(self, reference: _Input, index: _Input) -> None:
+        with self._projection._core._lock:
+            self._ready()
+            self.transfer_lookup(self._source(reference), self._source(index))
+
+    def transfer_stored_inputs(self, request: _Input, attempt: _Input, index: _Input) -> None:
+        with self._projection._core._lock:
+            self._ready()
+            self.transfer_stored(self._source(request), self._source(attempt), self._source(index))
+
+    def _reserve_input(self, packet: bytes) -> _Input:
+        core = self._projection._core
+        ticket = core._next_ticket
+        try:
+            return core.reserve_input(packet, cleanup=self._cleanup, stopped=self._stopped)
+        except BaseException:
+            if ticket in core._inputs:
+                self._uncertain_ticket = ticket
+            raise
+
     def transfer_lookup(self, reference: bytes, index: bytes) -> None:
         """Forward the physically read index reference/body, not a candidate."""
         self._transfer(((b'identity', reference), (b'index', index)), lookup=True)
@@ -131,14 +220,7 @@ class OriginalObservationTransfer:
             self._active = True
             try:
                 packet = self._packet(fields)
-                ticket = core._next_ticket
-                try:
-                    self._input = core.reserve_input(
-                        packet, cleanup=self._cleanup, stopped=self._stopped)
-                except BaseException:
-                    if ticket in core._inputs:
-                        self._uncertain_ticket = ticket
-                    raise
+                self._input = self._reserve_input(packet)
                 core.fill_input(self._input, 0, len(packet))
                 core.seal_input(self._input)
                 if lookup:
@@ -212,6 +294,13 @@ class OriginalObservationTransfer:
                 elif not core.close_input(self._input):
                     return False
                 self._input = None
+            for source in tuple(reversed(self._sources)):
+                if core._retired:
+                    if source.ticket in core._inputs:
+                        return False
+                elif not core.close_input(source):
+                    return False
+                self._sources.remove(source)
             if self._workspace is not None:
                 if core._retired:
                     if self._workspace.ticket in core._inputs:

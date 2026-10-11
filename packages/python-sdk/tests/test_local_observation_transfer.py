@@ -104,8 +104,8 @@ class ObservationTransferTests(unittest.TestCase):
             store._connection.set_trace_callback(sql.append)
             def inspect(read):
                 for key in ('stored-request', 'stored-attempt', 'stored-index'):
-                    read(key, lambda row: rows.append(row.payload))
-                transfer.transfer_stored(*rows)
+                    read(key, lambda row: rows.append(transfer.retain_source(row.payload)))
+                transfer.transfer_stored_inputs(*rows)
                 rows.clear()
             store.inspect_publication_projected_attached(inspect, originals, current=lambda: None)
             self.assertEqual(json.loads(packets[0]), {'kind': 'stored', 'request': self.request.decode(),
