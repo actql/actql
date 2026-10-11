@@ -70,6 +70,7 @@ pub struct ModelPhysicalCall {
   mut settlement_acknowledged : Bool
   mut usage_result : Result[Unit, ModelExecutionIssue]?
   mut decoded_response : ModelPhysicalResponse?
+  mut raw_capture : ModelRawCaptureSave?
 }
 
 ///|
@@ -119,6 +120,7 @@ pub fn model_physical_call(
     settlement_acknowledged: false,
     usage_result: None,
     decoded_response: None,
+    raw_capture: None,
   }
   state.pending_response = Some(call)
   Some(call)
@@ -162,7 +164,8 @@ fn cancel_model_physical_call(call : ModelPhysicalCall) -> Unit {
 // does not prove local cleanup, response persistence or remote cancellation.
 fn cleanup_model_physical_call(state : ModelState) -> Bool {
   guard state.pending_response is Some(call) else { return true }
-  if call.polling {
+  if call.polling ||
+    (call.raw_capture is Some(raw) && raw.usage_advancing) {
     return false
   }
   if !call.retired {
@@ -184,12 +187,16 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     if !released {
       return false
     }
+    // Actual physical cleanup retires the original accounting child, retaining
+    // any usage already scanned. It cannot turn Unknown into a response.
+    retire_model_raw_usage_child(call) |> ignore
     call.cleanup = None
     call.cancel = None
     call.poll = None
     call.entry = None
     call.terminal = None
     call.decoded_response = None
+    call.raw_capture = None
     call.retired = true
   }
   state.pending_response = None

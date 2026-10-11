@@ -1209,6 +1209,8 @@ pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, 
 
 pub fn client_program_read_model_response_profile(String, String, Int, Int, Int, Int, Int) -> Result[@check_environment.ModelResponseProfile, @check_environment.ModelTaskIssue]
 
+pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
+
 pub fn client_program_read_saved_composed_infer_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_read_saved_infer_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]

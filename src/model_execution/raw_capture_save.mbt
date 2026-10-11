@@ -7,6 +7,11 @@ pub struct ModelRawCaptureSave {
   priv registration : @publication_host.ClientModelRawCaptureRegistration
   priv response : @publication.BoundModelRawResponse
   priv mut saved : ModelSavedRawReceipt?
+  priv mut usage_reader : ChatEnvelopeDecode?
+  priv mut usage_result : Result[Unit, ModelExecutionIssue]?
+  priv mut usage_retired : Bool
+  priv mut usage_work : Int
+  priv mut usage_advancing : Bool
 }
 
 ///|
@@ -96,7 +101,24 @@ pub fn prepare_model_raw_capture_save(
     byte_count.to_int64() > state.limits.max_response_bytes {
     return Err(ResponseLimit)
   }
-  Ok({ call, registration, response: bound, saved: None, })
+  if call.raw_capture is Some(original) {
+    return if physical_equal(original.registration, registration) &&
+      @publication.run_evidence_value_identity(response) ==
+      @publication.run_evidence_value_identity(
+        @publication.model_raw_response_value(original.response),
+      ) {
+      Ok(original)
+    } else {
+      Err(ForeignCall)
+    }
+  }
+  let value : ModelRawCaptureSave = {
+    call, registration, response: bound, saved: None, usage_reader: None,
+    usage_result: None, usage_retired: false, usage_work: 0,
+    usage_advancing: false,
+  }
+  call.raw_capture = Some(value)
+  Ok(value)
 }
 
 ///|

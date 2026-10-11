@@ -109,6 +109,7 @@ fn advance_chat_model_response(
         Err(issue) => return @bounded.Failed(issue, 1, 1)
         Ok(_) => ()
       }
+      retire_model_raw_usage_child(call) |> ignore
       if raw.status < 200 || raw.status >= 300 {
         state.observing_response = false
         return accept_failed_model_slot(state, ProviderError)

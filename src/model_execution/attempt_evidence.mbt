@@ -175,7 +175,8 @@ pub fn model_execution_attempt_evidence(
   if execution.state.pending_response is Some(call) &&
     call.entry is Some(entry) &&
     entry.slot == slot &&
-    call.usage_result is None {
+    (call.usage_result is None ||
+    (call.raw_capture is Some(raw) && !raw.usage_retired)) {
     return Err(OutputIdentity)
   }
   if trace.evidence is Some(evidence) {

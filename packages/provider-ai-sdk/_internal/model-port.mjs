@@ -20,6 +20,8 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   let response;
   let saving;
   let reconciling;
+  let reconciliationPending = false;
+  let reconciled;
   let saveStarted = false;
   let failure;
   let startUnknown = false;
@@ -53,7 +55,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   const cancel = () => cancelSdkPreparation(preparation);
   const cleanup = () => {
     if (retired) return true;
-    if (saving !== undefined || reconciling !== undefined) return false;
+    if (saving !== undefined || reconciliationPending) return false;
     // Every attempted raw save retains its original port until cleanup,
     // including a successful save's local aliases. This does not erase the
     // parent's durable receipt/custody. Failed commit/cleanup stays pending.
@@ -64,6 +66,8 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     }
     if (!cleanupSdkPreparation(preparation)) return false;
     response = undefined;
+    reconciled = undefined;
+    reconciling = undefined;
     call = undefined;
     prepared = undefined;
     plan = undefined;
@@ -118,12 +122,25 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
       if (raw === undefined) {
         return Promise.reject(new TypeError('MissingOriginalRawObservation'));
       }
+      // This private initial physical shape owns one stable reconfirmation
+      // Promise/view, including failure. Further recovery requires an explicit
+      // owner-funded token/lifetime; it is not a language-level retry ban.
+      reconciliationPending = true;
       reconciling = Promise.resolve().then(() => persistRaw(call, raw))
         .then(saved => {
           if (saved?.response === undefined) throw new TypeError('MissingSavedRawChat');
+          reconciled = saved.response;
           return saved;
-        }).finally(() => { reconciling = undefined; wake(); });
+        }).finally(() => { reconciliationPending = false; wake(); });
       return reconciling;
+    },
+    readReconciledUsage(original, quantum) {
+      if (retired || original !== call || reconciled === undefined ||
+          !Number.isInteger(quantum) || quantum < 1 || quantum > 2_147_483_647) {
+        throw new TypeError('OriginalRawUsageUnavailable');
+      }
+      return checked(moon.clientProgramReadReconciledInferRawUsage(
+        original, reconciled, quantum));
     },
     // Private retained responsibility for the parent owner, never a public
     // success/result or authority. A failed save is not automatically retried.

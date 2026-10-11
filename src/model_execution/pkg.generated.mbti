@@ -40,6 +40,8 @@ pub fn advance_model_observation_verification(ModelObservationVerification, Int)
 
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
 
+pub fn advance_model_reconciled_raw_usage(ModelPhysicalCall, ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
+
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
 
 pub fn bind_prepared_model_entry_persistence(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> ModelCallEntryPersistence?) -> Result[Unit, ModelExecutionIssue]
@@ -409,6 +411,7 @@ pub struct ModelPhysicalCall {
   mut settlement_acknowledged : Bool
   mut usage_result : Result[Unit, ModelExecutionIssue]?
   mut decoded_response : ModelPhysicalResponse?
+  mut raw_capture : ModelRawCaptureSave?
 }
 
 pub(all) enum ModelPhysicalCallPoll {

@@ -18,6 +18,7 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
   const prepared = Object.freeze({original: Symbol('prepared owner double')});
   const entry = Object.freeze({original: Symbol('consumed Entry double')});
   const state = {calls: 0, saves: 0, plans: 0, wakes: 0, rawCleanups: 0};
+  state.usageReads = [];
   const handle = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
     baseURL: 'https://fixture.invalid/v1', apiKey: 'credential-sentinel',
     maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16,
@@ -49,6 +50,10 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
     clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
     clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
     clientProgramModelPhysicalSavedChat: value => ({kind: 'chat', value}),
+    clientProgramReadReconciledInferRawUsage(call, response, quantum) {
+      state.usageReads.push({call, response, quantum});
+      return [true, 7n];
+    },
   };
   const port = createSdkModelPreflight({moon, request, preparation: handle,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n,
@@ -242,12 +247,22 @@ test('explicit raw reconciliation reuses the original call without rewriting Unk
   assert.equal(call.poll().kind, 'unknown');
   finish(saved);
   assert.equal(await first, saved);
+  assert.equal(f.port.reconcileRaw(call), first);
+  assert.equal((await f.port.reconcileRaw(call)).response, saved.response);
+  assert.deepEqual(f.port.readReconciledUsage(call, 1), [true, 7n]);
+  assert.deepEqual(f.state.usageReads, [{call, response: saved.response, quantum: 1}]);
+  assert.throws(() => f.port.readReconciledUsage({}, 1),
+    {message: 'OriginalRawUsageUnavailable'});
+  assert.throws(() => f.port.readReconciledUsage(call, 2 ** 32 + 1),
+    {message: 'OriginalRawUsageUnavailable'});
   assert.equal(f.port.rawFailure(), failure);
   assert.equal(call.poll().kind, 'unknown');
   assert.equal(plan.start(f.entry), undefined);
   assert.equal(f.state.calls, 1);
   assert.equal(f.state.saves, 2);
   await release(f);
+  assert.throws(() => f.port.readReconciledUsage(call, 1),
+    {message: 'OriginalRawUsageUnavailable'});
   await assert.rejects(f.port.reconcileRaw(call),
     {message: 'OriginalRawReconciliationUnavailable'});
 });
@@ -260,11 +275,44 @@ test('failed explicit raw reconciliation retains Unknown and cleanup responsibil
   const [, plan] = await planOf(f);
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
+  const reconfirmation = f.port.reconcileRaw(call);
+  await assert.rejects(reconfirmation, error => error === next);
+  assert.equal(f.port.reconcileRaw(call), reconfirmation);
   await assert.rejects(f.port.reconcileRaw(call), error => error === next);
   for (let i = 0; i < 5; i++) assert.equal(call.poll().kind, 'unknown');
   assert.equal(f.port.rawFailure(), first);
   assert.equal(f.port.preflight.cleanup(), false);
   assert.equal(f.state.saves, 2);
+  assert.equal(f.state.calls, 1);
+});
+
+test('cancel during original reconfirmation preserves its single view and pending cleanup', async () => {
+  const failure = new Error('Original save unknown');
+  let finish;
+  let released = false;
+  const saved = {response: {nominal: Symbol('original stopped raw observation')}};
+  const f = fixture({persistRaw() {
+    if (f.state.saves === 1) throw failure;
+    return new Promise(resolve => { finish = resolve; });
+  }, cleanupRaw: () => released});
+  const [, plan] = await planOf(f);
+  const call = plan.start(f.entry);
+  await until(() => call.poll(), value => value.kind === 'unknown');
+  const original = f.port.reconcileRaw(call);
+  await until(() => finish, value => typeof value === 'function');
+  call.cancel();
+  assert.equal(f.port.preflight.cleanup(), false);
+  finish(saved);
+  assert.equal(await original, saved);
+  assert.equal(f.port.reconcileRaw(call), original);
+  assert.equal(f.port.rawFailure(), failure);
+  assert.equal(call.poll().kind, 'unknown');
+  assert.equal(f.port.preflight.cleanup(), false);
+  assert.equal(f.state.saves, 2);
+  assert.equal(f.state.calls, 1);
+  released = true;
+  await release(f);
+  assert.equal(f.port.preflight.cleanup(), true);
   assert.equal(f.state.calls, 1);
 });
 

@@ -65,13 +65,15 @@ pub fn client_program_issue_infer_raw_capture_policy(
   @publication.BoundModelRawCapturePolicy,
   @publication_host.ClientModelRawCaptureIssue,
 ] {
-  if !@publication_host.client_infer_dispatch_matches_run(dispatch, compiled, definition) {
+  if !@publication_host.client_infer_dispatch_matches_run(
+      dispatch, compiled, definition,
+    ) {
     return Err(@publication_host.ForeignRun)
   }
   @publication_host.issue_client_model_raw_capture_policy(
-    dispatch, scope, profile, installation, probability, store_authority_cid,
-    retention, metadata, clock, data, selected_at, available_until, delete_by,
-    extension_ceiling_at, metadata_delete_by,
+    dispatch, scope, profile, installation, probability, store_authority_cid, retention,
+    metadata, clock, data, selected_at, available_until, delete_by, extension_ceiling_at,
+    metadata_delete_by,
   )
 }
 
@@ -189,4 +191,16 @@ pub fn client_program_infer_saved_raw_chat_response(
   metadata : @identity.CanonicalValue?,
 ) -> Result[@model.ModelPhysicalChatResponse, @model.ModelRawCaptureSaveIssue] {
   @model.model_saved_raw_chat_response(receipt, body, metadata)
+}
+
+///|
+/// Accounting-only cleanup of the nominal original raw response. This does
+/// not replace Unknown or admit an answer, authority, retry or public profile.
+#export_name("clientProgramReadReconciledInferRawUsage")
+pub fn client_program_read_reconciled_infer_raw_usage(
+  call : @model.ModelPhysicalCall,
+  response : @model.ModelPhysicalChatResponse,
+  quantum : Int,
+) -> Result[(Bool, Int64), @model.ModelExecutionIssue] {
+  @model.advance_model_reconciled_raw_usage(call, response, quantum)
 }

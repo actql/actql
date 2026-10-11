@@ -4,6 +4,7 @@ struct RawSaveFixture {
   call : @model.ModelPhysicalCall
   registration : @publication_host.ClientModelRawCaptureRegistration
   current : Ref[@authorization.AdmittedAccountConfiguration]
+  now : Ref[String]
   available : Ref[Bool]
   ready : Ref[Bool]
   calls : Ref[Int]
@@ -17,6 +18,7 @@ struct RawSaveFixture {
 fn raw_save_fixture(
   cleanup_calls? : Array[Bool] = [],
   release? : Ref[Bool] = Ref(true),
+  limits? : Limits = standard_limits(),
 ) -> RawSaveFixture raise {
   let calls = Ref(0)
   let current = Ref(
@@ -40,6 +42,7 @@ fn raw_save_fixture(
     response.val,
     current~,
     now~,
+    limits~,
     observe_call=call => captured.val = Some(call),
     observe_response=Some(() => response.val),
   )
@@ -69,6 +72,7 @@ fn raw_save_fixture(
     call: captured.val.unwrap(),
     registration,
     current,
+    now,
     available,
     ready,
     calls,
