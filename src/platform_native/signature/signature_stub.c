@@ -477,6 +477,7 @@ moonbit_bytes_t actql_native_signature_sign_ed25519(
   library->evp_md_ctx_free(context);
   library->evp_pkey_free(key);
   if (signed_message == 1 && length == sizeof(signature)) {
+    moonbit_decref(result);
     result = moonbit_make_bytes_raw(1 + ACTQL_ED25519_SIGNATURE_BYTES);
     result[0] = 0;
     memcpy(result + 1, signature, sizeof(signature));
