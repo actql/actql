@@ -143,6 +143,13 @@ priv enum ModelPhase {
   PrepareRequests
   PreparePhysicalRequests
   DispatchSlot
+  AwaitPhysicalResponse
+  CheckPhysicalMetadata(
+    PreparedModelRequest,
+    ModelObservedResponse,
+    @canonical.CanonicalEmit,
+    @encode.Writer
+  )
   CheckResponse(
     ModelRequest,
     ModelObservedResponse,
@@ -195,6 +202,7 @@ struct ModelState {
   physical_plans : Map[Int, ModelPhysicalRequestPlan]
   mut physical_next_slot : Int
   mut physical_pending : ModelRequestPreflight?
+  mut pending_response : ModelPhysicalCall?
   mut physical_cleanup_index : Int
   durable_calls : Bool
   mut enter_call : ((ModelCallEntry) -> Bool)?
@@ -385,6 +393,14 @@ fn advance_model(
   }
   if state.phase is PreparePhysicalRequests {
     return advance_model_physical_preflight(state)
+  }
+  if state.phase is AwaitPhysicalResponse {
+    return advance_model_physical_response(state, reader)
+  }
+  if state.phase is CheckPhysicalMetadata(prepared, response, cursor, writer) {
+    return advance_reported_model_metadata(
+      state, prepared, response, cursor, writer,
+    )
   }
   if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
     return complete_model_slots(state)
@@ -647,9 +663,9 @@ fn advance_model(
     Some(gate) => consume_model_call_send_gate(gate, reader)
     None => check_model_physical_start_current(state, reader)
   }
-  retire_model_entering(state)
   match started {
     Err(issue) => {
+      retire_model_entering(state)
       state.observing_response = false
       return match issue {
         Cancelled => @bounded.Stopped(@bounded.Cancelled, 1, 1)
@@ -662,15 +678,40 @@ fn advance_model(
   // No callback, await or request construction separates final consumption
   // from the retained invocation. Entered responsibility already exists if
   // the installed foreign invocation loses its response or throws.
+  if state.physical_plans.get(state.next_slot) is Some(plan) &&
+    plan.invocation is Asynchronous(start) {
+    guard send_gate is Some(gate) else {
+      retire_model_entering(state)
+      return @bounded.Failed(CallEntryRefused, 1, 1)
+    }
+    let started = start(gate.entry)
+    // A callback cannot replace custody that it already registered under the
+    // original entered attempt. On a bad returned view, cleanup drains that
+    // original operation but never admits a fabricated response or new send.
+    let owned = started is Some(call) &&
+      state.pending_response is Some(original) &&
+      physical_equal(call, original)
+    retire_model_entering(state)
+    if !owned {
+      return @bounded.Failed(CallEntryRefused, 1, 1)
+    }
+    state.phase = AwaitPhysicalResponse
+    observe_model_physical(state, InvokeStarted)
+    return @bounded.Continue(1, 1)
+  }
   let invoked = match state.physical_preflight {
     None => (provider.invoke)(request)
     Some(_) => {
       guard state.physical_plans.get(state.next_slot) is Some(plan) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
       }
-      (plan.invoke)()
+      guard plan.invocation is Synchronous(invoke) else {
+        return @bounded.Failed(RequestIdentity, 1, 1)
+      }
+      invoke()
     }
   }
+  retire_model_entering(state)
   // Deliver the entry-start fact only after crossing the invocation boundary.
   // It proves neither network delivery nor a valid/saved provider response.
   observe_model_physical(state, InvokeStarted)
@@ -943,6 +984,7 @@ fn start_model_owned(
     physical_plans: Map([]),
     physical_next_slot: 0,
     physical_pending: None,
+    pending_response: None,
     physical_cleanup_index: 0,
     durable_calls,
     enter_call: None,
@@ -1009,6 +1051,22 @@ fn advance_model_execution_owned(
   quantum : Int,
 ) -> Result[ModelObservation, ModelExecutionIssue] {
   let state = execution.state
+  if !state.reclaimed &&
+    !@bounded.session_stopped(execution.session) &&
+    state.pending_response is Some(call) {
+    if call.settlement_acknowledged {
+      if !cleanup_model_physical_call(state) {
+        return Ok(AwaitIo(execution.progress, execution.work))
+      }
+    } else if state.phase is AwaitPhysicalResponse {
+      if state.stop_requested {
+        cancel_model_physical_call(call)
+      }
+      if poll_model_physical_call(call) is Some(PhysicalPending) {
+        return Ok(AwaitIo(execution.progress, execution.work))
+      }
+    }
+  }
   if state.durable_calls &&
     !state.reclaimed &&
     !@bounded.session_stopped(execution.session) {
@@ -1123,6 +1181,16 @@ pub fn cleanup_model_execution(
   if execution.advancing {
     return Err(Session(@bounded.ConcurrentResume))
   }
+  execution.advancing = true
+  let result = cleanup_model_execution_owned(execution)
+  execution.advancing = false
+  result
+}
+
+///|
+fn cleanup_model_execution_owned(
+  execution : ModelExecution,
+) -> Result[Bool, ModelExecutionIssue] {
   if execution.state.reclaimed {
     // Settlement retry must keep the original token without repeating the
     // physical cleanup or admitting another attempt.
@@ -1139,6 +1207,10 @@ pub fn cleanup_model_execution(
       }
       if execution.state.phase is CheckResponse(_, _, _, cursor) {
         @admitted.cancel_recheck_runtime_value(cursor)
+      }
+      if execution.state.phase is CheckPhysicalMetadata(_, _, cursor, writer) {
+        @canonical.cancel_emit(cursor)
+        @encode.cancel_writer(writer)
       }
       if execution.state.phase is PrepareEvidence(value) {
         cancel_model_evidence(value)

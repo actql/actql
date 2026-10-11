@@ -115,15 +115,16 @@ fn seal_model_invocation_evidence(
   let request = value.request
   let observation = value.response.observation
   let historical = observation.origin == @publication.HistoricalAdmitted
-  // Reported observations enter this writer only through admitted saved-record
-  // replay. Store custody remains separate; a provider-supplied profile CID
-  // cannot issue a new response here.
+  // Reported observations come from an admitted original saved record or this
+  // execution's retained physical response. Store custody remains separate;
+  // a provider-supplied profile CID cannot issue a response here.
   if !historical {
-    guard state.restored_evidence is Some(original) &&
+    let saved = state.restored_evidence is Some(original) &&
       @publication.model_invocation_evidence_version(original) ==
       Some("actql-model-invocation-evidence/0.2") &&
       observation.response_profile_cid is Some(_) &&
-      observation.response_complete == Some(true) else {
+      observation.response_complete == Some(true)
+    if !saved && !model_reported_response_owned(state, request, value.response) {
       return Err(OutputIdentity)
     }
   }

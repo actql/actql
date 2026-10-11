@@ -348,6 +348,14 @@ pub fn acknowledge_model_call_settlement(value : ModelCallSettlement) -> Bool {
   if model_call_settlement_slot(value) is None {
     return false
   }
+  if value.owner.state.pending_response is Some(call) {
+    guard call.entry is Some(entry) && entry.slot == value.slot else {
+      return false
+    }
+    // This boundary changes only the original custody fact. Physical cleanup
+    // callbacks run on a later advance, never inside settlement acknowledgement.
+    call.settlement_acknowledged = true
+  }
   value.owner.state.settlement_pending = None
   true
 }

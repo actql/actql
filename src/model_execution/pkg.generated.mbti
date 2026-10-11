@@ -65,6 +65,8 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
 
+pub fn model_async_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+
 pub fn model_attempt_accounting(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
 
 pub fn model_attempt_authority(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
@@ -130,6 +132,8 @@ pub fn model_outcomes_count(ModelOutcomeRead) -> Int?
 pub fn model_outcomes_invocation_evidence(ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
+
+pub fn model_physical_call(ModelCallEntry, ModelPreparedCallSet, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
 
 pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, String, String, String)
 
@@ -376,6 +380,26 @@ pub struct ModelOutcomeRead {
 
 type ModelOutputPreparation
 
+pub struct ModelPhysicalCall {
+  mut entry : ModelCallEntry?
+  mut poll : (() -> ModelPhysicalCallPoll)?
+  mut cancel : (() -> Unit)?
+  mut cleanup : ((Bool) -> Bool)?
+  mut terminal : ModelPhysicalCallPoll?
+  mut polling : Bool
+  mut cancel_requested : Bool
+  mut retired : Bool
+  mut settlement_acknowledged : Bool
+  mut usage_result : Result[Unit, ModelExecutionIssue]?
+}
+
+pub(all) enum ModelPhysicalCallPoll {
+  PhysicalPending
+  PhysicalResponse(ModelPhysicalResponse)
+  PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
+  PhysicalUnknown(ModelPhysicalUsage)
+}
+
 pub enum ModelPhysicalEvent {
   BeforeInvoke
   InvokeStarted
@@ -383,6 +407,8 @@ pub enum ModelPhysicalEvent {
   InvokeFailed
   InvokeCancelled
 }
+
+type ModelPhysicalInvocation
 
 pub struct ModelPhysicalObservation {
   slot : Int
@@ -399,8 +425,22 @@ pub struct ModelPhysicalRequestPlan {
   request : ModelRequest
   wire_bytes : Int64
   quantities : @physical_resources.QuantityAmounts
-  invoke : () -> Result[ModelResponse, ModelProviderFailure]
+  invocation : ModelPhysicalInvocation
+  response_profile : @check_environment.ModelResponseProfile?
   evidence : ModelPhysicalRequestEvidence?
+}
+
+pub(all) struct ModelPhysicalResponse {
+  value : @value_admission.Value
+  observation : @run_publication.ModelCaptureObservation
+  transport_eof : Bool
+  endpoint_complete : Bool
+  answer_complete : Bool
+}
+
+pub(all) struct ModelPhysicalUsage {
+  input_tokens : Int64?
+  output_tokens : Int64?
 }
 
 pub struct ModelPreparedCallSet {
