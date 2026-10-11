@@ -51,7 +51,20 @@ pub fn NativeResidentEffectReview::report_effect_current(
     return Err(Unavailable)
   }
   match @client.acknowledge_effect_current(client, url, reply) {
+    Ok(_) => ()
+    Err(issue) => return Err(Transport(issue))
+  }
+  // I/O may outlive local disclosure authority or the original report's
+  // custody. Preserve the transport fact, but return no current reply under
+  // a revoked read capability. This never rolls back or resends a write.
+  if !authorize_evidence_read() {
+    return Err(EvidenceDenied)
+  }
+  if self.closed {
+    return Err(Unavailable)
+  }
+  match self.confirm_original_review_report(original, limits, true) {
     Ok(_) => Ok(reply)
-    Err(issue) => Err(Transport(issue))
+    Err(issue) => Err(Observation(Report(issue)))
   }
 }

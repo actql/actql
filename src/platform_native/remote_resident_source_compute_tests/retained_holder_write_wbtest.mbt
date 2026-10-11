@@ -722,4 +722,31 @@ fn retained_holder_report_effect_current(
     @remote.remote_effect_current_reply_json(sent),
     @remote.remote_effect_current_reply_json(current),
   )
+  if first {
+    let root = @filesystem.open_root(required("ACTQL_TEST_NATIVE_TARGET_ROOT")).unwrap()
+    let authorized = () => {
+      root.inspect_generation("current-evidence-revoked") is Ok(None)
+    }
+    assert_true(authorized())
+    let revoked = @remote.prepare_remote_effect_current_query(
+      @remote.remote_effect_current_query_report(query),
+      @remote.remote_effect_current_query_effect_id(query),
+      "native-current-revoked",
+      limits,
+    ).unwrap()
+    // The actual peer retires the independent read permission during HTTP.
+    // Transport may have accepted the old snapshot, but no current reply may
+    // be returned to the caller after that revocation.
+    assert_true(
+      work.report_effect_current(
+        @remote.remote_effect_current_query_json(revoked),
+        client,
+        url,
+        authorized,
+        limits,
+      )
+      is Err(EvidenceDenied),
+    )
+    assert_false(authorized())
+  }
 }

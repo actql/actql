@@ -62,7 +62,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     }
     const chunks = []; let bytes = 0;
     request.on('data', chunk => {bytes += chunk.length; if (bytes > 65536) request.destroy(); else chunks.push(chunk);});
-    request.on('end', () => {
+    request.on('end', async () => {
       try {
         assert.equal(checkpointReportRequests, 2);
         assert.notEqual(checkpointReportWire, undefined);
@@ -78,6 +78,11 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
           reportCid: reply.report_cid, ledgerHeadCid: reply.ledger_head_cid,
           recoveryAction: reply.recovery_action, responseSaved: reply.response_saved,
           bodySha256: createHash('sha256').update(body).digest('hex')});
+        if (reply.query_id === 'native-current-revoked') {
+          // Revoke this fixture's independent evidence-read authority after
+          // receiving the bytes, before returning its transport receipt.
+          await writeFile(join(root, 'current-evidence-revoked'), 'revoked');
+        }
         // A transport refusal retains the original review. This peer does not
         // issue an Effect ACK, durable Cloud commit or authority to retry a write.
         response.writeHead(effectCurrentReports.length === 1 ? 503 : 200);
@@ -348,9 +353,10 @@ try {
   assert.equal(checkpointReportRequests,residentOriginalHolder?2:0);
   if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
   if (residentMappedCreate) {
-    assert.equal(effectCurrentReports.length, 4, 'Denied or foreign queries reached the transport');
+    assert.equal(effectCurrentReports.length, 5, 'Denied or foreign queries reached the transport');
     assert.deepEqual(effectCurrentReports.map(value => [value.queryId, value.recoveryAction, value.responseSaved]), [
       ['native-current-before-send', 0, false], ['native-current-before-send', 0, false],
+      ['native-current-revoked', 0, false],
       ['native-current-pending', 3, true], ['native-current-terminal', 5, true],
     ]);
     assert.deepEqual(effectCurrentReports[0], effectCurrentReports[1], 'Explicit retry changed the original current snapshot before the write');
