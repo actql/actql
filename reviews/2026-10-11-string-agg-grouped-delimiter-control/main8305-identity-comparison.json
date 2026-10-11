@@ -1,0 +1,17 @@
+{
+  "adopted_main": "8305fdb52a5bca8a41d7f5278077035705cb6e9e",
+  "prior_submitted_head": "d25a84d72965924e2dc30cfde46a3c4e02e0cf90",
+  "independent_preimages_equal": [
+    "grammar",
+    "aoa_contract_cid",
+    "barrier_contract_manifest_cid",
+    "values_dependencies",
+    "program_identity",
+    "run_preimages"
+  ],
+  "main_matches_frozen_f17": true,
+  "main_preparation_sha256": "34c22a0a9a1523a371eaf871e353070e6b704cdfc669a55b1ce8451c2be3987d",
+  "frozen_main_preimages": "scripts/fixtures/pre-string-agg-grouped-delimiter-values-identities.json",
+  "previous_string_agg_preimages": "reviews/2026-10-11-string-agg-grouped-delimiter-control/f17-current-values-preimages.json",
+  "runtime_or_public_execution": false
+}

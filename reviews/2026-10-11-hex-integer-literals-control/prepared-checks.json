@@ -13,7 +13,7 @@
     "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/query_program/hex_integer_test.mbt src/query_program/order_ordinal_test.mbt src/query_program/group_ordinal_test.mbt src/query_program/grouped_analytic_offset_test.mbt",
     "node scripts/local-checks.mjs test moon --timeout-seconds 60 -- --target js src/run_publication_host/client_values_run_materials_wbtest.mbt"
   ],
-  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/hex-integer-source-input.test.mjs scripts/client-values-run-materials-vector.test.mjs",
+  "node_command": "node scripts/local-checks.mjs test node --timeout-seconds 60 -- scripts/hex-integer-source-input.test.mjs scripts/client-values-run-materials-vector.test.mjs scripts/public-query-profiles.test.mjs",
   "public_command": "node scripts/test-packed-public-query.mjs --hex-integer-only",
   "public_route": "--hex-integer-only (existing consumer; not started; shared Heavy allocation required)",
   "expected_public_cohort": {
@@ -24,5 +24,6 @@
   "public_cap_seconds": 300,
   "pinned_node": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
   "moon_home": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e",
-  "guard": "Do not retry or bypass B process-inspection rejection. No raw runtime tests, new Owner or alternate consumer."
+  "guard": "Do not retry or bypass B process-inspection rejection. No raw runtime tests, new Owner or alternate consumer.",
+  "adopted_main": "27d36302a6e653cc4005603dddf7c1bae09f5f95"
 }
