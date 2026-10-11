@@ -44,8 +44,8 @@ pub(all) struct ClientValuesRunMaterials {
 ///|
 let client_run_materials_fields : Array[String] = [
   "check_environment", "check_environment_cid", "client_request_identity", "created_at",
-  "parameters", "prepared_invocation", "program", "program_format", "run_authorization",
-  "run_id", "scope_id", "valid_until", "version",
+  "normalization_journal_json", "parameters", "prepared_invocation", "program", "program_format",
+  "run_authorization", "run_id", "scope_id", "valid_until", "version",
 ]
 
 ///|
@@ -164,6 +164,7 @@ fn encode_client_run_materials_body(
   program : String,
   parameters_wire : String?,
   request_wire? : String? = None,
+  normalization_wire? : String? = None,
 ) -> Result[String, ClientValuesRunMaterialsIssue] {
   // This is a read-only projection of an already admitted definition. It does
   // not reissue it (nor extend its original lifetime).
@@ -232,6 +233,10 @@ fn encode_client_run_materials_body(
     for field in fields {
       if field.0 == "created_at" && request_wire is Some(wire) {
         @encode.key(writer, "client_request_identity")
+        @encode.string_value(writer, wire)
+      }
+      if field.0 == "parameters" && normalization_wire is Some(wire) {
+        @encode.key(writer, "normalization_journal_json")
         @encode.string_value(writer, wire)
       }
       @encode.key(writer, field.0)
@@ -361,7 +366,17 @@ fn read_client_run_materials_body(
         Err(_) => return Err(MaterialsMalformed)
       }
   }
+  let normalization_wire = match
+    @decode.lookup(object, "normalization_journal_json") {
+    None => None
+    Some(cursor) =>
+      match @decode.text(cursor) {
+        Ok(wire) => Some(wire)
+        Err(_) => return Err(MaterialsMalformed)
+      }
+  }
   Ok({
+    normalization_wire,
     request_wire,
     program,
     environment,
@@ -377,6 +392,7 @@ fn read_client_run_materials_body(
 
 ///|
 priv struct ClientRunMaterialsBody {
+  normalization_wire : String?
   request_wire : String?
   program : String
   environment : @checked.CheckEnvironment
@@ -400,6 +416,9 @@ fn read_client_run_materials_input(
     read_client_run_materials_body(materials, expressions, operations) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if body.normalization_wire is Some(_) {
+    return Err(MaterialsEvidence("normalization_journal"))
   }
   let prepared = match
     prepare_effect_free_client_program(

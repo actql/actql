@@ -7,11 +7,20 @@ pub fn issue_prepared_client_effect_run_materials(
   allowed : ClientEffectAllowedRun,
   definition : @publication.PublicationContract,
   request? : ClientRequestIdentity? = None,
+  normalization? : ClientEffectNormalization? = None,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
   let prepared = client_effect_compilation_owner(allowed.compilation)
   match bind_client_effect_compiled_run(prepared, allowed, definition) {
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
+  }
+  let normalization_wire = match normalization {
+    None => None
+    Some(original) =>
+      match prepared_client_effect_normalization_evidence(prepared, original) {
+        Ok(value) => Some(@publication.run_evidence_value_json(value))
+        Err(issue) => return Err(Normalization(issue))
+      }
   }
   let request_wire = match request {
     None => None
@@ -59,5 +68,6 @@ pub fn issue_prepared_client_effect_run_materials(
     program,
     parameters,
     request_wire~,
+    normalization_wire~,
   ).map_err(fn(issue) { ClientEffectRunMaterialsIssue::Input(issue) })
 }

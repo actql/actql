@@ -90,11 +90,52 @@ checked before encoding, and the existing remote materials encoder retains the
 original invocation, authorization, identity and lifetime. No preparation or
 compilation is repeated by this projection.
 
-The projection uses the existing materials wire. It does not yet carry or
-certify cross-process normalization custody. In particular, the poll materials
-envelope's dispatch/input-binding CIDs do not by themselves prove the provenance
-of arbitrary appended materials or journal bytes. The durable normalization
-connection must bind the original issuer evidence through the existing original
-Run/materials/Receipt chain; ordinary materials reconstruction must not become
-an excuse to issue a new empty journal. Native review installation remains a
-separate consuming boundary after that restoration is verified.
+The optional `normalization_journal_json` string carries the original issued
+journal in the existing bounded materials wire, before dispatch. The issuing
+API accepts only the nominal projection owned by the same original preparation.
+An absent journal stays absent; Effect-free admission refuses this Effect-only
+custody rather than silently dropping it.
+
+## Admitted material custody and Native review
+
+`issue_prepared_client_effect_normalization_materials` issues exact material
+bytes under the original preparation's normalization Owner and returns an opaque
+`ClientEffectIssuedNormalizationMaterials`. Its private nominal issuer identity
+is checked together with the original preparation, exact bytes and Run CID.
+There is no public wire-to-proof constructor. The wire accessor does not confer
+trust on another string.
+
+The proof belongs to its caller and any admitted material custody. The original
+preparation has no reverse index of issued Runs or material bytes. The private
+issuer identity retains no proof or preparation, so dropping the last caller or
+custody reference makes those per-Run bytes reclaimable by the runtime. Repeated
+issuance can return another valid proof; wire equality does not acquire proof.
+This adds neither a Run count limit nor a new resource reservation Owner.
+
+Effect material admission requires this original projection when the wire
+contains a normalization journal. It verifies exact original bytes and Run CID
+before execution preparation. An appended fixed journal, a changed material,
+or a journal-bearing wire without original issuance proof is refused as
+`UnverifiedOriginalMaterials`. The ordinary absent-journal path is unchanged.
+The admitted custody retains the original issuance projection as well as the
+restored execution Owner. Restoration verifies both before admitting saved
+journal bytes; it does not issue, prepare or compile a replacement.
+
+This projection is process-local. No cross-process trusted original-material
+binding is installed by this API, and the existing poll envelope does not sign
+arbitrary appended material bytes. A digest or self-described receipt cannot
+replace that missing provenance. Native admission of journal-bearing materials
+without the original projection therefore fails closed; public remote Effect
+restoration remains unconnected pending a verified existing Owner binding.
+The existing initial execution-material admission still prepares/compiles its
+saved execution input once; this change does not establish a compiler snapshot.
+
+`prepare_native_resident_effect_review_from_original_materials` obtains this
+journal from the actual holder context's material Owner before calling the
+existing Result capture/Receipt/Captured Run and review preparation path. It
+accepts no caller-supplied normalization argument. Independently trusted Provider
+policy is unchanged. If restoration or review preparation fails, the existing
+context close/retry Owner retains any pending pins; Source, Transfer and holding
+custody remain separate. The existing trusted-context API remains available for
+other explicitly installed normalization profiles. No profile fallback or
+Native CLI installation is implied by this adapter.
