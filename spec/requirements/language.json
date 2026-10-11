@@ -7032,6 +7032,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/infer.capture-record-version-and-original-request-binding",
+      "statement_sha256": "1d2adf200b412e331f9de817a67ad226ea70986fbcfc7aba2c1fcde9401eeab6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.historical-capture-bundle-exact-schema",
+      "statement_sha256": "b549b1872943c4dc5b65d80a18adcccfd51592d88d5b00077df1e2bbf573b578",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.capture-version-discriminator-identity-and-binding-refusal",
+      "statement_sha256": "508365b2fff883743bb43a63c4743232d5166da6ddd10b25f3151d4b33ac409f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/infer.opaque-provider-metadata-preserves-observed-content",
       "statement_sha256": "b726b3cd60a7d4c46ba6e0509a6456246206d0b8edbe94b1b31296f8d289d12f",
       "status": "pending",

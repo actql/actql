@@ -1987,9 +1987,9 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_v02 sha256:805e0cb2268f07fe3170ff6910fcb9dcd6144af9f938bbfbac5b9c374bd89507
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_v02 sha256:4189020dcd411ebb243807e6e4195d4672f1cb35e5959dd77adf7785b96b01e5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_v02 sha256:081c0eb1ce02e2150ab1464f3f2b1ffe144b298e11b02dea27cad136899d479f
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_compatible sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_compatible sha256:d81d8cd5930edcef76afe18085537b0c008a1c7cfeb5f000acd9c1fe121a0e54
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_compatible sha256:750be57601bea98a9446d2ec3222e6f1cde2e2c40069cbef917fc475a15e9ddb
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task_v02 sha256:23ef51950192891ab9c18e6c7c779ce4cd4fe17456f810bcdcc0c8b11229b38d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_prompt sha256:dda24589bf95171a297fb7da656d4371b92a0db243065e77e4db160d975e4e38
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_answers sha256:9074415d38b503da958213551086f760cac638fecc5b422b6af591bfe3356ac2

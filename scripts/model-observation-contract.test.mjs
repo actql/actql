@@ -24,7 +24,7 @@ test('historical invocation and embedded capture schema pins remain exact', () =
   {const: 'actql-model-invocation-evidence/0.1'});
 });
 
-test('version compatibility is exact and never repairs mixed evidence', () => {
+test('new bundle discriminates original old and new evidence without repair', () => {
   const schemas = modelObservationSchemas(registry.artifact_schemas);
   assert.deepEqual(schemas.model_invocation_evidence_compatible.oneOf,
     [registry.artifact_schemas.model_invocation_evidence,
@@ -32,9 +32,22 @@ test('version compatibility is exact and never repairs mixed evidence', () => {
   assert.deepEqual(schemas.model_capture_bundle_compatible.oneOf,
     [registry.artifact_schemas.model_capture_bundle,
       schemas.model_capture_bundle_v02]);
-  assert.deepEqual(schemas.model_capture_bundle_v02.properties.captures.items
-    .properties.evidence.properties.version,
-  {const: 'actql-model-invocation-evidence/0.2'});
+  const embedded = schemas.model_capture_bundle_v02.properties.captures.items
+    .properties.evidence.oneOf;
+  assert.deepEqual(embedded.map(branch => branch.properties.version), [
+    {const: 'actql-model-invocation-evidence/0.1'},
+    {const: 'actql-model-invocation-evidence/0.2'},
+  ]);
+  for (const [index, original] of [
+    registry.artifact_schemas.model_invocation_evidence,
+    schemas.model_invocation_evidence_v02,
+  ].entries()) {
+    const body = structuredClone(original);
+    delete body.$schema;
+    delete body.$id;
+    delete body.title;
+    assert.deepEqual(embedded[index], body);
+  }
   for (const name of ['input_tokens', 'output_tokens', 'finish_reason',
     'provider_reported_model_id', 'provider_reported_revision',
     'provider_request_id', 'gateway_request_id', 'raw_response_artifact_cid']) {
@@ -76,4 +89,25 @@ test('independent observed zero, unknown usage and original Unicode differ', () 
   assert.equal(raw.response_complete, true);
   assert.notEqual(hash({...raw, raw_response_artifact_cid: 'sha256:' + 'a'.repeat(64)}), hash(raw));
   checkModelObservationVectors();
+});
+
+test('independent mixed bundle keeps original evidence bytes and per-record CIDs', () => {
+  const {corpus} = modelObservationVectors();
+  const mixed = corpus.bundle_cases[1];
+  assert.equal(mixed.expected_cid, hash(mixed.body));
+  assert.equal(mixed.expected_canonical_bytes, canonicalText(mixed.body));
+  assert.deepEqual(mixed.body.captures.map(item => item.evidence.version), [
+    'actql-model-invocation-evidence/0.1',
+    'actql-model-invocation-evidence/0.2',
+  ]);
+  const historical = mixed.body.captures[0].evidence;
+  const {model_invocation_evidence_cid, ...original} = historical;
+  assert.equal(model_invocation_evidence_cid, corpus.cases[0].expected_cid);
+  assert.equal(canonicalText(original), corpus.cases[0].expected_canonical_bytes);
+  for (const item of mixed.body.captures) {
+    const {model_invocation_evidence_cid: evidenceCid, ...body} = item.evidence;
+    assert.equal(evidenceCid, hash(body));
+    assert.equal(item.model_call_slot_cid, body.model_call_slot_cid);
+    assert.equal(item.semantic_request_cid, body.semantic_request_cid);
+  }
 });
