@@ -78,13 +78,13 @@ export const fullJoinScopeSuccesses = [
   // The same independently authored JSON control above specifies these rows,
   // types, acquisition and bound. Explicit SELECT must not choose a refusal
   // path merely because its projection has no star.
-  success('explicit-select', prefix + body.replace('l.*', 'l.amount, l.id')),
+  success('explicit-select', prefix + body.replace('l.*', 'l.amount, l.id') + ')'),
   success('explicit-pipe', prefix + 'FROM lefts AS l |> FULL JOIN rights AS r '
     + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 |> SELECT l.amount, l.id, r.id AS rid '
     + '|> ORDER BY id NULLS LAST, rid NULLS LAST'),
   success('explicit-cte', 'WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) '
-    + 'WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) '
-    + body.replace('l.*', 'l.amount, l.id')),
+    + '(WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) '
+    + body.replace('l.*', 'l.amount, l.id') + ')'),
   success('explicit-empty', prefix + body.replace('l.*', 'l.amount, l.id'),
     {sourceRows: [], expected: []}),
   // Two NULL projections collapse before the hidden ORDER expression exists.

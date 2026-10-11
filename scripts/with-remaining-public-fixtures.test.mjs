@@ -13,6 +13,7 @@ function expectedWrapper(text) {
     bindings.push(`${match[1]} AS (${body})`);
     text = text.slice(match[0].length);
   }
+  if (bindings.length && text.startsWith('WITH ')) text = '(' + text + ')';
   return bindings.length ? 'WITH ' + bindings.join(' , ') + ' ' + text : text;
 }
 for (const [name, previous] of Object.entries(retained.snapshots)) {

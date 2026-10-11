@@ -173,7 +173,7 @@
       "module": "computed-object-property",
       "key": "computedObjectPropertySuccesses",
       "name": "computed-object-property-set-intersect-cte",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "computed-object-property",
@@ -185,13 +185,13 @@
       "module": "computed-object-property",
       "key": "computedObjectPropertySuccesses",
       "name": "computed-object-property-set-intersect-empty",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "computed-object-property",
       "key": "computedObjectPropertySuccesses",
       "name": "computed-object-property-set-except-cte",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "computed-object-property",
@@ -203,7 +203,7 @@
       "module": "computed-object-property",
       "key": "computedObjectPropertySuccesses",
       "name": "computed-object-property-set-except-empty",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "computed-object-property",
@@ -323,7 +323,7 @@
       "module": "computed-object-property",
       "key": "setObjectMemberSuccesses",
       "name": "computed-object-property-set-intersect-cte",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "computed-object-property",
@@ -335,13 +335,13 @@
       "module": "computed-object-property",
       "key": "setObjectMemberSuccesses",
       "name": "computed-object-property-set-intersect-empty",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "computed-object-property",
       "key": "setObjectMemberSuccesses",
       "name": "computed-object-property-set-except-cte",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "computed-object-property",
@@ -353,7 +353,7 @@
       "module": "computed-object-property",
       "key": "setObjectMemberSuccesses",
       "name": "computed-object-property-set-except-empty",
-      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id"
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) (WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)"
     },
     {
       "module": "distinct-aggregate-order",
@@ -485,7 +485,7 @@
       "module": "full-join-scope",
       "key": "fullJoinScopeSuccesses",
       "name": "full-join-scope-explicit-select",
-      "text": "WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) , lefts AS (FROM base |> WHERE id <= 2) , rights AS (FROM base |> WHERE id >= 2) SELECT l.amount, l.id, r.id AS rid FROM lefts AS l FULL JOIN rights AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id NULLS LAST, rid NULLS LAST"
+      "text": "WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) , lefts AS (FROM base |> WHERE id <= 2) , rights AS (FROM base |> WHERE id >= 2) SELECT l.amount, l.id, r.id AS rid FROM lefts AS l FULL JOIN rights AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id NULLS LAST, rid NULLS LAST)"
     },
     {
       "module": "full-join-scope",
@@ -497,7 +497,7 @@
       "module": "full-join-scope",
       "key": "fullJoinScopeSuccesses",
       "name": "full-join-scope-explicit-cte",
-      "text": "WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) SELECT l.amount, l.id, r.id AS rid FROM lefts AS l FULL JOIN rights AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id NULLS LAST, rid NULLS LAST"
+      "text": "WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) (WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) SELECT l.amount, l.id, r.id AS rid FROM lefts AS l FULL JOIN rights AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id NULLS LAST, rid NULLS LAST)"
     },
     {
       "module": "full-join-scope",
@@ -1757,7 +1757,7 @@
       "module": "group-property",
       "key": "groupHavingImplicitAliasSuccesses",
       "name": "group-property-having-implicit-cte",
-      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) SELECT score, n FROM summary ORDER BY score"
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) (WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) SELECT score, n FROM summary ORDER BY score)"
     },
     {
       "module": "group-property",
@@ -1841,7 +1841,7 @@
       "module": "group-property",
       "key": "groupPropertySuccesses",
       "name": "group-property-having-implicit-cte",
-      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) SELECT score, n FROM summary ORDER BY score"
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) (WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) SELECT score, n FROM summary ORDER BY score)"
     },
     {
       "module": "group-property",
@@ -1985,7 +1985,7 @@
       "module": "group-property",
       "key": "groupPropertySuccesses",
       "name": "group-property-implicit-grouped-cte",
-      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) SELECT score, n FROM summary ORDER BY score"
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) (WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) SELECT score, n FROM summary ORDER BY score)"
     },
     {
       "module": "group-property",
@@ -2099,7 +2099,7 @@
       "module": "group-property",
       "key": "groupPropertySuccesses",
       "name": "group-property-sql-subexpression-cte-input",
-      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket"
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) (WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket)"
     },
     {
       "module": "group-property",
@@ -2411,7 +2411,7 @@
       "module": "group-property",
       "key": "groupedImplicitPropertyNameSuccesses",
       "name": "group-property-implicit-grouped-cte",
-      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) SELECT score, n FROM summary ORDER BY score"
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) (WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) SELECT score, n FROM summary ORDER BY score)"
     },
     {
       "module": "group-property",
@@ -2693,7 +2693,7 @@
       "module": "group-property",
       "key": "sqlGroupedSubexpressionSuccesses",
       "name": "group-property-sql-subexpression-cte-input",
-      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket"
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other UNION ALL SELECT 4 AS id, @d AS payload, @od AS other UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) (WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket)"
     },
     {
       "module": "group-property",

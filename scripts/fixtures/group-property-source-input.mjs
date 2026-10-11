@@ -97,8 +97,8 @@ export const groupedImplicitPropertyNameSuccesses = [
       columns: [{name: 'id', contract: number}, columns[0], columns[1],
         {name: 'rank', contract: number}]}),
   text('implicit-grouped-cte',
-    'WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) '
-      + 'SELECT score, n FROM summary ORDER BY score'),
+    '(WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) '
+      + 'SELECT score, n FROM summary ORDER BY score)'),
   text('implicit-grouped-join',
     'SELECT l.payload.score, COUNT(*) AS n FROM objects AS l JOIN objects AS r '
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY l.payload.score ORDER BY score'),
@@ -175,8 +175,8 @@ export const groupHavingImplicitAliasSuccesses = [
     'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING COUNT(score) > 1 ORDER BY score',
     {expected: havingImplicitRows}),
   text('having-implicit-cte',
-    'WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) '
-      + 'SELECT score, n FROM summary ORDER BY score', {expected: havingImplicitRows}),
+    '(WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) '
+      + 'SELECT score, n FROM summary ORDER BY score)', {expected: havingImplicitRows}),
   text('having-implicit-join',
     'SELECT l.payload.score, COUNT(*) AS n FROM objects AS l JOIN objects AS r '
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY score HAVING score > 10 ORDER BY score',
@@ -370,7 +370,7 @@ export const sqlGroupedSubexpressionSuccesses = [
     'SELECT objects.payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects JOIN objects AS matched ON objects.id = matched.id MAX_OUTPUT_ROWS 10 GROUP BY objects.payload.score + 1 ORDER BY bucket',
     {expected: sqlGroupedRows, columns: sqlGroupedColumns}),
   text('sql-subexpression-cte-input',
-    'WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket',
+    '(WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket)',
     {expected: sqlGroupedRows, columns: sqlGroupedColumns}),
   text('sql-subexpression-empty-keyed',
     'SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects WHERE FALSE GROUP BY payload.score + 1 ORDER BY bucket',

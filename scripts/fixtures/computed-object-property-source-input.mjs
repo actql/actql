@@ -341,9 +341,9 @@ export const setObjectMemberSuccesses = ['intersect', 'except'].flatMap(operatio
   const expected = operation === 'intersect'
     ? [{id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]
     : [{id: 1, score: 20}];
-  const cte = 'WITH chosen AS (SELECT id, payload FROM objects ' + keyword
+  const cte = '(WITH chosen AS (SELECT id, payload FROM objects ' + keyword
     + ' DISTINCT SELECT id, payload FROM objects WHERE id <> 1) '
-    + 'SELECT id, payload.SCORE AS score FROM chosen ORDER BY id';
+    + 'SELECT id, payload.SCORE AS score FROM chosen ORDER BY id)';
   return [
     success('set-' + operation + '-json', '', {format: 'json',
       text: JSON.stringify(setObjectMemberProgram(operation)), parameterDeclarations: undefined, expected}),
@@ -357,9 +357,9 @@ export const setObjectMemberSuccesses = ['intersect', 'except'].flatMap(operatio
 });
 export const setObjectMemberRefusals = ['intersect', 'except'].map(operation => ({
   name: 'computed-object-property-set-' + operation + '-missing-member', format: 'aql-text',
-  text: data + 'WITH chosen AS (SELECT id, payload FROM objects ' + operation.toUpperCase()
+  text: data + '(WITH chosen AS (SELECT id, payload FROM objects ' + operation.toUpperCase()
     + ' DISTINCT SELECT id, payload FROM objects WHERE id <> 1) '
-    + 'SELECT payload.MISSING AS score FROM chosen',
+    + 'SELECT payload.MISSING AS score FROM chosen)',
   parameterDeclarations, parameters, expectedCode: 'ClientProgramInvalidInput',
 }));
 computedObjectPropertySuccesses.push(...setObjectMemberSuccesses);
