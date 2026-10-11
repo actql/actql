@@ -6,7 +6,7 @@
   "base": "main",
   "pending_integration": [],
   "start_condition": "Normally adopt the submitted Frontend integration on main; INFER and Debug completion are not prerequisites.",
-  "finite_next_unit": "Finish remaining current DATA caller/examples retirement and remaining adopted P2 adapters; prepare the existing four-Carrier public cohort without new Heavy allocation.",
+  "finite_next_unit": "Retire remaining active acquisition/Result/JOIN and Graph caller/examples without changing independent meaning; continue adopted P2 adapters and prepare the existing four-Carrier public cohort without new Heavy allocation.",
   "no_new_scope": [
     "new GoogleSQL compatibility search",
     "compat parser or migrator",
@@ -14,7 +14,7 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4. p1-current-caller-retirement-execution.json: ec2a JS10/10 Node5/5; 670251 JS5/5 Node14/14. Each fixed source and formatter receipt is distinct; no Host/Local/HTTPS acceptance. p1-unified-source-retirement-execution.json: bb400e67 JS8/8 and no-change formatter; still no Host execution. p1-unified-cte-owner-execution.json: 54665 JS16/16; 4f79 JS16/16 after exclusive helper removal; d556 JS4/4 NEAREST. Original MzSry9 fixture JS2/4 retained; no Host/packed execution. p1-graph-comparison-retirement-execution.json: 5b5a JS13/13, no-change fmt; 92e658 JS11/13 old-coordinate failure retained. No Host/package execution.",
+  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4. p1-current-caller-retirement-execution.json: ec2a JS10/10 Node5/5; 670251 JS5/5 Node14/14. Each fixed source and formatter receipt is distinct; no Host/Local/HTTPS acceptance. p1-unified-source-retirement-execution.json: bb400e67 JS8/8 and no-change formatter; still no Host execution. p1-unified-cte-owner-execution.json: 54665 JS16/16; 4f79 JS16/16 after exclusive helper removal; d556 JS4/4 NEAREST. Original MzSry9 fixture JS2/4 retained; no Host/packed execution. p1-graph-comparison-retirement-execution.json: 5b5a JS13/13, no-change fmt; 92e658 JS11/13 old-coordinate failure retained. No Host/package execution. p1-graph-match-path-retirement-execution.json: 1cc82 JS17/17; initial 1d331 JS14/17 static-boundary failure retained; no Host/package execution.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,

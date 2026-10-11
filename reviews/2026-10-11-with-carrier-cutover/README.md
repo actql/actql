@@ -116,6 +116,30 @@ it does not copy product positions into expectations. Actual Owner/group/ownlock
 absence was checked for all three attempts. This unit has no Host/package/public
 execution, and does not establish full P2 or all current caller retirement.
 
+## Graph match, normalization and path caller retirement
+
+[p1-graph-match-path-retirement-execution.json](p1-graph-match-path-retirement-execution.json)
+records clean `1cc82ea3`: JS17/17 (`run-2JFUCh`) on four changed caller files.
+Current positive sources use WITH/GRAPH. Complete independent Program controls
+retain MATCH predicates, Graph identity roles, selector inputs, output columns,
+min/max hops, explicit TRAIL and `max_output_rows: 10`. Only deterministic
+binding names change. A Graph-preserving binding reserves no Relation producer,
+so normalization and keyed MATCH retain one Graph without introducing a copy.
+The original sources and independent allocation/ASCII coordinate derivations
+are in [with-graph-match-path-original-callers.json](with-graph-match-path-original-callers.json).
+
+The first `1d331a57` run remains JS14/17, exit2. Its three malformed controls
+expected an invalid Program to escape frontend before separate checking;
+WITH common static checking correctly refuses it earlier. Tests now retain
+precise typed common causes for missing fields/definitions/labels, duplicate
+fields, binding collision, predicate Boolean type, decoded body, selector,
+hop bounds and path mode. This does not relax validation or change operations.
+The cause derivation is recorded in
+[with-graph-match-path-static-refusal-correction.json](with-graph-match-path-static-refusal-correction.json).
+Affected formatter and all three actual Owner/group/ownlock releases are
+preserved. This is frontend/common checking, not Host, paths runtime or public
+Named Result evidence. Full P2/current caller/docs retirement remains unfinished.
+
 ## Earlier finite evidence
 
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally
