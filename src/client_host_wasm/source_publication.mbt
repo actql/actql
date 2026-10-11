@@ -330,9 +330,8 @@ pub fn close_source_publication(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
-  if value.publications
-    .values()
-    .any(publication => publication.source == handle) {
+  if value.publication_preflights.values().any(child => child.source == handle) ||
+    value.publications.values().any(publication => publication.source == handle) {
     return -9
   }
   if record.preparation is Some(preparation) {
