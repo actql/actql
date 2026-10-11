@@ -95,7 +95,8 @@ unconditional suite or a complete dependency map.
 Run `git diff --check` and check formatting for changed MoonBit files. Keep
 incremental builds and avoid concurrent gates or edits in a running gate's
 worktree. Report commands, actual test counts and unverified coverage separately.
-A local or selected PR check does not replace a full manual integration checkpoint.
-Draft CI is preparation only and does not establish merge verification; marking
-Ready triggers normal required coverage for that exact event revision.
+A local or selected PR check does not replace a full integration checkpoint.
+After public visibility and explicit opt-in, main pushes run hosted integration;
+PRs use focused local checks and coordinator review. Retained Draft-profile
+fixtures remain preparation only, never merge or release verification.
 

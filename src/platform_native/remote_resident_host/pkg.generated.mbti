@@ -569,6 +569,7 @@ pub fn ResidentRetainedConsumer::accept(Self, @remote_journal.Journal, @http_cli
 pub fn ResidentRetainedConsumer::close(Self) -> Bool
 pub fn ResidentRetainedConsumer::completed_effect_execution(Self, @remote_journal.Journal) -> ResidentExecuted?
 pub fn ResidentRetainedConsumer::effect_computation(Self, @remote_journal.Journal) -> ResidentSourceCompute?
+pub fn ResidentRetainedConsumer::effect_original_dispatch(Self, @remote_journal.Journal) -> @remote_site_protocol.DispatchRequest?
 pub fn ResidentRetainedConsumer::effect_source_binding_cid(Self, @remote_journal.Journal, @physical_strategy.CapturedEffectInputs) -> String?
 pub fn ResidentRetainedConsumer::execute(Self, @remote_journal.Journal, ResidentExecution, ResidentRunAdmission, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, String, () -> String, ((String) -> Bool)?, borrow_observe? : () -> Unit) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure]
 pub fn ResidentRetainedConsumer::prepare_effect_review_inputs(Self, @remote_journal.Journal, ResidentEffectProducerExecuted, @remote_journal.Journal, Int, Int, @run_publication.PublicationContract, @run_publication_host.PublicationOutputExportLimits, Int, Int, Int, Int, Int) -> Result[ResidentEffectReviewInputContext, ResidentEffectReviewInputFailure]
