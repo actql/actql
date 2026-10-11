@@ -22,7 +22,7 @@ fn graph_relation_join_cases() -> Array[(String, String, String, String)] {
 
 ///|
 test "Ordered Graph Relation JOIN retains established singleton equality order" {
-  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 10 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); "
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p), r AS (SELECT 10 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p)))) "
   for
     (operation, arguments, source_arguments, field) in graph_relation_join_cases() {
     let source = prefix +
@@ -103,7 +103,7 @@ test "Graph Relation JOIN controls pass the existing common checker" {
 
 ///|
 test "Existing Graph Relation calls remain Relation JOIN inputs" {
-  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 10 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); "
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p), r AS (SELECT 10 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p)))) "
   for (operation, _, source_arguments, field) in graph_relation_join_cases() {
     let source = prefix +
       "FROM g |> " +
