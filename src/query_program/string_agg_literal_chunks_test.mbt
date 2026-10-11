@@ -10,6 +10,8 @@ test "STRING_AGG literal chunks match the independent delimiter Program" {
   for
     text in [
       "SELECT STRING_AGG(name, '' /* separator */ '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects",
+      "SELECT STRING_AGG(name, (('|')) ORDER BY payload.score NULLS LAST, id) AS names FROM objects",
+      "FROM objects |> AGGREGATE STRING_AGG(name, (r'' \"|\" '''''') ORDER BY payload.score NULLS LAST, id) AS names",
       "FROM objects |> AGGREGATE STRING_AGG(name, r'' \"|\" '''''' ORDER BY payload.score NULLS LAST, id) AS names",
     ] {
     let actual = checked_aggregate_property_order(text)
