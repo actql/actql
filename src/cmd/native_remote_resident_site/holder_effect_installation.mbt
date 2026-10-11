@@ -57,14 +57,15 @@ fn holder_effect_provider_scope(
 }
 
 ///|
-/// Open only before a Source start claim. Fixed bounded filenames are selected
+/// Open only for the first exact Resume. Fixed bounded filenames are selected
 /// by the operator; neither Program nor dispatch can choose a key, database,
 /// endpoint, secret path or grant. Absent configuration keeps the old no-send
-/// path; malformed present configuration refuses rather than silently disabling.
+/// path; invalid configuration preserves the existing task/Review responsibility.
 fn open_holder_effect_resume_installation(
   matches : @argparse.Matches,
   sqlite_library : @sqlite.Library,
   resources : HolderOutputResources,
+  dispatch : @remote.DispatchRequest,
 ) -> HolderEffectResumeInstallation? raise CommandStop {
   guard optional(matches, "effect-resume-root") is Some(root) else {
     return None
@@ -131,6 +132,14 @@ fn open_holder_effect_resume_installation(
     ) {
     Some(value) => value
     None => stop("Effect Resume credential scope refused")
+  }
+  if !holder_effect_provider_dispatch_matches(
+      scope,
+      @remote.dispatch_request_execution_scope(dispatch),
+      @remote.dispatch_request_journal_key(dispatch),
+      @remote.dispatch_request_identity(dispatch),
+    ) {
+    stop("Effect Resume credential dispatch refused")
   }
   let current = () => {
     // Rotation/removal never backfills the retained installation. This checks
@@ -254,7 +263,8 @@ fn open_holder_effect_resume_installation(
 
 ///|
 /// Setup failures keep their primary reason while retrying the same acquired
-/// physical handles. No Source/Compute claim has occurred at this boundary.
+/// physical handles. No Provider send/use has occurred at this boundary; the
+/// existing Source/Compute/Review and slot responsibilities remain with caller.
 fn close_holder_effect_installation_setup(
   client : @http.Client,
   database : @sqlite.Database?,
@@ -291,20 +301,37 @@ fn HolderEffectResumeInstallation::for_dispatch(
   self : HolderEffectResumeInstallation,
   dispatch : @remote.DispatchRequest,
 ) -> @effect_review.NativeResidentEffectCloudResumeInstallation? {
-  let execution = @remote.dispatch_request_execution_scope(dispatch)
-  let route = @remote.dispatch_request_journal_key(dispatch)
   if !(self.current)() ||
     self.client_closed ||
     self.database_closed ||
-    self.scope.site_key != execution[0] ||
-    self.scope.site_generation.to_string() != execution[1] ||
-    self.scope.runtime_bundle_cid != execution[2] ||
-    self.scope.task_attempt.to_string() != route[6] ||
-    self.scope.dispatch_request_cid !=
-    @remote.dispatch_request_identity(dispatch) {
+    !holder_effect_provider_dispatch_matches(
+      self.scope,
+      @remote.dispatch_request_execution_scope(dispatch),
+      @remote.dispatch_request_journal_key(dispatch),
+      @remote.dispatch_request_identity(dispatch),
+    ) {
     return None
   }
   Some(self.configuration)
+}
+
+///|
+/// The caller supplies these projections from its already-admitted dispatch.
+/// Reject foreign scope before opening Provider HTTP/SQLite resources. The row
+/// Owner separately checks the captured invocation and complete request scope.
+fn holder_effect_provider_dispatch_matches(
+  scope : @effect_resource.NativeCredentialScope,
+  execution : Array[String],
+  route : Array[String],
+  dispatch_cid : String,
+) -> Bool {
+  execution.length() == 8 &&
+  route.length() == 7 &&
+  scope.site_key == execution[0] &&
+  scope.site_generation.to_string() == execution[1] &&
+  scope.runtime_bundle_cid == execution[2] &&
+  scope.task_attempt.to_string() == route[6] &&
+  scope.dispatch_request_cid == dispatch_cid
 }
 
 ///|
