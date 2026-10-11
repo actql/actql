@@ -44,22 +44,27 @@ priv struct HolderEffectHostAdmission {
   site_key : String
   site_generation : Int
   read_current : (HolderEffectEvidencePurpose) -> HolderEffectHostCurrent?
+  original_identity : @effect_review.NativeEffectCloudHostIdentityRead
 }
 
 ///|
 /// Re-evaluate the existing Account/Decision Owner at every fence. Read and
 /// publication have different tuples and boundaries; a read-only Allow or
-/// delegated answer cannot authorize the Coordinator transfer.
+/// delegated answer cannot authorize the Coordinator transfer. The installed
+/// caller supplies fresh original identity before and after the decision; the
+/// same current Account fence is repeated after the final identity HTTP read.
 fn holder_effect_current_decision(
   subject : HolderEffectHostSubject,
   dispatch_cid : String,
   purpose : HolderEffectEvidencePurpose,
   read_current : (HolderEffectEvidencePurpose) -> HolderEffectHostCurrent?,
+  current_original? : () -> Bool = () => true,
 ) -> Bool {
   if subject.principal.is_empty() || subject.account_id.is_empty() {
     return false
   }
   guard read_current(purpose) is Some(selected) &&
+    current_original() &&
     (selected.current)() &&
     selected.configuration.account_id() == subject.account_id &&
     selected.configuration.configuration_cid() == subject.configuration_cid else {
@@ -93,7 +98,7 @@ fn holder_effect_current_decision(
       delegated_action=selected.delegated_action,
     )
     is Ok(_)
-  allowed && (selected.current)()
+  allowed && (selected.current)() && current_original() && (selected.current)()
 }
 
 ///|
@@ -131,12 +136,120 @@ fn holder_effect_evidence_allowed(
     @remote.dispatch_request_execution_scope(original.task.request)[1] ==
     admission.site_generation.to_string()
   }
-  guard current() else { return false }
+  guard current() &&
+    physical_equal(
+      admission.original_identity.control.client,
+      resources.control,
+    ) &&
+    original.consumer.effect_original_dispatch(original.journal)
+    is Some(dispatch) &&
+    @remote.dispatch_request_identity(dispatch) ==
+    @remote.dispatch_request_identity(original.task.request) &&
+    admission.original_identity.scope.site_key == resources.site_key &&
+    admission.original_identity.scope.site_generation ==
+    resources.site_generation.to_int64() &&
+    admission.original_identity.scope.authority_scope_cid ==
+    resources.coordinator_authority &&
+    holder_effect_control_read_url(
+      resources.observation_url,
+      "effect-host-identity-current",
+    )
+    is Some(identity_url) &&
+    admission.original_identity.control.url == identity_url else {
+    return false
+  }
   let allowed = holder_effect_current_decision(
     admission.subject,
     @remote.dispatch_request_identity(original.task.request),
     purpose,
     admission.read_current,
+    current_original=() => {
+      guard current() &&
+        admission.original_identity.read_original_consumer(
+          original.consumer,
+          original.producer,
+          original.journal,
+        )
+        is Some(identity) else {
+        return false
+      }
+      identity.principal_id() == admission.subject.principal && current()
+    },
   )
   allowed && current()
+}
+
+///|
+/// Explicit operator-installed Account file and authenticated Cloud identity
+/// reader. Absence preserves the production deny path. The caller installs
+/// neither a principal inferred from Site credentials nor a delegated answer.
+priv struct HolderEffectHostOperatorInstallation {
+  account : @effect_review.NativeEffectHostAccountInstallation
+  original_identity : @effect_review.NativeEffectCloudHostIdentityRead
+  installation_current : () -> Bool
+}
+
+///|
+fn holder_effect_operator_admission(
+  original : HolderEffectOriginalPolicyContext,
+  resources : HolderOutputResources,
+  installation : HolderEffectHostOperatorInstallation?,
+) -> HolderEffectHostAdmission? {
+  guard installation is Some(installed) &&
+    (installed.installation_current)() &&
+    original.current() else {
+    return None
+  }
+  let selected = installed.account.subject()
+  let context = @publication.run_publication_execution_context(
+    @host.client_effect_allowed_run_admission(original.materials.allowed),
+  )
+  if selected.authorization_context_cid != context {
+    return None
+  }
+  let subject : HolderEffectHostSubject = {
+    principal: selected.principal,
+    account_id: selected.account_id,
+    configuration_cid: selected.configuration_cid,
+    authorization_context_cid: selected.authorization_context_cid,
+    read_connection: selected.read_connection,
+    read_resource: selected.read_resource,
+    publication_connection: selected.publication_connection,
+    publication_resource: selected.publication_resource,
+  }
+  let dispatch_cid = @remote.dispatch_request_identity(original.task.request)
+  Some({
+    original,
+    subject,
+    receiver_origin: resources.destination_origin,
+    observation_url: resources.observation_url,
+    site_key: resources.site_key,
+    site_generation: resources.site_generation,
+    original_identity: installed.original_identity,
+    read_current: purpose => {
+      guard original.current() &&
+        (installed.installation_current)() &&
+        installed.account.read_current_configuration() is Some(configuration) &&
+        original.current() else {
+        return None
+      }
+      Some({
+        configuration,
+        delegated_action: None,
+        current: () => {
+          original.current() &&
+          (installed.installation_current)() &&
+          installed.account.current_permission(
+            dispatch_cid,
+            match purpose {
+              Publication => true
+              Read => false
+            },
+          ) &&
+          (installed.installation_current)() &&
+          original.current()
+        },
+      })
+    },
+  })
 }

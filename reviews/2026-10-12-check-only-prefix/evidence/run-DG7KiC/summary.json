@@ -1,0 +1,52 @@
+{
+  "startedAt": "2026-10-11T20:08:48.767Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Prefix static ownership and existing strict publication controls",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+        "--",
+        "--target",
+        "js",
+        "src/stage_syntax/prefix_test.mbt",
+        "src/stage_results/prefix_topology_test.mbt",
+        "src/stage_results/checked_topology_test.mbt",
+        "src/stage_results/local_program_test.mbt",
+        "src/pipeline_check_context/prefix_sourceview_test.mbt"
+      ],
+      "startedAt": "2026-10-11T20:08:48.834Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:08:53.326Z",
+      "endedAt": "2026-10-11T20:08:53.327Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "360c7eda-fbdf-41f2-af62-0524a1c93f2d",
+    "pid": 13900,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+    "startedAt": "2026-10-11T20:08:48.823Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/local-checks/attempts/run-DG7KiC"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-f0581b6a95b2b92fe6323dbc34aedc0ea2de7b77c5a9411e8cb00854df3a25e6.lock"
+  ],
+  "endedAt": "2026-10-11T20:08:53.392Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

@@ -32,4 +32,6 @@ import {
   "moonbitlang/core/encoding/utf8",
   "actql/actql/parameter_references" @references,
   "actql/actql/sha256" @sha,
+  "actql/actql/program_source_builder" @builder,
+  "actql/actql/frontend_source_map" @origin,
 } for "test"

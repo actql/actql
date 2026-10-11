@@ -1,0 +1,68 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-mW32qw",
+  "revision": "a9cd3335a4160f6064fb52fc6e9110875f1f3156",
+  "source": {
+    "revision": "a9cd3335a4160f6064fb52fc6e9110875f1f3156",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T20:08:48.989Z",
+  "endedAt": "2026-10-11T20:08:53.318Z",
+  "status": "passed",
+  "complete": true,
+  "commands": [
+    {
+      "id": "001",
+      "command": "moon",
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "src/stage_syntax/prefix_test.mbt",
+        "src/stage_results/prefix_topology_test.mbt",
+        "src/stage_results/checked_topology_test.mbt",
+        "src/stage_results/local_program_test.mbt",
+        "src/pipeline_check_context/prefix_sourceview_test.mbt"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+        "device": "16777233",
+        "inode": "336171583"
+      },
+      "source": {
+        "revision": "a9cd3335a4160f6064fb52fc6e9110875f1f3156",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+        "dirty": false
+      },
+      "startedAt": "2026-10-11T20:08:49.129Z",
+      "endedAt": "2026-10-11T20:08:53.315Z",
+      "elapsedMs": 4183.027666,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 0,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 18,
+        "passed": 18,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}
