@@ -56,6 +56,25 @@ compatibility paths and are preserved. Remaining positive DATA callers and
 current examples, the full adopted P2 adapter scope, and fresh Local/HTTPS
 publication acceptance remain unfinished; no Heavy/producer was started.
 
+## Unified Graph Source caller retirement
+
+[p1-unified-source-retirement-execution.json](p1-unified-source-retirement-execution.json)
+records clean `bb400e67f24425b7771d2a74ede42519e1baa86c`: actual JS8/8
+(`run-PTnlig`), followed by a no-change one-file formatter (`run-FlIOoB`).
+The same ordinary WITH source lowers through both SQL and AQL-text selectors,
+as already established by the shared public entry contract. Independent complete
+Graph/equality Program controls retain their original Values and arguments;
+only producer allocation names change. Authored diagnostic/call positions are
+independently counted from the literal ASCII source. Invalid Graph generators
+and producer arguments retain their original precise causes.
+
+Retired Graph-constructor controls now place the old constructor inside a WITH
+body so they test that syntax directly, instead of stopping at the removed DATA
+entry. The original caller is retained in
+[with-unified-source-original-caller.json](with-unified-source-original-caller.json).
+Owner/group/ownlock absence was observed for both limited attempts. This is
+public Source API lowering evidence, not Host or Named Result execution.
+
 ## Earlier finite evidence
 
 Draft [#1506](https://github.com/actql/actql/pull/1506) targets main. B normally

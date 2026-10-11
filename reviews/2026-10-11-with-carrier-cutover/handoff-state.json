@@ -14,7 +14,7 @@
     "new Heavy/producer without shared allocation",
     "INFER or Debug implementation takeover"
   ],
-  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4. p1-current-caller-retirement-execution.json: ec2a JS10/10 Node5/5; 670251 JS5/5 Node14/14. Each fixed source and formatter receipt is distinct; no Host/Local/HTTPS acceptance.",
+  "proof_boundary": "p2-typed-carrier-prefix-execution.json: tested25fb JS39/39 Node82/82 freshness4. p1-current-caller-retirement-execution.json: ec2a JS10/10 Node5/5; 670251 JS5/5 Node14/14. Each fixed source and formatter receipt is distinct; no Host/Local/HTTPS acceptance. p1-unified-source-retirement-execution.json: bb400e67 JS8/8 and no-change formatter; still no Host execution.",
   "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
   "preserved_acceptance_ids": {
     "supplied": 119,
