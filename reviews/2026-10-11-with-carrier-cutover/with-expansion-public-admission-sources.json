@@ -1,5 +1,5 @@
 {
-  "derivation": "Exact authored fixture source/declarations; no product-generated expectations. Captured records admission uses existing cte_capture_context, not a Host/capture execution.",
+  "derivation": "Exact authored fixture source/declarations; no product-generated expectations. The acquired normal source has an exact-row Values-backed local typing control; its admitted Catalog counterpart lacks required pipeline input-order facts. Neither is Host/capture execution.",
   "cases": [
     {
       "fixture": "unpivot-multicolumn",

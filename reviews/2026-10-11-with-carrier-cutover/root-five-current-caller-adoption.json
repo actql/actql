@@ -14,7 +14,7 @@
     "exit_code": 0,
     "readonly_format": "five changed MoonBit files passed",
     "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
-    "custody_note": "Root will record actual Owner/group/lock release in its handoff JSON. B does not assert unseen raw custody evidence."
+    "custody_note": "Root handoff received and copied byte-for-byte. It records actual Owner/group/both-lock absence. This is Root execution evidence, not a B rerun."
   },
   "changed_files": [
     "src/query_program/group_scope_test.mbt",
@@ -37,5 +37,10 @@
     "Host Local/HTTPS",
     "new package producer",
     "full WITH/P2 completion"
-  ]
+  ],
+  "received_handoff": {
+    "original": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/with-five-core-callers-handoff.json",
+    "retained": "reviews/2026-10-11-with-carrier-cutover/root-five-core-callers-handoff.json",
+    "sha256": "469723d9fed711be0a561f2f167962553d06d052f47f7d2538ba1d808f9dd8f6"
+  }
 }
