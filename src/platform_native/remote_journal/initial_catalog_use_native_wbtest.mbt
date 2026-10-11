@@ -287,3 +287,151 @@ test "Site generation change refuses the original unclaimed Catalog marker" {
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 16384L)
   assert_true(journal.close())
 }
+
+///|
+fn initial_catalog_test_release(
+  journal : Journal,
+  request : @remote.DispatchRequest,
+) -> Unit raise {
+  journal.request_cancellation(request).unwrap() |> ignore
+  let begin = @remote.prepare_begin_remote_release(
+    journal.require(request).unwrap(),
+  ).unwrap()
+  journal.commit_transition(begin).unwrap() |> ignore
+  let finish = @remote.prepare_confirm_remote_release(
+    journal.require(request).unwrap(),
+  ).unwrap()
+  journal.commit_transition(finish).unwrap() |> ignore
+  assert_true(
+    @remote.remote_runtime_record_released(journal.require(request).unwrap()),
+  )
+}
+
+///|
+test "initial stamp cleanup waits for exact consumer release and returns its original charge once" {
+  let (_, _, journal) = initial_catalog_fixture("cleanup")
+  let request = test_request("stamp-cleanup")
+  let ledger = initial_catalog_test_ledger()
+  let custody = journal
+  .accept_with_initial_catalog_use(
+    request,
+    ledger,
+    initial_catalog_test_envelope(),
+  )
+  .unwrap().2.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    journal.cleanup_initial_catalog_use(custody) is Err(Journal(StateCollision)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  initial_catalog_test_release(journal, request)
+  let released = journal.require(request).unwrap()
+  let cancellation = journal.cancellation_requested(request).unwrap()
+  journal.cleanup_initial_catalog_use(custody).unwrap()
+  assert_false(initial_catalog_use_custody_pending(custody))
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  let after = @resources.ledger_usage(ledger)
+  journal.cleanup_initial_catalog_use(custody).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), after)
+  assert_eq(
+    @remote.dispatch_record_revision(journal.require(request).unwrap()),
+    @remote.dispatch_record_revision(released),
+  )
+  assert_eq(journal.cancellation_requested(request).unwrap(), cancellation)
+  assert_true(journal.claim_initial_catalog_use(request) is Err(_))
+  let (_, _, replay) = journal
+    .accept_with_initial_catalog_use(
+      request,
+      ledger,
+      initial_catalog_test_envelope(),
+    )
+    .unwrap()
+  assert_true(replay is None)
+  assert_true(journal.close())
+}
+
+///|
+test "lost exact cleanup commit reply retains the same nominal operation and reservation" {
+  let (_, _, journal) = initial_catalog_fixture("cleanup-reply")
+  let request = test_request("cleanup-reply")
+  let ledger = initial_catalog_test_ledger()
+  let custody = journal
+  .accept_with_initial_catalog_use(
+    request,
+    ledger,
+    initial_catalog_test_envelope(),
+  )
+  .unwrap().2.unwrap()
+  initial_catalog_test_release(journal, request)
+  let before = @resources.ledger_usage(ledger)
+  test_fail_cancel_commit_reply(journal.database, 1)
+  assert_true(journal.cleanup_initial_catalog_use(custody) is Err(_))
+  assert_true(custody.cleanup_started)
+  assert_false(custody.removal_confirmed)
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(
+    journal.database.read("site_initial_catalog_use", custody.dispatch_cid)
+    is Err(@sqlite.NotFound),
+  )
+  journal.cleanup_initial_catalog_use(custody).unwrap()
+  assert_false(initial_catalog_use_custody_pending(custody))
+  assert_true(journal.close())
+}
+
+///|
+test "missing initial stamp without its nominal cleanup cannot discharge the reservation" {
+  let (_, _, journal) = initial_catalog_fixture("cleanup-missing")
+  let request = test_request("cleanup-missing")
+  let ledger = initial_catalog_test_ledger()
+  let custody = journal
+  .accept_with_initial_catalog_use(
+    request,
+    ledger,
+    initial_catalog_test_envelope(),
+  )
+  .unwrap().2.unwrap()
+  initial_catalog_test_release(journal, request)
+  let before = @resources.ledger_usage(ledger)
+  let saved = journal.require_initial_catalog_use(request, 0L).unwrap()
+  // Inject control-row loss; this is not an Owner-issued cleanup proof.
+  journal.database.begin_immediate().unwrap()
+  journal.database
+  .remove_exact(
+    "site_initial_catalog_use",
+    custody.dispatch_cid,
+    0L,
+    saved.body,
+  )
+  .unwrap()
+  journal.database.commit().unwrap()
+  assert_true(journal.cleanup_initial_catalog_use(custody) is Err(_))
+  assert_false(custody.cleanup_started)
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(initial_catalog_use_custody_pending(custody))
+  assert_true(journal.close())
+}
+
+///|
+test "a reopened Journal cannot adopt another nominal initial stamp cleanup" {
+  let (library, path, journal) = initial_catalog_fixture("cleanup-foreign")
+  let request = test_request("cleanup-foreign")
+  let ledger = initial_catalog_test_ledger()
+  let custody = journal
+  .accept_with_initial_catalog_use(
+    request,
+    ledger,
+    initial_catalog_test_envelope(),
+  )
+  .unwrap().2.unwrap()
+  initial_catalog_test_release(journal, request)
+  let other = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    other.cleanup_initial_catalog_use(custody) is Err(Journal(StateCollision)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(other.close())
+  journal.cleanup_initial_catalog_use(custody).unwrap()
+  assert_true(journal.close())
+}

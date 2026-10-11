@@ -10,6 +10,7 @@ pub(all) enum NativeCredentialResourceIssue {
   Transport(@http.NativeHttpIssue)
   TrustedClockRollback
   TerminalRecordFailed(String, @sqlite.NativeSqliteIssue)
+  RawObservation(@publication.NativePublicationStoreIssue)
 }
 
 ///|
@@ -86,6 +87,21 @@ struct NativeCredentialResourceService {
   client : @http.Client
   operations : Array[NativeCredentialOperation]
   authorize : (NativeCredentialAuthorization) -> Bool
+  authorize_local : ((NativeLocalCredentialAuthorization) -> Bool)?
+  authorize_preparation : ((NativeLocalPreparationCredentialAuthorization) -> Bool)?
+  preparation_installations : Array[
+    NativeLocalPreparationCredentialInstallation,
+  ]
+  preparation_raw_store : NativeLocalPreparationRawStore?
+  retain_remote_use : ((@credential.RemoteCredentialUse) -> Result[
+    Unit,
+    NativeCredentialResourceIssue,
+  ])?
+  claim_initial_remote_use : ((
+    @credential.RemoteCredentialGrant,
+    String,
+    NativeCredentialScope,
+  ) -> Result[Unit, NativeCredentialResourceIssue])?
   clock : () -> Int64
 }
 
@@ -280,7 +296,17 @@ fn native_credential_grant_revoked(
   service : NativeCredentialResourceService,
   grant_cid : String,
 ) -> Result[Bool, NativeCredentialResourceIssue] {
-  match service.database.read(revocation_scope(), grant_cid) {
+  read_credential_grant_revocation(service.database, grant_cid)
+}
+
+///|
+// Shared original-journal observation. A read-only recovery does not install
+// a transport client or acquire another credential use to inspect revocation.
+fn read_credential_grant_revocation(
+  database : @sqlite.Database,
+  grant_cid : String,
+) -> Result[Bool, NativeCredentialResourceIssue] {
+  match database.read(revocation_scope(), grant_cid) {
     Err(@sqlite.NotFound) => Ok(false)
     Err(issue) => Err(Journal(issue))
     Ok(value) =>
@@ -298,6 +324,14 @@ pub fn revoke_native_credential_grant(
   grant : @credential.RemoteCredentialGrant,
 ) -> Result[Unit, NativeCredentialResourceIssue] {
   let grant_cid = @credential.credential_grant_cid(grant)
+  revoke_native_owned_credential_grant(service, grant_cid)
+}
+
+///|
+fn revoke_native_owned_credential_grant(
+  service : NativeCredentialResourceService,
+  grant_cid : String,
+) -> Result[Unit, NativeCredentialResourceIssue] {
   let body = @utf8.encode(grant_cid)
   match service.database.insert(revocation_scope(), grant_cid, body) {
     Ok(_) => Ok(())
@@ -341,7 +375,25 @@ fn install_native_credential_resource_service_with_clock(
   operations : Array[NativeCredentialOperation],
   authorize : (NativeCredentialAuthorization) -> Bool,
   clock : () -> Int64,
+  authorize_local? : ((NativeLocalCredentialAuthorization) -> Bool)? = None,
+  authorize_preparation? : ((NativeLocalPreparationCredentialAuthorization) -> Bool)? = None,
+  preparation_installations? : Array[
+    NativeLocalPreparationCredentialInstallation,
+  ] = [],
+  preparation_raw_store? : NativeLocalPreparationRawStore? = None,
+  retain_remote_use? : ((@credential.RemoteCredentialUse) -> Result[
+    Unit,
+    NativeCredentialResourceIssue,
+  ])? = None,
+  claim_initial_remote_use? : ((
+    @credential.RemoteCredentialGrant,
+    String,
+    NativeCredentialScope,
+  ) -> Result[Unit, NativeCredentialResourceIssue])? = None,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
+  if claim_initial_remote_use is Some(_) && retain_remote_use is None {
+    return Err(InvalidConfiguration)
+  }
   if operations.is_empty() ||
     operations.any(operation => !valid_operation(operation)) {
     return Err(InvalidConfiguration)
@@ -359,6 +411,12 @@ fn install_native_credential_resource_service_with_clock(
     client,
     operations: operations.map(value => value),
     authorize,
+    authorize_local,
+    authorize_preparation,
+    preparation_installations: preparation_installations.map(value => value),
+    preparation_raw_store,
+    retain_remote_use,
+    claim_initial_remote_use,
     clock,
   })
 }
@@ -384,12 +442,17 @@ fn observe_trusted_clock(
   service : NativeCredentialResourceService,
 ) -> Result[Int64, NativeCredentialResourceIssue] {
   let observed = (service.clock)()
+  observe_credential_journal_clock(service.database, observed)
+}
+
+///|
+fn observe_credential_journal_clock(
+  database : @sqlite.Database,
+  observed : Int64,
+) -> Result[Int64, NativeCredentialResourceIssue] {
   match
     @trusted_clock.advance_lower_bound(
-      service.database,
-      "credential-clock-v1",
-      "host-lower-bound",
-      observed,
+      database, "credential-clock-v1", "host-lower-bound", observed,
     ) {
     Ok(value) => Ok(value)
     Err(@trusted_clock.Rollback) | Err(@trusted_clock.InvalidConfiguration) =>
@@ -505,20 +568,54 @@ fn call_native_credential_resource_owned(
   body : Bytes,
   current : (() -> Bool)?,
 ) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
-  guard operation_for(service, scope) is Some(operation) &&
+  call_native_credential_resource_owned_scope(
+    service,
+    RemoteGrant(grant),
+    use_id,
+    RemoteScope(scope),
+    expected_path,
+    verb,
+    body,
+    current,
+  )
+}
+
+///|
+// One durable credential claim/send Owner for both typed domains. Public
+// Remote entrypoints keep their existing grant/scope/wire contract.
+fn call_native_credential_resource_owned_scope(
+  service : NativeCredentialResourceService,
+  grant : NativeOwnedCredentialGrant,
+  use_id : String,
+  scope : NativeOwnedCredentialScope,
+  expected_path : String?,
+  verb : @http.NativeHttpMethod,
+  body : Bytes,
+  current : (() -> Bool)?,
+) -> Result[NativeCredentialResponse, NativeCredentialResourceIssue] {
+  guard owned_operation_for(service, scope) is Some(operation) &&
     operation.verb == verb &&
     body.length() <= operation.max_request_bytes else {
     return Err(AccessDenied)
   }
+  let preparation_file = preparation_installation_for(service, scope)
+  if scope is PreparationScope(_) {
+    if preparation_file is None {
+      return Err(AccessDenied)
+    }
+  }
   // Isolate the bytes from caller mutation during authorization callbacks.
   let saved_body = Bytes::from_array(body.to_array())
+  if !owned_request_matches_scope(scope, verb, operation.path, saved_body) {
+    return Err(AccessDenied)
+  }
   let request : NativeCredentialRequest = {
     verb,
     path: operation.path,
     body: saved_body,
   }
   if expected_path is Some(path) {
-    guard operation_for(service, scope) is Some(operation) &&
+    guard owned_operation_for(service, scope) is Some(operation) &&
       path == operation.path else {
       return Err(AccessDenied)
     }
@@ -527,25 +624,24 @@ fn call_native_credential_resource_owned(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let grant_cid = @credential.credential_grant_cid(grant)
+  let grant_cid = owned_credential_grant_cid(grant)
   let revoked = match native_credential_grant_revoked(service, grant_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   guard !revoked &&
-    operation_for(service, scope) is Some(operation) &&
-    grant_matches_scope(grant, scope) is Some((max_uses, expires_at)) &&
+    owned_operation_for(service, scope) is Some(operation) &&
+    owned_grant_matches_scope(grant, scope) is Some((max_uses, expires_at)) &&
     !use_id.is_empty() &&
     use_id.length() <= 256 &&
     trusted_now_ms >= 0L &&
     trusted_now_ms < expires_at else {
     return Err(Credential(@credential.CredentialGrantInactive))
   }
-  if !(service.authorize)({
+  if !authorize_owned_credential(service, scope, {
       stage: "claim",
       grant_cid,
       use_cid: None,
-      scope,
       request: Some({
         ..request,
         body: Bytes::from_array(saved_body.to_array()),
@@ -556,42 +652,96 @@ fn call_native_credential_resource_owned(
   if current is Some(check) && !check() {
     return Err(AccessDenied)
   }
+  // The preparation profile has no unretained-response fallback. This check
+  // follows current authorization but precedes ordinal claim and physical I/O.
+  if scope is PreparationScope(_) && service.preparation_raw_store is None {
+    return Err(InvalidConfiguration)
+  }
+  // A missing credential record is only an observation. The installed original
+  // Journal claim must independently prove initial eligibility before a new
+  // ordinal/use can be selected. Neither a replacement DB nor a lost claim
+  // reply can manufacture that proof. Existing uses take the original retained
+  // ordinal path below without claiming the initial responsibility again.
+  if service.claim_initial_remote_use is Some(claim) &&
+    grant is RemoteGrant(original_grant) &&
+    scope is RemoteScope(original_scope) {
+    match read_owned_credential_use(service, grant, use_id) {
+      Ok(_) => ()
+      Err(Journal(@sqlite.NotFound)) => {
+        match claim(original_grant, use_id, original_scope) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        // The callback can persist a claim, lose current permission or outlive
+        // the grant. Keep its original responsibility but consume no Resource
+        // ordinal after a refused current authorization/lifetime/revocation.
+        if !authorize_owned_credential(service, scope, {
+            stage: "claim",
+            grant_cid,
+            use_cid: None,
+            request: Some({
+              ..request,
+              body: Bytes::from_array(saved_body.to_array()),
+            }),
+          }) {
+          return Err(AccessDenied)
+        }
+        let final_claim_time = match observe_trusted_clock(service) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if current is Some(check) && !check() {
+          return Err(AccessDenied)
+        }
+        let claim_revoked = match
+          native_credential_grant_revoked(service, grant_cid) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if claim_revoked || final_claim_time >= expires_at {
+          return Err(Credential(@credential.CredentialGrantInactive))
+        }
+      }
+      Err(issue) => return Err(issue)
+    }
+  }
   let ordinal = match
-    service.database.claim_ordinal(
+    service.database.claim_ordinal_action(
       use_scope(grant_cid),
       use_id,
       max_uses.to_int64(),
     ) {
-    Ok(value) if value <= 2147483647L => value.to_int()
+    Ok(@sqlite.Retained(original_ordinal)) => {
+      // Verify the retained original without constructing a replacement use.
+      // Missing/corrupt custody is a typed refusal, never a fresh send right.
+      let original_use = match
+        read_owned_credential_use(service, grant, use_id) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if !owned_credential_use_matches_ordinal(original_use, original_ordinal) {
+        return Err(Journal(@sqlite.Collision))
+      }
+      return Err(UseAlreadyClaimed)
+    }
+    Ok(@sqlite.Fresh(value)) if value <= 2147483647L => value.to_int()
     Ok(_) => return Err(InvalidConfiguration)
     Err(issue) => return Err(Journal(issue))
   }
   let credential_use = match
-    @credential.prepare_credential_use(
+    prepare_owned_credential_use(
       grant,
       use_id,
       trusted_now_ms,
       ordinal - 1,
       revoked,
-      scope.principal,
-      scope.namespace_id,
-      scope.environment,
-      scope.site_key,
-      scope.site_generation,
-      scope.runtime_bundle_cid,
-      scope.connector_registration,
-      scope.connector_revision,
-      scope.resource_origin,
-      scope.operation,
-      scope.run_invocation_cid,
-      scope.task_attempt,
-      scope.dispatch_request_cid,
+      scope,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Credential(issue))
   }
-  let use_cid = @credential.credential_use_cid(credential_use)
-  let use_body = match @credential.credential_use_json(credential_use) {
+  let use_cid = owned_credential_use_cid(credential_use)
+  let use_body = match owned_credential_use_json(credential_use) {
     Ok(value) => @utf8.encode(use_cid + "\n" + value)
     Err(issue) => return Err(Credential(issue))
   }
@@ -609,6 +759,25 @@ fn call_native_credential_resource_owned(
     }
     Err(issue) => return Err(Journal(issue))
   }
+  let raw_custody = match
+    prepare_original_raw_custody(service, grant, credential_use) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if raw_custody is Some(custody) {
+    match custody.reserve() {
+      Ok(_) => ()
+      Err(issue) => return Err(RawObservation(issue))
+    }
+  }
+  // The actual use is already durable. Retain it in the installed original
+  // custody before the final authorization/clock/revocation fences and I/O.
+  // Unconfirmed retention leaves the claimed use unresolved, not failed/sent.
+  match
+    retain_remote_use_before_send(credential_use, service.retain_remote_use) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let send_time = match observe_trusted_clock(service) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -620,11 +789,10 @@ fn call_native_credential_resource_owned(
       Err(issue) => return Err(issue)
     }
   }
-  let authorized_by_host = (service.authorize)({
+  let authorized_by_host = authorize_owned_credential(service, scope, {
     stage: "send",
     grant_cid,
     use_cid: Some(use_cid),
-    scope,
     request: Some({ ..request, body: Bytes::from_array(saved_body.to_array()), }),
   })
   // The authorization callback may revoke a grant or take time. Re-read the
@@ -654,23 +822,8 @@ fn call_native_credential_resource_owned(
   }
   let authorized = authorized_by_host &&
     current_by_caller &&
-    @credential.authorize_credential_use(
-      credential_use,
-      current_send_time,
-      send_revoked,
-      scope.principal,
-      scope.namespace_id,
-      scope.environment,
-      scope.site_key,
-      scope.site_generation,
-      scope.runtime_bundle_cid,
-      scope.connector_registration,
-      scope.connector_revision,
-      scope.resource_origin,
-      scope.operation,
-      scope.run_invocation_cid,
-      scope.task_attempt,
-      scope.dispatch_request_cid,
+    authorize_owned_credential_use(
+      credential_use, current_send_time, send_revoked, scope,
     )
     is Ok(_)
   if !authorized {
@@ -680,22 +833,31 @@ fn call_native_credential_resource_owned(
       Err(issue) => return Err(issue)
     }
   }
-  let response = match
-    service.client.request_bearer_file(
-      verb,
-      operation.resource_origin + operation.path,
-      if verb == @http.Get {
-        [{ name: "accept", value: "application/json", }]
-      } else {
-        [
-          { name: "accept", value: "application/json", },
-          { name: "content-type", value: "application/json", },
-        ]
-      },
-      saved_body,
-      operation.secret_path,
-      expires_at,
-    ) {
+  let transport = match preparation_file {
+    Some(original) =>
+      service.client.get_local_preparation(
+        operation.resource_origin + operation.path,
+        original,
+        expires_at,
+      )
+    None =>
+      service.client.request_bearer_file(
+        verb,
+        operation.resource_origin + operation.path,
+        if verb == @http.Get {
+          [{ name: "accept", value: "application/json", }]
+        } else {
+          [
+            { name: "accept", value: "application/json", },
+            { name: "content-type", value: "application/json", },
+          ]
+        },
+        saved_body,
+        operation.secret_path,
+        expires_at,
+      )
+  }
+  let response = match transport {
     Ok(value) => value
     Err(issue) =>
       match persist_outcome(service, grant_cid, use_id, "unknown", None) {
@@ -704,6 +866,22 @@ fn call_native_credential_resource_owned(
           return Err(TerminalRecordFailed("unknown", journal_issue))
         Err(other) => return Err(other)
       }
+  }
+  if raw_custody is Some(custody) {
+    // Even non2xx and unadmitted Catalog bytes are retained before terminal
+    // outcome/ACK. A save or readback failure keeps this original use claimed;
+    // subsequent entry cannot allocate another ordinal or repeat the GET.
+    match custody.persist(response.status, response.body) {
+      Ok(_) => ()
+      Err(issue) => return Err(RawObservation(issue))
+    }
+    match custody.confirm() {
+      Ok(original) if original.use_cid == use_cid &&
+        original.status == response.status &&
+        original.body == response.body => ()
+      Ok(_) => return Err(RawObservation(@publication.StateCollision))
+      Err(issue) => return Err(RawObservation(issue))
+    }
   }
   if response.status < 200 || response.status >= 300 {
     match
@@ -714,7 +892,16 @@ fn call_native_credential_resource_owned(
         "failed",
         Some(response.status),
       ) {
-      Ok(_) =>
+      Ok(_) => {
+        if raw_custody is Some(_) {
+          match
+            authorize_original_raw_return(
+              service, grant, credential_use, scope, current,
+            ) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+        }
         return if verb == @http.Get {
           Err(ResourceRejected(response.status))
         } else {
@@ -722,6 +909,7 @@ fn call_native_credential_resource_owned(
           // HTTP rejection is not itself a semantic Effect outcome.
           Ok({ use_cid, status: response.status, body: response.body, })
         }
+      }
       Err(Journal(issue)) => return Err(TerminalRecordFailed("failed", issue))
       Err(other) => return Err(other)
     }
@@ -738,6 +926,15 @@ fn call_native_credential_resource_owned(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if raw_custody is Some(_) {
+    match
+      authorize_original_raw_return(
+        service, grant, credential_use, scope, current,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   Ok({ use_cid, status: response.status, body: response.body, })
 }
 
@@ -748,55 +945,62 @@ pub fn query_native_credential_use(
   use_id : String,
   scope : NativeCredentialScope,
 ) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue] {
-  guard operation_for(service, scope) is Some(_) &&
-    grant_matches_scope(grant, scope) is Some(_) &&
+  query_native_owned_credential_use(
+    service,
+    RemoteGrant(grant),
+    use_id,
+    RemoteScope(scope),
+  )
+}
+
+///|
+fn query_native_owned_credential_use(
+  service : NativeCredentialResourceService,
+  grant : NativeOwnedCredentialGrant,
+  use_id : String,
+  scope : NativeOwnedCredentialScope,
+) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue] {
+  guard owned_operation_for(service, scope) is Some(_) &&
+    owned_grant_matches_scope(grant, scope) is Some(_) &&
     !use_id.is_empty() &&
     use_id.length() <= 256 else {
     return Err(Credential(@credential.CredentialGrantInactive))
   }
-  let grant_cid = @credential.credential_grant_cid(grant)
-  if !(service.authorize)({
+  let grant_cid = owned_credential_grant_cid(grant)
+  if !authorize_owned_credential(service, scope, {
       stage: "query",
       grant_cid,
       use_cid: None,
-      scope,
       request: None,
     }) {
     return Err(AccessDenied)
   }
-  let use_record = match service.database.read(use_scope(grant_cid), use_id) {
+  let admitted_use = match read_owned_credential_use(service, grant, use_id) {
     Ok(value) => value
-    Err(issue) => return Err(Journal(issue))
+    Err(issue) => return Err(issue)
   }
-  let use_record_text = @utf8.decode(use_record.body) catch {
-    _ => return Err(Journal(@sqlite.Collision))
-  }
-  guard first_newline(use_record_text) is Some(use_separator) else {
-    return Err(Journal(@sqlite.Collision))
-  }
-  let use_cid = use_record_text.unsafe_substring(start=0, end=use_separator)
-  let use_json = use_record_text.unsafe_substring(
-    start=use_separator + 1,
-    end=use_record_text.length(),
-  )
-  let admitted_use = match
-    @credential.admit_credential_use_json(grant, use_json, use_cid) {
-    Ok(value) => value
-    Err(issue) => return Err(Credential(issue))
-  }
-  if @credential.credential_use_projection(admitted_use)[2] != use_id {
-    return Err(Journal(@sqlite.Collision))
-  }
-  if !(service.authorize)({
+  let use_cid = owned_credential_use_cid(admitted_use)
+  if !authorize_owned_credential(service, scope, {
       stage: "return",
       grant_cid,
       use_cid: Some(use_cid),
-      scope,
       request: None,
     }) {
     return Err(AccessDenied)
   }
-  let outcome = match service.database.read(outcome_scope(grant_cid), use_id) {
+  read_credential_use_outcome(service.database, grant_cid, use_id, use_cid)
+}
+
+///|
+// The existing outcome reader is shared by transport-backed query and
+// original raw recovery. Absence preserves claimed; it never proves unsent.
+fn read_credential_use_outcome(
+  database : @sqlite.Database,
+  grant_cid : String,
+  use_id : String,
+  use_cid : String,
+) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue] {
+  let outcome = match database.read(outcome_scope(grant_cid), use_id) {
     Err(@sqlite.NotFound) =>
       return Ok({ use_cid, outcome: "claimed", status: None, })
     Err(issue) => return Err(Journal(issue))
@@ -821,4 +1025,48 @@ pub fn query_native_credential_use(
     return Err(Journal(@sqlite.Collision))
   }
   Ok({ use_cid, outcome: name, status, })
+}
+
+///|
+// Exact original use readmission shared by retained-claim refusal and query.
+// This performs no claim, record repair, outcome inference or Provider I/O.
+fn read_owned_credential_use(
+  service : NativeCredentialResourceService,
+  grant : NativeOwnedCredentialGrant,
+  use_id : String,
+) -> Result[NativeOwnedCredentialUse, NativeCredentialResourceIssue] {
+  read_owned_credential_use_record(service.database, grant, use_id)
+}
+
+///|
+fn read_owned_credential_use_record(
+  database : @sqlite.Database,
+  grant : NativeOwnedCredentialGrant,
+  use_id : String,
+) -> Result[NativeOwnedCredentialUse, NativeCredentialResourceIssue] {
+  let grant_cid = owned_credential_grant_cid(grant)
+  let use_record = match database.read(use_scope(grant_cid), use_id) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let use_record_text = @utf8.decode(use_record.body) catch {
+    _ => return Err(Journal(@sqlite.Collision))
+  }
+  guard first_newline(use_record_text) is Some(use_separator) else {
+    return Err(Journal(@sqlite.Collision))
+  }
+  let use_cid = use_record_text.unsafe_substring(start=0, end=use_separator)
+  let use_json = use_record_text.unsafe_substring(
+    start=use_separator + 1,
+    end=use_record_text.length(),
+  )
+  let admitted_use = match
+    admit_owned_credential_use(grant, use_json, use_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(Credential(issue))
+  }
+  if owned_credential_use_id(admitted_use) != use_id {
+    return Err(Journal(@sqlite.Collision))
+  }
+  Ok(admitted_use)
 }

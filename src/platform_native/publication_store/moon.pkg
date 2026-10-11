@@ -2,6 +2,8 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/checkpoint_runtime" @checkpoint,
+  "actql/actql/remote_credential" @credential,
+  "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/signature",
@@ -31,6 +33,9 @@ options(
     "effect_source_custody_native.mbt": [ "native" ],
     "effect_capture_custody_native.mbt": [ "native" ],
     "effect_catalog_custody_native.mbt": [ "native" ],
+    "credential_raw_custody_native.mbt": [ "native" ],
+    "credential_raw_custody_native_wbtest.mbt": [ "native" ],
+    "credential_raw_custody_unsupported.mbt": [ "not", "native" ],
     "effect_catalog_custody_native_wbtest.mbt": [ "native" ],
     "effect_catalog_custody_unsupported.mbt": [ "not", "native" ],
     "effect_capture_custody_unsupported.mbt": [ "not", "native" ],

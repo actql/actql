@@ -21,15 +21,25 @@ import {
 // Values
 pub fn effect_response_body_digest(Bytes) -> String
 
+pub fn effect_response_record_fields(Bytes, Bytes, Int64) -> (String, Int)?
+
+pub fn effect_response_record_metadata(NativeEffectSavedResponse, Int64) -> Bytes?
+
 pub fn initial_catalog_use_claim_dispatch(NativeInitialCatalogUseClaim) -> String
 
 pub fn initial_catalog_use_claim_matches_journal(NativeInitialCatalogUseClaim, Journal) -> Bool
 
+pub fn initial_catalog_use_cleanup_row_matches(Bytes, Bytes, Int64) -> Bool
+
 pub fn initial_catalog_use_custody_dispatch(NativeInitialCatalogUseCustody) -> String
+
+pub fn initial_catalog_use_custody_matches_ledger(NativeInitialCatalogUseCustody, @physical_resources.Ledger) -> Bool
 
 pub fn initial_catalog_use_custody_pending(NativeInitialCatalogUseCustody) -> Bool
 
 pub fn initial_catalog_use_custody_usage(NativeInitialCatalogUseCustody) -> @physical_resources.LedgerUsage
+
+pub fn[T] inspect_sqlite_source(@sqlite.Library, String, Int64, Int64, (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue]) -> Result[T, NativeRemoteJournalIssue]
 
 pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String
 
@@ -92,6 +102,7 @@ pub fn Journal::cancellation_requested(Self, @remote_site_protocol.DispatchReque
 pub fn Journal::claim_effect_ledger_dispatch(Self, @remote_site_protocol.DispatchRequest, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, @checkpoint_runtime.WireLimits, @checkpoint_runtime.WireLimits) -> Result[(Bool, @effect_application.EffectLedgerEntry), NativeRemoteJournalIssue]
 pub fn Journal::claim_initial_catalog_use(Self, @remote_site_protocol.DispatchRequest) -> Result[NativeInitialCatalogUseClaim, NativeRemoteJournalIssue]
 pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
+pub fn Journal::cleanup_initial_catalog_use(Self, NativeInitialCatalogUseCustody) -> Result[Unit, NativeInitialCatalogUseIssue]
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?, file_custody? : NativeOutputFileCustody?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]

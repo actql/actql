@@ -1,0 +1,10 @@
+{
+  "fixtureRows": [{"id": 3, "amount": null}, {"id": 1, "amount": 11}, {"id": 2, "amount": 22}],
+  "resultName": "answer",
+  "rows": [{"id": 3}],
+  "columns": ["id"],
+  "schema": {"id": {"type": "number", "nullable": false}},
+  "sourceAcquisitions": 1,
+  "resultRereadAdditionalAcquisitions": 0,
+  "resultRereadAdditionalComputeExecutions": 0
+}

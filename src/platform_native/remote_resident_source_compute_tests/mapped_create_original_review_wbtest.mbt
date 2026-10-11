@@ -323,6 +323,7 @@ fn native_mapped_create_context_review(
       @publication.run_evidence_value_identity(complete.preview.authoring),
       review_work=Some(work),
       original_journal_path=journal_path,
+      original_context=Some((context, journal)),
     )
     assert_true(work.retry_cleanup().unwrap())
   } else {

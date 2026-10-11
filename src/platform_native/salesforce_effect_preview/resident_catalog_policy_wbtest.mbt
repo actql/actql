@@ -38,9 +38,13 @@ fn catalog_policy_test_limits() -> @catalog.DeclarationLimits {
 fn catalog_policy_test_mapping(
   catalog : @catalog.CatalogObservation,
 ) -> @catalog.ExecutionMapping {
+  let binding = match catalog.binding {
+    @catalog.SiteCatalog(original) => original
+    @catalog.DirectLocalCatalog(_) => abort("Site Catalog fixture required")
+  }
   let declaration = @catalog.generate_static_declaration(
     catalog,
-    catalog.binding,
+    binding,
     @catalog.salesforce_implementation("salesforce/0.1").unwrap(),
     "crm",
     ["ActQL_Test_Record__c"],

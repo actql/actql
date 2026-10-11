@@ -353,6 +353,46 @@ fn resident_provider_observe(
   assert_true(observe("target-a", 0, "save") is Err(InvalidLimits))
   assert_true(observe("target-a", 1, "another-effect") is Err(ForeignMapping))
   assert_eq(access_count.val, 0)
+  // Matching Native definitions for the shared request visitor. This reuses
+  // the original pinned consumer, not a new acquisition or Provider call.
+  let visited_requests = Ref(0)
+  let visit = current => {
+    @effect_provider.visit_native_effect_target_requests(
+      consumer,
+      materials,
+      inputs,
+      1,
+      "save",
+      selected,
+      mapping,
+      projection,
+      "v66.0",
+      resident_compute_limits(),
+      { max_bytes: 1024, max_nodes: 32, max_depth: 5, },
+      { max_path_bytes: 1024, max_target_bytes: 128, max_body_bytes: 1024, },
+      1,
+      16,
+      10000,
+      10000,
+      current,
+      (index, request) => {
+        if index != 0 ||
+          @catalog.single_write_request_body(request) != "{\"Count__c\":3}" ||
+          @catalog.single_write_request_path(request) !=
+          "/services/data/v66.0/sobjects/ActQL_Test_Record__c/001000000000001" {
+          return Err(@effect_provider.InvalidChanges)
+        }
+        visited_requests.val += 1
+        Ok(())
+      },
+    )
+  }
+  assert_true(visit(() => false) is Err(Proposal(@resident.Unavailable)))
+  assert_eq(visited_requests.val, 0)
+  assert_eq(access_count.val, 0)
+  assert_true(visit(() => true) is Ok(1))
+  assert_eq(visited_requests.val, 1)
+  assert_eq(access_count.val, 0)
   let reentrant_checked = Ref(false)
   let reentrant_refused = Ref(false)
   let reentrant_access_unchanged = Ref(false)

@@ -6,6 +6,8 @@ pub(all) enum NativeRunPublicationIssue {
   InvalidConfiguration
   AccessDenied
   CommitConflict
+  // The physical fence did not confirm completion. This is not resend evidence.
+  CommitFenceUnavailable
   Store(@store.NativePublicationStoreIssue)
   Issuance(@publication.PublicationCommitIssuanceIssue)
   Commit(@publication.PublicationCommitIssue)
@@ -185,6 +187,9 @@ struct NativeRunPublicationService {
   max_wire_bytes : Int
   max_nodes : Int
   max_depth : Int
+  commit_guard : (
+    () -> Result[NativeRunPublicationResult, NativeRunPublicationIssue],
+  ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 }
 
 ///|
@@ -201,11 +206,16 @@ pub fn install_native_run_publication_service(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  commit_guard? : (
+    () -> Result[NativeRunPublicationResult, NativeRunPublicationIssue],
+  ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] = work => {
+    work()
+  },
 ) -> Result[NativeRunPublicationService, NativeRunPublicationIssue] {
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     Err(InvalidConfiguration)
   } else {
-    Ok({ store, authority, max_wire_bytes, max_nodes, max_depth, })
+    Ok({ store, authority, max_wire_bytes, max_nodes, max_depth, commit_guard, })
   }
 }
 
@@ -860,59 +870,61 @@ fn commit_new_effect_free_run_native(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match
-    authorize(
-      service,
-      intent,
+  (service.commit_guard)(() => {
+    match
+      authorize(
+        service,
+        intent,
+        evidence.run_definition,
+        request,
+        "commit",
+        Some(index),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let committed = service.store.commit_publication(
       evidence.run_definition,
+      evidence.invocation,
+      evidence.definitions,
+      evidence.artifacts,
+      evidence.derivations,
+      evidence.orderings,
+      evidence.retentions,
+      evidence.bindings,
+      evidence.binding_schema_wires,
+      evidence.manifest,
+      evidence.receipt,
+      evidence.captured_run,
       request,
-      "commit",
-      Some(index),
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  let committed = service.store.commit_publication(
-    evidence.run_definition,
-    evidence.invocation,
-    evidence.definitions,
-    evidence.artifacts,
-    evidence.derivations,
-    evidence.orderings,
-    evidence.retentions,
-    evidence.bindings,
-    evidence.binding_schema_wires,
-    evidence.manifest,
-    evidence.receipt,
-    evidence.captured_run,
-    request,
-    attempt,
-    index,
-    service.max_wire_bytes,
-    service.max_nodes,
-    service.max_depth,
-  )
-  match committed {
-    Ok(value) =>
-      Ok({
-        public_index_entry_cid: value.public_index_entry_cid,
-        publication_request_cid: @publication.publication_contract_identity(
-          request,
-        ),
-        publication_attempt_cid: @publication.publication_contract_identity(
-          attempt,
-        ),
-        committed: value.committed,
-        idempotent: value.idempotent,
-      })
-    Err(@store.PublicationCommitConflict) =>
-      match inspect_existing_commit(service, evidence, intent, request) {
-        Ok(Some(value)) => Ok(value)
-        Ok(None) => Err(CommitConflict)
-        Err(issue) => Err(issue)
-      }
-    Err(issue) => Err(Store(issue))
-  }
+      attempt,
+      index,
+      service.max_wire_bytes,
+      service.max_nodes,
+      service.max_depth,
+    )
+    match committed {
+      Ok(value) =>
+        Ok({
+          public_index_entry_cid: value.public_index_entry_cid,
+          publication_request_cid: @publication.publication_contract_identity(
+            request,
+          ),
+          publication_attempt_cid: @publication.publication_contract_identity(
+            attempt,
+          ),
+          committed: value.committed,
+          idempotent: value.idempotent,
+        })
+      Err(@store.PublicationCommitConflict) =>
+        match inspect_existing_commit(service, evidence, intent, request) {
+          Ok(Some(value)) => Ok(value)
+          Ok(None) => Err(CommitConflict)
+          Err(issue) => Err(issue)
+        }
+      Err(issue) => Err(Store(issue))
+    }
+  })
 }
 
 ///|
