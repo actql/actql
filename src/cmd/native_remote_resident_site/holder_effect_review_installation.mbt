@@ -97,6 +97,16 @@ fn holder_effect_review_callbacks(
         policy.max_observation_bytes,
         policy.publication.crypto,
         policy.publication.key,
+        () => {
+          match
+            original.journal.effect_checkpoint_report(
+              original.task.request,
+              policy.publication.limits,
+            ) {
+            Ok(_) => false
+            Err(issue) => holder_catalog_checkpoint_missing(issue)
+          }
+        },
       ),
     )
   }

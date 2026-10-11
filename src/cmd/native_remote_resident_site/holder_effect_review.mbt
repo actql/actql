@@ -184,7 +184,13 @@ fn drive_holder_effect_review(
       ) else {
       report("effect-review-pending", [
         ("request_cid", @remote.dispatch_request_identity(task.request)),
-        ("reason", "original-custody"),
+        (
+          "reason",
+          match task.effect_catalog_review {
+            Some(pending) => pending.pending_reason()
+            None => "original-custody"
+          },
+        ),
       ])
       return false
     }
