@@ -25,7 +25,7 @@ pub fn reserve_material(
     return -2
   }
   if kind < 1 ||
-    kind > 4 ||
+    kind > 5 ||
     physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
     value.copies.values().any(pair => pair.1 == physical_ticket) ||
@@ -37,6 +37,9 @@ pub fn reserve_material(
     .any(chunk => chunk.physical_ticket == physical_ticket) ||
     value.workspaces.values().any(pair => pair.0 == physical_ticket) {
     return -3
+  }
+  if value.closing || value.runtime_closing {
+    return -5
   }
   let slot = match
     @buffers.reserve_output_buffer(value.pool, 1048576, physical_copy_bytes, () => {
@@ -75,6 +78,9 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
   if material.produced {
     return 0
   }
+  if value.closing || value.runtime_closing {
+    return -5
+  }
   if material.invoked {
     return -33
   }
@@ -109,6 +115,25 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
       match @preparation.local_prepared_original(input) {
         Program(wire) | Aql(wire) => wire
       }
+    5 => {
+      // Only the original checked audit can issue a completion-free journal.
+      // The retained projection is not durable admission or execution permission.
+      let normalization = match record.normalization {
+        Some(original) => original
+        None =>
+          match @local_run.issue_local_run_normalization(plan) {
+            Ok(original) => {
+              record.normalization = Some(original)
+              original
+            }
+            Err(_) => return -34
+          }
+      }
+      match @local_run.local_run_normalization_evidence(plan, normalization) {
+        Ok(evidence) => @publication.run_evidence_value_json(evidence)
+        Err(_) => return -34
+      }
+    }
     _ => return -3
   }
   let result = status(

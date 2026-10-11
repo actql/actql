@@ -47,8 +47,8 @@ try:
     records = {}
     with TemporaryDirectory(prefix='actql-python-core-material-') as temporary:
         with LocalByteStore(Path(temporary) / 'core.sqlite', max_records=8,
-                            max_record_bytes=1_048_576, max_payload_bytes=4 * 1_048_576) as store:
-            for kind in (1, 2, 3, 4):
+                            max_record_bytes=1_048_576, max_payload_bytes=5 * 1_048_576) as store:
+            for kind in (1, 2, 3, 4, 5):
                 loan = core.reserve_material(run, kind, cleanup=lambda: cleaned[0])
                 assert core._call('run', 'close', run) == -9
                 core.produce_material(loan)
@@ -64,6 +64,11 @@ try:
                 cleaned[0] = False
         # Independent authored bytes, not a lowered JSON surrogate.
         assert records[4] == encode(PROGRAM)
+        # Frozen independent journal fixture; no expected bytes come from Core.
+        fixture = json.loads((root / 'spec/contracts/actql-effect-free-local-completion-free-fixture.json').read_text())
+        expected_journal = json.loads(fixture['journal_preimage'])
+        expected_journal['journal_cid'] = fixture['journal_cid']
+        assert records[5] == json.dumps(expected_journal, sort_keys=True, separators=(',', ':')).encode('utf-8')
         assert len(records[3]) == 71 and records[3].startswith(b'sha256:')
         materials = json.loads(records[1])
         assert materials['run_id'] == 'original-run'
@@ -121,4 +126,4 @@ finally:
             if resource is not None:
                 resource.close()
 
-print(json.dumps({'success': True, 'module_sha256': digest, 'material_cases': 8}))
+print(json.dumps({'success': True, 'module_sha256': digest, 'material_cases': 9}))

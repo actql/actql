@@ -107,6 +107,26 @@ class MaterialCustodyTests(unittest.TestCase):
         loan = core.reserve_material(7, 4, cleanup=lambda: True)
         self.assertEqual(core.read_material(loan), b'')
 
+    def test_normalization_is_an_opaque_original_core_projection(self):
+        core, calls, pending = self.bridge(b'original journal wire')
+        loan = core.reserve_material(7, 5, cleanup=lambda: True)
+        self.assertEqual(calls[0][2][:2], (7, 5))
+        core.produce_material(loan)
+        self.assertEqual(core.read_material(loan), b'original journal wire')
+        self.assertTrue(all(family in ('material', 'buffer') for family, _, _ in calls))
+        baseline = len(calls)
+        for kind in (True, 0, 6):
+            with self.assertRaises(ValueError):
+                core.reserve_material(7, kind, cleanup=lambda: True)
+        core._closing = True
+        with self.assertRaises(ValueError):
+            core.reserve_material(7, 5, cleanup=lambda: True)
+        self.assertEqual(len(calls), baseline)
+        self.assertFalse(core.close_material(loan))
+        self.assertIs(core._loans[loan.ticket], loan)
+        pending[0] = False
+        self.assertTrue(core.close_material(loan))
+
 
 if __name__ == '__main__':
     unittest.main()

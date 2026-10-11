@@ -7,7 +7,9 @@ priv struct StoredSourcePublication {
   slot : @buffers.BufferSlot
   mut preparation : @local_run.LocalSourcePublicationPreparation?
   mut publication : @local_run.LocalSourcePublication?
+  mut invocation : @local_run.LocalSourceInvocation?
   mut observed_at : String?
+  mut capture_interval : (String, String)?
   mut invoked : Bool
   mut pending : Bool
   mut closing : Bool
@@ -72,7 +74,9 @@ pub fn reserve_source_publication(
     slot,
     preparation: None,
     publication: None,
+    invocation: None,
     observed_at: None,
+    capture_interval: None,
     invoked: false,
     pending: false,
     closing: false,
@@ -122,10 +126,12 @@ pub fn prepare_source_publication(
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
     @decode.closed_object(cursor, [
-      "observed_at", "max_work", "max_workspace_slots",
+      "observed_at", "capture_started_at", "capture_completed_at", "max_work", "max_workspace_slots",
     ])
     is Ok(object) &&
     required_text(object, "observed_at") is Some(observed_at) &&
+    required_text(object, "capture_started_at") is Some(capture_started_at) &&
+    required_text(object, "capture_completed_at") is Some(capture_completed_at) &&
     required_int32(object, "max_work") is Some(max_work) &&
     required_int32(object, "max_workspace_slots") is Some(max_workspace_slots) else {
     return -31
@@ -151,6 +157,7 @@ pub fn prepare_source_publication(
     Ok(preparation) => {
       record.preparation = Some(preparation)
       record.observed_at = Some(observed_at)
+      record.capture_interval = Some((capture_started_at, capture_completed_at))
       0
     }
   }
@@ -220,6 +227,9 @@ pub fn finish_source_publication(
     value.source_publications.get(handle) is Some(record) &&
     record.preparation is Some(preparation) &&
     record.observed_at is Some(observed_at) &&
+    record.capture_interval is Some((capture_started_at, capture_completed_at)) &&
+    value.computes.get(record.compute)
+    is Some({ host: Some(host), closing: false, .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -242,16 +252,46 @@ pub fn finish_source_publication(
     Err(_) => return -32
   }
   record.publication = Some(publication)
+  let invocation = match
+    @local_run.issue_local_source_invocation(
+      host,
+      publication,
+      current.account,
+      capture_started_at,
+      capture_completed_at,
+      65536,
+      4096,
+      64,
+    ) {
+    Ok(invocation) => invocation
+    Err(_) => return -32
+  }
+  record.invocation = Some(invocation)
+  guard record.invocation is Some(invocation) else { return -33 }
   guard record.publication is Some(publication) else { return -33 }
   let logical = @local_run.local_source_publication_logical(publication)
   let evidence = @local_run.local_source_publication_evidence(publication)
-  let writer = @encode.writer(65536, 3, 1) catch { _ => return -34 }
+  let observation = @local_run.local_source_invocation_observation(invocation)
+  let invocation_contract = @local_run.local_source_invocation_contract(
+    invocation,
+  )
+  let writer = @encode.writer(65536, 5, 1) catch { _ => return -34 }
   let wire = try {
     @encode.begin_object(writer)
-    for (name, fact) in [("logical", logical), ("evidence", evidence)] {
+    for
+      (name, fact) in [
+        ("logical", logical),
+        ("evidence", evidence),
+        ("observation", observation),
+      ] {
       @encode.key(writer, name)
       @encode.string_value(writer, @publication.run_evidence_value_json(fact))
     }
+    @encode.key(writer, "invocation")
+    @encode.string_value(
+      writer,
+      @publication.publication_contract_json(invocation_contract),
+    )
     @encode.end_object(writer)
     @encode.finish(writer)
   } catch {
