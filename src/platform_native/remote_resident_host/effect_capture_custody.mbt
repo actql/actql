@@ -88,8 +88,9 @@ pub fn ResidentSourceCompute::persist_effect_capture(
   guard computation_capacity is Some(capacity) else {
     return Err({ issue: ComputationCapacityMissing, custody: None, })
   }
-  if !original_computation_capacity_valid(capacity) {
-    return Err({ issue: Capacity(InvalidCharge), custody: None, })
+  match original_computation_layout_admission(capacity, max_depth) {
+    Ok(_) => ()
+    Err(issue) => return Err({ issue: Capacity(issue), custody: None, })
   }
   let physical = match
     store.prepare_effect_capture_custody(binding, crypto, key) {
@@ -162,6 +163,7 @@ pub fn ResidentSourceCompute::persist_effect_capture(
         manifest: result.manifest,
         receipt: result.receipt,
       }
+      let mut contract_bytes = 0L
       for
         contract in [
           evidence.run,
@@ -175,7 +177,24 @@ pub fn ResidentSourceCompute::persist_effect_capture(
           original_computation_contract_extent(
             contract, capacity, max_nodes, max_depth,
           ) {
-          Ok(_) => ()
+          Ok(extent) => {
+            contract_bytes = match
+              original_computation_extent_charge(
+                extent,
+                capacity.layout,
+                contract_bytes,
+              ) {
+              Ok(value) => value
+              Err(issue) =>
+                return Err({ issue: Capacity(issue), custody: Some(owner), })
+            }
+            if contract_bytes > capacity.contract_bytes {
+              return Err({
+                issue: Capacity(RetentionLimit),
+                custody: Some(owner),
+              })
+            }
+          }
           Err(_) =>
             return Err({
               issue: Binding(@publication.EvidenceEncoding),

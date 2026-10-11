@@ -7,12 +7,14 @@ pub(all) struct ResidentEffectComputationCapacity {
   control_bytes : Int64
   workspace_bytes : Int64
   max_utf16_units : Int
+  layout : ResidentEffectComputationLayout
 } derive(Eq)
 
 ///|
 fn original_computation_capacity_valid(
   capacity : ResidentEffectComputationCapacity,
 ) -> Bool {
+  original_computation_layout_valid(capacity.layout) &&
   capacity.max_utf16_units > 0 &&
   capacity.contract_bytes > 0L &&
   capacity.control_bytes > 0L &&

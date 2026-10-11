@@ -1,4 +1,22 @@
 ///|
+// Independent mathematical widths, never a selected Native allocation profile.
+fn computation_test_layout() -> ResidentEffectComputationLayout {
+  {
+    contract_record_bytes: 5L,
+    canonical_node_bytes: 3L,
+    string_overhead_bytes: 7L,
+    utf16_unit_bytes: 2L,
+    array_record_bytes: 11L,
+    object_record_bytes: 13L,
+    array_slot_bytes: 17L,
+    object_slot_bytes: 19L,
+    frame_slot_bytes: 1L,
+    measurement_fixed_bytes: 1L,
+    capture_control_bytes: 2L,
+  }
+}
+
+///|
 fn computation_capacity_test_ledger(
   retained : Int64,
   execution : Int64,
@@ -21,6 +39,7 @@ test "original computation funding keeps contract control and scratch distinct" 
     control_bytes: 2L,
     workspace_bytes: 5L,
     max_utf16_units: 4096,
+    layout: computation_test_layout(),
   }
   let ledger = computation_capacity_test_ledger(9L, 5L)
   let token = reserve_original_computation_capacity(ledger, capacity).unwrap()
@@ -56,6 +75,7 @@ test "original computation funding refuses one short before additional retention
     control_bytes: 2L,
     workspace_bytes: 5L,
     max_utf16_units: 4096,
+    layout: computation_test_layout(),
   }
   for (retained, execution) in [(8L, 5L), (9L, 4L)] {
     let ledger = computation_capacity_test_ledger(retained, execution)
@@ -83,36 +103,42 @@ test "original computation funding rejects missing components and overflowing su
         control_bytes: 2L,
         workspace_bytes: 5L,
         max_utf16_units: 0,
+        layout: computation_test_layout(),
       },
       {
         contract_bytes: 7L,
         control_bytes: 0L,
         workspace_bytes: 5L,
         max_utf16_units: 4096,
+        layout: computation_test_layout(),
       },
       {
         contract_bytes: 0L,
         control_bytes: 2L,
         workspace_bytes: 5L,
         max_utf16_units: 4096,
+        layout: computation_test_layout(),
       },
       {
         contract_bytes: 7L,
         control_bytes: 2L,
         workspace_bytes: 0L,
         max_utf16_units: 4096,
+        layout: computation_test_layout(),
       },
       {
         contract_bytes: -1L,
         control_bytes: 2L,
         workspace_bytes: 5L,
         max_utf16_units: 4096,
+        layout: computation_test_layout(),
       },
       {
         contract_bytes: 9223372036854775807L,
         control_bytes: 1L,
         workspace_bytes: 5L,
         max_utf16_units: 4096,
+        layout: computation_test_layout(),
       },
     ] {
     assert_true(
@@ -142,6 +168,7 @@ test "original computation text measurement is independent of Store wire bytes" 
     control_bytes: 2L,
     workspace_bytes: 5L,
     max_utf16_units: 4096,
+    layout: computation_test_layout(),
   }
   // Independent test charges are not pricing the actual Native contract. This
   // case checks selection of the measurement bound, not a funded layout.

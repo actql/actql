@@ -1,3 +1,22 @@
+///|
+// Unit widths exercise the nominal lifetime/admission connection only. They
+// are not measured Native prices and do not establish an installed profile.
+fn original_computation_fixture_layout() -> @resident.ResidentEffectComputationLayout {
+  {
+    contract_record_bytes: 1L,
+    canonical_node_bytes: 1L,
+    string_overhead_bytes: 1L,
+    utf16_unit_bytes: 1L,
+    array_record_bytes: 1L,
+    object_record_bytes: 1L,
+    array_slot_bytes: 1L,
+    object_slot_bytes: 1L,
+    frame_slot_bytes: 1L,
+    measurement_fixed_bytes: 1L,
+    capture_control_bytes: 1L,
+  }
+}
+
 // Actual Native capture -> encrypted SQLite Store -> exact reopen and cleanup.
 // Store reconstruction keeps the live Ledger; Host restart is not claimed.
 
@@ -66,6 +85,7 @@ fn retained_effect_capture_store(
     control_bytes: 4096L,
     workspace_bytes: 65536L,
     max_utf16_units: 1048576,
+    layout: original_computation_fixture_layout(),
   }
   let metadata_bytes = computation_capacity.contract_bytes +
     computation_capacity.control_bytes
@@ -78,6 +98,55 @@ fn retained_effect_capture_store(
     is Err({ issue: ComputationCapacityMissing, custody: None, }),
   )
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
+  // A positive workspace is not enough. Under these independent unit widths,
+  // depth 64 requires 1 + (2 * 128 + 3) = 260 scratch units before traversal.
+  assert_true(
+    consumer.persist_effect_capture(
+      store,
+      materials,
+      inputs,
+      result,
+      invocation,
+      preview,
+      captured,
+      authority,
+      crypto,
+      key,
+      65536,
+      10000,
+      64,
+      computation_capacity=Some({
+        ..computation_capacity,
+        workspace_bytes: 259L,
+      }),
+    )
+    is Err({ issue: Capacity(ExecutionLimit), custody: None, }),
+  )
+  assert_true(
+    consumer.persist_effect_capture(
+      store,
+      materials,
+      inputs,
+      result,
+      invocation,
+      preview,
+      captured,
+      authority,
+      crypto,
+      key,
+      65536,
+      10000,
+      64,
+      computation_capacity=Some({
+        ..computation_capacity,
+        layout: { ..computation_capacity.layout, capture_control_bytes: 4097L, },
+      }),
+    )
+    is Err({ issue: Capacity(RetentionLimit), custody: None, }),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, baseline)
+  assert_eq(consumer.usage().reserved_execution_bytes, execution_baseline)
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   let persist = () => {
     consumer.persist_effect_capture(
