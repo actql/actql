@@ -1,0 +1,27 @@
+{
+  "owner": "B",
+  "integration_owner": "Root",
+  "phase": "A0 preparation; P1 product implementation not started",
+  "branch": "feat/frontend-with-carrier-cutover",
+  "base": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "pending_integration": [
+    "#1474 submitted stable head; Root integrates",
+    "#1476 DISTINCT result frozen for review"
+  ],
+  "start_condition": "Normally adopt the submitted Frontend integration on main; INFER and Debug completion are not prerequisites.",
+  "finite_next_unit": "P1 common WITH producer scope and GRAPH cutover using existing checker/capture/Graph owner, with active-source retirement and independent sql/aql-text/README public profiles.",
+  "no_new_scope": [
+    "new GoogleSQL compatibility search",
+    "compat parser or migrator",
+    "new Owner/evaluator",
+    "new Heavy/producer without shared allocation",
+    "INFER or Debug implementation takeover"
+  ],
+  "proof_boundary": "All JSON controls and target sources are authored; no parser/common checker/Host/Result execution has been run.",
+  "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
+  "preserved_acceptance_ids": {
+    "supplied": 119,
+    "all": 130,
+    "status": "Root reported static document validation exit zero; no product execution"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "status": "failed metadata preparation, not a product test",
+  "exit": 1,
+  "first_error": "fatal: not a git repository (or any of the parent directories): .git",
+  "cause": "B used bundle.parent.parent.parent instead of bundle.parent.parent for a read-only Git head query.",
+  "product_execution": 0,
+  "followup": "Correct only the bundle Git lookup; preserve the original inspected bundle baseline."
+}
