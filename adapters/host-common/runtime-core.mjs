@@ -2351,6 +2351,38 @@ function publicationControl(moon) {
         preparedCallSet, admitted, beginEntry));
       return admitted;
     },
+    // Private installed Node inputs only. Canonical/body admission does not
+    // issue capture authority, funded capacity or public async support.
+    readInstalledModelResponseProfile(wire, expectedCid, limits) {
+      issuanceLimits(limits, 'Model response profile');
+      if (['maxWireBytes', 'maxNodes', 'maxDepth', 'maxMembers', 'maxWork']
+          .some(key => !Number.isSafeInteger(limits[key]) || limits[key] < 0 ||
+            limits[key] > 2147483647) ||
+          typeof wire !== 'string' || wire.length > limits.maxWireBytes) {
+        throw new TypeError('Invalid Model response profile limits');
+      }
+      return checked(moon.clientProgramReadModelResponseProfile(wire, expectedCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+        limits.maxMembers, limits.maxWork));
+    },
+    bindInstalledModelRawCapturePolicy(policy, retention, metadata, clock, data) {
+      return checked(moon.clientProgramBindModelRawCapturePolicy(
+        evidenceToken(policy), retention, metadata, clock, data));
+    },
+    registerCheckedClientInferRawCapture(compiled, definition, dispatch, scope,
+      {policy, profile, installation, probability, account, at, storeAuthorityCid,
+        selectionAvailable, observeAccount, observeAt, delegated}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof selectionAvailable !== 'function' ||
+          typeof observeAccount !== 'function' || typeof observeAt !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer raw capture');
+      }
+      return checked(moon.clientProgramRegisterInferRawCapture(value,
+        token(definition), dispatch, scope, policy, profile, installation,
+        probability, account, at, storeAuthorityCid, selectionAvailable,
+        observeAccount, observeAt, delegated));
+    },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {
       const value = compiledRunTokens.get(compiled);

@@ -203,6 +203,8 @@ pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapt
 
 pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @client_infer_host.ObservationIssuance) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_model_raw_capture_policy(@run_publication.RunEvidenceValue, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_bind_recovered_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
 pub fn client_program_bind_table_input(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientTableInput, @run_publication_host.ClientTableInputIssue]
@@ -1203,6 +1205,8 @@ pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedC
 
 pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_read_model_response_profile(String, String, Int, Int, Int, Int, Int) -> Result[@check_environment.ModelResponseProfile, @check_environment.ModelTaskIssue]
+
 pub fn client_program_read_saved_composed_infer_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_read_saved_infer_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
@@ -1228,6 +1232,8 @@ pub fn client_program_recovered_table_preview_operation_json(@run_publication_ho
 pub fn client_program_recovered_table_preview_subject_cid(@run_publication_host.RecoveredClientTablePreview) -> String
 
 pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> Bool
+
+pub fn client_program_register_infer_raw_capture(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, AuthorizationAccount, String, String, () -> Bool, () -> AuthorizationAccount, () -> String, AuthorizationDecision?) -> Result[@run_publication_host.ClientModelRawCaptureRegistration, @run_publication_host.ClientModelRawCaptureIssue]
 
 pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInput) -> Bool
 
