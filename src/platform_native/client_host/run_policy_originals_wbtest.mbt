@@ -7,13 +7,15 @@ let policy_account_original : Bytes = b"{\"version\":\"actql-execution-account-c
 fn policy_host_fixture(
   name : String,
   existing? : Bool = false,
+  files? : Array[String] = [],
+  account_body? : Bytes = policy_account_original,
 ) -> NativeLocalHostConnection {
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let account = name + ".account.json"
   if !existing {
     let parent = @filesystem.open_private_root(path).unwrap()
     let writer = parent.create_writer(name + ".stage", 4096L).unwrap()
-    writer.append(policy_account_original).unwrap()
+    writer.append(account_body).unwrap()
     writer.seal(account).unwrap() |> ignore
   }
   begin_native_local_host_adoption(
@@ -24,6 +26,7 @@ fn policy_host_fixture(
     "operator",
     epoch_test_crypto(),
     existing_only=existing,
+    configuration_files=files,
   )
   .unwrap()
   .open_journal(

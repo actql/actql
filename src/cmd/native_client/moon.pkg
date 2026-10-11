@@ -27,7 +27,6 @@ import {
   "actql/actql/check_environment" @compiler_environment,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/decode_core" @decode,
-  "actql/actql/value_admission" @values,
   "actql/actql/parameter_binding" @parameters,
   "moonbitlang/core/argparse",
   "moonbitlang/core/json",

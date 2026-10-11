@@ -296,7 +296,7 @@ fn local_submission_start(
         _ => stop("InvalidLocalReadPolicyOriginal")
       },
     )
-    if read.enabled {
+    if read.enabled() {
       match
         host.retain_publication_policy_originals(
           crypto,

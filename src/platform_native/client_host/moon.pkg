@@ -30,6 +30,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/parameter_binding" @parameters,
+  "actql/actql/value_admission" @values,
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/string",
