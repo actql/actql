@@ -81,18 +81,18 @@ fn assert_distinct_order_receiver_type_refusal(
 test "DISTINCT ORDER shadowed range preserves a numeric alias's property type rejection" {
   let expected = distinct_order_receiver_expected(true)
   assert_distinct_order_receiver_type_refusal(expected)
-  for member in ["payload.score", "(payload).score", "`PAYLOAD`.`score`"] {
+  for receiver_path in ["payload.score", "(payload).score", "`PAYLOAD`.`score`"] {
     let actual = compile(
       @query.parse_query(
         "SELECT DISTINCT score AS original_score, -score AS payload FROM objects AS payload ORDER BY " +
-        member +
+        receiver_path +
         " + 1 NULLS LAST",
         syntax_limits(),
       ).unwrap(),
       distinct_order_receiver_context(),
       construction_limits(),
     ).unwrap()
-    assert_eq(semantic(actual), semantic(expected), msg=member)
+    assert_eq(semantic(actual), semantic(expected), msg=receiver_path)
     assert_distinct_order_receiver_type_refusal(actual)
   }
 }

@@ -1,0 +1,52 @@
+{
+  "startedAt": "2026-10-11T17:43:12.976Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "selected moon tests",
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/stage_results/checked_topology_test.mbt",
+        "src/stage_results/local_program_test.mbt",
+        "src/stage_results/imports_test.mbt",
+        "src/pipeline_check_context/checked_topology_test.mbt",
+        "src/pipeline_check_context/calendar_topology_test.mbt"
+      ],
+      "startedAt": "2026-10-11T17:43:13.083Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:43:24.845Z",
+      "endedAt": "2026-10-11T17:43:24.849Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "ca37738b-c253-4a3b-9ca6-922190fe660c",
+    "pid": 60231,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+    "startedAt": "2026-10-11T17:43:13.073Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/_build/local-checks/attempts/run-MypnWD"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-1b19ab159a259a7241ded8424dc718f1fdf88fee1ad239f513cb5fe4317f5b51.lock"
+  ],
+  "endedAt": "2026-10-11T17:43:24.919Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
