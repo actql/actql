@@ -15,7 +15,6 @@ const limits = {maxBytes: 4096, maxChunkBytes: 4096, maxChunks: 8,
 function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
   transportThrow = false, cleanupRaw = () => true} = {}) {
   const request = Object.freeze({original: Symbol('request owner double')});
-  const prepared = Object.freeze({original: Symbol('prepared owner double')});
   const entry = Object.freeze({original: Symbol('consumed Entry double')});
   const state = {calls: 0, saves: 0, plans: 0, wakes: 0, rawCleanups: 0};
   state.usageReads = [];
@@ -41,9 +40,9 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
       if (rejectPlan) throw new Error('ProfileRefused');
       return {start};
     },
-    clientProgramModelPhysicalCall(actual, original, poll, cancel, cleanup) {
+    clientProgramModelPhysicalCallForRequest(actual, original, poll, cancel, cleanup) {
       assert.equal(actual, entry);
-      assert.equal(original, prepared);
+      assert.equal(original, request);
       if (rejectCall) return undefined;
       return {poll, cancel, cleanup};
     },
@@ -75,7 +74,6 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
       return persistRaw ? persistRaw(call, raw)
         : {response: {originalRaw: raw, nominal: Symbol('receipt double')}};
     }});
-  port.bindPrepared(prepared);
   return {port, entry, state};
 }
 
