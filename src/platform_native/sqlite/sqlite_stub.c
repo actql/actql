@@ -1096,6 +1096,60 @@ int32_t actql_native_sqlite_database_compare_exchange(
   return result;
 }
 
+// Exact retirement only: the caller owns an active transaction and must
+// separately confirm commit/readback before settling its original reservation.
+int32_t actql_native_sqlite_database_remove_exact(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length,
+  int64_t expected_revision, moonbit_bytes_t body, int32_t body_length
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  if (database->transaction_fenced ||
+      database->library->get_autocommit(database->database)) {
+    actql_replace_error(&database->error, "exact retirement requires an unfenced transaction");
+    return 4;
+  }
+  if (body_length < 0 || (int64_t)body_length > database->max_body_bytes) return 4;
+  if (expected_revision < 0) return 2;
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(database->database,
+    "DELETE FROM actql_records WHERE namespace = ?1 AND record_key = ?2 "
+    "AND revision = ?3 AND body = ?4", -1, &statement, NULL);
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare exact journal retirement failed");
+    return actql_operation_code(code);
+  }
+  int32_t result = actql_bind_key(database, statement, 1,
+    namespace_bytes, namespace_length, 2, key, key_length);
+  if (result == 0) {
+    code = database->library->bind_int64(statement, 3, expected_revision);
+    if (code == SQLITE_OK) {
+      code = database->library->bind_blob(statement, 4, body, body_length, SQLITE_TRANSIENT);
+    }
+    if (code != SQLITE_OK) {
+      actql_database_error(database, "bind exact journal retirement failed");
+      result = actql_operation_code(code);
+    }
+  }
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code != SQLITE_DONE) {
+      actql_database_error(database, "exact journal retirement failed");
+      result = actql_operation_code(code);
+    } else if (database->library->changes64(database->database) != 1) {
+      result = 2;
+    }
+  }
+  int finalized = database->library->finalize(statement);
+  if (result == 0 && finalized != SQLITE_OK) {
+    actql_database_error(database, "finalize exact journal retirement failed");
+    result = actql_operation_code(finalized);
+  }
+  return result;
+}
+
 // Test-only physical custody-loss injection. There is no production MoonBit
 // delete API; callers cannot silently repair the independent issuance record.
 int32_t actql_native_sqlite_test_remove_journal_record(

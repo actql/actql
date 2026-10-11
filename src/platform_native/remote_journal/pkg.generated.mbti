@@ -29,7 +29,11 @@ pub fn initial_catalog_use_claim_dispatch(NativeInitialCatalogUseClaim) -> Strin
 
 pub fn initial_catalog_use_claim_matches_journal(NativeInitialCatalogUseClaim, Journal) -> Bool
 
+pub fn initial_catalog_use_cleanup_row_matches(Bytes, Bytes, Int64) -> Bool
+
 pub fn initial_catalog_use_custody_dispatch(NativeInitialCatalogUseCustody) -> String
+
+pub fn initial_catalog_use_custody_matches_ledger(NativeInitialCatalogUseCustody, @physical_resources.Ledger) -> Bool
 
 pub fn initial_catalog_use_custody_pending(NativeInitialCatalogUseCustody) -> Bool
 
@@ -98,6 +102,7 @@ pub fn Journal::cancellation_requested(Self, @remote_site_protocol.DispatchReque
 pub fn Journal::claim_effect_ledger_dispatch(Self, @remote_site_protocol.DispatchRequest, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, @checkpoint_runtime.WireLimits, @checkpoint_runtime.WireLimits) -> Result[(Bool, @effect_application.EffectLedgerEntry), NativeRemoteJournalIssue]
 pub fn Journal::claim_initial_catalog_use(Self, @remote_site_protocol.DispatchRequest) -> Result[NativeInitialCatalogUseClaim, NativeRemoteJournalIssue]
 pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
+pub fn Journal::cleanup_initial_catalog_use(Self, NativeInitialCatalogUseCustody) -> Result[Unit, NativeInitialCatalogUseIssue]
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?, file_custody? : NativeOutputFileCustody?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]

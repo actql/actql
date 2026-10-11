@@ -115,6 +115,18 @@ fn HolderEffectCatalogReviewCustody::close(
     }
     self.context = None
   }
+  // Once an actual read was entered, a failure without a captured response
+  // cannot prove there was no original use/GET. Reconcile through the same
+  // Resource Owner before closing its DB; missing/unknown stays pending.
+  if self.read_started &&
+    self.original_use is None &&
+    self.query_issue is None &&
+    self.custody is None &&
+    self.observed is None {
+    if self.query_original_catalog_use() is Err(_) {
+      return false
+    }
+  }
   if !self.catalog_cleanup_confirmed && self.custody is None {
     if self.original_use is Some(_) {
       // Cleanup can restore exact original evidence without renewing current

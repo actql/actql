@@ -248,6 +248,11 @@ fn retain_and_acknowledge_resident_dispatch(
   binding : @remote.RemoteInputBinding,
   materials : String,
   nonstartable : () -> Unit,
+  initial_catalog_use? : (
+    @resources.Ledger,
+    @journal.NativeInitialCatalogUseEnvelope,
+    Ref[@journal.NativeInitialCatalogUseCustody?],
+  )? = None,
 ) -> Result[ResidentAcceptance, ResidentHostIssue] {
   let attempt = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
@@ -262,9 +267,31 @@ fn retain_and_acknowledge_resident_dispatch(
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
-  let accepted = match journal.accept(request) {
-    Ok((_, record)) => record
-    Err(issue) => return Err(Journal(issue))
+  let accepted = match initial_catalog_use {
+    None =>
+      match journal.accept(request) {
+        Ok((_, record)) => record
+        Err(issue) => return Err(Journal(issue))
+      }
+    Some((ledger, envelope, retained)) =>
+      match journal.accept_with_initial_catalog_use(request, ledger, envelope) {
+        Ok((_, record, custody)) => {
+          if custody is Some(_) {
+            retained.val = custody
+          }
+          record
+        }
+        Err(failure) => {
+          if failure.custody is Some(_) {
+            retained.val = failure.custody
+          }
+          return match failure.issue {
+            Journal(issue) => Err(Journal(issue))
+            Capacity(_) =>
+              Err(Journal(@journal.Physical(@sqlite.CapacityExceeded)))
+          }
+        }
+      }
   }
   if !@remote.remote_runtime_record_startable(accepted) {
     nonstartable()
