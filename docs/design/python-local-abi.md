@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 24; this private ABI
+before opening the instance. `actql_host_abi_version` returns 25; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -57,6 +57,18 @@ repeat cleanup. Acknowledged input close discards its private loan and completio
 record; repeated transfers do not accumulate released descriptors.
 Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
+
+The private payload-request projection borrows one original completed Result
+publication and its exact physical input. The input contains only the Store
+authority CID, material generation CID and payload byte ceiling. The existing
+Core payload Owner derives the schema, order, logical Result, exact byte count,
+row count and original publication attempt. This projection does not write a
+payload, install a Store, authorize a publisher or acknowledge durable commit.
+Current Run and Source authorization is checked before each production call,
+including reuse of a completed projection. Its output is bounded to 65,536
+bytes; cleanup failure retains the same child, parent pin and input borrow.
+The parent refuses close until that child is released. Retiring the earlier
+preflight transport output preserves the original semantic preflight used here.
 
 All exports use scalar arguments. Input chunks are ordered, at most 16,384 bytes,
 and admitted before the physical callback runs. Input imports are

@@ -544,6 +544,9 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.payload_requests.values().any(child => child.publication == handle) {
+    return -9
+  }
   if value.commit_exports.values().any(child => child.publication == handle) {
     return -9
   }
