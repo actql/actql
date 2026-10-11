@@ -1135,6 +1135,9 @@ fn advance_expression_frame_impl(
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             if op == @lower.Length ||
+              op == @lower.ByteLength ||
+              op == @lower.Unicode ||
+              op == @lower.Chr ||
               op == @lower.Upper ||
               op == @lower.Lower ||
               op == @lower.Trim ||
@@ -1147,6 +1150,12 @@ fn advance_expression_frame_impl(
                   [frame.current_root],
                   if op == @lower.Length {
                     TextLength
+                  } else if op == @lower.ByteLength {
+                    TextByteLength
+                  } else if op == @lower.Unicode {
+                    TextUnicode
+                  } else if op == @lower.Chr {
+                    TextChr
                   } else if op == @lower.Upper {
                     TextUpper
                   } else if op == @lower.Lower {
