@@ -109,6 +109,7 @@ import {
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/client_local_preparation" @local_input,
   "actql/actql/client_local_run" @local_run,
+  "actql/actql/client_host_buffers" @buffers,
 } for "wbtest"
 
 options(

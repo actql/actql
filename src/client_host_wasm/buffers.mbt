@@ -8,10 +8,25 @@ fn physical_input_cleanup(input : Int) -> Int = "actql_host" "input_cleanup"
 fn physical_reader_stop(input : Int, reader : Int) -> Int = "actql_host" "reader_stop"
 
 ///|
+fn physical_native_settled(handle : Int) -> Int = "actql_host" "native_settled"
+
+///|
+fn physical_native_stopped(handle : Int) -> Int = "actql_host" "native_stopped"
+
+///|
+fn physical_native_cleaned(handle : Int) -> Int = "actql_host" "native_cleaned"
+
+///|
 /// Private instance handles are never Client wire refs or execution authority.
 priv struct Instance {
   nonce : Int64
   pool : @buffers.BufferPool
+  root : @resources.Ledger
+  wasm_capacity : @resources.SharedCapacity
+  workspaces : Map[Int, (Int, @buffers.WorkspaceLoan)]
+  workspace_slots : Int
+  mut runtime_closing : Bool
+  mut closing : Bool
   copies : Map[Int, (@buffers.BufferSlot, Int)]
   readers : Map[Int, @buffers.BufferBorrow]
   environments : Map[Int, StoredEnvironment]
@@ -21,6 +36,13 @@ priv struct Instance {
   materials : Map[Int, StoredMaterial]
   restorations : Map[Int, StoredRestoration]
   physical_starts : Map[Int, StoredPhysicalStart]
+  native_sources : Map[Int, StoredNativeSourceConfiguration]
+  native_attempts : Map[Int, StoredNativeAttempt]
+  native_commands : Map[Int, StoredNativeCommand]
+  computes : Map[Int, StoredNativeCompute]
+  tasks : Map[Int, StoredManagedTask]
+  result_exports : Map[Int, StoredResultExport]
+  result_chunks : Map[Int, StoredResultChunk]
   mut next_handle : Int
 }
 
@@ -40,7 +62,7 @@ fn issue_code(issue : @buffers.BufferIssue) -> Int {
   match issue {
     ForeignOwner => -1
     InvalidLimits => -3
-    Capacity | Resource(RetentionLimit) => -4
+    Capacity | Resource(RetentionLimit | ExecutionLimit) => -4
     Closed => -5
     InvalidPosition => -6
     InvalidByte => -12
@@ -69,16 +91,48 @@ pub fn open(
   total_bytes : Int64,
   max_slots : Int,
   max_wire_bytes : Int,
+  planning_work : Int,
+  attempts : Int,
+  holdings : Int,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
 ) -> Int {
   if nonce <= 0L || instance.val is Some(_) || max_wire_bytes > 1048576 {
     return -3
   }
-  match @buffers.open_pool(total_bytes, max_slots, max_wire_bytes) {
+  let root = match
+    @resources.create_ledger({
+      planning_work,
+      attempts,
+      holdings,
+      transfer_bytes,
+      retained_bytes,
+      execution_bytes,
+    }) {
+    Err(_) => return -3
+    Ok(root) => root
+  }
+  // Fixed instance memory is retained through physical Store destruction.
+  // This reservation is not returned by logical Run or transfer-pool close.
+  let wasm_capacity = match
+    @resources.reserve_shared_capacity(root, 16777216L) {
+    Err(_) => return -4
+    Ok(capacity) => capacity
+  }
+  match
+    @buffers.open_pool_on_ledger(root, total_bytes, max_slots, max_wire_bytes) {
     Err(issue) => issue_code(issue)
     Ok(pool) => {
       instance.val = Some({
         nonce,
         pool,
+        root,
+        wasm_capacity,
+        workspaces: {},
+        workspace_slots: max_slots,
+        runtime_closing: false,
+        closing: false,
         copies: {},
         readers: {},
         environments: {},
@@ -88,6 +142,13 @@ pub fn open(
         materials: {},
         restorations: {},
         physical_starts: {},
+        native_sources: {},
+        native_attempts: {},
+        native_commands: {},
+        computes: {},
+        tasks: {},
+        result_exports: {},
+        result_chunks: {},
         next_handle: 1,
       })
       0
@@ -104,9 +165,19 @@ pub fn reserve(
   physical_copy_bytes : Int64,
 ) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
+  if value.closing {
+    return -5
+  }
   if physical_input <= 0 ||
     value.next_handle == 2147483647 ||
-    value.copies.values().any(pair => pair.1 == physical_input) {
+    value.copies.values().any(pair => pair.1 == physical_input) ||
+    value.native_commands
+    .values()
+    .any(command => command.physical_ticket == physical_input) ||
+    value.result_chunks
+    .values()
+    .any(chunk => chunk.physical_ticket == physical_input) ||
+    value.workspaces.values().any(pair => pair.0 == physical_input) {
     return -3
   }
   match
@@ -222,8 +293,7 @@ pub fn allocated(nonce : Int64) -> Int64 {
 #export_name("actql_buffer_reserved")
 pub fn reserved(nonce : Int64) -> Int64 {
   match selected(nonce) {
-    Some(value) =>
-      @buffers.buffer_pool_ledger_usage(value.pool).reserved_execution_bytes
+    Some(value) => @buffers.buffer_pool_reserved(value.pool)
     None => -1L
   }
 }
@@ -232,7 +302,29 @@ pub fn reserved(nonce : Int64) -> Int64 {
 #export_name("actql_buffer_close_pool")
 pub fn close_pool(nonce : Int64) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
+  value.closing = true
+  // Pending Native work and its downstream consumers must retire through
+  // their existing stop/cleanup boundary before the Root can be closed.
+  if !value.native_attempts.is_empty() ||
+    !value.computes.is_empty() ||
+    !value.tasks.is_empty() ||
+    !value.result_exports.is_empty() ||
+    !value.result_chunks.is_empty() {
+    return -9
+  }
   let result = status(@buffers.close_pool(value.pool))
+  if result != 0 {
+    return result
+  }
+  if value.workspaces.length() != 0 {
+    return -9
+  }
+  if !value.runtime_closing {
+    match @resources.close_shared_capacity(value.wasm_capacity) {
+      Err(_) => return -10
+      Ok(_) => value.runtime_closing = true
+    }
+  }
   if result == 0 {
     value.copies.clear()
     value.readers.clear()
@@ -242,6 +334,14 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.runs.clear()
     value.materials.clear()
     value.restorations.clear()
+    value.physical_starts.clear()
+    value.native_sources.clear()
+    value.native_attempts.clear()
+    value.native_commands.clear()
+    value.computes.clear()
+    value.tasks.clear()
+    value.result_exports.clear()
+    value.result_chunks.clear()
   }
   result
 }

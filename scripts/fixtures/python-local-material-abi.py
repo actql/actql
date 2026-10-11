@@ -8,14 +8,15 @@ from python_local_run_inputs import ENVIRONMENT, PROGRAM, CONFIGURATION, REQUEST
 
 root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / 'packages/python-sdk/src'))
-from actql_sdk._local_core import LocalCore
+from actql_sdk._local_core import LocalCore, LocalCoreResources
 from actql_sdk._local_storage import LocalByteStore
 from tempfile import TemporaryDirectory
 
 
 module = Path(sys.argv[1]).read_bytes()
 digest = hashlib.sha256(module).hexdigest()
-core = LocalCore(module, digest=digest, transfer_capacity=12 * 1024 * 1024, slots=64)
+core = LocalCore(module, digest=digest, transfer_capacity=12 * 1024 * 1024, slots=64,
+                 resources=LocalCoreResources(100000, 64, 64, 32000000, 200000000, 16 * 1024 * 1024 + 12 * 1024 * 1024))
 inputs = []
 stopped = [False]
 cleaned = [False]

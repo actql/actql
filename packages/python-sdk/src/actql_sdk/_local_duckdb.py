@@ -320,6 +320,19 @@ class DuckDBConnection:
             if self._connection.value:
                 self._api.duckdb_interrupt(self._connection)
 
+    def stop_new_io(self) -> bool:
+        """Seal physical admission and observe the original I/O lock.
+
+        This does not interrupt a query or determine a Run cancellation result.
+        Existing statements/read views retain their cleanup handles.
+        """
+        self._owned()
+        self._closing = True
+        if not self._io.acquire(blocking=False):
+            return False
+        self._io.release()
+        return True
+
     def close(self) -> bool:
         self._owned()
         if self._closed:

@@ -351,6 +351,8 @@ pub fn physical_batch_rows(PhysicalBatch) -> Int
 
 pub fn physical_parameter_binding(PhysicalParameter) -> Result[PhysicalParameterBinding, ValueIssue]
 
+pub fn physical_parameter_type_id(PhysicalParameter) -> String
+
 pub fn physical_result_schema(PhysicalResult) -> @relation_schema.Schema
 
 pub fn physical_result_source_columns(PhysicalResult) -> Array[Int]

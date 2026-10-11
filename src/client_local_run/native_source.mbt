@@ -97,6 +97,25 @@ pub fn local_native_source_configuration(
 }
 
 ///|
+/// Evaluate the current installed read account against the exact original
+/// requirement and physical binding. Configuration readiness is not a permit.
+pub fn authorize_local_native_source(
+  configuration : LocalNativeSourceConfiguration,
+  current : @authorization.AdmittedAccountConfiguration,
+) -> Result[@authorization.DispatchAuthorization, LocalNativeSourceIssue] {
+  if current.account_id() != configuration.read_account_id {
+    return Err(AuthorizationMismatch)
+  }
+  @authorization.bind_dispatch_authorization(
+    current,
+    configuration.read_tuple,
+    @authorization.Acquisition,
+    @planning.query_requirement_cid(configuration.requirement),
+    configuration.read_context_cid,
+  ).map_err(_ => AuthorizationMismatch)
+}
+
+///|
 /// Only the exact original pre-I/O Run start and a current, subject-bound
 /// Acquisition authorization can enter the existing Native attempt Owner.
 /// The transport callback reports actual settled read-view facts; it cannot

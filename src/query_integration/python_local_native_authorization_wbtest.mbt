@@ -192,6 +192,27 @@ test "Local Native acquisition requires separate current subject-bound read auth
     "connector://crm/main/r#v",
   )
   let account = python_native_account(Allow)
+  let owner_read = @local_run.authorize_local_native_source(
+    configuration, account,
+  ).unwrap()
+  assert_true(
+    @local_run.authorize_local_native_source(
+      configuration,
+      python_native_account(Deny),
+    )
+    is Err(AuthorizationMismatch),
+  )
+  assert_true(
+    @local_run.authorize_local_native_source(
+      configuration,
+      @authorization.admit_account_configuration({
+        account_id: "another-account",
+        entries: [],
+        bootstrap: None,
+      }).unwrap(),
+    )
+    is Err(AuthorizationMismatch),
+  )
   let context = "sha256:" + "d".repeat(64)
   let read = @authorization.bind_dispatch_authorization(
     account,
@@ -204,7 +225,7 @@ test "Local Native acquisition requires separate current subject-bound read auth
   let host = @local_run.start_local_native_source(
     configuration,
     start,
-    read,
+    owner_read,
     account,
     "python-native-authorized",
     attempt => observed.any(value => physical_equal(value, attempt)),
@@ -293,6 +314,51 @@ test "Local Native acquisition requires separate current subject-bound read auth
       is Err(AuthorizationMismatch),
     )
   }
+}
+
+///|
+test "Local single Source plans its retained suffix before physical acquisition" {
+  let (plan, _, _) = python_native_plan("native-capacity-before-io")
+  let configuration = python_native_configuration(plan, python_native_tuple()).unwrap()
+  let selected = @local_run.local_native_source_configuration(configuration)
+  let registry = @identity.stringify_value(
+    registered_body(),
+    100000,
+    10000,
+    100,
+  )
+  let values = @identity.stringify_value(
+    registered_values(),
+    100000,
+    10000,
+    100,
+  )
+  let fragment = Some(
+    @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+  )
+  let planned = @client_local_host.single_captured_local_ledger_limits(
+    @local_run.local_run_prepared(plan),
+    selected,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  assert_true(planned.retained_bytes > 200000000L)
+  assert_true(planned.retained_bytes <= 536870912L)
+  assert_eq(planned.execution_bytes, 536870912L)
+  // Invalid installed contracts do not produce a fabricated fitting plan.
+  assert_true(
+    @client_local_host.single_captured_local_ledger_limits(
+      @local_run.local_run_prepared(plan),
+      selected,
+      "{}",
+      values,
+      fragment,
+      None,
+    )
+    is None,
+  )
 }
 
 ///|

@@ -13,7 +13,7 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   )
   let document =
-    #|{"version":"actql/0.1","id":"python-local-captured-run","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"out":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"out"}}},"steps":[{"derive":{"value":"id + 1"},"as":"derived"},{"select":["value"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}}}],"results":{"answer":{"from":{"stage":"compute","result":"out"}}}}
+    #|{"version":"actql/0.1","id":"python-local-captured-run","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"out":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"out"}}},"steps":[{"derive":{"value":"id + 1"},"as":"derived"},{"select":["value"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}}},{"id":"final","inputs":{"r":{"result":{"stage":"compute","result":"out"}}},"steps":[{"derive":{"next":"value + 1"},"as":"derived"},{"select":["next"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["next"]}}}],"results":{"answer":{"from":{"stage":"final","result":"out"}}}}
   let input = @local_input.prepare_local_input_material(
     Program(document),
     environment,
@@ -237,9 +237,28 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     query_capture_limits(),
   ).unwrap()
   let source = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
-  let host = @local_run.configure_captured_source_local_compute(
+  let root = @resources.create_ledger({
+    planning_work: 100000,
+    attempts: 32,
+    holdings: 32,
+    transfer_bytes: 32000000L,
+    retained_bytes: 200000000L,
+    execution_bytes: 536870912L,
+  }).unwrap()
+  // An independent Host workspace stays reserved while this same root runs
+  // and later releases Compute. This is a fixed reservation, not RSS evidence.
+  let physical_stopped = Ref(false)
+  let physical_cleaned = Ref(false)
+  let workspace = @buffers.reserve_workspace(
+    root,
+    128L,
+    () => physical_stopped.val,
+    () => physical_cleaned.val,
+  ).unwrap()
+  let host = @local_run.configure_captured_source_local_compute_on_ledger(
     plan,
     source,
+    root,
     registry,
     values,
     fragment,
@@ -286,7 +305,9 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   assert_true(@local_run.bind_local_compute_start(host, other_start) is Err(_))
   let compute_start = @local_run.bind_local_compute_start(host, start).unwrap()
   let run = @local_run.local_compute_run(host)
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
   assert_true(@strategy.captured_task_activation_required(run))
+  assert_true(@strategy.captured_task_retirement_pending(run))
   let operations = @local_run.start_local_compute_task(
       host,
       compute_start,
@@ -401,8 +422,9 @@ test "Local captured Run keeps its original pre-Source start and checked produce
   }
   assert_true(finalized)
   (operations.settle)().unwrap()
-  (operations.complete)(1, operations.storage_bytes, () => available.val).unwrap()
-  |> ignore
+  let first_output = (operations.complete)(1, operations.storage_bytes, () => {
+    available.val
+  }).unwrap()
   assert_eq((operations.output_rows)(), 1)
   assert_eq((operations.output_row)(0).unwrap(), "{\"value\":4}")
   assert_eq(
@@ -411,16 +433,150 @@ test "Local captured Run keeps its original pre-Source start and checked produce
     ),
     ["answer"],
   )
+  let second = @local_run.start_local_compute_task(
+      host,
+      compute_start,
+      [first_output],
+      permit,
+      account,
+      tuple,
+      context,
+    )
+    .unwrap()
+    .unwrap()
+  for transfer in second.inputs {
+    (transfer.append)((operations.output_row)(0).unwrap()).unwrap()
+    (transfer.finish)().unwrap()
+  }
+  let mut second_executed = false
+  for _ in 0..<1000 {
+    if (second.advance)(1).unwrap().complete {
+      second_executed = true
+      break
+    }
+  }
+  assert_true(second_executed)
+  let second_available = Ref(true)
+  (second.prepare_finalization)(2, second.storage_bytes, () => {
+    second_available.val
+  }).unwrap()
+  let mut second_finalized = false
+  for _ in 0..<1000 {
+    if (second.advance_finalization)(1).unwrap().complete {
+      second_finalized = true
+      break
+    }
+  }
+  assert_true(second_finalized)
+  (second.settle)().unwrap()
+  let second_output = (second.complete)(2, second.storage_bytes, () => {
+    second_available.val
+  }).unwrap()
+  assert_eq((second.output_rows)(), 1)
+  assert_eq((second.output_row)(0).unwrap(), "{\"next\":5}")
+  // Named Result selection uses its checked occurrence, not the last task's
+  // raw rows or another producer with an equivalent schema.
+  let value_limits : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 10000,
+    max_depth: 20,
+    max_work: 10000,
+  }
+  let bridge = @execution.prepare_managed_publication_bridge(
+    second_output,
+    (second.material)().unwrap(),
+    100,
+    value_limits,
+    100,
+    10000,
+  ).unwrap()
+  @execution.append_managed_publication_bridge_wire(
+    bridge,
+    (second.output_row)(0).unwrap(),
+    { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+  ).unwrap()
+  let result_output = @execution.finish_managed_publication_bridge(bridge).unwrap()
+  let result_limits : @publication_host.PublicationOutputExportLimits = {
+    max_result_fields: 10,
+    max_result_mapping_work: 100,
+    max_result_order_work: 100,
+    max_result_workspace_entries: 100,
+    max_rows: 100,
+    values: value_limits,
+    payload_wire: row_wire_limits(),
+    logical_wire: row_wire_limits(),
+    schema: {
+      max_fields: 10,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 20,
+    },
+    max_batch_bytes: 16,
+  }
+  assert_true(
+    @publication_host.start_captured_managed_result_publication_export(
+      run, 0, first_output, bridge, result_output, result_limits,
+    )
+    is Err(ForeignSelection),
+  )
+  let result_preparation = @publication_host.start_captured_managed_result_publication_export(
+    run,
+    0,
+    second_output,
+    bridge,
+    result_output,
+    result_limits,
+    max_pins=1,
+  ).unwrap()
+  let mut result_ready = false
+  for _ in 0..<1000 {
+    let (done, work) = result_preparation.advance(1).unwrap()
+    assert_true(work <= 1)
+    if done {
+      result_ready = true
+      break
+    }
+  }
+  assert_true(result_ready)
+  let exported_result = result_preparation.finish().unwrap()
+  result_preparation.cancel()
+  assert_true(result_preparation.finish() is Err(InvalidState))
+  let result_rows = StringBuilder()
+  while exported_result.next().unwrap() is Some(chunk) {
+    result_rows.write_string(chunk)
+  }
+  result_rows.write_string(exported_result.finish().unwrap())
+  assert_eq(result_rows.to_string(), "[{\"next\":5}]")
+  assert_eq(exported_result.result_fields().unwrap(), ["next"])
+  assert_eq(exported_result.row_count().unwrap(), 1)
+  exported_result.cancel()
+  @execution.close_managed_publication_bridge(bridge)
+  second_available.val = false
+  (second.close)()
+  @strategy.close_captured_task_output(run, 2)
+  assert_true((second.cleanup_refresh)())
   available.val = false
   (operations.close)()
   @strategy.close_captured_task_output(run, 1)
   assert_true((operations.cleanup_refresh)())
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)
+  assert_true(@strategy.captured_task_retirement_pending(run))
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  assert_true(!@strategy.captured_task_retirement_pending(run))
   assert_eq(
     @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
-    0L,
+    128L,
   )
+  assert_eq(@buffers.close_workspace(workspace), Err(@buffers.CleanupPending))
+  assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 128L)
+  physical_stopped.val = true
+  assert_eq(@buffers.close_workspace(workspace), Err(@buffers.CleanupPending))
+  assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 128L)
+  physical_cleaned.val = true
+  @buffers.close_workspace(workspace).unwrap()
+  assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 0L)
   assert_true(@mock.mock_captured_source(issuer, attempt, observation) is Ok(_))
   @mock.close_mock_query_issuer(issuer)
   assert_true(
