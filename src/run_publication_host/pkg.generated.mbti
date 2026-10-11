@@ -544,6 +544,8 @@ pub fn client_retained_task_input_producer(ClientRetainedTaskInput) -> ClientRet
 
 pub fn client_retained_task_input_transfer_record(ClientRetainedTaskInput) -> @remote_transfer.RemoteTransferRecord
 
+pub fn client_retained_task_producer_lookup(@remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest, Int) -> Result[@remote_site_protocol.DispatchRequest, ClientRetainedTaskInputIssue]
+
 pub fn client_retained_task_route_physical(ClientRetainedTaskRoute) -> ClientTransferInput
 
 pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> @remote_site_protocol.DispatchRequest

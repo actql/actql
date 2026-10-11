@@ -12,6 +12,42 @@ struct ClientRetainedTaskRoute {
 }
 
 ///|
+/// Select only a same-Site journal lookup address from the bounded binding.
+/// This is not checked-edge admission, completion evidence, current authority,
+/// a borrow or a start claim. The selected producer must be found in the trusted
+/// original journal, and ordinary full route admission must still follow.
+pub fn client_retained_task_producer_lookup(
+  saved : @remote.RemoteInputBinding,
+  consumer : @remote.DispatchRequest,
+  max_binding_bytes : Int,
+) -> Result[@remote.DispatchRequest, ClientRetainedTaskInputIssue] {
+  if !@remote.remote_input_binding_matches_dispatch(saved, consumer) {
+    return Err(InvalidBinding)
+  }
+  let fields = match retained_task_binding_fields(saved, max_binding_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (run, task) = @remote.dispatch_request_task_scope(consumer)
+  guard client_transfer_input_text(fields, "version") ==
+    Some("actql-remote-retained-task-input/0.1") &&
+    client_transfer_input_text(fields, "run_definition_cid") == Some(run) &&
+    client_transfer_input_text(fields, "consumer_task_key") == Some(task) &&
+    client_transfer_input_text(fields, "producer_request_json") is Some(wire) &&
+    @sha.text_hex(wire) is Ok(hash) &&
+    @remote.admit_dispatch_request_json(wire, "sha256:" + hash) is Ok(producer) &&
+    @remote.dispatch_request_json(producer) == Ok(wire) &&
+    @remote.dispatch_request_task_scope(producer).0 == run &&
+    @remote.dispatch_request_journal_key(producer)[0] ==
+    @remote.dispatch_request_journal_key(consumer)[0] &&
+    @remote.dispatch_request_execution_scope(producer) ==
+    @remote.dispatch_request_execution_scope(consumer) else {
+    return Err(InvalidBinding)
+  }
+  Ok(producer)
+}
+
+///|
 pub fn admit_client_retained_task_route(
   saved : @remote.RemoteInputBinding,
   edge : ClientRetainedInputEdge,

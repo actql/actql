@@ -148,6 +148,7 @@ fn retained_consumer_holder_case(
   if effect_materials is Some(_) {
     assert_eq(
       @resident.resident_effect_retained_consumer_producer_identity(
+        producer_journal,
         admission,
         retained_compute_effect_limits(),
         configuration,
