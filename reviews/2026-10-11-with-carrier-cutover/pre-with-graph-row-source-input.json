@@ -1,0 +1,984 @@
+{
+  "source_sha": "f11245751b56b8059cd97f7055a84245a4fdafdc",
+  "classification": "Historical authored fixture inputs; not accepted current syntax or new runtime evidence.",
+  "successes": [
+    {
+      "name": "graph-node-rows-json-control",
+      "format": "json",
+      "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_rows.nodes\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false},\"p\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"node_key\":2,\"p\":7},{\"node_key\":1,\"p\":null}]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Person\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}},{\"name\":\"Owner\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":true,\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[\"node_key\",\"p\",\"labels\"]},{\"filter\":{\"gt\":[{\"field\":\"node_key\"},{\"literal\":0}]}},{\"sort\":[{\"field\":\"node_key\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"node_key\",\"p\",\"labels\"]}}}],\"results\":{\"nodes\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+      "results": {
+        "nodes": {
+          "rows": [
+            {
+              "node_key": 1,
+              "p": null,
+              "labels": [
+                "Owner",
+                "Person"
+              ]
+            },
+            {
+              "node_key": 2,
+              "p": 7,
+              "labels": [
+                "Owner",
+                "Person"
+              ]
+            }
+          ],
+          "columns": [
+            {
+              "name": "node_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-node-rows-null-and-labels",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); FROM g |> node_rows() |> SELECT node_key, p, labels |> WHERE node_key > 0 |> ORDER BY node_key |> RESULT nodes",
+      "results": {
+        "nodes": {
+          "rows": [
+            {
+              "node_key": 1,
+              "p": null,
+              "labels": [
+                "Owner",
+                "Person"
+              ]
+            },
+            {
+              "node_key": 2,
+              "p": 7,
+              "labels": [
+                "Owner",
+                "Person"
+              ]
+            }
+          ],
+          "columns": [
+            {
+              "name": "node_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-edge-rows-json-control",
+      "format": "json",
+      "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_rows.edges\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1}]},\"as\":\"n\"},{\"values\":{\"schema\":{\"edge_key\":{\"type\":\"number\",\"nullable\":false},\"part\":{\"type\":\"number\",\"nullable\":false},\"src_key\":{\"type\":\"number\",\"nullable\":false},\"dst_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"edge_key\":11,\"part\":7,\"src_key\":1,\"dst_key\":1},{\"edge_key\":10,\"part\":7,\"src_key\":1,\"dst_key\":1}]},\"as\":\"e\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"e\",\"key\":[\"part\",\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"src_key\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]}]},\"as\":\"g\"},{\"from\":\"g\",\"edge_rows\":true,\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[\"part\",\"edge_key\",\"labels\"]},{\"sort\":[{\"field\":\"edge_key\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"part\",\"edge_key\",\"labels\"]}}}],\"results\":{\"edges\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+      "results": {
+        "edges": {
+          "rows": [
+            {
+              "part": 7,
+              "edge_key": 10,
+              "labels": [
+                "R"
+              ]
+            },
+            {
+              "part": 7,
+              "edge_key": 11,
+              "labels": [
+                "R"
+              ]
+            }
+          ],
+          "columns": [
+            {
+              "name": "part",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "edge_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-edge-rows-composite-parallel-data",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); DATA `rows` = FROM `g` |> EDGE_ROWS() |> SELECT part, edge_key, labels; FROM `rows` |> ORDER BY edge_key |> RESULT edges",
+      "results": {
+        "edges": {
+          "rows": [
+            {
+              "part": 7,
+              "edge_key": 10,
+              "labels": [
+                "R"
+              ]
+            },
+            {
+              "part": 7,
+              "edge_key": 11,
+              "labels": [
+                "R"
+              ]
+            }
+          ],
+          "columns": [
+            {
+              "name": "part",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "edge_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-node-rows-typed-empty",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p WHERE FALSE; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); FROM g |> node_rows() |> SELECT node_key, p, labels |> RESULT nodes",
+      "results": {
+        "nodes": {
+          "rows": [],
+          "columns": [
+            {
+              "name": "node_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-node-definition-json-control",
+      "format": "json",
+      "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_rows.selection\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"key\":{\"type\":\"number\",\"nullable\":false},\"p\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"key\":2,\"p\":7},{\"key\":1,\"p\":null}]},\"as\":\"n\"},{\"values\":{\"schema\":{\"key\":{\"type\":\"number\",\"nullable\":false},\"p\":{\"type\":\"number\",\"nullable\":false},\"q\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"key\":3,\"p\":9,\"q\":\"company\"}]},\"as\":\"m\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"key\"],\"labels\":[{\"name\":\"Person\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}}]},{\"name\":\"M\",\"from\":\"m\",\"key\":[\"key\"],\"labels\":[{\"name\":\"PERSON\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}},{\"name\":\"Company\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"q\",\"to\":\"q\"}]}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":{\"definition\":\"N\"},\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[\"key\",\"p\"]},{\"filter\":\"p IS NULL OR p > 0\"},{\"sort\":[{\"field\":\"key\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"key\",\"p\"]}}}],\"results\":{\"selected\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+      "results": {
+        "selected": {
+          "rows": [
+            {
+              "key": 1,
+              "p": null
+            },
+            {
+              "key": 2,
+              "p": 7
+            }
+          ],
+          "columns": [
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-node-definition-source",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(definition: 'n') |> SELECT key, p |> WHERE p IS NULL OR p > 0 |> ORDER BY key |> RESULT selected",
+      "results": {
+        "selected": {
+          "rows": [
+            {
+              "key": 1,
+              "p": null
+            },
+            {
+              "key": 2,
+              "p": 7
+            }
+          ],
+          "columns": [
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-node-label-json-control",
+      "format": "json",
+      "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_rows.selection\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"key\":{\"type\":\"number\",\"nullable\":false},\"p\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"key\":2,\"p\":7},{\"key\":1,\"p\":null}]},\"as\":\"n\"},{\"values\":{\"schema\":{\"key\":{\"type\":\"number\",\"nullable\":false},\"p\":{\"type\":\"number\",\"nullable\":false},\"q\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"key\":3,\"p\":9,\"q\":\"company\"}]},\"as\":\"m\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"key\"],\"labels\":[{\"name\":\"Person\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}}]},{\"name\":\"M\",\"from\":\"m\",\"key\":[\"key\"],\"labels\":[{\"name\":\"PERSON\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}},{\"name\":\"Company\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"q\",\"to\":\"q\"}]}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":{\"label\":\"person\"},\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[\"key\",\"p\"]},{\"filter\":\"p IS NULL OR p > 0\"},{\"sort\":[{\"field\":\"key\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"key\",\"p\"]}}}],\"results\":{\"selected\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+      "results": {
+        "selected": {
+          "rows": [
+            {
+              "key": 1,
+              "p": null
+            },
+            {
+              "key": 2,
+              "p": 7
+            },
+            {
+              "key": 3,
+              "p": 9
+            }
+          ],
+          "columns": [
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-node-label-source",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(label: \"pErSoN\") |> SELECT key, p |> WHERE p IS NULL OR p > 0 |> ORDER BY key |> RESULT selected",
+      "results": {
+        "selected": {
+          "rows": [
+            {
+              "key": 1,
+              "p": null
+            },
+            {
+              "key": 2,
+              "p": 7
+            },
+            {
+              "key": 3,
+              "p": 9
+            }
+          ],
+          "columns": [
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-edge-definition-json-control",
+      "format": "json",
+      "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_rows.edges\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1}]},\"as\":\"n\"},{\"values\":{\"schema\":{\"edge_key\":{\"type\":\"number\",\"nullable\":false},\"part\":{\"type\":\"number\",\"nullable\":false},\"src_key\":{\"type\":\"number\",\"nullable\":false},\"dst_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"edge_key\":11,\"part\":7,\"src_key\":1,\"dst_key\":1},{\"edge_key\":10,\"part\":7,\"src_key\":1,\"dst_key\":1}]},\"as\":\"e\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"e\",\"key\":[\"part\",\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"src_key\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]}]},\"as\":\"g\"},{\"from\":\"g\",\"edge_rows\":{\"definition\":\"E\"},\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[\"part\",\"edge_key\",\"labels\"]},{\"sort\":[{\"field\":\"edge_key\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"part\",\"edge_key\",\"labels\"]}}}],\"results\":{\"edges\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+      "results": {
+        "edges": {
+          "rows": [
+            {
+              "part": 7,
+              "edge_key": 10,
+              "labels": [
+                "R"
+              ]
+            },
+            {
+              "part": 7,
+              "edge_key": 11,
+              "labels": [
+                "R"
+              ]
+            }
+          ],
+          "columns": [
+            {
+              "name": "part",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "edge_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-edge-definition-source",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); FROM `g` |> edge_rows(definition: \"e\") |> SELECT part, edge_key, labels |> ORDER BY edge_key |> RESULT edges",
+      "results": {
+        "edges": {
+          "rows": [
+            {
+              "part": 7,
+              "edge_key": 10,
+              "labels": [
+                "R"
+              ]
+            },
+            {
+              "part": 7,
+              "edge_key": 11,
+              "labels": [
+                "R"
+              ]
+            }
+          ],
+          "columns": [
+            {
+              "name": "part",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "edge_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-edge-label-source",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); DATA rows = FROM g |> edge_rows(label: 'r') |> SELECT part, edge_key, labels; FROM rows |> ORDER BY edge_key |> RESULT edges",
+      "results": {
+        "edges": {
+          "rows": [
+            {
+              "part": 7,
+              "edge_key": 10,
+              "labels": [
+                "R"
+              ]
+            },
+            {
+              "part": 7,
+              "edge_key": 11,
+              "labels": [
+                "R"
+              ]
+            }
+          ],
+          "columns": [
+            {
+              "name": "part",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "edge_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "labels",
+              "contract": {
+                "type": "array",
+                "nullable": false,
+                "items": {
+                  "type": "string",
+                  "nullable": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-node-definition-empty",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p WHERE FALSE; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(definition: 'N') |> SELECT key, p |> WHERE p IS NULL OR p > 0 |> ORDER BY key |> RESULT selected",
+      "results": {
+        "selected": {
+          "rows": [],
+          "columns": [
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "graph-row-node-set-json-control",
+      "format": "json",
+      "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_rows.positional_set\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false},\"p\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"node_key\":2,\"p\":7},{\"node_key\":1,\"p\":null}]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Person\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}},{\"name\":\"Owner\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"n\",\"select\":[{\"value\":\"p\"}],\"as\":\"left\"},{\"from\":\"g\",\"node_rows\":{\"definition\":\"N\"}},{\"derive\":{\"next\":{\"add\":[{\"field\":\"p\"},{\"literal\":1}]}}},{\"select\":[{\"value\":\"next\"}],\"as\":\"right\"},{\"from\":\"left\",\"append\":{\"with\":\"right\"}},{\"sort\":[{\"field\":\"value\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"value\"]}}}],\"results\":{\"values\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": null
+            },
+            {
+              "value": null
+            },
+            {
+              "value": 7
+            },
+            {
+              "value": 8
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-node-set-named",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); DATA combined = FROM n |> SELECT p AS value |> UNION ALL (FROM g |> node_rows(definition: 'N') |> SELECT p + 1 AS other); FROM combined |> ORDER BY value |> RESULT values",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": null
+            },
+            {
+              "value": null
+            },
+            {
+              "value": 7
+            },
+            {
+              "value": 8
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-node-set-anonymous",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); DATA combined = FROM n |> SELECT p AS value |> UNION ALL (FROM g |> node_rows(definition: 'N') |> SELECT p + 1); FROM combined |> ORDER BY value |> RESULT values",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": null
+            },
+            {
+              "value": null
+            },
+            {
+              "value": 7
+            },
+            {
+              "value": 8
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-node-set-unselected",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); DATA combined = FROM n |> SELECT p AS value |> UNION ALL (FROM g |> node_rows() |> SELECT p + 1); FROM combined |> ORDER BY value |> RESULT values",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": null
+            },
+            {
+              "value": null
+            },
+            {
+              "value": 7
+            },
+            {
+              "value": 8
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-node-set-head",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1) |> ORDER BY value",
+      "sourceReadCount": 0,
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "value": null
+            },
+            {
+              "value": null
+            },
+            {
+              "value": 7
+            },
+            {
+              "value": 8
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-node-set-data-head",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); DATA combined = FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1); FROM combined |> ORDER BY value |> RESULT values",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": null
+            },
+            {
+              "value": null
+            },
+            {
+              "value": 7
+            },
+            {
+              "value": 8
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-edge-set-json-control",
+      "format": "json",
+      "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_rows.positional_set\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1}]},\"as\":\"n\"},{\"values\":{\"schema\":{\"edge_key\":{\"type\":\"number\",\"nullable\":false},\"part\":{\"type\":\"number\",\"nullable\":false},\"src_key\":{\"type\":\"number\",\"nullable\":false},\"dst_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"edge_key\":11,\"part\":7,\"src_key\":1,\"dst_key\":1},{\"edge_key\":10,\"part\":7,\"src_key\":1,\"dst_key\":1}]},\"as\":\"e\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"e\",\"key\":[\"part\",\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"src_key\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]}]},\"as\":\"g\"},{\"from\":\"e\",\"select\":[{\"value\":\"edge_key\"}],\"as\":\"left\"},{\"from\":\"g\",\"edge_rows\":{\"definition\":\"E\"}},{\"derive\":{\"next\":{\"add\":[{\"field\":\"edge_key\"},{\"literal\":1}]}}},{\"select\":[{\"value\":\"next\"}],\"as\":\"right\"},{\"from\":\"left\",\"append\":{\"with\":\"right\"}},{\"sort\":[{\"field\":\"value\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"value\"]}}}],\"results\":{\"values\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": 10
+            },
+            {
+              "value": 11
+            },
+            {
+              "value": 11
+            },
+            {
+              "value": 12
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-edge-set-named",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); DATA combined = FROM e |> SELECT edge_key AS value |> UNION ALL (FROM g |> edge_rows(definition: 'E') |> SELECT edge_key + 1 AS other); FROM combined |> ORDER BY value |> RESULT values",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": 10
+            },
+            {
+              "value": 11
+            },
+            {
+              "value": 11
+            },
+            {
+              "value": 12
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-edge-set-anonymous",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); DATA combined = FROM e |> SELECT edge_key AS value |> UNION ALL (FROM g |> edge_rows(definition: 'E') |> SELECT edge_key + 1); FROM combined |> ORDER BY value |> RESULT values",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [
+            {
+              "value": 10
+            },
+            {
+              "value": 11
+            },
+            {
+              "value": 11
+            },
+            {
+              "value": 12
+            }
+          ],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "graph-row-node-set-empty",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p WHERE FALSE; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); DATA combined = FROM n |> SELECT p AS value |> UNION ALL (FROM g |> node_rows(definition: 'N') |> SELECT p + 1); FROM combined |> ORDER BY value |> RESULT values",
+      "sourceReadCount": 0,
+      "results": {
+        "values": {
+          "rows": [],
+          "columns": [
+            {
+              "name": "value",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "refusals": [
+    {
+      "name": "graph-row-conditional-property",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key, 7 AS p; DATA m = SELECT 2 AS other_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p), m AS M KEY (other_key) LABEL Company NO PROPERTIES)); FROM g |> node_rows() |> SELECT p"
+    },
+    {
+      "name": "graph-row-conditional-is-not-null",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key, 7 AS p; DATA m = SELECT 2 AS other_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p), m AS M KEY (other_key) LABEL Company NO PROPERTIES)); FROM g |> node_rows() |> WHERE p IS NOT NULL |> SELECT id"
+    },
+    {
+      "name": "graph-row-carrier-mismatch",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; FROM n |> node_rows() |> SELECT node_key"
+    },
+    {
+      "name": "graph-row-unknown-property",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); FROM g |> node_rows() |> SELECT missing"
+    },
+    {
+      "name": "graph-row-unknown-definition",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(definition: 'missing') |> SELECT id"
+    },
+    {
+      "name": "graph-row-wrong-kind",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> node_rows(definition: 'E') |> SELECT id"
+    },
+    {
+      "name": "graph-row-unknown-label",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(label: 'missing') |> SELECT id"
+    },
+    {
+      "name": "graph-row-both-selectors",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(definition: 'N', label: 'Person') |> SELECT id"
+    },
+    {
+      "name": "graph-row-non-string-selector",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(label: 1) |> SELECT id"
+    },
+    {
+      "name": "graph-row-label-conditional-property",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(label: 'Person') |> SELECT q"
+    },
+    {
+      "name": "graph-row-label-conditional-predicate",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); FROM g |> node_rows(label: 'Person') |> WHERE q IS NOT NULL |> SELECT key"
+    },
+    {
+      "name": "graph-row-set-anonymous-by-name",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); DATA combined = FROM n |> SELECT p AS value |> UNION ALL BY NAME (FROM g |> node_rows(definition: 'N') |> SELECT p + 1); FROM combined |> ORDER BY value |> RESULT values",
+      "expectedCode": "ClientProgramImplementationLimit"
+    },
+    {
+      "name": "graph-row-set-anonymous-private-field",
+      "format": "aql-text",
+      "text": "DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); FROM n |> SELECT p AS value |> UNION ALL (FROM g |> node_rows(definition: 'N') |> SELECT p + 1) |> ORDER BY aql_set_anonymous_4",
+      "expectedCode": "ClientProgramInvalidInput"
+    }
+  ]
+}

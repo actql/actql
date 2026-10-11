@@ -1,0 +1,1509 @@
+{
+  "source_sha": "cd38e9506c910d9eea358941572edafe2e751861",
+  "classification": "immutable historical authored callers; not accepted syntax",
+  "graph": {
+    "successes": [
+      {
+        "name": "data-set-order-reuses-hidden-slot",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-quoted-set-order",
+        "format": "aql-text",
+        "text": "DATA `n` = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id; FROM `n` |> SELECT id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              },
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-retained-results",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active",
+        "results": {
+          "original": {
+            "rows": [
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          },
+          "active": {
+            "rows": [
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-independent-json",
+        "format": "json",
+        "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.bounded_graph_walk\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"n\"},{\"values\":{\"schema\":{\"key\":{\"type\":\"number\",\"nullable\":false},\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"key\":10,\"src\":1,\"dst\":1},{\"key\":11,\"src\":1,\"dst\":1}]},\"as\":\"e\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"e\",\"key\":[\"key\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"],\"references_key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"],\"references_key\":[\"id\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]}]},\"as\":\"g\"},{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"where\":{\"literal\":true},\"bindings\":{\"identity\":\"identity\"},\"fields\":[\"identity\"]},\"as\":\"seeds\"},{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"seeds\",\"id\":\"identity\"},\"direction\":\"out\",\"min_hops\":2,\"max_hops\":2,\"path_mode\":\"walk\",\"edge_types\":[\"R\"],\"emit\":\"paths\"},\"as\":\"paths\"},{\"from\":\"paths\",\"select\":[{\"depth\":\"hop_count\"}],\"as\":\"depths\"}],\"results\":{\"paths\":{\"from\":\"depths\",\"fields\":[\"depth\"]}}}],\"results\":{\"paths\":{\"from\":{\"stage\":\"main\",\"result\":\"paths\"}}}}",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-two-hop-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-zero-through-two-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->{0,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 0
+              },
+              {
+                "depth": 1
+              },
+              {
+                "depth": 1
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-two-hop-default-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p =  (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-zero-through-two-default-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p =  (:Node)-[:R]->{0,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 0
+              },
+              {
+                "depth": 1
+              },
+              {
+                "depth": 1
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-two-hop-trail",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-zero-through-two-trail",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{0,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 0
+              },
+              {
+                "depth": 1
+              },
+              {
+                "depth": 1
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-two-hop-acyclic",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-bounded-zero-through-two-acyclic",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[:R]->{0,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 0
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-static-label",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id, a.entity_type AS category |> RESULT people",
+        "results": {
+          "people": {
+            "rows": [
+              {
+                "id": 1,
+                "category": "Company"
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              {
+                "name": "category",
+                "contract": {
+                  "type": "string",
+                  "nullable": false,
+                  "max_utf8_bytes": 7
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-normalized-graph-consumer",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> normalize_graph() |> MATCH WALK (a:Person) |> SELECT a.id AS id |> RESULT people",
+        "results": {
+          "people": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-empty-property-filter",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH WALK (a:Person WHERE entity_type = 'Person') |> SELECT a.id AS id |> RESULT people",
+        "results": {
+          "people": {
+            "rows": [],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-default-node-mode",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH (a:Person) |> SELECT a.id AS id, a.entity_type AS category |> RESULT people",
+        "results": {
+          "people": {
+            "rows": [
+              {
+                "id": 1,
+                "category": "Company"
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              {
+                "name": "category",
+                "contract": {
+                  "type": "string",
+                  "nullable": false,
+                  "max_utf8_bytes": 7
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-explicit-projection-star",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH WALK (`a`:Person) |> SELECT `a`.`ID` AS id |> SELECT * |> RESULT people",
+        "results": {
+          "people": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-scoped-loops-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA f = SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, f AS F KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-scoped-loops-default-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA f = SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, f AS F KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p =  (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-scoped-loops-trail",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA f = SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, f AS F KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-scoped-loops-acyclic",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA f = SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, f AS F KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-parallel-one-definition-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-parallel-one-definition-default-walk",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p =  (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-parallel-one-definition-trail",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-parallel-one-definition-acyclic",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-composite-node-keys",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS part, 23 AS id UNION ALL SELECT 12 AS part, 3 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (part, id) LABEL Node PROPERTIES (part, id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.part AS part, a.id AS id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "part": 1,
+                "id": 23
+              },
+              {
+                "part": 12,
+                "id": 3
+              }
+            ],
+            "columns": [
+              {
+                "name": "part",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ],
+            "unordered": true
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-composite-edge-keys",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 7 AS part, 1 AS seq, 1 AS src, 1 AS dst UNION ALL SELECT 7 AS part, 2 AS seq, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, seq) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 2
+              },
+              {
+                "depth": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-null-node-key-exclusion",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id UNION ALL SELECT CAST(NULL AS FLOAT64) AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id AS id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-all-null-key-typed-empty",
+        "format": "aql-text",
+        "text": "DATA n = SELECT CAST(NULL AS FLOAT64) AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id AS id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-null-key-and-unmatched-endpoint-exclusion",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT CAST(NULL AS FLOAT64) AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 2 AS src, 1 AS dst UNION ALL SELECT 12 AS key, CAST(NULL AS FLOAT64) AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-static-label-set",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id) LABEL Account PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:account) |> SELECT a.id AS id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-definition-label-Person",
+        "format": "aql-text",
+        "text": "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c = SELECT 1 AS id, 'Firmxx' AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (p AS P KEY (id) LABEL Node PROPERTIES (id, tag), c AS C KEY (id) LABEL Company PROPERTIES (tag, id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id, a.tag |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1,
+                "tag": "Person"
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              {
+                "name": "tag",
+                "contract": {
+                  "type": "string",
+                  "nullable": false,
+                  "max_utf8_bytes": 6
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-definition-label-Firmxx",
+        "format": "aql-text",
+        "text": "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c = SELECT 1 AS id, 'Firmxx' AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (p AS P KEY (id) LABEL Node PROPERTIES (id, tag), c AS C KEY (id) LABEL Company PROPERTIES (tag, id))); FROM GRAPH g |> MATCH WALK (a:`coMPaNY`) |> SELECT a.id, a.tag |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1,
+                "tag": "Firmxx"
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              {
+                "name": "tag",
+                "contract": {
+                  "type": "string",
+                  "nullable": false,
+                  "max_utf8_bytes": 6
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-shared-label-definition-multiplicity",
+        "format": "aql-text",
+        "text": "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c = SELECT 1 AS id, 'Firmxx' AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (p AS P KEY (id) LABEL Node PROPERTIES (id, tag), c AS C KEY (id) LABEL Node PROPERTIES (tag, id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id, a.tag |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1,
+                "tag": "Person"
+              },
+              {
+                "id": 1,
+                "tag": "Firmxx"
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              {
+                "name": "tag",
+                "contract": {
+                  "type": "string",
+                  "nullable": false,
+                  "max_utf8_bytes": 6
+                }
+              }
+            ],
+            "unordered": true
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-definition-scoped-endpoint",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS P KEY (id) LABEL Person NO PROPERTIES, n AS C KEY (id) LABEL Company NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES P DESTINATION KEY (dst) REFERENCES C LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Person)-[:R]->() |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "results": {
+          "paths": {
+            "rows": [
+              {
+                "depth": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "depth",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-property-spelling-secondary",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id))); FROM GRAPH g |> MATCH WALK (a:secondary WHERE `Id` = 1) |> SELECT a.id AS id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-property-spelling-all-labels",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id))); FROM GRAPH g |> MATCH WALK (a WHERE `Id` = 1) |> SELECT a.id AS id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-property-spelling-definitions",
+        "format": "aql-text",
+        "text": "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c = SELECT 1 AS id, 'Firmxx' AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (p AS P KEY (id) LABEL Node PROPERTIES (id, tag), c AS C KEY (id) LABEL Node PROPERTIES (id AS ID, tag AS TAG))); FROM GRAPH g |> MATCH WALK (a:Node WHERE `Id` = 1) |> SELECT a.id, a.tag |> ORDER BY tag |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1,
+                "tag": "Firmxx"
+              },
+              {
+                "id": 1,
+                "tag": "Person"
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              {
+                "name": "tag",
+                "contract": {
+                  "type": "string",
+                  "nullable": false,
+                  "max_utf8_bytes": 6
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      }
+    ],
+    "executionFailures": [
+      {
+        "name": "keyed-duplicate-node-key",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id UNION ALL SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id AS id |> RESULT nodes",
+        "resultNames": [
+          "nodes"
+        ],
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-duplicate-edge-key",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "resultNames": [
+          "paths"
+        ],
+        "sourceReadCount": 0
+      },
+      {
+        "name": "keyed-duplicate-before-endpoint-exclusion",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 10 AS key, 2 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths",
+        "resultNames": [
+          "paths"
+        ],
+        "sourceReadCount": 0
+      }
+    ],
+    "refusals": [
+      {
+        "name": "keyed-bounded-invalid-walk-named-edge",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[e:R]->{1,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-walk-missing-edge-property",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R WHERE key > 0]->{1,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-walk-reversed-bounds",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->{2,1}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-walk-zero-upper-bound",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->{0,0}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-trail-named-edge",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[e:R]->{1,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-trail-missing-edge-property",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R WHERE key > 0]->{1,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-trail-reversed-bounds",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{2,1}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-trail-zero-upper-bound",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{0,0}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-acyclic-named-edge",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[e:R]->{1,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-acyclic-missing-edge-property",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[:R WHERE key > 0]->{1,2}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-acyclic-reversed-bounds",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[:R]->{2,1}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-bounded-invalid-acyclic-zero-upper-bound",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Node)-[:R]->{0,0}(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths"
+      },
+      {
+        "name": "keyed-property-spelling-source-collision",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 2 AS other; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (other AS id))); FROM GRAPH g |> MATCH WALK (a:secondary) |> SELECT a.id AS id"
+      },
+      {
+        "name": "keyed-unadapted-endpoint-label",
+        "expectedCode": "ClientProgramImplementationLimit",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS P KEY (id) LABEL Person NO PROPERTIES, n AS C KEY (id) LABEL Company NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES P DESTINATION KEY (dst) REFERENCES C LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = ACYCLIC (:Person)-[:R]->(:Person) |> SELECT PATH_LENGTH(p) AS depth"
+      },
+      {
+        "name": "keyed-unadapted-heterogeneous-binding",
+        "format": "aql-text",
+        "text": "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c = SELECT 1 AS id, 'Firmxx' AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (p AS P KEY (id) LABEL Node PROPERTIES (id, tag), c AS C KEY (id) LABEL Company PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a) |> SELECT a.tag"
+      },
+      {
+        "name": "unsupported-mean-consumer",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id"
+      },
+      {
+        "name": "keyed-star",
+        "expectedCode": "ClientProgramImplementationLimit",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH WALK (a) |> SELECT *"
+      },
+      {
+        "name": "keyed-implicit-element-export",
+        "expectedCode": "ClientProgramImplementationLimit",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH WALK (a)"
+      },
+      {
+        "name": "keyed-missing-binding",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH missing |> MATCH WALK (a) |> SELECT a.id"
+      },
+      {
+        "name": "keyed-missing-property",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH WALK (a) |> SELECT a.missing"
+      },
+      {
+        "name": "keyed-private-slot",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); FROM GRAPH g |> MATCH WALK (a) |> SELECT aql_keyed_identity_2"
+      },
+      {
+        "name": "retired-constructor",
+        "format": "aql-text",
+        "text": "DATA g = graph(nodes: n); FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id"
+      },
+      {
+        "name": "data-forward-reference",
+        "format": "aql-text",
+        "text": "DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id"
+      },
+      {
+        "name": "data-duplicate",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; FROM n |> SELECT id"
+      },
+      {
+        "name": "data-sql-format",
+        "format": "sql",
+        "text": "DATA n = SELECT 1 AS id; FROM n |> SELECT id"
+      }
+    ]
+  },
+  "relation": {
+    "successes": [
+      {
+        "name": "data-set-order-reuses-hidden-slot",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-quoted-set-order",
+        "format": "aql-text",
+        "text": "DATA `n` = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id; FROM `n` |> SELECT id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              },
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-retained-results",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active",
+        "results": {
+          "original": {
+            "rows": [
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          },
+          "active": {
+            "rows": [
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-anonymous-set-duplicate-order-limit",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 2 AS id UNION ALL SELECT 1 + 0 UNION ALL SELECT 1; FROM n |> ORDER BY id |> LIMIT 2 |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              },
+              {
+                "id": 1
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-anonymous-set-null-json-control",
+        "format": "json",
+        "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.data_anonymous_null\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"id\":2},{\"id\":null}]},\"as\":\"rows\"},{\"from\":\"rows\",\"sort\":[{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"sorted\"}],\"results\":{\"nodes\":{\"from\":\"sorted\",\"fields\":[\"id\"]}}}],\"results\":{\"nodes\":{\"from\":{\"stage\":\"main\",\"result\":\"nodes\"}}}}",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": null
+              },
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-anonymous-set-null-source",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64); FROM n |> ORDER BY id NULLS FIRST |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": null
+              },
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      },
+      {
+        "name": "data-anonymous-set-cte-source",
+        "format": "aql-text",
+        "text": "DATA n = WITH seed AS (SELECT 2 AS id) SELECT id FROM seed UNION ALL SELECT id - 1 FROM seed; FROM n |> ORDER BY id |> RESULT nodes",
+        "results": {
+          "nodes": {
+            "rows": [
+              {
+                "id": 1
+              },
+              {
+                "id": 2
+              }
+            ],
+            "columns": [
+              {
+                "name": "id",
+                "contract": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            ]
+          }
+        },
+        "sourceReadCount": 0
+      }
+    ],
+    "refusals": [
+      {
+        "name": "data-forward-reference",
+        "format": "aql-text",
+        "text": "DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id"
+      },
+      {
+        "name": "data-duplicate",
+        "format": "aql-text",
+        "text": "DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; FROM n |> SELECT id"
+      },
+      {
+        "name": "data-sql-format",
+        "format": "sql",
+        "text": "DATA n = SELECT 1 AS id; FROM n |> SELECT id"
+      },
+      {
+        "name": "data-anonymous-set-by-name",
+        "format": "aql-text",
+        "expectedCode": "ClientProgramImplementationLimit",
+        "text": "DATA n = SELECT 1 AS id UNION ALL BY NAME SELECT 2; FROM n |> SELECT id"
+      },
+      {
+        "name": "data-anonymous-set-private-field",
+        "format": "aql-text",
+        "expectedCode": "ClientProgramInvalidInput",
+        "text": "DATA n = SELECT 1 AS id UNION ALL SELECT 2; FROM n |> WHERE aql_set_anonymous_0 > 0 |> SELECT id"
+      }
+    ]
+  }
+}

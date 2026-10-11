@@ -1,0 +1,3 @@
+Total tests: 1, passed: 1, failed: 0.
+["moon","test","--target","js","src/query_program/traversal_nodes_test.mbt","--filter","Graph traversal retains malformed authored bodies for common refusal"]: executed; counts={"tests":1,"passed":1,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-FnIjmK

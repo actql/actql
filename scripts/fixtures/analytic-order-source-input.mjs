@@ -39,9 +39,9 @@ const ascending = [{id: 1, amount: -10, pos: 1}, {id: 2, amount: null, pos: 4},
   {id: 3, amount: -20, pos: 2}, {id: 4, amount: -20, pos: 3}];
 const object = {type: 'object', nullable: true, fields: {score: number}};
 const nonNullObject = {...object, nullable: false};
-const objectText = 'DATA objects = SELECT 2 AS id, @a AS payload, @oa AS other '
+const objectText = 'WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other '
   + 'UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other '
-  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other; ';
+  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other) ';
 const objectInput = {
   parameterDeclarations: {a: object, b: object, c: object,
     oa: nonNullObject, ob: nonNullObject, oc: nonNullObject},

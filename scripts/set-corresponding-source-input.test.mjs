@@ -583,3 +583,30 @@ test('positional PIVOT keeps anonymous group keys, immutable receivers and autho
   assert.equal(refusals.length, 7);
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
 });
+
+// Previous authored bytes preserve all independent expectations and controls.
+test('WITH set cutover preserves full independent fixture inventories and JSON bytes', async () => {
+  const retained = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/with-set-current-original-callers.json', import.meta.url), 'utf8'));
+  for (const name of ['set-by-name-list', 'set-inner-by-name', 'set-corresponding']) {
+    const file = 'scripts/fixtures/' + name + '-source-input.mjs';
+    const old = await import('data:text/javascript;base64,' + Buffer.from(retained.files[file].text).toString('base64'));
+    const current = await import(new URL('./fixtures/' + name + '-source-input.mjs', import.meta.url));
+    assert.deepEqual(Object.keys(current), Object.keys(old));
+    for (const key of Object.keys(current)) {
+      if (!Array.isArray(current[key])) {
+        assert.deepEqual(current[key], old[key]);
+        continue;
+      }
+      assert.deepEqual(current[key].map(({text, ...item}) => item), old[key].map(({text, ...item}) => item));
+      for (let index = 0; index < current[key].length; index++) {
+        const before = old[key][index];
+        const after = current[key][index];
+        if (before.format === 'json') assert.equal(after.text, before.text);
+        if (/\bDATA\b/.test(before.text ?? '')) {
+          assert.match(after.text, /^WITH /);
+          assert.doesNotMatch(after.text, /\bDATA\b/);
+        } else assert.equal(after.text, before.text);
+      }
+    }
+  }
+});

@@ -37,7 +37,7 @@ const distinctRows = [{value: false}, {value: true}];
 const distinctColumns = [columns[0]];
 const nullGroup = group('amount IS NOT NULL', 'NOT (records.amount IS NULL)');
 const parameterGroup = group('amount IS NOT DISTINCT FROM @p', 'NOT (records.amount IS DISTINCT FROM (@p))');
-const prefix = 'DATA pieces = SELECT id, amount, IF(amount = 1, NULL, 1) AS other FROM records WHERE id > 0; ';
+const prefix = 'WITH pieces AS (SELECT id, amount, IF(amount = 1, NULL, 1) AS other FROM records WHERE id > 0) ';
 const collision = ordered => prefix + 'SELECT id, amount IS NOT NULL AS original, other AS amount FROM pieces '
   + `ORDER BY ${ordered}, id`;
 const collisionColumns = [{name: 'id', contract: number}, {name: 'original', contract: boolean},

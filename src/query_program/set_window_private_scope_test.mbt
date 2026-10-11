@@ -127,7 +127,7 @@ test "set star parameter schema keeps private-name columns in script scope" {
     for
       source in [
         "SELECT * FROM UNNEST(@items) e UNION ALL SELECT * FROM UNNEST(@items) e ORDER BY ROW_NUMBER() OVER (ORDER BY id) DESC",
-        "DATA combined = SELECT * FROM UNNEST(@items) e UNION ALL SELECT * FROM UNNEST(@items) e ORDER BY ROW_NUMBER() OVER (ORDER BY id) DESC; FROM combined |> SELECT * |> RESULT answer",
+        "WITH combined AS (SELECT * FROM UNNEST(@items) e UNION ALL SELECT * FROM UNNEST(@items) e ORDER BY ROW_NUMBER() OVER (ORDER BY id) DESC) FROM combined |> SELECT * |> RESULT answer",
       ] {
       let program = compile_query_script(
         @query.parse_query_script(source, syntax_limits()).unwrap(),

@@ -1,0 +1,10 @@
+Total tests: 16, passed: 16, failed: 0.
+["moon","test","--target","js","src/query_program/with_cte_composition_test.mbt","src/query_program/with_binding_preparation_test.mbt","src/query_program/with_binding_static_order_gap_test.mbt","src/query_program/with_binding_demand_test.mbt"]: executed; counts={"tests":16,"passed":16,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Warning: [0001]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/query_join_bindings.mbt:14:4 ]
+    │
+ 14 │ fn join_requires_input_binding(
+    │    ─────────────┬─────────────  
+    │                 ╰─────────────── Warning (unused_value): Unused function 'join_requires_input_binding'
+────╯
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-AUnBSJ

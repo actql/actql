@@ -1,0 +1,28 @@
+{
+  "failed_source": "1d331a57b2029954394451eca10e4d53f5c6e9d0",
+  "failed_run": "run-YOtjJy",
+  "actual_js": {
+    "tests": 17,
+    "passed": 14,
+    "failed": 3
+  },
+  "reason": "WITH common static checks include all operations before demand selection. Malformed controls must assert the actual typed LocalProgram/Pipeline cause at compilation, not require an invalid Program to escape frontend and reject only during separate checking.",
+  "independent_cause_sources": [
+    "graph_typing/match.mbt: field lookup, uniqueness, required where and decoded body",
+    "graph_typing/definition_match.mbt: definition/label lookup and binding collision",
+    "graph_typing/match_issue.mbt: structure and predicate diagnostic mapping",
+    "graph_typing/selector.mbt: missing selector field",
+    "graph_typing/traverse.mbt: max bound >=1 and explicit path mode",
+    "pipeline_typing/check.mbt: traverse closed body and GraphMatch issue projection"
+  ],
+  "unchanged": [
+    "input rows and schema",
+    "operation arguments and predicates",
+    "explicit output bound 10",
+    "min/max_hops",
+    "path_mode",
+    "complete JSON positive controls",
+    "authored UnknownReference positions"
+  ],
+  "public_execution": "unexecuted"
+}

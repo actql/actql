@@ -92,8 +92,8 @@ const bucket = {type: 'object', nullable: true,
 const objectDeclarations = {a: bucket, b: bucket, c: bucket, d: bucket, e: bucket};
 const objectParameters = {a: {bucket: 'A'}, b: {bucket: 'B'}, c: null,
   d: {bucket: 'other'}, e: {bucket: null}};
-const objectPrefix = 'DATA objects = SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 '
-  + 'THEN @b WHEN id = 3 THEN @c ELSE @e END AS payload, @d AS other FROM records WHERE id > 0; ';
+const objectPrefix = 'WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 '
+  + 'THEN @b WHEN id = 3 THEN @c ELSE @e END AS payload, @d AS other FROM records WHERE id > 0) ';
 const objectSelect = 'SELECT id, ROW_NUMBER() OVER (PARTITION BY '
   + "COALESCE(payload.bucket, 'missing'), COALESCE((objects.payload).`BUCKET`, 'missing') "
   + 'ORDER BY id) AS pos, RANK() OVER (PARTITION BY ';

@@ -3,10 +3,10 @@
 import {aggregatePropertyOrderArrayProgram, aggregatePropertyOrderSuccesses}
   from './aggregate-property-order-source-input.mjs';
 const base = aggregatePropertyOrderSuccesses.find(item => item.name === 'aggregate-property-order-sql');
-const data = 'DATA objects = SELECT id, '
+const data = 'WITH objects AS (SELECT id, '
   + 'CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, '
   + 'CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other '
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const bounded = 'FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 ';
 const parameters = {...base.parameters, p4: {score: 10}};
 const sourceRows = base.sourceRows.filter((row, index) => index !== 4);
@@ -36,7 +36,7 @@ export const distinctSignedOrderSuccesses = [
     parameterDeclarations: undefined}),
   success('qualified-pipe', bounded + aggregate('-payload.score', '-o.payload.score')),
   success('parenthesized-property', bounded + aggregate('-(payload).score', '-o.payload.`SCORE`')),
-  success('sql', 'DATA keyed = ' + bounded + '; '
+  success('sql', ', keyed AS (' + bounded + ') '
     + 'SELECT ARRAY_AGG(DISTINCT -payload.score IGNORE NULLS ORDER BY -k.payload.score) AS items FROM keyed AS k'),
   success('descending', bounded + aggregate('-o.payload.score', '-((payload)).score', ' DESC NULLS LAST'),
     {expected: [{items: [-10, -20]}]}),
@@ -57,7 +57,7 @@ export const distinctSignedOrderRefusals = [
   ['current-versus-snapshot', 'FROM objects AS old |> ASSERT UNIQUE BY (id) |> SET payload = other '
     + aggregate('-payload.score', '-old.payload.score')],
   ['different-nesting', bounded + aggregate('-payload.score', '-(-o.payload.score)')],
-  ['object-versus-range', 'DATA colliding = SELECT id, payload, other.score AS score FROM objects; '
+  ['object-versus-range', ', colliding AS (SELECT id, payload, other.score AS score FROM objects) '
     + 'FROM colliding AS payload |> ASSERT UNIQUE BY (id) '
     + aggregate('-(payload).score', '-payload.score')],
 ].map(([name, tail]) => ({name: 'distinct-signed-order-refuse-' + name,

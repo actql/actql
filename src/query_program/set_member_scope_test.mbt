@@ -44,17 +44,17 @@ test "CTE set outputs keep declared object member spelling" {
 }
 
 ///|
-test "DATA set outputs keep declared object member spelling" {
+test "WITH set outputs keep declared object member spelling" {
   for operation in ["INTERSECT", "EXCEPT"] {
-    let text = "DATA chosen = FROM objects |> SELECT id, payload |> " +
+    let text = "WITH chosen AS (FROM objects |> SELECT id, payload |> " +
       operation +
-      " DISTINCT (FROM objects |> WHERE id <> 1 |> SELECT id, payload); FROM chosen |> SELECT id, payload.SCORE AS score |> ORDER BY id"
+      " DISTINCT (FROM objects |> WHERE id <> 1 |> SELECT id, payload)) FROM chosen |> SELECT id, payload.SCORE AS score |> ORDER BY id"
     let actual = compile_query_script(
       @query.parse_query_script(text, syntax_limits()).unwrap(),
       analytic_property_context(),
       construction_limits(),
     ).unwrap()
-    member_case_require_checked(actual, "DATA " + operation + " member")
+    member_case_require_checked(actual, "WITH " + operation + " member")
     assert_true(semantic(actual).contains("\"name\":\"score\""))
     assert_false(semantic(actual).contains("\"name\":\"SCORE\""))
   }

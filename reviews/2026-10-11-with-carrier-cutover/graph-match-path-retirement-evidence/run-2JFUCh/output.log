@@ -1,0 +1,3 @@
+Total tests: 17, passed: 17, failed: 0.
+["moon","test","--target","js","src/query_program/graph_match_rows_test.mbt","src/query_program/sga_script_test.mbt","src/query_program/traversal_paths_test.mbt","src/query_program/graph_match_paths_integration_test.mbt"]: executed; counts={"tests":17,"passed":17,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-8mdoXT

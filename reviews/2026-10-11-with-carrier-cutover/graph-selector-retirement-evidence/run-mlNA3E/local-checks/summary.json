@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-11T21:37:13.466Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "WITH Graph rows JOIN selectors Subgraph independent Programs and scoped refusals",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_rows_join_input_test.mbt",
+        "src/query_program/subgraph_source_test.mbt",
+        "src/query_program/subgraph_public_source_test.mbt"
+      ],
+      "startedAt": "2026-10-11T21:37:13.560Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-11T21:37:23.301Z",
+      "endedAt": "2026-10-11T21:37:23.302Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "9b43f6ad-2aac-4dcf-ade5-b170dc69bd4b",
+    "pid": 87977,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T21:37:13.550Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-mlNA3E"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T21:37:23.374Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

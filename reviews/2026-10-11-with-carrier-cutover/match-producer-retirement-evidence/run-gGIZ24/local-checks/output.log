@@ -1,0 +1,52 @@
+Total tests: 7, passed: 7, failed: 0.
+["moon","test","--target","js","src/query_program/match_with_producer_test.mbt"]: executed; counts={"tests":7,"passed":7,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-K2E2x0
+TAP version 13
+# Subtest: MATCH WITH has ordinary independent controls with NULL and empty contracts
+ok 1 - MATCH WITH has ordinary independent controls with NULL and empty contracts
+  ---
+  duration_ms: 2.239875
+  type: 'test'
+  ...
+# Subtest: MATCH WITH preserves keyed edge multiplicity and acquired producer reuse
+ok 2 - MATCH WITH preserves keyed edge multiplicity and acquired producer reuse
+  ---
+  duration_ms: 0.334667
+  type: 'test'
+  ...
+# Subtest: MATCH WITH refusals pin scope and supported-surface classifications
+ok 3 - MATCH WITH refusals pin scope and supported-surface classifications
+  ---
+  duration_ms: 0.092333
+  type: 'test'
+  ...
+# Subtest: MATCH WITH is copied and registered in ordinary packed acceptance
+ok 4 - MATCH WITH is copied and registered in ordinary packed acceptance
+  ---
+  duration_ms: 4.9845
+  type: 'test'
+  ...
+# Subtest: WITH caller retirement preserves every control, result and acquisition count
+ok 5 - WITH caller retirement preserves every control, result and acquisition count
+  ---
+  duration_ms: 4.867875
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 90.658625
+ACTQL_TEST_CASE {"name":"MATCH WITH has ordinary independent controls with NULL and empty contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/match-with-producer-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"MATCH WITH preserves keyed edge multiplicity and acquired producer reuse","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/match-with-producer-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"MATCH WITH refusals pin scope and supported-surface classifications","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/match-with-producer-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"MATCH WITH is copied and registered in ordinary packed acceptance","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/match-with-producer-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH caller retirement preserves every control, result and acquisition count","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/match-with-producer-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":16.466166,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/match-with-producer-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":90.658625}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/match-with-producer-source-input.test.mjs"]: executed; counts={"tests":5,"passed":5,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-aZtlPy

@@ -1,0 +1,48 @@
+{
+  "startedAt": "2026-10-11T18:00:09.620Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "selected moon tests",
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/with_source_usage_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T18:00:09.730Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:00:15.886Z",
+      "endedAt": "2026-10-11T18:00:15.890Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "2f1d8bd8-9855-4f82-908c-fd1f59ab9bf2",
+    "pid": 76585,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:00:09.719Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-8UDn3i"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:00:15.982Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

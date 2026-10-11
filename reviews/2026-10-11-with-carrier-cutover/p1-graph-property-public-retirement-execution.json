@@ -1,0 +1,242 @@
+{
+  "authorSource": "c61ffaf545446969c3499aef92b5a9646f673b2a",
+  "formatterSource": "3ce00a651",
+  "adoptedMain": "ea78aedba122a258ee9357663155ca5cba67b28b",
+  "rootHandoffSource": "542f99f7b318ef19d784b796c9eb200377719148",
+  "checks": {
+    "actualParser": {
+      "passed": 7,
+      "total": 7,
+      "run": "run-hCZ9Ge"
+    },
+    "publicSourceFreeLoweringCommonCheck": {
+      "passed": 2,
+      "total": 2,
+      "run": "run-hCZ9Ge"
+    },
+    "nodeIndependentFixtureControls": {
+      "passed": 16,
+      "total": 16,
+      "run": "run-KgnaAU"
+    }
+  },
+  "release": {
+    "actualOwnersAbsent": [
+      67991,
+      68263,
+      68634
+    ],
+    "groupsAbsent": true,
+    "ownLockAbsent": true,
+    "receiptsRetained": true
+  },
+  "mergeConflict": "Packed scope registration retained aggregateFilterOnly from main and matchWithProducerOnly from WITH. No selector removed.",
+  "inheritedWhitespace": "Main explorer-ui README has a trailing blank line; reported separately, no foreign edit. Changed WITH diffs pass whitespace.",
+  "unexecuted": [
+    "Installed acquired Graph Source/common admission and provider I/O",
+    "Actual Host Local/HTTPS Result publication",
+    "Wheel execution",
+    "P2 SGA roles and remaining P2",
+    "Hosted CI"
+  ],
+  "files": [
+    {
+      "original": "_build/local-checks/attempts/run-AXWLG5/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/run-AXWLG5/summary.json",
+      "bytes": 1473,
+      "sha256": "e3a5e620f9f3e98d5b51a625befe80b70bd5657d539285695fc769b8edb44dd6"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-AXWLG5/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/run-AXWLG5/output.log",
+      "bytes": 44,
+      "sha256": "d9b015c38c593df35215cd7f4dc78b49f23b6ab51a36a1d02bc12597f4bbde84"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-hCZ9Ge/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/run-hCZ9Ge/summary.json",
+      "bytes": 2327,
+      "sha256": "305c6c3a4e5fb9574267d56485e6d2168cae07c4d71d9da8cf801f275eec79c1"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-hCZ9Ge/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/run-hCZ9Ge/output.log",
+      "bytes": 741,
+      "sha256": "573a518f26661e2d22e5df80702b111a8d527428264ba8b9db1cfb92f6f3623a"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-KgnaAU/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/run-KgnaAU/summary.json",
+      "bytes": 1810,
+      "sha256": "15efcb0c406ef3fbd30dba38e30f8be730fe71e2aff693c8290a4d0e317aa0cb"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-KgnaAU/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/run-KgnaAU/output.log",
+      "bytes": 10302,
+      "sha256": "1cae7ce5581bfdbcf0798b0ecfb6a59d763142e39344d7910cc279c82165d872"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/0001.summary.json",
+      "bytes": 630,
+      "sha256": "767dcb57d587e88250e51ecaebfd3d8b607e82bde0fc5649172f141a2228fd56"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/summary.json",
+      "bytes": 1819,
+      "sha256": "cfe43d29f8f76f260ae8530c88e1f297f77e29bc4cc74cc2635f05a50e067d4b"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/001.stdout.log",
+      "bytes": 38,
+      "sha256": "29250d71d26eddc15e31c1bdd9bba84e69f30e65ab60f24e083ca22ffdaddc4a"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/001.started.json",
+      "bytes": 820,
+      "sha256": "e0012f099ad4814e7314778273392c1c8084b9f431100735d6963ced4cf391df"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/001.result.json",
+      "bytes": 1010,
+      "sha256": "338f534170b3283b3387aa0c00c3340672153c9070f97d6765af92c0c45e1146"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/0002.summary.json",
+      "bytes": 1573,
+      "sha256": "6a8020e4bce696b62c5cf50887091b5f2368a6245dd1f4077ce8331fcda60eb4"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/0004.summary.json",
+      "bytes": 1819,
+      "sha256": "cfe43d29f8f76f260ae8530c88e1f297f77e29bc4cc74cc2635f05a50e067d4b"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-oUZTyV/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-oUZTyV/0003.summary.json",
+      "bytes": 1799,
+      "sha256": "6b434c2695025f9a1ebcc136c9a96dc73d13cdcebed372c1b926f603339bba06"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/0001.summary.json",
+      "bytes": 630,
+      "sha256": "863cce4618347e74e8d5bbab2aaf42bda70642e2692d9503dd1ece664a7c63ec"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/summary.json",
+      "bytes": 1814,
+      "sha256": "fdf6af4cf3f05fd8c2d8221fb3cc3f24644e5a9e0efb0674a5b33c8ecd7cb879"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/001.stdout.log",
+      "bytes": 38,
+      "sha256": "ddd0722f90fd133207ca9e423fc1faa05c3608f3be5c5eb4fdbea4259682b120"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/001.started.json",
+      "bytes": 815,
+      "sha256": "5f3902137b7e512235df3ccea36bd5f2e842efaece82dad4a64c8b426b8ca160"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/001.result.json",
+      "bytes": 1005,
+      "sha256": "8e409d84f331747d5c5db859fa5f17b2d4a24b3a782acc4ed397eab45196ffc7"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/0002.summary.json",
+      "bytes": 1568,
+      "sha256": "a79f43e650e46c9038579d1b0b23a9b190ad5239955a2559abb6f6a1d3e9e9de"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/0004.summary.json",
+      "bytes": 1814,
+      "sha256": "fdf6af4cf3f05fd8c2d8221fb3cc3f24644e5a9e0efb0674a5b33c8ecd7cb879"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-D1gHDQ/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-D1gHDQ/0003.summary.json",
+      "bytes": 1794,
+      "sha256": "dd4c290dcda04b6c33e0923b2e9a22b784d1f2b9f555d7bd15ee2a742d1b6b06"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/0001.summary.json",
+      "bytes": 630,
+      "sha256": "238f509986746f34feb176168461ef2bf415f8a0deada2804c1c4c522364c828"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/summary.json",
+      "bytes": 2147,
+      "sha256": "be252d047fff34808cc8aa6a920ff609ab2eda1edec5712c159c951aaa3f5c4c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/001.stdout.log",
+      "bytes": 9648,
+      "sha256": "7d84f248ee450116c28163062f8b921ad5967348714786d449c20a0aa1fa3e5c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/001.started.json",
+      "bytes": 1156,
+      "sha256": "e27246a434e41639a18f2b7c5acff631377ffe37790447ffa9050b119521e18c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/001.result.json",
+      "bytes": 1330,
+      "sha256": "2aaf05537819a0a7686a6a50d1634a0c807be8fb0e65365eecaaf771091f3e25"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/0002.summary.json",
+      "bytes": 1917,
+      "sha256": "447b442bfe9faff7b5d647bc970c743a0f76817e39fa08ba526008330462a599"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/0004.summary.json",
+      "bytes": 2147,
+      "sha256": "be252d047fff34808cc8aa6a920ff609ab2eda1edec5712c159c951aaa3f5c4c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-eWi04C/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/graph-property-public-evidence/focused-test-eWi04C/0003.summary.json",
+      "bytes": 2127,
+      "sha256": "d44650d4381ad24335ddf6afe964ca63684ed9c053d234cb8f478761939807eb"
+    }
+  ]
+}

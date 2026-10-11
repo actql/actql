@@ -17,12 +17,12 @@ const expected = {
     columns: ['w', 'part', 'edge_key'].map(name => ({name, contract: number}))
       .concat([{name: 'labels', contract: labels}])},
 };
-const prefix = 'DATA n = SELECT 7 AS part, 1 AS node_key, 7 AS p; ' +
-  'DATA e = SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
-  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
+const prefix = 'WITH n AS (SELECT 7 AS part, 1 AS node_key, 7 AS p) ' +
+  ', e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
+  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w) ' +
+  ', g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
   'EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N ' +
-  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w))); ';
+  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))) ';
 const output = {
   nodes: 'FROM combined |> node_rows() |> SELECT p, part, node_key, labels |> RESULT nodes',
   edges: 'FROM combined |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges',
@@ -37,7 +37,7 @@ export const graphGraftSourceSuccesses = [
     results: Object.fromEntries(Object.entries(expected).map(([name, result]) =>
       [name, {...result, rows: []}])), sourceReadCount: 0},
   ...['nodes', 'edges'].map(kind => ({name: 'graph-graft-aql-' + kind, format: 'aql-text',
-    text: prefix + 'DATA combined = FROM g |> graft_graph(with: g); ' + output[kind],
+    text: prefix + ', combined AS (FROM g |> graft_graph(with: g)) ' + output[kind],
     results: {[kind]: expected[kind]}, sourceReadCount: 0})),
   {name: 'graph-graft-terminal-query', format: 'aql-text',
     text: prefix + 'FROM g |> graft_graph(with: g) |> edge_rows() |> WHERE w > 2 ' +
@@ -54,7 +54,7 @@ export const graphGraftSourceRefusals = [
   format: 'aql-text', text: prefix + body}));
 export const graphGraftSourceExecutionFailures = [{
   name: 'graph-graft-shared-property-conflict', format: 'aql-text',
-  text: prefix + "DATA doubled = FROM g |> union_graphs(with: g, merge: {node_properties: {p: 'number_sum'}}); " +
-    'DATA combined = FROM doubled |> graft_graph(with: g); ' + output.nodes,
+  text: prefix + ", doubled AS (FROM g |> union_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})) " +
+    ', combined AS (FROM doubled |> graft_graph(with: g)) ' + output.nodes,
   resultNames: ['nodes'], sourceReadCount: 0,
 }];

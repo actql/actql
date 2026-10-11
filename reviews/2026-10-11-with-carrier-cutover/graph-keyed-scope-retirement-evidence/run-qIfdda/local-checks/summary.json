@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-11T22:08:53.322Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "WITH keyed Graph scope property alignment parallel definitions and independent Programs",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_program_wbtest.mbt",
+        "src/query_program/keyed_graph_program_wbtest.mbt",
+        "src/query_program/graph_definition_scope_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T22:08:53.428Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-11T22:09:04.539Z",
+      "endedAt": "2026-10-11T22:09:04.541Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "07c55c89-d1bc-4ee8-aaea-c6669cb76b86",
+    "pid": 12619,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T22:08:53.410Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-qIfdda"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T22:09:04.616Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

@@ -1,12 +1,25 @@
 ///|
+test "Graph LABELS property annotation is retired at the authored token" {
+  let prefix = "FROM GRAPH g "
+  let source = prefix +
+    "LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Node) |> SELECT a.id"
+  match parse_query(source, query_limits()) {
+    Err({ issue: Syntax(message), span: Some(span), }) => {
+      assert_eq(message, "Graph LABELS annotation is retired")
+      assert_eq(span.start_byte, 13)
+    }
+    _ => fail("retired LABELS must not reach lowering")
+  }
+}
+
+///|
 test "Graph MATCH retains source labels, mode and directed occurrences" {
   let query = parse_query(
-    "FROM GRAPH crm_graph LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH ACYCLIC (a:Account)-[e:HAS_CONTACT]->(b:Contact) |> SELECT a.name AS account_name;",
+    "FROM GRAPH crm_graph |> MATCH ACYCLIC (a:Account)-[e:HAS_CONTACT]->(b:Contact) |> SELECT a.name AS account_name;",
     query_limits(),
   ).unwrap()
   assert_eq(relation(query), [{ value: "crm_graph", quoted: false, }])
   let graph = graph_query(query).unwrap()
-  assert_eq(graph.label_field, Some("entity_type"))
   let pattern = graph.pattern.unwrap()
   assert_eq(pattern.mode, Acyclic)
   assert_eq(pattern.nodes.length(), 2)
@@ -73,7 +86,6 @@ test "Graph MATCH rejects open, repeated and unowned patterns" {
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->{1,1}(b)-[:R]->(c) |> SELECT a.id",
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[e:R]->{1,2}(b) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a)-[:R]->{2,1}(b) |> SELECT a.id",
       "FROM GRAPH g |> MATCH UNKNOWN (a) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a) |> MATCH WALK (b) |> SELECT a.id",
-      "FROM rows |> MATCH WALK (a) |> SELECT a.id", "FROM GRAPH g |> SELECT id",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
@@ -86,7 +98,6 @@ test "Graph label syntax preserves membership without choosing a property" {
     query_limits(),
   ).unwrap()
   let graph = graph_query(parsed).unwrap()
-  assert_true(graph.label_field is None)
   assert_eq(
     graph.pattern.unwrap().nodes[0].label,
     Some({ value: "Account", quoted: false, }),
@@ -109,14 +120,18 @@ test "Graph MATCH uses the shared bounded query budget" {
 }
 
 ///|
-test "Graph annotations retain their own bounded escape profile" {
+test "retired Graph annotations have no alternate escape entry" {
   assert_true(parse_query("SELECT \"id\" FROM rows", query_limits()) is Ok(_))
   for
     source in [
       "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Person)",
       "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_\\u0074ype\"}} |> MATCH WALK (a:Person)",
     ] {
-    assert_true(parse_query(source, query_limits()) is Ok(_), msg=source)
+    assert_true(
+      parse_query(source, query_limits())
+      is Err({ issue: Syntax("Graph LABELS annotation is retired"), .. }),
+      msg=source,
+    )
   }
   assert_true(
     parse_query(
@@ -165,4 +180,15 @@ test "Graph path mode defaults to WALK without changing shape or source bounds" 
     )
     is Err(_),
   )
+}
+
+///|
+test "typed Graph source and unmarked MATCH leave Carrier checks to lowering" {
+  for
+    text in [
+      "FROM GRAPH g |> SELECT id", "FROM g |> MATCH WALK (a:Node) |> SELECT a.id",
+      "FROM rows |> MATCH WALK (a:Node) |> SELECT a.id",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Ok(_), msg=text)
+  }
 }
