@@ -10,7 +10,7 @@ from actql_sdk._local_storage import ByteFence, ByteWrite, LocalByteStore, Store
 
 
 def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
-                         copy, call, assert_status, new_output_ticket, names_observer=None):
+                         copy, call, assert_status, new_output_ticket, names_observer=None, binding_cases=None):
     expected = json.loads((Path(__file__).parent / 'python-local-payload-sealed.json').read_text())
     independent = json.loads((Path(__file__).parent / 'python-local-result-storage-binding.json').read_text())
     cases = []
@@ -265,6 +265,11 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     if names_observer is not None and names_observer.finalization is not None:
                         names_observer.finalization.after_sealed(
                             names_observer, physical.root, record, sealed_wire, store, key, capacity, copy)
+                    if binding_cases is not None:
+                        from python_local_payload_binding import check_payload_binding
+                        binding_cases.extend(check_payload_binding(
+                            fixture, record, sealed_wire, configuration, denied,
+                            call, assert_status, new_output_ticket))
                     held = fixture.call('allocated')
                     fixture.cleanup_ready = False
                     assert_status('payload_writing', 'close', -9, sealed)

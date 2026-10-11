@@ -34,6 +34,16 @@ try:
     assert left.call('reserved') == 256
     assert right.exports['actql_buffer_byte'](right.store, left.nonce, handle, 0) == -1
     assert right.reads == 0
+    # Sealed binding custody cannot be acquired from an arbitrary input loan.
+    assert left.exports['actql_payload_binding_reserve'](
+        left.store, left.nonce, handle, 3, 131300) == -2
+    for name in ('produce', 'validate'):
+        assert left.exports['actql_payload_binding_' + name](
+            left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_binding_length'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_payload_binding_close'](
+        left.store, right.nonce, handle) == -2
     # Completion cannot be synthesized from arbitrary transport handles.
     assert left.exports['actql_compute_reserve'](left.store, left.nonce, handle, handle) == -2
     assert left.exports['actql_compute_configure'](left.store, left.nonce, handle) == -2

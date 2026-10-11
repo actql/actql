@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 33; this private ABI
+before opening the instance. `actql_host_abi_version` returns 34; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1389,3 +1389,23 @@ read or rewrite a payload, acknowledge a Store commit or grant publisher
 permission. Physical generation opening/digest observation and trusted Host
 Store/Policy/target authorization remain separate prerequisites. Parent Result
 cleanup revokes the content facts even when a valid durable record remains.
+
+## Original Sealed Result binding transport
+
+The private ABI34 `actql_payload_binding_*` child pins a confirmed original
+filesystem Sealed record, its revision and original publication preflight. Its
+separately reserved output is limited to 65,536 bytes; the existing buffer Owner
+accounts for staging, sealed output and physical copying. Core reconstructs the
+original request and calls the existing live Result content-binding Owner,
+which checks the exact physical byte count and SHA256 against the original
+Result. Python transports the resulting contract without reconstructing values
+or semantic fields.
+
+Production and cached reads revalidate the original Run and Source account. A
+prepared, opaque, foreign or changed record cannot supply this binding. A failed
+production is not automatically retried. Pending cleanup keeps the same child,
+allocation and parent pin; only successful cleanup retires the child. Closing
+the original record waits for its children. This read-only projection does not
+commit a Store, acknowledge publication, issue publisher permission or decide
+Run completion. ABI33 artifacts are rejected by the current strict loader;
+prior immutable evidence retains its original source and module identity.

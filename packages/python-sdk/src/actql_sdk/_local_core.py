@@ -278,6 +278,13 @@ _PAYLOAD_NAMES_SIGNATURES = {
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
+_PAYLOAD_BINDING_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _SOURCE_SIGNATURES = {
     'reserve_configuration': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
@@ -445,6 +452,8 @@ class LocalCore:
                              for name, value in _PAYLOAD_ALLOCATION_SIGNATURES.items()})
             expected.update({'actql_payload_names_' + name: value
                              for name, value in _PAYLOAD_NAMES_SIGNATURES.items()})
+            expected.update({'actql_payload_binding_' + name: value
+                             for name, value in _PAYLOAD_BINDING_SIGNATURES.items()})
             expected.update({'actql_result_binding_' + name: value
                              for name, value in _RESULT_BINDING_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
@@ -484,7 +493,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 33:
+            if self._exports['actql_host_abi_version'](self._store) != 34:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1398,6 +1407,53 @@ class LocalCore:
 
     def close_payload_names(self, value: _Output) -> bool:
         return self._close_output(value, 'payload_names', 'close')
+
+    def reserve_payload_binding(self, record: _Output, *, cleanup: Callable[[], bool]) -> _Output:
+        """Bind the original confirmed Sealed record; no Store or publisher grant."""
+        with self._lock:
+            self._owned_output(record, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_binding')))
+            handle = self._call('payload_binding', 'reserve', record.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_binding', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_binding')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_binding(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_binding')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_binding', self._call(
+                'payload_binding', 'produce', value.handle, current_configuration))
+
+    def read_payload_binding(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_binding')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_binding', self._call(
+                'payload_binding', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_binding', 'length')
+
+    def close_payload_binding(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_binding', 'close')
 
     def reserve_payload_allocation(self, request: _Output, kind: int, *,
                                cleanup: Callable[[], bool]) -> _Output:

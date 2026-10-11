@@ -37,6 +37,7 @@ payload_names = '--payload-names' in sys.argv[4:]
 payload_staging = '--payload-staging' in sys.argv[4:]
 payload_finalization = '--payload-finalization' in sys.argv[4:]
 payload_reader = '--payload-reader' in sys.argv[4:]
+payload_binding = '--payload-binding' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
@@ -53,7 +54,8 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization', '--payload-reader'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization', '--payload-reader'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization', '--payload-reader', '--payload-binding'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -74,6 +76,7 @@ payload_names_cases = []
 payload_staging_cases = []
 payload_finalization_cases = []
 payload_reader_cases = []
+payload_binding_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -221,7 +224,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 33
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 34
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -1040,7 +1043,8 @@ try:
                                                               finalization_observer)
                         payload_sealed_cases.extend(check_payload_sealed(
                             fixture, payload_loan, payload_facts, configuration, denied_configuration,
-                            copy, call, assert_status, new_output_ticket, names_observer))
+                            copy, call, assert_status, new_output_ticket, names_observer,
+                            payload_binding_cases if payload_binding else None))
                         if names_observer is not None:
                             payload_names_cases.extend(names_observer.finish())
                             if names_observer.staging is not None:
@@ -1477,6 +1481,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'payload_staging_cases': payload_staging_cases,
                   'payload_finalization_cases': payload_finalization_cases,
                   'payload_reader_cases': payload_reader_cases,
+                  'payload_binding_cases': payload_binding_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']
