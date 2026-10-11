@@ -32,3 +32,15 @@ test('new and repeated profile obligations require explicit resolution mappings'
   assert.throws(() => validateProfileObligationCoverage([api], source + '\nUnexpectedProfile => Some(TEA)'));
   assert.equal(validateProfileObligationCoverage([api.replace('AdmitValues', 'NewProfile(String)')], source + '\nNewProfile(_, ..) => Some(TEA)'), 2);
 });
+
+test('nested profile obligations retain exact coverage and reject omissions', () => {
+  const api = 'pub(all) enum Obligation {\n  ResolveShortestProfile\n  NewProfile(String)\n}';
+  const source = 'ShortestRequirement(ResolveShortestProfile) => Some(GraphProfile)\n' +
+    'Outer(Inner(NewProfile(_, ..))) => Some(TEA)';
+  assert.equal(validateProfileObligationCoverage([api], source), 2);
+  assert.throws(() => validateProfileObligationCoverage([api],
+    source.replace('Some(GraphProfile)', 'None')));
+  assert.throws(() => validateProfileObligationCoverage([api],
+    source.replace('NewProfile', 'ForeignProfile')));
+  assert.throws(() => validateProfileObligationCoverage([api], source + '\n' + source));
+});

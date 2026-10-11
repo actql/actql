@@ -331,6 +331,10 @@ pub fn shortest_output_guard(CheckedShortest) -> Count?
 
 pub fn shortest_pending(CheckedShortest) -> Array[ShortestObligation]
 
+pub fn shortest_pending_at(CheckedShortest, Int) -> ShortestObligation?
+
+pub fn shortest_pending_count(CheckedShortest) -> Int
+
 pub fn shortest_selection(CheckedShortest) -> ShortestSelection
 
 pub fn shortest_source(CheckedShortest) -> @decode_core.Cursor
