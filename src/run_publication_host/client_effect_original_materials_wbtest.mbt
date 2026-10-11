@@ -3,6 +3,7 @@ fn original_effect_materials_fixture(
   parameters? : @decode.Cursor? = None,
   parameterized? : Bool = false,
   alternate? : Bool = false,
+  normalized? : Bool = false,
 ) -> (
   PreparedClientEffectComputation,
   ClientEffectAllowedRun,
@@ -36,6 +37,11 @@ fn original_effect_materials_fixture(
     limits,
   ).unwrap()
   let bounds = run_materials_limits()
+  let normalization = if normalized {
+    Some(issue_prepared_client_effect_normalization(prepared).unwrap())
+  } else {
+    None
+  }
   let compilation = issue_prepared_client_effect_compilation(
     prepared,
     run_materials_manifests(),
@@ -45,6 +51,7 @@ fn original_effect_materials_fixture(
     bounds.max_evidence_bytes,
     bounds.max_evidence_nodes,
     bounds.max_evidence_depth,
+    normalization~,
   ).unwrap()
   let allowed = issue_client_effect_allowed_run(
     compilation,

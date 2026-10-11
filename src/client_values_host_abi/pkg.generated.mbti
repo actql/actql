@@ -18,7 +18,7 @@ pub fn client_values_host_admit_captured_result_snapshot(@run_publication.Public
 
 pub fn client_values_host_admit_completed_source_observation(String, String, String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.SourceInputObservationIssue]
 
-pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
+pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
 
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
@@ -76,7 +76,7 @@ pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClient
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
 
-pub fn client_values_host_compile_effect(@run_publication_host.PreparedClientEffectComputation) -> Result[@run_publication_host.ClientEffectCompilation, ClientValuesHostEffectCompilationIssue]
+pub fn client_values_host_compile_effect(@run_publication_host.PreparedClientEffectComputation, Bool) -> Result[@run_publication_host.ClientEffectCompilation, ClientValuesHostEffectCompilationIssue]
 
 pub fn client_values_host_compile_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientValuesHostTaskCompilationIssue]
 
