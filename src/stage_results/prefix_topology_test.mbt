@@ -103,17 +103,16 @@ test "check-only prefix preserves capture projection imports and unresolved debt
       physical_equal(@pipeline.input_producer(pipeline, i).unwrap(), projected),
     )
   }
-  assert_true(
-    physical_equal(
-      @pipeline.source(pipeline),
-      @decode.required(
-        @decode.open_object(
-          @syntax.stage_body(@parameters.stage_at(source, 1).unwrap()),
-        ).unwrap(),
-        "steps",
-      ).unwrap(),
-    ),
-  )
+  let steps = @decode.required(
+    @decode.open_object(
+      @syntax.stage_body(@parameters.stage_at(source, 1).unwrap()),
+    ).unwrap(),
+    "steps",
+  ).unwrap()
+  // Cursors are views, so compare owned-tree coordinates rather than wrapper
+  // allocation. A foreign tree cannot discharge this ownership check.
+  assert_eq(@decode.tree_index(steps, @pipeline.source(pipeline)),
+    @decode.tree_index(steps, steps))
   assert_true(
     prepare_local_program(source, local_program_limits())
     is Err(CheckOnlyPrefix),
@@ -171,8 +170,10 @@ test "prefix check preserves bounded accounting and actual local ownership" {
   }
   let (_, again) = check_local_program(source, exact).unwrap()
   assert_eq(again, used)
-  assert_true(
-    check_local_program(source, { ..exact, max_work: used.work - 1, })
-    is Err(BudgetExceeded | Wiring(BudgetExceeded)),
-  )
+  let short = check_local_program(source, { ..exact, max_work: used.work - 1, })
+  match short {
+    Err(BudgetExceeded | Wiring(BudgetExceeded)) => ()
+    Err(issue) => fail("unexpected exact-budget boundary: \{issue}"),
+    Ok(_) => fail("one-less work must refuse"),
+  }
 }
