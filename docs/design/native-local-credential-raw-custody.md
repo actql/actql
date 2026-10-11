@@ -6,6 +6,36 @@ checked projection, Result, Model capture and semantic Effect outcome. Retaining
 HTTP status and exact body does not grant current read, Provider send, approval,
 retry or disclosure authority.
 
+## Host assembly and independent authority
+
+Live preparation transport uses the explicitly adopted original Host journal's
+database for credential-use records. It does not initialize another database
+when originals or terminal rows are absent. The original Run's retained
+publication binding must match the actual Store authority, namespace and
+original opened database identity before assembly and at each current check.
+The Host restores the authenticated original installation; assembly cannot
+adopt a freshly observed credential file or issue a grant.
+
+The existing acknowledgement's current Work, target and separate issuer
+authority remain required for `claim` and `send`. Raw `query`, `return`,
+`raw-query` and `raw-return` instead require current Run and checked-target read,
+the same exact original scope/request/grant, and committed grant custody with
+its original reservation. Issuer issuance permission does not authorize raw
+disclosure. Both paths recheck original Work and Store binding after callbacks;
+the credential Owner additionally validates the original use, trusted lifetime
+and durable revocation. A live acknowledgement connection does not supply a
+post-closure Work token or recreate one from an identity-only reference.
+
+The private raw Store AES key is derived as HMAC-SHA-256 using the existing
+authenticated private epoch key. The UTF-8 message is the closed, value-preserving
+JSON object, in this order: `adoption_cid`, `domain`, `store_binding`.
+The domain is `actql-native-local-preparation-raw-key/0.1`; the other fields are
+the actual original Host adoption CID and exact existing installed-publication
+binding. This derivation creates neither a public grant identity nor another key
+Owner. Missing or corrupt epoch custody refuses rather than regenerating a key;
+the key is never returned to callers. Existing grant/use, Remote and Resume
+preimages and private envelope AAD remain unchanged.
+
 ## Original binding and representation
 
 The initial operation is the existing typed Local Preparation
