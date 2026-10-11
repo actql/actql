@@ -143,7 +143,12 @@ priv enum ModelPhase {
   PrepareRequests
   PreparePhysicalRequests
   DispatchSlot
-  CheckResponse(ModelRequest, ModelObservedResponse, String, @admitted.RecheckCursor)
+  CheckResponse(
+    ModelRequest,
+    ModelObservedResponse,
+    String,
+    @admitted.RecheckCursor
+  )
   RestoreResponse(
     PreparedModelRequest,
     @publication.ModelCaptureRecordRead,
@@ -732,7 +737,10 @@ fn begin_observed_model_response(
     None => return @bounded.Failed(OutputValue, 1, 1)
   }
   state.phase = CheckResponse(
-    request, lift_historical_model_response(response), input_key_cid, cursor,
+    request,
+    lift_historical_model_response(response),
+    input_key_cid,
+    cursor,
   )
   @bounded.Continue(1, 1)
 }

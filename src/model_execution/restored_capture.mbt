@@ -96,7 +96,8 @@ fn advance_restored_model_response(
     CanonicalConversionContinue => @bounded.Continue(1, 1)
     CanonicalConversionFailed => @bounded.Failed(OutputValue, 1, 1)
     CanonicalConversionComplete(value) => {
-      let observation = match @publication.model_capture_record_observation(record) {
+      let observation = match
+        @publication.model_capture_record_observation(record) {
         Ok(observation) => observation
         Err(issue) => return @bounded.Failed(InvocationEvidence(issue), 1, 1)
       }
