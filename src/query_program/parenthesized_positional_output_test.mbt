@@ -1,6 +1,6 @@
 ///|
 test "parenthesized positional windows retain the operand output context" {
-  let source = "DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; SELECT 0 AS a, 0 AS b UNION ALL (FROM r |> AS original |> SET x = -x |> SELECT ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x)) ORDER BY a, b"
+  let source = "WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) SELECT 0 AS a, 0 AS b UNION ALL (FROM r |> AS original |> SET x = -x |> SELECT ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x)) ORDER BY a, b"
   let generated = match
     compile_query_script(
       @query.parse_query_script(source, syntax_limits()).unwrap(),
@@ -47,7 +47,7 @@ test "independent parenthesized window control preserves ordinal rows and types"
 ///|
 test "positional bindings preserve double parentheses and nested set ownership" {
   // Use the existing two-row Values input to stay within this unit fixture's
-  // 20-step structural budget. Public DATA coverage keeps the authored DATA.
+  // 20-step structural budget. Public WITH coverage keeps the authored binding.
   let head = "SELECT 0 AS a, 0 AS b UNION ALL "
   for
     operand in [
@@ -110,12 +110,12 @@ test "standalone positional parentheses reach the usual checker" {
 
 ///|
 test "positional permission never grants authored CTE or BY NAME exports" {
-  let head = "DATA r = SELECT 1 AS x; "
+  let head = "WITH r AS (SELECT 1 AS x; "
   for
     source in [
       "SELECT 0 AS a UNION ALL BY NAME (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)",
       "WITH hidden AS (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) SELECT 0 AS a UNION ALL (SELECT * FROM hidden)",
-      "DATA p = (SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r); FROM p |> SELECT *",
+      "WITH p AS ((SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)) FROM p |> SELECT *",
     ] {
     assert_true(
       compile_query_script(

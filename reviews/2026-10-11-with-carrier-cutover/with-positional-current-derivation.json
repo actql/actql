@@ -1,0 +1,10 @@
+{
+  "source": "b90a1a8e7880b3624456587a3256c7aecbf1bed7",
+  "derivation": [
+    "All DATA producer wrappers become WITH query bindings; ordinary positional set/anonymous aggregate/window projection syntax is unchanged.",
+    "Complete independent Programs retain every Values/derive/COUNT/ROW_NUMBER/order/append/select step and private slot reservation; only final binding producer spelling dataN to cteN changes.",
+    "Named range snapshots and current values, duplicate authored names and ordinal/anonymous output rules are unchanged. Typed empty outputs and pure-body negative restrictions remain explicit.",
+    "The existing compiler structural budget and resource ceilings stay unchanged; no product output is used to rewrite expected values."
+  ],
+  "public_execution": "not performed; corresponding public fixture static preservation was checked separately at b90a1a8"
+}

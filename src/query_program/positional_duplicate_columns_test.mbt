@@ -47,12 +47,12 @@ test "the ordinary positional JSON public control admits its Values source" {
 }
 
 ///|
-test "public Text routing retains scoped and empty positional DATA controls" {
+test "public Text routing retains scoped and empty positional WITH controls" {
   let context = { ..fixture_context(), inputs: [], }
   for
     source in [
-      "DATA n = SELECT 1 AS x; FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original |> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b",
-      "DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; FROM e |> ORDER BY a, b",
+      "WITH n AS (SELECT 1 AS x) FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original |> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b",
+      "WITH e AS (SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE) FROM e |> ORDER BY a, b",
     ] {
     let lowered = @frontend.lower(source, Text, Some(context)).unwrap()
     let program = @program.parse(
@@ -65,7 +65,7 @@ test "public Text routing retains scoped and empty positional DATA controls" {
       Checked(_) => ()
       Rejected(issue) => raise @check.diagnostic_cause(issue)
       NeedsInputs(_) =>
-        fail("public positional DATA controls need no acquisition")
+        fail("public positional WITH controls need no acquisition")
     }
     assert_true(
       @frontend.lower(source, Sql, Some(context)) is Err(WrongQueryForm),
@@ -79,10 +79,10 @@ test "terminal positional operands keep duplicate authored aliases by position" 
   // survive: the independently expected rows are (0,0) and (1,2).
   for
     source in [
-      "SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x ORDER BY a, b", "DATA n = SELECT 1 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT x, x + 1 AS x FROM n ORDER BY a, b",
-      "DATA n = SELECT 1 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT x, x FROM n ORDER BY a, b",
-      "DATA n = SELECT 1 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT x, * FROM n ORDER BY a, b",
-      "DATA n = SELECT 1 AS x; FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original |> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b",
+      "SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x ORDER BY a, b", "WITH n AS (SELECT 1 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT x, x + 1 AS x FROM n ORDER BY a, b",
+      "WITH n AS (SELECT 1 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT x, x FROM n ORDER BY a, b",
+      "WITH n AS (SELECT 1 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT x, * FROM n ORDER BY a, b",
+      "WITH n AS (SELECT 1 AS x) FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original |> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b",
     ] {
     let script = @query.parse_query_script(source, syntax_limits()).unwrap()
     let program = match
@@ -112,13 +112,13 @@ test "positional duplicate projection preserves an independently authored comple
   // reevaluated, and the internal unit column never becomes a public field.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":0},"aql_query_expr_1":{"literal":0}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":2}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","append":{"with":"aql_data_set_term_3"},"as":"aql_data_0"},{"from":"aql_data_0","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":0},"aql_query_expr_1":{"literal":0}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":2}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","append":{"with":"aql_data_set_term_3"},"as":"aql_script_cte_0"},{"from":"aql_script_cte_0","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
   ).unwrap()
   let actual = compile_with_set(
-    "DATA e = SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x; FROM e |> SELECT a, b",
+    "WITH e AS (SELECT 0 AS a, 0 AS b UNION ALL SELECT 1 AS x, 2 AS x) FROM e |> SELECT a, b",
   )
   assert_eq(semantic(actual), semantic(expected))
   for program in [expected, actual] {

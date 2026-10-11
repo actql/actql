@@ -8,7 +8,7 @@ test "terminal positional repeated aggregate aliases preserve each call's input"
       "SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS `N` ORDER BY a, b",
       "SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n WHERE FALSE ORDER BY a, b",
       "SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n HAVING COUNT(*) > 0 ORDER BY a, b",
-      "DATA r = SELECT 1 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n FROM r AS n GROUP BY n.x HAVING n.x > 0 ORDER BY a, b",
+      "WITH r AS (SELECT 1 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n FROM r AS n GROUP BY n.x HAVING n.x > 0 ORDER BY a, b",
     ] {
     let program = match
       compile_query_script(
@@ -152,13 +152,13 @@ test "duplicate aggregate lowering matches an independently authored complete Pr
   // its positional fields are four/five. No COUNT argument is rewritten.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":0},"aql_query_expr_1":{"literal":0}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","group":{"by":[],"aggregates":{"aql_select_aggregate_2":{"fn":"count"},"aql_select_aggregate_3":{"fn":"count","expr":{"cast":{"value":{"literal":null},"target":{"type":"number"}}}}}}},{"select":[{"a":"aql_select_aggregate_2"},{"b":"aql_select_aggregate_3"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","append":{"with":"aql_data_set_term_3"},"as":"aql_data_0"},{"from":"aql_data_0","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":0},"aql_query_expr_1":{"literal":0}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","group":{"by":[],"aggregates":{"aql_select_aggregate_2":{"fn":"count"},"aql_select_aggregate_3":{"fn":"count","expr":{"cast":{"value":{"literal":null},"target":{"type":"number"}}}}}}},{"select":[{"a":"aql_select_aggregate_2"},{"b":"aql_select_aggregate_3"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","append":{"with":"aql_data_set_term_3"},"as":"aql_script_cte_0"},{"from":"aql_script_cte_0","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
   ).unwrap()
   let actual = compile_with_set(
-    "DATA e = SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n; FROM e |> SELECT a, b",
+    "WITH e AS (SELECT 0 AS a, 0 AS b UNION ALL SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n) FROM e |> SELECT a, b",
   )
   assert_eq(semantic(actual), semantic(expected))
   for program in [expected, actual] {

@@ -36,7 +36,7 @@ test "positional JOIN operands preserve CTE DATA and multi-JOIN ceilings" {
         2,
       ),
       (
-        "DATA combined = SELECT 0 AS n UNION ALL SELECT l.x + r.k FROM t AS l JOIN r ON l.x = r.k; FROM combined |> ORDER BY n",
+        "WITH combined AS (SELECT 0 AS n UNION ALL SELECT l.x + r.k FROM t AS l JOIN r ON l.x = r.k) FROM combined |> ORDER BY n",
         1,
       ),
     ] {
