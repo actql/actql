@@ -39,6 +39,7 @@ pub(all) enum LocalPublicationIntentIssue {
   PreflightMismatch
   ComputeAlreadyStarted
   ResultPublication(LocalResultPublicationIssue)
+  CommitCandidate(@publication.PublicationCommitIssuanceIssue)
 }
 
 ///|
@@ -342,4 +343,92 @@ pub fn local_publication_preflight_contracts(
   preflight : LocalPublicationPreflight,
 ) -> (@publication.PublicationContract, @publication.PublicationContract) {
   local_publication_intent_contracts(preflight.intent)
+}
+
+///|
+/// Encode a proposed index from the original sealed intent and completed
+/// inventory, then start the existing bounded full-chain validator. Neither
+/// return value is current publisher authority or a durable Store commit.
+pub fn prepare_local_preflight_commit_candidate(
+  preflight : LocalPublicationPreflight,
+  manifest : LocalRunManifest,
+  normalization : LocalRunNormalization,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  bindings : Array[@publication.PublicationContract],
+  committed_at : String,
+  account : @authorization.AdmittedAccountConfiguration,
+  limits : LocalPublicationIntentLimits,
+  max_workspace_slots : Int,
+) -> Result[
+  (@publication.PublicationContract, @publication.PublicationCommitPreparation),
+  LocalPublicationIntentIssue,
+] {
+  match validate_local_publication_preflight_current(preflight, account) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !physical_equal(manifest.host, preflight.invocation.source.host) ||
+    !physical_equal(manifest.invocation, preflight.invocation) {
+    return Err(ForeignCompute)
+  }
+  let count = local_publication_preflight_count(preflight)
+  if manifest.results.length() != count ||
+    bindings.length() != count ||
+    count > limits.max_results {
+    return Err(PreflightMismatch)
+  }
+  for index, result in manifest.results {
+    match
+      validate_local_preflight_result(preflight, index, result.output, account) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    let original = preflight.retentions[index]
+    if @publication.publication_contract_identity(result.retention) !=
+      @publication.publication_contract_identity(original) ||
+      @publication.publication_contract_json(result.retention) !=
+      @publication.publication_contract_json(original) {
+      return Err(PreflightMismatch)
+    }
+  }
+  let (request, attempt) = local_publication_preflight_contracts(preflight)
+  let index_entry = match
+    @publication.issue_public_index_entry(
+      manifest.host.plan.definition,
+      preflight.invocation.invocation,
+      manifest.manifest,
+      receipt,
+      captured_run,
+      bindings,
+      request,
+      attempt,
+      committed_at,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(index_entry) => index_entry
+    Err(issue) => return Err(CommitCandidate(issue))
+  }
+  let validation = match
+    start_local_publication_commit_check(
+      manifest,
+      normalization,
+      receipt,
+      captured_run,
+      bindings,
+      request,
+      attempt,
+      index_entry,
+      account,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+      max_workspace_slots,
+    ) {
+    Ok(validation) => validation
+    Err(issue) => return Err(ResultPublication(issue))
+  }
+  Ok((index_entry, validation))
 }
