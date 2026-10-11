@@ -5,6 +5,7 @@ priv struct ScriptSources {
   bound : Map[String, Input]
   unshared : Array[String]
   ranges : Map[String, JoinChainScope]
+  value_tables : Map[String, JoinChainScope]
 }
 
 ///|

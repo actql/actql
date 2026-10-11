@@ -11,6 +11,7 @@ import sys
 
 from python_local_physical import PhysicalFixture
 from python_local_run_inputs import CONFIGURATION, REQUEST, encode
+from python_local_publication_policy import publication_policy as frozen_publication_policy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/python-sdk/src'))
 from actql_sdk._local_command import native_command
@@ -85,12 +86,7 @@ def call(family, name, *args):
 
 
 def publication_policy():
-    expected = json.loads((root / 'scripts/fixtures/python-local-result-publication.json').read_text())
-    # Hash the independently frozen input, never a product response.
-    assert 'sha256:' + hashlib.sha256(expected['retention_preimage'].encode()).hexdigest() == expected['retention_policy_cid']
-    retention = json.loads(expected['retention_preimage'])
-    retention['retention_policy_cid'] = expected['retention_policy_cid']
-    return expected, json.dumps(retention, sort_keys=True, separators=(',', ':'))
+    return frozen_publication_policy(root)
 
 
 def projection(family, reserve, produce, length, close, *args):
@@ -503,7 +499,8 @@ try:
             pending_publication = call('publication', 'reserve', source_pin, pending_input,
                                        ticket, 2097200)
             assert pending_publication > 0
-            assert call('publication', 'prepare', pending_publication, configuration) == -2
+            pending_status = call('publication', 'prepare', pending_publication, configuration)
+            assert pending_status == -2, ('Unfinished Result publication prepare', pending_status)
             assert call('publication', 'length', pending_publication) == -33
             assert call('publication', 'close', pending_publication) == 0
             publication_cases.append('unfinished_original_result_export_cannot_attest_publication')
