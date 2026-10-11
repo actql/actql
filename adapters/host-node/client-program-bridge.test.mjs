@@ -34,7 +34,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority, installRunStateService} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
-import {connect as connectClient} from '../../packages/sdk/index.mjs';
+import {connect as connectClient, getSubmissionAttempt, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
@@ -2182,11 +2182,20 @@ test('public Values submit computes and reads its real Local Result',
           assert.deepEqual(repeated.ref, submitted.ref);
           const changed = document.replace('"id": 2', '"id": 3');
           assert.notEqual(changed, document);
+          const changedAttempt = {operation: 'submit', attemptId: 'published-values-changed-intent'};
+          const changedIntentCid = independentCid({version: 'actql-submitted-intent/0.1',
+            intent: {kind: 'aql', input: {text: changed, format: 'json'}, parameters: null}});
           await assert.rejects(client.startSource(changed, {format: 'json',
-            submissionRef}),
-          error => error.code === 'SubmissionUnknown' &&
-            error.cause?.code === 'ClientSubmittedIntentConflict' &&
-            error.submissionRef.nonce === submissionRef.nonce);
+            submissionRef, attemptId: changedAttempt.attemptId}), error => {
+            assert.equal(error.code, 'SubmissionConflict');
+            assert.equal(error.cause, undefined);
+            assert.deepEqual(getSubmissionAttempt(error), {kind: 'conflict', reason: 'intent',
+              attemptRef: changedAttempt, submissionRef, intentCid: changedIntentCid});
+            assert.deepEqual(error.attemptRef, changedAttempt);
+            assert.equal(getSubmissionOutcome(error), undefined);
+            assert.deepEqual(error.submissionRef, submissionRef);
+            return true;
+          });
           assert.deepEqual(await client.lookupSubmission(submissionRef), recovered);
           const found = await client.lookupRequest(originalRequestId);
           assert.deepEqual(found.ref, submitted.ref);
