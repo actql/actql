@@ -4073,6 +4073,18 @@ fn run_holder(
       stop("holder setup failed before claim")
     }
   }
+  let effect_resume = open_holder_effect_resume_installation(
+    matches,
+    environment.sqlite_library,
+    resources,
+  ) catch {
+    CommandStop(primary) => {
+      close_holder_output_resources(resources)
+      close_site_environment(environment)
+      ignore(slot.close())
+      stop(primary)
+    }
+  }
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
   let saved_completion = match environment.journal.dispatch_envelope(attempt) {
@@ -4169,6 +4181,12 @@ fn run_holder(
         observer,
         () => slot.verify_current_hold() == Ok(()),
         effect_producer=effect_producer.val,
+        effect_resume_installation=request => {
+          match effect_resume {
+            Some(owner) => owner.for_dispatch(request)
+            None => None
+          }
+        },
       )
       0
     }
@@ -4217,6 +4235,14 @@ fn run_holder(
         | Effect(Host(Runtime(@runtime.StartCancelled))) => 2
         _ => 1
       }
+    }
+  }
+  if effect_resume is Some(owner) {
+    let mut wait_ms = 50
+    while !owner.close() {
+      report("cleanup-pending", [("step", "effect-resume-installation")])
+      @slot.native_wait_milliseconds(wait_ms)
+      wait_ms = holder_effect_installation_backoff(wait_ms)
     }
   }
   close_site_environment(environment)
@@ -4695,6 +4721,7 @@ fn command() -> @argparse.Command {
       global("budget-retained-bytes"),
       global("budget-execution-bytes"),
       global("engine-root"),
+      global("effect-resume-root"),
       global("duckdb-library"),
       global("source-ref"),
       global("source-contract-cid"),
