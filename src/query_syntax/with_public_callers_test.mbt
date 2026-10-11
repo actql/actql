@@ -1,6 +1,6 @@
 ///|
 // Exact current public caller inputs, copied from independent authored fixtures.
-// These cases execute the real parser and preserve outer binding boundaries.
+// These cases execute the real parser and retain the complete authored binding projection.
 // Host I/O, checker refusal, Provider execution and Result publication are separate.
 
 ///|
@@ -54,7 +54,7 @@ test "WITH current public caller acquired-data-cte-pipe-body" {
     "WITH copied AS (WITH chosen AS (FROM records |> WHERE amount >= 20 |> SELECT amount, id) FROM `CHOSEN` |> SELECT amount, id) FROM copied |> ORDER BY id |> RESULT copied_rows",
     query_limits(),
   ).unwrap()
-  assert_eq(query_binding_count(script_query(script)), 1)
+  assert_eq(query_binding_count(script_query(script)), 2)
 }
 
 ///|
@@ -63,7 +63,7 @@ test "WITH current public caller acquired-data-cte-set-shared-producer" {
     "WITH copied AS (WITH chosen AS (FROM records |> SELECT amount, id) SELECT amount, id FROM chosen UNION ALL SELECT amount, id FROM chosen) FROM copied |> ORDER BY id |> RESULT copied_rows",
     query_limits(),
   ).unwrap()
-  assert_eq(query_binding_count(script_query(script)), 1)
+  assert_eq(query_binding_count(script_query(script)), 2)
 }
 
 ///|
@@ -72,7 +72,7 @@ test "WITH current public caller acquired-data-cte-shadows-outer-source" {
     "WITH copied AS (WITH records AS (SELECT amount, id FROM records WHERE id <= 2) SELECT amount, id FROM records) FROM copied |> ORDER BY id |> RESULT copied_rows",
     query_limits(),
   ).unwrap()
-  assert_eq(query_binding_count(script_query(script)), 1)
+  assert_eq(query_binding_count(script_query(script)), 2)
 }
 
 ///|
@@ -90,7 +90,7 @@ test "WITH current public caller acquired-data-cte-join-output-alias-order" {
     "WITH paired AS (WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1) FROM paired |> RESULT copied_rows",
     query_limits(),
   ).unwrap()
-  assert_eq(query_binding_count(script_query(script)), 1)
+  assert_eq(query_binding_count(script_query(script)), 2)
 }
 
 ///|
@@ -135,7 +135,7 @@ test "WITH current public caller acquired-data-cte-scope-does-not-leak" {
     "WITH copied AS (WITH chosen AS (FROM records |> SELECT id) FROM chosen |> SELECT id) FROM chosen |> SELECT id",
     query_limits(),
   ).unwrap()
-  assert_eq(query_binding_count(script_query(script)), 1)
+  assert_eq(query_binding_count(script_query(script)), 2)
 }
 
 ///|
