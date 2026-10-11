@@ -15,7 +15,7 @@ const rejects = (repo, options) => assert.throws(() => compose(repo, options),
 const file = (aggregate, path) => aggregate.files.find(entry => entry.path === path);
 const declaration = (aggregate, id) => aggregate.declarations.find(entry => entry.id === id);
 
-function lateResolution(t, { knownBeforeOriginal = false, twoLateGroups = false } = {}) {
+function lateResolution(t, { knownBeforeOriginal = false, twoLateGroups = false, coIntroduced = false } = {}) {
   const repo = new FoundationRepository(t);
   repo.branch('late');
   const leftSource = repo.source({ [PACKAGE]: packageBytes({ left: 'node left.mjs' }) });
@@ -36,16 +36,165 @@ function lateResolution(t, { knownBeforeOriginal = false, twoLateGroups = false 
   const original = repo.declaration('original-resolution', merge, [PACKAGE], { kind: 'resolution', inputs: [left.id] });
   const originalIntroduction = repo.record(original);
   const originalBytes = readFileSync(join(repo.root, repo.declarationPath(original.id)));
-  for (const value of late) if (!knownBeforeOriginal || value !== right) repo.record(value);
+  for (const value of late) if ((!knownBeforeOriginal || value !== right) && !coIntroduced) repo.record(value);
   const supplement = { version: 'actql-foundation-resolution-supplement/0.1', id: 'complete-late-resolution',
     target: { id: original.id, digest: sha256(originalBytes) },
     inputs: late.map(value => value.id).sort(), reason: 'Bind receipts introduced after the immutable original' };
   const supplementPath = `${DECLARATION_DIRECTORY}-supplements/${supplement.id}.json`;
   const record = (value = supplement) => {
+    if (coIntroduced) for (const dependency of late) {
+      if (!knownBeforeOriginal || dependency !== right) repo.writeDeclaration(dependency);
+    }
     repo.write(supplementPath, `${JSON.stringify(value, null, 2)}\n`);
     return repo.commit('Append exact late dependency supplement');
   };
   return { repo, original, originalIntroduction, originalBytes, supplement, supplementPath, record, right };
+}
+
+function temporalRepair(t, {editOriginal, editReplacement, sameCommitReplacement = false,
+  sameCommitDisposition = false, knownBeforeOriginal = false} = {}) {
+  const f = lateResolution(t, {coIntroduced: true, knownBeforeOriginal,
+    twoLateGroups: knownBeforeOriginal});
+  if (editOriginal) editOriginal(f);
+  const replacement = {...structuredClone(f.supplement), id: 'replace-co-introduced-receipt'};
+  if (editReplacement) editReplacement(replacement);
+  const replacementPath = `${DECLARATION_DIRECTORY}-supplements/${replacement.id}.json`;
+  const replacementBytes = `${JSON.stringify(replacement, null, 2)}\n`;
+  if (sameCommitReplacement) f.repo.write(replacementPath, replacementBytes);
+  const rejectedIntroduction = f.record();
+  const rejectedBytes = readFileSync(join(f.repo.root, f.supplementPath));
+  const repair = {version: 'actql-foundation-supplement-repair/0.1', id: 'repair-co-introduction',
+    target: {id: f.supplement.id, digest: sha256(rejectedBytes)},
+    rejectedIntroductions: [{revision: rejectedIntroduction, parents: f.repo.parents(rejectedIntroduction)}],
+    replacement: {id: replacement.id, digest: sha256(replacementBytes)},
+    reason: 'Retain the rejected introduction and bind a strictly later valid receipt'};
+  const repairPath = `${DECLARATION_DIRECTORY}-supplements/${repair.id}.json`;
+  if (!sameCommitReplacement) f.repo.write(replacementPath, replacementBytes);
+  if (sameCommitDisposition) f.repo.write(repairPath, `${JSON.stringify(repair, null, 2)}\n`);
+  if (!sameCommitReplacement || sameCommitDisposition) f.repo.commit('Append replacement receipt');
+  const recordRepair = (value = repair) => {
+    f.repo.write(repairPath, `${JSON.stringify(value, null, 2)}\n`);
+    return f.repo.commit('Bind the later replacement to the retained rejected introduction');
+  };
+  return {...f, replacement, replacementPath, rejectedIntroduction, rejectedBytes,
+    repair, repairPath, recordRepair};
+}
+
+test('temporal repair requires an explicit disposition and retains the original rejection', t => {
+  const f = temporalRepair(t);
+  assert.throws(() => compose(f.repo), /Foundation supplement must follow its dependency declaration/);
+  const introduction = f.recordRepair();
+  const aggregate = compose(f.repo);
+  const old = aggregate.supplements.find(value => value.id === f.supplement.id);
+  assert.equal(old.disposition, 'repaired_co_introduction');
+  assert.equal(old.temporalRepair, f.repair.id);
+  assert.equal(old.digest, sha256(f.rejectedBytes));
+  assert.deepEqual(old.introductions, [f.rejectedIntroduction]);
+  assert.deepEqual(readFileSync(join(f.repo.root, f.supplementPath)), f.rejectedBytes);
+  assert.deepEqual(aggregate.integrations[0].supplements, [f.replacement.id]);
+  assert.deepEqual(aggregate.supplements.find(value => value.id === f.repair.id).introductions, [introduction]);
+  assert.deepEqual(compose(f.repo), aggregate);
+  f.repo.source({'unrelated.txt': 'Later independent documentation\n'});
+  assert.deepEqual(compose(f.repo).supplements, aggregate.supplements);
+});
+
+for (const [name, edit, pattern] of [
+  ['wrong original digest', r => {r.target.digest = '0'.repeat(64);}, /repair binding/],
+  ['wrong replacement digest', r => {r.replacement.digest = '0'.repeat(64);}, /repair binding/],
+  ['missing original', r => {r.target.id = 'absent';}, /repair binding/],
+  ['missing replacement', r => {r.replacement.id = 'absent';}, /repair binding/],
+  ['false parent order', r => {r.rejectedIntroductions[0].parents = [];}, /rejected introductions/],
+  ['missing rejected introduction', r => {r.rejectedIntroductions = [];}, /rejected introductions/],
+  ['extra rejected introduction', r => {r.rejectedIntroductions.push(r.rejectedIntroductions[0]);}, /rejected introductions/],
+  ['undeclared field', r => {r.acceptSameCommit = true;}, /repair fields/],
+]) test(`temporal repair rejects ${name}`, t => {
+  const f = temporalRepair(t), value = structuredClone(f.repair);
+  edit(value);
+  f.recordRepair(value);
+  assert.throws(() => compose(f.repo), pattern);
+});
+
+for (const [name, edit, pattern] of [
+  ['changed target', r => {r.target.id = 'left-registration';}, /Changed foundation repair target/],
+  ['changed inputs', r => {r.inputs = ['left-registration'];}, /Changed foundation repair inputs/],
+]) test(`temporal repair rejects replacement ${name}`, t => {
+  const f = temporalRepair(t, {editReplacement: edit});
+  f.recordRepair();
+  assert.throws(() => compose(f.repo), pattern);
+});
+
+test('temporal repair refuses a same-commit replacement', t => {
+  const f = temporalRepair(t, {sameCommitReplacement: true});
+  f.recordRepair();
+  assert.throws(() => compose(f.repo), /replacement must follow every original introduction/);
+});
+
+test('temporal repair refuses a same-commit disposition', t => {
+  const f = temporalRepair(t, {sameCommitDisposition: true});
+  assert.throws(() => compose(f.repo), /repair must follow every replacement introduction/);
+});
+
+test('temporal repair cannot excuse an originally visible omitted source group', t => {
+  const f = temporalRepair(t, {knownBeforeOriginal: true});
+  f.recordRepair();
+  assert.throws(() => compose(f.repo), /Incomplete original foundation resolution inputs/);
+});
+
+test('temporal repair cannot excuse a future source group', t => {
+  const f = temporalRepair(t, {editOriginal: f => {
+    const source = f.repo.source({[PACKAGE]: packageBytes({future: 'node future.mjs'})});
+    const dependency = f.repo.declaration('future-registration', source, [PACKAGE]);
+    f.repo.record(dependency);
+    f.supplement.inputs = [f.right.id, dependency.id].sort();
+  }});
+  f.recordRepair();
+  assert.throws(() => compose(f.repo), /Non-ancestral or cyclic foundation supplement dependency/);
+});
+
+test('temporal repair rejects a dependency introduced only after the rejected receipt', t => {
+  const f = temporalRepair(t);
+  const alias = {...f.right, id: 'later-alias'};
+  f.repo.record(alias);
+  // Build a new immutable receipt; neither the old receipt nor its dependency
+  // introduction is rewritten to make this non-co-introduction look valid.
+  const original = {...f.supplement, id: 'bad-later-dependency', inputs: ['absent']};
+  const path = `${DECLARATION_DIRECTORY}-supplements/${original.id}.json`;
+  f.repo.write(path, `${JSON.stringify(original, null, 2)}\n`);
+  const introduction = f.repo.commit('Introduce a receipt without its declaration');
+  f.repo.record({...f.right, id: 'absent'});
+  const replacement = {...original, id: 'later-dependency-replacement'};
+  const replacementPath = `${DECLARATION_DIRECTORY}-supplements/${replacement.id}.json`;
+  f.repo.write(replacementPath, `${JSON.stringify(replacement, null, 2)}\n`);
+  f.repo.commit('Append later replacement');
+  f.recordRepair();
+  const repair = {...f.repair, id: 'bad-nonatomic-repair',
+    target: {id: original.id, digest: sha256(readFileSync(join(f.repo.root, path)))},
+    rejectedIntroductions: [{revision: introduction, parents: f.repo.parents(introduction)}],
+    replacement: {id: replacement.id, digest: sha256(readFileSync(join(f.repo.root, replacementPath)))}};
+  f.repo.write(`${DECLARATION_DIRECTORY}-supplements/${repair.id}.json`, `${JSON.stringify(repair, null, 2)}\n`);
+  f.repo.commit('Attempt an unsupported non-atomic repair');
+  assert.throws(() => compose(f.repo), /requires exact co-introduction/);
+});
+
+test('temporal repair rejects duplicate dispositions', t => {
+  const f = temporalRepair(t);
+  f.recordRepair();
+  const second = {...f.repair, id: 'second-repair'};
+  f.repo.write(`${DECLARATION_DIRECTORY}-supplements/${second.id}.json`, `${JSON.stringify(second, null, 2)}\n`);
+  f.repo.commit('Attempt two dispositions for one rejected receipt');
+  assert.throws(() => compose(f.repo), /Duplicate foundation temporal repair/);
+});
+
+for (const name of ['original', 'replacement', 'disposition']) {
+  for (const remove of [false, true]) test(`temporal repair retains immutable ${name} after ${remove ? 'deletion' : 'edit'}`, t => {
+    const f = temporalRepair(t);
+    f.recordRepair();
+    const path = name === 'original' ? f.supplementPath : name === 'replacement' ? f.replacementPath : f.repairPath;
+    if (remove) f.repo.remove(path);
+    else f.repo.write(path, 'Rewritten proof evidence\n');
+    f.repo.commit('Attempt to alter retained evidence');
+    assert.throws(() => compose(f.repo), /Changed or removed foundation declaration/);
+  });
 }
 
 test('late receipt supplement closes dependency coverage while preserving original bytes and introduction', t => {
