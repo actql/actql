@@ -1871,6 +1871,9 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ByteLength
+  Unicode
+  Chr
   Upper
   Lower
   Trim

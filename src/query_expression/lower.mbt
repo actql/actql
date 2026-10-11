@@ -191,6 +191,9 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "BYTE_LENGTH" | "OCTET_LENGTH" => ("BYTE_LENGTH", "byte_length", 1, 1)
+    "UNICODE" => ("UNICODE", "unicode", 1, 1)
+    "CHR" => ("CHR", "chr", 1, 1)
     "LENGTH" => ("LENGTH", "len", 1, 1)
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "SQRT" => ("SQRT", "sqrt", 1, 1)

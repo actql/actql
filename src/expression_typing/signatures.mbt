@@ -583,6 +583,8 @@ fn infer(
     | "ltrim"
     | "rtrim"
     | "len"
+    | "byte_length"
+    | "unicode"
     | "concat"
     | "concat_strict"
     | "replace"
@@ -597,7 +599,7 @@ fn infer(
       }
       primitive(
         t,
-        if tag == "len" || tag == "strpos" {
+        if ["len", "byte_length", "unicode", "strpos"].contains(tag) {
           NumberType
         } else if ["contains", "like", "starts_with", "ends_with"].contains(tag) {
           BooleanType
@@ -605,6 +607,18 @@ fn infer(
           StringType
         },
         nullable && tag != "concat",
+        source,
+      )
+    }
+    "chr" => {
+      let nullable = arguments(t, nodes, node, "number")
+      typed(
+        t,
+        @contract.string_contract(
+          nullable~,
+          max_codepoints=Some(1L),
+          max_utf8_bytes=Some(4L),
+        ).unwrap(),
         source,
       )
     }

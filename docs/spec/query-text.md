@@ -164,6 +164,18 @@ resource admission and cancellation remain with the common expression owner.
 BYTES and collation remain coverage gaps. No `split_part` profile or frontend
 split evaluator is introduced.
 
+`BYTE_LENGTH(value)` and its `OCTET_LENGTH(value)` alias select the same unary
+`byte_length` common expression for STRING UTF-8 byte counts. `UNICODE(value)`
+selects `unicode`, returning the first Unicode scalar code point or zero for
+empty input/leading NUL. `CHR(value)` selects `chr`, accepting integral finite
+Number code points from 0..0xD7FF or 0xE000..0x10FFFF. Zero returns an empty
+String; every other admitted code point produces one scalar. Fractional,
+negative, surrogate and out-of-range inputs fail after strict NULL propagation.
+These follow the [GoogleSQL STRING rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions),
+within the existing bounded String/finite Number domains. BYTES and distinct
+INT64 overloads remain coverage gaps. All spellings preserve one common child,
+operand nullability, lazy demand, failure, resources and cancellation.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive

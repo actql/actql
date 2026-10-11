@@ -25,7 +25,7 @@
   "profile_id": "actql-text-time/0.1",
   "inherited_text_time_profile_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
   "grammar": "spec/grammar/actql-expression-0.1.ebnf",
-  "grammar_sha256": "389c5cffab417f75ac196cfe9a420278958c31bc447e82ebbe0c4a76b13a6396",
+  "grammar_sha256": "1180f91ef3ee3523270dc6ab55194eb003b7eff2c8e9b8fc8783c2c056edd19f",
   "schemas": {
     "expression": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5581,6 +5581,42 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "byte_length"
+              ],
+              "properties": {
+                "byte_length": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unicode"
+              ],
+              "properties": {
+                "unicode": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chr"
+              ],
+              "properties": {
+                "chr": {
+                  "$ref": "#/$defs/expression"
                 }
               }
             }
@@ -11614,6 +11650,54 @@
                   "items": {
                     "$ref": "#/$defs/expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "byte_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "unicode"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "chr"
+                },
+                "body": {
+                  "$ref": "#/$defs/expression"
                 }
               }
             }
@@ -23137,6 +23221,42 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "byte_length"
+              ],
+              "properties": {
+                "byte_length": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unicode"
+              ],
+              "properties": {
+                "unicode": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chr"
+              ],
+              "properties": {
+                "chr": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -28270,6 +28390,54 @@
                   "items": {
                     "$ref": "#/$defs/machine_expression"
                   }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "byte_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "unicode"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "chr"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
                 }
               }
             }
@@ -35825,6 +35993,42 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "byte_length"
+              ],
+              "properties": {
+                "byte_length": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unicode"
+              ],
+              "properties": {
+                "unicode": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chr"
+              ],
+              "properties": {
+                "chr": {
+                  "$ref": "#/$defs/source_expression"
+                }
+              }
             }
           ]
         },
@@ -40960,6 +41164,54 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "byte_length"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "unicode"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "chr"
+                },
+                "body": {
+                  "$ref": "#/$defs/machine_expression"
+                }
+              }
             }
           ]
         },
@@ -41902,6 +42154,25 @@
       "evaluation": "Evaluate every supplied child exactly once in authored order, value before delimiter, before strict NULL propagation. NULL does not suppress a later demanded child failure. Preserve the first child failure and enclosing lazy demand. The common expression continuation retains operand roots, logical operand/result charges, control work, live-value/output-byte limits, node/depth limits, workspace and cooperative cancellation throughout literal search, exact sizing and construction. No secondary evaluator or Host splitting helper replaces this owner.",
       "identity": "The closed source is {split: [value, delimiter?]} and the machine node is {op: split, body: [value, delimiter?]}. Retain an ordered one-element array for omission and a two-element array for an explicit delimiter. Omission stays distinct from explicit NULL and explicit comma. Preserve the node and all ordered children without folding, sorting or duplication. SQL SPLIT selects this common operation. Earlier pinned contract bodies retain their original meaning and identities.",
       "admission": "SPLIT is an ordinary common expression, with no split-specific text-time profile, policy or envelope. Nested profile calls retain their own obligations and input preflight. Admit the complete Array wire bytes, node/depth shape, String storage and Array slots before allocating output builders or storage. No eager whole-input split or retained boundary array substitutes for bounded continuation work. Existing Array ownership, String admission, retained-root cleanup and cancellation rules remain in force; split_part retains its separately owned text-time law."
+    },
+    "byte_length": {
+      "signature": "Exactly one STRING operand; return Number with the operand nullability. Untyped NULL takes the unique STRING signature. No implicit conversion, BYTES or distinct INT64 overload is admitted.",
+      "value": "Return the exact UTF-8 byte count of the complete String, with zero for empty input. Count encoded scalar bytes rather than UTF-16 code units, scalar count, grapheme clusters or JSON escaping. Preserve input Unicode scalars without normalization. NULL produces NULL.",
+      "evaluation": "Demand the sole child exactly once before strict NULL propagation. Preserve child failures, enclosing lazy demand, retained roots, logical operand/result and control charges, live-value/output-byte and workspace limits, and cooperative cancellation. Reuse the common continuation; no frontend or Host evaluator is introduced.",
+      "identity": "The closed source is {byte_length: expression} and the closed machine node is {op: byte_length, body: expression_node}. BYTE_LENGTH and OCTET_LENGTH select this same unary operation, including expression-text aliases. No separate octet_length canonical node is admitted. Retain the node and sole child without folding or duplication; earlier pinned contract bodies retain their identities."
+    },
+    "unicode": {
+      "signature": "Exactly one STRING operand; return Number with the operand nullability. Untyped NULL takes the unique STRING signature. No implicit conversion, BYTES or distinct INT64 overload is admitted.",
+      "value": "Return the Unicode scalar code point of the first scalar. Empty input and a first U+0000 both return zero. Astral characters return their complete code point, not a UTF-16 surrogate or UTF-8 byte. Combining marks are not normalized or segmented as graphemes. NULL produces NULL.",
+      "evaluation": "Demand the sole child exactly once before strict NULL propagation. Preserve child failures, enclosing lazy demand, retained roots, logical operand/result and control charges, live-value/output-byte and workspace limits, and cooperative cancellation. Reuse the common continuation; no frontend or Host evaluator is introduced.",
+      "identity": "The closed source is {unicode: expression} and the closed machine node is {op: unicode, body: expression_node}. UNICODE selects this same unary operation. Retain the node and sole child without folding or duplication; earlier pinned contract bodies retain their identities."
+    },
+    "chr": {
+      "typing": "The result has max_codepoints 1 and max_utf8_bytes 4, with no invented minimum length; zero can produce empty. Derive these intrinsic maxima without evaluating the child.",
+      "signature": "Exactly one finite Number operand; return String with the operand nullability. Untyped NULL takes the unique Number signature. No implicit conversion, Decimal, BYTES or distinct INT64 overload is admitted.",
+      "value": "After strict NULL propagation, require an integral Number in [0, 55295] or [57344, 1114111]. Reject fractions, negative values, surrogate code points and values above U+10FFFF without truncation or wrapping. Zero returns the empty String; each other admitted code point returns exactly its one Unicode scalar, including noncharacters. NULL produces NULL.",
+      "evaluation": "Demand the sole child exactly once, preserve its failure and enclosing lazy demand, and validate the non-null code point before bounded conversion. Preserve retained roots, logical operand/result and control charges, live-value/output-byte and workspace limits, and cooperative cancellation. Admit the complete String output bytes and storage before construction; no frontend or Host evaluator is introduced.",
+      "identity": "The closed source is {chr: expression} and the closed machine node is {op: chr, body: expression_node}. CHR selects this same unary operation. Retain the node and sole child without folding or duplication; earlier pinned contract bodies retain their identities."
     }
   },
   "regex_ast_contract": {
