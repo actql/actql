@@ -61,7 +61,7 @@ test('collection order cases retain one source acquisition and standard installe
   assert.equal(groups[0].name, 'standard');
   assert.equal(Object.hasOwn(groups[0].capacity, 'max_execution_bytes'), false);
   assert.deepEqual(['successes', 'refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [37, 20, 1]);
+    .map(kind => groups[0].inputs[kind].length), [40, 24, 1]);
 });
 
 test('delimiter chunk expectations distinguish decoded, raw and decomposed values', () => {
@@ -97,4 +97,19 @@ test('ordinary packed route and focused selection both include collection proper
   assert.ok(app.includes('ACTQL_TEST_AGGREGATE_PROPERTY_ORDER_ONLY'));
   assert.ok(driver.includes('--aggregate-property-order-only'));
   assert.ok(driver.includes('aggregate-property-order-source-input.mjs'));
+});
+
+
+test('grouped STRING_AGG delimiters preserve complete independent values and nullable schemas', () => {
+  const get = name => successes.find(item => item.name.endsWith(name));
+  assert.deepEqual(get('grouped-delimiter-sql').expected, [{names: 'b|b|a|c'}]);
+  assert.deepEqual(get('grouped-delimiter-pipe-raw').expected, [{names: 'b\\n\rb\\n\ra\\n\rc'}]);
+  assert.deepEqual(get('grouped-delimiter-empty').expected, [{names: null}]);
+  for (const name of ['grouped-delimiter-sql', 'grouped-delimiter-pipe-raw', 'grouped-delimiter-empty']) {
+    assert.deepEqual(get(name).columns, [{name: 'names', contract: {type: 'string', nullable: true}}]);
+    assert.equal(get(name).sourceReadSessionCount, 1);
+  }
+  const negative = refusals.filter(item => item.name.includes('refuse-grouped-delimiter-'));
+  assert.equal(negative.length, 4);
+  assert.ok(negative.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });

@@ -100,3 +100,51 @@ test "STRING_AGG delimiter chunks require separation and reject invalid escapes"
     is Err({ issue: Lexical(InvalidEscape), .. }),
   )
 }
+
+///|
+test "STRING_AGG grouped literal chunks preserve decoded bytes filter and local order" {
+  for
+    (delimiter, expected) in [
+      ("(('|'))", "|"),
+      ("('')", ""),
+      ("((r'\\n' '\\r'))", "\\n\r"),
+      ("('e' '\\u0301')", "e\u0301"),
+    ] {
+    for prefix in ["SELECT ", "FROM records |> AGGREGATE "] {
+      let suffix = if prefix == "SELECT " { " FROM records" } else { "" }
+      let query = parse_query(
+        prefix +
+        "STRING_AGG(name, " +
+        delimiter +
+        " WHERE id > 0 ORDER BY id) AS names" +
+        suffix,
+        query_limits(),
+      ).unwrap()
+      match operation_at(query, 0) {
+        Some(Group(_, projections, _)) => {
+          let call = projections[0].aggregate.unwrap()
+          assert_eq(call.delimiter, Some(expected))
+          assert_true(call.filter is Some(_))
+          assert_eq(call.order_by.length(), 1)
+        }
+        _ => fail("grouping cannot replace aggregate filter or order")
+      }
+    }
+  }
+}
+
+///|
+test "STRING_AGG grouping cannot disguise nonliteral delimiters" {
+  for value in ["((1))", "((@p))", "((NULL))", "(('a' || 'b'))"] {
+    assert_true(
+      parse_query(
+        "SELECT STRING_AGG(name, " +
+        value +
+        " ORDER BY id) AS names FROM records",
+        query_limits(),
+      )
+      is Err({ issue: Syntax("STRING_AGG delimiter must be literal"), .. }),
+      msg=value,
+    )
+  }
+}

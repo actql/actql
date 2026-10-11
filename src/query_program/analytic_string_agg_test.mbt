@@ -29,10 +29,13 @@ test "analytic STRING_AGG independent complete Program passes common checker" {
 ///|
 test "SQL and Pipe analytic STRING_AGG match the independent Program" {
   let call = "STRING_AGG(name, '|') OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS names"
+  let grouped = "STRING_AGG(name, (('|'))) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS names"
   for
     text in [
       "SELECT id, " + call + " FROM objects ORDER BY id",
       "FROM objects |> SELECT id, " + call + " |> ORDER BY id",
+      "SELECT id, " + grouped + " FROM objects ORDER BY id",
+      "FROM objects |> SELECT id, " + grouped + " |> ORDER BY id",
     ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),

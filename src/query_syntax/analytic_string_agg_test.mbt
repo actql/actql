@@ -3,6 +3,7 @@ test "window STRING_AGG uses OVER order and the ordinary literal decoder" {
   for
     (call, delimiter) in [
       ("STRING_AGG(name)", ","),
+      ("STRING_AGG(name, (('|')))", "|"),
       ("`sTrInG_aGg`(name, '' /* separator */ '\\r' '\\n')", "\r\n"),
     ] {
     let query = parse_query(
