@@ -142,7 +142,12 @@ fn validate_trusted_output_contract_with_inputs(
 ] {
   let cursor = match
     start_trusted_output_preparation(
-      generated, target, max_entries, max_name_bytes, inputs, verified_managed_inputs~,
+      generated,
+      target,
+      max_entries,
+      max_name_bytes,
+      inputs,
+      verified_managed_inputs~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
