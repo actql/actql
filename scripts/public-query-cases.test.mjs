@@ -1,4 +1,4 @@
-import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl} from './fixtures/public-query-input.mjs';
+import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, joinValueControl} from './fixtures/public-query-input.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
@@ -182,4 +182,16 @@ test('range-shadow fixtures distinguish input ranges, ORDER aliases and NULL obj
  assert.deepEqual(cases.get('range-shadow-where-row').expected,[{row:{element:null,position:1},position:1},{row:{element:2,position:2},position:2}]);
  assert.equal(queryCompositionSuccesses.filter(c=>c.name.startsWith('range-shadow-')).length,7);
  assert.equal(queryCompositionRefusals.filter(c=>c.name.startsWith('range-shadow-refusal-')).length,2);
+});
+
+test('JOIN value receiver fixtures distinguish scalar object and ordinary row kinds',()=>{
+ const cases=new Map(queryCompositionSuccesses.map(item=>[item.name,item]));
+ assert.deepEqual(cases.get('join-value-json-control').expected,cases.get('join-value-right-null-duplicates').expected);
+ assert.deepEqual(cases.get('join-value-json-control').columns,cases.get('join-value-right-null-duplicates').columns);
+ assert.deepEqual(joinValueControl.stages[0].steps[4].cross_join,{with:'right',max_output_rows:10,select:{value:'right.element'}});
+ assert.deepEqual(cases.get('join-value-right-range-column-collision').expected,[{value:1}]);
+ assert.deepEqual(cases.get('join-value-both-scalar-on').expected,[{left_value:2,right_value:2}]);
+ assert.equal(cases.get('join-value-right-object').columns[0].contract.nullable,true);
+ assert.equal(cases.get('join-value-offset-row').columns[0].contract.nullable,false);
+ assert.equal(queryCompositionRefusals.filter(item=>item.name.startsWith('join-value-refusal-')).length,3);
 });
