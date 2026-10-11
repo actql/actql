@@ -386,11 +386,23 @@ test "WITH public expansion joined-unnest-star-acquired-data" {
     ..cte_capture_context(),
     parameter_declarations: Some(declarations),
   }
-  let lowered = @frontend.lower(
+  let lowered = match @frontend.lower(
     "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
     Text,
     Some(context),
-  ).unwrap()
+  ) {
+    Ok(value) => value
+    Err(QueryLowering(BindingPreparation(MissingSourceCatalog(_)))) =>
+      fail("captured source needs its real admitted Catalog")
+    Err(QueryLowering(BindingPreparation(LocalProgram(Pipeline(_, issue))))) =>
+      fail("common binding Pipeline: " + @debug.to_string(issue.kind))
+    Err(QueryLowering(InvalidContext)) => fail("InvalidContext")
+    Err(QueryLowering(UnsupportedJoin)) => fail("UnsupportedJoin")
+    Err(QueryLowering(UnknownColumn)) => fail("UnknownColumn")
+    Err(QueryLowering(UnresolvedRelation(_))) => fail("UnresolvedRelation")
+    Err(QueryLowering(BindingPreparation(_))) => fail("another binding preparation cause")
+    Err(_) => fail("another frontend cause")
+  }
   assert_true(lowered.program is Some(_))
 }
 
