@@ -72,29 +72,23 @@ test "named Graph match carries projection order and identity roles to the commo
 }
 
 ///|
-test "named Graph match retains malformed authored contracts for common refusal" {
+test "named Graph match retains precise common static refusals" {
+  // The common match owner fixes these causes before binding demand pruning.
   for
-    call in [
-      "match_nodes(definition: 'N', where: {literal: true}, fields: ['missing'])",
-      "match_nodes(definition: 'missing', where: {literal: true}, fields: ['name'])",
-      "match_nodes(definition: 'N', label: 'missing', where: {literal: true}, fields: ['name'])",
-      "match_nodes(definition: 'N', fields: ['name'])", "match_nodes(definition: 'N', where: {literal: 1}, fields: ['name'])",
-      "match_nodes(definition: 'N', where: {literal: true}, fields: ['name', 'name'])",
-      "match_nodes(definition: 'N', bindings: {identity: 'name'}, where: {literal: true}, fields: ['name'])",
-      "match_nodes(definition: 'N', where: {literal: true}, fields: ['name'], extra: true)",
-      "match_edges(definition: 'E', bindings: {source: 'src'}, fields: ['src'], types: [1])",
+    (call, expected) in [
+      ("match_nodes(definition: 'N', where: {literal: true}, fields: ['missing'])", @pipeline.GraphMatch(Structure(UnknownMatchField("missing")))),
+      ("match_nodes(definition: 'missing', where: {literal: true}, fields: ['name'])", @pipeline.GraphMatch(Structure(InvalidName("missing")))),
+      ("match_nodes(definition: 'N', label: 'missing', where: {literal: true}, fields: ['name'])", @pipeline.GraphMatch(Structure(InvalidName("missing")))),
+      ("match_nodes(definition: 'N', fields: ['name'])", @pipeline.GraphMatch(Structure(InvalidBody))),
+      ("match_nodes(definition: 'N', where: {literal: 1}, fields: ['name'])", @pipeline.GraphMatch(ExpectedBoolean)),
+      ("match_nodes(definition: 'N', where: {literal: true}, fields: ['name', 'name'])", @pipeline.GraphMatch(Structure(DuplicateMatchField("name")))),
+      ("match_nodes(definition: 'N', bindings: {identity: 'name'}, where: {literal: true}, fields: ['name'])", @pipeline.GraphMatch(Structure(ScopeCollision("name")))),
+      ("match_nodes(definition: 'N', where: {literal: true}, fields: ['name'], extra: true)", @pipeline.GraphMatch(Structure(Decode(UnknownField)))),
+      ("match_edges(definition: 'E', bindings: {source: 'src'}, fields: ['src'], types: [1])", @pipeline.GraphMatch(Structure(Decode(WrongType)))),
     ] {
-    let actual = compile_with_set(graph_rows_prefix() + "FROM g |> " + call)
-    assert_true(
-      @check.check_parsed_with_evidence(
-        actual,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=call,
+    expect_with_graph_static_refusal(
+      graph_rows_prefix() + "FROM g |> " + call,
+      expected=Some(expected),
     )
   }
 }

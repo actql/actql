@@ -129,7 +129,7 @@ test "Graph traversal path emission remains explicit and static" {
 }
 
 ///|
-test "Graph traversal path preserves malformed arguments for common refusal" {
+test "Graph traversal path preserves precise common static refusals" {
   for
     (before, after) in [
       ("id: 'element'", "id: 'missing'"),
@@ -137,19 +137,19 @@ test "Graph traversal path preserves malformed arguments for common refusal" {
       ("path_mode: 'trail'", "path_mode: 'invented'"),
       ("max_output_rows: 10", "max_output_rows: 10, extra: true"),
     ] {
-    let program = compile_with_set(
+    expect_with_graph_static_refusal(
       traversal_paths_source().replace(old=before, new=after),
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=after,
+      expected=Some(
+        if before == "id: 'element'" {
+          @pipeline.GraphMatch(Structure(UnknownMatchField("missing")))
+        } else if before == "max_hops: 1" {
+          @pipeline.GraphMatch(Structure(InvalidCount))
+        } else if before == "path_mode: 'trail'" {
+          @pipeline.GraphMatch(Structure(InvalidBody))
+        } else {
+          @pipeline.InvalidBody
+        },
+      ),
     )
   }
 }
