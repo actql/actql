@@ -3,6 +3,7 @@
 // this adapter does not authorize dispatch or issue a public Run outcome.
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {claimInferIoNotification} from './infer-io-notification.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -26,7 +27,50 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
-  signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation}) {
+  signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
+  ioNotification, originalPreparation}) {
+  // The original installing Run has already reserved this entire simultaneous
+  // envelope, including this adapter's controls. Do not derive it from counts,
+  // aggregate headroom or the later Model seal's distinct requirements.
+  let originalConsumer;
+  if (originalPreparation !== undefined) {
+    if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined ||
+        restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
+        originalPreparation === null || typeof originalPreparation !== 'object' ||
+        typeof originalPreparation.readRetainedBytes !== 'bigint' ||
+        originalPreparation.readRetainedBytes <= 0n ||
+        typeof originalPreparation.readExecutionBytes !== 'bigint' ||
+        originalPreparation.readExecutionBytes <= 0n ||
+        typeof originalPreparation.modelRetainedBytes !== 'bigint' ||
+        originalPreparation.modelRetainedBytes <= 0n ||
+        typeof originalPreparation.modelExecutionBytes !== 'bigint' ||
+        originalPreparation.modelExecutionBytes < 0n) {
+      throw new TypeError('InvalidInferOriginalPreparation');
+    }
+    // The original read owner retains the issued ticket if a later constructor
+    // fails. No JS ownership map, claim reset or unowned-start fallback exists.
+    if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
+      const selected = originalPreparation.nodeInstallation;
+      if (selected === null || typeof selected !== 'object' ||
+          Object.keys(selected).sort().join(',') !==
+            'installation,layout,layoutArtifactCid,probability,runtimeArtifactCid' ||
+          typeof originalPreparation.control?.claimCheckedClientInferNodePreparationLayout !== 'function' ||
+          typeof originalPreparation.control?.startCheckedClientInferOriginalPreparation !== 'function') {
+        throw new TypeError('InvalidInferOriginalPreparationLayout');
+      }
+      // Installation-owned selection only. Never retry a rejected layout with
+      // the older private envelope seam, or derive grants from support bounds.
+      originalConsumer = originalPreparation.control.claimCheckedClientInferNodePreparationLayout(
+        originalPreparation.compiled, originalPreparation.runDefinition, graph,
+        originalPreparation.read, selected);
+    } else {
+      // Explicit existing private envelope caller; no production supplier or
+      // physical adequacy is implied by this older diagnostic interface.
+      originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalPreparation.read,
+        originalPreparation.compiled, originalPreparation.runDefinition, graph,
+        originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes));
+    }
+  }
   if (retainOperation !== undefined && typeof retainOperation !== 'function') {
     throw new TypeError('InvalidInferOperationCustody');
   }
@@ -70,7 +114,24 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       savedCapture !== undefined || savedSlots !== undefined)) {
     throw new TypeError('InvalidRestoredInferInput');
   }
-  const active = checked(restoredInput !== undefined && composedInput !== undefined
+  if (ioNotification !== undefined && (provider === undefined || composedInput !== undefined)) {
+    throw new TypeError('InvalidInferIoNotificationProfile');
+  }
+  let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
+  let active;
+  try { active = originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
+    ? originalPreparation.control.startCheckedClientInferOriginalPreparation(
+      originalPreparation.compiled, originalPreparation.runDefinition,
+      preparedProgram, step, graph, registry, values, provider, originalConsumer,
+      originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
+      originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes, fragment, ordered)
+    : checked(originalPreparation !== undefined
+    ? moon.clientProgramStartOriginalInferExecution(preparedProgram, step, graph,
+      registry, values, provider, originalPreparation.compiled, originalPreparation.runDefinition,
+      originalConsumer, originalPreparation.readRetainedBytes,
+      originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
+      originalPreparation.modelExecutionBytes, fragment, ordered)
+    : restoredInput !== undefined && composedInput !== undefined
     ? moon.clientProgramStartRestoredComposedInferInput(composedInput.occurrence, graph,
       composedInput.prefix, provider, restoredInput.snapshot.binding,
       restoredInput.snapshot.descriptorWire, restoredInput.snapshot.rows,
@@ -97,8 +158,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         : moon.clientProgramStartAcquiredInferExecution(preparedProgram, step,
           graph, registry, values, provider, acquiredInput, fragment, ordered)
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
-        graph, registry, values, savedCapture, fragment, ordered));
-  const requestStop = () => moon.clientProgramCancelInferExecution(active);
+        graph, registry, values, savedCapture, fragment, ordered)); }
+  catch (error) { io?.close(); io = undefined; throw error; }
+  let stopNotified = false;
+  const requestStop = () => {
+    const result = moon.clientProgramCancelInferExecution(active);
+    // Deliver a new stop request once. Repeated sticky cancellation cannot
+    // turn a still-pending physical save into a zero-work polling loop.
+    if (!stopNotified) { stopNotified = true; io?.notify(); }
+    return result;
+  };
   signal?.addEventListener('abort', requestStop, {once: true});
   let flight;
   let closeFlight;
@@ -114,6 +183,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (reclaimed) {
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
+      io?.close();
+      io = undefined;
     }
     return reclaimed;
   }
@@ -121,9 +192,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   async function drive() {
     for (;;) {
       if (closing || signal?.aborted) requestStop();
-      const poll = checked(moon.clientProgramAdvanceInferExecution(active,
-        quantum));
-      const kind = moon.clientProgramInferExecutionPollKind(poll);
+      // Arm before polling: a completion during the poll must not be lost.
+      // Only Core may decide whether the notification has changed its state.
+      const ticket = io?.arm();
+      let poll, kind;
+      try {
+        poll = checked(moon.clientProgramAdvanceInferExecution(active, quantum));
+        kind = moon.clientProgramInferExecutionPollKind(poll);
+        if (kind === 'await_io') {
+          if (ticket === undefined) throw new Error('InferIoNotificationUnavailable');
+          await ticket.promise;
+          continue;
+        }
+      } finally { ticket?.dispose(); }
       if (kind === 'waiting') {
         const preparedCallSet = moon.clientProgramInferPreparedCallSet(active);
         if (preparedCallSet === undefined) throw new Error('InferPreparedOwnerUnavailable');
@@ -181,8 +262,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // attempt. requestStop is sticky, so this cannot dispatch another slot.
     while (!moon.clientProgramInferExecutionStopped(active)) {
       requestStop();
-      const poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-      const kind = moon.clientProgramInferExecutionPollKind(poll);
+      const ticket = io?.arm();
+      let poll, kind;
+      try {
+        poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+        kind = moon.clientProgramInferExecutionPollKind(poll);
+        if (kind === 'await_io') {
+          if (ticket === undefined) throw pending();
+          await ticket.promise;
+          continue;
+        }
+      } finally { ticket?.dispose(); }
       if (kind === 'settling') {
         if (typeof cleanupSettlement !== 'function') throw pending();
         const settlement = moon.clientProgramInferCallSettlement(active);
@@ -252,6 +342,12 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // It passes the original owner to MoonBit, never recompiling this Program.
     bindRun: (control, {compiled, runDefinition}) =>
       control.bindCheckedClientInferRun(compiled, active, runDefinition),
+    // The original installing Owner retains read custody. Core verifies the
+    // original Run and claims its seal after the actual bounded Identity scan.
+    // This private seam does not install a normal physical funding profile.
+    bindOriginalPreparation: (read, retainedBytes, executionBytes) =>
+      checked(moon.clientProgramBindInferOriginalPreparation(active, read,
+        retainedBytes, executionBytes)),
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
@@ -302,6 +398,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           }}),
     entryCurrent: (entry, preparedCallSet) =>
       moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
+    // Installation-only wake endpoint of this already claimed operation.
+    // It is not an ACK, public capability or permission to begin another call.
+    ioNotification,
+    bindModelEntryPersistence: (control, plan, preparedCallSet, scope, observation) =>
+      control.bindCheckedClientInferModelEntryPersistence(plan.compiled, active,
+        plan.runDefinition, preparedCallSet, scope, {...observation,
+          beginEntry: entry => {
+            const originals = moon.clientProgramInferCallEntryOriginals(entry);
+            if (originals === undefined) return undefined;
+            return observation.beginEntry(Object.freeze({entry,
+              slot: originals._0, callWire: originals._1,
+              attemptWire: originals._2, authorityWire: originals._3}));
+          }}),
     bindModelObservation: (preparedCallSet, observe) =>
       moon.clientProgramBindInferModelObservation(active, preparedCallSet, value => {
         // Only the installed metadata observer is called here. Its failure

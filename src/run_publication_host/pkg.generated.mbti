@@ -130,6 +130,8 @@ pub fn bind_client_effect_source_dispatch(ClientEffectRunMaterials, @remote_site
 
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
+pub fn bind_client_model_raw_response(ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelRawResponse, ClientModelRawCaptureIssue]
+
 pub fn bind_client_table_input(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity, @logical_request_scope.LogicalRequestScope, String, @effect_application.StorageMappingReference, Int, Int, Int) -> Result[ClientTableInput, ClientTableInputIssue]
 
 pub fn bind_client_table_preview(ClientTableInput, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Result[ClientTablePreview, ClientTableInputIssue]
@@ -153,6 +155,8 @@ pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Resu
 pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[Unit, ClientInferEgressIssue]
 
 pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, ClientCompiledRun) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
+
+pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
 
 pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayout?, ClientInferPlanGraph, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelPreparationLayoutIssue]
 
@@ -441,6 +445,10 @@ pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScop
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn client_local_completion_free_catalog_cid() -> String
+
+pub fn client_model_raw_capture_matches(ClientModelRawCaptureRegistration, ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope) -> Bool
+
+pub fn client_model_raw_capture_policy(ClientModelRawCaptureRegistration) -> @run_publication.BoundModelRawCapturePolicy
 
 pub fn client_model_read_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
@@ -802,6 +810,8 @@ pub fn issue_client_infer_occurrence_call_scope(ClientInferOccurrence, ClientInf
 
 pub fn issue_client_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
 
+pub fn issue_client_model_raw_capture_policy(ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, String, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, String, String, String, String, String) -> Result[@run_publication.BoundModelRawCapturePolicy, ClientModelRawCaptureIssue]
+
 pub fn issue_client_multi_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
@@ -1147,6 +1157,8 @@ pub fn recovered_client_table_preview_matches_source(RecoveredClientTablePreview
 pub fn recovered_client_table_preview_member_index(RecoveredClientTablePreview) -> Int
 
 pub fn recovered_client_table_preview_operation(RecoveredClientTablePreview) -> @effect_application.TableOperation
+
+pub fn register_client_model_raw_capture(ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, @execution_authorization.AdmittedAccountConfiguration, String, String, () -> Bool, () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientModelRawCaptureIssue], delegated_action? : @execution_authorization.RuntimeAction?) -> Result[ClientModelRawCaptureRegistration, ClientModelRawCaptureIssue]
 
 pub fn restore_client_effect_run_normalization(ClientEffectRunMaterials) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
@@ -1861,6 +1873,20 @@ pub(all) enum ClientModelPreparationLayoutIssue {
   Profile(@check_environment.ModelTaskIssueKind)
   Read(ClientModelReadPreparationIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ClientModelRawCaptureIssue {
+  ForeignRun
+  ForeignPolicy
+  ForeignProfile
+  UnavailableSelection
+  Expired
+  Authorization(@execution_authorization.DispatchBindingIssue)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct ClientModelRawCaptureRegistration {
+  // private fields
+}
 
 type ClientModelReadConsumer
 
