@@ -425,6 +425,66 @@ int32_t actql_native_signature_verify_ed25519(
   return 5;
 }
 
+/* No password prompt, external key retrieval or caller-selected file path.
+ * Private key bytes have already been selected by the owning assembly. */
+static int actql_signing_no_password(char *buffer, int size, int writing, void *data) {
+  (void)buffer; (void)size; (void)writing; (void)data;
+  return 0;
+}
+
+/* Resolve signing symbols only for signing. Existing verification, hashing
+ * and Store users retain their original library-loading requirements. */
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_signature_sign_ed25519(
+  actql_native_signature_library *library,
+  moonbit_bytes_t private_key,
+  int32_t private_key_length,
+  moonbit_bytes_t message,
+  int32_t message_length
+) {
+  moonbit_bytes_t result = moonbit_make_bytes_raw(1);
+  result[0] = 2;
+  if (library == NULL || library->dynamic_library == NULL ||
+      private_key_length <= 0 || private_key_length > 16384 ||
+      message_length < 0 || message_length > 1048576 ||
+      memchr(private_key, 0, (size_t)private_key_length) != NULL) return result;
+  actql_pem_read_bio_pubkey_fn read_private = NULL;
+  actql_evp_digest_verify_init_fn sign_init = NULL;
+  typedef int (*sign_fn)(EVP_MD_CTX *, unsigned char *, size_t *,
+                         const unsigned char *, size_t);
+  sign_fn sign = NULL;
+  result[0] = 5;
+  if (!actql_load_symbol(library, (void **)&read_private, "PEM_read_bio_PrivateKey") ||
+      !actql_load_symbol(library, (void **)&sign_init, "EVP_DigestSignInit") ||
+      !actql_load_symbol(library, (void **)&sign, "EVP_DigestSign")) return result;
+  BIO *bio = library->bio_new_mem_buf(private_key, private_key_length);
+  if (bio == NULL) return result;
+  EVP_PKEY *key = read_private(bio, NULL, actql_signing_no_password, NULL);
+  library->bio_free(bio);
+  if (key == NULL) { result[0] = 3; return result; }
+  if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
+    library->evp_pkey_free(key);
+    result[0] = 4;
+    return result;
+  }
+  EVP_MD_CTX *context = library->evp_md_ctx_new();
+  if (context == NULL) { library->evp_pkey_free(key); return result; }
+  unsigned char signature[ACTQL_ED25519_SIGNATURE_BYTES];
+  size_t length = sizeof(signature);
+  int initialized = sign_init(context, NULL, NULL, NULL, key);
+  int signed_message = initialized == 1
+    ? sign(context, signature, &length, message, (size_t)message_length) : 0;
+  library->evp_md_ctx_free(context);
+  library->evp_pkey_free(key);
+  if (signed_message == 1 && length == sizeof(signature)) {
+    result = moonbit_make_bytes_raw(1 + ACTQL_ED25519_SIGNATURE_BYTES);
+    result[0] = 0;
+    memcpy(result + 1, signature, sizeof(signature));
+  }
+  memset(signature, 0, sizeof(signature));
+  return result;
+}
+
 /* Private evidence uses the same AES-256-GCM algorithm and AAD as the existing
  * Node Store. Optional cipher symbols are resolved only for this operation;
  * signature verification does not acquire a new cipher dependency. */
