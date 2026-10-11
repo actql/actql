@@ -183,10 +183,13 @@ test('only finite preloaded assets are served; paths cannot read the workspace',
 
 test('real Node launcher binds loopback and closes only its own HTTP server', async t => {
   let attaches = 0;
+  const originalRequest = globalThis.Request, originalResponse = globalThis.Response;
   const gateway = await startExplorerGateway({client: {async attach() {
     attaches++; return {inspect() {return {marker: 'loopback fixture'};}};
   }, close() {assert.fail('borrowed client stays open');}}});
   t.after(() => gateway.close());
+  assert.equal(globalThis.Request, originalRequest);
+  assert.equal(globalThis.Response, originalResponse);
   assert.match(gateway.origin, /^http:\/\/127\.0\.0\.1:\d+$/u);
   const issued = gateway.issueBootstrap();
   const response = await fetch(`${gateway.origin}/api/session`, {method: 'POST',
@@ -202,6 +205,8 @@ test('real Node launcher binds loopback and closes only its own HTTP server', as
   assert.equal(reply.status, 200);
   assert.equal(attaches, 1);
   await gateway.close(); await gateway.close();
+  assert.equal(globalThis.Request, originalRequest);
+  assert.equal(globalThis.Response, originalResponse);
   await assert.rejects(fetch(gateway.origin));
 });
 

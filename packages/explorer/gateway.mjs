@@ -248,7 +248,9 @@ export async function startExplorerGateway({port = 0, ...options}) {
     fail('ExplorerInvalidGateway');
   }
   let gateway;
-  const server = serve({hostname: '127.0.0.1', port,
+  // The adapter's global Request/Response optimization would change the SDK's
+  // native Fetch response admission for a later HTTPS connection in this process.
+  const server = serve({hostname: '127.0.0.1', port, overrideGlobalObjects: false,
     fetch: request => gateway ? gateway.fetch(request) :
       new Response(null, {status: 503})});
   server.requestTimeout = gatewayLimits.requestMs;
