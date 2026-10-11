@@ -1170,6 +1170,12 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(dependencies.resultPlan, "sha256:c72e7bac3516167318cb458b8e484f0a78742c07d6a0fb36bbc90a089ada980f");
   assert.equal(identity.programCid, "sha256:aa2779533f81830ea9bed43b7421ce727b3592c2bb5a5682580c185f23b6e126");
   assert.equal(identity.semanticsCid, "sha256:96df4405d2d25e409fd1c8b4df1c2db70cffde55afbd992519b210a948ee0018");
+  const submissionSource = readFileSync('adapters/host-node/client-submission-input.test.mjs', 'utf8');
+  const submittedDefinition = submissionSource.match(
+    /assert\.equal\(stored\[0\]\.program_definition_cid,\s*'(sha256:[a-f0-9]{64})'\)/u);
+  assert.ok(submittedDefinition, 'missing fixed submission Program identity expectation');
+  assert.equal(submittedDefinition[1], identity.programCid,
+    'stale submission expectation must not reuse a historical Program identity');
   const requestIntent = {version: 'actql-logical-request-intent/0.1',
     caller_input_intent_cid: pin('b'.repeat(64)), parameter_values_cid: parameterValues,
     program_definition_cid: identity.programCid};
