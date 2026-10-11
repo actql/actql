@@ -200,7 +200,7 @@ fn retained_effect_review_retention_store(
         Err(@resident.Capture(@resident.Capacity(issue))) =>
           @debug.to_string(issue)
         Err(@resident.Capture(@resident.ComputationCapacityMissing)) =>
-          "Computation funding missing"
+          "Original computation capacity is missing"
         Err(@resident.Capture(@resident.Unavailable)) => "Capture unavailable"
         Err(@resident.Capture(@resident.Store(_))) => "Capture Store rejected"
         Err(@resident.Preview(_)) =>
