@@ -531,6 +531,11 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.result_bindings
+    .values()
+    .any(binding => binding.publication == handle) {
+    return -9
+  }
   if record.pending {
     return -33
   }

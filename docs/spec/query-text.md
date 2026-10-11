@@ -586,7 +586,7 @@ invented. This connects the selected
 without a new executor, wire format or range-binding rule.
 
 Pipe `UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value_column FOR name_column
-IN (column, ...)) [AS alias]` connects the selected single-value
+IN (column [[AS] row_value_alias], ...)) [AS alias]` connects the selected single-value
 [GoogleSQL UNPIVOT](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#unpivot_operator)
 to the common `unpivot` operation. The input columns are unqualified current
 column names, not expressions or references through a former range. Unmentioned
@@ -607,6 +607,17 @@ type/nullability requirement is a recorded common-profile gap for inputs whose
 selected columns differ only in nullability; the Frontend does not cast or infer
 types from rows to bypass it. Empty input retains the declared output contracts.
 
+String row-value aliases are decoded literal values, not identifiers. They may
+be empty, repeated, contain escapes, or differ only by Unicode normalization.
+They are preserved through the existing value contract. Omitted aliases use the
+resolved current column name. Each selected occurrence receives its own private
+projection slot before common UNPIVOT, then an ordinary conditional projection
+maps the emitted private name to its authored String label. Repeating the same
+input column with different labels therefore creates separate output rows;
+neither values nor labels are deduplicated. The copies reuse evaluated input
+slots and do not reevaluate input expressions. Private names remain unavailable
+as public labels or Result fields.
+
 The same single-value operation is accepted as a FROM postfix on a named table,
 CTE or parenthesized Relation: `FROM input [AS original] UNPIVOT (...) [AS shaped]`.
 It transforms only that input before surrounding JOIN, WHERE or SELECT. Its output
@@ -617,7 +628,12 @@ Mixed CTE/ordinary JOIN ports use the existing producer-binding path and retain
 the authored JOIN kind, predicate and maximum output rows. No extra acquisition,
 new execution owner or inferred schema is introduced.
 
-This connection does not yet cover multiple value columns or row-value aliases. Those forms remain unimplemented coverage,
+This connection does not yet cover multiple value columns or INT64 row-value
+aliases. Integer literal syntax is retained and explicitly refused by lowering
+as an implementation limit: the current common numeric value contract is
+binary64, not exact INT64. The Frontend does not round an integer or reinterpret
+it as a String. Mixed alias types, or omitted aliases beside integer aliases,
+are syntax errors under the selected GoogleSQL rules. These forms remain unimplemented coverage,
 not permanent language prohibitions. They are not reinterpreted as this form.
 Value/name columns must differ from each other and from selected input names,
 under the existing identifier rules. Kept-name collisions remain ambiguous;
