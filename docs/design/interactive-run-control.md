@@ -52,6 +52,11 @@ Plan reading, authorized Inspect, durable control, each Carrier's Sample
 capture, full intermediates, Cost Guards and execution batches. A missing
 runtime is not made available by recognizing its schema.
 
+The negotiated pending flags are optional observations. Only their existing
+Owner can supply a boolean; omission remains unknown and is never defaulted
+to false. A Host's unsupported pause or sampling capability does not prove
+that cleanup is complete or that an unobserved responsibility is absent.
+
 ## Exact amounts and independent projections
 
 Negotiated `amount_micro` is a decimal string in the nonnegative signed-Int64

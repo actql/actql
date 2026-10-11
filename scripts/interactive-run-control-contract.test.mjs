@@ -49,6 +49,25 @@ test('closed negative vectors reject revision drift, leakage and invented eviden
     assert.equal(wire[schemaName(name)](value), false, name);
 });
 
+test('pending flags preserve unknown absence independently of unsupported capability', () => {
+  const states = shapeVectors.filter(vector => vector.name === 'controlled_run_state');
+  for (const field of ['pause_pending', 'expiry_pending', 'cleanup_pending']) {
+    const absent = states.find(vector => !Object.hasOwn(vector.value, field)).value;
+    const before = structuredClone(absent);
+    assert.equal(wire.validWireControlledRunStateShape(absent), true);
+    assert.equal(Object.hasOwn(absent, field), false);
+    assert.deepEqual(absent, before, 'validation must not synthesize false');
+    for (const value of [false, true]) {
+      assert.equal(wire.validWireControlledRunStateShape({...absent, [field]: value}), true);
+    }
+  }
+  const schema = buildControlRegistry().schemas.controlled_run_state;
+  for (const field of ['pause_pending', 'expiry_pending', 'cleanup_pending']) {
+    assert.equal(schema.required.includes(field), false);
+    assert.equal(schema.properties[field].type, 'boolean');
+  }
+});
+
 test('legacy consumer and original RunState schema remain unchanged', () => {
   const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   assert.equal(registry.artifact_schema_cids.run_state,

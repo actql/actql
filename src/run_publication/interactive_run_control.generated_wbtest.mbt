@@ -231,7 +231,7 @@ test "interactive positive 0: controlled_run_state" {
 test "interactive positive 1: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -242,6 +242,94 @@ test "interactive positive 1: controlled_run_state" {
 test "interactive positive 2: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 3: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 4: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 5: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 6: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 7: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 8: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 9: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 10: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":19,\"expiry_pending\":false,\"pause_pending\":false,\"resume_origin\":{\"command_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"continuation_generation_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"fence_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"kind\":\"manual\"},\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
@@ -250,7 +338,7 @@ test "interactive positive 2: controlled_run_state" {
 }
 
 ///|
-test "interactive positive 3: sample_relation" {
+test "interactive positive 11: sample_relation" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_relation", "{\"columns\":[{\"name\":\"p\",\"position\":0,\"required\":false,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"kind\":\"relation\",\"ordering_evidence_cid\":null,\"rows\":[[{\"presence\":\"present\",\"value\":null,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],[{\"presence\":\"absent\"}],[{\"presence\":\"present\",\"value\":\"é\\r\\né\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}]],\"schema_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-relation/0.1\"}",
@@ -261,7 +349,7 @@ test "interactive positive 3: sample_relation" {
 }
 
 ///|
-test "interactive positive 4: sample_graph" {
+test "interactive positive 12: sample_graph" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_graph", "{\"edges\":[{\"definition_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"domain_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"dst_identity_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"key\":[{\"value\":1,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"label\":{\"presence\":\"absent\"},\"properties\":[],\"src_identity_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\"},{\"definition_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"domain_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"dst_identity_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"identity_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"key\":[{\"value\":2,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"label\":{\"presence\":\"present\",\"value\":null,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"},\"properties\":[],\"src_identity_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\"}],\"graph_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"kind\":\"graph\",\"nodes\":[],\"topology_complete\":false,\"version\":\"actql-sample-graph/0.1\"}",
@@ -272,7 +360,7 @@ test "interactive positive 4: sample_graph" {
 }
 
 ///|
-test "interactive positive 5: sample_vectors" {
+test "interactive positive 13: sample_vectors" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_vectors", "{\"items\":[{\"components\":[{\"index\":0,\"value\":0.5},{\"index\":1,\"value\":0}],\"components_complete\":false,\"dimension\":1536,\"key\":[{\"value\":\"q\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"},{\"value\":1,\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"}],\"precision\":\"float64\"}],\"kind\":\"vectors\",\"vectors_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-vectors/0.1\"}",
@@ -283,7 +371,7 @@ test "interactive positive 5: sample_vectors" {
 }
 
 ///|
-test "interactive positive 6: sample_events" {
+test "interactive positive 14: sample_events" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_events", "{\"clock_evidence_cid\":null,\"events_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"identity_role\":\"event_id\",\"kind\":\"events\",\"late_evidence_cid\":null,\"occurrences\":[{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}},{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}}],\"order_proven\":false,\"ordering_evidence_cid\":null,\"time_role\":\"event_time\",\"version\":\"actql-sample-events/0.1\",\"watermark_evidence_cid\":null,\"window_evidence_cid\":null}",
@@ -294,7 +382,7 @@ test "interactive positive 6: sample_events" {
 }
 
 ///|
-test "interactive positive 7: run_sample" {
+test "interactive positive 15: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"state\":\"forbidden\"}", 20000, 2000, 32,
@@ -304,7 +392,7 @@ test "interactive positive 7: run_sample" {
 }
 
 ///|
-test "interactive positive 8: run_sample" {
+test "interactive positive 16: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"state\":\"expired\"}", 20000, 2000, 32,
@@ -314,7 +402,7 @@ test "interactive positive 8: run_sample" {
 }
 
 ///|
-test "interactive positive 9: run_sample" {
+test "interactive positive 17: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"reason\":\"selection_required\",\"state\":\"unavailable\"}",
@@ -325,7 +413,7 @@ test "interactive positive 9: run_sample" {
 }
 
 ///|
-test "interactive positive 10: run_sample" {
+test "interactive positive 18: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"reason\":\"evicted\",\"state\":\"unavailable\"}", 20000,
@@ -336,7 +424,7 @@ test "interactive positive 10: run_sample" {
 }
 
 ///|
-test "interactive positive 11: control_operation_lookup" {
+test "interactive positive 19: control_operation_lookup" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_operation_lookup", "{\"reason\":\"bounded_history_expired\",\"state\":\"history_unavailable\"}",
@@ -347,7 +435,7 @@ test "interactive positive 11: control_operation_lookup" {
 }
 
 ///|
-test "interactive positive 12: control_money" {
+test "interactive positive 20: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"0\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -358,7 +446,7 @@ test "interactive positive 12: control_money" {
 }
 
 ///|
-test "interactive positive 13: control_money" {
+test "interactive positive 21: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9007199254740993\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -369,7 +457,7 @@ test "interactive positive 13: control_money" {
 }
 
 ///|
-test "interactive positive 14: control_money" {
+test "interactive positive 22: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9223372036854775806\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -380,7 +468,7 @@ test "interactive positive 14: control_money" {
 }
 
 ///|
-test "interactive positive 15: control_money" {
+test "interactive positive 23: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9223372036854775807\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -391,10 +479,10 @@ test "interactive positive 15: control_money" {
 }
 
 ///|
-test "interactive negative 0: control_profile" {
+test "interactive negative 0: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"effect\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:871edfaeaa6ed37ff3ddbb314c064a9664ef96c1079db0dc3311519afe311295\",\"version\":\"actql-control-profile/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":null,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -402,10 +490,10 @@ test "interactive negative 0: control_profile" {
 }
 
 ///|
-test "interactive negative 1: control_profile" {
+test "interactive negative 1: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"unregistered_operator\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:83cddf804d91061411f6758268edf59fb9e43ffd05e876e49df7c97bad219954\",\"version\":\"actql-control-profile/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -416,7 +504,7 @@ test "interactive negative 1: control_profile" {
 test "interactive negative 2: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":\"17\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":\"unknown\",\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -427,7 +515,7 @@ test "interactive negative 2: controlled_run_state" {
 test "interactive negative 3: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":2147483648,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":null,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -438,7 +526,7 @@ test "interactive negative 3: controlled_run_state" {
 test "interactive negative 4: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":0,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -449,7 +537,7 @@ test "interactive negative 4: controlled_run_state" {
 test "interactive negative 5: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":19,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"resume_origin\":{\"command_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"continuation_generation_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"fence_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"kind\":\"manual\"},\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":\"unknown\",\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -460,7 +548,7 @@ test "interactive negative 5: controlled_run_state" {
 test "interactive negative 6: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"stop_reason\":\"pause\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":null,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -471,7 +559,7 @@ test "interactive negative 6: controlled_run_state" {
 test "interactive negative 7: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"previous_stop_reason\":\"entry\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":0,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -482,6 +570,105 @@ test "interactive negative 7: controlled_run_state" {
 test "interactive negative 8: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":\"unknown\",\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 9: control_profile" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"effect\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:871edfaeaa6ed37ff3ddbb314c064a9664ef96c1079db0dc3311519afe311295\",\"version\":\"actql-control-profile/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 10: control_profile" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"unregistered_operator\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:83cddf804d91061411f6758268edf59fb9e43ffd05e876e49df7c97bad219954\",\"version\":\"actql-control-profile/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 11: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":\"17\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 12: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":2147483648,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 13: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 14: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":19,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"resume_origin\":{\"command_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"continuation_generation_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"fence_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"kind\":\"manual\"},\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 15: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"stop_reason\":\"pause\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 16: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"previous_stop_reason\":\"entry\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 17: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
       "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"breakpoint\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
@@ -490,7 +677,7 @@ test "interactive negative 8: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 9: run_sample" {
+test "interactive negative 18: run_sample" {
   assert_false(
     parse_interactive_run_control_shape(
       "run_sample", "{\"count\":1,\"kind\":\"graph\",\"state\":\"forbidden\"}", 20000,
@@ -501,7 +688,7 @@ test "interactive negative 9: run_sample" {
 }
 
 ///|
-test "interactive negative 10: run_sample" {
+test "interactive negative 19: run_sample" {
   assert_false(
     parse_interactive_run_control_shape(
       "run_sample", "{\"source\":{},\"state\":\"expired\"}", 20000, 2000, 32,
@@ -511,7 +698,7 @@ test "interactive negative 10: run_sample" {
 }
 
 ///|
-test "interactive negative 11: control_quantity" {
+test "interactive negative 20: control_quantity" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_quantity", "{\"kind\":\"unknown\",\"reason\":\"unobserved\",\"unit\":\"rows\",\"value\":\"0\"}",
@@ -522,7 +709,7 @@ test "interactive negative 11: control_quantity" {
 }
 
 ///|
-test "interactive negative 12: control_quantity" {
+test "interactive negative 21: control_quantity" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_quantity", "{\"basis_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"bound\",\"scope_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"unit\":\"bytes\",\"value\":\"01\"}",
@@ -533,7 +720,7 @@ test "interactive negative 12: control_quantity" {
 }
 
 ///|
-test "interactive negative 13: control_quantity" {
+test "interactive negative 22: control_quantity" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_quantity", "{\"basis_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"bound\",\"scope_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"unit\":\"bytes\",\"value\":\"1\\n\"}",
@@ -544,7 +731,7 @@ test "interactive negative 13: control_quantity" {
 }
 
 ///|
-test "interactive negative 14: sample_relation" {
+test "interactive negative 23: sample_relation" {
   assert_false(
     parse_interactive_run_control_shape(
       "sample_relation", "{\"columns\":[{\"name\":\"p\",\"position\":0,\"required\":false,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"kind\":\"graph\",\"ordering_evidence_cid\":null,\"rows\":[[{\"presence\":\"present\",\"value\":null,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],[{\"presence\":\"absent\"}],[{\"presence\":\"present\",\"value\":\"é\\r\\né\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}]],\"schema_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-relation/0.1\"}",
@@ -555,7 +742,7 @@ test "interactive negative 14: sample_relation" {
 }
 
 ///|
-test "interactive negative 15: sample_relation" {
+test "interactive negative 24: sample_relation" {
   assert_false(
     parse_interactive_run_control_shape(
       "sample_relation", "{\"columns\":[{\"name\":\"p\",\"position\":0,\"required\":false,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"kind\":\"relation\",\"ordering_evidence_cid\":null,\"rows\":[[{\"presence\":\"absent\",\"value\":null}]],\"schema_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-relation/0.1\"}",
@@ -566,7 +753,7 @@ test "interactive negative 15: sample_relation" {
 }
 
 ///|
-test "interactive negative 16: sample_events" {
+test "interactive negative 25: sample_events" {
   assert_false(
     parse_interactive_run_control_shape(
       "sample_events", "{\"clock_evidence_cid\":null,\"events_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"identity_role\":\"event_id\",\"kind\":\"events\",\"late_evidence_cid\":null,\"occurrences\":[{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}},{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}}],\"order_proven\":true,\"ordering_evidence_cid\":null,\"time_role\":\"event_time\",\"version\":\"actql-sample-events/0.1\",\"watermark_evidence_cid\":null,\"window_evidence_cid\":null}",
@@ -577,7 +764,7 @@ test "interactive negative 16: sample_events" {
 }
 
 ///|
-test "interactive negative 17: control_interval" {
+test "interactive negative 26: control_interval" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_interval", "{\"guards\":null,\"until\":\"automatically_retry\"}",
@@ -588,7 +775,7 @@ test "interactive negative 17: control_interval" {
 }
 
 ///|
-test "interactive negative 18: control_money" {
+test "interactive negative 27: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9223372036854775808\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -599,7 +786,7 @@ test "interactive negative 18: control_money" {
 }
 
 ///|
-test "interactive negative 19: control_money" {
+test "interactive negative 28: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"00\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -610,7 +797,7 @@ test "interactive negative 19: control_money" {
 }
 
 ///|
-test "interactive negative 20: control_money" {
+test "interactive negative 29: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"+1\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -621,7 +808,7 @@ test "interactive negative 20: control_money" {
 }
 
 ///|
-test "interactive negative 21: control_money" {
+test "interactive negative 30: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"-1\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -632,7 +819,7 @@ test "interactive negative 21: control_money" {
 }
 
 ///|
-test "interactive negative 22: control_money" {
+test "interactive negative 31: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1e3\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -643,7 +830,7 @@ test "interactive negative 22: control_money" {
 }
 
 ///|
-test "interactive negative 23: control_money" {
+test "interactive negative 32: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\" 1\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -654,7 +841,7 @@ test "interactive negative 23: control_money" {
 }
 
 ///|
-test "interactive negative 24: control_money" {
+test "interactive negative 33: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1.0\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -665,7 +852,7 @@ test "interactive negative 24: control_money" {
 }
 
 ///|
-test "interactive negative 25: control_money" {
+test "interactive negative 34: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\\n\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -676,7 +863,7 @@ test "interactive negative 25: control_money" {
 }
 
 ///|
-test "interactive negative 26: control_money" {
+test "interactive negative 35: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":1,\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -687,7 +874,7 @@ test "interactive negative 26: control_money" {
 }
 
 ///|
-test "interactive negative 27: control_money" {
+test "interactive negative 36: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"usd\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -698,7 +885,7 @@ test "interactive negative 27: control_money" {
 }
 
 ///|
-test "interactive negative 28: control_money" {
+test "interactive negative 37: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"US\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -709,7 +896,7 @@ test "interactive negative 28: control_money" {
 }
 
 ///|
-test "interactive negative 29: control_money" {
+test "interactive negative 38: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"USDA\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -720,7 +907,7 @@ test "interactive negative 29: control_money" {
 }
 
 ///|
-test "interactive negative 30: control_money" {
+test "interactive negative 39: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"USD\\n\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",

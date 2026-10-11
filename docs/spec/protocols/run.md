@@ -36,7 +36,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_control_capabilities sha256:8ef39dfb5463ce5518cc213da341906af7fc9f74996a172608f574dd874a6794 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/plan_view sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_resume_origin sha256:a6aecb1e607745939e7d1e3a16a89c61ec9d0d6ff272aab22e000f40687ea13f -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/controlled_run_state sha256:bbae06fd0f5062ab8812d7029f51191f0ea05bed0a2ed5402a3bc52aa4564f3f -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/controlled_run_state sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_command sha256:3652d5b0ccd085bcb7077cae918e6c802fa6d8e7d2ef57fdf533b591bcb23365 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_ref sha256:789a793ad961d9b353c7ce7e7291c5ea6332c5c5eda5626a86ddeb89b762f2b8 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_receipt sha256:22eeab3c3f9f494a4bb19441508e774e9fe647e7df0cf7bf4b63ac2a895c0822 -->
@@ -54,7 +54,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/resolved_control_profile sha256:6c2bb8de6b1f74fc37ecd43a3b3b667ff660e46e09c32846d34544dcace804f9 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_query sha256:411c0a6ceb270757a5ded2334285827387b9a67257e2b62bcc29fb28c4bd32ca -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_selector sha256:345ec8f736c15213fc6c312f010cccf9146ec43c0033221d1f3b385a0f74f269 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:f73792a2a2f4fc15bdb6bcdd15602b07180ef9083537ff6a3688a46c443f4f4d -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:f4418a7ecfc20cede8ab00dbd961804e82ff96cbb78c20ff342fb6bcf504b6b3 -->
 <!-- page-contents:start -->
 ## On this page
 
@@ -912,7 +912,7 @@ The four Sample projections are not full Carrier snapshots or Result schemas.
 The existing compiler, Run, Checkpoint, Ledger, material and publication Owners
 remain authoritative; a read projection does not decide lifecycle transitions.
 
-<!-- requirement-block: interactive-original-intent interactive-legacy-projection interactive-control-cas interactive-receipt interactive-map interactive-sample interactive-observation interactive-capability -->
+<!-- requirement-block: interactive-original-intent interactive-legacy-projection interactive-control-cas interactive-receipt interactive-map interactive-sample interactive-observation interactive-pending-observation interactive-pending-unknown interactive-capability -->
 Negotiated admission MUST first bind the original SubmissionRef, unchanged
 legacy request fingerprint, normalized requested Profile and optional expected
 Plan, then immutably bind that intent to the originally adopted Plan/map and
@@ -946,6 +946,10 @@ selection-required for ambiguous input, and no acquisition or recomputation.
 Run Inspect MUST use current read/egress authority and existing Owner-local
 provenance, declaring non-atomic composition and unknown quantities rather
 than a global synchronized cut, guessed zero usage or newly generated preview.
+The negotiated `pause_pending`, `expiry_pending` and `cleanup_pending` fields
+MUST be emitted as booleans only when obtained from their existing Owner.
+An omitted field means an unknown observation and MUST NOT be completed as
+`false`. Unsupported capability is separate from an unknown observation.
 
 Installed capability publication MUST distinguish static planning/inspection,
 durable control, Sample collection, full intermediates and cost Guards, and

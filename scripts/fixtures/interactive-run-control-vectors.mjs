@@ -140,6 +140,17 @@ export const identityVectors = [
 ];
 export const shapeVectors = [
   {name: 'controlled_run_state', value: running},
+  // Presence means an observed boolean. Every omission combination remains
+  // unknown; unsupported capability is not an observation of false.
+  ...Array.from({length: 8}, (_, mask) => {
+    const value = {...running};
+    for (const [index, field] of ['pause_pending', 'expiry_pending',
+      'cleanup_pending'].entries()) {
+      if (mask & (1 << index)) value[field] = true;
+      else delete value[field];
+    }
+    return {name: 'controlled_run_state', value};
+  }),
   {name: 'controlled_run_state', value: paused},
   {name: 'controlled_run_state', value: manual},
   {name: 'sample_relation', value: sampleRelation},
@@ -156,6 +167,9 @@ export const shapeVectors = [
       amount_micro, scope_cids: [cid('1')], tariff_revision_cid: cid('2'), valid_until: time}})),
 ];
 export const negativeVectors = [
+  ...['pause_pending', 'expiry_pending', 'cleanup_pending'].flatMap(field =>
+    [null, 0, 'unknown'].map(value => ({name: 'controlled_run_state',
+      value: {...running, [field]: value}}))),
   ...['effect', 'unregistered_operator'].map(operator => ({name: 'control_profile',
     value: sealed({...profile, execution: {...profile.execution, breakpoints: [
       {kind: 'logical_step', select: {by: 'operator', operator}, position: 'after'},
