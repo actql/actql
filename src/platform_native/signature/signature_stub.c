@@ -250,6 +250,67 @@ bool actql_native_signature_sha256_ready(actql_native_sha256 *hash) {
   return hash != NULL && hash->context != NULL && !hash->closed;
 }
 
+/* Resolve custody primitives only when used. Signature verification retains
+ * its existing library requirements, and no substitute is used on failure. */
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_signature_random_bytes(
+  actql_native_signature_library *library, int32_t length
+) {
+  typedef int (*random_fn)(unsigned char *, int);
+  random_fn random = NULL;
+  if (library == NULL || library->dynamic_library == NULL ||
+      length < 1 || length > 4096 ||
+      !actql_load_symbol(library, (void **)&random, "RAND_bytes")) {
+    return moonbit_make_bytes_raw(0);
+  }
+  moonbit_bytes_t result = moonbit_make_bytes_raw(length);
+  if (random(result, length) != 1) {
+    /* Failed randomness must never escape as key material. */
+    memset(result, 0, (size_t)length);
+    moonbit_decref(result);
+    return moonbit_make_bytes_raw(0);
+  }
+  return result;
+}
+
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_signature_hmac_sha256(
+  actql_native_signature_library *library,
+  moonbit_bytes_t key, int32_t key_length,
+  moonbit_bytes_t message, int32_t message_length
+) {
+  typedef unsigned char *(*hmac_fn)(const EVP_MD *, const void *, int,
+    const unsigned char *, size_t, unsigned char *, unsigned int *);
+  hmac_fn hmac = NULL;
+  if (library == NULL || library->dynamic_library == NULL ||
+      key_length < 1 || key_length > 4096 ||
+      message_length < 0 || message_length > 1048576 ||
+      !actql_load_symbol(library, (void **)&hmac, "HMAC")) {
+    return moonbit_make_bytes_raw(0);
+  }
+  unsigned char tag[32];
+  unsigned int length = 0;
+  if (hmac(library->evp_sha256(), key, key_length, message,
+      (size_t)message_length, tag, &length) == NULL || length != sizeof(tag)) {
+    return moonbit_make_bytes_raw(0);
+  }
+  moonbit_bytes_t result = moonbit_make_bytes_raw(32);
+  memcpy(result, tag, 32);
+  return result;
+}
+
+MOONBIT_FFI_EXPORT
+int32_t actql_native_signature_equal_tag(
+  actql_native_signature_library *library,
+  moonbit_bytes_t expected, moonbit_bytes_t supplied
+) {
+  typedef int (*compare_fn)(const void *, const void *, size_t);
+  compare_fn compare = NULL;
+  if (library == NULL || library->dynamic_library == NULL ||
+      !actql_load_symbol(library, (void **)&compare, "CRYPTO_memcmp")) return 2;
+  return compare(expected, supplied, 32) == 0 ? 0 : 1;
+}
+
 MOONBIT_FFI_EXPORT
 bool actql_native_signature_sha256_update(
   actql_native_sha256 *hash,

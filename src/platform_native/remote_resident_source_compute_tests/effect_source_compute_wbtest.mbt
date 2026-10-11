@@ -368,6 +368,7 @@ fn resident_native_effect_open(
         Capture => "physical capture"
         RetainedInput(_) => "retained input"
         EffectRun(_) => "Effect Run binding"
+        ForeignEffectMaterials => "foreign Effect review materials"
         EffectInput(_) => "Effect retained input"
         Run(Run(UnsupportedGraph)) => "captured Effect graph"
         Run(_) => "captured Effect Run"

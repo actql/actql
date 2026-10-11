@@ -16,6 +16,18 @@ pub fn open_root(_path : String) -> Result[Root, NativeFilesystemIssue] {
 }
 
 ///|
+pub fn open_private_root(_path : String) -> Result[Root, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::private_ownership(
+  _self : Root,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Root::acquire_lock(
   _self : Root,
   _name : String,

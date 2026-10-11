@@ -34,7 +34,7 @@ pub struct CatalogObservation {
   names : Array[String]
   outcomes : Array[ResourceDescribeOutcome]
   truncated : Bool
-  binding : CatalogObservationBinding
+  binding : CatalogExecutionBinding
   body : String
   cid : String
 }
@@ -42,7 +42,7 @@ pub struct CatalogObservation {
 ///|
 /// A refresh is a new observation and may use a new sync dispatch. Its
 /// execution authority, connection, and Site generation must remain exact.
-fn catalog_execution_binding_matches(
+fn catalog_site_execution_binding_matches(
   prior : CatalogObservationBinding,
   current : CatalogObservationBinding,
 ) -> Bool {
@@ -145,7 +145,7 @@ fn observation_field(
 ///|
 fn emit_observation(
   sync : CatalogSync,
-  binding : CatalogObservationBinding,
+  binding : CatalogExecutionBinding,
   list_use_cid : String,
   describe_use_cids : Array[String?],
   describe_response_sha256 : Array[String?],
@@ -157,34 +157,48 @@ fn emit_observation(
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "binding")
-    @encode.begin_object(writer)
-    observation_field(
-      writer,
-      "connection_revision",
-      binding.connection_revision,
-    )
-    observation_field(
-      writer,
-      "connector_registration",
-      binding.connector_registration,
-    )
-    observation_field(writer, "connector_revision", binding.connector_revision)
-    observation_field(
-      writer,
-      "dispatch_request_cid",
-      binding.dispatch_request_cid,
-    )
-    observation_field(writer, "environment", binding.environment)
-    observation_field(writer, "org_id", binding.org_id)
-    observation_field(writer, "principal", binding.principal)
-    observation_field(writer, "resource_origin", binding.resource_origin)
-    observation_field(writer, "run_invocation_cid", binding.run_invocation_cid)
-    @encode.key(writer, "site_generation")
-    @encode.number_value(writer, binding.site_generation.to_double())
-    observation_field(writer, "site_key", binding.site_key)
-    observation_field(writer, "sync_occurrence", binding.sync_occurrence)
-    observation_field(writer, "namespace_id", binding.namespace_id)
-    @encode.end_object(writer)
+    match binding {
+      SiteCatalog(binding) => {
+        @encode.begin_object(writer)
+        observation_field(
+          writer,
+          "connection_revision",
+          binding.connection_revision,
+        )
+        observation_field(
+          writer,
+          "connector_registration",
+          binding.connector_registration,
+        )
+        observation_field(
+          writer,
+          "connector_revision",
+          binding.connector_revision,
+        )
+        observation_field(
+          writer,
+          "dispatch_request_cid",
+          binding.dispatch_request_cid,
+        )
+        observation_field(writer, "environment", binding.environment)
+        observation_field(writer, "org_id", binding.org_id)
+        observation_field(writer, "principal", binding.principal)
+        observation_field(writer, "resource_origin", binding.resource_origin)
+        observation_field(
+          writer,
+          "run_invocation_cid",
+          binding.run_invocation_cid,
+        )
+        @encode.key(writer, "site_generation")
+        @encode.number_value(writer, binding.site_generation.to_double())
+        observation_field(writer, "site_key", binding.site_key)
+        observation_field(writer, "sync_occurrence", binding.sync_occurrence)
+        observation_field(writer, "namespace_id", binding.namespace_id)
+        @encode.end_object(writer)
+      }
+      DirectLocalCatalog(binding) =>
+        emit_local_observation_binding(writer, binding)
+    }
     @encode.key(writer, "listed_resources")
     @encode.begin_array(writer)
     for index in 0..<sync.listing.selected.length() {
@@ -228,7 +242,9 @@ fn emit_observation(
     @encode.key(writer, "truncated")
     @encode.bool_value(writer, sync.listing.truncated)
     observation_field(
-      writer, "version", "actql-salesforce-catalog-observation/0.1",
+      writer,
+      "version",
+      catalog_binding_observation_version(binding),
     )
     @encode.end_object(writer)
   } catch {
@@ -249,10 +265,29 @@ pub fn prepare_catalog_observation(
   describe_response_sha256 : Array[String?],
   max_bytes : Int,
 ) -> Result[CatalogObservation, CatalogObservationIssue] {
+  prepare_owned_catalog_observation(
+    sync,
+    SiteCatalog(binding),
+    list_use_cid,
+    describe_use_cids,
+    describe_response_sha256,
+    max_bytes,
+  )
+}
+
+///|
+fn prepare_owned_catalog_observation(
+  sync : CatalogSync,
+  binding : CatalogExecutionBinding,
+  list_use_cid : String,
+  describe_use_cids : Array[String?],
+  describe_response_sha256 : Array[String?],
+  max_bytes : Int,
+) -> Result[CatalogObservation, CatalogObservationIssue] {
   if !sync.finished || sync.next_index != sync.outcomes.length() {
     return Err(IncompleteSync)
   }
-  if !observation_binding_valid(binding) {
+  if !catalog_binding_valid(binding) {
     return Err(InvalidBinding)
   }
   if sync.listed && !observation_cid(list_use_cid) {
@@ -321,7 +356,7 @@ pub fn catalog_observation_matches_binding(
   observation : CatalogObservation,
   current : CatalogObservationBinding,
 ) -> Bool {
-  observation.binding == current
+  observation.binding == SiteCatalog(current)
 }
 
 ///|
@@ -350,7 +385,16 @@ pub fn catalog_observation_resource(
   current : CatalogObservationBinding,
   name : String,
 ) -> Result[ResourceMetadata, CatalogObservationIssue] {
-  match catalog_observation_resource_outcome(observation, current, name) {
+  catalog_owned_observation_resource(observation, SiteCatalog(current), name)
+}
+
+///|
+fn catalog_owned_observation_resource(
+  observation : CatalogObservation,
+  current : CatalogExecutionBinding,
+  name : String,
+) -> Result[ResourceMetadata, CatalogObservationIssue] {
+  match catalog_owned_observation_resource_outcome(observation, current, name) {
     Ok(Described(resource)) => Ok(resource)
     Ok(Unavailable(reason)) => Err(DescribeUnavailable(reason))
     Ok(Pending) => Err(IncompleteSync)
@@ -463,6 +507,19 @@ pub fn catalog_observation_resource_summary_json(
 pub fn catalog_observation_resource_outcome(
   observation : CatalogObservation,
   current : CatalogObservationBinding,
+  name : String,
+) -> Result[ResourceDescribeOutcome, CatalogObservationIssue] {
+  catalog_owned_observation_resource_outcome(
+    observation,
+    SiteCatalog(current),
+    name,
+  )
+}
+
+///|
+fn catalog_owned_observation_resource_outcome(
+  observation : CatalogObservation,
+  current : CatalogExecutionBinding,
   name : String,
 ) -> Result[ResourceDescribeOutcome, CatalogObservationIssue] {
   if current != observation.binding {

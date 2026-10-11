@@ -209,9 +209,55 @@ test "committed Result projection selects the exact indexed binding" {
     publication_contract_identity(artifact),
   )
   assert_eq(resolved.material_generation_cid, material_cid)
+  // The actual Artifact owns this identity; neither the retention contract
+  // identity nor the material generation is a replacement Data Policy.
+  assert_eq(resolved.effective_data_policy_cid, delivery_test_cid("c"))
   assert_eq(resolved.result_fields, ["value"])
   assert_eq(resolved.row_count, 2L)
   assert_eq(resolved.byte_count, 24L)
+  // A changed Policy creates a different Manifest. An old committed index
+  // cannot be reused to make its Artifact Policy look current.
+  let artifact_source = @source.parse_json(
+    publication_contract_json(artifact),
+    { max_input_bytes: 32768, max_nodes: 256, max_depth: 16, },
+  ).unwrap()
+  let artifact_value = @json.from_source(artifact_source, 256, 16, 32768)
+  let artifact_body = @json.stringify_value(
+    @json.object_without_field(artifact_value, "result_artifact_cid").unwrap(),
+    32768,
+    256,
+    16,
+  )
+  let changed_artifact = delivery_test_contract(
+    "result_artifact",
+    artifact_body.replace_all(
+      old="\"effective_data_policy_cid\":\"" + delivery_test_cid("c") + "\"",
+      new="\"effective_data_policy_cid\":\"" + delivery_test_cid("f") + "\"",
+    ),
+  )
+  let source = @source.parse_json(publication_contract_json(manifest), {
+    max_input_bytes: 32768,
+    max_nodes: 256,
+    max_depth: 16,
+  }).unwrap()
+  let value = @json.from_source(source, 256, 16, 32768)
+  let changed_body = @json.stringify_value(
+    @json.object_without_field(value, "result_manifest_cid").unwrap(),
+    32768,
+    256,
+    16,
+  )
+  let changed_manifest = delivery_test_contract(
+    "result_manifest",
+    changed_body.replace_all(
+      old=publication_contract_json(artifact),
+      new=publication_contract_json(changed_artifact),
+    ),
+  )
+  assert_true(
+    project_committed_result_read(index, changed_manifest, "answer", [binding])
+    is Err(DeliveryIssuanceReferenceMismatch("result_manifest_cid")),
+  )
   assert_true(
     project_committed_result_read(index, manifest, "missing", [binding])
     is Err(DeliveryIssuanceUnknownResult("missing")),

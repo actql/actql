@@ -240,19 +240,22 @@ fn retained_holder_provider_review(
     prepare(materials, { ..policy, max_capture_workspace_entries: 0, })
     is Err(InvalidLimits),
   )
+  guard policy.catalog.binding is @catalog.SiteCatalog(original_site_binding) else {
+    fail("expected the original Site Catalog fixture binding")
+  }
   // A valid Catalog with the same Resource shape is still foreign to the
   // original holder. Reject before taking another completed-output export or
   // allowing the Provider access callback to run.
   for
     foreign in [
-      { ..policy.catalog.binding, site_key: "foreign-site", },
-      { ..policy.catalog.binding, site_generation: 2, },
+      { ..original_site_binding, site_key: "foreign-site", },
+      { ..original_site_binding, site_generation: 2, },
       {
-        ..policy.catalog.binding,
+        ..original_site_binding,
         run_invocation_cid: retained_compute_cid("f"),
       },
       {
-        ..policy.catalog.binding,
+        ..original_site_binding,
         dispatch_request_cid: retained_compute_cid("f"),
       },
     ] {

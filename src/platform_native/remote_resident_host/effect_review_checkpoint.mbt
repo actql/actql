@@ -241,7 +241,11 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     Ok(_) => ()
     Err(issue) => return Err(Keys(issue))
   }
-  guard self.effect_retained is Some(retained) else { return Err(Unavailable) }
+  let binding = match
+    self.effect_review_input_binding(materials, inputs, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let unit = @host.client_effect_compilation_unit_id(materials.compilation)
   let encoded = try {
     let writer = @encode.writer(
@@ -258,13 +262,16 @@ pub fn ResidentSourceCompute::prepare_effect_review_checkpoint(
     effect_checkpoint_text(writer, "preview_cid", preview_cid)
     @encode.key(writer, "provider")
     @encode.begin_object(writer)
-    effect_checkpoint_text(
-      writer,
-      "retained_input_binding",
-      @remote.remote_input_binding_body(
-        @output.native_remote_retained_task_input_binding(retained.input),
-      ),
-    )
+    match binding {
+      Retained(body) =>
+        effect_checkpoint_text(writer, "retained_input_binding", body)
+      Acquired(source_ref, source_contract_cid) => {
+        effect_checkpoint_text(writer, "acquired_source_ref", source_ref)
+        effect_checkpoint_text(
+          writer, "acquired_source_contract_cid", source_contract_cid,
+        )
+      }
+    }
     effect_checkpoint_text(
       writer,
       "captured_run_wire",
