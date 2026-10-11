@@ -9,7 +9,7 @@ test "managed profile admits only the complete pinned contract within budget" {
   let profile = admit_managed_execution_profile(body, registry_limits()).unwrap()
   assert_eq(
     managed_execution_profile_cid(profile),
-    "sha256:e171e524aac08ada3129953d34b1b5f9017de8d7d90899f8a8701e58f33d9db8",
+    "sha256:9595ae5f32d949408881651855ab264e07103a22675e65fea453e5c51fe047ee",
   )
   assert_true(
     admit_managed_execution_profile(body, {

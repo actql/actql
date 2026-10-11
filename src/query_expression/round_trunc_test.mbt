@@ -28,9 +28,9 @@ test "unary rounding retains demanded and lazy child expressions" {
 }
 
 ///|
-test "unary rounding rejects optional precision and rounding mode before execution" {
+test "rounding rejects unsupported arity and rounding mode before execution" {
   for name in ["ROUND", "TRUNC"] {
-    for arguments in ["", "2.5, 0", "2.5, 0, 'ROUND_HALF_EVEN'"] {
+    for arguments in ["", "2.5, 0, 'ROUND_HALF_EVEN'"] {
       assert_true(
         lower(fixture(name + "(" + arguments + ")"), _ => None, limits())
         is Err({ issue: InvalidArguments, .. }),

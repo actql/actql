@@ -140,19 +140,41 @@ This implements the finite FLOAT64 subset. INT64, NUMERIC, BIGNUMERIC and
 non-finite overload domains remain unsupported; no implicit conversion is
 introduced by the frontend.
 
-`ROUND(expr)` and `TRUNC(expr)` each take exactly one finite binary64 `number`
-operand and lower to their common `round` or `trunc` node. The selected
+`ROUND(expr[, n])` and `TRUNC(expr[, n])` take one or two finite binary64
+`number` expressions and lower to the common `round` or `trunc` node.
+The omitted-position forms retain their unary body and value rules: ROUND
+selects the nearest integer with halfway cases away from zero, while TRUNC
+selects the nearest integer toward zero. Already-integral unary inputs remain
+unchanged, including the largest finite magnitudes. With an explicit position,
+the common source body is the ordered array `[expr, n]`, including when `n` is
+zero. The result is nullable exactly when any operand is nullable, including
+on empty input. Evaluate both children once in authored order, even if the
+first is NULL; propagate NULL only after both evaluations succeed. Common
+failure precedence, enclosing lazy demand, cancellation and budgets remain in
+force.
+
+With both operands non-null, `n` must be integral at evaluation; a fractional
+position fails with the arithmetic error. This representation is ActQL number,
+not a distinct GoogleSQL INT64 signature, and does not exactly represent every
+INT64 position. Positions greater than 323 preserve the input and positions
+less than -308 yield positive zero before any integer narrowing. The selected
+decimal-position algorithm is `DecimalRounding` from
+[GoogleSQL revision `81c15b796138185c046aefe852321011fdf96615`](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/common/round_decimal.cc),
+using that revision's portable non-FMA `Full<double>` Dekker operations, fixed
+high/low power-of-five pairs and final two-stage binary scaling, as specified
+in [Scalar expressions](language.md#scalar-expressions). An ordinary binary64
+multiply by `10^n` or ideal exact-rational decimal rounding is not an equivalent
+replacement. This is a selected finite-FLOAT64 algorithm, not a live BigQuery
+or all-target execution claim. ROUND overflow fails; TRUNC does not overflow
+for admitted finite inputs and integral positions. Every zero result follows
+the existing positive-zero rule.
+
+The selected forms correspond to
 [GoogleSQL ROUND](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#round)
-and [TRUNC](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#trunc)
-unary rules round to the nearest integer with halfway cases away from zero,
-and to the nearest integer toward zero, respectively. Already-integral values
-remain unchanged, including the largest finite magnitudes. Zero results use
-the existing ActQL positive-zero rule. NULL propagates and operand nullability
-is preserved, including on empty input. The child is demanded exactly once
-under the common failure, lazy-demand, cancellation and budget rules.
-Optional decimal-position `N`, explicit `rounding_mode`, INT64/NUMERIC/BIGNUMERIC
-and non-finite overload domains remain coverage gaps. Extra arguments and
-wrong types MUST be refused rather than ignored or coerced.
+and [TRUNC](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#trunc).
+A third `rounding_mode` argument, distinct INT64/NUMERIC/BIGNUMERIC overloads
+and non-finite values remain outside this profile. Wrong types and arities
+other than one or two MUST be refused rather than ignored or coerced.
 
 `SELECT * EXCEPT (name, ...)` uses the adopted
 [GoogleSQL column-exclusion syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except).

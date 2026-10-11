@@ -33,6 +33,7 @@ priv struct Instance {
   preparations : Map[Int, StoredPreparation]
   run_configurations : Map[Int, StoredRunConfiguration]
   runs : Map[Int, StoredRun]
+  submissions : Map[Int, StoredSubmissionProjection]
   materials : Map[Int, StoredMaterial]
   restorations : Map[Int, StoredRestoration]
   physical_starts : Map[Int, StoredPhysicalStart]
@@ -139,6 +140,7 @@ pub fn open(
         preparations: {},
         run_configurations: {},
         runs: {},
+        submissions: {},
         materials: {},
         restorations: {},
         physical_starts: {},
@@ -332,6 +334,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.preparations.clear()
     value.run_configurations.clear()
     value.runs.clear()
+    value.submissions.clear()
     value.materials.clear()
     value.restorations.clear()
     value.physical_starts.clear()

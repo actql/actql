@@ -35,13 +35,13 @@ test('GoogleSQL scalar schemas preserve exact arities, local references and orig
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body.items, {$ref: '#/$defs/machine_expression'});
   }
-  for (const name of ['sign', 'round', 'trunc', 'safe_negate']) {
+  for (const name of ['sign', 'safe_negate']) {
     const source = expression.schemas.source.oneOf.find(shape => shape.required[0] === name);
     assert.deepEqual(source.properties[name], {$ref: '#/$defs/source_expression'});
     const node = expression.schemas.node.oneOf.find(shape => shape.properties.op.const === name);
     assert.deepEqual(node.properties.body, {$ref: '#/$defs/machine_expression'});
   }
-  for (const name of ['trim', 'ltrim', 'rtrim']) {
+  for (const name of ['trim', 'ltrim', 'rtrim', 'round', 'trunc']) {
     for (const [kind, ref] of [['source', 'source_expression'], ['node', 'machine_expression']]) {
       const shape = expression.schemas[kind].oneOf.find(s => kind === 'source'
         ? s.required[0] === name : s.properties.op.const === name);
@@ -95,6 +95,54 @@ test('GoogleSQL scalar verification rejects missing, duplicate, widened and stal
   }
   for (const name of Object.keys(googleScalarLaws)) {
     assert.throws(() => updateGoogleScalarContracts(...bodies(), grammar.replace(`| "${name}" `, ''), true));
+  }
+});
+
+test('decimal-position ROUND/TRUNC retain unary references and close ordered precision pairs', () => {
+  const [expression, protocol] = bodies();
+  updateGoogleScalarContracts(expression, protocol, grammar, true);
+  const fixed = {
+    source: {oneOf: [{$ref: '#/$defs/source_expression'}, {type: 'array',
+      minItems: 2, maxItems: 2, items: {$ref: '#/$defs/source_expression'}}]},
+    node: {oneOf: [{$ref: '#/$defs/machine_expression'}, {type: 'array',
+      minItems: 2, maxItems: 2, items: {$ref: '#/$defs/machine_expression'}}]},
+  };
+  for (const name of ['round', 'trunc']) {
+    for (const [kind, schema] of Object.entries(expression.schemas)) {
+      const shape = schema.oneOf.find(item => kind === 'source'
+        ? item.required[0] === name : item.properties.op.const === name);
+      assert.equal(shape.additionalProperties, false);
+      assert.deepEqual(shape.required, kind === 'source' ? [name] : ['op', 'body']);
+      assert.deepEqual(shape.properties[kind === 'source' ? name : 'body'], fixed[kind]);
+    }
+    const law = expression.laws[name];
+    assert.match(law.signature, /exactly two finite binary64 number operands/);
+    assert.match(law.signature, /nullable exactly when any operand is nullable/);
+    assert.match(law.signature, /not a distinct GoogleSQL INT64 type/);
+    assert.match(law.value, /fractional N fails with the existing arithmetic failure/);
+    assert.match(law.value, /N > 323.*N < -308.*before any narrowing/);
+    assert.match(law.algorithm, /81c15b796138185c046aefe852321011fdf96615/);
+    assert.match(law.algorithm, /portable non-FMA ComputeDekkerProduct\/Split/);
+    assert.match(law.algorithm, /2\^-105/);
+    assert.match(law.algorithm, /final product high component before the separate final binary power scaling/);
+    assert.match(law.evaluation, /including the second child after a NULL value/);
+    assert.match(law.identity, /Preserve existing unary canonical bytes/);
+  }
+  assert.match(expression.laws.round.value, /non-finite ROUND result fails/);
+  assert.match(expression.laws.trunc.value, /TRUNC cannot overflow/);
+  for (const mutate of [
+    e => { e.schemas.source.oneOf.find(s => s.required[0] === 'round').properties.round.oneOf[1].minItems = 1; },
+    e => { e.schemas.node.oneOf.find(s => s.properties.op.const === 'trunc').properties.body.oneOf[1].maxItems = 3; },
+    e => { e.schemas.source.oneOf.find(s => s.required[0] === 'round').properties.round.oneOf[0] = {type: 'array'}; },
+    e => { e.schemas.node.oneOf.find(s => s.properties.op.const === 'trunc').properties.body.oneOf[1].items = {$ref: '#/wrong'}; },
+    e => { e.laws.round.algorithm = 'round(x * 10 ** N) / 10 ** N'; },
+    e => { e.laws.trunc.algorithm = 'exact rational decimal rounding'; },
+    e => { e.laws.round.evaluation = 'skip N when value is NULL'; },
+    e => { e.laws.trunc.value = 'coerce N to an integer'; },
+  ]) {
+    const changed = structuredClone(expression);
+    mutate(changed);
+    assert.throws(() => updateGoogleScalarContracts(changed, protocol, grammar));
   }
 });
 

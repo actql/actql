@@ -428,7 +428,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:288e197f340ef61b1bae76c1e2564e6a26b539089aec031b8fb7c0ef75bc7b35';
+  const currentExpected = 'sha256:aaf0b68382db7d8f9e6254714b5d108753006e529998258a8ba42d55b03b485c';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
@@ -473,12 +473,12 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: 'dad903a0a27a05f7211fc4689ac89cf3a74b14b25b79621edf8f87e807a38f97',
     query_text_rules_sha256: '4635956e68e7d5862fd0553053bde9fc5a855e661c9cd4fd10339cdd1e61739a'});
   assert.deepEqual(currentBody, {...beforeStrposBody,
-    source_grammar_cid: 'sha256:9996b5ecd898044665b6d113ef4636b5a56f27fe3321ba278ad5ad6983700fb6',
-    expression_contract_cid: 'sha256:e54333eb86d263a364eb5a106775e34815de5c59c128995469af218911bbfbdd',
-    expression_text_grammar_sha256: '12dfcd8853b43a66946036e8c9cc7bdf092b8cf2d911062fec57a9614f66285b',
-    expression_text_rules_sha256: 'af98f75d2a1b4199171f72c3a88c36378a87b9be25955c9f112b4cfe56527313',
+    source_grammar_cid: 'sha256:7aabff8e37794371e01abc8dbd0484e099e6d7e62ada52ba49f72b9aa73c3ec8',
+    expression_contract_cid: 'sha256:f1535aecc9cdc2c476ac7219947d806ca3718e21614983e1a4c0081b29925915',
+    expression_text_grammar_sha256: 'e69a6c96bba20f553f895e0446273f5838d555e6cb757de9fd2168d056e14146',
+    expression_text_rules_sha256: '8cc0e0d8a3c1484070162842a0d84d146b6dca167a40b4e285d9c4cc03cc83e2',
     query_text_grammar_sha256: 'f003e9a0811b5388dc266afab5354be9df3c4a845438ae35b8100108bec98aff',
-    query_text_rules_sha256: '2b549b7dcdaaf79e73ee25e066e4d274fcfcb9039a6259864ae3286af97a8945'});
+    query_text_rules_sha256: '759cdc0b2838368f1fb6aa8162b4c12c8215312a4150db290139b4605b05f7d9'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
@@ -489,7 +489,9 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
 
 test('combined PIVOT argument roles only change source grammar and lowering rules pins', () => {
   const before = read('scripts/fixtures/pre-pivot-argument-expression-values-identities.json').grammar;
-  const after = read('spec/manifests/actql-grammar-0.1.json');
+  // Compare the accepted PIVOT boundary with its retained predecessor; later
+  // expression extensions belong to the separate current-manifest checks.
+  const after = read('scripts/fixtures/adopted-pivot-argument-main-grammar.json').grammar;
   const {grammar_manifest_cid: beforeCid, query_text_grammar_sha256: beforeSyntax,
     query_text_rules_sha256: beforeRules, ...beforeCommon} = before;
   const {grammar_manifest_cid: afterCid, query_text_grammar_sha256: afterSyntax,
@@ -580,7 +582,11 @@ test('PIVOT scalar argument only changes its source grammar and lowering rules p
 
 test('integrated derived scopes preserve common contracts and both historical parent closures', () => {
   const before = read('scripts/fixtures/pre-derived-scope-stack-values-identities.json').grammar;
-  const after = read('spec/manifests/actql-grammar-0.1.json');
+  // Preserve the accepted derived-scope boundary; later scalar extensions
+  // are checked by the separate current manifest and expression contracts.
+  const retained = read('scripts/fixtures/adopted-derived-scope-stack-grammar.json');
+  assert.equal(retained.source_revision, 'ec9b3966a2126eecf8880e1fe1608fce26a5f3bc');
+  const after = retained.grammar;
   const {grammar_manifest_cid: bc, query_text_grammar_sha256: bg, query_text_rules_sha256: br, ...commonBefore} = before;
   const {grammar_manifest_cid: ac, query_text_grammar_sha256: ag, query_text_rules_sha256: ar, ...commonAfter} = after;
   assert.deepEqual(commonAfter, commonBefore);
