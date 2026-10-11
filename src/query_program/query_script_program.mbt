@@ -617,13 +617,13 @@ pub fn compile_query_script(
       Ok(program) => program
       Err(issue) => return Err(Admission(issue))
     }
-    let wiring = match prepare_query_bindings(complete, context, limits) {
-      Ok(wiring) => wiring
+    let checked = match check_query_bindings(complete, context, limits) {
+      Ok(checked) => checked
       Err(issue) => return Err(BindingPreparation(issue))
     }
     let demand = match
       trace_query_binding_demand(
-        wiring,
+        checked,
         stage_arrays,
         sources.stages.length(),
         sources.binding_ranges,

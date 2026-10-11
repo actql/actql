@@ -16,13 +16,18 @@ priv suberror DemandStop {
 // operations in that body, including assertions unrelated to its output slot.
 // More deeply nested bindings keep their separate ownership and demand.
 fn trace_query_binding_demand(
-  wiring : @stage_results.ResultWiring,
+  checked : BindingTopology,
   stage_arrays : Array[Array[@builder.Node]],
   capture_count : Int,
   ranges : Array[ScriptBindingRange],
   max_work : Int,
 ) -> Result[ScriptDemand, BindingDemandIssue] {
-  let source = @stage_results.wiring_source(wiring)
+  let topology = checked.topology
+  if checked.sourceviews is Some(views) && !physical_equal(
+    @check_context.sourceview_checked_topology(views), topology) {
+    return Err(ForeignStage)
+  }
+  let source = @stage_results.topology_source(topology)
   let stage_count = @stage_parameters.stage_count(source)
   if capture_count < 0 || capture_count + stage_arrays.length() != stage_count {
     return Err(ForeignStage)
@@ -39,8 +44,8 @@ fn trace_query_binding_demand(
     let pipelines = Array::makei(stage_count, stage => {
       @pipeline_parameters.pipeline(
         @stage_parameters.collection(
-          @stage_results.stage_port_source(
-            @stage_results.wiring_stage_at(wiring, stage).unwrap(),
+          @stage_results.topology_stage_source(
+            @stage_results.topology_stage_at(topology, stage).unwrap(),
           ),
         ),
       )
@@ -104,14 +109,14 @@ fn trace_query_binding_demand(
         }
       }
     }
-    for index in 0..<@stage_results.export_count(wiring) {
-      let root = @stage_results.export_at(wiring, index).unwrap()
+    for index in 0..<@stage_results.topology_export_count(topology) {
+      let root = @stage_results.topology_export_at(topology, index).unwrap()
       let stage = @stage_parameters.stage_index(
-        @stage_results.stage_port_source(@stage_results.export_stage(root)),
+        @stage_results.topology_stage_source(@stage_results.topology_export_stage(root)),
       )
       enqueue(
         stage,
-        @relation_results.port_target(@stage_results.export_port(root)),
+        @pipeline.producer_target(@stage_results.topology_export_input(root)),
       )
     }
     while pending.pop() is Some((stage, target)) {
@@ -143,20 +148,18 @@ fn trace_query_binding_demand(
           }
           inputs[stage][input] = true
           let name = @pipeline.input_at(pipelines[stage], input).unwrap().0
-          let imports = @stage_results.attached_imports(
-            @stage_results.wiring_imports_at(wiring, stage).unwrap(),
-          )
+          let imports = @stage_results.topology_imports_at(topology, stage).unwrap()
           let mut found = false
-          for index in 0..<@stage_results.import_count(imports) {
+          for index in 0..<@stage_results.topology_import_count(imports) {
             spend(1)
-            let edge = @stage_results.import_at(imports, index).unwrap()
-            if @stage_results.input_name(edge) == name {
+            let edge = @stage_results.topology_import_at(imports, index).unwrap()
+            if @stage_results.topology_input_name(edge) == name {
               let producer_stage = @stage_parameters.stage_index(
-                @stage_results.stage_port_source(
-                  @stage_results.input_stage(edge),
+                @stage_results.topology_stage_source(
+                  @stage_results.topology_input_stage(edge),
                 ),
               )
-              let producer = @stage_results.input_producer(edge)
+              let producer = @stage_results.topology_input_producer(edge)
               if !physical_equal(
                   @pipeline.producer_pipeline(producer),
                   pipelines[producer_stage],
