@@ -11,6 +11,7 @@ import {
   "actql/actql/query_expression",
   "actql/actql/query_syntax",
   "actql/actql/relation_schema",
+  "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/stage_syntax",
@@ -35,6 +36,8 @@ pub fn unresolved_relation_reference(Issue) -> Array[@query_syntax.NamePart]?
 // Types and methods
 pub(all) enum BindingPreparationIssue {
   Declarations(@stage_parameters.Issue)
+  SourceDeclarations(@sourceview_input.Issue)
+  MissingSourceCatalog(@sourceview_input.Declaration)
   SourceRegistration(@pipeline_check_context.SourceRegistrationIssue)
   SourceProgram(@pipeline_check_context.SourceViewProgramIssue)
   LocalProgram(@stage_results.LocalProgramIssue)
