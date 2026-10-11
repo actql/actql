@@ -811,11 +811,16 @@ export async function exercisePublicQueryInput(connect, options,
           expected.map(canonicalRow).sort());
         else assert.deepEqual(actual, expected);
       };
+      const observedResults = Object.create(null);
       for (const [resultName, result] of Object.entries(expectedResults)) {
-        compare(await execution.result(resultName).all(), result.rows, result.unordered);
+        const rows = await execution.result(resultName).all();
+        compare(rows, result.rows, result.unordered);
+        observedResults[resultName] = {rows};
         if (result.columns !== undefined) {
-          assert.deepEqual((await execution.result(resultName).describe()).columns,
+          const columns = (await execution.result(resultName).describe()).columns;
+          assert.deepEqual(columns,
             result.columns, 'retained column order and contracts match the authored fixture');
+          observedResults[resultName].columns = columns;
         }
       }
       const attached = await client.attach(execution.ref);
@@ -831,7 +836,7 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
       await completedCase?.({name, ref: execution.ref, submissionRef, execution, expected, columns,
-        beforeSubmit, beforeRead});
+        beforeSubmit, beforeRead, observedResults});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),

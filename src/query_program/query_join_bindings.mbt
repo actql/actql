@@ -58,12 +58,22 @@ fn lower_script_join_relation(
   }
   let scoped = { ..context, inputs: known, }
   let selected = selected_input(query, scoped, limits)
-  let initial_scope = sources.ranges.get(selected.name)
+  let initial_scope = script_input_scope(
+    sources,
+    selected.name,
+    query_range_name(query),
+  )
   let right_scopes : Array[JoinChainScope?] = []
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
     let right = selected_relation(part.relation, scoped)
-    right_scopes.push(sources.ranges.get(right.name))
+    right_scopes.push(
+      script_input_scope(
+        sources,
+        right.name,
+        part.source_alias.unwrap_or(part.relation.last().unwrap()),
+      ),
+    )
   }
   if @query.join_part_count(query) > 1 ||
     join_requires_group_scope(query) ||
