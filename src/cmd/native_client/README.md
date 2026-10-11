@@ -129,6 +129,24 @@ that the existing sole-view semantic completion has an empty normalization
 journal. These are input/expectation fixtures for the next public execution
 connection, not evidence that CLI Source/Result execution has already passed.
 
+An optional `native.local.run_file` also names a selected installation original.
+Its closed `native.run` configuration selects the namespace, a single Store
+component beneath the adopted managed root, Store authority, explicit Store
+capacity/object/record limits, a bounded Result payload allowance, and complete
+`retention_policy_wire`. The existing Result Retention contract validator checks
+that original including its self CID; the CLI does not issue a replacement CID
+for altered bytes. Each configured byte allowance is capped at 512 MiB, and the
+Result allowance cannot exceed Store capacity. Existing aggregate capacity
+checks remain required at execution. Configuration adoption preserves these exact bytes
+and generations without opening a Store or issuing a read grant. Execution and
+read authorization, Source Policy compatibility, retention applicability and
+Run lifetime still require their existing Owners when this configuration is used.
+
+`run-installation.json` is an independently authored synthetic configuration
+admission fixture. Its retention/metadata/clock reference identities are test
+inputs, not evidence of resolved execution dependencies or a completed public
+read. A successful `adopt` or `connect` cannot certify publication readiness.
+
 ## Remote transport
 
 Build with the pinned MoonBit toolchain using `moon build --target native

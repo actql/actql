@@ -322,3 +322,66 @@ test('Native CLI rejects malformed Source budgets and escaping locations before 
     await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
   }
 });
+
+async function runFixture(name, update = () => {}) {
+  const f = await fixture(name);
+  const run = JSON.parse(await readFile(fileURLToPath(new URL(
+    './fixtures/native-local-cli/run-installation.json', import.meta.url)), 'utf8'));
+  update(run.native.run);
+  await writeFile(join(f.root, 'run-installation.json'), JSON.stringify(run));
+  f.configuration.native.local.installation_files = ['run-installation.json'];
+  f.configuration.native.local.run_file = 'run-installation.json';
+  await f.save();
+  return f;
+}
+
+test('Native CLI retains complete Result settings without opening Store or granting read', async () => {
+  const f = await runFixture('typed-result-original');
+  const original = await readFile(join(f.root, 'run-installation.json'));
+  const adopted = success(invoke(f, ['adopt', '--json']));
+  const before = await journal(f);
+  assert.equal(success(invoke(f, ['connect', '--json'])).adoptionCid, adopted.adoptionCid);
+  assert.deepEqual(await readFile(join(f.root, 'run-installation.json')), original);
+  assert.deepEqual(await journal(f), before);
+  await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
+  refusal(invoke(f, ['new-submission', '--request-id', 'result-without-submit']),
+    /LocalSubmissionAuthorizationDenied/u);
+  await writeFile(join(f.root, 'run-installation.json'), original.toString().replace(
+    'local-example', 'other-namespace'));
+  refusal(invoke(f, ['connect', '--json']), /LocalConfigurationChanged/u);
+  assert.deepEqual(await journal(f), before);
+});
+
+test('Native CLI Result settings require selected original custody', async () => {
+  const f = await runFixture('typed-result-unselected');
+  f.configuration.native.local.installation_files = [];
+  await f.save();
+  refusal(invoke(f, ['adopt', '--json']), /LocalRunOriginalNotSelected/u);
+  await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+});
+
+test('Native CLI refuses altered retention CID and invalid Result bounds before initialization', async () => {
+  const updates = [
+    run => { run.store_capacity_bytes = 536870913; },
+    run => { run.store_record_bytes = 536870913; },
+    run => { run.result_payload_bytes = run.store_capacity_bytes + 1; },
+    run => { run.store_objects = 0; },
+    run => { run.store_record_bytes = 0; },
+    run => { run.store_objects = 1.5; },
+    run => { run.store_name = '../foreign'; },
+    run => { run.store_name = '/foreign'; },
+    run => { run.store_authority_cid = 'sha256:invalid'; },
+    run => { run.unknown = 'ignored'; },
+    run => { run.retention_policy_wire = run.retention_policy_wire.replace(
+      '2099-01-01T00:00:00.000Z', '2098-01-01T00:00:00.000Z'); },
+    run => { const body = JSON.parse(run.retention_policy_wire);
+      delete body.effective_retention_policy_cid;
+      run.retention_policy_wire = JSON.stringify(body); },
+  ];
+  for (const [index, update] of updates.entries()) {
+    const f = await runFixture(`typed-result-refusal-${index}`, update);
+    refusal(invoke(f, ['adopt', '--json']), /InvalidLocalRun|InvalidLocalResultRetentionPolicy/u);
+    await assert.rejects(stat(join(f.root, 'host')), {code: 'ENOENT'});
+    await assert.rejects(stat(join(f.root, 'managed', 'results')), {code: 'ENOENT'});
+  }
+});
