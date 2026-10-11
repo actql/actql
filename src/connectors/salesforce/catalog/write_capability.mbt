@@ -105,28 +105,38 @@ pub fn prepare_write_capability_evidence(
     @encode.begin_object(writer)
     observation_field(writer, "api_version", request.api_version)
     @encode.key(writer, "binding")
-    @encode.begin_object(writer)
-    observation_field(
-      writer,
-      "connection_revision",
-      binding.connection_revision,
-    )
-    observation_field(
-      writer,
-      "connector_registration",
-      binding.connector_registration,
-    )
-    observation_field(writer, "connector_revision", binding.connector_revision)
-    observation_field(writer, "environment", binding.environment)
-    observation_field(writer, "org_id", binding.org_id)
-    observation_field(writer, "principal", binding.principal)
-    observation_field(writer, "resource_origin", binding.resource_origin)
-    observation_field(writer, "runtime_bundle_cid", runtime_bundle_cid)
-    @encode.key(writer, "site_generation")
-    @encode.number_value(writer, binding.site_generation.to_double())
-    observation_field(writer, "site_key", binding.site_key)
-    observation_field(writer, "namespace_id", binding.namespace_id)
-    @encode.end_object(writer)
+    match binding {
+      SiteCatalog(binding) => {
+        @encode.begin_object(writer)
+        observation_field(
+          writer,
+          "connection_revision",
+          binding.connection_revision,
+        )
+        observation_field(
+          writer,
+          "connector_registration",
+          binding.connector_registration,
+        )
+        observation_field(
+          writer,
+          "connector_revision",
+          binding.connector_revision,
+        )
+        observation_field(writer, "environment", binding.environment)
+        observation_field(writer, "org_id", binding.org_id)
+        observation_field(writer, "principal", binding.principal)
+        observation_field(writer, "resource_origin", binding.resource_origin)
+        observation_field(writer, "runtime_bundle_cid", runtime_bundle_cid)
+        @encode.key(writer, "site_generation")
+        @encode.number_value(writer, binding.site_generation.to_double())
+        observation_field(writer, "site_key", binding.site_key)
+        observation_field(writer, "namespace_id", binding.namespace_id)
+        @encode.end_object(writer)
+      }
+      DirectLocalCatalog(binding) =>
+        emit_local_capability_binding(writer, binding, runtime_bundle_cid)
+    }
     @encode.key(writer, "external_target")
     match plan.external_target {
       Some(field) => capability_field(writer, field)
@@ -161,7 +171,12 @@ pub fn prepare_write_capability_evidence(
     )
     capability_flag(writer, "row_error_identity", true)
     observation_field(
-      writer, "version", "actql-salesforce-write-capability/0.1",
+      writer,
+      "version",
+      match binding {
+        SiteCatalog(_) => "actql-salesforce-write-capability/0.1"
+        DirectLocalCatalog(_) => "actql-salesforce-local-write-capability/0.1"
+      },
     )
     @encode.end_object(writer)
   } catch {

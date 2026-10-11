@@ -7,9 +7,13 @@ import {
 }
 
 // Values
-pub fn install_native_result_access_authority((NativeResultAccessRequest) -> Bool, (NativeResultReadFacts) -> NativeResultReadAdmission?, (NativeResultDeliveryAuthorization) -> Bool) -> NativeResultAccessAuthority
+pub fn install_native_result_access_authority((NativeResultAccessRequest) -> Bool, (NativeResultReadFacts) -> NativeResultReadAdmission?, (NativeResultDeliveryAuthorization) -> Bool, authorize_lookup? : ((@run_publication.DeliveryAttemptLookupScope) -> Bool)?) -> NativeResultAccessAuthority
 
 pub fn install_native_result_access_service(@publication_store.Store, NativeResultAccessAuthority, () -> String, Int, Int, Int, Int, Int) -> Result[NativeResultAccessService, NativeResultAccessIssue]
+
+pub fn install_native_result_sink(NativeResultAccessSession, Int, Int, (Bytes) -> NativeResultSinkWrite, () -> Bool) -> Result[NativeResultSink, NativeResultSinkIssue]
+
+pub fn lookup_native_result_delivery_attempt(NativeResultAccessService, @run_publication.DeliveryAttemptLookupScope) -> Result[@publication_store.NativeResultDeliveryLookup?, NativeResultAccessIssue]
 
 pub fn open_native_result_access(NativeResultAccessService, NativeResultAccessRequest) -> Result[NativeResultAccessSession, NativeResultAccessIssue]
 
@@ -23,6 +27,7 @@ pub(all) enum NativeResultAccessIssue {
   InvalidProgress
   AccessDenied
   ResultUnavailable
+  LookupUnavailable
   Store(@publication_store.NativePublicationStoreIssue)
   Publication(@run_publication.DeliveryIssuanceIssue)
 }
@@ -39,6 +44,7 @@ pub(all) struct NativeResultAccessRequest {
 }
 
 type NativeResultAccessService
+pub fn NativeResultAccessService::custody_location(Self) -> Result[(String, UInt64, UInt64), NativeResultAccessIssue]
 
 type NativeResultAccessSession
 pub fn NativeResultAccessSession::attempt_cid(Self) -> String
@@ -74,6 +80,31 @@ pub(all) struct NativeResultReadFacts {
   result_definition_cid : String
   material_generation_cid : String
   observed_at : String
+}
+
+type NativeResultSink
+pub fn NativeResultSink::attempt_cid(Self) -> String
+pub fn NativeResultSink::close(Self) -> Result[Unit, NativeResultAccessIssue]
+pub fn NativeResultSink::poll(Self) -> Result[NativeResultSinkStep, NativeResultSinkIssue]
+
+pub(all) enum NativeResultSinkIssue {
+  InvalidSinkLimits
+  InvalidSinkWrite
+  SinkWriteFailed
+  SinkFinishFailed
+  SinkOutputLimit
+  Access(NativeResultAccessIssue)
+}
+
+pub(all) enum NativeResultSinkStep {
+  SinkProgress
+  SinkComplete(@publication_store.NativeResultDeliverySuccess)
+  SinkFailed(NativeResultSinkIssue, @publication_store.NativeResultDeliveryFailure)
+}
+
+pub(all) enum NativeResultSinkWrite {
+  SinkChunkConfirmed
+  SinkChunkFailed(Int, Int)
 }
 
 // Type aliases
