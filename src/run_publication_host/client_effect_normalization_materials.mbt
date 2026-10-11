@@ -9,6 +9,7 @@ let original_effect_materials_issuer : Ref[Unit] = Ref(())
 struct ClientEffectIssuedNormalizationMaterials {
   issuer : Ref[Unit]
   original : ClientEffectNormalization
+  compilation : ClientEffectCompilation
   run_cid : String
   wire : String
   normalization_profile : Bool
@@ -42,6 +43,7 @@ pub fn issue_prepared_client_effect_normalization_materials(
   Ok({
     issuer: original_effect_materials_issuer,
     original,
+    compilation: allowed.compilation,
     run_cid,
     wire,
     normalization_profile: allowed.compilation.normalization_profile,
@@ -63,6 +65,8 @@ fn original_effect_materials_match(
 ) -> Bool {
   issued.wire == wire &&
   issued.run_cid == run_cid &&
+  physical_equal(issued.compilation.owner, issued.original.owner) &&
+  issued.normalization_profile == issued.compilation.normalization_profile &&
   physical_equal(issued.issuer, original_effect_materials_issuer) &&
   prepared_client_effect_normalization_evidence(
     issued.original.owner,
