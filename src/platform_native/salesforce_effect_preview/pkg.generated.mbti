@@ -33,6 +33,8 @@ pub fn prepare_native_resident_effect_review(@remote_resident_host.ResidentRetai
 
 pub fn prepare_native_resident_effect_review_from_context(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @remote_resident_host.ResidentEffectReviewInputContext, @run_publication.RunEvidenceValue, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewPreparationFailure]
 
+pub fn prepare_native_resident_effect_review_from_original_materials(@remote_resident_host.ResidentRetainedConsumer, @remote_journal.Journal, @remote_resident_host.ResidentEffectReviewInputContext, NativeResidentEffectReviewPolicy) -> Result[NativeResidentEffectReview, NativeResidentEffectReviewPreparationFailure]
+
 // Errors
 
 // Types and methods
@@ -225,6 +227,7 @@ pub(all) struct NativeResidentEffectReviewPreparationFailure {
 
 pub(all) enum NativeResidentEffectReviewPreparationIssue {
   Unavailable
+  Normalization(@run_publication_host.ClientEffectNormalizationIssue)
   Result(@remote_resident_host.ResidentEffectResultCaptureIssue)
   Review(NativeResidentEffectReviewIssue)
 }
