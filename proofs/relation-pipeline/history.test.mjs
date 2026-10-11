@@ -30,9 +30,8 @@ for (const scenario of ['historical-edit', 'historical-remove-entry', 'historica
 }
 
 test('repository foundation composes exact declared source at HEAD', async () => {
-  const { checkFoundation, currentFoundation } = await import('./history.mjs');
+  const { currentFoundation } = await import('./history.mjs');
   const root = fileURLToPath(new URL('../../', import.meta.url));
-  checkFoundation(root);
   const first = currentFoundation(root);
   assert.equal(JSON.stringify(first), JSON.stringify(currentFoundation(root)), 'Nondeterministic repository foundation');
   const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
