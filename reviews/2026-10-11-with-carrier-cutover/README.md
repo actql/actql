@@ -367,3 +367,26 @@ No synthetic Result, weakened complete-Program admission or alternate checker
 was substituted. The delegated common Prefix seam has since been normally
 integrated and connected by the typed Carrier unit recorded above. This original
 failure remains historical evidence, not the current connection status.
+
+## WITH Graph selectors and JOIN caller retirement
+
+[p1-graph-selector-retirement-execution.json](p1-graph-selector-retirement-execution.json)
+records clean `853bfd6fc7b2b10e5dee9370e92c3531fce00496`: actual JS11/11
+(`run-gFzEmD`). Three current caller files use WITH/GRAPH. Independent complete
+Subgraph Programs retain selector identity, numeric parameter predicate and
+output field sequence; deterministic output names follow the current binding
+allocator. Graph rows feed ordinary JOIN/CTE/range scope with ON and max10
+unchanged. The NULL-bearing parallel-edge example reaches common checking.
+
+Original 253ede JS9/11 remains failed: two refusal tests expected old parser or
+post-lowering boundaries. The later 04bf24 JS10/11 remains failed: predicting a
+scalar identity cause was incorrect; the original Reach lacks required direction,
+which the common traversal checker reports as missing-field. All authored bad
+arguments remain unchanged. Current tests assert common typed causes, including
+empty selector, wrong typed column, unknown column, non-Boolean predicate and
+unadapted where selector. No checker or execution semantics were changed.
+
+The bounded formatter completed with a one-file whitespace change. Exact source,
+commands, original failures, raw receipts/focused output and SHA256 are retained.
+Actual Owner/group/ownlock absence was observed for all four attempts. This is
+compile/check evidence, not runtime, package or Local/HTTPS completion.
