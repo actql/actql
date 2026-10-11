@@ -22,24 +22,25 @@ async function fixture(t, mode, options = {}, callerTimeout = false) {
   const ready = join(directory, 'ready.json'), resultPath = join(directory, 'result.json');
   const child = join(directory, 'child.mjs'), runner = join(directory, 'runner.mjs');
   writeFileSync(child, `import {spawn} from 'node:child_process';
-import {writeFileSync} from 'node:fs';
+import {writeFileSync, existsSync} from 'node:fs';
 const mode=${JSON.stringify(mode)};
 const grandchild = mode==='term'||mode==='timeout'
   ? spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'}) : null;
-writeFileSync(${JSON.stringify(ready)},JSON.stringify({pid:process.pid,grandchild:grandchild?.pid??null}));
+const grandchildClosed=grandchild?new Promise(resolve=>grandchild.once('close',resolve)):null;
 if(mode==='normal'){process.stdout.write('x'.repeat(65536));process.stderr.write('tail');}
 else if(mode==='nonzero'){console.log('Checked 54 theorems');process.exitCode=7;}
 else if(mode==='output-close'){
-  process.stdout.end();process.stderr.end();setTimeout(()=>process.exit(0),200);
+  process.stdout.end();process.stderr.end();setInterval(()=>{if(existsSync(${JSON.stringify(join(directory,'release'))}))process.exit(0);},10);
 }else if(mode==='overflow'){process.stdout.write('x'.repeat(8192));setInterval(()=>{},1000);}
 else {
   const interval=setInterval(()=>{},1000);
   process.on('SIGTERM',()=>{
     clearInterval(interval);
-    grandchild.on('close',()=>{console.log('Checked 54 theorems');process.exit(0);});
+    grandchildClosed.then(()=>process.stdout.write('Checked 54 theorems\\n',()=>process.exit(0)));
     grandchild.kill('SIGTERM');
   });
 }
+writeFileSync(${JSON.stringify(ready)},JSON.stringify({pid:process.pid,grandchild:grandchild?.pid??null}));
 `);
   writeFileSync(runner, `import {writeFileSync} from 'node:fs';
 import {runProofCommand} from ${JSON.stringify(helper)};
@@ -72,6 +73,7 @@ process.exitCode=result.error||result.signal||result.status!==0?1:0;
   if (mode === 'output-close') {
     assert.equal(absent(ids.pid), false);
     assert.equal(existsSync(resultPath), false, 'Stream completion is not physical stop');
+    writeFileSync(join(directory,'release'),'release');
   }
   await waitFor(() => existsSync(resultPath));
   const terminal = await closed;
