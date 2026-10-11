@@ -1409,3 +1409,21 @@ the original record waits for its children. This read-only projection does not
 commit a Store, acknowledge publication, issue publisher permission or decide
 Run completion. ABI33 artifacts are rejected by the current strict loader;
 prior immutable evidence retains its original source and module identity.
+
+## Physical publication metadata transactions
+
+The installed Python Host can attach one opaque metadata batch to several
+original payload records with `LocalByteStore.compare_exchange_many_attached`.
+The existing SQLite byte Store checks every original record's exact bytes and
+physical generation, and its exact capacity reservation, after the same
+`BEGIN IMMEDIATE` and before any metadata replacement. A missing or changed
+original, reservation or expected metadata generation prevents the entire
+batch. Original payloads and reservations are not advanced or released.
+
+Core full-chain validation, original Store binding, and current publisher
+authority remain prerequisites owned by their existing Owners. This physical
+transaction does not parse a contract, decide publication, or assert a Run
+state. A lost commit acknowledgement is propagated without repeating writes;
+the caller observes exact successors and lets the original Owner decide the
+meaning. Schema format 2 and its bounds remain unchanged. Retained caller bytes
+and SQLite workspace require their existing Host reservations.
