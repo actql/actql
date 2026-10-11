@@ -3,6 +3,12 @@ test "zero ROWS literals retain their authored boundary direction" {
   for
     (text, start, end) in [
       ("0 PRECEDING", FrameBoundary::Preceding(0L), FrameBoundary::CurrentRow),
+      ("(0) PRECEDING", FrameBoundary::Preceding(0L), FrameBoundary::CurrentRow),
+      (
+        "+((0)) PRECEDING",
+        FrameBoundary::Preceding(0L),
+        FrameBoundary::CurrentRow,
+      ),
       (
         "BETWEEN 0 PRECEDING AND 0 FOLLOWING",
         FrameBoundary::Preceding(0L),
@@ -37,8 +43,8 @@ test "zero ROWS literals retain their authored boundary direction" {
 }
 
 ///|
-test "zero ROWS admission does not accept signed fractional or computed distances" {
-  for boundary in ["-0", "0.0", "(0)", "0 + 1", "NULL", "amount"] {
+test "zero ROWS admission does not accept negative fractional or computed distances" {
+  for boundary in ["-0", "0.0", "0 + 1", "(0 + 1)", "+(-0)", "NULL", "amount"] {
     assert_true(
       parse_query(
         "SELECT SUM(amount) OVER (ORDER BY id ROWS " +
