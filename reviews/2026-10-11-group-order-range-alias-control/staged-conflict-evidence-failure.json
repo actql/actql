@@ -1,0 +1,15 @@
+{
+  "command": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "exitCode": 2,
+  "reason": "Raw retained merge-conflict text contained conflict-marker lines. Evidence retained byte-for-byte as escaped JSON with original SHA-256; product conflicts already resolved.",
+  "files": [
+    "merge-conflict-public-query-profiles.test.mjs.txt",
+    "merge-conflict-public-query-inventory.json.txt",
+    "merge-conflict-packed-public-query.mjs.txt"
+  ]
+}
