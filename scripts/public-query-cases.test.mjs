@@ -206,7 +206,7 @@ test('ON range refusals retain qualified column and USING controls',()=>{
  assert.ok(cases.get('join-on-range-using-column').text.includes('USING(l)'));
  const refusals=queryCompositionRefusals.filter(item=>item.name.startsWith('join-on-range-refusal-'));
  assert.equal(refusals.length,4);
- assert.ok(refusals.every(item=>item.expectedCode==='ClientProgramRejected'));
+ assert.ok(refusals.every(item=>item.expectedCode==='ClientProgramImplementationLimit'));
  assert.ok(refusals.some(item=>item.text.includes('FROM records JOIN')),
   'the retained public refusal must also prove no acquired Source I/O');
 });

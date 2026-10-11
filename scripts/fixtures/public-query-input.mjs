@@ -951,4 +951,4 @@ queryCompositionRefusals.push(...[
  ['right-shared','sql','SELECT l AS row FROM (SELECT 1 AS id) l JOIN (SELECT 1 AS r,2 AS id) r ON l.id=r MAX_OUTPUT_ROWS 10'],
  ['quoted-cte','aql-text','WITH a AS (SELECT 1 AS l,2 AS id),b AS (SELECT 1 AS id) FROM a AS `L` |> JOIN b AS r ON `L`=r.id MAX_OUTPUT_ROWS 10 |> SELECT `L`.id'],
  ['acquired','sql','SELECT records.id FROM records JOIN (SELECT 1 AS id) r ON records=r.id MAX_OUTPUT_ROWS 10'],
-].map(([name,format,text])=>({name:'join-on-range-refusal-'+name,format,text,expectedCode:'ClientProgramRejected'})));
+].map(([name,format,text])=>({name:'join-on-range-refusal-'+name,format,text,expectedCode:'ClientProgramImplementationLimit'})));
