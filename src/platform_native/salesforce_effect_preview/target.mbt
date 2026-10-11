@@ -26,14 +26,7 @@ pub fn observe_native_salesforce_effect_target(
   (String, @catalog.TargetObservation, @catalog.TargetPreviewRow),
   NativeSalesforcePreviewIssue,
 ] {
-  if limits.max_bytes < 1 ||
-    limits.max_bytes > 1000000 ||
-    limits.max_nodes < 1 ||
-    limits.max_nodes > 100000 ||
-    limits.max_depth < 1 ||
-    limits.max_depth > 64 ||
-    limits.max_identity_bytes < 1 ||
-    limits.max_identity_bytes > 1000000 {
+  if !native_salesforce_target_limits_valid(limits) {
     return Err(InvalidLimits)
   }
   if @catalog.single_write_request_method(request) != "PATCH" ||
@@ -69,6 +62,34 @@ pub fn observe_native_salesforce_effect_target(
     Ok(value) => value
     Err(issue) => return Err(Credential(issue))
   }
+  native_salesforce_target_preview(request, response, limits)
+}
+
+///|
+fn native_salesforce_target_limits_valid(
+  limits : @catalog.TargetObservationLimits,
+) -> Bool {
+  !(limits.max_bytes < 1 ||
+  limits.max_bytes > 1000000 ||
+  limits.max_nodes < 1 ||
+  limits.max_nodes > 100000 ||
+  limits.max_depth < 1 ||
+  limits.max_depth > 64 ||
+  limits.max_identity_bytes < 1 ||
+  limits.max_identity_bytes > 1000000)
+}
+
+///|
+// Shared projection of the physical original; response retention, whole
+// Preview admission and current authority remain with the calling Host Owner.
+fn native_salesforce_target_preview(
+  request : @catalog.SingleWriteRequest,
+  response : @resource.NativeCredentialResponse,
+  limits : @catalog.TargetObservationLimits,
+) -> Result[
+  (String, @catalog.TargetObservation, @catalog.TargetPreviewRow),
+  NativeSalesforcePreviewIssue,
+] {
   let observation = match
     @catalog.prepare_target_observation(
       request,

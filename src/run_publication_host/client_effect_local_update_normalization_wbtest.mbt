@@ -283,7 +283,7 @@ test "observed template completion and unaudited processing do not become empty 
 }
 
 ///|
-test "update journal cannot silently enter the existing mapped-create compiler profile" {
+test "update journal selects its own typed compiler profile instead of mapped-create" {
   let (base, _, _) = local_update_normalization_fixture()
   let owner = prepared_local_update_normalization_fixture(base)
   let proof = issue_prepared_client_effect_local_update_normalization(owner).unwrap()
@@ -299,9 +299,13 @@ test "update journal cannot silently enter the existing mapped-create compiler p
     limits.max_evidence_depth,
     normalization=Some(proof),
   )
-  // Typed update material/Template propagation is a separate connection. The
-  // current create-only restoration must refuse rather than mislabel update.
-  assert_true(compiled is Err(Normalization(Inventory(ProfileNotInstalled))))
+  let compiled = compiled.unwrap()
+  assert_true(compiled.normalization_profile is Some(LocalUpdate(_)))
+  let template = @publication.run_evidence_value_json(
+    client_effect_compilation_template(compiled),
+  )
+  assert_true(template.contains("actql-local-update-completion-free/0.1"))
+  assert_false(template.contains("actql-resident-effect-completion-free/0.1"))
   assert_true(physical_equal(owner.normalization.unwrap(), proof))
 }
 

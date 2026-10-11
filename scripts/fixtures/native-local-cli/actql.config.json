@@ -1,0 +1,9 @@
+{
+  "version": "actql-config/0.1",
+  "native": {
+    "check_environment": {
+      "file": "environment.json",
+      "evidence_bundle_cid": "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904"
+    }
+  }
+}

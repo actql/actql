@@ -103,7 +103,16 @@ fn client_model_read_origin_matches(
   definition : @publication.PublicationContract,
   plan : ClientInferPlanGraph,
 ) -> Bool {
-  let origin = value.origin
+  client_model_origin_matches(value.origin, compiled, definition, plan)
+}
+
+///|
+fn client_model_origin_matches(
+  origin : ClientModelReadOrigin,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Bool {
   physical_equal(origin.compiled, compiled) &&
   physical_equal(origin.plan, plan) &&
   @publication.publication_contract_identity(definition) ==
@@ -145,18 +154,22 @@ pub fn handoff_client_model_read(
 ///|
 // Verify already reserved derivation workspace on this exact checked Run/Host
 // read. The consumer still derives its complete overlap envelope separately.
+// Check the retained envelope before constructing its original preparation or
+// Execution as well. This verifies an existing token, without reserving again.
 pub fn client_model_read_preparation_available(
   value : ClientModelReadPreparation,
   compiled : ClientCompiledRun,
   definition : @publication.PublicationContract,
   plan : ClientInferPlanGraph,
   execution_bytes : Int64,
+  retained_bytes? : Int64 = 0L,
 ) -> Bool {
   client_model_read_origin_matches(value, compiled, definition, plan) &&
   @resources.funded_read_preparation_available(
     value.claim,
     value.origin,
     execution_bytes,
+    retained_bytes~,
   )
 }
 

@@ -12,7 +12,10 @@ priv struct HolderEffectCatalogReviewCustody {
   max_observation_bytes : Int
   crypto : @signature.Library
   key : Bytes
-  checkpoint_absent : () -> Bool
+  read_original_use : () -> Result[
+    @effect_credential.RemoteCredentialUse,
+    @journal.NativeRemoteJournalIssue,
+  ]
   publication : HolderEffectReviewPublication
   mut observed : (
     @effect_catalog.CatalogObservation,
@@ -30,7 +33,7 @@ priv struct HolderEffectCatalogReviewCustody {
   // The credential Owner supplies the original use, not Catalog/transport
   // bytes. These are restoration observations, never permission to resend.
   mut original_use : @effect_resource.NativeCredentialUseStatus?
-  mut query_issue : @effect_resource.NativeCredentialResourceIssue?
+  mut query_issue : HolderCatalogUseObservationIssue?
   mut restore_issue : @publication_store.NativePublicationStoreIssue?
 }
 
@@ -73,7 +76,10 @@ fn new_holder_effect_catalog_review_custody(
   max_observation_bytes : Int,
   crypto : @signature.Library,
   key : Bytes,
-  checkpoint_absent : () -> Bool,
+  read_original_use : () -> Result[
+    @effect_credential.RemoteCredentialUse,
+    @journal.NativeRemoteJournalIssue,
+  ],
   publication : HolderEffectReviewPublication,
 ) -> HolderEffectCatalogReviewCustody {
   {
@@ -86,7 +92,7 @@ fn new_holder_effect_catalog_review_custody(
     max_observation_bytes,
     crypto,
     key,
-    checkpoint_absent,
+    read_original_use,
     publication,
     observed: None,
     context: None,
@@ -114,6 +120,18 @@ fn HolderEffectCatalogReviewCustody::close(
       return false
     }
     self.context = None
+  }
+  // Once an actual read was entered, a failure without a captured response
+  // cannot prove there was no original use/GET. Reconcile through the same
+  // Resource Owner before closing its DB; missing/unknown stays pending.
+  if self.read_started &&
+    self.original_use is None &&
+    self.query_issue is None &&
+    self.custody is None &&
+    self.observed is None {
+    if self.query_original_catalog_use() is Err(_) {
+      return false
+    }
   }
   if !self.catalog_cleanup_confirmed && self.custody is None {
     if self.original_use is Some(_) {
@@ -201,12 +219,27 @@ fn HolderEffectCatalogReviewCustody::confirm_catalog(
   }
   match self.query_original_catalog_use() {
     Ok(Some(_)) => return self.confirm_restored_catalog(current)
-    Ok(None) => ()
-    Err(_) => return false
+    Ok(None) => return false
+    Err(_) => {
+      guard self.query_issue is Some(issue) &&
+        holder_catalog_initial_read_ready(issue, () => {
+          self.installation.initial_use.ready()
+        }) &&
+        current() else {
+        return false
+      }
+      // The original funded Owner supplied eligibility independently of this
+      // missing-use observation. Resource still owns the actual first claim.
+      self.query_issue = None
+    }
   }
   self.read_started = true
   match
-    self.installation.read(self.describe_limits, self.max_observation_bytes) {
+    self.installation.read(
+      self.describe_limits,
+      self.max_observation_bytes,
+      current,
+    ) {
     Ok(observed) => {
       self.observed = Some(observed)
       // Even if authority changed during read, save its exact original response
@@ -221,36 +254,78 @@ fn HolderEffectCatalogReviewCustody::confirm_catalog(
 }
 
 ///|
-/// A missing original claim is supplied only by the existing credential
-/// journal. The physical-read Owner still performs its atomic claim, so a
-/// competing claim after this query cannot become a second Provider call.
+/// Preserve the existing Owner's classification. A missing original journal or
+/// credential record is unavailable responsibility, never an unsent proof.
+priv enum HolderCatalogUseObservationIssue {
+  Original(@journal.NativeRemoteJournalIssue)
+  Resource(@effect_resource.NativeCredentialResourceIssue)
+  Changed
+}
+
+///|
+/// The original Journal Owner selects a nominal use before and after the
+/// Resource query. This function issues no claim or Provider call and accepts
+/// no use identity from a candidate response or replacement credential DB.
+fn holder_catalog_original_use_query(
+  read_original : () -> Result[
+    @effect_credential.RemoteCredentialUse,
+    @journal.NativeRemoteJournalIssue,
+  ],
+  query_resource : () -> Result[
+    @effect_resource.NativeCredentialUseStatus,
+    @effect_resource.NativeCredentialResourceIssue,
+  ],
+) -> Result[
+  @effect_resource.NativeCredentialUseStatus,
+  HolderCatalogUseObservationIssue,
+] {
+  let original = match read_original() {
+    Ok(value) => value
+    Err(issue) => return Err(Original(issue))
+  }
+  let status = match query_resource() {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  let current = match read_original() {
+    Ok(value) => value
+    Err(issue) => return Err(Original(issue))
+  }
+  let original_cid = @effect_credential.credential_use_cid(original)
+  if @effect_credential.credential_use_cid(current) != original_cid ||
+    status.use_cid != original_cid {
+    return Err(Changed)
+  }
+  Ok(status)
+}
+
+///|
+/// Restore only the use issued and retained for this original dispatch. The
+/// initial nominal claim is a separate unfinished caller connection; missing
+/// records here cannot enter that path or turn into a fresh Catalog GET.
 fn HolderEffectCatalogReviewCustody::query_original_catalog_use(
   self : HolderEffectCatalogReviewCustody,
 ) -> Result[@effect_resource.NativeCredentialUseStatus?, Unit] {
   let installed = self.installation
   match
-    @effect_resource.query_native_credential_use(
-      installed.service,
-      installed.grant,
-      installed.use_id,
-      installed.scope,
-    ) {
+    holder_catalog_original_use_query(self.read_original_use, () => {
+      @effect_resource.query_native_credential_use(
+        installed.service,
+        installed.grant,
+        installed.use_id,
+        installed.scope,
+      )
+    }) {
     Ok(status) => {
       if self.original_use is Some(original) &&
         original.use_cid != status.use_cid {
-        self.query_issue = Some(@effect_resource.Journal(@sqlite.Collision))
+        self.query_issue = Some(Changed)
         return Err(())
       }
       self.original_use = Some(status)
       self.read_started = true
       self.query_issue = None
       Ok(Some(status))
-    }
-    Err(@effect_resource.Journal(@sqlite.NotFound)) if !self.read_started &&
-      self.original_use is None &&
-      (self.checkpoint_absent)() => {
-      self.query_issue = None
-      Ok(None)
     }
     Err(issue) => {
       self.query_issue = Some(issue)
@@ -260,26 +335,27 @@ fn HolderEffectCatalogReviewCustody::query_original_catalog_use(
 }
 
 ///|
-/// Only the journal's exact missing-report result allows the initial claim
-/// path. A retained report or a failed observation cannot hide a missing use
-/// by initiating another Catalog read. This absence is not read permission.
-fn holder_catalog_checkpoint_missing(
-  issue : @journal.NativeRemoteJournalIssue,
-) -> Bool {
-  issue is @journal.Physical(@sqlite.NotFound)
-}
-
-///|
 /// Fixed local reasons expose neither configured contents nor response bytes.
 fn HolderEffectCatalogReviewCustody::pending_reason(
   self : HolderEffectCatalogReviewCustody,
 ) -> String {
+  if self.installation.initial_use.issue is Some(_) {
+    return "catalog-initial-claim"
+  }
   if self.restore_issue is Some(_) {
     "catalog-restoration"
-  } else if self.query_issue is Some(_) {
-    "catalog-use-observation"
   } else {
-    "original-custody"
+    match self.query_issue {
+      Some(Original(@journal.Physical(@sqlite.NotFound))) =>
+        "catalog-original-use-missing"
+      Some(Original(@journal.StaleSiteBinding)) => "catalog-original-use-site"
+      Some(Original(_)) => "catalog-original-use"
+      Some(Resource(@effect_resource.Journal(@sqlite.NotFound))) =>
+        "catalog-use-observation-missing"
+      Some(Resource(_)) => "catalog-use-observation"
+      Some(Changed) => "catalog-use-binding"
+      None => "original-custody"
+    }
   }
 }
 

@@ -269,6 +269,19 @@ fn close_holder_task(
     ) {
     return false
   }
+  // The consumer's own opaque close and the actual Resource/Review/receiver
+  // cleanup above precede this stamp retirement. Do not wait for producer
+  // Released: its CapturedDAG Ledger still funds the exact consumer charge.
+  if task.consumer is Some(owner) && owner.has_initial_catalog_use_custody() {
+    guard task.producer_identity is Some(producer_identity) &&
+      tasks.get(producer_identity) is Some(producer) &&
+      producer.effect_producer is Some(original) else {
+      return false
+    }
+    if !owner.cleanup_initial_catalog_use(environment.journal, original) {
+      return false
+    }
+  }
   // Clear only after every existing Owner confirmed cleanup. An uncertain
   // release keeps the same reference and responsibility for the next retry.
   task.effect_producer = None

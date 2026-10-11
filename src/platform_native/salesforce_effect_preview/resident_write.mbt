@@ -194,7 +194,10 @@ fn NativeResidentEffectReview::row_context(
       }
       // Create has no observe use or physical existing target. The exact
       // original Catalog binding supplies its origin, never a later grant.
-      (created.requests[0], None, self.policy.catalog.binding.resource_origin)
+      let origin = write_checked(
+        native_resident_catalog_create_origin(self.policy.catalog.binding),
+      )
+      (created.requests[0], None, origin)
     } else {
       guard targets.length() == 1 && self.uses.length() == 1 else {
         return Err(Unavailable)

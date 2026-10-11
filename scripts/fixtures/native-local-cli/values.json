@@ -1,0 +1,1 @@
+{"version":"actql/0.1","id":"native-local-example","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2},{"id":1}]},"as":"items"}],"results":{"rows":{"from":"items","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}

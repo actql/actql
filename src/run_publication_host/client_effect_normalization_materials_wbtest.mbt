@@ -269,6 +269,7 @@ test "unissued nominal proof and changed exact material bytes are refused" {
   let copied : ClientEffectIssuedNormalizationMaterials = {
     issuer: Ref(()),
     original: proof.original,
+    compilation: proof.compilation,
     run_cid: proof.run_cid,
     wire: proof.wire,
     normalization_profile: proof.normalization_profile,
