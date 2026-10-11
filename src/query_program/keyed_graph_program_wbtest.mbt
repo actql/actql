@@ -153,8 +153,8 @@ test "keyed source refuses internal Graph star and unadapted identity binding" {
   }
   assert_eq(@origin.kind(origin), @origin.Authored)
   let span = @origin.span(origin)
-  assert_eq(span.start_byte, 146)
-  assert_eq(span.end_byte, 166)
+  assert_eq(span.start_byte, 141)
+  assert_eq(span.end_byte, 161)
   assert_true(
     keyed_script(
       prefix +

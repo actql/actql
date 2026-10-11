@@ -4,13 +4,14 @@
     "Source-free n reserves cte0/seed1; keyed Graph reserves with_graph2; ordinary MATCH seed names unchanged.",
     "Two source-free Relations reserve cte0/seed1 and cte2/seed3; Graph reserves with_graph4; match/projection/append seed5 onward keep original allocation.",
     "Whitebox alias inputs remain ordinary StepReference; name rules do not add schema/provenance or acquisition.",
-    "Full independent JSON controls change producer names only; original values, property spelling/alignment, labels, identities and duplicate-preserving append remain unchanged."
+    "Full independent JSON controls change producer names only; original values, property spelling/alignment, labels, identities and duplicate-preserving append remain unchanged.",
+    "The direct pure constructor parser uses GRAPH; only spelling changes, preserving the existing independent complete mapping Program. The authored origin example uses the same unlabeled (a) as the actual test, rather than a different (a:Node) query."
   ],
   "authored_origin": {
-    "source": "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id)))) FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT aql_keyed_identity_1",
+    "source": "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id)))) FROM GRAPH g |> MATCH WALK (a) |> SELECT aql_keyed_identity_1",
     "reference": "aql_keyed_identity_1",
-    "start_byte": 146,
-    "end_byte": 166,
+    "start_byte": 141,
+    "end_byte": 161,
     "derivation": "UTF-8 length of independently declared literal source prefix; not parser output."
   },
   "preserved": [
