@@ -564,6 +564,11 @@ fn infer(
       )
     }
     "sqrt"
+    | "pow"
+    | "exp"
+    | "ln"
+    | "log"
+    | "log10"
     | "floor"
     | "abs"
     | "sign"

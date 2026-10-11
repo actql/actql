@@ -487,7 +487,10 @@ fn same_expression(
         }
       (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
-        if (!same_path(x, y) && !@expression.same_scalar_function(x, y)) ||
+        if (
+            !same_path(x, y) &&
+            !@expression.same_scalar_function(x, y, arity=Some(ax.length()))
+          ) ||
           ax.length() != ay.length() {
           return false
         }

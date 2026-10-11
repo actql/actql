@@ -454,3 +454,42 @@ INT64, NUMERIC, BIGNUMERIC, Decimal and non-finite overloads are not implied.
 The initial 0.1 expression, scalar-manifest, schema and dependent identity
 contracts change together, retaining exact predecessor bodies and preimages.
 Registration alone is not execution conformance for an unverified target.
+
+## Finite Number powers, exponentials and logarithms
+
+The scalar surface adds POW/POWER, EXP, LN, LOG and LOG10 for the existing finite
+binary64 Number domain. GoogleSQL's mathematical-function documentation supplies
+the finite-FLOAT64 domain, strict NULL, overflow and underflow rules. This does
+not add distinct INT64, NUMERIC or BIGNUMERIC domains, coercions, non-finite values,
+or GoogleSQL MOD: MOD has no FLOAT64 overload. The existing internal modulo
+operation and `%` retain their existing meaning.
+
+POW requires an integral exponent for a negative base. Integrality is tested in
+binary64 before any bounded integer conversion, so representable integral
+exponents at and beyond 2^53 remain valid. Either sign of zero to a negative power
+fails; zero to zero is one. POW and EXP preserve representable subnormals, return
+canonical positive zero on unrepresentable underflow, and fail if a finite input
+produces a non-finite result. LN and LOG10 require positive input. Binary LOG
+requires a positive value and positive base other than one; bases between zero
+and one are allowed. Successfully evaluated NULL operands propagate before these
+value-domain checks, while demanded child errors retain their original owner.
+
+The canonical unary operators are exp, ln and log10, and the canonical binary
+operators are pow and log. SQL POW/POWER and expression-text pow/power share pow.
+SQL LOG(x) and expression-text log(x) normalize to unary ln; canonical JSON log
+remains a two-element argument array. Group-function identity recognizes the
+LOG/LN synonym only at arity one. No generic lowered-operator fallback changes
+existing alias identities or malformed-arity behavior.
+
+Implementation reuses the existing canonical scalar, continuation, resource and
+cancellation owners with the pinned MoonBit core math primitives. Binary LOG
+uses ln(value)/ln(base), matching GoogleSQL `Logarithm` at selected revision
+`81c15b796138185c046aefe852321011fdf96615`. General transcendental last-bit equality across platform libraries,
+JavaScript, WebAssembly, native targets or live BigQuery is not asserted. Tests
+use exact identities where justified and independently specified numerical
+intervals otherwise. No frontend-local math engine or permissive fallback is
+introduced.
+
+References:
+- https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions
+- https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/public/functions/math.h
