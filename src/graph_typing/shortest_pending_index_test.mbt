@@ -4,15 +4,15 @@ test "Shortest indexed obligations preserve original order and optional guard bi
     Some(cursor("{\"limit\":{\"type\":\"number\"}}")),
     { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
   ).unwrap()
-  for
-    (options, last) in [
-      ("", None),
-      (",\"max_output_rows\":10", Some(EnforceShortestOutputGuard)),
-      (
-        ",\"max_output_rows\":{\"$param\":\"limit\"}",
-        Some(BindShortestOutputGuard("limit")),
-      ),
-    ] {
+  let cases : Array[(String, @graph_typing.ShortestObligation?)] = [
+    ("", None),
+    (",\"max_output_rows\":10", Some(EnforceShortestOutputGuard)),
+    (
+      ",\"max_output_rows\":{\"$param\":\"limit\"}",
+      Some(BindShortestOutputGuard("limit")),
+    ),
+  ]
+  for (options, last) in cases {
     let checked = @graph_typing.check_shortest(
       cursor(
         shortest_body(
