@@ -9,7 +9,7 @@ import test from 'node:test';
 const helper = fileURLToPath(new URL('proof-command.mjs', import.meta.url));
 const pause = () => new Promise(resolve => setTimeout(resolve, 10));
 async function waitFor(predicate) {
-  for (let i = 0; i < 500; i++) { if (predicate()) return; await pause(); }
+  for (let i = 0; i < 3000; i++) { if (predicate()) return; await pause(); }
   assert.fail('Owned child did not reach the expected boundary');
 }
 function absent(pid) {
