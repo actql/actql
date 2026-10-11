@@ -35,14 +35,14 @@ fn prefix_control_parse(text : String) -> @parameters.Source {
     },
     max_stages: 100,
   }
-  let document = @origin.document(text, caps.source.max_input_bytes).unwrap()
+  let document = @origin.document(text, caps.source.max_input_bytes, source_path="prefix-control.aql").unwrap()
   let builder = @builder.create(document, {
     source: caps.source,
     tree: caps.tree,
     max_origin_entries: 100000,
     max_output_bytes: 1000000,
   }).unwrap()
-  let parsed = @source.parse_json_measured(text, caps.source).unwrap()
+  let parsed = @source.parse_json_measured(text, caps.source, source_path="prefix-control.aql").unwrap()
   let generated = @builder.finish(
     builder,
     @builder.import_parsed(builder, parsed).unwrap(),
