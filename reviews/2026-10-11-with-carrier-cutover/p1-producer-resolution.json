@@ -62,6 +62,27 @@
           "bytes": 714
         }
       ]
+    },
+    "marked_graph_rows_placement": {
+      "sha": "80a17eeca",
+      "run": "run-sNj6te",
+      "js": "20/21",
+      "exit": 2,
+      "reason": "Existing marked FROM GRAPH still requires MATCH, unlike the unmarked node_rows path. Keep this cutover gap explicit; isolate lexical resolution with a supported MATCH control. Do not claim marked node_rows support.",
+      "owner_pid": 91207,
+      "owner_group_lock_absent": true,
+      "evidence": [
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-sNj6te/summary.json",
+          "sha256": "20f771fd1b514ce46da14c6aeff947809d292c553949a40dcb1e5d60bf2aed24",
+          "bytes": 1819
+        },
+        {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-teZVsT/001.stdout.log",
+          "sha256": "7983bfbdaa2861da8c829a1263330255848dd442f4563462b0c437f6531b2070",
+          "bytes": 226
+        }
+      ]
     }
   },
   "source_files": [
@@ -82,14 +103,15 @@
     },
     {
       "path": "src/query_syntax/producer_scope_wbtest.mbt",
-      "bytes": 4000,
-      "sha256": "c4a61598c2d1debcce6311c77e1e506620d4b6da374eaa230f9f1927a190ec42"
+      "bytes": 4005,
+      "sha256": "75648cce2135334e31a631511c2ebdd345ce0da1e1db14a31fc734ebf18f5464"
     }
   ],
   "remaining": [
     "Separate authored WithBinding and relational internal continuation AST",
     "Four Carrier binding static admission and demanded lowering",
     "Complete GRAPH spelling and old DATA entry/API/current explanation removal",
-    "Grammar/pins/source maps/README and coherent public Local/HTTPS acceptance"
+    "Grammar/pins/source maps/README and coherent public Local/HTTPS acceptance",
+    "Remove old marked Graph MATCH/CTE placement restrictions in the coherent typed producer cutover; originally refused node_rows source preserved above."
   ]
 }

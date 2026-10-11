@@ -120,7 +120,7 @@ test "SGA producer roles resolve scope while ID and field values remain data" {
 ///|
 test "FROM GRAPH resolves the nearest binding before any Carrier check" {
   let parser = producer_scope_parser(
-    "FROM GRAPH `ROWS` |> node_rows() |> SELECT id",
+    "FROM GRAPH `ROWS` |> MATCH WALK (a) |> SELECT a.id",
   )
   let query = parser.query()
   parser.end()
