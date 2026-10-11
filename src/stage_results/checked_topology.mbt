@@ -122,7 +122,7 @@ fn resolve_program_imports(
       guard stage is Publication(owner) else { abort("mixed preparation modes") }
       owner
     })
-    return resolve_imports(source, index, producers, limits).map(Publication)
+    return resolve_imports(source, index, producers, limits).map(ProgramImports::Publication)
   }
   let (entries, work, text_bytes) = match resolve_result_references(
     source, index, stages, limits, owner_stage=program_stage,
@@ -144,7 +144,7 @@ fn attach_program_imports(
   value : ProgramImports, stage : @parameters.CollectedStage, max_work : Int,
 ) -> Result[ProgramAttachedImports, ImportIssue] {
   match value {
-    Publication(v) => attach_imports(v, stage, max_work~).map(Publication)
+    Publication(v) => attach_imports(v, stage, max_work~).map(ProgramAttachedImports::Publication)
     Topology(v) => {
       if max_work < 0 { return Err(InvalidLimits) }
       if !physical_equal(v.source, @parameters.source(stage)) { return Err(ForeignSource) }
@@ -195,7 +195,7 @@ fn finish_checked_topology(
   if count > limits.max_exports || count > limits.max_work { return Err(BudgetExceeded) }
   let mut work = limits.max_work - count
   let mut text = limits.max_text_bytes
-  let exports = []
+  let exports : Array[CheckedTopologyExport] = []
   for i in 0..<count {
     let (name, producer, result) = @syntax.export_at(@parameters.program(source), i).unwrap()
     for value in [name, producer, result] {
@@ -281,12 +281,12 @@ pub fn topology_local_environment(value : CheckedTopology) -> @local.ProgramEnvi
 
 ///|
 pub fn topology_local_input_at(value : CheckedTopology, index : Int) -> @local.Attached? {
-  value.local_inputs.and_then(fn(entries) { entries.get(index) })
+  value.local_inputs.bind(fn(entries) { entries.get(index) })
 }
 
 ///|
 pub fn topology_reconciled_input_at(value : CheckedTopology, index : Int) -> @local.ReconciledAttachment? {
-  value.reconciled_inputs.and_then(fn(entries) { entries.get(index) })
+  value.reconciled_inputs.bind(fn(entries) { entries.get(index) })
 }
 
 ///|
@@ -297,3 +297,6 @@ pub fn topology_stage_orders(value : CheckedStageTopology) -> @pipeline.Contextu
 
 ///|
 pub fn topology_stage_table_inputs(value : CheckedStageTopology) -> @results.CheckedTableInputs? { value.table_inputs }
+
+///|
+pub fn topology_import_stage(value : CheckedTopologyImports) -> @parameters.CollectedStage { value.stage.unwrap() }

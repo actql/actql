@@ -416,7 +416,7 @@ fn prepare_program_internal(
         Some(inputs)
       }
     }
-    let owner = match publication {
+    let owner : ProgramStage = match publication {
       Some(ports) => match bind_ports(collected, ports, table_inputs~) {
         Err(e) => return Err(Import(i, e))
         Ok(v) => Publication(v)
