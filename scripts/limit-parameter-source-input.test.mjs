@@ -22,8 +22,8 @@ test('LIMIT fixture keeps NULL duplicates column order and empty schemas', () =>
 test('LIMIT public cases have distinct names and ordinary refusal inputs', () => {
   const cases = [...limitParameterSuccesses, ...limitParameterRefusals];
   assert.equal(new Set(cases.map(item => item.name)).size, cases.length);
-  assert.equal(limitParameterSuccesses.length, 32);
-  assert.equal(limitParameterRefusals.length, 19);
+  assert.equal(limitParameterSuccesses.length, 37);
+  assert.equal(limitParameterRefusals.length, 24);
   assert.ok(limitParameterRefusals.some(item => item.parameters?.count === 0));
   assert.ok(limitParameterRefusals.some(item => item.parameters?.skip === null));
 });
@@ -38,6 +38,31 @@ test('source parameter lookup does not rewrite machine declaration or value keys
   assert.deepEqual(exact.parameters, {COUNT: 2, SKIP: 1});
   assert.deepEqual(exact.expected, [{amount: 20, id: 2}, {amount: 30, id: 3}]);
   assert.ok(limitParameterRefusals.some(item => item.name.endsWith('wrong-machine-value-case')));
+});
+
+test('grouped take operands retain independently authored rows schema and distinct roles', () => {
+  const cases = new Map(limitParameterSuccesses.map(item => [item.name, item]));
+  const grouped = cases.get('limit-parameter-grouped-sql-bindings');
+  assert.equal(grouped.text, 'SELECT amount, id FROM records WHERE id > 0 ORDER BY id LIMIT ((@count)) OFFSET (@skip)');
+  assert.deepEqual(grouped.parameters, {count: 2, skip: 1});
+  assert.deepEqual(grouped.expected, [{amount: 20, id: 2}, {amount: 30, id: 3}]);
+  assert.deepEqual(grouped.columns, [
+    {name: 'amount', contract: {type: 'number', nullable: true}},
+    {name: 'id', contract: {type: 'number', nullable: false}},
+  ]);
+  assert.deepEqual(cases.get('limit-parameter-grouped-pipe-different-bindings').parameters, {count: 1, skip: 2});
+  assert.deepEqual(cases.get('limit-parameter-grouped-pipe-different-bindings').expected, [{amount: 30, id: 3}]);
+  assert.deepEqual(cases.get('limit-parameter-grouped-zero-offset-null-and-duplicates').expected,
+    [{amount: null, id: 1}, {amount: 20, id: 2}, {amount: 30, id: 3}, {amount: 30, id: 3}]);
+  assert.deepEqual(cases.get('limit-parameter-grouped-typed-empty').expected, []);
+  for (const item of [...cases.values()].filter(item => item.name.includes('-grouped-'))) {
+    assert.equal(item.sourceReadSessionCount, 1);
+    assert.deepEqual(item.columns, grouped.columns);
+  }
+  const refused = limitParameterRefusals.filter(item => item.name.includes('-grouped-'));
+  assert.equal(refused.length, 5);
+  assert.ok(refused.some(item => item.text.includes('OFFSET (9007199254740992)')));
+  assert.ok(refused.some(item => item.parameters?.count === null));
 });
 
 
