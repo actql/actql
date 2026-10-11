@@ -537,3 +537,34 @@ commands and all raw receipts/SHA256 remain tracked; actual Owner/group and
 ownlock were absent after each terminal run. Public Host/Local/HTTPS, package
 production and Source reuse are still unexecuted. The new cohort registration
 and static checks do not establish its public execution.
+
+## Resolved Graph Carrier misuse classification in projected WITH bodies
+
+[p1-graph-carrier-refusal-execution.json](p1-graph-carrier-refusal-execution.json)
+records clean `c5a5afd6682624f7d0d31d9a1cf4c25122e411d2`: actual JS16/16
+(`run-mLH8gW`) across the refusal counterexample, Graph row JOIN and MATCH WITH
+callers. Initial `a35623` JS4/5 reproduced a Frontend inconsistency: root already
+classified node_rows on resolved Relation as InvalidQuery, but projected WITH
+Relation terms unconditionally returned UnsupportedGraph. Both routes now reuse
+that established rule through one private helper. Unresolved inputs retain their
+existing support refusal; a nearer Relation cannot fall back to an outer Graph.
+No common Graph semantics, API, evidence or resource owner changed.
+
+The second `83e5a` JS15/16 remains failed: an existing shadowed-Graph JOIN
+fixture still allowed the broad support-gap reason. Its original source is
+retained; the exact InvalidQuery assertion now closes that boundary while
+removed-column controls remain unchanged. Explicit shortest two selectors and
+max_hops1, mean weights/support/policies and heterogeneous type/refusal controls
+are retained.
+
+Clean `d64063989890da63af295c2c145bc004139f74a3` executes Node3/3
+(`run-Tkm0RM`), preserving every independent JSON control byte, public values,
+ordered types, duplicate rows, JOIN ceilings10/2, Source predicate id=1 and
+read/session counts. Current Graph JOIN source uses WITH/GRAPH; the existing
+shadowed-Graph public refusal now requires InvalidInput. Cohort IDs and
+10normal/5refusal/1execution-failure inventory remain stable.
+
+Exact commands/source/tree, raw failures/successes and SHA256 are retained.
+All checks use 60s/grace5/nonHeavy, with actual Owner/group/ownlock absence
+confirmed. Public Local/HTTPS, packages, acquisition/cleanup and full WITH/P2
+completion remain unexecuted. Compile/static checks are not Host acceptance.

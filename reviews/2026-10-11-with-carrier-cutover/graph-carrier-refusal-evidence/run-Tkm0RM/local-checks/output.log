@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: Graph row JOIN controls preserve keys, edge instances, multiplicity, explicit limits and shared capture
+ok 1 - Graph row JOIN controls preserve keys, edge instances, multiplicity, explicit limits and shared capture
+  ---
+  duration_ms: 4.688334
+  type: 'test'
+  ...
+# Subtest: Graph row JOIN fixtures enter ordinary packed acceptance and its bounded selection
+ok 2 - Graph row JOIN fixtures enter ordinary packed acceptance and its bounded selection
+  ---
+  duration_ms: 7.700792
+  type: 'test'
+  ...
+# Subtest: WITH Graph row JOIN retirement preserves independent values, controls and custody counts
+ok 3 - WITH Graph row JOIN retirement preserves independent values, controls and custody counts
+  ---
+  duration_ms: 7.209334
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 159.923208
+ACTQL_TEST_CASE {"name":"Graph row JOIN controls preserve keys, edge instances, multiplicity, explicit limits and shared capture","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-rows-join-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph row JOIN fixtures enter ordinary packed acceptance and its bounded selection","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-rows-join-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph row JOIN retirement preserves independent values, controls and custody counts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-rows-join-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":26.9345,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-rows-join-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":159.923208}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/graph-rows-join-source-input.test.mjs"]: executed; counts={"tests":3,"passed":3,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-kcTMP6
