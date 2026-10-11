@@ -157,18 +157,20 @@ export function sdkPreparedRequest(handle) {
 // There is no ambient fetch, endpoint override or authority in this API.
 // The complete request/init, limits and closure are fixed BEFORE Core consumes
 // its original one-shot send gate. Their holdings must already be funded.
-export function prepareSdkTransport(handle, {fetch, responseLimits}) {
+export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt}) {
   const state = record(handle);
   if (pollSdkPreparation(handle).kind !== 'ready' ||
       state.transport !== undefined || state.delivered || state.settled ||
-      typeof fetch !== 'function') {
+      typeof fetch !== 'function' ||
+      (observeAt !== undefined && typeof observeAt !== 'function')) {
     throw issue('SdkTransportPreparationRefused');
   }
   const limits = fixedInferResponseLimits(responseLimits);
   const original = state.request;
   const init = Object.freeze({method: original.method, body: original.body,
     headers: original.headers, redirect: 'error', signal: state.controller.signal});
-  state.transport = {invoke: () => fetch(original.url, init), limits,
+  state.transport = {invoke: () => fetch(original.url, init), limits, observeAt,
+    observedAt: undefined, rawObservation: undefined,
     started: false, settled: false, raw: undefined, failure: undefined,
     readerRetired: false, retiring: false, unreadResponse: undefined};
 }
@@ -196,6 +198,10 @@ export function startSdkTransport(handle) {
   Promise.resolve(operation).then(response => {
     // A header/reader validation throw must not abandon an unread body.
     transport.unreadResponse = response;
+    // Original Host clock observation at actual response receipt, before
+    // body reading or Store awaits. It is not a provider-reported timestamp.
+    transport.observedAt = transport.observeAt?.();
+    transport.observeAt = undefined;
     return readBoundedInferResponse(response, transport.limits, state.controller.signal);
   }).then(raw => {
     transport.raw = raw;
@@ -242,6 +248,18 @@ export function sdkTransportResponse(handle) {
   const state = record(handle);
   if (pollSdkTransport(handle).kind !== 'response') return undefined;
   return state.transport.raw;
+}
+
+// Retain an actually observed partial/error body as well as a complete body.
+// This does not turn an incomplete transport into a successful response. The
+// original capture caller must preserve its exact bytes and EOF separately.
+export function sdkTransportRawObservation(handle) {
+  const transport = record(handle).transport;
+  if (transport === undefined) throw issue('ForeignSdkTransport');
+  if (!transport.settled || transport.raw === undefined) return undefined;
+  transport.rawObservation ??= Object.freeze({...transport.raw,
+    observedAt: transport.observedAt});
+  return transport.rawObservation;
 }
 
 // Feed an already bounded owned response to the same suspended SDK invocation.

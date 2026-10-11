@@ -10,6 +10,21 @@ pub fn check_model_replayed_observation(
     reconstructed.name != "model_invocation_evidence" {
     return Err(UnknownRunEvidence)
   }
+  if contract_string_from_value(reconstructed.value, "version") ==
+    Some("actql-model-invocation-evidence/0.2") {
+    // Both admitted current records must agree in every field. The restoring
+    // execution reconstructed input binding and both response hashes, while
+    // borrowing original opaque observations without granting profile power.
+    if contract_string_from_value(original.value, "version") !=
+      Some("actql-model-invocation-evidence/0.2") {
+      return Err(RunEvidenceInvalidShape)
+    }
+    return if original.identity == reconstructed.identity {
+      Ok(())
+    } else {
+      Err(RunEvidenceIdentityMismatch)
+    }
+  }
   if contract_string_from_value(reconstructed.value, "version") !=
     Some("actql-model-invocation-evidence/0.1") {
     return Err(RunEvidenceInvalidShape)

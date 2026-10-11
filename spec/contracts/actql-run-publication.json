@@ -962,6 +962,194 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
+    },
+    "model_raw_capture_policy": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-raw-capture-policy-0.1.json",
+      "title": "actql-model-raw-capture-policy-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "purpose",
+        "run_definition_cid",
+        "scope_cid",
+        "model_task_cid",
+        "response_profile_cid",
+        "store_authority_cid",
+        "effective_data_policy_cid",
+        "retention_contract_cid",
+        "metadata_retention_policy_cid",
+        "clock_contract_cid",
+        "selected_at",
+        "available_until",
+        "delete_by",
+        "extension_ceiling_at",
+        "metadata_delete_by",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-raw-capture-policy/0.1"
+        },
+        "purpose": {
+          "const": "model_raw_capture"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_task_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_profile_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "store_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "retention_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "metadata_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "clock_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "selected_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "available_until": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "delete_by": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "extension_ceiling_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "metadata_delete_by": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        }
+      }
+    },
+    "model_raw_response": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-raw-response-0.1.json",
+      "title": "actql-model-raw-response-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_definition_cid",
+        "scope_cid",
+        "slot_cid",
+        "attempt_cid",
+        "attempt",
+        "phase",
+        "response_profile_cid",
+        "store_authority_cid",
+        "effective_data_policy_cid",
+        "raw_capture_policy_cid",
+        "content_cid",
+        "byte_count",
+        "http_status",
+        "transport_eof",
+        "observed_at",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-raw-response/0.1"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "attempt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_profile_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "store_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "raw_capture_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "content_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "attempt": {
+          "const": 1
+        },
+        "phase": {
+          "const": "entered"
+        },
+        "byte_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "http_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "transport_eof": {
+          "type": "boolean"
+        },
+        "observed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        }
+      }
     }
   },
   "schema_cids": {
@@ -977,9 +1165,33 @@
     "result_read_grant": "sha256:e154fb5adec4d242933cf93989188fb5bab5486ebb6999ae123fafa6b064488a",
     "delivery_attempt": "sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf",
     "delivery_record": "sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4",
-    "public_index_entry": "sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e"
+    "public_index_entry": "sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e",
+    "model_raw_capture_policy": "sha256:f542a5957ce196eb56105b6b5a81aa4f51c38ccc24d335855b8df0dad3dcac21",
+    "model_raw_response": "sha256:07f7c91e32a97d3aaf58381b2fee15bed860021875b3cb2b0e5fc646aa5a5ca6"
   },
   "reference_roles": {
+    "model_raw_capture_policy": {
+      "run_definition_cid": "external:run-definition",
+      "scope_cid": "external:model-invocation-scope",
+      "model_task_cid": "external:model-task",
+      "response_profile_cid": "external:model-response-profile",
+      "store_authority_cid": "external:store-authority",
+      "effective_data_policy_cid": "external:data-policy",
+      "retention_contract_cid": "external:retention-contract",
+      "metadata_retention_policy_cid": "external:metadata-retention-policy",
+      "clock_contract_cid": "external:clock-contract"
+    },
+    "model_raw_response": {
+      "run_definition_cid": "external:run-definition",
+      "scope_cid": "external:model-invocation-scope",
+      "slot_cid": "external:model-call-slot",
+      "attempt_cid": "external:model-call-attempt",
+      "response_profile_cid": "external:model-response-profile",
+      "store_authority_cid": "external:store-authority",
+      "effective_data_policy_cid": "external:data-policy",
+      "raw_capture_policy_cid": "model_raw_capture_policy",
+      "content_cid": "external:exact-byte-object"
+    },
     "compiled_plan": {
       "executable_plan_cid": "external:executable-plan",
       "program_definition_cid": "external:program-definition",
@@ -1074,6 +1286,114 @@
     }
   },
   "reference_graph": [
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "scope_cid",
+      "target": "external:model-invocation-scope",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "model_task_cid",
+      "target": "external:model-task",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "response_profile_cid",
+      "target": "external:model-response-profile",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "store_authority_cid",
+      "target": "external:store-authority",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "effective_data_policy_cid",
+      "target": "external:data-policy",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "retention_contract_cid",
+      "target": "external:retention-contract",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "metadata_retention_policy_cid",
+      "target": "external:metadata-retention-policy",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_capture_policy",
+      "slot": "clock_contract_cid",
+      "target": "external:clock-contract",
+      "role": "retention"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "scope_cid",
+      "target": "external:model-invocation-scope",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "slot_cid",
+      "target": "external:model-call-slot",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "attempt_cid",
+      "target": "external:model-call-attempt",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "response_profile_cid",
+      "target": "external:model-response-profile",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "store_authority_cid",
+      "target": "external:store-authority",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "effective_data_policy_cid",
+      "target": "external:data-policy",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "raw_capture_policy_cid",
+      "target": "model_raw_capture_policy",
+      "role": "semantic"
+    },
+    {
+      "source": "model_raw_response",
+      "slot": "content_cid",
+      "target": "external:exact-byte-object",
+      "role": "semantic"
+    },
     {
       "source": "compiled_plan",
       "slot": "executable_plan_cid",

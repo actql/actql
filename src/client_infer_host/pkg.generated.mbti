@@ -41,9 +41,13 @@ pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun
 
 pub fn bind_model_dispatch(Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> Bool) -> Result[Unit, InvocationBindingIssue]
 
+pub fn bind_model_entry_persistence(Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> @model_execution.ModelCallEntryPersistence?) -> Result[Unit, InvocationBindingIssue]
+
 pub fn bind_model_observation(Execution, @model_execution.ModelPreparedCallSet, (@model_execution.ModelPhysicalObservation) -> Unit) -> Bool
 
 pub fn bind_model_scope(Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, InvocationBindingIssue]
+
+pub fn bind_original_model_preparation(Execution, @run_publication_host.ClientModelReadPreparation, Int64, Int64) -> Result[Unit, Issue]
 
 pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]
 
@@ -103,6 +107,8 @@ pub fn model_cleanup_progress(Execution) -> Int
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
+pub fn original_model_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
+
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn poll_issue(Poll) -> Issue?
@@ -146,6 +152,8 @@ pub fn start_complete_observation_issuance(Array[Execution], @physical_resources
 pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
+
+pub fn start_original_model_preparation(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
@@ -196,6 +204,7 @@ pub struct Execution {
   mut child_work : Int64
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
+  mut original_preparation : OriginalModelPreparation?
   mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
   mut durable_calls : Bool
   mut model_send_mask : Array[Bool]?
@@ -239,6 +248,7 @@ pub(all) enum Issue {
   Capacity(@run_publication_host.ClientInferHostCapacityIssue)
   IdentityExport(@execution_relation.CompletedExportIssue)
   CallScope(@run_publication_host.ClientInferCallScopeIssue)
+  OriginalCapacity(@run_publication_host.ClientModelInputCapacityIssue)
 }
 
 pub(all) struct Limits {
@@ -271,6 +281,8 @@ pub(all) struct ObservationIssuanceLimits {
 
 type ObservationIssuanceState
 
+type OriginalModelPreparation
+
 pub struct OutputUse {
   owner : Execution
   output : @execution_relation.CompletedOutput
@@ -281,6 +293,7 @@ type Phase
 
 pub enum Poll {
   Continue(work~ : Int64)
+  AwaitIo(work~ : Int64)
   Waiting(work~ : Int64)
   Settling(Int, work~ : Int64)
   Complete(@execution_relation.CompletedOutput, work~ : Int64)

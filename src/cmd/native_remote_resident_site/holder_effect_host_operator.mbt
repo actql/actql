@@ -25,6 +25,7 @@ fn load_holder_effect_host_operator(
   matches : @argparse.Matches,
   resources : HolderOutputResources,
   current_site : () -> Bool,
+  preparation? : HolderEffectPreparationCapacity? = None,
 ) -> HolderEffectHostOperatorInstallation? raise CommandStop {
   let selected = match
     holder_effect_host_root(matches.values.get("effect-host-account-root")) {
@@ -127,5 +128,13 @@ fn load_holder_effect_host_operator(
     },
     limits: { max_wire_bytes: 65536, max_nodes: 4096, max_depth: 32, },
   }
-  Some({ account, original_identity: identity, installation_current: current, })
+  // CLI configuration selects no numeric profile yet. A future reviewed Host
+  // supplier passes the same preparation to acceptance and evidence custody;
+  // Account admission neither constructs nor authenticates those byte widths.
+  Some({
+    account,
+    original_identity: identity,
+    installation_current: current,
+    preparation,
+  })
 }

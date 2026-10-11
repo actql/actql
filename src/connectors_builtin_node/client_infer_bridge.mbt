@@ -674,6 +674,135 @@ pub fn client_program_bind_infer_run(
 }
 
 ///|
+/// Private installed original-read connection, before any prefix advance.
+/// Grants do not establish an adopted physical profile or send permission.
+#export_name("clientProgramBindInferOriginalPreparation")
+pub fn client_program_bind_infer_original_preparation(
+  active : @infer_host.Execution,
+  read : @publication_host.ClientModelReadPreparation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_original_model_preparation(
+    active, read, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+/// Private installation probe before allocating Node operation/IO controls.
+/// The complete envelope must already be reserved by the original Run owner.
+#export_name("clientProgramInferOriginalPreparationAvailable")
+pub fn client_program_infer_original_preparation_available(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  @infer_host.original_model_preparation_available(
+    read, compiled, definition, graph, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+/// Claim the original funded read once before Node IO/control allocation.
+#export_name("clientProgramClaimInferOriginalPreparation")
+pub fn client_program_claim_infer_original_preparation(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  @publication_host.ClientModelReadConsumer,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, graph, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+/// Private trusted Node layout selection, before any operation/IO allocation.
+/// The original Resource Owner issues the same one-shot consumer. This is not
+/// a physical-layout proof, a numerical default, or Model dispatch authority.
+#export_name("clientProgramClaimInferNodePreparationLayout")
+pub fn client_program_claim_infer_node_preparation_layout(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+) -> Result[
+  @publication_host.ClientModelReadConsumer,
+  @publication_host.ClientModelPreparationLayoutIssue,
+] {
+  @publication_host.claim_client_node_model_preparation_layout(
+    read, compiled, definition, graph, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
+  )
+}
+
+///|
+/// Recheck original funding before the ordinary bounded input/Execution start.
+/// This private caller does not install a public asynchronous capability.
+#export_name("clientProgramStartOriginalInferExecution")
+pub fn client_program_start_original_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  fragment : String,
+  ordered : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  // Even the installed limits/config projection follows the funded probe.
+  if !@publication_host.client_model_read_consumer_available(
+      consumer, compiled, definition, graph, read_retained_bytes, read_execution_bytes,
+    ) {
+    return Err(
+      @infer_host.OriginalCapacity(
+        @publication_host.Read(
+          @publication_host.Resource(@resources.ChangedOriginalState),
+        ),
+      ),
+    )
+  }
+  @infer_host.start_original_model_preparation(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    @infer_host.standard_limits(),
+    compiled,
+    definition,
+    graph,
+    consumer,
+    read_retained_bytes,
+    read_execution_bytes,
+    model_retained_bytes,
+    model_execution_bytes,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
+}
+
+///|
 /// Expose the admitted account token, never adapter-authored authority JSON.
 #export_name("clientProgramIssueInferDispatchAdmission")
 pub fn client_program_issue_infer_dispatch_admission(

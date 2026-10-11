@@ -115,6 +115,38 @@ pub fn bind_model_dispatch(
 }
 
 ///|
+/// Private physical-port preparation, not an installed Host capability.
+/// The current Local managed profile has no I/O suspension contract and must
+/// refuse this binding before it begins a save or dispatches a provider.
+pub fn bind_model_entry_persistence(
+  active : Execution,
+  prepared : @model.ModelPreparedCallSet,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  begin : (@model.ModelCallEntry) -> @model.ModelCallEntryPersistence?,
+) -> Result[Unit, InvocationBindingIssue] {
+  guard !active.reclaimed &&
+    !active.cancelled &&
+    !active.advancing &&
+    !active.local_component_bound &&
+    active.run_binding is Some(run) &&
+    active.model is Some(model) &&
+    @model.prepared_model_matches(prepared, model) &&
+    @publication_host.client_infer_dispatch_matches_run(
+      admission,
+      run.compiled,
+      run.definition,
+    ) else {
+    return Err(ForeignRun)
+  }
+  if @model.bind_prepared_model_entry_persistence(prepared, admission, begin)
+    is Err(_) {
+    return Err(ForeignRun)
+  }
+  active.dispatch_admission = Some(admission)
+  Ok(())
+}
+
+///|
 pub fn call_settlement(active : Execution) -> @model.ModelCallSettlement? {
   if active.reclaimed || active.advancing {
     None
