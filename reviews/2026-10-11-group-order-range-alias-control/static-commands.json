@@ -1,0 +1,107 @@
+[
+  {
+    "command": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+    "args": [
+      "-w",
+      "src/query_program/group_order_range_alias_test.mbt"
+    ],
+    "cwd": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-from-unpivot",
+    "timeoutMs": 60000,
+    "durationMs": 23,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "static-0.stdout.log",
+    "stderr": "static-0.stderr.log"
+  },
+  {
+    "command": "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+    "args": [
+      "-w",
+      "src/query_program/query_order_grouped_expression.mbt"
+    ],
+    "cwd": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-from-unpivot",
+    "timeoutMs": 60000,
+    "durationMs": 9,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "static-1.stdout.log",
+    "stderr": "static-1.stderr.log"
+  },
+  {
+    "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+    "args": [
+      "--check",
+      "scripts/fixtures/group-order-range-alias-source-input.mjs"
+    ],
+    "cwd": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-from-unpivot",
+    "timeoutMs": 60000,
+    "durationMs": 30,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "static-2.stdout.log",
+    "stderr": "static-2.stderr.log"
+  },
+  {
+    "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+    "args": [
+      "--check",
+      "scripts/group-order-range-alias-source-input.test.mjs"
+    ],
+    "cwd": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-from-unpivot",
+    "timeoutMs": 60000,
+    "durationMs": 27,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "static-3.stdout.log",
+    "stderr": "static-3.stderr.log"
+  },
+  {
+    "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+    "args": [
+      "--check",
+      "scripts/fixtures/packed-public-query.mjs"
+    ],
+    "cwd": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-from-unpivot",
+    "timeoutMs": 60000,
+    "durationMs": 29,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "static-4.stdout.log",
+    "stderr": "static-4.stderr.log"
+  },
+  {
+    "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+    "args": [
+      "--check",
+      "scripts/test-packed-public-query.mjs"
+    ],
+    "cwd": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-from-unpivot",
+    "timeoutMs": 60000,
+    "durationMs": 32,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "static-5.stdout.log",
+    "stderr": "static-5.stderr.log"
+  },
+  {
+    "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+    "args": [
+      "--check",
+      "scripts/public-query-profiles.test.mjs"
+    ],
+    "cwd": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-from-unpivot",
+    "timeoutMs": 60000,
+    "durationMs": 29,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "static-6.stdout.log",
+    "stderr": "static-6.stderr.log"
+  }
+]
