@@ -24,12 +24,52 @@ fn close_holder_effect_review(task : HolderTaskCustody) -> Bool {
 }
 
 ///|
-/// Publish only the exact live task's prepared Review. A pending Store write,
-/// typed ACK or artifact upload retains this Owner for explicit retry; it is
-/// neither ordinary Output success nor approval or dispatch cleanup.
+/// Independent Host checkpoint parameters. The artifact destination is not an
+/// input: it is selected after the original Owner has issued a saved report.
+priv struct HolderEffectReviewPublication {
+  crypto : @signature.Library
+  key : Bytes
+  checkpoint_id : String
+  created_at : String
+  expires_at : String
+  limits : @checkpoint.WireLimits
+  current : () -> Bool
+  access : (Int, @effect_catalog.SingleWriteRequest) -> Result[
+    @effect_review.NativeSalesforceTargetAccess,
+    @effect_review.NativeSalesforcePreviewIssue,
+  ]
+}
+
+///|
+/// Use the same configured Site/generation route as observations. Only a
+/// sealed Checkpoint from the original report supplies the final path member;
+/// no candidate URL, future checkpoint identity or new hash is accepted.
+fn holder_effect_review_artifact_url(
+  observation_url : String,
+  checkpoint : @checkpoint.SealedCheckpoint,
+) -> String? {
+  let suffix = "/outbound/observations"
+  if !observation_url.has_prefix("https://") ||
+    !observation_url.has_suffix(suffix) {
+    return None
+  }
+  Some(
+    observation_url.unsafe_substring(
+      start=0,
+      end=observation_url.length() - suffix.length(),
+    ) +
+    "/effect-reviews/" +
+    checkpoint.checkpoint_cid,
+  )
+}
+
+///|
+/// Publish only the exact live task's prepared Review. Prepare/save precedes
+/// route selection. The existing upload Owner confirms the original typed ACK
+/// before sending artifact bytes; each failure keeps the same Review custody.
 fn publish_holder_effect_review(
   task : HolderTaskCustody,
-  configuration : @effect_review.NativeResidentEffectReviewPublication,
+  configuration : HolderEffectReviewPublication,
   resources : HolderOutputResources,
   authorize_evidence_read : () -> Bool,
 ) -> Bool {
@@ -40,14 +80,54 @@ fn publish_holder_effect_review(
     @remote.dispatch_request_identity(task.request) else {
     return false
   }
-  match
-    review.publish_review(
-      resources.store,
-      resources.control,
-      configuration,
-      authorize_evidence_read,
-    ) {
-    Ok(original) => {
+  let current = () => {
+    !task.released &&
+    !task.release_requested &&
+    authorize_evidence_read() &&
+    (configuration.current)()
+  }
+  let original = (fn() -> @remote.RemoteEffectCheckpointReport? {
+    guard current() else { return None }
+    guard review.observe(configuration.access) is Ok(_) && current() else {
+      return None
+    }
+    let original = match
+      review.persist_and_retain_report(
+        resources.store,
+        configuration.crypto,
+        configuration.key,
+        configuration.checkpoint_id,
+        configuration.created_at,
+        configuration.expires_at,
+        configuration.limits,
+      ) {
+      Ok(original) => original
+      Err(_) => return None
+    }
+    // Select the route only after the original Owner has issued and retained
+    // its report. A failed current check leaves all custody with that Owner.
+    guard current() &&
+      holder_effect_review_artifact_url(
+        resources.observation_url,
+        @remote.remote_effect_checkpoint_report_checkpoint(original),
+      )
+      is Some(artifact_url) &&
+      current() else {
+      return None
+    }
+    guard review.upload_review_projection(
+        resources.control,
+        resources.observation_url,
+        artifact_url,
+        current,
+      )
+      is Ok(_) else {
+      return None
+    }
+    Some(original)
+  })()
+  match original {
+    Some(original) => {
       report("effect-review-reported", [
         ("request_cid", review.dispatch_identity()),
         (
@@ -57,7 +137,7 @@ fn publish_holder_effect_review(
       ])
       true
     }
-    Err(_) => {
+    None => {
       report("effect-review-pending", [
         ("request_cid", review.dispatch_identity()),
         ("reason", "original-custody"),
@@ -77,7 +157,7 @@ fn drive_holder_effect_review(
   journal : @journal.Journal,
   resources : HolderOutputResources,
   installation : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody?,
-  publication : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication?,
+  publication : (@remote.DispatchRequest) -> HolderEffectReviewPublication?,
   authorize_evidence_read : () -> Bool,
 ) -> Bool {
   guard !task.released &&
