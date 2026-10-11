@@ -236,3 +236,36 @@ normalization-bearing materials, including a finite-profile candidate with an
 absent request. Its shared material decoder can compare an independently trusted
 absent expected identity, but the direct executor cannot select that expectation
 from the candidate. Ordinary absent-journal materials retain their existing path.
+
+## Mapped-create Preview from a retained consumer Result
+
+The Native review connection projects create requests from the actual held
+consumer Result through the existing checked proposal export and Catalog request
+Owners. It checks the original preparation, Run definition, typed request,
+member, mapping and current receiver borrow. Only a complete export with its
+matching Receipt produces the opaque, bounded `NativeResidentEffectCreatedTargets`
+projection. Its request array is private; callers cannot replace rows after
+projection. Failure leaves physical input and cleanup custody with the original
+Owners and grants no write permission.
+
+The shared create-row inventory Owner derives sorted content/occurrence
+correlations from those requests. A create Preview has absent before-state and a
+`not_applicable` guard, rather than an observed existing target or an update
+version guard. The Native review therefore makes no Provider target-read call for
+this operation. Duplicate equal rows retain distinct occurrences. Source,
+local-artifact, request-scope, capability and Preview binding remain with the
+existing Owners.
+
+Mapped create has a checked create-row terminal, not a correlated update Plan
+terminal. It does not mint a substitute update Plan proof. The existing captured
+Run path requires that proof only when a Plan identity is present; update review
+continues to require and verify its Plan proof. The nominal create projection is
+process-local and remains tied to the same consumer and captured inputs. It is
+not durable approval, a physical target observation or a mutation permit.
+
+This connection supplies Preview and capture preparation. The existing Native
+approved-row write adapter still rejects create because it requires an observed
+update target. Approval, current mutation authorization, durable Effect dispatch
+and saved-response reconciliation require their own connection to the existing
+Owners. Empty create batches are explicitly unsupported by this adapter; that
+implementation boundary is not a restriction on the language's create semantics.

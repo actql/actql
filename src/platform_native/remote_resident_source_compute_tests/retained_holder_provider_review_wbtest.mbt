@@ -130,6 +130,32 @@ fn retained_holder_provider_review(
   let request = consumer.request_for_effect_review(inputs).unwrap()
   assert_eq(Some(request), materials.request)
   let policy = retained_holder_review_policy(holder, inputs, invocation)
+  // The create connection cannot reinterpret this genuine update member,
+  // export a different input, or acquire Provider authority from it.
+  let create_before = consumer.usage().reserved_retention_bytes
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_created_targets(
+      consumer,
+      materials,
+      inputs,
+      policy.stage,
+      policy.effect_id,
+      policy.result_index,
+      policy.mapping,
+      policy.projection,
+      policy.api_version,
+      policy.export_limits,
+      policy.body_limits,
+      policy.request_limits,
+      policy.max_rows,
+      policy.max_fields,
+      policy.max_work,
+      policy.max_utf16_units,
+      policy.preview_limits.max_wire_bytes,
+    )
+    is Err(ForeignMapping),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, create_before)
   let work = @effect_provider.prepare_native_resident_effect_review_from_context(
     holder, journal, owned_context, normalization, policy,
   ).unwrap()
@@ -300,7 +326,7 @@ fn retained_holder_provider_review(
       owned_result,
       invocation,
       complete.preview.preview,
-      [complete.preview.proof],
+      [complete.preview.proof.unwrap()],
       [complete.source],
       [complete.local_source],
       complete.inventory,
