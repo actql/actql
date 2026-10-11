@@ -109,6 +109,7 @@ def check_payload_writing(fixture, payload_loan, facts, configuration, denied,
                         {**identity, 'device': None}, {**identity, 'device': True},
                         {**identity, 'device': ''}, {**identity, 'device': '+1'},
                         {**identity, 'device': '01'}, {**identity, 'device': '-1'},
+                        {**identity, 'device': '1' * 1000},
                         {**identity, 'inode': '18446744073709551616'},
                         {**identity, 'extra': 'field'},
                         {k: v for k, v in identity.items() if k != 'inode'}):

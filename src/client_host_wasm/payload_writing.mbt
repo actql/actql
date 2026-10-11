@@ -1,5 +1,8 @@
 ///|
 fn payload_physical_uint64(wire : String) -> UInt64? {
+  if wire.length() == 0 || wire.length() > 20 {
+    return None
+  }
   let value : UInt64 = @string.from_str(wire) catch { _ => return None }
   if value.to_string() == wire {
     Some(value)
