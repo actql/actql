@@ -34,9 +34,9 @@ class LocalFileError(RuntimeError):
 class _PayloadFile:
     __slots__ = ('root', 'name', 'descriptor', 'identity', 'max_bytes', 'written',
                  'creation_synced', 'write_unknown', 'closing', 'close_pending',
-                 'write_stopped', 'snapshot')
+                 'write_stopped', 'snapshot', 'adoption')
 
-    def __init__(self, root: object, name: str, descriptor: int, max_bytes: int) -> None:
+    def __init__(self, root: 'LocalFileRoot', name: str, descriptor: int, max_bytes: int) -> None:
         self.root = root
         self.name = name
         self.descriptor: int | None = descriptor
@@ -49,6 +49,31 @@ class _PayloadFile:
         self.close_pending = False
         self.write_stopped = False
         self.snapshot: _FileSnapshot | None = None
+        self.adoption: _NameAdoption | None = None
+
+
+class _NameAdoption:
+    """Original physical link/unlink work; never a Run or Recovery outcome."""
+
+    __slots__ = ('origin', 'target', 'file', 'original_name', 'name', 'identity',
+                 'size', 'linked', 'link_unknown', 'refused', 'source_removed',
+                 'remove_unknown', 'complete')
+
+    def __init__(self, origin: 'LocalFileRoot', target: 'LocalFileRoot',
+                 value: _PayloadFile, name: str, observed: PhysicalFileObservation) -> None:
+        self.origin = origin
+        self.target = target
+        self.file = value
+        self.original_name = value.name
+        self.name = name
+        self.identity = observed.identity
+        self.size = observed.size
+        self.linked = False
+        self.link_unknown = False
+        self.refused = False
+        self.source_removed = False
+        self.remove_unknown = False
+        self.complete = False
 
 
 class _FileSnapshot:
@@ -111,6 +136,7 @@ class LocalFileRoot:
         self._lock = RLock()
         self._files: dict[int, _PayloadFile] = {}
         self._areas: dict[int, _AllocationArea] = {}
+        self._name_transfers: dict[int, _NameAdoption] = {}
         self._capacity_root: LocalFileRoot = self
         self._parent_area: _AllocationArea | None = None
         self._max_files = max_files
@@ -268,6 +294,7 @@ class LocalFileRoot:
             child._lock = self._lock
             child._files = {}
             child._areas = {}
+            child._name_transfers = {}
             child._capacity_root = self
             child._parent_area = value
             child._max_files = self._max_files
@@ -366,6 +393,156 @@ class LocalFileRoot:
             os.fsync(root)
             value.creation_synced = True
 
+    @staticmethod
+    def _match_name(root: int, name: str, identity: PhysicalFileIdentity, size: int) -> None:
+        named = os.stat(name, dir_fd=root, follow_symlinks=False)
+        if (not stat.S_ISREG(named.st_mode) or named.st_uid != os.getuid()
+                or named.st_mode & 0o077
+                or PhysicalFileIdentity(named.st_dev, named.st_ino) != identity
+                or named.st_size != size):
+            raise LocalFileError('Original Local payload name generation changed')
+
+    def _transfer_root(self) -> int:
+        root = self._observation_root()
+        if self._parent_area is not None:
+            self._parent_area.parent.observe_area(self._parent_area)
+        current = os.fstat(root)
+        if (not stat.S_ISDIR(current.st_mode) or current.st_uid != os.getuid()
+                or current.st_mode & 0o077
+                or PhysicalFileIdentity(current.st_dev, current.st_ino) != self._identity):
+            raise LocalFileError('Original Local name-transfer root changed')
+        return root
+
+    def begin_adoption(self, value: _PayloadFile, target: 'LocalFileRoot',
+                       name: str) -> _NameAdoption:
+        """Retain original name work before exclusive link I/O.
+
+        The trusted Host must first persist original Core file ownership and
+        select this name from that record, reserving cursor/OS workspace. Only
+        roots under the same physical capacity/lock family participate. This
+        method cannot select a Source, grant publisher permission or seal Core.
+        """
+        self._name(name)
+        with self._lock:
+            self._owned(value)
+            self._open()
+            if type(target) is not LocalFileRoot:
+                raise ValueError('Invalid Local adoption target')
+            target._nominal_root()
+            if target._capacity_root is not self._capacity_root or target._lock is not self._lock:
+                raise ValueError('Foreign Local adoption capacity family')
+            target._open()
+            if (value.closing or value.adoption is not None or value.write_unknown
+                    or value.write_stopped or value.snapshot is not None
+                    or not value.creation_synced or value.descriptor is None
+                    or target is self and name == value.name):
+                raise LocalFileError('Original Local staging-name adoption is unavailable')
+            observed = self.observe(value)
+            if observed.size != value.written:
+                raise LocalFileError('Original Local adoption size changed')
+            self._match_name(self._transfer_root(), value.name, observed.identity, observed.size)
+            cursor = _NameAdoption(self, target, value, name, observed)
+            value.adoption = cursor
+            self._name_transfers[id(cursor)] = cursor
+            target._name_transfers[id(cursor)] = cursor
+            return cursor
+
+    def _owned_adoption(self, cursor: _NameAdoption) -> _PayloadFile:
+        if (type(cursor) is not _NameAdoption or cursor.origin is not self
+                or self._name_transfers.get(id(cursor)) is not cursor
+                or cursor.target._name_transfers.get(id(cursor)) is not cursor
+                or cursor.file.adoption is not cursor):
+            raise ValueError('Foreign, copied or retired Local name cursor')
+        value = cursor.file
+        value.root._owned(value)
+        return value
+
+    def advance_adoption(self, cursor: _NameAdoption) -> PhysicalFileObservation:
+        """Exclusive acquisition once; retries confirm the same known link.
+
+        Unknown link acquisition never becomes ownership from pathname equality
+        or another link attempt. A known link is flushed before dropping only
+        the exact original name. Failed unlink/sync retains this cursor, both
+        roots and the same descriptor. The Host still owns durable uncertainty.
+        """
+        with self._lock:
+            value = self._owned_adoption(cursor)
+            if (value.closing or value.descriptor is None or cursor.link_unknown
+                    or cursor.refused or self._closing or cursor.target._closing
+                    or self._capacity_root._closing):
+                raise LocalFileError('Original Local name acquisition is unavailable or unknown')
+            origin = self._transfer_root()
+            target = cursor.target._transfer_root()
+            observed = value.root.observe(value)
+            if observed != PhysicalFileObservation(cursor.identity, cursor.size):
+                raise LocalFileError('Original Local name-transfer descriptor changed')
+            if cursor.complete:
+                self._match_name(target, cursor.name, cursor.identity, cursor.size)
+                return observed
+            if not cursor.linked:
+                self._match_name(origin, cursor.original_name, cursor.identity, cursor.size)
+                try:
+                    os.link(cursor.original_name, cursor.name, src_dir_fd=origin,
+                            dst_dir_fd=target, follow_symlinks=False)
+                except FileExistsError:
+                    cursor.refused = True
+                    raise
+                except BaseException:
+                    cursor.link_unknown = True
+                    raise
+                cursor.linked = True
+            self._match_name(target, cursor.name, cursor.identity, cursor.size)
+            # Persist the known acquired target before retiring the original
+            # name. Directory-sync retry never repeats exclusive acquisition.
+            os.fsync(target)
+            os.fsync(origin)
+            if not cursor.source_removed:
+                try:
+                    self._match_name(origin, cursor.original_name, cursor.identity, cursor.size)
+                except FileNotFoundError:
+                    if not cursor.remove_unknown:
+                        raise LocalFileError('Original Local name disappeared outside unlink work')
+                    cursor.source_removed = True
+                if not cursor.source_removed:
+                    try:
+                        os.unlink(cursor.original_name, dir_fd=origin)
+                    except BaseException:
+                        cursor.remove_unknown = True
+                        raise
+                    cursor.source_removed = True
+            os.fsync(origin)
+            os.fsync(target)
+            self._match_name(target, cursor.name, cursor.identity, cursor.size)
+            if value.root.observe(value) != observed:
+                raise LocalFileError('Original Local adoption descriptor changed during I/O')
+            del self._files[id(value)]
+            cursor.target._files[id(value)] = value
+            value.root = cursor.target
+            value.name = cursor.name
+            cursor.complete = True
+            return observed
+
+    def close_adoption(self, cursor: _NameAdoption) -> bool:
+        """Retire transport only; never unlink aliases or release Store capacity.
+
+        Incomplete work can retire only after the original file descriptor is
+        physically stopped. Its named bytes and unknown acquisition remain the
+        existing Store Owner's responsibility, including after process exit.
+        A definite exclusive-name refusal acquired nothing and may retire while
+        the original writer stays usable under its old name.
+        """
+        with self._lock:
+            value = self._owned_adoption(cursor)
+            if (not cursor.complete and not cursor.refused
+                    and (cursor.linked or cursor.link_unknown)
+                    and value.descriptor is not None):
+                return False
+            del self._name_transfers[id(cursor)]
+            if cursor.target is not self:
+                del cursor.target._name_transfers[id(cursor)]
+            value.adoption = None
+            return True
+
     def append(self, value: _PayloadFile, expected_offset: int, data: bytes) -> int:
         """One bounded physical write; return a short write without repeating it."""
         if (type(expected_offset) is not int or expected_offset < 0 or type(data) is not bytes
@@ -374,7 +551,8 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._open()
-            if (value.closing or value.write_unknown or value.write_stopped or not value.creation_synced
+            if (value.closing or value.adoption is not None or value.write_unknown
+                    or value.write_stopped or not value.creation_synced
                     or value.descriptor is None):
                 raise LocalFileError('Original Local file write is unavailable or unknown')
             observed = self.observe(value)
@@ -397,7 +575,8 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._observation_root()
-            if value.closing or value.write_unknown or value.descriptor is None:
+            if (value.closing or value.adoption is not None or value.write_unknown
+                    or value.descriptor is None):
                 raise LocalFileError('Original Local file cannot be confirmed from an unknown write')
             observed = self.observe(value)
             if observed.size != value.written:
@@ -434,7 +613,8 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._open()
-            if (value.closing or value.write_unknown or not value.creation_synced
+            if (value.closing or value.adoption is not None or value.write_unknown
+                    or not value.creation_synced
                     or value.descriptor is None):
                 raise LocalFileError('Original Local snapshot is pending or unknown')
             if value.snapshot is not None:
@@ -534,6 +714,10 @@ class LocalFileRoot:
                         value.close_pending = True
                         return False
                     value.descriptor = None
+            if value.adoption is not None:
+                # The descriptor is physically stopped, but original name work
+                # still pins both roots. No unlink or capacity return occurs.
+                return False
             del self._files[id(value)]
             return True
 
@@ -542,7 +726,7 @@ class LocalFileRoot:
         with self._lock:
             self._nominal_root()
             self._closing = True
-            if self._files or self._areas:
+            if self._files or self._areas or self._name_transfers:
                 return False
             if self._descriptor is None:
                 return True

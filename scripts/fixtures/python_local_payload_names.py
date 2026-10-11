@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class PayloadNameCases:
-    def __init__(self, fixture, configuration, denied, call, assert_status, ticket):
+    def __init__(self, fixture, configuration, denied, call, assert_status, ticket, staging=None):
         self.fixture = fixture
         self.configuration = configuration
         self.denied = denied
@@ -19,6 +19,7 @@ class PayloadNameCases:
         self.cases = []
         self.child = None
         self.wire = None
+        self.staging = staging
 
     def unowned(self, record):
         self.status('payload_names', 'reserve', -2, record, self.ticket(),
@@ -32,7 +33,7 @@ class PayloadNameCases:
         assert 0 < size <= self.expected['max_bytes']
         return bytes(self.fixture.call('byte', self.child, index) for index in range(size))
 
-    def owned(self, record, original_wire):
+    def owned(self, record, original_wire, root, origin, physical):
         self.child = self.call('payload_names', 'reserve', record, self.ticket(),
                                self.expected['physical_copy_bytes'])
         assert self.child > 0, ('Original names reserve', self.child)
@@ -62,6 +63,8 @@ class PayloadNameCases:
         self.status('payload_names', 'reserve', -2, self.child, self.ticket(),
                     self.expected['physical_copy_bytes'])
         self.cases.append('duplicate_or_wrong_parent_cannot_acquire_another_projection')
+        if self.staging is not None:
+            self.staging.adopt(self, root, origin, physical, original_wire)
 
     def candidate(self, record, original_wire, candidate_wire):
         assert json.loads(original_wire)['revision'] == '3'

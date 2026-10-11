@@ -1294,3 +1294,29 @@ existing buffer cleanup succeeds. Parent close seals further production and
 waits for that same child; failed cleanup retains its reservation and handle.
 Python checks nominal loans and bounds before copying, returns exact bytes and
 does not start an execution, write files or release persistent capacity.
+
+The private physical staging port retains a nominal name cursor before an
+exclusive link. Original durable file ownership and the name projection from
+that same Core record are prerequisites enforced by the trusted Host assembly;
+this port does not manufacture them. Source and target roots must share their
+original capacity and lock family. The cursor blocks append and snapshot work
+until the known original descriptor moves, and pins both roots during failure.
+
+A known acquired target is checked against the original device, inode and byte
+count and directory-flushed before dropping only the exact original name.
+Directory-sync failure retries the same link custody without acquisition. An
+uncertain unlink observes original-name absence or rechecks the original owned
+generation before cleanup; it never unlinks a replacement. An uncertain link
+acquisition remains unknown even if the destination currently names the same
+inode. Neither another link attempt nor pathname equality supplies its missing
+acquisition fact.
+
+Cursor retirement is transport retirement. Pending known/unknown acquisition
+first requires actual original descriptor stop; close failure retains the same
+handle and both root pins. Retirement does not remove remaining aliases, return
+Store capacity, settle unknown acquisition, advance a Core record or authorize
+publishing. The existing Store Owner retains the persisted original file and
+allocation custody and reservations for reconciliation/reclaim after process
+exit. The Host must reserve the fixed cursor and OS workspace before this port.
+This connects staging only: physical final-name sealing, durable publication and
+normal Python Local assembly remain separate integrations.

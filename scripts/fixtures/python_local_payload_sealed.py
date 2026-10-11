@@ -146,8 +146,11 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     assert_status('payload_writing', 'close', 0, owned)
                     cases.append('original_confirmed_area_and_file_ownership_precede_sealed')
                     if names_observer is not None:
-                        names_observer.owned(record, owned_wire)
+                        names_observer.owned(record, owned_wire, files, child_files, physical)
 
+                    physical_path = files_path / expected['allocation_name'] / 'payload'
+                    if names_observer is not None and names_observer.staging is not None:
+                        physical_path = files_path / names_observer.staging.expected['staging_name']
                     assert_status('payload_request', 'start_replay', 0, parent, configuration)
                     offset = 0
                     for _ in range(100):
@@ -162,16 +165,16 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                         assert final in (0, 1)
                         for at in range(0, length, 5):
                             part = data[at:at + 5]
-                            assert child_files.append(physical, offset, part) == len(part)
+                            assert physical.root.append(physical, offset, part) == len(part)
                             offset += len(part)
                         assert_status('payload_chunk', 'close', 0, chunk)
                         if final:
                             break
                     else:
                         raise AssertionError('Original payload replay did not terminate')
-                    cursor = child_files.begin_snapshot(physical)
+                    cursor = physical.root.begin_snapshot(physical)
                     for _ in range(100):
-                        snapshot = child_files.advance_snapshot(cursor)
+                        snapshot = physical.root.advance_snapshot(cursor)
                         if snapshot is not None:
                             break
                     else:
@@ -179,7 +182,7 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     assert snapshot.observation.identity == file_identity
                     assert snapshot.observation.size == independent['byte_count']
                     assert snapshot.physical_digest == 'sha256:' + independent['physical_sha256']
-                    assert (files_path / expected['allocation_name'] / 'payload').read_bytes() == independent['payload'].encode()
+                    assert physical_path.read_bytes() == independent['payload'].encode()
                     assert fixture.queries == expected['source_queries']
                     cases.append('bounded_original_result_replay_and_file_digest_without_redispatch')
 
@@ -266,17 +269,17 @@ def check_payload_sealed(fixture, payload_loan, facts, configuration, denied,
                     assert_status('payload_request', 'close', 0, parent)
                     assert fixture.call('close', original_input) == 0
                     cases.append('pending_transport_cleanup_retries_same_handle_and_borrow')
-                    assert child_files.close_writer(physical)
+                    assert physical.root.close_writer(physical)
                     physical = None
                     assert files.close_area(area)
                     area = None
                     assert store.read(key) == StoredBytes(4, sealed_wire)
                     assert store.read_capacity('publication_payload', key) == capacity
-                    assert (files_path / expected['allocation_name'] / 'payload').read_bytes() == independent['payload'].encode()
+                    assert physical_path.read_bytes() == independent['payload'].encode()
                     cases.append('physical_close_preserves_named_bytes_and_durable_capacity')
         finally:
             if physical is not None:
-                assert child_files is not None and child_files.close_writer(physical)
+                assert child_files is not None and physical.root.close_writer(physical)
             if area is not None:
                 assert files.close_area(area)
             assert files.close(), 'Original physical cleanup remains pending'
