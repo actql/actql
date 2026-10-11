@@ -12,6 +12,8 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const python=process.env.ACTQL_PYTHON_LOCAL;
 assert.ok(python,'Select the isolated Python Wasmtime environment');
 const physicalBoundary=process.argv.includes('--physical-boundary');
+const dispatchBoundary=process.argv.includes('--dispatch-boundary');
+assert.ok(!(physicalBoundary && dispatchBoundary),'Select one focused boundary');
 
 function run(command,args,timeout=60000){
   const result=spawnSync(command,args,{cwd:root,env:{...process.env,PYTHONPATH:''},
@@ -46,7 +48,25 @@ if(process.argv.includes('--build-and-consume')){
   const result=JSON.parse(output);
   assert.equal(result.success,true);
   assert.equal(result.module_sha256,digest);
-  if(physicalBoundary){
+  if(dispatchBoundary){
+    const dispatch=JSON.parse(run(python,['scripts/fixtures/python-local-dispatch-abi.py',module],180000));
+    assert.equal(dispatch.success,true);
+    assert.equal(dispatch.module_sha256,digest);
+    assert.equal(dispatch.processes.length,6);
+    const record={source_sha:source,module,module_sha256:digest,
+      scope:'private_original_dispatch_reconciliation_only',
+      moonc:run('moonc',['-v']),python:run(python,['--version']),result,dispatch,
+      public_local_acceptance:false,durable_run_acceptance:false,
+      default_fuel_acceptance:false};
+    const file=join(receipt,'dispatch-boundary-receipt.json');
+    try{
+      await writeFile(file,JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+    }catch(error){
+      if(error.code!=='EEXIST')throw error;
+      assert.deepEqual(JSON.parse(await readFile(file,'utf8')),record,
+        'Do not replace an existing fixed-source dispatch receipt');
+    }
+  }else if(physicalBoundary){
     const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
     assert.equal(physical.success,true);
     assert.equal(physical.module_sha256,digest);
