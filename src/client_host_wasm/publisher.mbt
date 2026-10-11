@@ -285,8 +285,14 @@ pub fn close_publisher(nonce : Int64, handle : Int) -> Int {
   if value.publications
     .values()
     .any(record => {
-      record.observation_publisher == Some(handle) &&
-      record.observation_input is Some(_)
+      (
+        record.observation_publisher == Some(handle) &&
+        record.observation_input is Some(_)
+      ) ||
+      (
+        record.lookup_publisher == Some(handle) &&
+        record.lookup_input is Some(_)
+      )
     }) {
     return -9
   }

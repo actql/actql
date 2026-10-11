@@ -43,6 +43,13 @@ priv struct StoredPublication {
   mut observation_failed : Bool
   mut observation_checked : Bool
   mut observation_closing : Bool
+  mut lookup_input : Int?
+  mut lookup_borrow : @buffers.BufferBorrow?
+  mut lookup_publisher : Int?
+  mut lookup_index : @publication.PublicationContract?
+  mut lookup_identity : String?
+  mut lookup_failed : Bool
+  mut lookup_closing : Bool
 }
 
 ///|
@@ -135,6 +142,13 @@ pub fn reserve_publication(
     observation_failed: false,
     observation_checked: false,
     observation_closing: false,
+    lookup_input: None,
+    lookup_borrow: None,
+    lookup_publisher: None,
+    lookup_index: None,
+    lookup_identity: None,
+    lookup_failed: false,
+    lookup_closing: false,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -620,6 +634,13 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
       return result
     }
     record.observation_borrow = None
+  }
+  if record.lookup_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.lookup_borrow = None
   }
   if record.commit_borrow is Some(borrow) {
     let result = status(@buffers.return_buffer_borrow(value.pool, borrow))

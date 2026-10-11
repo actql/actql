@@ -137,8 +137,15 @@ pub fn prepare_publication_observation(
     Err(code) => return code
     Ok(_) => ()
   }
-  if record.observation_closing {
+  if record.observation_closing || record.lookup_closing {
     return -5
+  }
+  if record.lookup_failed {
+    return -33
+  }
+  if record.lookup_input is Some(_) &&
+    record.lookup_publisher != Some(publisher) {
+    return -2
   }
   if record.pending || record.observation_failed {
     return -33
@@ -191,6 +198,28 @@ pub fn prepare_publication_observation(
         record.observation_failed = true
         return -32
       }
+      if record.lookup_input is Some(_) {
+        guard record.lookup_index is Some(original_index) &&
+          record.lookup_identity is Some(identity) &&
+          record.lookup_publisher == Some(publisher) &&
+          @publication.publication_contract_identity(index) == identity &&
+          commit.view_inspected_index_reference(
+            view, identity, original_index, 0,
+          )
+          is Ok(request_identity) &&
+          commit.view_inspected_index_reference(
+            view, identity, original_index, 1,
+          )
+          is Ok(attempt_identity) &&
+          @publication.publication_contract_identity(request) ==
+          request_identity &&
+          @publication.publication_contract_identity(attempt) ==
+          attempt_identity else {
+          record.pending = false
+          record.observation_failed = true
+          return -32
+        }
+      }
       match commit.begin_observed_commit(view, request, attempt, index) {
         Ok(_) => {
           record.observation = Some(observation)
@@ -201,6 +230,13 @@ pub fn prepare_publication_observation(
       }
     }
     Ok(observation) => {
+      // Missing a dependent contract after finding an index does not prove an
+      // uncommitted publication. Query failure stays Unknown with both loans.
+      if record.lookup_input is Some(_) && !(observation is ObservedQueryFailed) {
+        record.pending = false
+        record.observation_failed = true
+        return -32
+      }
       record.observation = Some(observation)
       record.observation_progress = Some((true, 0))
       0
@@ -234,7 +270,7 @@ pub fn advance_publication_observation(
     Ok(original) => original
     Err(code) => return code
   }
-  if record.observation_closing {
+  if record.observation_closing || record.lookup_closing {
     return -5
   }
   if quantum <= 0 {
@@ -326,7 +362,7 @@ pub fn finish_publication_observation(
     Ok(original) => original
     Err(code) => return code
   }
-  if record.observation_closing {
+  if record.observation_closing || record.lookup_closing {
     return -5
   }
   if record.pending || record.observation_failed {

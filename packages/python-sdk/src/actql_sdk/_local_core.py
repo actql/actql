@@ -253,6 +253,8 @@ _PUBLICATION_SIGNATURES = {
     'observation_progress': ('i64 i32 i32', 'i64'),
     'finish_observation': ('i64 i32 i32', 'i32'),
     'retire_observation': ('i64 i32', 'i32'),
+    'prepare_lookup': ('i64 i32 i32 i32 i32', 'i32'),
+    'retire_lookup': ('i64 i32', 'i32'),
 }
 _PUBLICATION_PREFLIGHT_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
@@ -269,6 +271,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'count': ('i64 i32 i32', 'i32'),
     'result_count': ('i64 i32 i32', 'i32'),
     'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
+    'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
     'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
@@ -574,7 +577,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 42:
+            if self._exports['actql_host_abi_version'](self._store) != 43:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1202,6 +1205,37 @@ class LocalCore:
             self._check('finish_publication_commit', self._call(
                 'publication', 'finish_commit', value.handle, current_configuration))
 
+    def prepare_publication_lookup(self, value: _Output, response: _Input,
+                                   publisher: _Output, current_configuration: int) -> None:
+        """Borrow the same physical index/reference packet for Core lookup.
+
+        The packet transports original bytes, not Python scope, equality or
+        permission. Core admits the index, checks its Store reference and
+        original scope/request, and retains this input through dependent reads.
+        This does not complete chain validation or confirm a Store commit.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._owned_input(response)
+            self._owned_output(publisher, 'publisher')
+            self._check('prepare_publication_lookup', self._call(
+                'publication', 'prepare_lookup', value.handle, response.handle,
+                publisher.handle, current_configuration))
+
+    def retire_publication_lookup(self, value: _Output) -> bool:
+        """Retry the original index borrow stop after dependent loan cleanup.
+
+        The original physical input remains owned separately. No Source/Result
+        parent, Run, publication or unknown operation is closed or replayed.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication')
+            code = self._call('publication', 'retire_lookup', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_publication_lookup', code)
+            return True
+
     def prepare_publication_observation(self, value: _Output, response: _Input,
                                         publisher: _Output, current_configuration: int) -> None:
         """Validate an original trusted Store response, retaining its same loan.
@@ -1347,6 +1381,26 @@ class LocalCore:
             self._check('produce_publication_commit_material', self._call(
                 'publication_commit_export', 'produce_material', value.handle,
                 current_configuration, ordinal, _COMMIT_MATERIAL_FIELDS[field]))
+
+    def produce_publication_lookup_reference(self, value: _Output,
+                                             current_configuration: int, *,
+                                             field: Literal['request', 'attempt']) -> None:
+        """Project the actual stored index's Core-checked lookup reference.
+
+        Read it using the existing commit-material output loan. It neither
+        chooses a different Store/scope nor grants commit or retry permission.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(field) is not str or field not in ('request', 'attempt'):
+                raise ValueError('Invalid stored publication lookup reference field')
+            self._check('produce_publication_lookup_reference', self._call(
+                'publication_commit_export', 'produce_lookup_reference', value.handle,
+                current_configuration, 0 if field == 'request' else 1))
 
     def produce_publication_commit_index_key(self, value: _Output,
                                              current_configuration: int) -> None:

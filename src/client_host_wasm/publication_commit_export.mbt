@@ -5,6 +5,7 @@ priv enum PublicationCommitExportProjection {
   IndexKey
   Schema(Int, Int)
   ObservedIndex(Int)
+  InspectedReference(Int)
 } derive(Eq)
 
 ///|
@@ -232,7 +233,7 @@ pub fn produce_publication_observed_index(
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
-  if record.closing || parent.observation_closing {
+  if record.closing || parent.observation_closing || parent.lookup_closing {
     return -5
   }
   match publication_commit_export_view(value, parent, current.account) {
@@ -277,6 +278,79 @@ pub fn produce_publication_observed_index(
     2 => @publication.publication_contract_identity_field(index)
     _ => @publication.publication_contract_identity(index)
   }
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
+  )
+  record.pending = false
+  if result == 0 {
+    record.produced = true
+  }
+  result
+}
+
+///|
+/// Borrow one original stored request/attempt reference. This does not perform
+/// full-chain validation or grant authority to read a different Store/scope.
+#export_name("actql_publication_commit_export_produce_lookup_reference")
+pub fn produce_publication_lookup_reference(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+  field : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) &&
+    value.publications.get(record.publication) is Some(parent) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if record.closing || parent.lookup_closing {
+    return -5
+  }
+  if field < 0 || field > 1 {
+    return -3
+  }
+  let (commit, view) = match
+    publication_commit_export_view(value, parent, current.account) {
+    Ok(original) => original
+    Err(code) => return code
+  }
+  guard !parent.lookup_failed &&
+    parent.lookup_input is Some(_) &&
+    parent.lookup_borrow is Some(_) &&
+    parent.lookup_index is Some(index) &&
+    parent.lookup_identity is Some(identity) &&
+    parent.lookup_publisher is Some(publisher) else {
+    return -32
+  }
+  let auth = publication_observation_publisher(
+    value,
+    parent,
+    publisher,
+    current_configuration,
+    None,
+  )
+  if auth != 0 {
+    return auth
+  }
+  let projection = PublicationCommitExportProjection::InspectedReference(field)
+  if record.projection is Some(original) && original != projection {
+    return -33
+  }
+  if record.produced {
+    return 0
+  }
+  if record.invoked || record.pending {
+    return -33
+  }
+  let text = match
+    commit.view_inspected_index_reference(view, identity, index, field) {
+    Ok(text) => text
+    Err(_) => return -32
+  }
+  record.projection = Some(projection)
+  record.invoked = true
+  record.pending = true
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
   )
