@@ -3011,8 +3011,10 @@ test('WITH cutover preserves the old complete Values closure and independently p
   assert.notEqual(after.program_identity.programCid, preScalarWith.program_identity.programCid);
   assert.equal(preScalarWith.run_preimages.run.run_definition_cid, "sha256:8c387d8fbe388e526cafc19402cf5cc3091035092b97df1a99061e31436bd444");
   assert.equal(adoptedMain.run_preimages.run.run_definition_cid, "sha256:117c521239539a65e1c38831f49c4ddd49e00dc0180b04e5e8e2221d12647bfb");
-  assert.equal(after.aoa_contract_cid, before.aoa_contract_cid);
-  assert.equal(after.barrier_contract_manifest_cid, before.barrier_contract_manifest_cid);
+  assert.equal(preScalarWith.aoa_contract_cid, before.aoa_contract_cid);
+  assert.equal(after.aoa_contract_cid, adoptedMain.aoa_contract_cid);
+  assert.equal(preScalarWith.barrier_contract_manifest_cid, before.barrier_contract_manifest_cid);
+  assert.equal(after.barrier_contract_manifest_cid, adoptedMain.barrier_contract_manifest_cid);
   assert.notEqual(after.run_preimages.run.run_definition_cid,
     before.run_preimages.run.run_definition_cid);
 });
