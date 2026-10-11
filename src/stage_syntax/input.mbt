@@ -17,6 +17,7 @@ pub(all) enum StructuralIssue {
   WrongVersion
   EmptyName
   EmptyDeclarations
+  PrefixPublication
   ReservedMetadataKey(String)
   EmptyStages
   StageLimit
@@ -216,6 +217,29 @@ pub fn admit_generated_source(
     Ok(_) => ()
   }
   Ok(decode(root, limits.max_stages, usage)) catch {
+    Abort(error) => Err(error)
+  }
+}
+
+///|
+/// Admit an unfinished generated prefix through the same closed envelope and
+/// retained-size checks. Authored Program parsing and admission remain strict.
+pub fn admit_generated_prefix(
+  source : @builder.Source,
+  limits : Limits,
+) -> Result[Prefix, SyntaxError] {
+  let root = @builder.cursor(source)
+  let usage = @builder.usage(source)
+  match
+    check_usage(
+      { source: usage, tree: @wire.admission_usage(root), stages: 0, },
+      limits,
+      @wire.cursor_span(root).source_path,
+    ) {
+    Err(error) => return Err(error)
+    Ok(_) => ()
+  }
+  Ok(decode_prefix(root, limits.max_stages, usage)) catch {
     Abort(error) => Err(error)
   }
 }

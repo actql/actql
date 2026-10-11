@@ -10,6 +10,7 @@ pub(all) struct WiringLimits {
 pub(all) enum WiringIssue {
   InvalidLimits
   StageCountMismatch
+  CheckOnlyPrefix
   ForeignStage(Int)
   ForeignProducer(Int, String)
   UnknownExport(String, String)
@@ -70,11 +71,14 @@ pub fn wire_results(
     limits.max_exports < 0 {
     return Err(InvalidLimits)
   }
+  let program = match @parameters.complete_program(source) {
+    Some(program) => program
+    None => return Err(CheckOnlyPrefix)
+  }
   let count = @parameters.stage_count(source)
   if stages.length() != count || imports.length() != count {
     return Err(StageCountMismatch)
   }
-  let program = @parameters.program(source)
   let exports = @syntax.export_count(program)
   if count > limits.max_work || exports > limits.max_exports {
     return Err(BudgetExceeded)

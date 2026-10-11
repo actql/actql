@@ -23,6 +23,7 @@ pub(all) struct LocalProgramUsage {
 ///|
 pub enum LocalProgramIssue {
   InvalidLimits
+  CheckOnlyPrefix
   BudgetExceeded
   ForeignEnvironmentSource
   ForeignModelEnvironment
@@ -117,6 +118,9 @@ fn prepare_program_internal(
     limits.max_text_bytes < 0 ||
     limits.max_depth < 0 {
     return Err(InvalidLimits)
+  }
+  if !check_only && @parameters.complete_program(source) is None {
+    return Err(CheckOnlyPrefix)
   }
   let count = @parameters.stage_count(source)
   if sourceview_registrations is Some(registrations) &&
