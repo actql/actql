@@ -115,6 +115,10 @@ fn NativeLocalPreparationGrantOperation::require_raw_read(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
+    match self.require_original_target_locked() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
     self.provider.host.lookup_local_grant_original_locked(
       self.provider.crypto,
       self.original,

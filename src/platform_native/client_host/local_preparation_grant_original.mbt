@@ -86,6 +86,10 @@ fn NativeLocalCredentialIssuerBinding::retain_preparation_grant_original(
     operation.require_current() is Err(_) {
     return Err(AuthorizationDenied)
   }
+  let target = match operation.original_target_material() {
+    Ok(value) => value
+    Err(_) => return Err(AuthorizationDenied)
+  }
   self.host.journal.transaction(() => {
     match self.check_preparation_original_locked(original, fence) {
       Ok(_) => ()
@@ -107,12 +111,16 @@ fn NativeLocalCredentialIssuerBinding::retain_preparation_grant_original(
       exact.intent == original.intent else {
       return Err(ChangedIntent)
     }
-    self.append_grant_original_locked(original, () => {
-      match self.check_preparation_original_locked(original, fence) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
-      }
-      operation.require_current_locked()
-    })
+    self.append_grant_original_locked(
+      original,
+      () => {
+        match self.check_preparation_original_locked(original, fence) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        operation.require_current_locked()
+      },
+      target=Some(target),
+    )
   })
 }
