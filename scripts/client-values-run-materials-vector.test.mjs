@@ -1029,7 +1029,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(beforePipePivot.run_preimages.run.run_definition_cid,
     'sha256:9719077a4c87d1a530565b59d398d357116a5059989551a8bae796cf21a0a53f');
   assert.equal(current.run.run_definition_cid,
-    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
+    'sha256:a6cdbc4062a32d5d37d3d54de0e35f6d3e8e7ca2a3bfeddf367ca2515b5b8e04');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1225,13 +1225,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:f52d0f54f5978844918765df7f17867d32fba9a6e794aa0d0992ec73818d0617");
+    "sha256:b88d1f778a8c08e9782fd2bc7f98c3f6b59ac184c42f3cf014f4b11a0fa3650c");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:6842ad0cf59c9f50b5536aff2ebe402396861bd5f93a0ac93400a1571811bdd6");
+    "sha256:ba8072a437b57b8d8a590a3c7a2c19df3533bdb873b04704663928ed8188c7dd");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:8060e2580d898b263f504371c2bb53190318c2c6c0718c084ed83b0701623a4c");
+    "sha256:3e264980242960943f8a71c1d3b4ff198272ffc08bd70a405485f6429635c2ef");
   assert.equal(current.run.run_definition_cid,
-    "sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949");
+    "sha256:a6cdbc4062a32d5d37d3d54de0e35f6d3e8e7ca2a3bfeddf367ca2515b5b8e04");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(
@@ -2749,4 +2749,33 @@ test('pre-direct-trig Values dependencies and complete Run preimages remain immu
     'sha256:4ef58e4ec48ac9e8cee146295cc4497ecfaa663b929c8b568224036c25ce85a6');
   assert.notEqual(valuesDependencyOracle().unit, dependencies.unit);
   assert.notEqual(valuesProgramOracle().programCid, identity.programCid);
+});
+
+
+test('grouped PIVOT Strings retain the complete predecessor Values identity preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-pivot-grouped-string-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, 'fdd0c76c7975905740078e93c735f910135bafd1');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:910cc551b68b334824b6869ea560cd64843ec035e3b6a0c67abb4b319ea60b52');
+  // Preserve the authored baseline even after main extends scalar contracts.
+  assert.equal(cid(prior.program_identity.definition), prior.program_identity.programCid);
+  assert.equal(cid(prior.program_identity.semantics), prior.program_identity.semanticsCid);
+});
+
+
+test('grouped PIVOT integration retains the exact adopted main preimages', () => {
+  const prior = JSON.parse(readFileSync('scripts/fixtures/pre-pivot-grouped-string-main-values-identities.json', 'utf8'));
+  assert.equal(prior.source_revision, 'f17e9fb2c93c84d0008d09018692f2c0e3f90d17');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = prior.grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  assert.deepEqual(vector(grammarCid, prior.aoa_contract_cid, prior.values_dependencies,
+    prior.barrier_contract_manifest_cid, prior.program_identity, {canonicalCandidates: true}), prior.run_preimages);
+  assert.equal(prior.run_preimages.run.run_definition_cid,
+    'sha256:e1dae0ab65ae1d745d24e729af95045119e75550d6b094093a6a71f54c259949');
+  assert.deepEqual(valuesDependencyOracle(), prior.values_dependencies);
+  assert.deepEqual(valuesProgramOracle(), prior.program_identity);
 });
