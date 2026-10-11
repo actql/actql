@@ -16,6 +16,7 @@ pub struct ModelCallEntry {
   trace : ModelAttemptTrace
   admission : @publication_host.ClientInferDispatchAdmission
   mut acknowledgement : ModelCallEntryAcknowledgement?
+  mut persistence : ModelCallEntryPersistence?
   mut gate_issued : Bool
   mut send_started : Bool
 }
@@ -191,6 +192,39 @@ pub fn bind_prepared_model_dispatch(
   admission : @publication_host.ClientInferDispatchAdmission,
   enter : (ModelCallEntry) -> Bool,
 ) -> Result[Unit, ModelExecutionIssue] {
+  if check_prepared_model_dispatch(value, admission) is Err(issue) {
+    return Err(issue)
+  }
+  let state = value.owner.state
+  state.dispatch_admission = Some(admission)
+  state.enter_call = Some(enter)
+  state.enter_persistence = None
+  Ok(())
+}
+
+///|
+/// Private-port connection, not installation of a funded Host capability.
+/// The original owner retains one entry across Pending until a typed result.
+pub fn bind_prepared_model_entry_persistence(
+  value : ModelPreparedCallSet,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  begin : (ModelCallEntry) -> ModelCallEntryPersistence?,
+) -> Result[Unit, ModelExecutionIssue] {
+  if check_prepared_model_dispatch(value, admission) is Err(issue) {
+    return Err(issue)
+  }
+  let state = value.owner.state
+  state.dispatch_admission = Some(admission)
+  state.enter_call = None
+  state.enter_persistence = Some(begin)
+  Ok(())
+}
+
+///|
+fn check_prepared_model_dispatch(
+  value : ModelPreparedCallSet,
+  admission : @publication_host.ClientInferDispatchAdmission,
+) -> Result[Unit, ModelExecutionIssue] {
   let state = value.owner.state
   guard prepared_model_current(value) &&
     state.phase is DispatchSlot &&
@@ -207,8 +241,6 @@ pub fn bind_prepared_model_dispatch(
     Err(issue) => return Err(Authorization(issue))
     Ok(_) => ()
   }
-  state.dispatch_admission = Some(admission)
-  state.enter_call = Some(enter)
   Ok(())
 }
 

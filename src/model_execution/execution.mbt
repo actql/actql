@@ -129,6 +129,7 @@ priv enum AdoptedModelSlot {
 ///|
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
+  AwaitIo(Int64, Int64)
   Waiting(Int64, Int64)
   Settling(Int, Int64, Int64)
   Completed(ModelCaptureBundle, Int64, Int64)
@@ -192,6 +193,7 @@ struct ModelState {
   mut physical_cleanup_index : Int
   durable_calls : Bool
   mut enter_call : ((ModelCallEntry) -> Bool)?
+  mut enter_persistence : ((ModelCallEntry) -> ModelCallEntryPersistence?)?
   mut physical_observer : ((ModelPhysicalObservation) -> Unit)?
   mut entering : ModelCallEntry?
   mut prepared_call_set : ModelPreparedCallSet?
@@ -225,6 +227,7 @@ pub struct ModelExecution {
   state : ModelState
   mut progress : Int64
   mut work : Int64
+  mut advancing : Bool
 }
 
 ///|
@@ -299,10 +302,23 @@ fn advance_model(
   quantum : Int,
   reader : @bounded.Reader,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  // An asynchronously saved or unconfirmed entry owns the original attempt
+  // before any final stop/authority check. A confirmed absence owns no attempt.
+  let persistence_issue = model_entry_persistence_issue(state)
+  if persistence_issue is Some(issue) {
+    if state.work >= state.limits.max_work {
+      return @bounded.Failed(WorkLimit, 0, 0)
+    }
+    state.work += 1
+    retire_model_entering(state)
+    return @bounded.Failed(issue, 1, 1)
+  }
   if @bounded.stop_requested(reader) is Some(reason) {
+    retire_model_entering(state)
     return @bounded.Stopped(reason, 0, 0)
   }
   if state.stop_requested && !state.observing_response {
+    retire_model_entering(state)
     return @bounded.Stopped(@bounded.Cancelled, 0, 0)
   }
   if quantum < 1 {
@@ -486,7 +502,10 @@ fn advance_model(
     state.reservations.get(state.next_slot) is Some(reservation) else {
     return @bounded.Failed(CallEntryRefused, 1, 1)
   }
-  let attempt = if state.dispatch_admission is Some(admission) {
+  let attempt = if state.entering is Some(entry) {
+    // Continue the retained entry, never construct another attempt after poll.
+    Some(entry.trace)
+  } else if state.dispatch_admission is Some(admission) {
     guard prepared.call is Some(call) else {
       return @bounded.Failed(RequestIdentity, 1, 1)
     }
@@ -510,19 +529,20 @@ fn advance_model(
   // transport bytes. Retain the dispatched envelope as uncertain usage before
   // entering physical I/O: invalid metadata, rejected content or cancellation
   // must not make that request unused when cleanup settles its reservation.
-  match
-    @resources.mark_transfer_uncertain(
+  if state.entering is None {
+    match @resources.mark_transfer_uncertain(
       state.ledger,
       reservation,
       state.limits.max_request_bytes + state.limits.max_response_bytes,
     ) {
-    Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
-    Ok(_) => ()
-  }
-  if state.quantity_capacity is Some(_) {
-    match @resources.mark_quantities_uncertain(state.ledger, reservation) {
       Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
       Ok(_) => ()
+    }
+    if state.quantity_capacity is Some(_) {
+      match @resources.mark_quantities_uncertain(state.ledger, reservation) {
+        Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+        Ok(_) => ()
+      }
     }
   }
   // The Host's synchronous callback durably records this exact owner-issued
@@ -530,31 +550,46 @@ fn advance_model(
   // call. No asynchronous boundary or fresh request construction follows it.
   if state.durable_calls {
     guard state.prepared_call_set is Some(prepared_set) &&
-      state.enter_call is Some(enter) &&
       attempt is Some(trace) &&
       state.dispatch_admission is Some(admission) else {
       return @bounded.Failed(CallEntryRefused, 1, 1)
     }
-    let entry = {
+    let entry = match state.entering {
+      Some(original) => original
+      None => {
+        let entry : ModelCallEntry = {
       prepared: prepared_set,
       slot: state.next_slot,
       trace,
       admission,
       acknowledgement: None,
+      persistence: None,
       gate_issued: false,
       send_started: false,
-    }
-    state.entering = Some(entry)
-    let admitted = enter(entry)
-    if !admitted {
-      state.entering = None
-      return @bounded.Failed(CallEntryRefused, 1, 1)
+        }
+        state.entering = Some(entry)
+        if state.enter_persistence is Some(begin) {
+          guard begin(entry) is Some(operation) &&
+            entry.persistence is Some(original) &&
+            physical_equal(operation, original) else {
+            // A begun save without an owned result is unconfirmed, not absent.
+            retain_model_entry_attempt(state, entry)
+            retire_model_entering(state)
+            return @bounded.Failed(CallEntryRefused, 1, 1)
+          }
+          return @bounded.Continue(1, 1)
+        }
+        guard state.enter_call is Some(enter) && enter(entry) else {
+          retire_model_entering(state)
+          return @bounded.Failed(CallEntryRefused, 1, 1)
+        }
+        entry
+      }
     }
     // Preserve entered-attempt responsibility before final current checks.
     // The legacy immediate adapter's true result reports actual persistence;
     // it does not itself authorize transport or fabricate a new approval.
-    state.attempts[state.next_slot] = trace
-    state.attempt_slots.push(state.next_slot)
+    retain_model_entry_attempt(state, entry)
     let started = match acknowledge_model_call_entry(entry, prepared_set) {
       None =>
         match model_call_start_current(entry, reader) {
@@ -567,6 +602,7 @@ fn advance_model(
           Ok(gate) => consume_model_call_send_gate(gate, reader)
         }
     }
+    retire_model_call_entry_persistence(entry)
     state.entering = None
     match started {
       Err(Cancelled) => return @bounded.Stopped(@bounded.Cancelled, 1, 1)
@@ -869,6 +905,7 @@ fn start_model_owned(
     physical_cleanup_index: 0,
     durable_calls,
     enter_call: None,
+    enter_persistence: None,
     physical_observer: None,
     entering: None,
     prepared_call_set: None,
@@ -897,7 +934,7 @@ fn start_model_owned(
     cleanup_model_physical_preflight,
     _ => true,
   )
-  Ok({ session, token, control, state, progress: 0L, work: 0L, })
+  Ok({ session, token, control, state, progress: 0L, work: 0L, advancing: false, })
 }
 
 ///|
@@ -908,12 +945,33 @@ pub fn advance_model_execution(
   if quantum < 1 {
     return Err(InvalidLimits)
   }
+  if execution.advancing {
+    return Err(Session(@bounded.ConcurrentResume))
+  }
+  execution.advancing = true
+  let observation = advance_model_execution_owned(execution, quantum)
+  execution.advancing = false
+  observation
+}
+
+///|
+fn advance_model_execution_owned(
+  execution : ModelExecution,
+  quantum : Int,
+) -> Result[ModelObservation, ModelExecutionIssue] {
   let state = execution.state
   if state.durable_calls &&
     !state.reclaimed &&
     !@bounded.session_stopped(execution.session) {
     if state.settlement_pending is Some(slot) {
       return Ok(Settling(slot, execution.progress, execution.work))
+    }
+    if state.entering is Some(entry) && entry.persistence is Some(operation) {
+      match poll_model_call_entry_persistence(operation, entry, entry.prepared) {
+        Ok(Pending) =>
+          return Ok(AwaitIo(execution.progress, execution.work))
+        Ok(_) | Err(_) => ()
+      }
     }
     if !state.stop_requested &&
       state.phase is DispatchSlot &&
@@ -924,7 +982,10 @@ pub fn advance_model_execution(
           state.next_slot < state.requests.length() &&
           !state.restored_calls.contains(state.next_slot) &&
           !state.unknown_calls.contains(state.next_slot) &&
-          (state.enter_call is None || state.dispatch_admission is None)
+          (
+            (state.enter_call is None && state.enter_persistence is None) ||
+            state.dispatch_admission is None
+          )
         )
       ) {
       return Ok(Waiting(execution.progress, execution.work))
@@ -959,6 +1020,7 @@ pub fn request_model_cancel(execution : ModelExecution) -> Bool {
   if execution.state.durable_calls &&
     (
       execution.state.observing_response ||
+      execution.state.entering is Some(_) ||
       execution.state.settlement_pending is Some(_)
     ) {
     // Sending is fenced immediately; finishing an already-returned observation
@@ -1009,6 +1071,9 @@ pub fn model_execution_prepared_request_bytes(
 pub fn cleanup_model_execution(
   execution : ModelExecution,
 ) -> Result[Bool, ModelExecutionIssue] {
+  if execution.advancing {
+    return Err(Session(@bounded.ConcurrentResume))
+  }
   if execution.state.reclaimed {
     // Settlement retry must keep the original token without repeating the
     // physical cleanup or admitting another attempt.
