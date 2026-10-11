@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn admit_generated_prefix(@program_source_builder.Source, Limits) -> Result[Prefix, SyntaxError]
+
 pub fn admit_generated_source(@program_source_builder.Source, Limits) -> Result[Program, SyntaxError]
 
 pub fn collect_effect_headers(Program, Int, Int) -> Result[EffectHeaders, EffectHeaderIssue]
@@ -72,6 +74,10 @@ pub fn imports(Stage) -> Array[(String, ImportPort)]
 pub fn parse(String, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
 
 pub fn parse_bytes(Bytes, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
+
+pub fn prefix_body(Prefix) -> @decode_core.Cursor
+
+pub fn prefix_stages(Prefix) -> Array[Stage]
 
 pub fn program_binding_names(Program) -> Array[String]
 
@@ -154,6 +160,11 @@ pub(all) enum Predecessor {
   Completed(String)
 } derive(Eq, @debug.Debug)
 
+pub struct Prefix {
+  id : String
+  // private fields
+}
+
 pub struct Program {
   id : String
   // private fields
@@ -186,6 +197,7 @@ pub(all) enum StructuralIssue {
   WrongVersion
   EmptyName
   EmptyDeclarations
+  PrefixPublication
   ReservedMetadataKey(String)
   EmptyStages
   StageLimit

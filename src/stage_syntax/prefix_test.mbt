@@ -70,3 +70,17 @@ test "only the last Stage may remain an open prefix" {
   }
   assert_eq(path, [Key("stages"), Index(0), Key("results")])
 }
+
+///|
+test "prefix reuse enforces actual retained input and Stage limits" {
+  let source = generated_source(prefix_text(), limits())
+  let prefix = admit_generated_prefix(source, limits()).unwrap()
+  assert_true(validate_prefix_reuse(prefix, limits()) is Ok(_))
+  let used = prefix_usage(prefix)
+  assert_eq(used.stages, 1)
+  assert_true(validate_prefix_reuse(prefix,
+    { ..limits(), source: { ..limits().source, max_input_bytes: used.source.input_bytes - 1, }, })
+    is Err(RetentionLimit(InputBytes, ..)))
+  assert_true(validate_prefix_reuse(prefix, { ..limits(), max_stages: 0, })
+    is Err(RetentionLimit(Stages, ..)))
+}
