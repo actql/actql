@@ -68,6 +68,8 @@ pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @hos
 
 pub fn local_native_source_requirement(LocalNativeSourceConfiguration) -> @query_planning.QueryRequirement
 
+pub fn local_preflight_result_schema_field(LocalPublicationPreflight, Int, LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, LocalResultSchemaField) -> Result[String, LocalResultSchemaIssue]
+
 pub fn local_publication_intent_contracts(LocalPublicationIntent) -> (@run_publication.PublicationContract, @run_publication.PublicationContract)
 
 pub fn local_publication_intent_inventory(LocalPublicationIntent) -> @run_publication.CheckedPublicationInventory
@@ -248,6 +250,16 @@ pub(all) enum LocalResultPublicationIssue {
   ForeignReceipt
   Invocation(@run_publication.RunEvidenceValueIssue)
   Authoring(@run_publication_host.ClientAuthoringContextIssue)
+  Output(@run_publication_host.PublicationOutputExportIssue)
+}
+
+pub(all) enum LocalResultSchemaField {
+  Identity
+  Wire
+}
+
+pub(all) enum LocalResultSchemaIssue {
+  Preflight(LocalPublicationIntentIssue)
   Output(@run_publication_host.PublicationOutputExportIssue)
 }
 

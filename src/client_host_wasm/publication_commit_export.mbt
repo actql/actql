@@ -3,6 +3,7 @@ priv enum PublicationCommitExportProjection {
   Candidate
   Material(Int, Int)
   IndexKey
+  Schema(Int, Int)
 } derive(Eq)
 
 ///|
@@ -240,6 +241,80 @@ pub fn produce_publication_commit_index_key(
   record.pending = true
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(key)),
+  )
+  record.pending = false
+  if result == 0 {
+    record.produced = true
+  }
+  result
+}
+
+///|
+/// Copy one schema field from the same original completed Result receipt.
+/// Schema index follows the original preflight inventory, not contract ordinal.
+/// The existing buffer owns allocation/cleanup; no schema is reconstructed.
+#export_name("actql_publication_commit_export_produce_schema")
+pub fn produce_publication_commit_schema(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+  result : Int,
+  field : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) &&
+    value.publications.get(record.publication) is Some(parent) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if record.closing {
+    return -5
+  }
+  match publication_commit_export_view(value, parent, current.account) {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  if result < 0 ||
+    result >= parent.publications.length() ||
+    field < 0 ||
+    field > 1 {
+    return -3
+  }
+  guard value.publication_preflights.get(parent.preflight)
+    is Some({ closing: false, preflight: Some(preflight), .. }) else {
+    return -32
+  }
+  let projection = PublicationCommitExportProjection::Schema(result, field)
+  if record.projection is Some(original) && original != projection {
+    return -33
+  }
+  // Recheck the original receipt even when this output was produced earlier.
+  let text = match
+    @local_run.local_preflight_result_schema_field(
+      preflight,
+      result,
+      parent.publications[result],
+      current.account,
+      if field == 0 {
+        Identity
+      } else {
+        Wire
+      },
+    ) {
+    Ok(text) => text
+    Err(_) => return -32
+  }
+  if record.produced {
+    return 0
+  }
+  if record.invoked || record.pending {
+    return -33
+  }
+  record.projection = Some(projection)
+  record.invoked = true
+  record.pending = true
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
   )
   record.pending = false
   if result == 0 {

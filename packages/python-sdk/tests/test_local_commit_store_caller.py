@@ -34,7 +34,9 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                  1: b'original-invocation', 7: b'original-index-body'}
         key = b'd' * 64
         state = {'cleanup': True, 'produce': 0, 'publisher': 0, 'count': 14,
-                 'reserve_fail_at': None, 'identity_override': None, 'close_calls': []}
+                 'reserve_fail_at': None, 'identity_override': None, 'close_calls': [],
+                 'schema_identity': b'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513',
+                 'schema_wire': b'{"id":{"nullable":false,"type":"number"}}'}
 
         def call(family, name, *args):
             calls.append((family, name, args))
@@ -57,6 +59,16 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 handle = 200 + args[1]
                 handles[handle] = args[1]
                 return handle
+            if name == 'produce_schema':
+                self.assertEqual(args[1], 31)
+                if state['produce']:
+                    return state['produce']
+                index, field = args[2:]
+                if index != 0:
+                    return -3
+                self.assertIn(field, (0, 1))
+                outputs[args[0]] = state['schema_identity' if field == 0 else 'schema_wire']
+                return 0
             if name in ('produce_material', 'produce_index_key'):
                 self.assertEqual(args[1], 31)
                 if state['produce']:
@@ -354,3 +366,98 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 self.assertEqual(store.read('payload'), StoredBytes(0, b'original'))
                 self.assertEqual(len([c for c in calls if c[1] == 'reserve']), 2)
                 self.assertEqual(caller.pending_outputs, ())
+
+    def test_schema_uses_original_receipt_pair_and_separate_physical_namespace(self):
+        core, parent, _, caller, calls, state, _, _, _ = self.bridge()
+        observed = []
+        def consume(write):
+            self.assertEqual(len(caller.pending_outputs), 2)
+            self.assertTrue(all(core._loans[v.ticket] is v for v in caller.pending_outputs))
+            self.assertEqual(write.key, 'namespace:13:result_schema:' + state['schema_identity'].decode())
+            self.assertEqual(write.payload, b'{"id":{"nullable":false,"type":"number"}}')
+            self.assertEqual(write.expected_generation, 3)
+            observed.append(True)
+        caller.project_schema(0, consume, expected_generation=3)
+        self.assertEqual(observed, [True])
+        produced = [args[1:] for _, name, args in calls if name == 'produce_schema']
+        self.assertEqual(produced, [(31, 0, 0), (31, 0, 1)])
+        self.assertFalse(any(name in ('produce_material', 'produce_index_key', 'authorize')
+                             for _, name, _ in calls))
+        self.assertIs(core._loans[7], parent)
+        self.assertEqual(caller.pending_outputs, ())
+
+    def test_schema_current_refusal_and_unknown_result_preserve_original_loan(self):
+        for code in (-5, -32, -33):
+            with self.subTest(code=code):
+                core, parent, _, caller, _, state, _, _, _ = self.bridge()
+                state['produce'] = code
+                with self.assertRaises(LocalCoreError) as issue:
+                    caller.project_schema(0, lambda _: self.fail('Refused schema consumed'))
+                self.assertEqual(issue.exception.code, code)
+                self.assertEqual(len(caller.pending_outputs), 1)
+                self.assertIs(core._loans[7], parent)
+                self.assertTrue(caller.close())
+        _, _, _, caller, _, _, _, _, _ = self.bridge()
+        with self.assertRaises(LocalCoreError) as issue:
+            caller.project_schema(1, lambda _: self.fail('Foreign Result consumed'))
+        self.assertEqual(issue.exception.code, -3)
+        self.assertEqual(len(caller.pending_outputs), 1)
+        self.assertTrue(caller.close())
+
+    def test_schema_invalid_identity_never_consumes_body(self):
+        for raw in (b'', b'sha256:' + b'x' * 64, b'sha256:' + b'0' * 63):
+            with self.subTest(raw=raw):
+                _, _, _, caller, calls, state, _, _, _ = self.bridge()
+                state['schema_identity'] = raw
+                with self.assertRaises(LocalCoreError):
+                    caller.project_schema(0, lambda _: self.fail('Invalid identity consumed'))
+                self.assertEqual(sum(name == 'produce_schema' for _, name, _ in calls), 1)
+                self.assertEqual(len(caller.pending_outputs), 1)
+                self.assertTrue(caller.close())
+
+    def test_schema_consumer_error_retains_pair_and_cleanup_retry_is_same_handles(self):
+        core, parent, _, caller, calls, state, _, _, _ = self.bridge()
+        def fail(_):
+            raise OSError('Original physical schema write failed')
+        with self.assertRaises(OSError):
+            caller.project_schema(0, fail)
+        pending = caller.pending_outputs
+        self.assertEqual(len(pending), 2)
+        state['cleanup'] = False
+        self.assertFalse(caller.close())
+        self.assertEqual(caller.pending_outputs, pending)
+        state['cleanup'] = True
+        self.assertTrue(caller.close())
+        self.assertIs(core._loans[7], parent)
+        self.assertEqual(sum(name == 'produce_schema' for _, name, _ in calls), 2)
+
+    def test_schema_cleanup_failure_refuses_following_projection_without_reissue(self):
+        _, _, _, caller, calls, state, _, _, _ = self.bridge()
+        state['cleanup'] = False
+        with self.assertRaises(LocalCoreError) as issue:
+            caller.project_schema(0, lambda _: None)
+        self.assertEqual(issue.exception.code, -9)
+        self.assertEqual(len(caller.pending_outputs), 2)
+        before = len(calls)
+        with self.assertRaises(RuntimeError):
+            caller.project_contract(0, lambda _: None)
+        with self.assertRaises(RuntimeError):
+            caller.project_schema(0, lambda _: None)
+        self.assertEqual(len(calls), before)
+        state['cleanup'] = True
+        self.assertTrue(caller.close())
+
+    def test_schema_real_sqlite_attachment_preserves_separate_identity_and_wire(self):
+        _, _, _, caller, _, state, _, _, _ = self.bridge()
+        with TemporaryDirectory() as directory:
+            store = LocalByteStore(Path(directory) / 'store.sqlite',
+                max_records=8, max_record_bytes=4096, max_payload_bytes=8192)
+            key = 'namespace:13:result_schema:' + state['schema_identity'].decode()
+            with caller.serialized():
+                result = store.compare_exchange_projected_attached(
+                    1, lambda _, consume: caller.project_schema(0, consume), (),
+                    before_commit=lambda: None)
+            self.assertIsNotNone(result)
+            self.assertEqual(store.read(key).payload, state['schema_wire'])
+            self.assertEqual(caller.pending_outputs, ())
+            store.close()

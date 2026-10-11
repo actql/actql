@@ -78,13 +78,23 @@ class OriginalCommitProjection:
         """Consume the Owner's scoped key and original index CID, not JSON body."""
         self._project(7, True, consume, expected_generation)
 
+    def project_schema(self, result: int, consume: Callable[[ByteWrite], object], *,
+                       expected_generation: int | None = None) -> None:
+        """Consume original receipt identity/wire into the schema namespace.
+
+        This transports the schema. The original physical binding validation
+        and current publisher/commit ACK remain separate Host/Owner obligations.
+        """
+        self._project(result, False, consume, expected_generation, schema=True)
+
     def _ready(self) -> None:
         if self._closing or self._projecting or self._outputs:
             raise RuntimeError('Local commit projection is closing or cleanup is pending')
         self._core._publication_configuration(self._publication, self._configuration)
 
     def _project(self, ordinal: int, index_reference: bool,
-                 consume: Callable[[ByteWrite], object], generation: int | None) -> None:
+                 consume: Callable[[ByteWrite], object], generation: int | None, *,
+                 schema: bool = False) -> None:
         if (type(ordinal) is not int or not 0 <= ordinal < 2**31
                 or not callable(consume)
                 or (generation is not None and (type(generation) is not int
@@ -97,7 +107,7 @@ class OriginalCommitProjection:
                 # _consume returns without retaining field bytes or descriptors.
                 # On failure its traceback can retain them; keep their reservations
                 # until the Host resolves that physical failure and explicitly closes.
-                self._consume(ordinal, index_reference, consume, generation)
+                self._consume(ordinal, index_reference, consume, generation, schema=schema)
                 self._retire_outputs()
                 if self._outputs:
                     raise LocalCoreError('original_commit_projection_cleanup', -9)
@@ -122,10 +132,14 @@ class OriginalCommitProjection:
         return raw.decode('ascii')
 
     def _consume(self, ordinal: int, index_reference: bool,
-                 consume: Callable[[ByteWrite], object], generation: int | None) -> None:
+                 consume: Callable[[ByteWrite], object], generation: int | None, *,
+                 schema: bool = False) -> None:
         core = self._core
         address_output = self._output()
-        if index_reference:
+        if schema:
+            core.produce_publication_commit_schema(
+                address_output, self._configuration, ordinal, field='identity')
+        elif index_reference:
             core.produce_publication_commit_index_key(address_output, self._configuration)
         else:
             core.produce_publication_commit_material(
@@ -133,11 +147,16 @@ class OriginalCommitProjection:
         raw_address = core.read_publication_commit_material(address_output)
         address = self._address(raw_address, index_key=index_reference)
         key = LocalByteStore.namespaced_key(
-            'public_index' if index_reference else 'publication_contract', address)
+            ('result_schema' if schema else
+             'public_index' if index_reference else 'publication_contract'), address)
         payload_output = self._output()
-        core.produce_publication_commit_material(
-            payload_output, self._configuration, ordinal,
-            field='identity' if index_reference else 'wire')
+        if schema:
+            core.produce_publication_commit_schema(
+                payload_output, self._configuration, ordinal, field='wire')
+        else:
+            core.produce_publication_commit_material(
+                payload_output, self._configuration, ordinal,
+                field='identity' if index_reference else 'wire')
         payload = core.read_publication_commit_material(payload_output)
         if index_reference:
             self._address(payload, index_key=False)

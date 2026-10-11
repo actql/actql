@@ -264,6 +264,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'count': ('i64 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
+    'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
@@ -564,7 +565,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 37:
+            if self._exports['actql_host_abi_version'](self._store) != 38:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1279,6 +1280,29 @@ class LocalCore:
             self._check('produce_publication_commit_index_key', self._call(
                 'publication_commit_export', 'produce_index_key', value.handle,
                 current_configuration))
+
+    def produce_publication_commit_schema(self, value: _Output,
+                                           current_configuration: int, result: int, *,
+                                           field: Literal['identity', 'wire']) -> None:
+        """Project one original receipt field, without schema/CID regeneration.
+
+        Result follows the original preflight inventory, not material ordinals.
+        Core rechecks nominal Result/current access on every call and fixes each
+        output's field. Read with read_publication_commit_material().
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(result) is not int or not 0 <= result < 2**31:
+                raise ValueError('Invalid original schema Result index')
+            if type(field) is not str or field not in ('identity', 'wire'):
+                raise ValueError('Invalid original schema field')
+            self._check('produce_publication_commit_schema', self._call(
+                'publication_commit_export', 'produce_schema', value.handle,
+                current_configuration, result, 0 if field == 'identity' else 1))
 
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""
