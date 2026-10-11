@@ -14,6 +14,7 @@ options(
     "filesystem_native.mbt": [ "native" ],
     "filesystem_unsupported.mbt": [ "not", "native" ],
     "filesystem_wbtest.mbt": [ "native" ],
+    "private_root_wbtest.mbt": [ "native" ],
     "filesystem_unsupported_wbtest.mbt": [ "not", "native" ],
   },
 )

@@ -9,6 +9,7 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {nativeCompletedRestorationBundle} from './native-completed-restoration-fixture.mjs';
 import {classifyMoon} from './local-checks-policy.mjs';
 import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.mjs';
+import {nativePrivateHostFixture} from './native-private-host-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -25,6 +26,8 @@ for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file'
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+const privateHost = full || args.some(arg => arg.includes('platform_native/filesystem'))
+  ? nativePrivateHostFixture(scratch.path) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
   ? nativeClientCheckpointFixture(root) : {};
 // The WAL inspection fixture must use exec, not SQLite in a forked child.
@@ -47,6 +50,7 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ...process.env,
   ...bundle,
   ...clientCheckpoint,
+  ...privateHost,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
   ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(scratch.path, 'standard'),
   ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(scratch.path, 'bundles'),

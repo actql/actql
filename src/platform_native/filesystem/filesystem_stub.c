@@ -14,6 +14,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifdef __APPLE__
+#include <sys/acl.h>
+#elif defined(__linux__)
+#include <sys/xattr.h>
+#endif
+
 typedef struct {
   int fd;
   char *error;
@@ -341,6 +347,125 @@ int32_t actql_native_filesystem_root_ready(
   actql_native_filesystem_root *root
 ) {
   return root != NULL && root->fd >= 0;
+}
+
+// Private Host state refuses access ACLs as well as broad POSIX mode bits.
+// Existing general Store-root opening retains its original behavior.
+static bool actql_private_root_acl(int fd) {
+#ifdef __APPLE__
+  acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);
+  // On a live descriptor Darwin reports an absent extended ACL as ENOENT.
+  // Retrieval failures other than this explicit absence remain refusals.
+  if (acl == NULL) return errno == ENOENT;
+  if (acl_valid(acl) != 0) { acl_free(acl); return false; }
+  acl_entry_t entry;
+  int result = acl_get_entry(acl, ACL_FIRST_ENTRY, &entry);
+  int entry_error = errno;
+  acl_free(acl);
+  // Darwin returns zero for an entry, and EINVAL at the end of a valid ACL.
+  return result == -1 && entry_error == EINVAL;
+#elif defined(__linux__)
+  const char *names[] = {"system.posix_acl_access", "system.posix_acl_default"};
+  for (size_t index = 0; index < 2; index++) {
+    ssize_t size = fgetxattr(fd, names[index], NULL, 0);
+    if (size >= 0 || (errno != ENODATA && errno != ENOTSUP)) return false;
+  }
+  return true;
+#else
+  // An unsupported physical privacy check never becomes a permit.
+  (void)fd;
+  return false;
+#endif
+}
+
+int32_t actql_native_filesystem_private_root_identity(
+  actql_native_filesystem_root *root
+) {
+  if (root == NULL || root->fd < 0) return 0;
+  root->result_device = 0;
+  root->result_inode = 0;
+  struct stat status;
+  if (fstat(root->fd, &status) != 0) {
+    actql_replace_errno_error(&root->error, "inspect private Host root", errno);
+    return 0;
+  }
+  if (!S_ISDIR(status.st_mode) || status.st_nlink == 0 || status.st_uid != geteuid() ||
+      (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd)) {
+    actql_replace_error(&root->error, "Host root is not user-owned and private");
+    return 0;
+  }
+  root->result_device = (uint64_t)status.st_dev;
+  root->result_inode = (uint64_t)status.st_ino;
+  return 1;
+}
+
+void *actql_native_filesystem_open_private_root(
+  moonbit_bytes_t path,
+  int32_t length
+) {
+  actql_native_filesystem_root *root = moonbit_make_external_object(
+    actql_native_filesystem_root_finalize,
+    sizeof(actql_native_filesystem_root)
+  );
+  memset(root, 0, sizeof(*root));
+  root->fd = -1;
+  if (length <= 1 || length > 4096) {
+    actql_replace_error(&root->error, "invalid private Host root path");
+    return root;
+  }
+  char *text = actql_copy_text(path, length);
+  if (text == NULL) {
+    actql_replace_error(&root->error, "root path allocation failed");
+    return root;
+  }
+  if (text[0] != '/' || text[length - 1] == '/' ||
+      (int32_t)strlen(text) != length) {
+    free(text);
+    actql_replace_error(&root->error, "invalid private Host root path");
+    return root;
+  }
+  // Walk pinned descriptors: no component may follow a symlink or interpret
+  // dot/dot-dot as a containment escape. The supplied path remains unchanged.
+  root->fd = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  int open_error = errno;
+  char *component = text + 1;
+  while (root->fd >= 0 && *component != '\0') {
+    char *end = strchr(component, '/');
+    if (end != NULL) *end = '\0';
+    if (*component == '\0' || strcmp(component, ".") == 0 ||
+        strcmp(component, "..") == 0) {
+      close(root->fd);
+      root->fd = -1;
+      open_error = EINVAL;
+      break;
+    }
+    int next = openat(root->fd, component,
+      O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+    open_error = errno;
+    close(root->fd);
+    root->fd = next;
+    if (end == NULL) break;
+    component = end + 1;
+  }
+  free(text);
+  if (root->fd < 0) {
+    actql_replace_errno_error(&root->error, "open private Host root", open_error);
+  } else if (!actql_native_filesystem_private_root_identity(root)) {
+    close(root->fd);
+    root->fd = -1;
+  }
+  return root;
+}
+
+// Whitebox tests alter only their already-open, user-owned scratch directory.
+int32_t actql_native_filesystem_test_private_mode(
+  actql_native_filesystem_root *root,
+  int32_t mode
+) {
+  struct stat status;
+  if (root == NULL || root->fd < 0 || fstat(root->fd, &status) != 0 ||
+      status.st_uid != geteuid() || (mode != 0700 && mode != 0750)) return 0;
+  return fchmod(root->fd, (mode_t)mode) == 0;
 }
 
 moonbit_bytes_t actql_native_filesystem_root_error(

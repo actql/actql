@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn open_private_root(String) -> Result[Root, NativeFilesystemIssue]
+
 pub fn open_root(String) -> Result[Root, NativeFilesystemIssue]
 
 // Errors
@@ -63,6 +65,7 @@ pub fn Root::inspect_directory(Self, String) -> Result[NativeFileOwnership?, Nat
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::open_child(Self, String) -> Result[Self, NativeFilesystemIssue]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
+pub fn Root::private_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::reclaim_generation(Self, String, NativeFileGeneration) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::remove_directory(Self, String, NativeFileOwnership) -> Result[Bool, NativeFilesystemIssue]
 pub fn Root::sync_directory(Self) -> Result[Unit, NativeFilesystemIssue]
