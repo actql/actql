@@ -174,21 +174,19 @@ fn retained_consumer_checked_edge(
   request : @remote.DispatchRequest,
   body : String,
   at : String,
+  producer_context : (@journal.Journal, @remote.DispatchRequest)?,
 ) -> Result[@host.ClientRetainedInputEdge, ResidentRetainedExecutionIssue] {
   match effect_limits {
     Some(effect_limits) => {
+      guard producer_context is Some((journal, producer)) else {
+        return Err(Host(EnvelopeMissing))
+      }
       let materials = match
-        @host.admit_client_effect_run_materials(
-          body,
-          @remote.dispatch_request_task_scope(request).0,
-          admission.expressions,
-          admission.operations,
-          admission.manifests,
-          admission.limits,
-          effect_limits,
+        retained_effect_consumer_materials(
+          journal, producer, request, body, admission, effect_limits,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(EffectMaterials(issue))
+        Err(issue) => return Err(issue)
       }
       if !@host.client_effect_run_start_current(
           materials.allowed,
@@ -265,6 +263,7 @@ fn retained_consumer_checked_edge(
 /// This does not authorize a start or acquire input; the selected live holder
 /// must still admit actual producer evidence, receiver custody and authority.
 pub fn resident_effect_retained_consumer_producer_identity(
+  journal : @journal.Journal,
   admission : ResidentRunAdmission,
   effect_limits : @host.ClientEffectComputationLimits,
   configuration : ResidentSourceComputeConfiguration,
@@ -275,6 +274,15 @@ pub fn resident_effect_retained_consumer_producer_identity(
   guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(body) else {
     return Err(Host(EnvelopeMissing))
   }
+  let producer = match
+    @host.client_retained_task_producer_lookup(
+      @remote.remote_poll_dispatch_input_binding(dispatch),
+      request,
+      1048576,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Input(@output.InvalidBinding))
+  }
   let edge = match
     retained_consumer_checked_edge(
       admission,
@@ -283,6 +291,7 @@ pub fn resident_effect_retained_consumer_producer_identity(
       request,
       body,
       at,
+      Some((journal, producer)),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -373,26 +382,16 @@ fn prepare_resident_retained_consumer_owned(
   }
   let edge = match
     retained_consumer_checked_edge(
-      admission, effect_limits, effect_configuration, request, body, at,
+      admission,
+      effect_limits,
+      effect_configuration,
+      request,
+      body,
+      at,
+      Some((producer_journal, handoff.dispatch)),
     ) {
     Ok(value) => value
     Err(issue) => return Err(retained_consumer_failure(issue))
-  }
-  // Compare the original logical request in the producer's immutable journal
-  // envelope before admitting a receiver alias or returning a completed replay.
-  if effect_limits is Some(selected_limits) {
-    match
-      retained_effect_consumer_original_request(
-        producer_journal,
-        handoff.dispatch,
-        request,
-        body,
-        admission,
-        selected_limits,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(retained_consumer_failure(issue))
-    }
   }
   if handoff.consumer is Some(consumer) && consumer.executed is Some(_) {
     // A completed exact replay owns its output independently of retired input.
@@ -508,6 +507,7 @@ pub fn ResidentRetainedConsumer::accept(
       self.request,
       body,
       at,
+      Some((self.producer_journal, self.handoff.dispatch)),
     ) {
     Ok(value) => value
     Err(Host(Refused(issue))) => return Ok(Refused(issue))
@@ -646,6 +646,7 @@ pub fn ResidentRetainedConsumer::execute(
         current_time,
         executor_entry,
         retain_computation=owner => self.effect_computation = Some(owner),
+        producer_context=Some((self.producer_journal, self.handoff.dispatch)),
       )
     None =>
       execute_resident_retained_attempt(
@@ -776,4 +777,16 @@ pub fn ResidentRetainedConsumer::effect_computation(
     return None
   }
   Some(owner)
+}
+
+///|
+/// Select this holder's actual completed Effect computation output. The
+/// existing journal, receiver borrow and Runtime validation above remain
+/// required. This does not approve an Effect or make its Result publishable.
+pub fn ResidentRetainedConsumer::completed_effect_execution(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> ResidentExecuted? {
+  guard self.effect_computation(journal) is Some(_) else { return None }
+  self.executed
 }

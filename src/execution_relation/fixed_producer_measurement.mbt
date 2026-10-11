@@ -129,8 +129,7 @@ fn prepare_fixed_producer_measurement_impl(
       return Err(InputRows)
     }
   }
-  guard target is Step(index) &&
-    index == @lower.node_count(prepared) - 1 &&
+  guard @lower.preparation_output_target(prepared) == Some(target) &&
     @lower.preparation_schema_at(prepared, target) is Some(_) else {
     return Err(MissingOutput)
   }

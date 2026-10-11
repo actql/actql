@@ -90,8 +90,7 @@ fn materialize_clause_aliases(
     let cached = qualify_cached_slot(expression, cached_values + qualify_values)
     let direct = match
       @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
-      Reference(path) =>
-        pipe_slot(path, input_scope.visible, input_scope.ranges)
+      Reference(path) => scope_expression_slot(path, input_scope)
       _ => None
     }
     let slot = match

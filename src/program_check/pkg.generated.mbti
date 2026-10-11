@@ -139,6 +139,10 @@ pub fn close_effect_computation_static(EffectComputationCandidate, @check_enviro
 
 pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
 
+pub fn completion_free_inventory_matches(CompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
+
+pub fn completion_free_inventory_work(CompletionFreeInventory) -> Int
+
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
 pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format, DiagnosticLocation)?
@@ -170,6 +174,8 @@ pub fn effect_computation_environment(EffectComputationCandidate) -> @check_envi
 pub fn effect_computation_headers(EffectComputationCandidate) -> @stage_syntax.EffectHeaders
 
 pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_results.Checked
+
+pub fn effect_program_completion_free_inventory(EffectProgramStaticCandidate) -> Result[CompletionFreeInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_run_admission(EffectProgramRunCandidate) -> @run_publication.RunPublicationAdmission
 
@@ -336,6 +342,12 @@ pub fn keyed_input_proof_count(CheckedProgram) -> Int
 pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
+
+pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
+
+pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
+
+pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]
 
 pub fn nest_limits_claim(NestLimits, NestResourceScope) -> @capacity_witness.LimitClaim
 
@@ -921,6 +933,14 @@ pub(all) struct CompileValueLimits {
   text_bytes : Int
 } derive(Eq, @debug.Debug)
 
+type CompletionFreeInventory
+
+pub(all) enum CompletionFreeInventoryIssue {
+  ProfileNotInstalled
+  CompletionObserved
+  ForeignPreparation
+} derive(Eq, @debug.Debug)
+
 pub(all) enum DiagnosticCategory {
   InvalidInput
   InvalidConfiguration
@@ -1060,6 +1080,8 @@ pub struct KeyedExecution {
 }
 
 type KeyedInputProof
+
+type LocalCompletionFreeInventory
 
 pub(all) enum LocalDependencyBodyIssue {
   MissingUnit

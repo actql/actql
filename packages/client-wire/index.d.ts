@@ -1,3 +1,4 @@
+export * from './interactive-control.generated.js';
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireOperationAttemptRefShape, WireCancellationAttemptShape,
   WireCancellationRefShape, WireCancellationLookupShape,

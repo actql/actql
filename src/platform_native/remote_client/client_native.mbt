@@ -154,6 +154,8 @@ pub fn poll(
     Ok(Some(@remote.RetainedPlan(_)))
     | Ok(Some(@remote.RetainedTransfer(_)))
     | Ok(Some(@remote.RetainedCurrent(_)))
+    | Ok(Some(@remote.EffectCurrent(_)))
+    | Ok(Some(@remote.EffectResume(_)))
     | Ok(Some(@remote.Plan(_)))
     | Ok(Some(@remote.Output(_)))
     | Ok(Some(@remote.Query(_)))
@@ -398,6 +400,26 @@ pub fn acknowledge_retained_input_current(
     client.post_json(
       url,
       @utf8.encode(@remote.remote_retained_input_current_reply_json(reply)),
+    ) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
+
+///|
+/// Report only an opaque reply issued by the existing current-observation
+/// Owner. HTTP success acknowledges transport, not Effect success, a new send
+/// permit, report custody, or cleanup. Failure never retries execution.
+pub fn acknowledge_effect_current(
+  client : @http.Client,
+  url : String,
+  reply : @remote.RemoteEffectCurrentReply,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_effect_current_reply_json(reply)),
     ) {
     Ok(value) if value.status == 200 => Ok(())
     Ok(value) => Err(HttpStatus(value.status))

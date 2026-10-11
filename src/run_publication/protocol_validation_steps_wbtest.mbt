@@ -33,6 +33,48 @@ fn protocol_test_finish(
 }
 
 ///|
+test "protocol registered ceilings use exact scalar lengths and existing cursor budgets" {
+  for quantum in [1, 7, 64] {
+    let strings = [
+      StringRule(None, [], 0, 0),
+      StringCeilingRule(1),
+      AllOfRule([0, 1]),
+    ]
+    let exact = protocol_test_start("\"😀\"", strings, 2, 3)
+    assert_eq(protocol_test_finish(exact, quantum).0, true)
+    assert_eq(exact.budget.remaining, 0)
+    let short = protocol_test_start("\"😀\"", strings, 2, 2)
+    assert_eq(protocol_test_finish(short, quantum).0, false)
+    let long = protocol_test_start("\"😀x\"", strings, 2, 3)
+    assert_eq(protocol_test_finish(long, quantum).0, false)
+    let objects = [ObjectCeilingRule(1)]
+    // JSON Schema object keywords do not impose a type. An explicit
+    // ObjectRule in the generated conjunction separately enforces that type.
+    assert_eq(
+      protocol_test_finish(
+        protocol_test_start("\"scalar\"", objects, 0, 1),
+        quantum,
+      ).0,
+      true,
+    )
+    assert_eq(
+      protocol_test_finish(
+        protocol_test_start("{\"a\":1}", objects, 0, 1),
+        quantum,
+      ).0,
+      true,
+    )
+    assert_eq(
+      protocol_test_finish(
+        protocol_test_start("{\"a\":1,\"b\":2}", objects, 0, 1),
+        quantum,
+      ).0,
+      false,
+    )
+  }
+}
+
+///|
 test "protocol array validation keeps independent rule budgets and quantum transitions" {
   let wire = "[" + Array::make(64, "7").join(",") + "]"
   let nodes = [NumberRule, ArrayRule(0, 0, false, -1)]

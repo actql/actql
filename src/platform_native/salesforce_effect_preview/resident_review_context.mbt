@@ -1,6 +1,7 @@
 ///|
 pub(all) enum NativeResidentEffectReviewPreparationIssue {
   Unavailable
+  Normalization(@host.ClientEffectNormalizationIssue)
   Result(@resident.ResidentEffectResultCaptureIssue)
   Review(NativeResidentEffectReviewIssue)
 }
@@ -29,15 +30,14 @@ fn reject_resident_effect_review_context(
 /// Transfer the actual-holder context to this review adapter before preparing
 /// its Result export. Successful preparation owns both until review obligations
 /// are discharged and cleanup is confirmed. No Source acquisition, Compute
-/// execution, Provider access, approval or new physical holding occurs here. Trusted Host normalization
-/// metadata and independently installed Provider policy are still required.
+/// execution, Provider access, approval or new physical holding occurs here.
+/// Binding inventory is checked through the original materials Owner. Trusted
+/// Host normalization and independently installed Provider policy are required.
 pub fn prepare_native_resident_effect_review_from_context(
   holder : @resident.ResidentRetainedConsumer,
   journal : @journal.Journal,
   context : @resident.ResidentEffectReviewInputContext,
   normalization : @publication.RunEvidenceValue,
-  binding_names : Array[String],
-  binding_digests : Array[String],
   policy : NativeResidentEffectReviewPolicy,
 ) -> Result[
   NativeResidentEffectReview,
@@ -53,8 +53,6 @@ pub fn prepare_native_resident_effect_review_from_context(
     context.capture_result(
       journal,
       normalization,
-      binding_names,
-      binding_digests,
       limits.max_wire_bytes,
       limits.max_nodes,
       limits.max_depth,
@@ -110,5 +108,37 @@ pub fn NativeResidentEffectReview::dispatch_identity(
 ) -> String {
   @remote.dispatch_request_identity(
     @resident.resident_retained_consumer_request(self.holder),
+  )
+}
+
+///|
+/// Production material-custody entry: no arbitrary normalization argument.
+/// Restore saved evidence from the same original admitted Run before Result
+/// capture. Failure retains the same pending context through its existing
+/// close/retry Owner; Provider policy and current authority remain separate.
+pub fn prepare_native_resident_effect_review_from_original_materials(
+  holder : @resident.ResidentRetainedConsumer,
+  journal : @journal.Journal,
+  context : @resident.ResidentEffectReviewInputContext,
+  policy : NativeResidentEffectReviewPolicy,
+) -> Result[
+  NativeResidentEffectReview,
+  NativeResidentEffectReviewPreparationFailure,
+] {
+  guard context.matches_holder(holder, journal) &&
+    context.facts(journal) is Some(facts) else {
+    return reject_resident_effect_review_context(context, Unavailable)
+  }
+  let normalization = match
+    @host.restore_client_effect_run_normalization(facts.materials) {
+    Ok(value) => value
+    Err(issue) =>
+      return reject_resident_effect_review_context(
+        context,
+        Normalization(issue),
+      )
+  }
+  prepare_native_resident_effect_review_from_context(
+    holder, journal, context, normalization, policy,
   )
 }

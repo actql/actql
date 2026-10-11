@@ -97,6 +97,7 @@ struct NativeResidentEffectReview {
       @catalog.TargetPreviewRow,
     ),
   ]?
+  mut created_targets : NativeResidentEffectCreatedTargets?
   mut target_failure : NativeResidentEffectTargetIssue?
   mut observing : Bool
   mut completing : Bool
@@ -150,8 +151,15 @@ pub fn prepare_native_resident_effect_review(
     None => return Err(Unavailable)
   }
   let dispatch = @resident.resident_retained_consumer_request(holder)
-  if @remote.dispatch_request_execution_scope(dispatch)[2] !=
-    policy.runtime_bundle_cid {
+  let execution = @remote.dispatch_request_execution_scope(dispatch)
+  if execution[2] != policy.runtime_bundle_cid ||
+    !native_review_catalog_matches_original(
+      policy.catalog,
+      execution[0],
+      execution[1],
+      @publication.publication_contract_identity(invocation),
+      @remote.dispatch_request_identity(dispatch),
+    ) {
     return Err(Unavailable)
   }
   let request = match consumer.request_for_effect_review(inputs) {
@@ -186,7 +194,7 @@ pub fn prepare_native_resident_effect_review(
   // This first connection is one checked Effect member. Its result and
   // mapping are selected by the existing checked computation Owner.
   if descriptor.0 != 0 ||
-    descriptor.2 != "update" ||
+    (descriptor.2 != "update" && descriptor.2 != "create") ||
     descriptor.4 != policy.mapping.mapping_ref ||
     descriptor.5 != policy.mapping.mapping_cid ||
     !@strategy.captured_effect_local_result_matches_member(
@@ -330,6 +338,7 @@ pub fn prepare_native_resident_effect_review(
     artifact,
     uses: [],
     targets: None,
+    created_targets: None,
     target_failure: None,
     observing: false,
     completing: false,
@@ -345,8 +354,9 @@ pub fn prepare_native_resident_effect_review(
 }
 
 ///|
-/// Observe once through the existing Credential Resource Service. Completed
-/// observations are immutable Preview facts. A failed/uncertain use is never
+/// Prepare target facts once. Updates observe through the existing Credential
+/// Resource Service; mapped create projects the actual retained Result without
+/// a target read. Completed observations are immutable Preview facts. A failed/uncertain use is never
 /// retried here; its exact credential owners remain available for inspection.
 pub fn NativeResidentEffectReview::observe(
   self : NativeResidentEffectReview,
@@ -375,6 +385,44 @@ pub fn NativeResidentEffectReview::observe(
     return Ok(rows.copy())
   }
   let policy = self.policy
+  if policy.mapping.operation is @catalog.WriteCreate {
+    self.observing = true
+    let outcome = match
+      prepare_native_resident_effect_created_targets(
+        self.consumer,
+        self.materials,
+        self.inputs,
+        policy.stage,
+        policy.effect_id,
+        policy.result_index,
+        policy.mapping,
+        policy.projection,
+        policy.api_version,
+        policy.export_limits,
+        policy.body_limits,
+        policy.request_limits,
+        policy.max_rows,
+        policy.max_fields,
+        policy.max_work,
+        policy.max_utf16_units,
+        policy.preview_limits.max_wire_bytes,
+      ) {
+      Ok(created) =>
+        if self.current() {
+          self.created_targets = Some(created)
+          self.targets = Some([])
+          Ok([])
+        } else {
+          Err(Proposal(Unavailable))
+        }
+      Err(issue) => {
+        self.target_failure = Some(issue)
+        Err(issue)
+      }
+    }
+    self.observing = false
+    return outcome
+  }
   let dispatch = @resident.resident_retained_consumer_request(self.holder)
   let execution = @remote.dispatch_request_execution_scope(dispatch)
   let route = @remote.dispatch_request_journal_key(dispatch)
@@ -453,6 +501,11 @@ pub fn NativeResidentEffectReview::target_uses(
 pub fn NativeResidentEffectReview::complete(
   self : NativeResidentEffectReview,
   phase_observe? : (String) -> Unit = _ => (),
+  capture_progress? : (@resident.ResidentEffectRunCapturePhase, Int64, Int64) -> Unit = (
+    _,
+    _,
+    _,
+  ) => (),
 ) -> Result[NativeResidentEffectReviewCapture, NativeResidentEffectReviewIssue] {
   if self.completing {
     return Err(Unavailable)
@@ -502,6 +555,7 @@ pub fn NativeResidentEffectReview::complete(
         bounds,
         policy.export_limits,
         policy.dispatch_limits,
+        created_targets=self.created_targets,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Preview(issue))
@@ -608,7 +662,10 @@ pub fn NativeResidentEffectReview::complete(
         self.result,
         self.invocation,
         preview.preview,
-        [preview.proof],
+        match preview.proof {
+          Some(proof) => [proof]
+          None => []
+        },
         [source],
         [local_source],
         inventory,
@@ -619,6 +676,7 @@ pub fn NativeResidentEffectReview::complete(
         bounds.max_nodes,
         bounds.max_depth,
         policy.max_capture_workspace_entries,
+        progress=capture_progress,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Capture(issue))
@@ -804,7 +862,10 @@ pub fn NativeResidentEffectReview::retry_cleanup(
     self.retention_configuration is Some((_, _, _, _, _, limits)) &&
     self.captured is Some(capture) &&
     self.targets is Some(targets) &&
-    targets.length() == 1 &&
+    (
+      targets.length() == 1 ||
+      (self.created_targets is Some(created) && created.requests.length() == 1)
+    ) &&
     capture.preview.keys.length() == 1 {
     // Checkpoint budgets may exceed the common Ledger contract's ceilings.
     // Narrow this read's budget; never relax the Ledger Owner's admission.
@@ -844,6 +905,7 @@ pub fn NativeResidentEffectReview::retry_cleanup(
     }
     self.owned_inputs = None
   }
+  self.created_targets = None
   self.closed = true
   Ok(true)
 }

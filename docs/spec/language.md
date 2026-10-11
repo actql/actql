@@ -2265,12 +2265,14 @@ return canonical positive zero for unrepresentable underflow.
 LN and LOG10 MUST require a positive argument; binary LOG requires a positive
 value and a positive base other than one.
 
-<!-- requirement-block: scalar-expressions.finite-math-demanded-evaluation -->
+<!-- requirement-block: scalar-expressions.finite-math-demanded-evaluation scalar-expressions.finite-math-target-independent-kernel -->
 These functions MUST evaluate demanded operands once in source order and
 preserve ordinary child failures before strict NULL handling, including a
 later demanded child failure after an earlier NULL. They do not catch child
-errors. General transcendental last-bit cross-target or live-BigQuery equality
-is not guaranteed.
+errors. The same pinned portable numeric kernel MUST be used across JS,
+WebAssembly and Native, preserving exact logical Number bits for identical
+admitted inputs and selected contracts. Live-BigQuery last-bit equality is not
+guaranteed.
 
 <!-- requirement-block: scalar-expressions.number-extrema scalar-expressions.number-extrema-null scalar-expressions.number-extrema-demand scalar-expressions.number-extrema-order scalar-expressions.number-extrema-subset scalar-expressions.number-extrema-identity -->
 `greatest(x, ...)` and `least(x, ...)` MUST take one or more finite binary64
@@ -10475,7 +10477,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:4fc03e8fcabc28cfe507540b51daf220981c2ffd556bd461b842b1bcb28a404a
+../../spec/contracts/actql-aoa.json# sha256:eb9ab3caf738a132b248b2c9e2d6759830998fbf6f88cbcab2f6afa7e37377cd
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10484,11 +10486,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:94abd3af5193669b605a33e5c4da5672ffce116f8349097cc97750451da8e1e3
+../../spec/contracts/actql-expressions.json# sha256:a4b2c1f47389d0878f2ac7399f78f897ff8d3f3e944d3681db8eab70c1ff78ae
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:307f78ac2b6af9aa0d68fe05ff6bde35bd97d1c995785a8686aa0b26ab4901f7
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:e0571c80a1cfec0ef4f761bb1a6e91ac3bf689f35655b427700ee356f7e42421
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:a812614c6f0dbf669ef1a63bd1f9a3f60c245eea816bc0c167585482d5f7dea3
+../../spec/contracts/actql-expressions.json#/laws sha256:1dcdfcf6b82109a70481a74b24f0f8cccd9960e48a43c2b50e067501fbb2dbe4
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:97492fcc0dc831d394c4174a34aa4ca220ee899ea5c8be1dc41e2259a5b65733
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:d6cf423e215c42c5c84feb5ff472934d7541436badcde9ad6125e05a71349c7b
 ```

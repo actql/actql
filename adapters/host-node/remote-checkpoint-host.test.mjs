@@ -22,7 +22,7 @@ import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {connect, RequestHeld, explainRequestLookup, explainSubmission, explainRequestCancellation,
-  getSubmissionOutcome} from '../../packages/sdk/index.mjs';
+  getSubmissionOutcome, getSubmissionAttempt} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
@@ -3071,12 +3071,26 @@ test('same submitted identity preserves one Run and refuses changed intent', asy
   assert.deepEqual((await client.startSource(document, {format: 'json', submissionRef})).ref, first.ref);
   const changed = JSON.parse(document);
   changed.stages[0].steps[0].values.rows = [{id: 999}];
-  await assert.rejects(client.startSource(JSON.stringify(changed), {format: 'json', submissionRef}), error => {
-    assert.equal(error.code, 'SubmissionUnknown');
-    assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
-    assert.equal(error.cause?.status, undefined);
+  const changedText = JSON.stringify(changed);
+  const changedAttempt = {operation: 'submit', attemptId: 'changed-intent-attempt'};
+  const changedIntentCid = contentCid({version: 'actql-submitted-intent/0.1',
+    intent: {kind: 'aql', input: {text: changedText, format: 'json'}, parameters: null}});
+  await assert.rejects(client.startSource(changedText,
+    {format: 'json', submissionRef, attemptId: changedAttempt.attemptId}), error => {
+    // The Owner's invocation-bound conflict is distinct from transport
+    // uncertainty and leaves the original durable submission untouched.
+    assert.equal(error.code, 'SubmissionConflict');
+    assert.equal(error.cause, undefined);
+    assert.deepEqual(getSubmissionAttempt(error), {
+      kind: 'conflict', reason: 'intent', attemptRef: changedAttempt,
+      submissionRef, intentCid: changedIntentCid});
+    assert.deepEqual(error.attemptRef, changedAttempt);
+    assert.notEqual(changedIntentCid, original.intentCid);
+    assert.equal(getSubmissionOutcome(error), undefined);
+    // The closed typed response uses the ordinary control transport; an HTTP
+    // success status does not convert its conflict into submission acceptance.
     assert.deepEqual(host.responses.at(-1), {
-      path: '/actql/client/0.1/submit-intent', status: 409});
+      path: '/actql/client/0.1/submit-intent', status: 200});
     assert.deepEqual(error.submissionRef, submissionRef);
     return true;
   });

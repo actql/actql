@@ -10,7 +10,8 @@ import {canonicalJson} from './local-account-config.mjs';
 import {localOutputLimits} from './local-values-plan.mjs';
 
 // Independently authored finite-Number compatibility controls. Transcendental
-// last-bit equality across math libraries is not asserted. Runtime acceptance
+// live-BigQuery last-bit equality is not asserted. ActQL targets use one pinned
+// portable numeric kernel. Runtime acceptance
 // requires current identity closure and the ordinary rebuilt Host packages.
 // The finite-FLOAT64 domain excludes INT64/NUMERIC/BIGNUMERIC and nonfinite
 // inputs. MOD has no GoogleSQL FLOAT64 overload and is deliberately absent.
@@ -481,4 +482,38 @@ test('public finite math preserves existing exact-integer token refusal',
         {format,submissionRef:f.client.newSubmission({nonce:'integer-token-'+format})});
     }
     assert.equal(f.dispatches(),0);
+  });
+
+// Independent reference bits retained from run-J1dKXM. The observed primitive
+// divergence is not a claim that a public Result CID divergence was measured.
+test('public finite math preserves the 14 portable identity counterexamples',
+  {timeout: 60_000}, async t => {
+    const references = [
+      ['exp', -373.8015018526243, null, '1e3a538161077982'],
+      ['ln', 8.955102088495668, null, '400189ac70cbeb70'],
+      ['ln', 0.7096359903413106, null, 'bfd5f3c36686db50'],
+      ['ln', 43.64301119989392, null, '400e35561db2a5ac'],
+      ['ln', 93.3951804061785, null, '401225b95140bd10'],
+      ['ln', 20.90108389454774, null, '40085183324a30f2'],
+      ['ln', 43.83775473204472, null, '400e3e7462d43664'],
+      ['ln', 1.4680892331809163, null, '3fd892d42704dce1'],
+      ['ln', 1.2783106518366594, null, '3fcf6dd5ccd22ff8'],
+      ['log10', 21.265579840947197, null, '3ff53e2a7a60ad4f'],
+      ['log10', 2.8956631384538802, null, '3fdd8d47a426e273'],
+      ['log10', 83.46167682682146, null, '3ffebe694375ffd0'],
+      ['log10', 1.4680892331809163, null, '3fc55824f76150ad'],
+      ['pow', 35.82791729235208, 15.398635423713735, '44e6ae0f50dde019'],
+    ].map(([op, a, b, bits], index) => number(`v${index}`,
+      `${op.toUpperCase()}(${a}${b === null ? '' : ',' + b})`,
+      {[op]: b === null ? literal(a) : [literal(a), literal(b)]},
+      Buffer.from(bits, 'hex').readDoubleBE()));
+    const f = await fixture(t);
+    for (const format of ['sql', 'aql-text', 'json']) {
+      for (const offset of [0, 7]) {
+        const batch = references.slice(offset, offset + 7);
+        const id = `portable-${format}-${offset}`;
+        await assertPublished(f, sourceFor(format, id, batch),
+          {format, submissionRef: f.client.newSubmission({nonce: id})}, batch);
+      }
+    }
   });

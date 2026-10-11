@@ -43,7 +43,8 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
     'src/effect_application', 'src/logical_request_scope', 'src/client_row_source_host', 'src/bounded_graph_diff',
     'src/platform_native/remote_transfer_journal', 'src/sha256',
     'src/platform_native/remote_journal', 'src/platform_native/remote_standard_host',
-    'src/platform_native/retained_task_file']) {
+    'src/platform_native/retained_task_file', 'src/client_local_preparation',
+    'src/client_local_run', 'src/client_host_buffers']) {
     const immediateMembers = allSources.filter(path => path.startsWith(`${directory}/`) &&
       !path.slice(directory.length + 1).includes('/')).sort();
     assert(immediateMembers.includes(`${directory}/moon.pkg`));
@@ -57,6 +58,11 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   // This verifies physical source correspondence only, never a runtime claim.
   const inputs = actionInputs({tree, revision, action,
     runtime: {profile: 'source-correspondence-only', unresolved: ['runtime not executed']}});
+  const interruptionHelper = 'proofs/bounded-session/mutation-command.mjs';
+  assert(inputs.inputs.files.some(entry => entry.path === interruptionHelper &&
+    entry.digest === hash(tree.read(interruptionHelper))), 'Mutation helper must be a keyed input');
+  assert(staged.files.some(entry => entry.path === `source/${interruptionHelper}` &&
+    entry.digest === hash(tree.read(interruptionHelper))), 'Mutation helper must be physically staged');
   const keyedSources = inputs.inputs.files.filter(entry => entry.path.startsWith('src/')).map(entry => entry.path).sort();
   assert.deepEqual(staged.files.filter(entry => entry.path.startsWith('source/src/'))
     .map(entry => entry.path.slice('source/'.length)).sort(), keyedSources);

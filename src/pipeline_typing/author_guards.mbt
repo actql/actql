@@ -216,7 +216,11 @@ pub fn collect_author_guards(
         }
         Traverse(checked~, ..) =>
           add(
-            TraverseOutputRows,
+            if @graph.traverse_shortest(checked) is Some(_) {
+              ShortestOutputRows
+            } else {
+              TraverseOutputRows
+            },
             graph_guard(@graph.traverse_output_guard(checked)),
             @graph.traverse_source(checked),
             "max_output_rows",

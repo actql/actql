@@ -10,6 +10,8 @@ priv struct HolderTaskCustody {
   process_hold : Ref[@bundle.NativeActiveRuntimeBinding?]
   mut executed : @resident_host.ResidentExecuted?
   mut effect_producer : @resident_host.ResidentEffectProducerExecuted?
+  mut effect_review : @effect_review.NativeResidentEffectReview?
+  mut effect_review_cleanup : @resident_host.ResidentEffectReviewInputContext?
   mut restoration : @resident_host.ResidentCompletedAttempt?
   mut restoration_cleanup : @runtime.NativeRemoteRuntime?
   mut restoration_failed : Bool
@@ -37,6 +39,8 @@ fn new_holder_task_custody(
     process_hold: Ref(None),
     executed,
     effect_producer,
+    effect_review: None,
+    effect_review_cleanup: None,
     restoration: None,
     restoration_cleanup: None,
     restoration_failed: false,
@@ -208,6 +212,11 @@ fn close_holder_task(
     task.restoration_cleanup = None
   }
   if !holder_completed_restoration_settled(task, environment.journal) {
+    return false
+  }
+  // Review owns separate semantic pins and an export. Retiring it must
+  // precede its original consumer, receiver and producer Runtime cleanup.
+  if !close_holder_effect_review(task) {
     return false
   }
   if task.handoff is Some((_, handoff)) {

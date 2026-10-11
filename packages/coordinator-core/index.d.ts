@@ -79,9 +79,47 @@ export const bundleRetention: Readonly<{
 export type Journal = {readonly [ownerHandle]: 'journal'};
 export type DispatchRequest = {readonly [ownerHandle]: 'dispatch-request'};
 export type EffectCheckpointReport = {readonly [ownerHandle]: 'effect-checkpoint-report'};
+export type EffectCurrentQuery = {readonly [ownerHandle]: 'effect-current-query'};
+export type EffectCurrentReply = {readonly [ownerHandle]: 'effect-current-reply'};
+/** Correlation only. Authenticate the current Site and its exact outstanding
+ * challenge using trusted Owners; historical replies grant no current permit. */
+export const effectCurrentObservations: Readonly<{
+  prepareQuery(report: EffectCheckpointReport, effectId: string, queryId: string,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): EffectCurrentQuery;
+  queryJson(query: EffectCurrentQuery): string;
+  /** Bounded routing only; the receiver must admit its own original report. */
+  pollJson(query: EffectCurrentQuery): string;
+  queryFacts(query: EffectCurrentQuery): Readonly<{queryCid: string; reportCid: string;
+    dispatchCid: string; checkpointCid: string; effectId: string; queryId: string}>;
+  admitReplyJson(query: EffectCurrentQuery, body: string,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): EffectCurrentReply;
+  replyFacts(reply: EffectCurrentReply): Readonly<{queryCid: string; reportCid: string;
+    dispatchCid: string; checkpointCid: string; effectId: string; queryId: string; replyCid: string;
+    ledgerHeadCid?: string; recoveryAction: number; responseSaved: boolean;
+    unknownEffects: readonly string[]}>;
+}>;
 export type EffectCheckpointRefusal = 'authorization_denied' | 'scope_mismatch' | 'report_conflict';
 export type EffectCheckpointReply = Readonly<{kind: 'accepted'} |
   {kind: 'refused'; reason: EffectCheckpointRefusal}>;
+
+/** Serialization only: physical Reviewer/Host authentication, durable claim
+ * and current fencing remain responsibilities of the existing trusted Owners. */
+export const effectResumeDeliveries: Readonly<{
+  prepareJson(report: EffectCheckpointReport, resolutionWire: string,
+    authentication: Readonly<{key_id: string; reviewer_id: string;
+      expected_authority_scope_cid: string; authority_context_cid: string;
+      policy_cid: string; proof_preimage: string}>,
+    reviewers: readonly Readonly<{key_id: string; reviewer_id: string}>[],
+    claim: Readonly<{claimant: string; generation: bigint}>,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): string;
+  preparePollJson(report: EffectCheckpointReport, resolutionWire: string,
+    authentication: Readonly<{key_id: string; reviewer_id: string;
+      expected_authority_scope_cid: string; authority_context_cid: string;
+      policy_cid: string; proof_preimage: string}>,
+    reviewers: readonly Readonly<{key_id: string; reviewer_id: string}>[],
+    claim: Readonly<{claimant: string; generation: bigint}>,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): string;
+}>;
 
 /** Canonical report admission is not remote persistence, approval, execution or
  * cleanup evidence. Authenticate the current Site and validate the original

@@ -49,6 +49,27 @@ fn retained_holder_context_review(
   // A failed Result capture owns only this connection's private pins/export.
   // Prepare it before the independent successful context to respect the
   // existing Named Result export pin ceiling; no limit is raised here.
+  // The production path refuses absent original normalization custody before
+  // Result export or Provider I/O and closes only its own context pins.
+  let missing_journal = prepare(1, 0, 4, 10000).unwrap()
+  let missing_facts = missing_journal.facts(journal).unwrap()
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_review_from_original_materials(
+      holder,
+      journal,
+      missing_journal,
+      retained_holder_review_policy(holder, missing_facts.inputs, invocation.1),
+    )
+    is Err({ issue: Normalization(MissingOriginalJournal), pending: None, }),
+  )
+  assert_true(missing_journal.facts(journal) is None)
+  assert_true(missing_journal.close())
+  assert_eq(source.usage().held_bytes, source_usage.held_bytes)
+  assert_eq(consumer.usage().held_bytes, consumer_usage.held_bytes)
+  assert_eq(
+    consumer.usage().reserved_retention_bytes,
+    consumer_usage.reserved_retention_bytes,
+  )
   let rejected_context = prepare(1, 0, 4, 10000).unwrap()
   assert_true(
     @effect_provider.prepare_native_resident_effect_review_from_context(
@@ -56,8 +77,6 @@ fn retained_holder_context_review(
       journal,
       rejected_context,
       invocation.0,
-      [],
-      [],
       retained_holder_review_policy(
         holder,
         rejected_context.facts(journal).unwrap().inputs,
@@ -137,7 +156,7 @@ fn retained_holder_context_review(
   assert_true(context.close())
   assert_true(context.facts(journal) is None)
   assert_true(
-    context.capture_result(journal, normalization, [], [], 65536, 4096, 64)
+    context.capture_result(journal, normalization, 65536, 4096, 64)
     is Err(Unavailable),
   )
   assert_true(consumer.request_for_effect_review(facts.inputs) is None)

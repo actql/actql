@@ -91,10 +91,10 @@ test "empty typed identity selector Relations retain node and path custody and e
 }
 
 ///|
-test "empty selectors do not enable unsupported shortest-path consumers" {
+test "Shortest empty Relation selectors preserve both input occurrences and shortest duties" {
   for direction in ["in", "out", "both"] {
     for selection in ["each_pair", "nearest_per_source", "nearest_pair"] {
-      let issue = @pipeline_typing.check_carriers(
+      let checked = @pipeline_typing.check_carriers(
         cursor(
           empty_identity_selector_prefix() +
           "{\"shortest_path\":{\"source\":{\"from\":\"empty\",\"id\":\"element\"},\"target\":{\"from\":\"empty\",\"id\":\"element\"},\"direction\":\"" +
@@ -107,9 +107,34 @@ test "empty selectors do not enable unsupported shortest-path consumers" {
         None,
         None,
         limits(),
-      ).unwrap_err()
-      assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
-      assert_eq(issue.path, [Index(3), Key("shortest_path")])
+      ).unwrap()
+      let step = @pipeline_typing.step_at(checked, 3).unwrap()
+      assert_eq(@pipeline_typing.input_occurrence_count(step), 3)
+      assert_eq(
+        @pipeline_typing.input_occurrence_at(step, 0).unwrap().target,
+        Input(0),
+      )
+      assert_eq(
+        @pipeline_typing.input_occurrence_at(step, 1).unwrap().target,
+        Step(2),
+      )
+      assert_eq(
+        @pipeline_typing.input_occurrence_at(step, 2).unwrap().target,
+        Step(2),
+      )
+      guard step.operation is Traverse(checked=traversal, ..) else {
+        fail("shared path profile")
+      }
+      assert_true(
+        @graph.traverse_pending(traversal).contains(
+          ShortestRequirement(ValidateEveryShortestWeight),
+        ),
+      )
+      assert_true(
+        @graph.traverse_pending(traversal).contains(
+          ShortestRequirement(RejectSelectedOverrange),
+        ),
+      )
     }
   }
 }

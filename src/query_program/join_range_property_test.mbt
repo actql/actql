@@ -72,7 +72,7 @@ test "JOIN ORDER distinguishes parenthesized input range from the output receive
 }
 
 ///|
-test "JOIN range-name collision keeps an explicit value receiver distinct" {
+test "JOIN range-name collision retains range precedence through parentheses" {
   let scoped = pipe_range_property_context()
   let context = {
     ..join_property_context(),
@@ -80,7 +80,7 @@ test "JOIN range-name collision keeps an explicit value receiver distinct" {
   }
   let actual = compile(
     @query.parse_query(
-      "SELECT (payload).score AS object_score, payload.score AS range_score FROM objects AS payload JOIN others AS r ON payload.id = r.id",
+      "SELECT (payload).score AS parenthesized_score, payload.score AS range_score FROM objects AS payload JOIN others AS r ON payload.id = r.id",
       syntax_limits(),
     ).unwrap(),
     context,
@@ -88,8 +88,10 @@ test "JOIN range-name collision keeps an explicit value receiver distinct" {
   ).unwrap()
   check_join_property(actual)
   let body = semantic(actual)
-  assert_true(body.contains("\"property\":{\"name\":\"score\""))
-  assert_true(body.contains("\"fields\":[\"object_score\",\"range_score\"]"))
+  assert_false(body.contains("\"property\":{\"name\":\"score\""))
+  assert_true(
+    body.contains("\"fields\":[\"parenthesized_score\",\"range_score\"]"),
+  )
 }
 
 ///|
@@ -114,18 +116,37 @@ test "JOIN range properties retain precise unknown-range and work refusals" {
     "SELECT ((l)).missing AS value FROM objects AS l JOIN others AS r ON l.id = r.id",
     syntax_limits(),
   ).unwrap()
-  assert_true(
-    compile(query, join_property_context(), construction_limits())
-    is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
-  )
-  assert_true(
-    compile_query_script(
-      @query.single_query_script(query),
-      join_property_context(),
-      construction_limits(),
+  // The ordinary row receiver exists. Its missing property is a common
+  // closed-object typing failure, not an unresolved range name.
+  for
+    p in [
+      compile(query, join_property_context(), construction_limits()).unwrap(),
+      compile_query_script(
+        @query.single_query_script(query),
+        join_property_context(),
+        construction_limits(),
+      ).unwrap(),
+    ] {
+    guard @check.check_parsed(p, check_environment(), None, check_limits())
+      is Rejected(issue) else {
+      fail("unknown joined row property accepted")
+    }
+    assert_true(
+      @check.diagnostic_cause(issue)
+      is Source(
+        SourceView(
+          Program(
+            Program(
+              Pipeline(
+                _,
+                { kind: Operation(Expression(UnknownField("missing"))), .. }
+              )
+            )
+          )
+        )
+      ),
     )
-    is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
-  )
+  }
   let bounded = @query.parse_query(
     "SELECT ((l)).payload.score FROM objects AS l JOIN others AS r ON l.id = r.id",
     syntax_limits(),

@@ -52,6 +52,9 @@ for (const [source, destination] of [
   ['scripts/fixtures/array-literal-source-input.mjs', 'array-literal-source-input.mjs'],
   ['scripts/fixtures/unnest-source-input.mjs', 'unnest-source-input.mjs'],
   ['scripts/fixtures/pipe-unpivot-source-input.mjs', 'pipe-unpivot-source-input.mjs'],
+  ['scripts/fixtures/unpivot-multicolumn-source-input.mjs', 'unpivot-multicolumn-source-input.mjs'],
+  ['scripts/fixtures/unpivot-row-label-source-input.mjs', 'unpivot-row-label-source-input.mjs'],
+  ['scripts/fixtures/from-unpivot-source-input.mjs', 'from-unpivot-source-input.mjs'],
   ['scripts/fixtures/correlated-unnest-source-input.mjs', 'correlated-unnest-source-input.mjs'],
   ['scripts/fixtures/correlated-unnest-star-source-input.mjs', 'correlated-unnest-star-source-input.mjs'],
   ['scripts/fixtures/joined-unnest-star-source-input.mjs', 'joined-unnest-star-source-input.mjs'],
@@ -81,6 +84,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/aggregate-member-call-reuse-source-input.mjs', 'aggregate-member-call-reuse-source-input.mjs'],
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
+  ['scripts/fixtures/cte-value-table-source-input.mjs', 'cte-value-table-source-input.mjs'],
+  ['scripts/fixtures/cte-value-table-receipts.mjs', 'cte-value-table-receipts.mjs'],
   ['scripts/fixtures/analytic-frame-parameter-source-input.mjs', 'analytic-frame-parameter-source-input.mjs'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-following.program.json', 'analytic-frame-parameter.reversed-following.program.json'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-preceding.program.json', 'analytic-frame-parameter.reversed-preceding.program.json'],
@@ -106,6 +111,15 @@ for (const [source, destination] of [
   ['scripts/fixtures/statistical-aggregate-source-input.mjs', 'statistical-aggregate-source-input.mjs'],
   ['scripts/fixtures/graph-subtraction-source-input.mjs', 'graph-subtraction-source-input.mjs'],
   ['scripts/fixtures/graph-union-source-input.mjs', 'graph-union-source-input.mjs'],
+  ['scripts/fixtures/graph-graft-source-input.mjs', 'graph-graft-source-input.mjs'],
+  ['scripts/fixtures/graph-reach-source-input.mjs', 'graph-reach-source-input.mjs'],
+  ['scripts/fixtures/graph-shortest-source-input.mjs', 'graph-shortest-source-input.mjs'],
+  ['scripts/fixtures/graph-mean-source-input.mjs', 'graph-mean-source-input.mjs'],
+  ['scripts/fixtures/input-stage-result.mjs', 'input-stage-result.mjs'],
+  ['scripts/fixtures/typed-subscript-input.mjs', 'typed-subscript-input.mjs'],
+  ['scripts/graph-public-failure.test.mjs', 'graph-public-failure.test.mjs'],
+  ['scripts/fixtures/graph-remaining-operation-inputs.mjs', 'graph-remaining-operation-inputs.mjs'],
+  ['scripts/fixtures/retained-graph-observer.mjs', 'retained-graph-observer.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs'],
@@ -211,7 +225,11 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
 for (const path of ['fixtures/graph-host-cases.mjs', 'fixtures/graph-delta-application.mjs',
-  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs']) {
+  'fixtures/graph-snapshot-failure-store.mjs', 'fixtures/retained-graph-observer.mjs',
+  'fixtures/input-stage-result.mjs',
+  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs', 'fixtures/graph-reach-source-input.mjs',
+  'fixtures/graph-shortest-source-input.mjs', 'fixtures/graph-mean-source-input.mjs',
+  'fixtures/graph-graft-source-input.mjs', 'fixtures/graph-union-source-input.mjs']) {
   await writeFile(join(root, path), await readFile(join(repository, 'scripts', path)));
 }
 await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
@@ -368,6 +386,29 @@ if (process.argv.includes('--graph-subtraction-only')) {
 if (process.argv.includes('--graph-union-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_UNION_ONLY = '1';
 }
+if (process.argv.includes('--graph-graft-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_GRAFT_ONLY = '1';
+}
+if (process.argv.includes('--graph-reach-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_REACH_ONLY = '1';
+}
+if (process.argv.includes('--graph-shortest-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_SHORTEST_ONLY = '1';
+  // Reuse the existing narrow Graph transport profile and retained rereads.
+  runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_ONLY = '1';
+}
+if (process.argv.includes('--graph-mean-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_MEAN_ONLY = '1';
+}
+if (process.argv.includes('--input-stage-result-only')) {
+  runtimeEnvironment.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY = '1';
+}
+if (process.argv.includes('--typed-subscript-only')) {
+  runtimeEnvironment.ACTQL_TEST_TYPED_SUBSCRIPT_ONLY = '1';
+}
+if (process.argv.includes('--graph-remaining-operations-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY = '1';
+}
 if (process.argv.includes('--min-max-distinct-only')) {
   runtimeEnvironment.ACTQL_TEST_MIN_MAX_DISTINCT_ONLY = '1';
 }
@@ -431,6 +472,15 @@ if (process.argv.includes('--unnest-checked-array-only')) {
 if (process.argv.includes('--unnest-parameter-path-only')) {
   runtimeEnvironment.ACTQL_TEST_UNNEST_PARAMETER_PATH_ONLY = '1';
 }
+if (process.argv.includes('--unpivot-multicolumn-only')) {
+  runtimeEnvironment.ACTQL_TEST_UNPIVOT_MULTICOLUMN_ONLY = '1';
+}
+if (process.argv.includes('--unpivot-row-label-only')) {
+  runtimeEnvironment.ACTQL_TEST_UNPIVOT_ROW_LABEL_ONLY = '1';
+}
+if (process.argv.includes('--from-unpivot-only')) {
+  runtimeEnvironment.ACTQL_TEST_FROM_UNPIVOT_ONLY = '1';
+}
 if (process.argv.includes('--pipe-unpivot-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_UNPIVOT_ONLY = '1';
 }
@@ -442,6 +492,9 @@ if (process.argv.includes('--source-free-only')) {
 }
 if (process.argv.includes('--data-set-strategy-only')) {
   runtimeEnvironment.ACTQL_TEST_DATA_SET_STRATEGY_ONLY = '1';
+}
+if (process.argv.includes('--cte-value-table-only')) {
+  runtimeEnvironment.ACTQL_TEST_CTE_VALUE_TABLE_ONLY = '1';
 }
 if (process.argv.includes('--query-composition-only')) {
   runtimeEnvironment.ACTQL_TEST_QUERY_COMPOSITION_ONLY = '1';
@@ -658,7 +711,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--unpivot-multicolumn-only', '--unpivot-row-label-only', '--from-unpivot-only', '--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-graft-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -670,6 +723,12 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--match-data-producer-only', '--graph-match-only',
   '--graph-diagnostics-only',
+  '--graph-reach-only',
+  '--graph-shortest-only',
+  '--graph-mean-only',
+  '--input-stage-result-only',
+  '--typed-subscript-only',
+  '--graph-remaining-operations-only',
   '--graph-projection-property-only',
   '--source-graph-member-only',
   '--graph-property-predicate-only',
@@ -677,7 +736,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--pipe-pivot-only', '--pip
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
+  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--cte-value-table-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
@@ -732,7 +791,19 @@ try {
   if (acceptanceStarted) {
     const reports = ['transport-processes.json',
       ...(process.argv.includes('--two-source-only') ? [] :
-        ['transport-completion.local.json', 'transport-completion.remote.json'])];
+        ['transport-completion.local.json', 'transport-completion.remote.json']),
+      ...((process.argv.includes('--cte-value-table-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['cte-value-table-receipts.local.json', 'cte-value-table-receipts.remote.json'] : []),
+      ...((process.argv.includes('--from-unpivot-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['from-unpivot-receipts.local.json', 'from-unpivot-receipts.remote.json'] : []),
+      ...((process.argv.includes('--unpivot-multicolumn-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['unpivot-multicolumn-receipts.local.json', 'unpivot-multicolumn-receipts.remote.json'] : []),
+      ...((process.argv.includes('--unpivot-row-label-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['unpivot-row-label-receipts.local.json', 'unpivot-row-label-receipts.remote.json'] : [])];
     await retainTransportReports(reports, acceptanceSucceeded, packedFailure, 'transport-evidence-index.json');
   }
   try {
@@ -750,12 +821,50 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
+  let succeeded = false, primary;
+  try {
+    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
+      {...runtimeEnvironment, ...extraEnvironment,
+        ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120_000).trimEnd());
+    succeeded = true;
+  } catch (error) { primary = error; throw error; }
+  finally {
+    await retainTransportReports(['transport-restart-processes.json',
+      'transport-restart.local.json', 'transport-restart.remote.json'],
+    succeeded, primary, 'transport-restart-evidence-index.json');
+  }
+}
+if (process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-reach-only') ||
+    process.argv.includes('--input-stage-result-only') ||
+    process.argv.includes('--typed-subscript-only') ||
+    process.argv.includes('--graph-mean-only') ||
+    process.argv.includes('--graph-remaining-operations-only') ||
+    process.argv.includes('--graph-shortest-only')) {
+  // The Local and HTTPS producers have exited. Read the original retained
+  // selected Results in new processes; no String fixture was selected.
+  await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});
+  if (process.argv.includes('--input-stage-result-only')) {
+    await mkdir(join(root, 'tls'));
+    await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
+    await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
+    await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
+    // Reuse the existing real-Store failure harness, not a second custody owner.
+    console.log(run(process.execPath, ['--test', 'graph-public-failure.test.mjs'], root,
+      {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1', ACTQL_TEST_INPUT_STAGE_RESULT_ONLY: '1'},
+      180000).trimEnd());
+  }
+  return;
+}
 if (process.argv.includes('--source-graph-member-only')) return;
 if (process.argv.includes('--negated-predicate-reuse-only')) return;
 if (process.argv.includes('--membership-expression-reuse-only')) return;
 if (process.argv.includes('--in-unnest-literal-array-only')) return;
 if (process.argv.includes('--array-literal-only')) return;
 if (process.argv.includes('--correlated-unnest-only')) return;
+if (process.argv.includes('--unpivot-multicolumn-only')) return;
+if (process.argv.includes('--unpivot-row-label-only')) return;
+if (process.argv.includes('--from-unpivot-only')) return;
 if (process.argv.includes('--pipe-unpivot-only')) return;
 if (process.argv.includes('--unnest-source-only')) return;
 if (process.argv.includes('--unnest-checked-array-only')) return;
@@ -786,7 +895,7 @@ if (process.argv.includes('--pipe-pivot-only')) return;
 if (process.argv.includes('--between-only')) return;
 if (process.argv.includes('--countif-distinct-only')) return;
 if (process.argv.includes('--select-all-only')) return;
-if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--distinct-aggregate-order-only') || process.argv.includes('--analytic-distinct-frame-only') || process.argv.includes('--set-corresponding-only') || process.argv.includes('--set-inner-by-name-only') || process.argv.includes('--set-by-name-list-only') || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
+if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--distinct-aggregate-order-only') || process.argv.includes('--analytic-distinct-frame-only') || process.argv.includes('--set-corresponding-only') || process.argv.includes('--set-inner-by-name-only') || process.argv.includes('--set-by-name-list-only') || process.argv.includes('--short-rows-only') || process.argv.includes('--order-window-only') || process.argv.includes('--window-scalar-only') || process.argv.includes('--analytic-string-agg-only') || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-graft-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
     process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-coalesce-reuse-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
@@ -803,20 +912,10 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-abbreviated-only',
   '--graph-quantifier-forms-only',
   '--group-by-all-only', '--group-property-only', '--pipe-aggregate-order-only', '--pipe-aggregate-expression-only', '--sql-grouped-subexpression-only', '--having-grouped-subexpression-only', '--order-grouped-subexpression-only', '--grouped-implicit-property-names-only', '--group-having-implicit-aliases-only',
-  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--query-composition-only', '--pipe-result-only',
+  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--concat-expression-reuse-only', '--cte-value-table-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
-  let restartSucceeded = false, restartFailure;
-  try {
-    console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
-      {...runtimeEnvironment, ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120000).trimEnd());
-    restartSucceeded = true;
-  } catch (error) { restartFailure = error; throw error; }
-  finally {
-    await retainTransportReports(['transport-restart-processes.json',
-      'transport-restart.local.json', 'transport-restart.remote.json'],
-    restartSucceeded, restartFailure, 'transport-restart-evidence-index.json');
-  }
+  await exerciseRetainedQueryRestart();
 }
 if (process.argv.includes('--select-all-only') || process.argv.includes('--typed-json-literal-only') || process.argv.includes('--limit-parameter-only') || process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--analytic-profiles-only') ||
@@ -852,6 +951,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--computed-object-property-only') ||
   process.argv.includes('--source-free-only') ||
   process.argv.includes('--data-set-strategy-only') ||
+  process.argv.includes('--cte-value-table-only') ||
   process.argv.includes('--query-composition-only') ||
   process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--relation-data-only') ||

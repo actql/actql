@@ -300,7 +300,9 @@ fn poll_once(
       Err("dispatch requires a runtime-linked Site component")
     Some(@remote.RetainedPlan(_))
     | Some(@remote.RetainedTransfer(_))
-    | Some(@remote.RetainedCurrent(_)) =>
+    | Some(@remote.RetainedCurrent(_))
+    | Some(@remote.EffectCurrent(_))
+    | Some(@remote.EffectResume(_)) =>
       Err("retained input planning requires the resident producer owner")
     Some(@remote.Plan(_)) | Some(@remote.Output(_)) =>
       Err("output requires an application-linked Site component")
