@@ -12,6 +12,7 @@ priv struct HolderEffectCatalogReviewCustody {
   max_observation_bytes : Int
   crypto : @signature.Library
   key : Bytes
+  checkpoint_absent : () -> Bool
   mut observed : (
     @effect_catalog.CatalogObservation,
     @effect_resource.NativeCredentialResponse,
@@ -25,6 +26,11 @@ priv struct HolderEffectCatalogReviewCustody {
   // preparation failed. A later save failure cannot replace that evidence.
   mut read_issue : @effect_review.NativeSalesforceNamedCatalogIssue?
   mut read_failure : @effect_review.NativeSalesforceCatalogCustodyFailure?
+  // The credential Owner supplies the original use, not Catalog/transport
+  // bytes. These are restoration observations, never permission to resend.
+  mut original_use : @effect_resource.NativeCredentialUseStatus?
+  mut query_issue : @effect_resource.NativeCredentialResourceIssue?
+  mut restore_issue : @publication_store.NativePublicationStoreIssue?
 }
 
 ///|
@@ -66,6 +72,7 @@ fn new_holder_effect_catalog_review_custody(
   max_observation_bytes : Int,
   crypto : @signature.Library,
   key : Bytes,
+  checkpoint_absent : () -> Bool,
 ) -> HolderEffectCatalogReviewCustody {
   {
     installation,
@@ -77,6 +84,7 @@ fn new_holder_effect_catalog_review_custody(
     max_observation_bytes,
     crypto,
     key,
+    checkpoint_absent,
     observed: None,
     context: None,
     retiring: false,
@@ -85,6 +93,9 @@ fn new_holder_effect_catalog_review_custody(
     custody: None,
     read_issue: None,
     read_failure: None,
+    original_use: None,
+    query_issue: None,
+    restore_issue: None,
   }
 }
 
@@ -100,6 +111,19 @@ fn HolderEffectCatalogReviewCustody::close(
       return false
     }
     self.context = None
+  }
+  if !self.catalog_cleanup_confirmed && self.custody is None {
+    if self.original_use is Some(_) {
+      // Cleanup can restore exact original evidence without renewing current
+      // disclosure permission. It still requires the authenticated Store/use.
+      ignore(self.restore_original_catalog())
+      if self.custody is None {
+        return false
+      }
+    } else if self.query_issue is Some(_) {
+      // Failed observation is not absence of an older physical use or Store.
+      return false
+    }
   }
   if self.custody is None && self.observed is Some(_) {
     // Saving original read evidence is not disclosure or another Provider call.
@@ -139,6 +163,9 @@ fn HolderEffectCatalogReviewCustody::close(
   }
   self.read_failure = None
   self.read_issue = None
+  self.original_use = None
+  self.query_issue = None
+  self.restore_issue = None
   true
 }
 
@@ -163,8 +190,16 @@ fn HolderEffectCatalogReviewCustody::confirm_catalog(
   if self.observed is Some(_) {
     return self.save_observed_catalog(current)
   }
+  if self.original_use is Some(_) || self.query_issue is Some(_) {
+    return self.confirm_restored_catalog(current)
+  }
   if self.read_started {
     return false
+  }
+  match self.query_original_catalog_use() {
+    Ok(Some(_)) => return self.confirm_restored_catalog(current)
+    Ok(None) => ()
+    Err(_) => return false
   }
   self.read_started = true
   match
@@ -180,6 +215,127 @@ fn HolderEffectCatalogReviewCustody::confirm_catalog(
       false
     }
   }
+}
+
+///|
+/// A missing original claim is supplied only by the existing credential
+/// journal. The physical-read Owner still performs its atomic claim, so a
+/// competing claim after this query cannot become a second Provider call.
+fn HolderEffectCatalogReviewCustody::query_original_catalog_use(
+  self : HolderEffectCatalogReviewCustody,
+) -> Result[@effect_resource.NativeCredentialUseStatus?, Unit] {
+  let installed = self.installation
+  match
+    @effect_resource.query_native_credential_use(
+      installed.service,
+      installed.grant,
+      installed.use_id,
+      installed.scope,
+    ) {
+    Ok(status) => {
+      if self.original_use is Some(original) &&
+        original.use_cid != status.use_cid {
+        self.query_issue = Some(@effect_resource.Journal(@sqlite.Collision))
+        return Err(())
+      }
+      self.original_use = Some(status)
+      self.read_started = true
+      self.query_issue = None
+      Ok(Some(status))
+    }
+    Err(@effect_resource.Journal(@sqlite.NotFound)) if !self.read_started &&
+      self.original_use is None &&
+      (self.checkpoint_absent)() => {
+      self.query_issue = None
+      Ok(None)
+    }
+    Err(issue) => {
+      self.query_issue = Some(issue)
+      Err(())
+    }
+  }
+}
+
+///|
+/// Only the journal's exact missing-report result allows the initial claim
+/// path. A retained report or a failed observation cannot hide a missing use
+/// by initiating another Catalog read. This absence is not read permission.
+fn holder_catalog_checkpoint_missing(
+  issue : @journal.NativeRemoteJournalIssue,
+) -> Bool {
+  issue is @journal.Physical(@sqlite.NotFound)
+}
+
+///|
+/// Fixed local reasons expose neither configured contents nor response bytes.
+fn HolderEffectCatalogReviewCustody::pending_reason(
+  self : HolderEffectCatalogReviewCustody,
+) -> String {
+  if self.restore_issue is Some(_) {
+    "catalog-restoration"
+  } else if self.query_issue is Some(_) {
+    "catalog-use-observation"
+  } else {
+    "original-custody"
+  }
+}
+
+///|
+fn holder_catalog_use_succeeded(
+  original : @effect_resource.NativeCredentialUseStatus,
+) -> Bool {
+  original.outcome == "succeeded" && original.status == Some(200)
+}
+
+///|
+/// Restore only the scoped original Store record, including cleanup-only
+/// tombstones. Missing/corrupt bytes retain responsibility and never start a
+/// replacement read or reserve another observation holding.
+fn HolderEffectCatalogReviewCustody::restore_original_catalog(
+  self : HolderEffectCatalogReviewCustody,
+) -> Bool {
+  guard self.original_use is Some(original) else { return false }
+  match
+    self.store.restore_effect_catalog_custody(
+      self.installation.binding,
+      self.installation.resource,
+      original.use_cid,
+      self.describe_limits,
+      self.crypto,
+      self.key,
+    ) {
+    Ok(custody) => {
+      self.custody = Some(custody)
+      self.restore_issue = None
+      true
+    }
+    Err(issue) => {
+      self.restore_issue = Some(issue)
+      false
+    }
+  }
+}
+
+///|
+/// Read-only reconciliation may observe a later terminal credential record,
+/// but its original use must remain identical. Unknown/claimed outcomes cannot
+/// authorize Catalog adoption; restoration is not evidence-read permission.
+fn HolderEffectCatalogReviewCustody::confirm_restored_catalog(
+  self : HolderEffectCatalogReviewCustody,
+  current : () -> Bool,
+) -> Bool {
+  if !current() {
+    return false
+  }
+  guard self.query_original_catalog_use() is Ok(Some(original)) &&
+    holder_catalog_use_succeeded(original) &&
+    current() &&
+    self.restore_original_catalog() &&
+    self.custody is Some(custody) else {
+    return false
+  }
+  @effect_review.retry_native_salesforce_catalog_custody(custody, current)
+  is Ok(_)
 }
 
 ///|
