@@ -211,7 +211,6 @@ fn lower_script_bindings(
         carry_ranges=binding.carry_ranges,
         retain_value_table=true,
         graphs=body_graphs,
-        allow_nonrelation=true,
       )
     }
     if !binding.carry_ranges &&

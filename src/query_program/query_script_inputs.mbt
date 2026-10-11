@@ -7,8 +7,6 @@ priv struct ScriptSources {
   ranges : Map[String, JoinChainScope]
   value_tables : Map[String, JoinChainScope]
   binding_ranges : Array[ScriptBindingRange]
-  carriers : Map[String, @carrier.Carrier]
-  mut carrier_work : Int
 }
 
 ///|
