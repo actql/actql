@@ -38,6 +38,49 @@ Closing a Work does not create a replacement send fence. Missing use/response
 custody, denied disclosure or expired/revoked material refuses without repairing
 the original outcome or allocating another use.
 
+The original Account resource is retained privately beside a Preparation grant
+under its existing operation row key. Its supplier is the original checked
+member/target and selected Provider through the live preparation fence. The
+closed record binds the operation, grant, original request scope, Host adoption,
+Run invocation, checked occurrence, issuer selection, Provider file/selection
+and Account resource. The existing original private epoch key authenticates the
+closed payload with HMAC-SHA-256 before it is stored or consumed. It changes
+neither public grant bytes nor the operation
+identity. Fresh grant and target inserts share the same original journal
+transaction. An exact replay verifies both immutable rows; a retained grant
+without its target cannot be backfilled. Foreign targets, changed Providers,
+orphan target rows and altered originals refuse. Missing legacy target material
+remains unavailable for disclosure rather than causing reacquisition.
+
+Both rows count toward the existing 65536-byte original-grant bucket for that
+Run, including their actual encoded byte lengths. The 64-grant per-Run bound,
+Host record-count bound and physical database ceiling remain unchanged. No raw
+Store reservation or payload pool is created by target retention. The target payload is at most 3072 bytes, before base64 and its 64-character
+authentication tag. The authenticated envelope uses the existing bounded setting codec: at most 8192 input/output bytes,
+64 syntax/encoding nodes, depth four, 4096 bytes per decoded string and 8192
+total decoded string bytes. These are separate tree/control workspace bounds,
+not ciphertext sizes. Checked resource/file strings are borrowed until the
+original bucket is reserved. The simultaneously retained grant/payload/envelope buffers are
+bounded by 49152 grant bytes + 3072 payload bytes + 4183 envelope bytes =
+56407 bytes; custody audits decode one row at a time
+and retain only the existing bounded per-Run usage map. Additional base64 strings are bounded by 4096 characters, the tag by 64, and
+codec buffers by their selected 3072-byte payload/8192-byte envelope limits.
+Authentication/base64 decode also uses at most 3072 payload bytes; each decoded
+target and envelope tree has at most 64 nodes and depth four. These buffers and
+tree/control bounds are workspace costs, separate from retained Store payloads.
+Database record limits,
+physical file identity and Store workspace limits still apply independently.
+
+A post-closure reader accepts only the exact original grant reference and an
+already-open Store matching the original Run publication binding. It validates
+the saved target and currently adopted configuration, then independently checks
+current Account permissions for the original Run and resource. It obtains no
+issuer issue authority, Work, installation secret or HTTP client. Missing grant
+and target originals are typed unavailable conditions; neither can be repaired
+by a lookup. Current authorization and Store custody bracket each credential
+read-only lookup and the final return. Original use/outcome/raw-envelope checks,
+expiry, revocation and cleanup custody stay with the credential and Store Owners.
+
 The private raw Store AES key is derived as HMAC-SHA-256 using the existing
 authenticated private epoch key. The UTF-8 message is the closed, value-preserving
 JSON object, in this order: `adoption_cid`, `domain`, `store_binding`.

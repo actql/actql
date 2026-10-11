@@ -283,3 +283,30 @@ test "Native preparation lookup refuses foreign references and lost original cus
   )
   host.close().unwrap()
 }
+
+///|
+test "Native preparation reference matching does not accept another admitted submission request" {
+  let (host, _, mutation) = local_grant_storage_fixture(
+    "preparation-request-match",
+  )
+  let original = local_preparation_storage_original(
+    host, mutation, "observe-original-match",
+  )
+  let reference = admit_native_local_preparation_grant_reference(
+    epoch_test_crypto(),
+    original.operation_cid,
+    local_grant_original_packet(original).unwrap(),
+  ).unwrap()
+  assert_true(reference.matches_original_request(original.request))
+  let (foreign, _, _, _) = journal_test_run(
+    "different-submission",
+    "original-run",
+    scope=@host.client_request_authority_scope_cid(original.request),
+  )
+  assert_false(reference.matches_original_request(foreign))
+  assert_eq(
+    host.database.read("client_local_grant_custody", "issued").unwrap().revision,
+    0L,
+  )
+  host.close().unwrap()
+}

@@ -31,6 +31,84 @@ fn accepted_effect_work_fixture(
 }
 
 ///|
+// Original journal/claim records, not Source I/O or physical-cleanup evidence.
+// Material lookup must not reopen a cancelled or possibly started original.
+test "Native live original materials do not reset cancelled or claimed Effect work" {
+  for cancelled in [true, false] {
+    let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
+      "original-effect-live-material-" + cancelled.to_string(),
+    )
+    let prepared = @host.client_effect_compilation_owner(allowed.compilation)
+    let issued = @host.issue_prepared_client_effect_normalization_materials(
+      allowed,
+      definition,
+      @host.issue_prepared_client_effect_normalization(prepared).unwrap(),
+      request=Some(request),
+    ).unwrap()
+    if cancelled {
+      let record = journal.retained(request).unwrap().unwrap()
+      let action = @host.prepare_client_run_cancellation(
+        record.definition,
+        @publication.publication_contract_identity(definition),
+        true,
+        false,
+        record.cancellation_requested,
+      ).unwrap()
+      assert_true(action == @host.AcceptCancellation)
+      journal
+      .transaction(() => {
+        let record = journal.retained(request).unwrap().unwrap()
+        journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
+      })
+      .unwrap()
+    } else {
+      claim_native_client_effect_work_start(
+        journal,
+        request,
+        allowed,
+        definition,
+        () => true,
+      ).unwrap()
+      |> ignore
+    }
+    let before = journal.retained(request).unwrap().unwrap()
+    let original = run_record_body(before).unwrap()
+    let capacity = run_journal_custody(database, 8).unwrap()
+    for _ in 0..<2 {
+      let materials = @host.bind_prepared_client_effect_original_materials(
+        allowed,
+        definition,
+        issued,
+        request=Some(request),
+      ).unwrap()
+      assert_true(physical_equal(materials.prepared, prepared))
+      assert_true(physical_equal(materials.allowed, allowed))
+      assert_eq(materials.request, Some(request))
+      assert_eq(
+        run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
+        original,
+      )
+      assert_eq(run_journal_custody(database, 8).unwrap(), capacity)
+      assert_true(
+        claim_native_client_effect_work_start(
+          journal,
+          request,
+          materials.allowed,
+          materials.run_definition,
+          () => true,
+        )
+        is Err(NeedsOriginalReconciliation),
+      )
+      assert_eq(
+        run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
+        original,
+      )
+    }
+    database.close_checked().unwrap()
+  }
+}
+
+///|
 test "Native original Effect work claim remains single across journal reopen" {
   let name = "original-effect-single-claim"
   let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(

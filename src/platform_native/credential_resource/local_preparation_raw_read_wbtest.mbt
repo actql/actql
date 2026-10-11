@@ -179,8 +179,23 @@ test "Raw journal lookup reopens original unknown use without transport or outco
   )
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_eq(store.capacity_usage().unwrap().reserved_objects, 0L)
-  reopened.close_checked().unwrap()
   store.close().unwrap() |> ignore
+  // Delayed metadata return rechecks the same original use/fence after Store
+  // cleanup. It does not restore the deleted raw slot or read the body again.
+  view.authorize_return("observe-use").unwrap()
+  assert_eq(
+    reopened.read(outcome_scope(grant_cid), "observe-use").unwrap().body,
+    b"unknown\n",
+  )
+  assert_eq(
+    reopened.read(use_scope(grant_cid), "observe-use").unwrap().body,
+    original_row.body,
+  )
+  assert_true(
+    view.authorize_return("missing-original-use")
+    is Err(Journal(@sqlite.NotFound)),
+  )
+  reopened.close_checked().unwrap()
 }
 
 ///|
@@ -205,6 +220,7 @@ test "Raw journal lookup refuses current denial expiry and revocation after call
   ).unwrap()
   assert_true(denied.lookup("observe-use") is Err(AccessDenied))
   assert_eq(stages, ["query"])
+  assert_true(denied.authorize_return("observe-use") is Err(AccessDenied))
   let stopped = bind_native_local_preparation_raw_lookup_with_clock(
     database,
     raw,
@@ -215,6 +231,7 @@ test "Raw journal lookup refuses current denial expiry and revocation after call
     () => 1999999999999L,
   ).unwrap()
   assert_true(stopped.lookup("observe-use") is Err(AccessDenied))
+  assert_true(stopped.authorize_return("observe-use") is Err(AccessDenied))
   let expired_grant = @credential.prepare_local_preparation_credential_grant(
     "local-authority-a", scope, 1999999999999L, 2,
   ).unwrap()
@@ -231,6 +248,10 @@ test "Raw journal lookup refuses current denial expiry and revocation after call
   // case is independent of the subsequent revocation of the original grant.
   assert_true(
     expired.lookup("observe-use")
+    is Err(Credential(@credential.CredentialGrantInactive)),
+  )
+  assert_true(
+    expired.authorize_return("observe-use")
     is Err(Credential(@credential.CredentialGrantInactive)),
   )
   let revoked = bind_native_local_preparation_raw_lookup_with_clock(
@@ -252,6 +273,10 @@ test "Raw journal lookup refuses current denial expiry and revocation after call
   ).unwrap()
   assert_true(
     revoked.lookup("observe-use")
+    is Err(Credential(@credential.CredentialGrantInactive)),
+  )
+  assert_true(
+    revoked.authorize_return("observe-use")
     is Err(Credential(@credential.CredentialGrantInactive)),
   )
   assert_eq(

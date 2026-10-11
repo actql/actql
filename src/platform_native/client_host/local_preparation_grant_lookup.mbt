@@ -184,3 +184,14 @@ pub fn NativeLocalHostConnection::lookup_preparation_grant_operation(
     None => Ok(UnresolvedOriginal)
   }
 }
+
+///|
+/// Compare this identity-only reference with the original admitted Run request.
+/// Matching is neither current authorization nor a grant adoption/use permit.
+pub fn NativeLocalPreparationGrantReference::matches_original_request(
+  self : NativeLocalPreparationGrantReference,
+  request : @host.ClientRequestIdentity,
+) -> Bool {
+  @host.client_request_identity_relation(self.original.request, request)
+  is @host.SameRequest
+}

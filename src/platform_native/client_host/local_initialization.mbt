@@ -52,8 +52,8 @@ fn initialize_native_local_client_rows(
       "client_effect_response_bytes", "client_effect_row_receipt", "client_cancellations",
       "client_cancel_custody", "client_cancel_originals", "client_submitted_intent_custody",
       "client_submitted_intents", "client_local_read_custody", "client_local_read_evidence",
-      "client_local_grant_custody", "client_local_grant_originals", "client_local_installation_custody",
-      "client_local_installation_originals",
+      "client_local_grant_custody", "client_local_grant_originals", "client_local_preparation_target_originals",
+      "client_local_installation_custody", "client_local_installation_originals",
     ] {
     match database.scan_after(record_namespace, "") {
       Err(@sqlite.NotFound) => ()

@@ -318,8 +318,12 @@ fn execute_native_local_adoption(
       )
     } else if operation == "lookup-submission" {
       local_submission_lookup(host, settings, crypto, root, child)
+    } else if operation == "checkpoint-state" {
+      local_checkpoint_metadata_lookup(host, settings, crypto, root, child)
     } else if operation == "lookup-preparation-grant" {
       local_preparation_grant_lookup(host, settings, crypto, root, child)
+    } else if operation == "lookup-preparation-raw" {
+      local_preparation_raw_lookup(host, settings, crypto, sqlite, root, child)
     } else if operation == "lookup-cancellation" {
       local_cancellation_lookup(host, settings, crypto, root, child)
     } else if operation == "cancel" {

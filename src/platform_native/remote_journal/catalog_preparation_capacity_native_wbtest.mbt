@@ -105,6 +105,7 @@ test "Catalog preparation rejects foreign replaced and missing original custody"
     is Err(Journal(StateCollision)),
   )
   let replaced = journal.database.read("site_initial_catalog_use", cid).unwrap()
+  journal.database.begin_immediate().unwrap()
   journal.database
   .remove_exact(
     "site_initial_catalog_use",
@@ -114,6 +115,7 @@ test "Catalog preparation rejects foreign replaced and missing original custody"
   )
   .unwrap()
   |> ignore
+  journal.database.commit().unwrap()
   assert_true(
     journal.read_catalog_preparation_capacity(custody, envelope)
     is Err(Journal(Physical(@sqlite.NotFound))),

@@ -184,10 +184,12 @@ test "lost funded Catalog claim response and missing stamp cannot become another
   )
   let cid = @remote.dispatch_request_identity(request)
   let saved = journal.database.read("site_initial_catalog_use", cid).unwrap()
+  journal.database.begin_immediate().unwrap()
   journal.database
   .remove_exact("site_initial_catalog_use", cid, saved.revision, saved.body)
   .unwrap()
   |> ignore
+  journal.database.commit().unwrap()
   assert_true(
     journal.read_funded_initial_catalog_use(custody)
     is Err(Physical(@sqlite.NotFound)),

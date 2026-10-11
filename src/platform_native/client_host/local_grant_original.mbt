@@ -16,7 +16,10 @@ fn initialize_local_grant_originals(
   database : @sqlite.Database,
   adoption : Bytes,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  for table in ["client_local_grant_custody", "client_local_grant_originals"] {
+  for
+    table in [
+      "client_local_grant_custody", "client_local_grant_originals", "client_local_preparation_target_originals",
+    ] {
     match database.scan_after(table, "") {
       Err(@sqlite.NotFound) => ()
       Ok(_) => return Err(CustodyLost)
@@ -307,6 +310,56 @@ fn NativeLocalHostConnection::local_grant_custody(
     }
     cursor = row.key
   }
+  // Optional old target absence is not repaired. Every retained target row
+  // must instead have an immutable original Preparation grant in this bucket.
+  let mut target_cursor = ""
+  let mut targets = 0
+  while true {
+    let row = match
+      self.database.scan_after(
+        "client_local_preparation_target_originals", target_cursor,
+      ) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    targets += 1
+    if targets > count {
+      return Err(CustodyLost)
+    }
+    let grant_row = match
+      self.database.read("client_local_grant_originals", row.key) {
+      Ok(value) => value
+      Err(_) => return Err(CustodyLost)
+    }
+    let original = match
+      read_local_grant_original(crypto, {
+        key: row.key,
+        body: grant_row.body,
+        revision: grant_row.revision,
+      }) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let target = match
+      read_local_preparation_target_record(self, original, row) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if !self.session.settings.files.any(file => {
+        file.name == target.provider_file_name &&
+        file.content_cid == target.provider_selection_cid
+      }) {
+      return Err(CustodyLost)
+    }
+    let scope = @host.client_request_scope_cid(original.request)
+    guard runs.get(scope) is Some((entries, bytes)) &&
+      row.body.length() <= 65536 - bytes else {
+      return Err(CustodyLost)
+    }
+    runs[scope] = (entries, bytes + row.body.length())
+    target_cursor = row.key
+  }
   guard observed == count &&
     self.database.capacity_usage("client_local_grant_originals") is Ok(usage) &&
     usage.reserved_objects == runs.length().to_int64() &&
@@ -516,7 +569,11 @@ fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
   self : NativeLocalCredentialIssuerBinding,
   original : NativeLocalGrantOriginal,
   current : () -> Result[Unit, NativeClientRunJournalIssue],
+  target? : NativeLocalPreparationOriginalTarget? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  if (original.grant is PreparationGrant(_)) != (target is Some(_)) {
+    return Err(ChangedIntent)
+  }
   let scope = local_original_grant_facts(original.grant)
   let (count, revision, runs) = match
     self.host.local_grant_custody(self.crypto) {
@@ -591,13 +648,36 @@ fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let target_packet = match target {
+    Some(value) =>
+      match local_preparation_target_record(self.host, original, value) {
+        Ok(body) => Some(body)
+        Err(issue) => return Err(issue)
+      }
+    None => None
+  }
   match self.host.database.read("client_local_grant_originals", key) {
-    Ok(row) if row.revision == 0L && row.body == packet => return current()
+    Ok(row) if row.revision == 0L && row.body == packet => {
+      if target_packet is Some(body) {
+        match
+          self.host.database.read(
+            "client_local_preparation_target_originals", key,
+          ) {
+          Ok(saved) if saved.revision == 0L && saved.body == body => ()
+          Ok(_) => return Err(ChangedIntent)
+          Err(@sqlite.NotFound) => return Err(CustodyLost)
+          Err(issue) => return Err(Physical(issue))
+        }
+      }
+      return current()
+    }
     Ok(_) => return Err(ChangedIntent)
     Err(@sqlite.NotFound) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  if entries >= 64 || packet.length() > 65536 - bytes {
+  let appended_bytes = packet.length() +
+    target_packet.map(body => body.length()).unwrap_or(0)
+  if entries >= 64 || appended_bytes > 65536 - bytes {
     return Err(CapacityExceeded)
   }
   // Recheck actual authority and the typed original fence after finite
@@ -609,6 +689,15 @@ fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
   match self.host.database.insert("client_local_grant_originals", key, packet) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
+  }
+  if target_packet is Some(body) {
+    match
+      self.host.database.insert(
+        "client_local_preparation_target_originals", key, body,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Physical(issue))
+    }
   }
   self.host.database
   .compare_exchange(
