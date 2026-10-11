@@ -157,6 +157,8 @@ test "WITH carrier prefix never discards an unlowered Graph call" {
     "WITH prepared AS (FROM candidates |> to_vectors(id: item_id, vector: embedding)) FROM prepared |> vectors() |> components(kind: 'weak') |> SELECT item_id",
   ]
   for text in queries {
-    assert_true(with_carrier_program(text, nearest_context()) is Err(UnsupportedGraph))
+    assert_true(
+      with_carrier_program(text, nearest_context()) is Err(UnsupportedGraph),
+    )
   }
 }
