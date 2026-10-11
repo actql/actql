@@ -2601,6 +2601,7 @@ pub fn PublicationOutputExport::next(Self) -> Result[String?, PublicationOutputE
 pub fn PublicationOutputExport::ordering(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::prepare_payload_request(Self, String, String, String, Int64) -> Result[@publication_payload.PublicationPayloadRequest, PublicationOutputPayloadIssue]
 pub fn PublicationOutputExport::replay(Self) -> Result[PublicationOutputReplay, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::replay_payload_request(Self, @publication_payload.PublicationPayloadRequest) -> Result[PublicationOutputReplay, PublicationOutputPayloadIssue]
 pub fn PublicationOutputExport::result_fields(Self) -> Result[Array[String], PublicationOutputExportIssue]
 pub fn PublicationOutputExport::result_schema_cid(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::result_schema_wire(Self) -> Result[String, PublicationOutputExportIssue]
@@ -2636,7 +2637,9 @@ pub(all) struct PublicationOutputExportLimits {
 pub(all) enum PublicationOutputPayloadIssue {
   InvalidState
   PayloadLimit
+  RequestMismatch
   Payload(@publication_payload.PublicationPayloadIssue)
+  Replay(PublicationOutputExportIssue)
 }
 
 type PublicationOutputReplay

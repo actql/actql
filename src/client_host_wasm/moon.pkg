@@ -14,6 +14,7 @@ import {
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
+  "actql/actql/publication_payload" @payload,
   "actql/actql/logical_request_scope" @identity,
   "actql/actql/program_check" @checked,
   "actql/actql/physical_strategy" @strategy,

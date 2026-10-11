@@ -537,6 +537,33 @@ pub fn publication_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+/// Release only the completed wire projection. Original Receipt, Captured Run,
+/// Result pins, preflight and input borrow remain under their existing Owners.
+#export_name("actql_publication_retire_output")
+pub fn retire_publication_output(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) else {
+    return -2
+  }
+  if record.pending ||
+    !record.produced ||
+    record.manifest is None ||
+    record.receipt is None ||
+    record.captured is None {
+    return -33
+  }
+  if record.output_closed {
+    return 0
+  }
+  let code = status(@buffers.close_buffer(value.pool, record.slot))
+  if code == 0 {
+    record.output_closed = true
+    value.copies.remove(handle) |> ignore
+  }
+  code
+}
+
+///|
 #export_name("actql_publication_close")
 pub fn close_publication(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
@@ -544,6 +571,9 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.payload_requests.values().any(child => child.publication == handle) {
+    return -9
+  }
   if value.commit_exports.values().any(child => child.publication == handle) {
     return -9
   }
