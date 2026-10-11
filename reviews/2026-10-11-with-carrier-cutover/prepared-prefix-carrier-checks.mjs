@@ -9,7 +9,10 @@ const selected = process.argv.includes('--vectors-events-only')
     'src/query_program/graph_projection_property_test.mbt',
     'src/query_program/graph_member_test.mbt',
     'src/query_program/quoted_graph_macro_test.mbt',
-    'src/query_program/grouped_graph_macro_test.mbt'];
+    'src/query_program/grouped_graph_macro_test.mbt',
+    'src/connectors_builtin_node/client_source_preparation_wbtest.mbt',
+    'src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt',
+    'src/run_publication_host/client_values_run_materials_wbtest.mbt'];
 const steps = process.argv.includes('--info') ? [{
   name:'Generate actual WITH Carrier syntax and lowering interfaces',
   command:'moon',args:['info','--target','js','src/query_syntax','src/query_program'],

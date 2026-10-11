@@ -1,0 +1,52 @@
+{
+  "source": "c4813c6303ba432fd929f45a2bce1af26f096308",
+  "callers": {
+    "adapters/host-node/client-check.test.mjs": {
+      "sha256": "4bf8b49dea678ffe4b61e68d4d3263adc2bc788f3c5a88a8841cc0a04b208aff",
+      "data_lines": [
+        {
+          "line": 705,
+          "text": "    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +"
+        },
+        {
+          "line": 2106,
+          "text": "    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +"
+        }
+      ]
+    },
+    "adapters/host-node/table-public-commit.test.mjs": {
+      "sha256": "f713cd6d5491fb49eaebc9ec4d55f2b8d5326318403a7bdbf8c8455b6f8e97ce",
+      "data_lines": [
+        {
+          "line": 911,
+          "text": "      : 'DATA persons = SELECT 2 AS person_key, \\'a\\' AS tenant_key, CAST(NULL AS FLOAT64) AS p '"
+        },
+        {
+          "line": 913,
+          "text": "        + 'DATA companies = SELECT 3 AS person_key, \\'a\\' AS tenant_key; '"
+        },
+        {
+          "line": 914,
+          "text": "        + 'DATA g = PROPERTY GRAPH (NODE TABLES '"
+        }
+      ]
+    },
+    "adapters/host-node/fixtures/two-source/two-source-join.aql": {
+      "sha256": "8da2ce9c5e367c4e634c0b71126de92a69149c398457de4c14c6a30f0e055c4f",
+      "data_lines": [
+        {
+          "line": 1,
+          "text": "DATA left_rows = FROM left_records |> WHERE id >= 0 |> SELECT id, amount;"
+        },
+        {
+          "line": 2,
+          "text": "DATA right_rows = FROM right_records |> WHERE id >= 0 |> SELECT id, amount;"
+        },
+        {
+          "line": 3,
+          "text": "DATA joined_rows = SELECT l.id AS id, l.amount AS left_amount, r.amount AS right_amount"
+        }
+      ]
+    }
+  }
+}
