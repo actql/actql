@@ -183,7 +183,7 @@ class OriginalCommitProjection:
         This starts no new projection or cleanup. The caller holds Core/File
         locks, and existing Core checks still decide current binding facts.
         """
-        if self._closing:
+        if self._closing or (self._outputs and not self._projecting):
             raise RuntimeError('Local commit projection is closing or cleanup is pending')
         self._core._publication_configuration(self._publication, self._configuration)
         for output in self._outputs:
