@@ -144,6 +144,11 @@ priv enum ModelPhase {
   PreparePhysicalRequests
   DispatchSlot
   AwaitPhysicalResponse
+  DecodePhysicalResponse(
+    PreparedModelRequest,
+    ModelPhysicalEncodedResponse,
+    ModelResponseDecode
+  )
   CheckPhysicalMetadata(
     PreparedModelRequest,
     ModelObservedResponse,
@@ -396,6 +401,11 @@ fn advance_model(
   }
   if state.phase is AwaitPhysicalResponse {
     return advance_model_physical_response(state, reader)
+  }
+  if state.phase is DecodePhysicalResponse(prepared, physical, cursor) {
+    return advance_encoded_model_response(
+      state, prepared, physical, cursor, reader,
+    )
   }
   if state.phase is CheckPhysicalMetadata(prepared, response, cursor, writer) {
     return advance_reported_model_metadata(
@@ -1211,6 +1221,9 @@ fn cleanup_model_execution_owned(
       if execution.state.phase is CheckPhysicalMetadata(_, _, cursor, writer) {
         @canonical.cancel_emit(cursor)
         @encode.cancel_writer(writer)
+      }
+      if execution.state.phase is DecodePhysicalResponse(_, _, cursor) {
+        cancel_model_response_decode(cursor)
       }
       if execution.state.phase is PrepareEvidence(value) {
         cancel_model_evidence(value)

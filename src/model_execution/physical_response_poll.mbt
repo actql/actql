@@ -11,6 +11,17 @@ pub(all) struct ModelPhysicalResponse {
 }
 
 ///|
+/// The installed codec's selected structured-answer text. This is not the raw
+/// HTTP response artifact, and its completeness fields grant no send authority.
+pub(all) struct ModelPhysicalEncodedResponse {
+  body : String
+  observation : @publication.ModelCaptureObservation
+  transport_eof : Bool
+  endpoint_complete : Bool
+  answer_complete : Bool
+}
+
+///|
 /// Partial usage survives a rejected response and an unknown remote result.
 /// A missing observation remains None; reservation maxima are not actuals.
 pub(all) struct ModelPhysicalUsage {
@@ -22,6 +33,7 @@ pub(all) struct ModelPhysicalUsage {
 pub(all) enum ModelPhysicalCallPoll {
   PhysicalPending
   PhysicalResponse(ModelPhysicalResponse)
+  PhysicalEncodedResponse(ModelPhysicalEncodedResponse)
   PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
   PhysicalUnknown(ModelPhysicalUsage)
 }
@@ -41,6 +53,7 @@ pub struct ModelPhysicalCall {
   mut retired : Bool
   mut settlement_acknowledged : Bool
   mut usage_result : Result[Unit, ModelExecutionIssue]?
+  mut decoded_response : ModelPhysicalResponse?
 }
 
 ///|
@@ -89,6 +102,7 @@ pub fn model_physical_call(
     retired: false,
     settlement_acknowledged: false,
     usage_result: None,
+    decoded_response: None,
   }
   state.pending_response = Some(call)
   Some(call)
@@ -159,6 +173,7 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     call.poll = None
     call.entry = None
     call.terminal = None
+    call.decoded_response = None
     call.retired = true
   }
   state.pending_response = None
@@ -194,6 +209,11 @@ fn observe_original_model_physical_usage(
   }
   let usage = match observed {
     PhysicalResponse(response) =>
+      {
+        input_tokens: response.observation.input_tokens,
+        output_tokens: response.observation.output_tokens,
+      }
+    PhysicalEncodedResponse(response) =>
       {
         input_tokens: response.observation.input_tokens,
         output_tokens: response.observation.output_tokens,
@@ -261,6 +281,10 @@ fn advance_model_physical_response(
     PhysicalResponse(response) => {
       observe_model_physical(state, InvokeReturned)
       begin_reported_model_response(state, prepared, response, reader)
+    }
+    PhysicalEncodedResponse(response) => {
+      observe_model_physical(state, InvokeReturned)
+      begin_encoded_model_response(state, prepared, response, reader)
     }
   }
 }

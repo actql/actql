@@ -391,13 +391,23 @@ pub struct ModelPhysicalCall {
   mut retired : Bool
   mut settlement_acknowledged : Bool
   mut usage_result : Result[Unit, ModelExecutionIssue]?
+  mut decoded_response : ModelPhysicalResponse?
 }
 
 pub(all) enum ModelPhysicalCallPoll {
   PhysicalPending
   PhysicalResponse(ModelPhysicalResponse)
+  PhysicalEncodedResponse(ModelPhysicalEncodedResponse)
   PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
   PhysicalUnknown(ModelPhysicalUsage)
+}
+
+pub(all) struct ModelPhysicalEncodedResponse {
+  body : String
+  observation : @run_publication.ModelCaptureObservation
+  transport_eof : Bool
+  endpoint_complete : Bool
+  answer_complete : Bool
 }
 
 pub enum ModelPhysicalEvent {

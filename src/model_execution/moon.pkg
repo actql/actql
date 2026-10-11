@@ -14,14 +14,14 @@ import {
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,
   "actql/actql/value_contract" @contract,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
 }
 
 import {
   "actql/actql/carrier_contract" @carrier,
-  "actql/actql/decode_core" @decode,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/source_value" @source,
   "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",

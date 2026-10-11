@@ -15,25 +15,13 @@ fn begin_reported_model_response(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let observation = physical.observation
-  if !physical.transport_eof ||
-    !physical.endpoint_complete ||
-    !physical.answer_complete ||
-    observation.origin != @publication.Reported ||
-    observation.response_complete != Some(true) ||
-    observation.response_profile_cid !=
-    Some(@environment.model_response_profile_identity(profile)) ||
-    observation.historical_finish_reason is Some(_) ||
-    observation.observed_at.is_empty() ||
-    !valid_model_optional_text(observation.provider_model) ||
-    !valid_model_optional_text(observation.provider_revision) ||
-    !valid_model_optional_text(observation.provider_request_id) ||
-    !valid_model_optional_text(observation.gateway_request_id) ||
-    !valid_model_optional_text(observation.provider_finish_reason) ||
-    !valid_model_optional_tokens(observation.input_tokens) ||
-    !valid_model_optional_tokens(observation.output_tokens) {
-    return @bounded.Failed(OutputIdentity, 1, 1)
-  }
-  if observation.raw_response_artifact_cid is Some(cid) && !valid_cid(cid) {
+  if !valid_reported_model_observation(
+      profile,
+      observation,
+      physical.transport_eof,
+      physical.endpoint_complete,
+      physical.answer_complete,
+    ) {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let response : ModelObservedResponse = { value: physical.value, observation, }
@@ -58,6 +46,38 @@ fn begin_reported_model_response(
     return @bounded.Continue(1, 1)
   }
   begin_reported_model_value(state, prepared, response)
+}
+
+///|
+fn valid_reported_model_observation(
+  profile : @environment.ModelResponseProfile,
+  observation : @publication.ModelCaptureObservation,
+  transport_eof : Bool,
+  endpoint_complete : Bool,
+  answer_complete : Bool,
+) -> Bool {
+  if !transport_eof ||
+    !endpoint_complete ||
+    !answer_complete ||
+    observation.origin != @publication.Reported ||
+    observation.response_complete != Some(true) ||
+    observation.response_profile_cid !=
+    Some(@environment.model_response_profile_identity(profile)) ||
+    observation.historical_finish_reason is Some(_) ||
+    observation.observed_at.is_empty() ||
+    !valid_model_optional_text(observation.provider_model) ||
+    !valid_model_optional_text(observation.provider_revision) ||
+    !valid_model_optional_text(observation.provider_request_id) ||
+    !valid_model_optional_text(observation.gateway_request_id) ||
+    !valid_model_optional_text(observation.provider_finish_reason) ||
+    !valid_model_optional_tokens(observation.input_tokens) ||
+    !valid_model_optional_tokens(observation.output_tokens) {
+    return false
+  }
+  if observation.raw_response_artifact_cid is Some(cid) && !valid_cid(cid) {
+    return false
+  }
+  true
 }
 
 ///|
@@ -117,12 +137,24 @@ fn model_reported_response_owned(
   request : ModelRequest,
   response : ModelObservedResponse,
 ) -> Bool {
-  state.pending_response is Some(call) &&
-  call.entry is Some(entry) &&
-  entry.slot == request.slot &&
-  state.requests.get(entry.slot) is Some(prepared) &&
-  physical_equal(prepared.request, request) &&
-  call.terminal is Some(PhysicalResponse(original)) &&
+  guard state.pending_response is Some(call) &&
+    call.entry is Some(entry) &&
+    entry.slot == request.slot &&
+    state.requests.get(entry.slot) is Some(prepared) &&
+    physical_equal(prepared.request, request) else {
+    return false
+  }
+  let original = match call.terminal {
+    Some(PhysicalResponse(original)) => original
+    Some(PhysicalEncodedResponse(encoded)) => {
+      guard call.decoded_response is Some(original) &&
+        physical_equal(encoded.observation, original.observation) else {
+        return false
+      }
+      original
+    }
+    _ => return false
+  }
   physical_equal(original.value, response.value) &&
   physical_equal(original.observation, response.observation) &&
   original.transport_eof &&
