@@ -82,6 +82,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
   ['scripts/fixtures/cte-value-table-source-input.mjs', 'cte-value-table-source-input.mjs'],
+  ['scripts/fixtures/cte-value-table-receipts.mjs', 'cte-value-table-receipts.mjs'],
   ['scripts/fixtures/analytic-frame-parameter-source-input.mjs', 'analytic-frame-parameter-source-input.mjs'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-following.program.json', 'analytic-frame-parameter.reversed-following.program.json'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-preceding.program.json', 'analytic-frame-parameter.reversed-preceding.program.json'],

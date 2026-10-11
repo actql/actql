@@ -1,4 +1,5 @@
 import {cteValueTableSuccesses, cteValueTableRefusals} from './cte-value-table-source-input.mjs';
+import {createCteValueTableReceipts} from './cte-value-table-receipts.mjs';
 import {pipePivotSuccesses, pipePivotRefusals} from './pipe-pivot-source-input.mjs';
 import {graphRelationJoinSuccesses, graphRelationJoinRefusals, graphRelationJoinExecutionFailures} from './graph-relation-join-source-input.mjs';
 import {traversalJoinSuccesses, traversalJoinRefusals, traversalJoinExecutionFailures} from './traversal-join-source-input.mjs';
@@ -784,6 +785,7 @@ function publicQueryCohorts(inputs) {
   return cohorts;
 }
 const retainedCohorts = [];
+const cteValueTableReceipts = createCteValueTableReceipts(transport ?? 'both', writeFile);
 let expectedRetainedCohorts = 0;
 const expectedInventory = [], completedInventory = [];
 const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executionFailures', 'refusals']
@@ -1061,15 +1063,6 @@ async function exerciseExactPhysicalTargets() {
   }
 }
 const retainedStrings = {};
-const cteValueTableReceipts = [];
-async function retainCteValueTableCases(complete = false) {
-  if (cteValueTableReceipts.length === 0) return;
-  const mode = transport ?? 'both';
-  await writeFile(`cte-value-table-receipts.${mode}.json`, JSON.stringify({
-    version: 'actql-cte-value-table-acceptance/0.1', mode, complete,
-    cases: cteValueTableReceipts,
-  }) + '\n');
-}
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
 };
@@ -1089,11 +1082,9 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   return async item => {
     recordString(mode)(item);
     if (item.name.startsWith('cte-value-table-')) {
-      cteValueTableReceipts.push({mode, name: item.name, ref: item.ref,
-        results: item.observedResults, beforeSubmit: item.beforeSubmit, beforeRead: item.beforeRead});
       // Persist after each verified case so a later failure keeps actual Run
       // and read values. No resubmission, extra read or test oracle is added.
-      await retainCteValueTableCases();
+      await cteValueTableReceipts.record(item, mode);
     }
     if (boundaryNames.has(item.name)) {
       saved.samples.push({source: cohort.successes.find(source => source.name === item.name),
@@ -1189,7 +1180,7 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 }
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
-  await retainCteValueTableCases(true);
+  await cteValueTableReceipts.complete();
   assert.equal(retainedCohorts.length, expectedRetainedCohorts * (transport === undefined ? 2 : 1));
   if (graphRemainingOperationsOnly) for (const cohort of retainedCohorts) {
     assert.deepEqual(cohort.samples.map(sample => sample.source.name), cohort.expectedSampleNames,

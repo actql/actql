@@ -151,3 +151,50 @@ arbitrary named-result keys without prototype assignment.
 New-cohort receipt completeness remains pending until the receipt correction
 is committed and the same selected Local/HTTPS acceptance runs on its own
 ordinary five-package cohort. No other Heavy campaign is requested.
+
+## Exact-HEAD receipt acceptance failure and bounded correction
+
+Clean `826b31d3c6ee60cff47acdf33c8ffd162d981024` produced the five ordinary
+packages in `run-SYB99m`. The producer manifest and all actual tgz digests were
+independently compared. The matching 300-second public attempt `run-EucbnT`
+exited 1: both transports logged all nine normal comparisons and both exact
+refusals, then failed at transport completion with
+`ReferenceError: retainCteValueTableCases is not defined`. The function was
+declared inside the profile loop but called outside it. This is a fixture
+lifetime bug, not evidence of a changed query result or a completed campaign.
+
+Each transport retained nine actual Run/read/schema observations in
+`worktrees/.codex-scratch/public-query-evidence-02sWqn`, but the reports have
+`complete: false`, and no completed transport inventory was published. The
+whole acceptance remains failed. Its stdout, stderr, five digests, partial
+observations and termination records remain separate from the prior e574
+success. The actual guard and both workers were absent, both workers were
+terminal with status 1 and `liveChildren: 0`, complete output and released
+locks were checked, and both actual lock paths were absent. Release evidence:
+`/private/tmp/actql-b-cte-value-table-heavy-release-run-EucbnT.json`. The slot
+was handed to E, with A following E under the coordinator's reservation.
+
+The correction gives the fixture receipt utility transport lifetime, outside
+the profile loop. It still records only the existing completed-case hook's
+actual observations; it adds no submission, acquisition or Result read.
+Partial case reports remain incomplete, completion follows the independent
+inventory check, write failures propagate, and combined transport observations
+retain their own mode. The external fixture installation copies this utility
+through the existing asset list. No product runtime, expected row, schema,
+ceiling or refusal code changes.
+
+Receipt and corpus registration checks passed **40/40** (`run-yEJEuk`). The
+initial `run-SSQOFR` test compared a decoded JSON object with the null-prototype
+in-memory result-name map; it was corrected to independently authored JSON
+expectations rather than changing product values. After preserving combined
+transport case identity, the five focused receipt tests passed **5/5**
+(`run-DkxiOx`), using:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 120 -- scripts/cte-value-table-source-input.test.mjs
+```
+
+These are fixture checks, not new-HEAD public completion. The corrected
+commit needs its own ordinary five-package manifest and the unchanged selected
+9+2 Local/HTTPS acceptance after the reserved E and A slots. No Heavy rerun is
+started by this correction, and no Hosted CI or full campaign is claimed.
