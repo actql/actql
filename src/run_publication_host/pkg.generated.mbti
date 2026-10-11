@@ -430,6 +430,8 @@ pub fn client_local_completion_free_catalog_cid() -> String
 
 pub fn client_model_read_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
+pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64) -> Bool
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
@@ -701,6 +703,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn handoff_client_model_read(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
+pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelReadPreparationIssue]
 
 pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteEffectTaskProgress, ClientRemoteEffectTaskProgressIssue]
 
