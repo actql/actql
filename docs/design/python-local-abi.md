@@ -151,6 +151,16 @@ release originals. Successful release removes the input references and owner
 back-reference, retaining only the retired nominal token for idempotent cleanup.
 A later read, new finish, or cursor advance remains refused.
 
+The private Wasm publication parent retains this view after its existing commit
+finish operation. Candidate transport reads the original request, attempt and
+nominal index from that completed cursor, after the existing current Run/Source
+check. Parent close first waits for its output children, then follows the
+original commit-input stop, parent-output cleanup and Source/input stop order.
+Only successful completion of those steps releases the view. A failed step
+keeps the same parent, input custody and cancelled view for explicit cleanup
+retry. No new export, scalar ABI version or Client wire field is introduced by
+this custody connection; it is not a complete material transport or Store ACK.
+
 ## Physical DuckDB boundary
 
 The private Python adapter loads an explicitly installed standalone DuckDB C

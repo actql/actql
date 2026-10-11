@@ -245,12 +245,12 @@ pub fn finish_publication_commit(
     return -7
   }
   record.pending = true
-  let result = commit.finish()
+  let result = commit.finish_view()
   record.pending = false
   match result {
-    Ok(_) => {
+    Ok(view) => {
       record.commit_finished = true
-      record.commit = None
+      record.commit_view = Some(view)
       0
     }
     Err(_) => {

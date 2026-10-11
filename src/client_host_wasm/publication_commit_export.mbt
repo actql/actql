@@ -21,7 +21,14 @@ pub fn reserve_publication_commit_export(
   guard selected(nonce) is Some(value) &&
     value.publications.get(publication)
     is Some(
-      { closing: false, commit_finished: true, commit_index: Some(_), .. }
+      {
+        closing: false,
+        commit_finished: true,
+        commit: Some(_),
+        commit_view: Some(_),
+        commit_index: Some(_),
+        ..
+      }
     ) else {
     return -2
   }
@@ -75,8 +82,10 @@ pub fn produce_publication_commit_export(
     value.commit_exports.get(handle) is Some(record) &&
     value.publications.get(record.publication) is Some(parent) &&
     parent.commit_index is Some(index_entry) &&
+    parent.commit is Some(commit) &&
+    parent.commit_view is Some(view) &&
     value.publication_preflights.get(parent.preflight)
-    is Some({ preflight: Some(preflight), .. }) &&
+    is Some({ preflight: Some(_), .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -97,9 +106,28 @@ pub fn produce_publication_commit_export(
   }
   record.invoked = true
   record.pending = true
-  let (request, attempt) = @local_run.local_publication_preflight_contracts(
-    preflight,
-  )
+  // Read the original completed validation chain, never recreate equivalent
+  // contracts from the preflight or caller JSON. The parent retains this view
+  // until every output child and original physical borrow has stopped.
+  let request = match commit.view_contract(view, 5) {
+    Ok(contract) => contract
+    Err(_) => {
+      record.pending = false
+      return -32
+    }
+  }
+  let attempt = match commit.view_contract(view, 6) {
+    Ok(contract) => contract
+    Err(_) => {
+      record.pending = false
+      return -32
+    }
+  }
+  guard commit.view_contract(view, 7) is Ok(original_index) &&
+    physical_equal(original_index, index_entry) else {
+    record.pending = false
+    return -32
+  }
   let writer = @encode.writer(1048576, 8, 1) catch {
     _ => {
       record.pending = false

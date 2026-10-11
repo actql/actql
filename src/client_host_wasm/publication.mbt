@@ -29,6 +29,7 @@ priv struct StoredPublication {
   mut commit_input : Int?
   mut commit_borrow : @buffers.BufferBorrow?
   mut commit : @publication.PublicationCommitPreparation?
+  mut commit_view : @publication.PublicationCommitReadView?
   mut commit_index : @publication.PublicationContract?
   mut commit_progress : (Bool, Int)?
   mut commit_failed : Bool
@@ -111,6 +112,7 @@ pub fn reserve_publication(
     commit_input: None,
     commit_borrow: None,
     commit: None,
+    commit_view: None,
     commit_index: None,
     commit_progress: None,
     commit_failed: false,
@@ -613,6 +615,17 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     Err(_) => 0
   }
   if result == 0 {
+    // All child output use, the original commit input, the parent output and
+    // the original Source/input borrow have acknowledged cleanup or stop.
+    // A failed physical cleanup above retains this same cancelled view.
+    if record.commit is Some(commit) && record.commit_view is Some(view) {
+      match commit.release_view(view) {
+        Err(_) => return -32
+        Ok(_) => ()
+      }
+      record.commit_view = None
+      record.commit = None
+    }
     value.publications.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }
