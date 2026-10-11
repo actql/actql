@@ -133,3 +133,22 @@ leaving literal conflict-marker lines in tracked text. The failure record is
 [staged-conflict-evidence-failure.json](staged-conflict-evidence-failure.json);
 it is not reported as a pass. This evidence-only follow-up does not change the
 product fix or independent oracle.
+
+## Navigation main follow-up
+
+After the initial Draft submission, #1468 reached main
+`588319cd4bb292a414129f299bda8098cbc7657c`. This unit adopts that fixed
+main by a second normal merge, without pushing to the submitted navigation
+branch. Only the independent inventory and its assertions conflicted; original
+bytes and the exit-1 merge receipt remain in
+[navigation-main-merge-conflicts.json](navigation-main-merge-conflicts.json).
+Upstream navigation semantics, grammar identities and historical preimages
+are adopted without editing them.
+
+The combined registered inventory now has 3,943 declarations (2,482 normal,
+50 execution-failure, 1,411 refusal), digest
+`bcde581e0ce5e516871bae343aec3c97adddf3f08731bd036c545ffd471f5c1a`.
+The GROUP ORDER independent oracles are unchanged.
+[navigation-integrated-static-commands.json](navigation-integrated-static-commands.json)
+records three syntax checks, five read-only freshness checks and whitespace,
+all exit zero on the merged working source. Runtime/public remain unexecuted.

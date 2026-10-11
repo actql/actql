@@ -429,6 +429,18 @@ within that immutable scope share the evaluated slot with OVER ordering and
 other windows; the authored partition-key list retains its order and repeats.
 Private keys are removed before Named Result publication.
 
+Navigation `LAG`/`LEAD` offsets retain a nonnegative safe-integer literal or
+whole numeric parameter through parentheses and unary `+`. The selected
+[GoogleSQL integer lexical rule](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/lexical.md#integer_literals)
+admits a positive sign, and the pinned numeric unary-plus resolver retains its
+operand rather than introducing an evaluated call. Thus `+2`, `+(+2)` and
+`+(@offset)` reach the same common offset contracts as `2` and `@offset`.
+Each wrapper still consumes bounded expression work and retains source origin.
+This does not fold arithmetic, a row field, NULL or another scalar type into an
+offset atom. Common checking still rejects invalid parameter values before
+execution; the numeric domain, navigation nullability and window limits do
+not change.
+
 Literal/parameter-only partition expressions are rejected; numeric literals do
 not denote SELECT positions here. This follows the selected [GoogleSQL window
 specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),
