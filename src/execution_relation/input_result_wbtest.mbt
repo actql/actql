@@ -286,16 +286,26 @@ test "input-only managed publication preserves the completed input binding" {
   assert_true(managed_completed_output_matches_common_inputs(output, [binding]))
   // Common managed proof remains opaque; do not fabricate a raw input proof.
   assert_false(completed_output_matches_inputs(exported, [read]))
-  let consumer = typed_receiver(owner, "[{\"select\":[\"A\"]}]", target=Input(0))
+  let consumer = typed_receiver(
+    owner,
+    "[{\"select\":[\"A\"]}]",
+    target=Input(0),
+  )
   let downstream = prepare_managed_producer_read(
     consumer, 0, owner, output, 10000, 10000,
   ).unwrap()
   let producer_bridge = prepare_managed_producer_bridge(
-    downstream, 3, stream_value_limits(), 10000, 10000,
+    downstream,
+    3,
+    stream_value_limits(),
+    10000,
+    10000,
   ).unwrap()
   for wire in ["{\"A\":0}", "{\"A\":2}", "{\"A\":2}"] {
     append_managed_producer_bridge_wire(
-      producer_bridge, wire, retained_row_test_limits(),
+      producer_bridge,
+      wire,
+      retained_row_test_limits(),
     ).unwrap()
   }
   let downstream_read = finish_managed_producer_bridge(
