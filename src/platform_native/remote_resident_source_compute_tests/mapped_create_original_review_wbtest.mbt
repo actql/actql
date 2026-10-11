@@ -242,8 +242,11 @@ fn native_mapped_create_context_review(
   )
   assert_eq(work.complete().unwrap().preview.wire, complete.preview.wire)
   assert_eq(target_reads.val, 0)
-  assert_true(work.retry_cleanup().unwrap())
+  native_mapped_create_checkpoint_roundtrip(
+    work, journal, consumer, policy, complete,
+  )
   assert_false(work.retry_cleanup().unwrap())
+  assert_eq(target_reads.val, 0)
   assert_true(context.close())
   assert_true(context.facts(journal) is None)
   assert_eq(source.usage().held_bytes, source_usage.held_bytes)
