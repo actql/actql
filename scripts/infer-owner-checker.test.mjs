@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {mkdtemp, open, rm} from 'node:fs/promises';
@@ -13,6 +13,9 @@ import {prepareOpenAIChatRequest} from '../packages/provider-ai-sdk/_internal/op
 import {createSdkModelPreflight} from '../packages/provider-ai-sdk/_internal/model-port.mjs';
 import {createModelRawTransportPersistence} from '../adapters/host-node/infer-raw-capture.mjs';
 import {createInferIoNotification} from '../adapters/host-node/infer-io-notification.mjs';
+import {installNodeModelContinuation} from '../adapters/host-node/installed-model-continuation.mjs';
+import {installRemoteCheckpoints} from '../adapters/host-node/client-checkpoints.mjs';
+import {openNodeInferCaptureCustody} from '../adapters/host-node/infer-capture-custody.mjs';
 
 import * as moon from
   '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -108,11 +111,12 @@ const checked = value => {
   return value._0;
 };
 
-test('ordinary Program joins original Common Entry and raw receipt to pinned SDK and Store', {timeout: 10000}, async t => {
+async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = false) {
   // Private connection evidence: actual Common preparation/binding/codec and
   // actual SDK/HTTP/Store. Installation applicability, funding coefficients
-  // and synchronous Entry persistence remain explicit fixture assumptions.
-  // This is not standard Host public admission or a durable Entry ACK test.
+  // remain explicit fixture assumptions. The synchronous case uses a Bool
+  // fixture; the journal case uses the installed controller and real SQLite.
+  // Neither case establishes standard Host admission or full-phase funding.
   const now = () => '2026-10-02T00:00:00.000Z';
   const directory = await mkdtemp(join(tmpdir(), 'actql-common-sdk-raw-'));
   const root = cid({fixture: 'original SDK connection'});
@@ -125,7 +129,8 @@ test('ordinary Program joins original Common Entry and raw receipt to pinned SDK
   const wire = '{"id":"original-sdk-response","model":"reported-model","choices":' +
     '[{"index":0,"message":{"role":"assistant","content":"{\\"reason\\":null,\\"risk\\":\\"high\\"}"},' +
     '"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":2},"opaque":"é\\r\\n"}\r\n';
-  let fetches = 0, requests = 0, entrySaves = 0;
+  let fetches = 0, requests = 0, entrySaves = 0, commitResponsesLost = 0;
+  let savedBundleReads = 0;
   const server = createServer((request, response) => {
     requests++;
     const chunks = [];
@@ -178,22 +183,27 @@ test('ordinary Program joins original Common Entry and raw receipt to pinned SDK
     validator_artifact_cid: validatorCid, completion_basis: 'generation_finish'};
   const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
   assert.ok(prepared);
-  const graph = scopedInferGraph(prepared);
+  let egressAdmission;
+  const graph = scopedInferGraph(prepared, task, {}, execution => {
+    egressAdmission = checked(moon.clientProgramAdmitInferEgress(prepared, 2,
+      execution, () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false})));
+  });
   const policy = {executionContextCid: root, hostPolicyCid: root,
     expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
   const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', policy, graph);
   const runDefinition = control.defineCheckedClientCompiledRun(compiled,
     {namespaceId: 'original-sdk', runId: 'one-row', createdAt: now(), validUntil: policy.expiresAt});
   const plan = {compiled, runDefinition};
-  const account = moon.executionAuthorizationAdmit(canonicalText({
+  const accountConfiguration = canonicalText({
     version: 'actql-execution-account-config/0.1', account_id: 'original-sdk-account',
     entries: [{entry_id: 'model-policy', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true},
-      operation: {any_of: ['infer', 'model_raw_capture']}, exclusions: []}]}));
+      operation: {any_of: ['infer', 'model_raw_capture']}, exclusions: []}]});
+  const account = moon.executionAuthorizationAdmit(accountConfiguration);
   const accountFacts = JSON.parse(moon.executionAuthorizationAccountJson(account));
   assert.equal(accountFacts.state, 'admitted');
   const io = createInferIoNotification();
-  let sdk, persistence;
+  let sdk, persistence, checkpoints, continuation, captureOwner;
   const retained = [];
   const provider = moon.clientProgramInstallModelProvider('models/fixture', () => {
     assert.fail('the original async plan must not invoke the synchronous provider');
@@ -213,7 +223,16 @@ test('ordinary Program joins original Common Entry and raw receipt to pinned SDK
           maxOutputTokens: 32, responseFormat: {type: 'json'}}});
       sdk = createSdkModelPreflight({moon, request, preparation, profile, installation,
         quantities: {tokens: 33n, costUnits: 0n, durationMs: 500n},
-        fetch(...args) { fetches++; return fetch(...args); },
+        fetch(...args) {
+          if (journalAck) {
+            const entry = continuation.entry(0);
+            assert.equal(entry.state, 'EnteredUnknown', 'durable Entry precedes transport');
+            assert.equal(checkpoints.journal.readModelCalls(continuation.inventory)
+              .slots[0].state, 'EnteredUnknown');
+          }
+          fetches++;
+          return fetch(...args);
+        },
         responseLimits: {maxBytes: 2048, maxChunkBytes: 512, maxChunks: 16,
           maxHeaderBytes: 256, observedHeaders: ['content-type']},
         persistRaw: (call, raw) => persistence(call, raw),
@@ -263,11 +282,53 @@ test('ordinary Program joins original Common Entry and raw receipt to pinned SDK
       principal: 'fixture-principal', connection: facts.providerId, resource: facts.modelTaskCid,
       operation: 'infer', boundary: 'activation', context_cid: root}}),
   {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
-  const bound = operation.bindModelScope(control, plan, waiting.preparedCallSet,
-    {scope, provider: providerBinding, expectedBoundary});
-  const dispatch = operation.bindModelDispatch(control, plan, waiting.preparedCallSet, bound,
-    {account, principalId: 'fixture-principal', at: now(), observeAccount: () => account,
-      observeAt: now, enterCall() { entrySaves++; return true; }});
+  let bound, dispatch;
+  if (journalAck) {
+    const controller = await installNodeModelContinuation({moon, control, store,
+      storeAuthorityCid: root, namespaceId: 'original-sdk', authorityScopeCid: root,
+      now, getCheckpoints: () => checkpoints});
+    const keys = generateKeyPairSync('ed25519');
+    checkpoints = await installRemoteCheckpoints({root: join(directory, 'checkpoints'),
+      namespaceId: 'original-sdk', authorityScopeCid: root,
+      ownerPrincipal: 'fixture-principal', siteKey: 'local', realizationKey: 'original-sdk',
+      environmentCid: root, contractControl: control, modelResumeVerifier: controller.verifier,
+      now: () => Date.parse(now()), authorization: {accountConfiguration,
+        resumeAfterAnswer: false,
+        reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: 'fixture-principal',
+          publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+        hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}});
+    t.after(() => checkpoints.close());
+    // Observe the actual nominal bindings without replacing their issuers.
+    const observedOperation = {...operation,
+      bindModelScope(...args) { bound = operation.bindModelScope(...args); return bound; },
+      bindModelEntryPersistence(...args) {
+        dispatch = operation.bindModelEntryPersistence(...args); return dispatch;
+      }};
+    continuation = await controller.open({operation: observedOperation,
+      preparedCallSet: waiting.preparedCallSet, plan, principalId: 'fixture-principal',
+      selected: {graph, step: 2, providerBinding, observeAccount: () => account,
+        currentProvider: () => true, egressAdmission, entryPersistence: 'async'},
+      declaredResults: ['answer'], submission: {fixture: 'original-sdk-journal'}});
+    assert.deepEqual(await continuation.authorize(), {status: 'dispatch'});
+    assert.equal(fetches, 0);
+    assert.equal(checkpoints.journal.readModelCalls(continuation.inventory).slots[0].state, 'Unsent');
+    captureOwner = openNodeInferCaptureCustody({moon, control, operation, plan,
+      store, storeAuthorityCid: root, durableCalls: true, captureOnly: true,
+      faultInjection(boundary) {
+        if (loseCommitResponse && boundary === 'infer_model_settlement_committed' &&
+            commitResponsesLost === 0) {
+          commitResponsesLost++;
+          throw new Error('FixtureSettlementCommitResponseLost');
+        }
+      }});
+    captureOwner.configureModelJournal({observe: continuation.observe, entry: continuation.entry});
+  } else {
+    bound = operation.bindModelScope(control, plan, waiting.preparedCallSet,
+      {scope, provider: providerBinding, expectedBoundary});
+    dispatch = operation.bindModelDispatch(control, plan, waiting.preparedCallSet, bound,
+      {account, principalId: 'fixture-principal', at: now(), observeAccount: () => account,
+        observeAt: now, enterCall() { entrySaves++; return true; }});
+  }
   const originals = ['retention_contract', 'metadata_retention_policy', 'clock_contract']
     .map(kind => {
       const body = {name: `original-sdk-${kind}`, version: 'actql-installed-local-policy/0.1'};
@@ -291,13 +352,35 @@ test('ordinary Program joins original Common Entry and raw receipt to pinned SDK
   assert.equal(settled.status, 'settling');
   assert.equal(fetches, 1);
   assert.equal(requests, 1);
-  assert.equal(entrySaves, 1);
+  assert.equal(entrySaves, journalAck ? 0 : 1);
   assert.equal(retained.length, 1);
   const {semanticCid, holdingCid, wire: rawWire, contentCid, byteCount} = retained[0].holding.binding;
   const saved = await store.confirmModelRawEvidence({semanticCid, holdingCid,
     wire: rawWire, contentCid, byteCount});
   assert.deepEqual(saved.bytes, Buffer.from(wire));
-  operation.acknowledgeSettlement(settled.settlement);
+  if (journalAck) {
+    const entry = continuation.entry(0);
+    if (loseCommitResponse) {
+      await assert.rejects(captureOwner.persistSettlement(settled.settlement, entry),
+        /FixtureSettlementCommitResponseLost/u);
+      assert.equal(checkpoints.journal.readModelCalls(continuation.inventory).slots[0].state,
+        'SavedSuccess', 'lost reply does not erase the durable settlement');
+      assert.equal(fetches, 1);
+    }
+    await captureOwner.persistSettlement(settled.settlement, entry);
+    const slot = checkpoints.journal.readModelCalls(continuation.inventory).slots[0];
+    assert.equal(slot.state, 'SavedSuccess');
+    assert.equal(slot.attempts.length, 1);
+    assert.equal(slot.attempts[0].attemptCid, entry.attemptCid);
+    for (let read = 0; read < 2; read++) {
+      assert.equal((await continuation.observe(entry)).state, 'SavedSuccess');
+      const original = await continuation.evaluationInventory().readBundle(0);
+      assert.equal(original.cid, slot.attempts[0].settlement.evidence.model_capture_bundle.cid);
+      assert.equal(JSON.parse(original.wire).version, 'actql-model-capture-bundle/0.2');
+      savedBundleReads++;
+      assert.equal(fetches, 1, 'Store re-verification does not dispatch');
+    }
+  } else operation.acknowledgeSettlement(settled.settlement);
   const completed = await runOriginal('complete original output');
   assert.deepEqual(await inferExportRows(prepared, completed),
     [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
@@ -308,15 +391,29 @@ test('ordinary Program joins original Common Entry and raw receipt to pinned SDK
   assert.equal(evidence.input_tokens, 3);
   assert.equal(evidence.output_tokens, 2);
   assert.equal(evidence.raw_response_artifact_cid, retained[0].holding.binding.semanticCid);
-  await operation.close();
+  if (journalAck) {
+    captureOwner.retainCompleted();
+    await captureOwner.custody.close();
+    assert.equal(continuation.close(), true);
+    assert.equal(continuation.cleanupPending(), false);
+  } else await operation.close();
   assert.equal(operation.cleanupPending(), false);
   assert.equal(fetches, 1);
   await store.retirePhysicalHolding(retained[0].holding.binding.holdingCid);
   t.diagnostic(JSON.stringify({originalEntrySaves: entrySaves,
     actualFetchStarts: fetches, loopbackRequests: requests,
     confirmedRawBytes: saved.bytes.byteLength, inputTokens: evidence.input_tokens,
-    outputTokens: evidence.output_tokens, originalCleanupPending: operation.cleanupPending()}));
-});
+    outputTokens: evidence.output_tokens, originalCleanupPending: operation.cleanupPending(),
+    entryPersistence: journalAck ? 'actual-sqlite' : 'sync-bool-fixture',
+    commitResponsesLost, savedBundleReads}));
+}
+
+test('ordinary Program joins original Common Entry and raw receipt to pinned SDK and Store',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, false));
+test('ordinary Program joins actual journal ACK and capture to pinned SDK and Store',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, true));
+test('ordinary Program joins durable capture after a lost settlement commit response without resend',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, true, true));
 
 test('bounded Infer admission fixtures match their existing checked owners', () => {
   execFileSync(process.execPath, ['scripts/infer-host-fixtures.mjs'],
