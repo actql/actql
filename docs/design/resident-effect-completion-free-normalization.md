@@ -77,3 +77,24 @@ the existing computation Receipt/Captured Run, and
 Provider policy, Transfer/borrow custody and pending cleanup remain owned by
 existing Owners. This preparation/catalog unit does not establish installed
 Native review, public approval, actual Effect execution or final release.
+
+## Original material projection
+
+`issue_prepared_client_effect_run_materials` projects the existing admitted Run
+from its original preparation, compilation and definition. Its interface has no
+replacement Program, parameters or environment argument. The preparation
+retains its immutable originally supplied parameter cursor; the existing bounded
+source writer preserves authored text and order. The environment is emitted
+from the original checked static candidate. Definition/request binding is
+checked before encoding, and the existing remote materials encoder retains the
+original invocation, authorization, identity and lifetime. No preparation or
+compilation is repeated by this projection.
+
+The projection uses the existing materials wire. It does not yet carry or
+certify cross-process normalization custody. In particular, the poll materials
+envelope's dispatch/input-binding CIDs do not by themselves prove the provenance
+of arbitrary appended materials or journal bytes. The durable normalization
+connection must bind the original issuer evidence through the existing original
+Run/materials/Receipt chain; ordinary materials reconstruction must not become
+an excuse to issue a new empty journal. Native review installation remains a
+separate consuming boundary after that restoration is verified.

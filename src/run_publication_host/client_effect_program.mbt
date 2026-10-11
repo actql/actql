@@ -27,6 +27,7 @@ pub(all) enum ClientEffectComputationIssue {
 struct PreparedClientEffectComputation {
   mut normalization : ClientEffectNormalization?
   source : @syntax.Program
+  supplied : @decode.Cursor?
   candidate : @checked.EffectProgramStaticCandidate
   graph : @strategy.CheckedEffectComputationDAG
   check_environment_cid : String
@@ -131,6 +132,7 @@ pub fn prepare_parsed_client_effect_computation(
   Ok({
     normalization: None,
     source: parsed,
+    supplied,
     candidate,
     graph,
     check_environment_cid: @checked.checking_environment_cid(environment),
