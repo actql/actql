@@ -1,12 +1,18 @@
 ///|
 fn static_topology_source(imported : Bool, bad_type? : Bool = false) -> @stages.Source {
   let capture =
-    #|{"id":"capture","inputs":{"objects":{"connector":"crm/main","resource":"r","view":"v"}},"steps":[{"from":"objects","filter":{"literal":true}},{"select":["id","payload"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id","payload"]}}}
+    (
+      #|{"id":"capture","inputs":{"objects":{"connector":"crm/main","resource":"r","view":"v"}},"steps":[{"from":"objects","filter":{"literal":true}},{"select":["id","payload"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id","payload"]}}}
+    )
   let capture = if bad_type { capture.replace(old="{\"literal\":true}", new="{\"literal\":1}") } else { capture }
   let main = if imported {
-    #|{"id":"main","inputs":{"objects":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"objects","select":["id"],"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id"]}}}
+    (
+      #|{"id":"main","inputs":{"objects":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"objects","select":["id"],"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id"]}}}
+    )
   } else {
-    #|{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id"]}}}
+    (
+      #|{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id"]}}}
+    )
   }
   let program = @syntax.parse("{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[" + capture + "," + main +
     "],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}", {

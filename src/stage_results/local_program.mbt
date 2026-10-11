@@ -503,6 +503,8 @@ fn prepare_program_internal(
           steps: limits.max_steps - steps,
           results: limits.max_results - results,
         },
+        calendar_profile,
+        model_tasks,
       ) {
       Err(e) => return Err(Wiring(e))
       Ok(v) => v
