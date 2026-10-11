@@ -16,10 +16,10 @@ const fields = {
   {when: {eq: [{field: 'amount'}, {literal: 2}]}, then: {literal: 'a'}}],
   else: {literal: 'z'}}},
 };
-const prefix = 'DATA pieces = SELECT id, '
+const prefix = 'WITH pieces AS (SELECT id, '
   + "CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, "
   + "CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y "
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const program = tail => ({version: 'actql/0.1', id: 'fixture.concat_expression_reuse',
   stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
     steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {literal: 0}]}},
