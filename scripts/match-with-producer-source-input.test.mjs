@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {matchDataProducerSuccesses as successes, matchDataProducerRefusals as refusals}
-  from './fixtures/match-data-producer-source-input.mjs';
+import {matchWithProducerSuccesses as successes, matchWithProducerRefusals as refusals}
+  from './fixtures/match-with-producer-source-input.mjs';
 
-test('MATCH DATA has ordinary independent controls with NULL and empty contracts', () => {
+test('MATCH WITH has ordinary independent controls with NULL and empty contracts', () => {
   assert.equal(successes.length, 10);
   const find = name => successes.find(item => item.name === 'match-data-' + name);
   for (const [source, control] of [['nodes-source', 'nodes-json'], ['empty-source', 'empty-json'],
@@ -24,7 +24,7 @@ test('MATCH DATA has ordinary independent controls with NULL and empty contracts
   assert.match(find('quoted-relation-star').text, /SELECT \*/);
 });
 
-test('MATCH DATA preserves keyed edge multiplicity and acquired producer reuse', () => {
+test('MATCH WITH preserves keyed edge multiplicity and acquired producer reuse', () => {
   const trail = successes.find(item => item.name === 'match-data-parallel-trail-json');
   const control = JSON.parse(trail.text);
   assert.deepEqual(control.stages[0].steps[1].values.rows, [
@@ -46,25 +46,42 @@ test('MATCH DATA preserves keyed edge multiplicity and acquired producer reuse',
   }
 });
 
-test('MATCH DATA refusals pin scope and supported-surface classifications', () => {
+test('MATCH WITH refusals pin scope and supported-surface classifications', () => {
   assert.equal(refusals.length, 7);
   assert.deepEqual(refusals.map(item => item.expectedCode), [
     'ClientProgramInvalidInput', 'ClientProgramInvalidInput', 'ClientProgramInvalidInput',
-    'ClientProgramImplementationLimit', 'ClientProgramImplementationLimit', 'ClientProgramImplementationLimit',
+    'ClientProgramImplementationLimit', 'ClientProgramImplementationLimit', 'ClientProgramInvalidInput',
     'ClientProgramInvalidInput',
   ]);
 });
 
-test('MATCH DATA is copied and registered in ordinary packed acceptance', async () => {
+test('MATCH WITH is copied and registered in ordinary packed acceptance', async () => {
   const packed = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
-  assert.ok(packed.includes('scopeInputs.successes.push(...matchDataProducerSuccesses)'));
-  assert.ok(packed.includes('scopeInputs.refusals.push(...matchDataProducerRefusals)'));
-  assert.ok(driver.includes("['scripts/fixtures/match-data-producer-source-input.mjs', 'match-data-producer-source-input.mjs']"));
-  assert.ok(driver.includes('--match-data-producer-only'));
+  assert.ok(packed.includes('scopeInputs.successes.push(...matchWithProducerSuccesses)'));
+  assert.ok(packed.includes('scopeInputs.refusals.push(...matchWithProducerRefusals)'));
+  assert.ok(driver.includes("['scripts/fixtures/match-with-producer-source-input.mjs', 'match-with-producer-source-input.mjs']"));
+  assert.ok(driver.includes('--match-with-producer-only'));
   const narrowStart = driver.indexOf('const narrowPublicQuery =');
   const narrowEnd = driver.indexOf('async function retainTransportReports', narrowStart);
   assert.ok(narrowStart >= 0 && narrowEnd > narrowStart);
-  assert.ok(driver.slice(narrowStart, narrowEnd).includes('--match-data-producer-only'),
+  assert.ok(driver.slice(narrowStart, narrowEnd).includes('--match-with-producer-only'),
     'the selected cohort must not trigger unrelated planner/two-source corpora');
+});
+
+// Fixed predecessor fixture bytes preserve the authored JSON and public values.
+test('WITH caller retirement preserves every control, result and acquisition count', async () => {
+  const retained = JSON.parse(await readFile(new URL('../reviews/2026-10-11-with-carrier-cutover/with-match-producer-original-callers.json', import.meta.url), 'utf8'));
+  const oldSource = retained.files['scripts/fixtures/match-data-producer-source-input.mjs'].text;
+  const old = await import('data:text/javascript;base64,' + Buffer.from(oldSource).toString('base64'));
+  assert.deepEqual(successes.map(({text, ...item}) => item), old.matchDataProducerSuccesses.map(({text, ...item}) => item));
+  for (let index = 0; index < successes.length; index++) {
+    if (successes[index].format === 'json') assert.equal(successes[index].text, old.matchDataProducerSuccesses[index].text);
+    else {
+      assert.match(successes[index].text, /^WITH /);
+      assert.doesNotMatch(successes[index].text, /\bDATA\b|PROPERTY GRAPH/);
+    }
+  }
+  assert.deepEqual(refusals.map(({text, expectedCode, ...item}) => item), old.matchDataProducerRefusals.map(({text, expectedCode, ...item}) => item));
+  assert.equal(refusals.find(item => item.name === 'match-data-invalid-nested-result').expectedCode, 'ClientProgramInvalidInput');
 });

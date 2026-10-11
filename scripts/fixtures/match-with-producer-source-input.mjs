@@ -7,11 +7,11 @@ const rows = [{value: null, key: 1}, {value: 7, key: 2}];
 const mapping = {version: 'actql-graph-constructor/0.1', nodes: [{name: 'N', from: 'n',
   key: ['node_key'], labels: [{name: 'Node', properties: {mode: 'columns',
     columns: [{from: 'p', to: 'p'}, {from: 'node_key', to: 'node_key'}]}}]}], edges: []};
-const data = 'DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; ';
-const constructor = 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p, node_key))); ';
-const prefix = data + constructor;
+const relation = 'WITH n AS (SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p)';
+const constructor = ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p, node_key))))';
+const prefix = relation + constructor;
 const match = 'FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value, a.node_key AS key';
-const binding = 'DATA chosen = ' + match + '; ';
+const binding = ', chosen AS (' + match + ') ';
 const tail = 'FROM chosen |> WHERE key > 0 |> SELECT value, key |> ORDER BY key |> RESULT matched';
 const result = (expectedRows = rows, expectedColumns = columns) => ({matched: {rows: expectedRows, columns: expectedColumns}});
 const program = (id, steps, fields = ['value', 'key']) => ({version: 'actql/0.1', id,
@@ -36,10 +36,10 @@ const sourceCase = (name, text, results = result(), sourceReadCount = 0) => ({
 const jsonCase = (name, value, results) => ({name: 'match-data-' + name,
   format: 'json', text: JSON.stringify(value), results, sourceReadCount: 0});
 
-const pathPrefix = 'DATA n = SELECT 1 AS node_key; '
-  + 'DATA e = SELECT 11 AS edge_key, 1 AS src, 1 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 1 AS dst; '
-  + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) '
-  + 'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
+const pathPrefix = 'WITH n AS (SELECT 1 AS node_key)'
+  + ', e AS (SELECT 11 AS edge_key, 1 AS src, 1 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 1 AS dst)'
+  + ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) '
+  + 'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)))';
 const pathResult = result([{value: 2}, {value: 2}], [{name: 'value', contract: number}]);
 const pathControl = program('fixture.match_data.trail', [
   {values: {schema: {node_key: number}, rows: [{node_key: 1}]}, as: 'n'},
@@ -67,7 +67,7 @@ acquiredControl.stages[0].steps[0].values.rows = [{node_key: 2, p: 20}];
 acquiredControl.stages[0].results.original = {from: 'chosen', fields: ['value', 'key']};
 acquiredControl.results.original = {from: {stage: 'main', result: 'original'}};
 
-export const matchDataProducerSuccesses = [
+export const matchWithProducerSuccesses = [
   jsonCase('nodes-json', control, result()),
   sourceCase('nodes-source', prefix + binding + tail),
   jsonCase('empty-json', empty, result([])),
@@ -77,23 +77,23 @@ export const matchDataProducerSuccesses = [
   sourceCase('normalized-graph', prefix + binding.replace('g |> MATCH', 'g |> normalize_graph() |> MATCH') + tail),
   jsonCase('parallel-trail-json', pathControl, pathResult),
   sourceCase('parallel-trail-source', pathPrefix
-    + 'DATA chosen = FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS value; '
+    + ', chosen AS (FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->{2,2}(:Node) |> SELECT PATH_LENGTH(p) AS value) '
     + 'FROM chosen |> WHERE value > 1 |> SELECT value |> ORDER BY value |> RESULT matched', pathResult),
   jsonCase('reused-json', acquiredControl, acquiredResult),
   // Native acquisition owns validation_scan and native_result in one read
   // session. Neither Result access nor resubmission may create another.
-  {...sourceCase('acquired-reused-source', 'DATA n = FROM records |> WHERE id = 2 |> SELECT id AS node_key, amount AS p; '
+  {...sourceCase('acquired-reused-source', 'WITH n AS (FROM records |> WHERE id = 2 |> SELECT id AS node_key, amount AS p)'
     + constructor + binding + 'FROM chosen |> RESULT original |> WHERE key > 0 |> SELECT value, key |> ORDER BY key |> RESULT matched', acquiredResult, 2), sourceReadSessionCount: 1},
 ];
 const refusal = (name, text, expectedCode = 'ClientProgramInvalidInput') => ({
   name: 'match-data-invalid-' + name, format: 'aql-text', text: prefix + text, expectedCode,
 });
-export const matchDataProducerRefusals = [
+export const matchWithProducerRefusals = [
   refusal('removed-pattern-alias', binding + 'FROM chosen |> SELECT a.p'),
   refusal('removed-property', binding + 'FROM chosen |> SELECT p'),
   refusal('private-identity', binding + 'FROM chosen |> SELECT aql_keyed_identity_2'),
-  refusal('implicit-elements', 'DATA chosen = FROM GRAPH g |> MATCH WALK (a:Node); FROM chosen', 'ClientProgramImplementationLimit'),
-  refusal('graph-star', 'DATA chosen = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT *; FROM chosen', 'ClientProgramImplementationLimit'),
-  refusal('nested-result', 'DATA chosen = ' + match + ' |> RESULT hidden; FROM chosen', 'ClientProgramImplementationLimit'),
+  refusal('implicit-elements', ', chosen AS (FROM GRAPH g |> MATCH WALK (a:Node)) FROM chosen', 'ClientProgramImplementationLimit'),
+  refusal('graph-star', ', chosen AS (FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT *) FROM chosen', 'ClientProgramImplementationLimit'),
+  refusal('nested-result', ', chosen AS (' + match + ' |> RESULT hidden) FROM chosen', 'ClientProgramInvalidInput'),
   refusal('duplicate-data-name', binding + binding + 'FROM chosen |> SELECT value'),
 ];
