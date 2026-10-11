@@ -240,6 +240,54 @@ test('saved raw revocation cleanup preserves durable parent custody without issu
   await f.store.retirePhysicalHolding(f.binding.holdingCid);
 });
 
+test('lost raw commit reply reconciles the original durable cell without a second write or holding', async t => {
+  const bytes = Buffer.from('{"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":2}}');
+  const f = await fixture(t, {bytes});
+  const call = Object.freeze({original: Symbol('original entered call double')});
+  let observes = 0;
+  let confirms = 0;
+  f.moon.clientProgramObserveInferRawCapture = () => {
+    observes++;
+    return {$tag: 1, _0: f.view};
+  };
+  const retained = [];
+  const physical = {...f.physical,
+    async commitPhysicalHolding(...args) {
+      f.state.commits++;
+      await f.store.commitPhysicalHolding(...args);
+      throw new Error('OriginalCommitReplyLost');
+    },
+    async confirmModelRawEvidence(...args) {
+      if (++confirms === 2) throw new Error('OriginalReconfirmationUnavailable');
+      return f.store.confirmModelRawEvidence(...args);
+    },
+  };
+  const persist = createModelRawTransportPersistence({store: physical,
+    moon: f.moon, registration: {}, retainHolding: value => retained.push(value),
+    notify() {}});
+  const raw = Object.freeze({body: bytes, status: 200,
+    transportComplete: true, observedAt: '2026-10-12T00:00:00.000Z'});
+  await assert.rejects(persist(call, raw), error => {
+    assert.equal(error.message, 'OriginalCommitReplyLost');
+    assert.equal(error.reconciliationFailure.message, 'OriginalReconfirmationUnavailable');
+    assert.equal(error.rawCustodyRetained, true);
+    assert.equal(error.cleanupHandle, retained[0].holding);
+    return true;
+  });
+  assert.equal(f.state.acknowledgements, 0);
+  assert.notEqual(await f.store.inspectPhysicalHolding(f.binding.holdingCid), undefined);
+  const saved = await persist(call, raw);
+  assert.equal(saved.receipt, f.receipt);
+  assert.equal(saved.response.body, bytes.toString('utf8'));
+  assert.equal(retained.length, 1);
+  assert.equal(observes, 1);
+  assert.equal(f.state.commits, 1);
+  assert.equal(f.state.writes, 1);
+  assert.equal(f.state.acknowledgements, 1);
+  assert.equal(persist.cleanup(call), true);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
 test('private raw port refuses revoked current facts before any encryption', async t => {
   const f = await fixture(t);
   const port = createModelRawCaptureStorePort(f.physical, f.moon, f.view, f.bytes);

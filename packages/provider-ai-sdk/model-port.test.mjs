@@ -206,9 +206,65 @@ test('lost response has no invented raw body, no saved response and no second re
   const call = plan.start(f.entry);
   await until(() => call.poll(), value => value.kind === 'unknown');
   assert.equal(f.state.saves, 0);
+  await assert.rejects(f.port.reconcileRaw(call),
+    {message: 'OriginalRawReconciliationUnavailable'});
   assert.equal(plan.start(f.entry), undefined);
   await release(f);
   assert.equal(f.state.rawCleanups, 0);
+  assert.equal(f.state.calls, 1);
+});
+
+test('explicit raw reconciliation reuses the original call without rewriting Unknown or retrying transport', async () => {
+  const failure = new Error('Original ACK response lost');
+  let originalCall;
+  let originalRaw;
+  let finish;
+  const saved = {response: {nominal: Symbol('reconfirmed original raw double')}};
+  const f = fixture({persistRaw(call, raw) {
+    if (originalCall === undefined) {
+      originalCall = call;
+      originalRaw = raw;
+      throw failure;
+    }
+    assert.equal(call, originalCall);
+    assert.equal(raw, originalRaw);
+    return new Promise(resolve => { finish = resolve; });
+  }});
+  const [, plan] = await planOf(f);
+  const call = plan.start(f.entry);
+  await until(() => call.poll(), value => value.kind === 'unknown');
+  await assert.rejects(f.port.reconcileRaw({}),
+    {message: 'OriginalRawReconciliationUnavailable'});
+  const first = f.port.reconcileRaw(call);
+  assert.equal(f.port.reconcileRaw(call), first);
+  await until(() => finish, value => typeof value === 'function');
+  assert.equal(f.port.preflight.cleanup(), false);
+  assert.equal(call.poll().kind, 'unknown');
+  finish(saved);
+  assert.equal(await first, saved);
+  assert.equal(f.port.rawFailure(), failure);
+  assert.equal(call.poll().kind, 'unknown');
+  assert.equal(plan.start(f.entry), undefined);
+  assert.equal(f.state.calls, 1);
+  assert.equal(f.state.saves, 2);
+  await release(f);
+  await assert.rejects(f.port.reconcileRaw(call),
+    {message: 'OriginalRawReconciliationUnavailable'});
+});
+
+test('failed explicit raw reconciliation retains Unknown and cleanup responsibility without automatic retry', async () => {
+  const first = new Error('Original save unknown');
+  const next = new Error('Same original receipt unavailable');
+  const f = fixture({persistRaw() { throw f.state.saves === 1 ? first : next; },
+    cleanupRaw: () => false});
+  const [, plan] = await planOf(f);
+  const call = plan.start(f.entry);
+  await until(() => call.poll(), value => value.kind === 'unknown');
+  await assert.rejects(f.port.reconcileRaw(call), error => error === next);
+  for (let i = 0; i < 5; i++) assert.equal(call.poll().kind, 'unknown');
+  assert.equal(f.port.rawFailure(), first);
+  assert.equal(f.port.preflight.cleanup(), false);
+  assert.equal(f.state.saves, 2);
   assert.equal(f.state.calls, 1);
 });
 

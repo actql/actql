@@ -19,6 +19,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   let call;
   let response;
   let saving;
+  let reconciling;
   let saveStarted = false;
   let failure;
   let startUnknown = false;
@@ -52,7 +53,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   const cancel = () => cancelSdkPreparation(preparation);
   const cleanup = () => {
     if (retired) return true;
-    if (saving !== undefined) return false;
+    if (saving !== undefined || reconciling !== undefined) return false;
     // Every attempted raw save retains its original port until cleanup,
     // including a successful save's local aliases. This does not erase the
     // parent's durable receipt/custody. Failed commit/cleanup stays pending.
@@ -102,6 +103,27 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     bindPrepared(original) {
       if (retired || prepared !== undefined) throw new TypeError('SdkPreparedAlreadyBound');
       prepared = original;
+    },
+    reconcileRaw(original) {
+      // An explicit parent request only. Reuse the same observed transport
+      // backing and persistence port, never re-enter the physical operation.
+      // The saved view is returned for Common's reconciliation/usage reader;
+      // it does not replace a terminal Unknown or issue answer/send authority.
+      if (retired || call === undefined || original !== call ||
+          !saveStarted || failure === undefined || saving !== undefined) {
+        return Promise.reject(new TypeError('OriginalRawReconciliationUnavailable'));
+      }
+      if (reconciling !== undefined) return reconciling;
+      const raw = sdkTransportRawObservation(preparation);
+      if (raw === undefined) {
+        return Promise.reject(new TypeError('MissingOriginalRawObservation'));
+      }
+      reconciling = Promise.resolve().then(() => persistRaw(call, raw))
+        .then(saved => {
+          if (saved?.response === undefined) throw new TypeError('MissingSavedRawChat');
+          return saved;
+        }).finally(() => { reconciling = undefined; wake(); });
+      return reconciling;
     },
     // Private retained responsibility for the parent owner, never a public
     // success/result or authority. A failed save is not automatically retried.
