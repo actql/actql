@@ -487,7 +487,7 @@ queryCompositionSuccesses.push(
   {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
   {left_row:{amount:null,id:null},right_row:{id:4,marker:40}},
  ],[joinedNullableLeft,joinedNonNullRight]),
- joinedCase('full-using','DATA lefts = FROM (SELECT 1 AS id UNION ALL SELECT 2) |> ASSERT UNIQUE BY (id); DATA rights = FROM '+joinedRight+' |> ASSERT UNIQUE BY (id); SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id',[
+ joinedCase('full-using','WITH lefts AS (FROM (SELECT 1 AS id UNION ALL SELECT 2) |> ASSERT UNIQUE BY (id)), rights AS (FROM '+joinedRight+' |> ASSERT UNIQUE BY (id)) SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id',[
   {left_row:{id:1},right_row:{id:null,marker:null}},
   {left_row:{id:2},right_row:{id:2,marker:20}},
   {left_row:{id:null},right_row:{id:4,marker:40}},

@@ -29,7 +29,7 @@ test('duplicate request names cannot hide conflicting source or expectations', (
   }
 });
 
-test('DATA positional fixture keeps NULL duplicates and public output contracts', () => {
+test('WITH positional fixture keeps NULL duplicates and public output contracts', () => {
   const cases = new Map(relationDataSuccesses.map(item => [item.name, item]));
   assert.deepEqual(cases.get('data-anonymous-set-duplicate-order-limit').results.nodes.rows,
     [{id: 1}, {id: 1}]);
@@ -41,7 +41,7 @@ test('DATA positional fixture keeps NULL duplicates and public output contracts'
     [{id: 1}, {id: 2}]);
 });
 
-test('DATA refusal fixtures distinguish unsupported output names from private references', () => {
+test('WITH refusal fixtures distinguish unsupported output names from private references', () => {
   const cases = new Map(relationDataRefusals.map(item => [item.name, item]));
   assert.equal(cases.get('data-anonymous-set-by-name').expectedCode,
     'ClientProgramImplementationLimit');
@@ -103,7 +103,11 @@ test('joined row fixtures distinguish row identity, null extension and ORDER rec
   {left_row:{amount:null,id:1},right_row:{id:null,marker:null}});
  assert.equal(cases.get('joined-row-left-null-extension').columns[1].contract.nullable,false);
  assert.equal(cases.get('joined-row-right-null-extension').columns[0].contract.fields.id.nullable,true);
- assert.ok(cases.get('joined-row-full-using').text.includes('ASSERT UNIQUE BY (id)'));
+ const fullUsing=cases.get('joined-row-full-using');
+ assert.ok(fullUsing.text.startsWith('WITH lefts AS ('));
+ assert.equal(fullUsing.text.match(/ASSERT UNIQUE BY \(id\)/gu).length,2);
+ assert.ok(fullUsing.text.includes('FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id'));
+ assert.deepEqual(fullUsing.expected.map(row=>[row.left_row.id,row.right_row.id]),[[1,null],[2,2],[null,4]]);
  const alias=cases.get('joined-row-order-alias-not-input-reuse');
  assert.deepEqual(alias.expected.map(row=>row.id),[1,2,2]);
  assert.deepEqual([...alias.expected].sort((a,b)=>a.original-b.original).map(row=>row.id),[2,2,1]);
