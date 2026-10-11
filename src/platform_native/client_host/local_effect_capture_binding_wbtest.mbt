@@ -214,7 +214,7 @@ test "Native Local capture binding does not fill a missing accepted packet from 
       materials,
       materials.run_definition,
     )
-    is Err(Journal(CustodyLost)),
+    is Err(Journal(MissingEffectMaterialOriginal)),
   )
   assert_true(
     host.journal.retained(request).unwrap().unwrap().effect_material_originals
