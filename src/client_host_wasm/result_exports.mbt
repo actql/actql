@@ -548,6 +548,11 @@ pub fn close_result_export(nonce : Int64, handle : Int) -> Int {
   if value.result_chunks.values().any(chunk => chunk.result == handle) {
     return -9
   }
+  if value.publications
+    .values()
+    .any(publication => publication.results.contains(handle)) {
+    return -9
+  }
   record.pending = true
   if record.stream is Some(stream) {
     stream.cancel()

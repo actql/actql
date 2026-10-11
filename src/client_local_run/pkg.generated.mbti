@@ -111,6 +111,10 @@ pub fn start_local_native_source(LocalNativeSourceConfiguration, LocalRunPhysica
 
 pub fn start_local_result_publication_snapshot(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication_host.PublicationOutputSnapshotPreparation, LocalResultPublicationIssue]
 
+pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
+
+pub fn validate_local_result_publication_current(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalResultPublicationIssue]
+
 // Errors
 
 // Types and methods
@@ -175,6 +179,7 @@ pub(all) enum LocalResultPublicationIssue {
   Normalization(LocalRunNormalizationIssue)
   Receipt(@run_publication.RunReceiptIssuanceIssue)
   Invocation(@run_publication.RunEvidenceValueIssue)
+  Authoring(@run_publication_host.ClientAuthoringContextIssue)
   Output(@run_publication_host.PublicationOutputExportIssue)
 }
 

@@ -1,0 +1,531 @@
+///|
+/// Custody of existing bounded publication Owners, never durable Run state.
+/// One reserved output retains the exact Source and all declared Result pins.
+priv struct StoredPublication {
+  source : Int
+  borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
+  slot : @buffers.BufferSlot
+  mut results : Array[Int]
+  publications : Array[@local_run.LocalResultPublication]
+  snapshots : Array[@publication.CapturedResultSnapshot]
+  mut snapshot : @host.PublicationOutputSnapshotPreparation?
+  mut capture : @publication.CapturedRunIssuancePreparation?
+  mut manifest : @local_run.LocalRunManifest?
+  mut receipt : @publication.PublicationContract?
+  mut captured : @publication.PublicationContract?
+  mut index : Int
+  mut max_work : Int64
+  mut max_workspace : Int
+  mut work : Int64
+  mut progress : (Bool, Int)?
+  mut invoked : Bool
+  mut prepared : Bool
+  mut pending : Bool
+  mut failed : Bool
+  mut closing : Bool
+  mut produced : Bool
+  mut output_closed : Bool
+}
+
+///|
+#export_name("actql_publication_reserve")
+pub fn reserve_publication(
+  nonce : Int64,
+  source : Int,
+  input : Int,
+  physical_ticket : Int,
+  physical_copy_bytes : Int64,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.source_publications.get(source)
+    is Some({ closing: false, produced: true, invocation: Some(_), .. }) &&
+    value.copies.get(input) is Some((input_slot, physical)) else {
+    return -2
+  }
+  if value.closing || value.runtime_closing {
+    return -5
+  }
+  if physical_ticket <= 0 ||
+    value.next_handle == 2147483647 ||
+    value.copies.values().any(pair => pair.1 == physical_ticket) ||
+    value.native_commands
+    .values()
+    .any(command => command.physical_ticket == physical_ticket) ||
+    value.result_chunks
+    .values()
+    .any(chunk => chunk.physical_ticket == physical_ticket) ||
+    value.workspaces.values().any(pair => pair.0 == physical_ticket) {
+    return -3
+  }
+  let slot = match
+    @buffers.reserve_output_buffer(value.pool, 1048576, physical_copy_bytes, () => {
+      physical_input_cleanup(physical_ticket) == 0
+    }) {
+    Ok(slot) => slot
+    Err(issue) => return issue_code(issue)
+  }
+  let handle = value.next_handle
+  let borrow = @buffers.borrow_buffer(value.pool, input_slot, () => {
+    physical_reader_stop(physical, handle) == 0
+  })
+  value.publications[handle] = {
+    source,
+    borrow,
+    slot,
+    results: [],
+    publications: [],
+    snapshots: [],
+    snapshot: None,
+    capture: None,
+    manifest: None,
+    receipt: None,
+    captured: None,
+    index: 0,
+    max_work: 0L,
+    max_workspace: 0,
+    work: 0L,
+    progress: None,
+    invoked: false,
+    prepared: false,
+    pending: false,
+    failed: false,
+    closing: false,
+    produced: false,
+    output_closed: false,
+  }
+  value.copies[handle] = (slot, physical_ticket)
+  value.next_handle += 1
+  handle
+}
+
+///|
+fn publication_current(
+  value : Instance,
+  record : StoredPublication,
+  account : @authorization.AdmittedAccountConfiguration,
+) -> Bool {
+  guard value.source_publications.get(record.source)
+    is Some({ closing: false, compute, .. }) &&
+    value.computes.get(compute) is Some({ closing: false, .. }) else {
+    return false
+  }
+  for result in record.results {
+    guard value.result_exports.get(result)
+      is Some({ closing: false, issue: None, .. }) else {
+      return false
+    }
+  }
+  for publication in record.publications {
+    if @local_run.validate_local_result_publication_current(
+        publication, account,
+      )
+      is Err(_) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+#export_name("actql_publication_prepare")
+pub fn prepare_publication(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) &&
+    value.source_publications.get(record.source)
+    is Some({ closing: false, invocation: Some(invocation), compute, .. }) &&
+    value.computes.get(compute)
+    is Some({ closing: false, host: Some(host), .. }) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if value.closing || record.closing {
+    return -5
+  }
+  if record.prepared {
+    return if publication_current(value, record, current.account) {
+      0
+    } else {
+      -32
+    }
+  }
+  if record.invoked {
+    return -33
+  }
+  record.invoked = true
+  let borrow = match record.borrow {
+    Ok(borrow) => borrow
+    Err(issue) => return issue_code(issue)
+  }
+  guard input_cursor(value, borrow.slot) is Some(cursor) &&
+    @decode.closed_object(cursor, [
+      "results", "retention", "max_work", "max_workspace_slots",
+    ])
+    is Ok(object) &&
+    @decode.required(object, "results") is Ok(results_cursor) &&
+    @decode.elements(results_cursor) is Ok(results) &&
+    results.length() > 0 &&
+    results.length() <= value.workspace_slots &&
+    required_text(object, "retention") is Some(retention_wire) &&
+    required_int32(object, "max_work") is Some(max_work) &&
+    max_work > 0 &&
+    max_work <= 1000000 &&
+    required_int32(object, "max_workspace_slots") is Some(max_workspace) &&
+    max_workspace > 0 &&
+    max_workspace <= 100000 else {
+    return -31
+  }
+  let retention = match
+    @publication.admit_publication_contract(
+      "result_retention_policy", retention_wire, 65536, 4096, 64,
+    ) {
+    Ok(retention) => retention
+    Err(_) => return -31
+  }
+  let handles : Array[Int] = []
+  for result in results {
+    guard @decode.int32(result) is Ok(result_handle) &&
+      !handles.contains(result_handle) &&
+      value.result_exports.get(result_handle)
+      is Some(
+        {
+          task,
+          stream: Some(_),
+          ended: true,
+          closing: false,
+          pending: false,
+          issue: None,
+          ..
+        }
+      ) &&
+      value.tasks.get(task) is Some({ compute: result_compute, .. }) &&
+      result_compute == compute else {
+      return -2
+    }
+    handles.push(result_handle)
+  }
+  // Retain every original parent before an Owner call can trap.
+  record.results = handles
+  record.max_work = max_work.to_int64()
+  record.max_workspace = max_workspace
+  record.pending = true
+  for result in handles {
+    let stream = value.result_exports.get(result).unwrap().stream.unwrap()
+    match
+      @local_run.issue_local_result_publication(
+        host,
+        invocation,
+        stream,
+        retention,
+        current.account,
+        1048576,
+        100000,
+        64,
+      ) {
+      Ok(publication) => record.publications.push(publication)
+      Err(_) => {
+        record.failed = true
+        record.pending = false
+        return -32
+      }
+    }
+  }
+  record.pending = false
+  record.prepared = true
+  0
+}
+
+///|
+fn advance_publication_owner(
+  value : Instance,
+  record : StoredPublication,
+  account : @authorization.AdmittedAccountConfiguration,
+  quantum : Int,
+) -> Result[(Bool, Int), Unit] {
+  if record.index < record.publications.length() {
+    if record.snapshot is None {
+      match
+        @local_run.start_local_result_publication_snapshot(
+          record.publications[record.index],
+          account,
+          1048576,
+          100000,
+          64,
+        ) {
+        Ok(snapshot) => record.snapshot = Some(snapshot)
+        Err(_) => return Err(())
+      }
+    }
+    let snapshot = record.snapshot.unwrap()
+    let (done, work) = match snapshot.advance(quantum) {
+      Ok(progress) => progress
+      Err(_) => return Err(())
+    }
+    if done {
+      match snapshot.finish() {
+        Ok(snapshot) => record.snapshots.push(snapshot)
+        Err(_) => return Err(())
+      }
+      record.snapshot = None
+      record.index += 1
+    }
+    return Ok((false, work))
+  }
+  if record.capture is None {
+    guard value.source_publications.get(record.source)
+      is Some({ invocation: Some(invocation), compute, .. }) &&
+      value.computes.get(compute) is Some({ host: Some(host), attempt, .. }) &&
+      value.native_attempts.get(attempt) is Some(original) &&
+      value.native_sources.get(original.configuration) is Some(source) &&
+      value.runs.get(source.run)
+      is Some({ normalization: Some(normalization), .. }) else {
+      return Err(())
+    }
+    let manifest = match
+      @local_run.issue_local_run_manifest(
+        host,
+        invocation,
+        record.publications,
+        account,
+        1048576,
+        100000,
+        64,
+      ) {
+      Ok(manifest) => manifest
+      Err(_) => return Err(())
+    }
+    record.manifest = Some(manifest)
+    match
+      @local_run.start_local_run_capture(
+        manifest,
+        normalization,
+        record.snapshots,
+        account,
+        1048576,
+        100000,
+        64,
+        record.max_workspace,
+      ) {
+      Ok((capture, receipt)) => {
+        record.receipt = Some(receipt)
+        record.capture = Some(capture)
+      }
+      Err(_) => return Err(())
+    }
+  }
+  record.capture.unwrap().advance(quantum).map_err(_ => ())
+}
+
+///|
+#export_name("actql_publication_advance")
+pub fn advance_publication(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+  quantum : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) &&
+    record.prepared &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if value.closing || record.closing || record.produced {
+    return -5
+  }
+  if quantum <= 0 {
+    return -3
+  }
+  if record.pending || record.failed || record.progress is Some((true, _)) {
+    return -33
+  }
+  if !publication_current(value, record, current.account) {
+    return -32
+  }
+  let remaining = record.max_work - record.work
+  if remaining <= 0L {
+    record.failed = true
+    return -32
+  }
+  let quantum = if remaining < quantum.to_int64() {
+    remaining.to_int()
+  } else {
+    quantum
+  }
+  record.pending = true
+  let progress = advance_publication_owner(
+    value,
+    record,
+    current.account,
+    quantum,
+  )
+  record.pending = false
+  match progress {
+    Err(_) => {
+      record.failed = true
+      -32
+    }
+    Ok((done, work)) => {
+      if work < 0 || work > quantum {
+        record.failed = true
+        return -33
+      }
+      record.work += work.to_int64()
+      record.progress = Some((done, work))
+      if !publication_current(value, record, current.account) {
+        record.failed = true
+        return -32
+      }
+      0
+    }
+  }
+}
+
+///|
+#export_name("actql_publication_progress")
+pub fn publication_progress(nonce : Int64, handle : Int, field : Int) -> Int64 {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) else {
+    return -2L
+  }
+  if field == 2 {
+    return record.work
+  }
+  guard record.progress is Some((done, work)) else { return -33L }
+  match field {
+    0 => if done { 1L } else { 0L }
+    1 => work.to_int64()
+    _ => -3L
+  }
+}
+
+///|
+#export_name("actql_publication_finish")
+pub fn finish_publication(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if value.closing || record.closing {
+    return -5
+  }
+  if !publication_current(value, record, current.account) {
+    return -32
+  }
+  if record.produced {
+    return 0
+  }
+  if record.pending || record.failed {
+    return -33
+  }
+  guard record.progress is Some((true, _)) &&
+    record.capture is Some(capture) &&
+    record.manifest is Some(manifest) &&
+    record.receipt is Some(receipt) else {
+    return -7
+  }
+  record.pending = true
+  let captured = capture.finish()
+  record.pending = false
+  match captured {
+    Ok(captured) => record.captured = Some(captured)
+    Err(_) => {
+      record.failed = true
+      return -32
+    }
+  }
+  guard record.captured is Some(captured) else { return -33 }
+  let writer = @encode.writer(1048576, 4, 1) catch {
+    _ => {
+      record.failed = true
+      return -34
+    }
+  }
+  let wire = try {
+    @encode.begin_object(writer)
+    for
+      (name, contract) in [
+        ("manifest", @local_run.local_run_manifest_contract(manifest)),
+        ("receipt", receipt),
+        ("captured_run", captured),
+      ] {
+      @encode.key(writer, name)
+      @encode.string_value(
+        writer,
+        @publication.publication_contract_json(contract),
+      )
+    }
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => {
+      record.failed = true
+      return -34
+    }
+  }
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),
+  )
+  if result == 0 {
+    record.produced = true
+  } else {
+    record.failed = true
+  }
+  result
+}
+
+///|
+#export_name("actql_publication_length")
+pub fn publication_length(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) else {
+    return -2
+  }
+  match @buffers.buffer_length(value.pool, record.slot) {
+    Some(length) => length
+    None => -33
+  }
+}
+
+///|
+#export_name("actql_publication_close")
+pub fn close_publication(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) else {
+    return -2
+  }
+  record.closing = true
+  if record.pending {
+    return -33
+  }
+  if record.snapshot is Some(snapshot) {
+    snapshot.cancel()
+  }
+  if record.capture is Some(capture) {
+    capture.cancel()
+  }
+  if !record.output_closed {
+    let result = status(@buffers.close_buffer(value.pool, record.slot))
+    if result != 0 {
+      return result
+    }
+    record.output_closed = true
+  }
+  let result = match record.borrow {
+    Ok(borrow) => status(@buffers.return_buffer_borrow(value.pool, borrow))
+    Err(_) => 0
+  }
+  if result == 0 {
+    value.publications.remove(handle) |> ignore
+    value.copies.remove(handle) |> ignore
+  }
+  result
+}

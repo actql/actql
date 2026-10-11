@@ -8,6 +8,7 @@ pub(all) enum LocalResultPublicationIssue {
   Normalization(LocalRunNormalizationIssue)
   Receipt(@publication.RunReceiptIssuanceIssue)
   Invocation(@publication.RunEvidenceValueIssue)
+  Authoring(@host.ClientAuthoringContextIssue)
   Output(@host.PublicationOutputExportIssue)
 }
 
@@ -219,6 +220,22 @@ pub fn start_local_result_publication_snapshot(
   @host.PublicationOutputSnapshotPreparation,
   LocalResultPublicationIssue,
 ] {
+  match validate_local_result_publication_current(value, account) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  value.output
+  .start_captured_snapshot(max_wire_bytes, max_nodes, max_depth)
+  .map_err(issue => Output(issue))
+}
+
+///|
+/// Recheck the original live custody and current authority around a physical
+/// Host yield. This issues no new projection and performs no Source I/O.
+pub fn validate_local_result_publication_current(
+  value : LocalResultPublication,
+  account : @authorization.AdmittedAccountConfiguration,
+) -> Result[Unit, LocalResultPublicationIssue] {
   if !physical_equal(value.host, value.invocation.source.host) ||
     !value.output.matches_captured_run(local_compute_run(value.host)) {
     return Err(ForeignCompute)
@@ -234,9 +251,7 @@ pub fn start_local_result_publication_snapshot(
     Err(issue) => return Err(Source(Authorization(issue)))
     Ok(_) => ()
   }
-  value.output
-  .start_captured_snapshot(max_wire_bytes, max_nodes, max_depth)
-  .map_err(issue => Output(issue))
+  Ok(())
 }
 
 ///|
@@ -352,4 +367,87 @@ pub fn issue_local_run_receipt(
     max_nodes,
     max_depth,
   ).map_err(issue => Receipt(issue))
+}
+
+///|
+/// Capture the full immutable publication chain with the existing bounded
+/// Owner. This remains distinct from durable commit and public Run admission.
+pub fn start_local_run_capture(
+  value : LocalRunManifest,
+  normalization : LocalRunNormalization,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  account : @authorization.AdmittedAccountConfiguration,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace_slots : Int,
+) -> Result[
+  (
+    @publication.CapturedRunIssuancePreparation,
+    @publication.PublicationContract,
+  ),
+  LocalResultPublicationIssue,
+] {
+  for result in value.results {
+    match validate_local_result_publication_current(result, account) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if !local_publication_current(value.host, account) {
+    return Err(AuthorizationMismatch)
+  }
+  match
+    authorize_local_native_source(
+      value.invocation.source.configuration,
+      account,
+    ) {
+    Err(issue) => return Err(Source(Authorization(issue)))
+    Ok(_) => ()
+  }
+  let plan = value.host.plan
+  match local_run_normalization_evidence(plan, normalization) {
+    Ok(_) => ()
+    Err(issue) => return Err(Normalization(issue))
+  }
+  let authoring = match
+    @host.issue_prepared_client_authoring_context(
+      plan.prepared,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Authoring(issue))
+  }
+  // Issue the single final Receipt from this exact original chain. Accepting
+  // an arbitrary caller-supplied contract here could replace journal custody.
+  let receipt = match
+    issue_local_run_receipt(
+      value, normalization, account, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(receipt) => receipt
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    (
+      @publication.start_effect_free_captured_run(
+        plan.definition,
+        value.invocation.invocation,
+        value.results.map(result => result.definition),
+        value.results.map(result => result.artifact),
+        value.manifest,
+        receipt,
+        snapshots,
+        [],
+        authoring,
+        [],
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+        max_workspace_slots,
+      ),
+      receipt,
+    ),
+  )
 }

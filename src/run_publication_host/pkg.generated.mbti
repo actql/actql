@@ -786,6 +786,8 @@ pub fn issue_installed_client_composed_infer_plan_graph(ClientInferOccurrence, @
 
 pub fn issue_installed_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
+pub fn issue_prepared_client_authoring_context(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientAuthoringContextIssue]
+
 pub fn issue_prepared_client_composed_infer_plan_graph(ClientInferOccurrence, @check_environment.ModelExecutionContract, String, String, @lowering_relation.SequenceLimits, Int, Int, Int, capacity_work? : Int, include_results? : Bool) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
 pub fn issue_prepared_client_composed_task_plan_graph(PreparedClientProgram, ClientInferPlanGraph, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue]
@@ -1173,6 +1175,11 @@ pub(all) enum ClientAcquisitionIssue {
 pub(all) enum ClientAllowedRunEvidenceIssue {
   Prepared(@run_publication.RunEvidenceValueIssue)
   Authorization(@run_publication.RunEvidenceValueIssue)
+}
+
+pub(all) enum ClientAuthoringContextIssue {
+  Encoding
+  Evidence(@run_publication.RunEvidenceValueIssue)
 }
 
 pub(all) enum ClientBoundTemplateIssue {

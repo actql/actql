@@ -22,10 +22,13 @@ cleanup_only = sys.argv[4:] == ['--native-cleanup-only']
 inventory_root = '--bounded-inventory-root' in sys.argv[4:]
 source_publication = '--source-publication' in sys.argv[4:]
 explicit_view = '--explicit-view' in sys.argv[4:]
+final_publication = '--final-publication' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'])
 source_cases = []
+publication_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -145,7 +148,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 18
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 19
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -181,6 +184,8 @@ try:
          'steps': [{'derive': {'next': 'value + 1'}, 'as': 'derived'}, {'select': ['next'], 'as': 'selected'}],
          'results': {'out': {'from': 'selected', 'fields': ['next']}}}],
         'results': {'answer': {'from': {'stage': 'final', 'result': 'out'}}}}
+    if final_publication:
+        program['meta'] = {'note': 'original', 'nested': {'meta': 'presentation'}}
     preparation = call('program', 'reserve_preparation', environment, copy(program), 1)
     assert preparation > 0 and call('program', 'prepare', preparation) == 0
     assert call('program', 'prepared_results', preparation) == 1
@@ -395,6 +400,14 @@ try:
             source_pin = source_loan()
             assert call('source_publication', 'prepare', source_pin, configuration) == 0
             assert call('source_publication', 'advance', source_pin, 1) == 0
+            if final_publication:
+                for _ in range(10000):
+                    assert call('source_publication', 'advance', source_pin, 100) == 0
+                    if call('source_publication', 'progress', source_pin, 0) == 1:
+                        break
+                else:
+                    raise AssertionError('Retained Source invocation did not complete')
+                assert call('source_publication', 'finish', source_pin, configuration) == 0
         tasks = []
         for _ in range(2):
             task = call('task', 'reserve', compute, configuration)
@@ -491,6 +504,134 @@ try:
             raise AssertionError('No acknowledged export terminator')
         assert b''.join(chunks) == b'[{"next":5}]'
         assert fixture.queries == 3, 'Result reads must not repeat Source or Compute'
+        if final_publication:
+            expected = json.loads((root / 'scripts/fixtures/python-local-result-publication.json').read_text())
+            # Hash the independently frozen input, never a product response.
+            assert 'sha256:' + hashlib.sha256(expected['retention_preimage'].encode()).hexdigest() == expected['retention_policy_cid']
+            retention = json.loads(expected['retention_preimage'])
+            retention['retention_policy_cid'] = expected['retention_policy_cid']
+            retention_wire = json.dumps(retention, sort_keys=True, separators=(',', ':'))
+
+            def publication_loan(**overrides):
+                global ticket
+                request = copy({'results': [result], 'retention': retention_wire,
+                                'max_work': 1000000, 'max_workspace_slots': 100000,
+                                **overrides})
+                ticket += 1
+                fixture.inputs[ticket] = b''
+                value = call('publication', 'reserve', source_pin, request, ticket, 2097200)
+                assert value > 0
+                return value
+
+            for supplied, code in ((None, -31), ([], -31), ([result, result], -2), ([tasks[0]], -2)):
+                value = publication_loan(results=supplied)
+                assert call('publication', 'prepare', value, configuration) == code
+                assert call('publication', 'length', value) == -33
+                assert call('publication', 'close', value) == 0
+            publication_cases.append('null_empty_duplicate_foreign_result_inventory_refused')
+            missing = copy({'retention': retention_wire, 'max_work': 100,
+                            'max_workspace_slots': 100000})
+            ticket += 1
+            fixture.inputs[ticket] = b''
+            value = call('publication', 'reserve', source_pin, missing, ticket, 2097200)
+            assert value > 0
+            assert call('publication', 'prepare', value, configuration) == -31
+            assert call('publication', 'length', value) == -33
+            assert call('publication', 'close', value) == 0
+            publication_cases.append('absent_inventory_is_not_null_or_full_inventory')
+            exhausted = publication_loan(max_work=1)
+            assert call('publication', 'prepare', exhausted, configuration) == 0
+            assert call('publication', 'finish', exhausted, configuration) == -7
+            assert call('publication', 'advance', exhausted, configuration, 1) == 0
+            assert call('publication', 'advance', exhausted, configuration, 1) == -32
+            assert call('publication', 'progress', exhausted, 2) == 1
+            assert call('publication', 'length', exhausted) == -33
+            assert call('publication', 'close', exhausted) == 0
+            assert call('compute', 'configured', compute) == 0
+            publication_cases.append('unfinished_budget_refusal_retains_work_and_original_compute')
+            denied_account = json.loads(account)
+            denied_account['entries'][0]['outcome'] = 'deny'
+            denied_configuration = call('run', 'install_configuration', copy({
+                **CONFIGURATION, 'account': encode(denied_account).decode()}))
+            assert denied_configuration > 0
+            revoked = publication_loan()
+            assert call('publication', 'prepare', revoked, configuration) == 0
+            assert call('publication', 'prepare', revoked, denied_configuration) == -32
+            assert call('publication', 'advance', revoked, denied_configuration, 7) == -32
+            assert call('publication', 'length', revoked) == -33
+            assert call('publication', 'close', revoked) == 0
+            publication_cases.append('current_authority_checked_before_each_owner_yield')
+            expected_work = expected_body = None
+            for quantum in (7, 100):
+                value = publication_loan()
+                assert call('publication', 'prepare', value, configuration) == 0
+                spent = 0
+                for _ in range(100000):
+                    advanced = call('publication', 'advance', value, configuration, quantum)
+                    assert advanced == 0, ('Original bounded publication Owner refusal', advanced, spent)
+                    used = call('publication', 'progress', value, 1)
+                    assert 0 <= used <= quantum
+                    spent += used
+                    if call('publication', 'progress', value, 0) == 1:
+                        break
+                else:
+                    raise AssertionError('Final publication did not complete within the fixture bound')
+                assert call('publication', 'progress', value, 2) == spent
+                if expected_work is None:
+                    expected_work = spent
+                assert spent == expected_work
+                assert call('publication', 'finish', value, denied_configuration) == -32
+                assert call('publication', 'length', value) == -33
+                assert call('publication', 'finish', value, configuration) == 0
+                assert call('publication', 'finish', value, denied_configuration) == -32
+                assert call('publication', 'finish', value, configuration) == 0
+                size = call('publication', 'length', value)
+                assert 0 < size <= 1048576
+                body = json.loads(bytes(fixture.call('byte', value, index) for index in range(size)))
+                assert set(body) == {'manifest', 'receipt', 'captured_run'}
+                manifest, receipt, captured = (json.loads(body[key]) for key in ('manifest', 'receipt', 'captured_run'))
+                assert manifest['version'] == 'actql-result-manifest/0.1'
+                assert set(manifest['results']) == {expected['result_name']}
+                assert receipt['version'] == 'actql-run-receipt/0.1'
+                frozen = json.loads((root / 'spec/contracts/actql-effect-free-local-completion-free-fixture.json').read_text())
+                assert receipt['normalization_journal_cid'] == frozen['journal_cid']
+                assert receipt['result_manifest_cid'] == manifest['result_manifest_cid']
+                assert captured['version'] == 'actql-captured-run/0.1'
+                assert captured['receipt'] == receipt
+                context = captured['effect_context']
+                assert context['result_values'] == {expected['result_name']: expected['result_rows']}
+                assert context['result_fields'] == {expected['result_name']: expected['result_fields']}
+                assert context['model_invocation_evidence'] == []
+                assert context['pending_source_state_advances'] == []
+                assert context['authoring_context']['program_definition_cid'] == receipt['program_definition_cid']
+                assert context['authoring_context']['annotations'] == [{
+                    'target': {'kind': 'program', 'source_path': '$', 'name': program['id']},
+                    'meta': {'note': 'original', 'nested': {'meta': 'presentation'}}}]
+                assert captured['encryption_required'] is True
+                assert captured['sensitivity'] == 'private'
+                if expected_body is None:
+                    expected_body = body
+                assert body == expected_body, 'Quantum cannot change the original final evidence'
+                assert fixture.queries == expected['source_queries']
+                if quantum == 100:
+                    # Closing parents seals them but retains custody until the
+                    # same child output and reader cleanup both succeed.
+                    assert call('result', 'close', result) == -9
+                    assert call('source_publication', 'close', source_pin) == -9
+                    assert call('publication', 'finish', value, configuration) == -32
+                fixture.cleanup_ready = False
+                reserved = fixture.call('reserved')
+                assert call('publication', 'close', value) == -9
+                assert fixture.call('reserved') == reserved
+                fixture.cleanup_ready = True
+                assert call('publication', 'close', value) == 0
+                assert call('compute', 'configured', compute) == 0
+                publication_cases.append('quantum_' + str(quantum) + '_exact_snapshot_manifest_receipt_capture_and_cleanup')
+            assert call('run', 'close_configuration', denied_configuration) == 0
+            publication_cases.extend(['revocation_before_and_after_cached_finish_refused',
+                                      'original_authoring_journal_source_and_model_evidence_separated',
+                                      'parent_close_retains_child_until_same_handle_cleanup',
+                                      'original_source_and_compute_not_replayed'])
         assert call('task', 'close', tasks[1]) == -9
         assert call('result', 'reserve', tasks[1], 0) == -2
         assert call('result', 'close', result) == 0
@@ -545,6 +686,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'default_fuel_acceptance': False,
                   'global_memory_accounting': False,
                   'source_publication_cases': source_cases,
+                  'result_publication_cases': publication_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']
