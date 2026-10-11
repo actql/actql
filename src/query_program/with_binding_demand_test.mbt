@@ -22,7 +22,7 @@ fn with_demand_program(result : Result[@program.Program, Issue]) -> @program.Pro
     Err(BindingPreparation(SourceProgram(Program(Order(stage, PipelineOrder(issue)))))) =>
       fail("Source order stage \{stage}: " + @debug.to_string(issue.kind))
     Err(BindingPreparation(SourceProgram(Program(Order(stage, ProducerOrder(issue)))))) =>
-      fail("Source producer order stage \{stage}: " + @debug.to_string(issue.kind))
+      fail("Source producer order stage \{stage}: " + @debug.to_string(issue.issue.kind))
     Err(BindingPreparation(SourceProgram(Program(Order(stage, ResultOrder(issue)))))) =>
       fail("Source result order stage \{stage}: " + @debug.to_string(issue.kind))
     Err(BindingPreparation(SourceProgram(Program(Results(stage, issue))))) =>
