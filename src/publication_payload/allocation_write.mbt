@@ -170,6 +170,48 @@ pub fn publication_payload_allocation_write_value(
 }
 
 ///|
+/// Private Host transport of the exact original namespace, CAS and bytes.
+/// This envelope is neither an identity preimage nor a public Client contract.
+pub fn publication_payload_allocation_write_json(
+  write : PublicationPayloadAllocationWrite,
+) -> Result[String, PublicationPayloadIssue] {
+  match validate_publication_payload_allocation_write(write) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let writer = @encode.writer(65536, 32, 2) catch {
+    _ => return Err(InvalidRecord)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "allocation_body")
+    @encode.string_value(writer, @utf8.decode_lossy(write.body))
+    @encode.key(writer, "expected_revision")
+    match write.previous {
+      None => @encode.null_value(writer)
+      Some(previous) =>
+        @encode.string_value(writer, previous.revision.to_string())
+    }
+    @encode.key(writer, "material_generation_cid")
+    @encode.string_value(writer, write.record.request.material_generation_cid)
+    @encode.key(writer, "namespace")
+    @encode.string_value(writer, publication_payload_allocation_namespace())
+    @encode.key(writer, "previous_body")
+    match write.previous {
+      None => @encode.null_value(writer)
+      Some(previous) =>
+        @encode.string_value(writer, @utf8.decode_lossy(previous.body))
+    }
+    @encode.key(writer, "store_authority_cid")
+    @encode.string_value(writer, write.record.request.store_authority_cid)
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(InvalidRecord)
+  }
+}
+
+///|
 /// Read-only confirmation of one original physical write, including lost ACK.
 /// A different or later generation cannot resolve it. The caller still owns
 /// uncertain acquisition/cleanup and must fence current Host authorization.

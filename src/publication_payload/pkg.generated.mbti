@@ -78,6 +78,8 @@ pub fn publication_payload_allocation_ownership(PublicationPayloadAllocation) ->
 
 pub fn publication_payload_allocation_write_body(PublicationPayloadAllocationWrite) -> Bytes
 
+pub fn publication_payload_allocation_write_json(PublicationPayloadAllocationWrite) -> Result[String, PublicationPayloadIssue]
+
 pub fn publication_payload_allocation_write_previous_body(PublicationPayloadAllocationWrite) -> Bytes?
 
 pub fn publication_payload_allocation_write_previous_revision(PublicationPayloadAllocationWrite) -> Int64?

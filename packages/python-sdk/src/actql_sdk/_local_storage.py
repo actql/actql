@@ -33,6 +33,14 @@ class ByteWrite:
 
 
 @dataclass(frozen=True)
+class ByteFence:
+    # Original physical record observation, not authority or a Run revision.
+    key: str
+    generation: int
+    payload: bytes
+
+
+@dataclass(frozen=True)
 class CapacityReservation:
     namespace: str
     key: str
@@ -164,6 +172,22 @@ class LocalByteStore:
         if (type(key) is not str or not key
                 or len(key.encode('utf-8')) > 4096):
             raise ValueError('Invalid Local physical storage key')
+
+    @staticmethod
+    def namespaced_key(namespace: str, key: str) -> str:
+        """Encode Owner-issued namespace/key as one private physical address.
+
+        The UTF-8 byte length makes this mapping injective without normalizing
+        either value. Original bare Core records are not moved or reinterpreted.
+        This selects storage only; it does not assert namespace completeness,
+        absence, authority, a record's meaning, or permission to write it.
+        Installed Host assembly keeps this prefix separate from its bare keys.
+        """
+        LocalByteStore._capacity_name(namespace)
+        LocalByteStore._key(key)
+        physical = f'namespace:{len(namespace.encode("utf-8"))}:{namespace}:{key}'
+        LocalByteStore._key(physical)
+        return physical
 
     def read(self, key: str) -> StoredBytes | None:
         self._key(key)
@@ -350,6 +374,22 @@ class LocalByteStore:
         generations = self.compare_exchange_many((write,), capacity=capacity)
         return None if generations is None else generations[0]
 
+    def compare_exchange_attached(self, write: ByteWrite, original: ByteFence,
+                                  capacity: CapacityReservation) -> int | None:
+        """CAS separate metadata while retaining the exact original record.
+
+        The original bytes/generation and its capacity are checked in the same
+        transaction. The original record is never written or advanced. These
+        are trusted Host physical observations, not admission/publication proof.
+        Lost acknowledgements still require lookup of this one metadata write.
+        """
+        if (type(write) is not ByteWrite or type(original) is not ByteFence
+                or type(capacity) is not CapacityReservation
+                or write.key == original.key or capacity.key != original.key):
+            raise ValueError('Invalid original Local physical metadata binding')
+        generations = self._compare_exchange_many((write,), capacity=capacity, fence=original)
+        return None if generations is None else generations[0]
+
     def compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
                               capacity: CapacityReservation | None = None) -> tuple[int, ...] | None:
         """Install all opaque writes in one physical transaction or none.
@@ -365,6 +405,11 @@ class LocalByteStore:
         a changed or missing reservation leaves every write untouched. The Host
         still supplies the original Store binding and Core-issued record bytes.
         """
+        return self._compare_exchange_many(writes, capacity=capacity)
+
+    def _compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
+                               capacity: CapacityReservation | None,
+                               fence: ByteFence | None = None) -> tuple[int, ...] | None:
         if type(writes) is not tuple or not 1 <= len(writes) <= self._max_records:
             raise ValueError('Invalid Local physical write batch')
         keys: set[str] = set()
@@ -388,8 +433,19 @@ class LocalByteStore:
             self._capacity_name(capacity.key)
             self._capacity_amount(capacity.reserved_bytes)
             self._capacity_amount(capacity.reserved_objects)
-            if capacity.key not in keys:
-                raise ValueError('Local physical reservation names another record')
+            if fence is None:
+                if capacity.key not in keys:
+                    raise ValueError('Local physical reservation names another record')
+            elif capacity.key != fence.key:
+                raise ValueError('Local physical reservation names another original')
+        if fence is not None:
+            self._key(fence.key)
+            if (type(fence.generation) is not int
+                    or not 0 <= fence.generation <= 2**63 - 1
+                    or type(fence.payload) is not bytes
+                    or len(fence.payload) > self._max_record_bytes
+                    or fence.key in keys or capacity is None):
+                raise ValueError('Invalid original Local physical record fence')
         with self._lock:
             self._open()
             database = self._connection
@@ -400,6 +456,14 @@ class LocalByteStore:
                         FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
                         (capacity.namespace, capacity.key)).fetchone()
                     if retained != (capacity.reserved_bytes, capacity.reserved_objects):
+                        database.execute('ROLLBACK')
+                        return None
+                if fence is not None:
+                    original = database.execute('''SELECT generation,
+                        CASE WHEN length(payload) <= ? THEN payload ELSE NULL END
+                        FROM core_bytes WHERE key = ?''',
+                        (self._max_record_bytes, fence.key)).fetchone()
+                    if original != (fence.generation, fence.payload):
                         database.execute('ROLLBACK')
                         return None
                 generations: list[int] = []

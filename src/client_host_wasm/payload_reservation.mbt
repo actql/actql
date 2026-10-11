@@ -32,6 +32,7 @@ pub fn reserve_payload_reservation(
     value.next_handle == 2147483647 ||
     value.payload_reservations.values().any(record => record.parent == parent) ||
     value.payload_writings.values().any(record => record.parent == parent) ||
+    value.payload_allocations.values().any(record => record.parent == parent) ||
     value.copies.values().any(pair => pair.1 == physical_ticket) ||
     value.native_commands
     .values()

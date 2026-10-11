@@ -31,6 +31,7 @@ payload_replay = '--payload-replay' in sys.argv[4:]
 payload_record = '--payload-record' in sys.argv[4:]
 payload_reservation = '--payload-reservation' in sys.argv[4:]
 payload_writing = '--payload-writing' in sys.argv[4:]
+payload_allocation = '--payload-allocation' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
@@ -41,7 +42,8 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -56,6 +58,7 @@ payload_replay_cases = []
 payload_record_cases = []
 payload_reservation_cases = []
 payload_writing_cases = []
+payload_allocation_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -203,7 +206,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 30
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 31
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -994,6 +997,12 @@ try:
                             fixture, payload_loan, payload_facts, configuration, denied_configuration,
                             copy, call, assert_status, new_output_ticket))
                         assert fixture.queries == expected['source_queries']
+                    if payload_allocation:
+                        from python_local_payload_allocation import check_payload_allocation
+                        payload_allocation_cases.extend(check_payload_allocation(
+                            fixture, payload_loan, payload_facts, configuration, denied_configuration,
+                            copy, call, assert_status, new_output_ticket))
+                        assert fixture.queries == expected['source_queries']
                     if payload_replay:
                         replay_expected = json.loads((root / 'scripts/fixtures/python-local-payload-replay.json').read_text())
                         assert_status('payload_request', 'start_replay', -32, child, denied_configuration)
@@ -1415,6 +1424,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'payload_record_cases': payload_record_cases,
                   'payload_reservation_cases': payload_reservation_cases,
                   'payload_writing_cases': payload_writing_cases,
+                  'payload_allocation_cases': payload_allocation_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

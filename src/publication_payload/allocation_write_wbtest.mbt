@@ -272,3 +272,37 @@ test "allocation preparation cannot replace missing or wrong payload phase" {
   assert_eq(publication_payload_record_revision(record), 1)
   assert_eq(publication_payload_record_state(record), Reserved)
 }
+
+///|
+test "allocation Host envelope keeps original namespace keys and exact CAS bytes" {
+  let record = allocation_writing_record()
+  let name = "alloc-" + "3".repeat(64) + "-1"
+  let intent = prepare_publication_payload_allocation_intent_write(record, None).unwrap()
+  assert_eq(
+    publication_payload_allocation_write_json(intent).unwrap(),
+    "{\"allocation_body\":\"" +
+    name +
+    "\",\"expected_revision\":null,\"material_generation_cid\":\"" +
+    payload_cid("3") +
+    "\",\"namespace\":\"publication_payload_allocation\",\"previous_body\":null,\"store_authority_cid\":\"" +
+    payload_cid("1") +
+    "\"}",
+  )
+  let owned = prepare_publication_payload_allocation_ownership_write(
+    record,
+    allocation_observation(record, 9007199254740993L, name),
+    { device: 41UL, inode: 73UL, },
+  ).unwrap()
+  assert_eq(
+    publication_payload_allocation_write_json(owned).unwrap(),
+    "{\"allocation_body\":\"" +
+    name +
+    "|41|73\",\"expected_revision\":\"9007199254740993\",\"material_generation_cid\":\"" +
+    payload_cid("3") +
+    "\",\"namespace\":\"publication_payload_allocation\",\"previous_body\":\"" +
+    name +
+    "\",\"store_authority_cid\":\"" +
+    payload_cid("1") +
+    "\"}",
+  )
+}

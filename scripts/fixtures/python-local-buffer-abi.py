@@ -17,6 +17,19 @@ try:
     physical_bytes = sys.getsizeof(payload)
     handle = left.copy(1, payload, physical_bytes)
     assert json.loads(payload) == {'e\u0301/~😀': 'e\u0301\r\n😀', 'nullable': None, 'n': 1}
+    # Allocation writes also require their original confirmed Writing parent.
+    assert left.exports['actql_payload_allocation_reserve'](
+        left.store, left.nonce, handle, 1, 65000, 131300) == -2
+    assert left.exports['actql_payload_allocation_produce'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_validate'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_begin'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_confirm'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_close'](
+        left.store, right.nonce, handle) == -2
     assert left.call('allocated') == 2 * len(payload) + physical_bytes
     assert left.call('reserved') == 256
     assert right.exports['actql_buffer_byte'](right.store, left.nonce, handle, 0) == -1
