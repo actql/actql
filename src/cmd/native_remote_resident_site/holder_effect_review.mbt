@@ -1,73 +1,4 @@
 ///|
-/// Independently installed typed Provider configuration is never a projection
-/// of a poll or candidate materials. Preparation joins completed holders and
-/// their journal through existing Original, capture and normalization Owners.
-fn prepare_holder_effect_review(
-  task : HolderTaskCustody,
-  tasks : Map[String, HolderTaskCustody],
-  journal : @journal.Journal,
-  policy : @effect_review.NativeResidentEffectReviewPolicy,
-) -> Bool {
-  if task.released || task.release_requested {
-    return false
-  }
-  // A replay retains the same owner. It cannot refresh policy or replace
-  // original inputs, and this projection grants no write authority.
-  if task.effect_review is Some(_) {
-    return true
-  }
-  if task.effect_review_cleanup is Some(pending) {
-    if !pending.close() {
-      return false
-    }
-    task.effect_review_cleanup = None
-  }
-  guard task.consumer is Some(consumer) &&
-    task.producer_identity is Some(identity) &&
-    tasks.get(identity) is Some(producer) &&
-    !producer.released &&
-    producer.effect_producer is Some(original) else {
-    return false
-  }
-  let context = match
-    consumer.prepare_effect_review_inputs(
-      journal,
-      original,
-      journal,
-      policy.stage,
-      0,
-      policy.retention,
-      policy.export_limits,
-      // The existing finite one-Source/two-task capture fixture uses this
-      // connection budget. It is not a language-level Run-count restriction.
-      4,
-      policy.max_work,
-      policy.preview_limits.max_wire_bytes,
-      policy.preview_limits.max_nodes,
-      policy.preview_limits.max_depth,
-    ) {
-    Ok(value) => value
-    Err(failure) => {
-      task.effect_review_cleanup = failure.pending
-      return false
-    }
-  }
-  match
-    @effect_review.prepare_native_resident_effect_review_from_original_materials(
-      consumer, journal, context, policy,
-    ) {
-    Ok(review) => {
-      task.effect_review = Some(review)
-      true
-    }
-    Err(failure) => {
-      task.effect_review_cleanup = failure.pending
-      false
-    }
-  }
-}
-
-///|
 /// Cleanup failure preserves the exact existing owner for retry. Neither an
 /// input close nor a Review close is formal dispatch cleanup or release.
 fn close_holder_effect_review(task : HolderTaskCustody) -> Bool {
@@ -82,6 +13,12 @@ fn close_holder_effect_review(task : HolderTaskCustody) -> Bool {
       return false
     }
     task.effect_review_cleanup = None
+  }
+  if task.effect_catalog_review is Some(catalog) {
+    if !catalog.close() {
+      return false
+    }
+    task.effect_catalog_review = None
   }
   true
 }
@@ -139,7 +76,7 @@ fn drive_holder_effect_review(
   tasks : Map[String, HolderTaskCustody],
   journal : @journal.Journal,
   resources : HolderOutputResources,
-  policy : (HolderEffectOriginalPolicyContext) -> @effect_review.NativeResidentEffectReviewPolicy?,
+  installation : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody?,
   publication : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication?,
   authorize_evidence_read : () -> Bool,
 ) -> Bool {
@@ -155,31 +92,16 @@ fn drive_holder_effect_review(
       is Some(original) else {
       return false
     }
-    guard holder_effect_policy_read_current(
-        () => authorize_evidence_read() && original.current(),
-        () => policy(original),
-      )
-      is Some(installed) else {
-      return false
+    if task.effect_catalog_review is None {
+      // Retain acquired handles even when authority changes during setup.
+      // Refusing adoption cannot abandon the installation's cleanup owner.
+      guard installation(original) is Some(installed) else { return false }
+      task.effect_catalog_review = Some(installed)
     }
-    guard original.invocation(
-        installed.preview_limits.max_wire_bytes,
-        installed.preview_limits.max_nodes,
-        installed.preview_limits.max_depth,
-      )
-      is Some((_, invocation)) &&
-      @effect_catalog.catalog_observation_matches_binding(installed.catalog, {
-        ..installed.catalog.binding,
-        run_invocation_cid: @publication.publication_contract_identity(
-          invocation,
-        ),
-        dispatch_request_cid: @remote.dispatch_request_identity(task.request),
-      }) &&
-      authorize_evidence_read() &&
-      original.current() else {
-      return false
-    }
-    if !prepare_holder_effect_review(task, tasks, journal, installed) {
+    guard task.effect_catalog_review is Some(installed) &&
+      prepare_holder_effect_catalog_review(
+        task, original, journal, resources, installed, authorize_evidence_read,
+      ) else {
       report("effect-review-pending", [
         ("request_cid", @remote.dispatch_request_identity(task.request)),
         ("reason", "original-custody"),
