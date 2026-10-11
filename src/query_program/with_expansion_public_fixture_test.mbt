@@ -387,18 +387,26 @@ test "WITH public expansion joined-unnest-star-acquired-data local typing contro
   // obligations; this control does not manufacture a captured order witness.
   let context = {
     ..fixture_context(),
-    inputs: [{
-      relation: [{ value: "records", quoted: false, }],
-      name: "records",
-      source: GeneratedValues(from_unpivot_public_cursor(
-        "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"id\":2,\"amount\":null},{\"id\":1,\"amount\":10}]},\"as\":\"records\"}",
-      )),
-      visible_fields: ["id", "amount"],
-      graph_bindings: [],
-    }],
+    inputs: [
+      {
+        relation: [{ value: "records", quoted: false, }],
+        name: "records",
+        source: GeneratedValues(
+          from_unpivot_public_cursor(
+            "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"id\":2,\"amount\":null},{\"id\":1,\"amount\":10}]},\"as\":\"records\"}",
+          ),
+        ),
+        visible_fields: ["id", "amount"],
+        graph_bindings: [],
+      },
+    ],
     parameter_declarations: Some(declarations),
   }
-  let lowered = @frontend.lower("WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer", Text, Some(context)).unwrap()
+  let lowered = @frontend.lower(
+    "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+    Text,
+    Some(context),
+  ).unwrap()
   assert_true(lowered.program is Some(_))
 }
 
@@ -425,21 +433,35 @@ test "WITH captured expansion preserves missing publication order refusal" {
   let context = {
     ..captured,
     input_schemas: [("records", captured.input_schemas[0].1)],
-    inputs: [{
-      ..captured.inputs[0],
-      relation: [{ value: "records", quoted: false, }],
-      name: "records",
-      visible_fields: ["id"],
-    }],
+    inputs: [
+      {
+        ..captured.inputs[0],
+        relation: [{ value: "records", quoted: false, }],
+        name: "records",
+        visible_fields: ["id"],
+      },
+    ],
     parameter_declarations: Some(declarations),
   }
-  guard @frontend.lower("WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer", Text, Some(context)) is Err(
-    QueryLowering(BindingPreparation(SourceProgram(Program(Order(0, ResultOrder(issue))))))
-  ) else {
+  guard @frontend.lower(
+      "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+      Text,
+      Some(context),
+    )
+    is Err(
+      QueryLowering(
+        BindingPreparation(SourceProgram(Program(Order(0, ResultOrder(issue)))))
+      )
+    ) else {
     fail("admitted Catalog without capture order must remain refused")
   }
   assert_eq(issue.kind, @relation_results.UnresolvedOrder)
-  assert_eq(@wire.cursor_path(issue.source), [Key("stages"), Index(0), Key("results"), Key("source")])
+  assert_eq(@wire.cursor_path(issue.source), [
+    Key("stages"),
+    Index(0),
+    Key("results"),
+    Key("source"),
+  ])
 }
 
 ///|
