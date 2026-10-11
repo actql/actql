@@ -153,7 +153,10 @@ pub fn restore_installed_salesforce_declaration(
   catalog_cid : String,
   limits : @catalog.DeclarationLimits,
 ) -> Result[InstalledSalesforceDeclaration, InstalledSalesforceIssue] {
-  if !site_binding_matches(site, observation.binding) {
+  guard observation.binding is @catalog.SiteCatalog(binding) else {
+    return Err(ForeignBinding)
+  }
+  if !site_binding_matches(site, binding) {
     return Err(ForeignBinding)
   }
   guard @catalog.salesforce_implementation(connector_revision)
@@ -172,7 +175,7 @@ pub fn restore_installed_salesforce_declaration(
   let declaration = match
     @catalog.generate_static_declaration(
       observation,
-      observation.binding,
+      binding,
       implementation,
       connector_id,
       described,
@@ -248,7 +251,10 @@ pub fn recheck_installed_salesforce_row_projection(
   current : @catalog.CatalogObservation,
   max_soql_bytes : Int,
 ) -> Result[@catalog.ReadProjection, InstalledSalesforceIssue] {
-  if !site_binding_matches(declaration.site, current.binding) {
+  guard current.binding is @catalog.SiteCatalog(binding) else {
+    return Err(ForeignBinding)
+  }
+  if !site_binding_matches(declaration.site, binding) {
     return Err(ForeignBinding)
   }
   let requirement = @rows.row_acquisition_requirement(acquisition)
@@ -260,7 +266,7 @@ pub fn recheck_installed_salesforce_row_projection(
   let plan = match
     @catalog.prepare_read_projection(
       current,
-      current.binding,
+      binding,
       resource,
       fields,
       max_soql_bytes,
