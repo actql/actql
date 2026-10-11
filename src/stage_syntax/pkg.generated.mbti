@@ -47,6 +47,8 @@ pub fn effect_headers_work(EffectHeaders) -> Int
 
 pub fn effect_names(Stage) -> Array[String]
 
+pub fn emit_admitted_source_value(@decode_core.Cursor, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_effect_header_semantics(EffectHeader, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_metadata_stripped_program(Program, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

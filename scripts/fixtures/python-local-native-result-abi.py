@@ -140,7 +140,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 14
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 16
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -236,7 +236,8 @@ try:
                                   call('task', 'issue', task),
                                   [call('task', 'assessment', task, 0, field) for field in range(8)])
             for _ in range(1000):
-                assert call('task', 'feed', task, 1) == 0
+                fed = call('task', 'feed', task, 1)
+                assert fed == 0, ('Original typed input feeding failure', fed, call('task', 'issue', task))
                 if call('task', 'inputs_ready', task) == 0:
                     break
             else:
