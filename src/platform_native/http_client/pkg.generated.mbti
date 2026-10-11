@@ -20,6 +20,7 @@ pub fn Client::get_local_preparation(Self, String, @filesystem.PrivateFileProjec
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request_bearer_file(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
+pub fn Client::response_limit(Self) -> Result[Int64, NativeHttpIssue]
 
 type Library
 pub fn Library::create_authenticated_client(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
