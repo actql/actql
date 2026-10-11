@@ -69,7 +69,7 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(native.module_sha256,digest);
     assert.equal(native.cases.length,14);
     assert.equal(native.source_publication_cases.length,11);
-    assert.equal(native.result_publication_cases.length,10);
+    assert.equal(native.result_publication_cases.length,11);
     assert.equal(native.explicit_authored_view,true);
     assert.equal(native.source_queries,3);
     const record={source_sha:source,module,module_sha256:digest,

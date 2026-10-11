@@ -84,6 +84,15 @@ def call(family, name, *args):
     return fixture.exports['actql_' + family + '_' + name](fixture.store, fixture.nonce, *args)
 
 
+def publication_policy():
+    expected = json.loads((root / 'scripts/fixtures/python-local-result-publication.json').read_text())
+    # Hash the independently frozen input, never a product response.
+    assert 'sha256:' + hashlib.sha256(expected['retention_preimage'].encode()).hexdigest() == expected['retention_policy_cid']
+    retention = json.loads(expected['retention_preimage'])
+    retention['retention_policy_cid'] = expected['retention_policy_cid']
+    return expected, json.dumps(retention, sort_keys=True, separators=(',', ':'))
+
+
 def projection(family, reserve, produce, length, close, *args):
     global ticket
     ticket += 1
@@ -485,6 +494,19 @@ try:
         else:
             raise AssertionError('Second Result preparation did not finish')
         assert call('result', 'finish_preparation', result) == 0
+        if final_publication:
+            _, retention_wire = publication_policy()
+            pending_input = copy({'results': [result], 'retention': retention_wire,
+                                  'max_work': 1000000, 'max_workspace_slots': 100000})
+            ticket += 1
+            fixture.inputs[ticket] = b''
+            pending_publication = call('publication', 'reserve', source_pin, pending_input,
+                                       ticket, 2097200)
+            assert pending_publication > 0
+            assert call('publication', 'prepare', pending_publication, configuration) == -2
+            assert call('publication', 'length', pending_publication) == -33
+            assert call('publication', 'close', pending_publication) == 0
+            publication_cases.append('unfinished_original_result_export_cannot_attest_publication')
         for _ in range(100):
             ticket += 1
             chunk = call('result', 'reserve_chunk', result, ticket, 131_300)
@@ -505,12 +527,7 @@ try:
         assert b''.join(chunks) == b'[{"next":5}]'
         assert fixture.queries == 3, 'Result reads must not repeat Source or Compute'
         if final_publication:
-            expected = json.loads((root / 'scripts/fixtures/python-local-result-publication.json').read_text())
-            # Hash the independently frozen input, never a product response.
-            assert 'sha256:' + hashlib.sha256(expected['retention_preimage'].encode()).hexdigest() == expected['retention_policy_cid']
-            retention = json.loads(expected['retention_preimage'])
-            retention['retention_policy_cid'] = expected['retention_policy_cid']
-            retention_wire = json.dumps(retention, sort_keys=True, separators=(',', ':'))
+            expected, retention_wire = publication_policy()
 
             def publication_loan(**overrides):
                 global ticket
