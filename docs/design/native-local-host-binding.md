@@ -359,6 +359,27 @@ Remote grant/use bodies and CIDs remain unchanged. Preparation identity, origina
 grant acknowledgement, durable use claim and actual Provider entry are distinct
 facts. Absence or a reconstructed identity never proves an observation unsent.
 
+The existing private grant-original journal stores Preparation and Resume as
+closed typed alternatives. A Preparation packet contains the full canonical
+`preparation_fence` original alongside the original `grant` and `intent`; a
+Resume packet retains its original two-field bytes. Packet admission selects
+the exact closed shape and never falls back from an invalid Preparation body
+to Resume. The full fence must match both the grant CID and original Client
+intent/scope. Decoding this storage record does not recreate an operational
+Work token.
+
+Both alternatives share the existing immutable append transaction, issuance
+witness, 64-original/65,536-byte per-Run limit and exact capacity reservation.
+Preparation append additionally requires the same live original Work/journal
+fence under the existing transaction. Current issuer, adoption, account,
+cancellation and started/Checkpoint facts are checked after encoding and
+before append, including exact replay. Repeating the original operation keeps
+its grant, expiry, allowance and reservation unchanged. A different operation
+ID cannot mint another allowance for the same original preparation observation.
+Missing or altered originals and reservations refuse instead of being repaired.
+The checked Direct Local Catalog/request and credential installation remain
+separate prerequisites before exposing this storage seam through the CLI.
+
 ## Independent acceptance requirements
 
 These expectations are fixed independently of implementation output. A contract

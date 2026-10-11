@@ -93,8 +93,16 @@ fn local_grant_test_store(
     let packet = local_grant_original_packet(original).unwrap()
     host.database.insert("client_local_grant_originals", key, packet).unwrap()
     |> ignore
+    let issued = host.database
+      .read("client_local_grant_custody", "issued")
+      .unwrap()
     host.database
-    .compare_exchange("client_local_grant_custody", "issued", 0L, b"1")
+    .compare_exchange(
+      "client_local_grant_custody",
+      "issued",
+      issued.revision,
+      @utf8.encode((issued.revision + 1L).to_string()),
+    )
     .unwrap()
     |> ignore
     Ok(())
@@ -111,7 +119,7 @@ test "Native grant original keys bind explicit operation IDs while divergent inp
     original.request,
     original.operation_id,
   ).unwrap()
-  let scope = @credential.local_credential_grant_scope(original.grant)
+  let scope = local_original_resume_grant_scope(original.grant)
   let changed = @credential.prepare_local_credential_grant(
     "credential-authority-a",
     {
@@ -150,7 +158,7 @@ test "Native grant original keys bind explicit operation IDs while divergent inp
   }).unwrap()
   assert_eq(decoded.operation_id, "issue-original")
   assert_eq(
-    @credential.local_credential_grant_scope(decoded.grant).request_body_cid,
+    local_original_resume_grant_scope(decoded.grant).request_body_cid,
     "sha256:6399fe49a070085db566de0c03e6098e3562ddf9348d1f81bca23ab0658c8e31",
   )
   assert_true(
@@ -187,8 +195,8 @@ test "Native original grant lookup returns the exact custody without changing ad
     let restored = binding.lookup_grant_original(original).unwrap().unwrap()
     assert_eq(restored.intent, original.intent)
     assert_eq(
-      @credential.local_credential_grant_json(restored.grant),
-      @credential.local_credential_grant_json(original.grant),
+      local_original_grant_json(restored.grant),
+      local_original_grant_json(original.grant),
     )
   }
   assert_eq(
@@ -316,7 +324,7 @@ test "Native grant original append requires the actual retained resume fence ins
   )
   // Owning-module hostile material: a constructed claim is not present in the
   // journal. This must refuse before packet/reservation/Run changes occur.
-  let scope = @credential.local_credential_grant_scope(original.grant)
+  let scope = local_original_resume_grant_scope(original.grant)
   let fabricated : NativeClientEffectResumeClaim = {
     journal: host.journal,
     request: original.request,
@@ -345,4 +353,16 @@ test "Native grant original append requires the actual retained resume fence ins
     0L,
   )
   host.close().unwrap()
+}
+
+///|
+// Test-only explicit unwrap of the old typed branch. It is never a fake
+// positive-generation scope for preparation or a production fallback.
+fn local_original_resume_grant_scope(
+  grant : NativeLocalOriginalGrant,
+) -> @credential.LocalCredentialScope {
+  match grant {
+    ResumeGrant(value) => @credential.local_credential_grant_scope(value)
+    PreparationGrant(_) => abort("test expected an original Resume grant")
+  }
 }

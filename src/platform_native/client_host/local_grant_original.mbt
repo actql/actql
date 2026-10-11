@@ -8,7 +8,7 @@ priv struct NativeLocalGrantOriginal {
   intent : Bytes
   request : @host.ClientRequestIdentity
   issuer_selection_cid : String
-  grant : @credential.LocalCredentialGrant
+  grant : NativeLocalOriginalGrant
 }
 
 ///|
@@ -72,6 +72,23 @@ fn local_grant_original(
   issuer_selection_cid : String,
   grant : @credential.LocalCredentialGrant,
 ) -> Result[NativeLocalGrantOriginal, NativeClientRunJournalIssue] {
+  local_owned_grant_original(
+    crypto,
+    operation_id,
+    request,
+    issuer_selection_cid,
+    ResumeGrant(grant),
+  )
+}
+
+///|
+fn local_owned_grant_original(
+  crypto : @crypto.Library,
+  operation_id : String,
+  request : @host.ClientRequestIdentity,
+  issuer_selection_cid : String,
+  grant : NativeLocalOriginalGrant,
+) -> Result[NativeLocalGrantOriginal, NativeClientRunJournalIssue] {
   match local_grant_original_key(crypto, request, operation_id) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -83,7 +100,7 @@ fn local_grant_original(
   let body = match
     local_adoption_record([
       ("domain", "actql-native-local-grant-operation/0.1"),
-      ("grant_cid", @credential.local_credential_grant_cid(grant)),
+      ("grant_cid", local_original_grant_cid(grant)),
       ("issuer_selection_cid", issuer_selection_cid),
       ("operation_id", operation_id),
       ("request", request_wire),
@@ -109,7 +126,7 @@ fn local_grant_original(
 fn local_grant_original_packet(
   original : NativeLocalGrantOriginal,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
-  let grant = match @credential.local_credential_grant_json(original.grant) {
+  let grant = match local_original_grant_json(original.grant) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -120,6 +137,15 @@ fn local_grant_original_packet(
     for (key, value) in [("grant", grant), ("intent", intent)] {
       @encode.key(writer, key)
       @encode.string_value(writer, value)
+    }
+    if original.grant is PreparationGrant(value) {
+      @encode.key(writer, "preparation_fence")
+      @encode.string_value(
+        writer,
+        @credential.local_preparation_fence_json(
+          @credential.local_preparation_credential_grant_scope(value).preparation_fence,
+        ),
+      )
     }
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
@@ -138,8 +164,7 @@ fn read_local_grant_original(
     return Err(CustodyLost)
   }
   // Reuse the existing finite value-preserving Native custody decoder.
-  let packet = match
-    local_read_evidence_object(row.body, ["grant", "intent"], 49152) {
+  let packet = match local_grant_packet_object(row.body) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -163,12 +188,22 @@ fn read_local_grant_original(
     Err(_) => return Err(CustodyLost)
   }
   let grant = match
-    @credential.admit_local_credential_grant_json(grant_wire, fields[1]) {
+    local_original_grant_from_packet(crypto, packet, grant_wire, fields[1]) {
     Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
+  }
+  if grant is PreparationGrant(value) {
+    let fence = @credential.local_preparation_fence_fields(
+      @credential.local_preparation_credential_grant_scope(value).preparation_fence,
+    )
+    if fence.client_request_intent_cid !=
+      @host.client_request_intent_cid(request) ||
+      fence.client_request_scope_cid != @host.client_request_scope_cid(request) {
+      return Err(CustodyLost)
+    }
   }
   let original = match
-    local_grant_original(crypto, fields[3], request, fields[2], grant) {
+    local_owned_grant_original(crypto, fields[3], request, fields[2], grant) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -229,7 +264,7 @@ fn NativeLocalHostConnection::local_grant_custody(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let scope = @credential.local_credential_grant_scope(original.grant)
+    let scope = local_original_grant_facts(original.grant)
     guard self.journal.retained(original.request) is Ok(Some(_)) &&
       scope.host_adoption_cid == self.adoption_cid &&
       scope.account_configuration_cid ==
@@ -256,19 +291,8 @@ fn NativeLocalHostConnection::local_grant_custody(
       Ok(value) => value
       Err(_) => return Err(CustodyLost)
     }
-    let expected = match
-      @credential.prepare_local_credential_grant(
-        selection.issuer_authority,
-        scope,
-        @values.timestamp_epoch_milliseconds(selection.expires_at).unwrap(),
-        selection.max_uses,
-      ) {
-      Ok(value) => value
-      Err(_) => return Err(CustodyLost)
-    }
     if scope.principal != selection.principal ||
-      @credential.local_credential_grant_cid(expected) !=
-      @credential.local_credential_grant_cid(original.grant) {
+      !local_original_grant_matches_issuer(original.grant, selection) {
       return Err(CustodyLost)
     }
     let (entries, bytes) = runs
@@ -324,7 +348,10 @@ fn NativeLocalCredentialIssuerBinding::retain_grant_original(
     if self.require_current(self.host, original.operation_cid) is Err(_) {
       return Err(AuthorizationDenied)
     }
-    let scope = @credential.local_credential_grant_scope(original.grant)
+    guard original.grant is ResumeGrant(grant) else {
+      return Err(AuthorizationDenied)
+    }
+    let scope = @credential.local_credential_grant_scope(grant)
     let now = @env.now().reinterpret_as_int64()
     let expected_grant = match
       @credential.prepare_local_credential_grant(
@@ -337,8 +364,8 @@ fn NativeLocalCredentialIssuerBinding::retain_grant_original(
       Err(_) => return Err(ChangedIntent)
     }
     guard @credential.local_credential_grant_cid(expected_grant) ==
-      @credential.local_credential_grant_cid(original.grant) &&
-      local_grant_original(
+      local_original_grant_cid(original.grant) &&
+      local_owned_grant_original(
         self.crypto,
         original.operation_id,
         original.request,
@@ -366,7 +393,7 @@ fn NativeLocalCredentialIssuerBinding::retain_grant_original(
       scope.account_id == self.host.session.configuration.account_id() &&
       scope.principal == self.principal &&
       original.issuer_selection_cid == self.file.content_cid &&
-      @credential.local_credential_grant_limits(original.grant) ==
+      local_original_grant_limits(original.grant) ==
       (
         self.selection.max_uses,
         @values.timestamp_epoch_milliseconds(self.selection.expires_at).unwrap(),
@@ -386,80 +413,20 @@ fn NativeLocalCredentialIssuerBinding::retain_grant_original(
       }) {
       return Err(Checkpoint(NeedsOriginalContinuation))
     }
-    let (count, revision, runs) = match
-      self.host.local_grant_custody(self.crypto) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let key = match
-      local_grant_original_key(
-        self.crypto,
-        original.request,
-        original.operation_id,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let (entries, bytes) = runs
-      .get(scope.submission_scope_cid)
-      .unwrap_or((0, 0))
-    // Reserve before encoding/copying the appended grant packet. Missing
-    // reservations for existing originals refuse rather than being repaired.
-    match
-      self.host.database.reserve_capacity_in_transaction(
-        "client_local_grant_originals",
-        scope.submission_scope_cid,
-        65536L,
-        1L,
-        self.host.journal.max_records.to_int64() * 65536L,
-        self.host.journal.max_records.to_int64(),
-      ) {
-      Ok(fresh) if fresh == (entries == 0) => ()
-      Ok(_) => return Err(CustodyLost)
-      Err(@sqlite.CapacityExceeded) => return Err(CapacityExceeded)
-      Err(issue) => return Err(Physical(issue))
-    }
-    let packet = match local_grant_original_packet(original) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    match self.host.database.read("client_local_grant_originals", key) {
-      Ok(row) if row.revision == 0L && row.body == packet => return Ok(())
-      Ok(_) => return Err(ChangedIntent)
-      Err(@sqlite.NotFound) => ()
-      Err(issue) => return Err(Physical(issue))
-    }
-    if entries >= 64 || packet.length() > 65536 - bytes {
-      return Err(CapacityExceeded)
-    }
-    // Finite encoding and physical custody reads can outlive the initial lease
-    // check. Recheck actual authority and claim at the append boundary.
-    if self.require_current(self.host, original.operation_cid) is Err(_) {
-      return Err(AuthorizationDenied)
-    }
-    match
-      self.host.journal.effect_resume_fence_locked(
-        claim,
-        @env.now().reinterpret_as_int64(),
-      ) {
-      Ok(Current) => ()
-      Ok(_) => return Err(AuthorizationDenied)
-      Err(issue) => return Err(issue)
-    }
-    match
-      self.host.database.insert("client_local_grant_originals", key, packet) {
-      Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
-    }
-    self.host.database
-    .compare_exchange(
-      "client_local_grant_custody",
-      "issued",
-      revision,
-      @utf8.encode((count + 1).to_string()),
-    )
-    .map(_ => ())
-    .map_err(issue => Physical(issue))
+    self.append_grant_original_locked(original, () => {
+      if self.require_current(self.host, original.operation_cid) is Err(_) {
+        return Err(AuthorizationDenied)
+      }
+      match
+        self.host.journal.effect_resume_fence_locked(
+          claim,
+          @env.now().reinterpret_as_int64(),
+        ) {
+        Ok(Current) => Ok(())
+        Ok(_) => Err(AuthorizationDenied)
+        Err(issue) => Err(issue)
+      }
+    })
   })
 }
 
@@ -474,7 +441,7 @@ fn NativeLocalCredentialIssuerBinding::lookup_grant_original(
     if self.require_current(self.host, self.operation_cid) is Err(_) {
       return Err(AuthorizationDenied)
     }
-    guard local_grant_original(
+    guard local_owned_grant_original(
         self.crypto,
         reference.operation_id,
         reference.request,
@@ -527,4 +494,117 @@ fn NativeLocalCredentialIssuerBinding::lookup_grant_original(
     }
     Ok(Some(original))
   })
+}
+
+///|
+// Caller holds the existing Run journal transaction and has admitted its
+// variant-specific operational fence. All grant variants share this bounded
+// immutable append, issuance witness and exact per-Run reservation.
+fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
+  self : NativeLocalCredentialIssuerBinding,
+  original : NativeLocalGrantOriginal,
+  current : () -> Result[Unit, NativeClientRunJournalIssue],
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  let scope = local_original_grant_facts(original.grant)
+  let (count, revision, runs) = match
+    self.host.local_grant_custody(self.crypto) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // A changed explicit operation cannot mint another allowance for the same
+  // original preparation observation. Saved/entered/unknown use recovery
+  // retains the first original grant, even if no response has been found.
+  if original.grant is PreparationGrant(preparation) {
+    let scope = @credential.local_preparation_credential_grant_scope(
+      preparation,
+    )
+    let mut cursor = ""
+    let mut checked = 0
+    while true {
+      let row = match
+        self.host.database.scan_after("client_local_grant_originals", cursor) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => break
+        Err(issue) => return Err(Physical(issue))
+      }
+      checked += 1
+      if checked > count {
+        return Err(CustodyLost)
+      }
+      let prior = match read_local_grant_original(self.crypto, row) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if prior.grant is PreparationGrant(previous) {
+        let saved = @credential.local_preparation_credential_grant_scope(
+          previous,
+        )
+        if saved.submission_scope_cid == scope.submission_scope_cid &&
+          saved.operation_occurrence_cid == scope.operation_occurrence_cid &&
+          saved.request_cid == scope.request_cid &&
+          prior.operation_id != original.operation_id {
+          return Err(Checkpoint(NeedsOriginalContinuation))
+        }
+      }
+      cursor = row.key
+    }
+  }
+  let key = match
+    local_grant_original_key(
+      self.crypto,
+      original.request,
+      original.operation_id,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (entries, bytes) = runs.get(scope.submission_scope_cid).unwrap_or((0, 0))
+  // Reserve before encoding/copying the appended grant packet. Missing
+  // reservations for existing originals refuse rather than being repaired.
+  match
+    self.host.database.reserve_capacity_in_transaction(
+      "client_local_grant_originals",
+      scope.submission_scope_cid,
+      65536L,
+      1L,
+      self.host.journal.max_records.to_int64() * 65536L,
+      self.host.journal.max_records.to_int64(),
+    ) {
+    Ok(fresh) if fresh == (entries == 0) => ()
+    Ok(_) => return Err(CustodyLost)
+    Err(@sqlite.CapacityExceeded) => return Err(CapacityExceeded)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let packet = match local_grant_original_packet(original) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.host.database.read("client_local_grant_originals", key) {
+    Ok(row) if row.revision == 0L && row.body == packet => return current()
+    Ok(_) => return Err(ChangedIntent)
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  if entries >= 64 || packet.length() > 65536 - bytes {
+    return Err(CapacityExceeded)
+  }
+  // Recheck actual authority and the typed original fence after finite
+  // encoding and physical reads, immediately before the immutable append.
+  match current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.host.database.insert("client_local_grant_originals", key, packet) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  self.host.database
+  .compare_exchange(
+    "client_local_grant_custody",
+    "issued",
+    revision,
+    @utf8.encode((count + 1).to_string()),
+  )
+  .map(_ => ())
+  .map_err(issue => Physical(issue))
 }
