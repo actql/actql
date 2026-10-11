@@ -55,6 +55,11 @@ fn admit_resident_effect_source_dispatch_owned(
     Ok(_) => ()
     Err(issue) => return Err(Refused(issue))
   }
+  let expected_request = match
+    @host.client_effect_source_binding_request(binding, request) {
+    Ok(value) => value
+    Err(issue) => return Err(Dispatch(issue))
+  }
   let materials = match
     @host.admit_client_effect_run_materials(
       wire,
@@ -64,6 +69,7 @@ fn admit_resident_effect_source_dispatch_owned(
       admission.manifests,
       admission.limits,
       effect_limits,
+      expected_request~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Materials(issue))

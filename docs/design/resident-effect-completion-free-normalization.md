@@ -170,6 +170,34 @@ connection alone does not prove that trusted transport, physical Native review,
 approval, Provider execution or public Cloud Effect is installed. Previously
 issued Runs do not acquire the new profile or a new identity during recovery.
 
+### Original request in the Source dispatch binding
+
+For an explicitly selected completion-free Run, the existing Effect Source
+binding issuer receives the original typed request before dispatch. It wraps
+the existing checked Source binding and that request's existing bounded record
+wire in a canonical `actql-effect-source-input-binding/0.1` object with exactly
+`original_request_json`, `source_binding_json` and `version`. The 8192-byte input
+binding limit remains in force. The Source path and Provider credentials stay
+in trusted Site configuration. A different caller request changes the input
+binding CID and therefore the dispatch CID even for the same Run and Program.
+
+Native Source admission first checks current Site delegation and the binding's
+exact match to the trusted dispatch. It re-admits the request from that separate
+binding through the existing request Owner and supplies it as `expected_request`
+to material admission. Finally, the reconstructed original compilation must
+produce exactly the same complete Source binding before acquisition. Reading
+the request from candidate materials would not satisfy this boundary.
+
+The binding CID is not a transport signature. The caller must still establish
+the original dispatch through the authenticated Cloud/Site entry, retain its
+exact envelope in the existing journal and recheck current authority before
+protected operations. Source permission does not approve an Effect. Legacy Runs
+compiled without the profile retain their original Source binding; recovery
+does not upgrade either binding or Run identity. Consumer routing/restoration
+must use the retained original producer context, not infer a caller request from
+another consumer material body. This producer admission adapter alone does not
+establish the complete consumer, approval or release path.
+
 `prepare_native_resident_effect_review_from_original_materials` obtains this
 journal from the actual holder context's material Owner before calling the
 existing Result capture/Receipt/Captured Run and review preparation path. It

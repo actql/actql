@@ -423,9 +423,10 @@ export function prepareEffectRequest(prepared, compilation, authorityScopeCid, r
 }
 
 /** Logical Source binding from the original checked Effect graph, no I/O. */
-export function effectSourceInputBinding(compilation) {
+export function effectSourceInputBinding(compilation, request) {
   const {value} = requireHandle(effectCompilations, compilation);
-  return checked(owner.clientValuesHostEffectSourceInputBinding(value),
+  return checked(owner.clientValuesHostEffectSourceInputBinding(value,
+    request === undefined ? undefined : requireHandle(requests, request)),
     'RunHostEffectSourceBindingRejected');
 }
 
