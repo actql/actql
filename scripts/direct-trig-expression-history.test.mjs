@@ -65,7 +65,8 @@ test('direct-trig adds only its exact closed source and machine alternatives and
   assert.equal(cid(kernel), 'sha256:78336d1cbf683b75363fd316cbf52b9880c6ed6092ba6d908b28b231cfa4b286');
   assert.equal(kernel.source_revision, '4dff63ffc946926dd17b100aea445b4ef5a31ef5');
   for(const [name,law] of Object.entries(kernel.laws)){
-    assert.deepEqual(before.laws[name], law, name+' adopted kernel law');
+    assert.deepEqual(JSON.parse(readFileSync('spec/contracts/actql-expressions.json','utf8')).laws[name], law, name+' adopted kernel law');
+    assert.deepEqual(before.laws[name],earlier.expression_contract.laws[name],name+' immutable predecessor law');
     before.laws[name]=structuredClone(earlier.expression_contract.laws[name]);
   }
   // The CBRT integration adopted the same existing portable scalar Owner.
