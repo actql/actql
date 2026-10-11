@@ -28,7 +28,8 @@ export function costFixture(reused = false, fullCatalog = false) {
   const files = new Map([...sharedFiles, ...mutationSnapshotExtras,
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(path => `proofs/bounded-session/${path}`),
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => `src/${path}/moon.pkg`)].map(path => [path, path]));
-  files.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
+  for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])
+    files.set(path, readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8'));
   for (const name of ['check.mjs', 'Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'])
     files.set(`proofs/events-bridge/${name}`, name);
   for (const action of catalog.actions) if (action.package) files.set(`${action.package}/moon.pkg`, '');
