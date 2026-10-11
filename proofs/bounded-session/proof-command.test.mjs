@@ -22,7 +22,7 @@ async function fixture(t, mode, options = {}, callerTimeout = false) {
   const ready = join(directory, 'ready.json'), resultPath = join(directory, 'result.json');
   const child = join(directory, 'child.mjs'), runner = join(directory, 'runner.mjs');
   writeFileSync(child, `import {spawn} from 'node:child_process';
-import {writeFileSync, existsSync} from 'node:fs';
+import {writeFileSync, renameSync, existsSync} from 'node:fs';
 const mode=${JSON.stringify(mode)};
 const grandchild = mode==='term'||mode==='timeout'
   ? spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'}) : null;
@@ -40,12 +40,14 @@ else {
     grandchild.kill('SIGTERM');
   });
 }
-writeFileSync(${JSON.stringify(ready)},JSON.stringify({pid:process.pid,grandchild:grandchild?.pid??null}));
+writeFileSync(${JSON.stringify(ready+'.pending')},JSON.stringify({pid:process.pid,grandchild:grandchild?.pid??null}));
+renameSync(${JSON.stringify(ready+'.pending')},${JSON.stringify(ready)});
 `);
-  writeFileSync(runner, `import {writeFileSync} from 'node:fs';
+  writeFileSync(runner, `import {writeFileSync, renameSync} from 'node:fs';
 import {runProofCommand} from ${JSON.stringify(helper)};
 const result=await runProofCommand(process.execPath,[${JSON.stringify(child)}],${JSON.stringify(options)});
-writeFileSync(${JSON.stringify(resultPath)},JSON.stringify({...result,error:result.error?.code??null}));
+writeFileSync(${JSON.stringify(resultPath+'.pending')},JSON.stringify({...result,error:result.error?.code??null}));
+renameSync(${JSON.stringify(resultPath+'.pending')},${JSON.stringify(resultPath)});
 process.exitCode=result.error||result.signal||result.status!==0?1:0;
 `);
   if (callerTimeout) {
@@ -67,7 +69,7 @@ process.exitCode=result.error||result.signal||result.status!==0?1:0;
   parent.stderr.on('data', b => { output += b; });
   const closed = new Promise(resolve => parent.on('close', (status, signal) => resolve({status, signal})));
   t.after(() => { if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGTERM'); });
-  if (mode === 'timeout') await waitFor(() => existsSync(resultPath));
+  if (mode === 'timeout' || mode === 'overflow') await waitFor(() => existsSync(resultPath));
   else await waitFor(() => existsSync(ready));
   const ids = existsSync(ready) ? JSON.parse(readFileSync(ready))
     : {pid: JSON.parse(readFileSync(resultPath)).childPid, grandchild: null};
