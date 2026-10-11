@@ -10,7 +10,8 @@ test "unused WITH expression reaches the common pipeline type checker" {
     construction_limits(),
   )
   assert_true(
-    actual is Err(
+    actual
+    is Err(
       BindingPreparation(
         LocalProgram(
           Pipeline(0, { kind: Operation(Expression(TypeMismatch(_))), .. })
@@ -37,9 +38,8 @@ test "unused WITH Source requires its actual Catalog registration" {
       parsed,
       { ..admitted, source_catalog: None, },
       construction_limits(),
-    ) is Err(
-      BindingPreparation(LocalProgram(MissingSourceViewRegistrations(0)))
-    ),
+    )
+    is Err(BindingPreparation(LocalProgram(MissingSourceViewRegistrations(0)))),
   )
 }
 

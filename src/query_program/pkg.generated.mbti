@@ -6,10 +6,13 @@ import {
   "actql/actql/decode_core",
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
+  "actql/actql/pipeline_check_context",
   "actql/actql/program_source_builder",
   "actql/actql/query_expression",
   "actql/actql/query_syntax",
   "actql/actql/relation_schema",
+  "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
   "actql/actql/stage_syntax",
   "moonbitlang/core/debug",
 }
@@ -30,6 +33,13 @@ pub fn unresolved_relation_reference(Issue) -> Array[@query_syntax.NamePart]?
 // Errors
 
 // Types and methods
+pub(all) enum BindingPreparationIssue {
+  Declarations(@stage_parameters.Issue)
+  SourceRegistration(@pipeline_check_context.SourceRegistrationIssue)
+  SourceProgram(@pipeline_check_context.SourceViewProgramIssue)
+  LocalProgram(@stage_results.LocalProgramIssue)
+}
+
 pub(all) struct Context {
   program_id : String
   stage_id : String
@@ -100,6 +110,7 @@ pub(all) enum Issue {
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   ExpressionTyping(@expression_typing.Issue)
+  BindingPreparation(BindingPreparationIssue)
   Admission(@stage_syntax.SyntaxError)
 }
 
