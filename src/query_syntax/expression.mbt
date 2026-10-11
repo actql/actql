@@ -641,7 +641,9 @@ fn ExpressionParser::expression(
                 "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ON",
                 "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW", "WHEN",
                 "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN", "LIKE",
-              ].contains(upper_ascii(name)) {
+              ].contains(upper_ascii(name)) &&
+              !(["LEFT", "RIGHT"].contains(upper_ascii(name)) &&
+              self.peek().value == Symbol(40)) {
               raise ExpressionAbort(
                 "Reserved query identifier requires quoting",
                 t.start,

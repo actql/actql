@@ -108,6 +108,10 @@ pub(all) enum ManyOperator {
   ConcatStrict
   Replace
   Substring
+  LeftString
+  RightString
+  LPad
+  RPad
   Between
 } derive(Eq, Debug)
 
@@ -276,6 +280,10 @@ fn expression_tag(
     | "len"
     | "replace"
     | "substring"
+    | "left"
+    | "right"
+    | "lpad"
+    | "rpad"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -1015,6 +1023,10 @@ fn lower_typed_expression_measured(
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
         "substring" => Many(Substring, args)
+        "left" => Many(LeftString, args)
+        "right" => Many(RightString, args)
+        "lpad" => Many(LPad, args)
+        "rpad" => Many(RPad, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

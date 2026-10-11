@@ -114,6 +114,10 @@ fn expression_role(
     | "safe_subtract"
     | "safe_multiply"
     | "replace"
+    | "left"
+    | "right"
+    | "lpad"
+    | "rpad"
     | "concat"
     | "date_trunc"
     | "date_add"
@@ -156,6 +160,7 @@ fn arity(
 ) -> Unit raise Stop {
   let valid = match tag {
     "array" => true
+    "lpad" | "rpad" => size == 2 || size == 3
     "and"
     | "or"
     | "concat_strict"
