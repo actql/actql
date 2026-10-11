@@ -259,6 +259,26 @@ does not establish that a request was unsent or can be sent again.
 
 ## Public execution and restoration
 
+Private grant-original custody now has a bounded appended packet separate from
+the initial adoption preimage. The user-chosen operation ID and original
+Submission scope determine its stable lookup key. The intent binds the exact
+grant CID and selected issuer original; changing grant bytes changes the intent,
+not the original operation ID. Records are immutable, and the existing journal
+transaction commits packet and custody count together under its capacity Owner.
+Per-Run custody is limited to 64 originals and 65,536 bytes, with reservation
+before packet encoding. Lost originals, witnesses or reservations refuse without
+repair. Lookup never issues a grant or mutates the Run control revision.
+
+The private append additionally requires the real current post-approval resume
+claim, original issuer decision and exact retained scope/limits. A possibly-sent
+Effect row cannot obtain renewed credentials through this path. These helpers
+are not publicly callable: the actual checked Provider request and installation
+must still be supplied by the trusted Host assembly before a CLI grant operation
+can consume them. Stand-alone packet/custody fixture definitions do not prove
+Provider authorization, physical approval, crash recovery or public CLI success.
+The missing pre-approval target-observation fence remains a separate scoped
+ordering question; it is not supplied by inventing a future resume claim.
+
 Trusted Host assembly connects to the existing original Submission, pre-start
 Run persistence, checked Source/Compute, publication and Result Owners. Prepare
 and durably bind the original Run before protected physical work. The public

@@ -111,6 +111,7 @@ test "Native Local atomic adoption refuses preexisting custody before generating
     index, record_namespace in [
       "client_runs", "client_cancel_originals", "client_submitted_intents", "client_effect_response_bytes",
       "client_local_adoption", "client_local_read_custody", "client_local_read_evidence",
+      "client_local_grant_custody", "client_local_grant_originals",
     ] {
     let database = epoch_test_database(
       "local-final-foreign-" + index.to_string(),

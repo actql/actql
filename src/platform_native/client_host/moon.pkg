@@ -18,6 +18,7 @@ import {
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/filesystem",
   "actql/actql/execution_authorization" @authorization,
+  "actql/actql/remote_credential" @credential,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_resident_host" @resident,
   "actql/actql/platform_native/remote_standard_host" @remote_output,
