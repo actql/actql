@@ -104,6 +104,51 @@ New-HEAD packed acceptance is still pending; old failure is not success evidence
 The corrected fixture/inventory Node checks pass 50/50 (`run-nxz2mp`); authored
 registration counts are unchanged, with a new digest for the corrected sources.
 
+## Host task refusal and projection compaction
+
+The subsequent clean HEAD `ec2d69fd7ef1714ce9805b2710596765ae9063e4`
+normally produced five packages with verified digests. Its composition campaign
+`run-d18ZeZ` failed after each transport passed 95 normal cases. Local refused
+the typed-NULL SQL as `ClientProgramRejected`; HTTPS stopped on sibling
+cancellation. Evidence is `worktrees/.codex-scratch/public-query-evidence-WGXJSM`.
+Both workers terminated, Cleanup removed the installation, and the guard released
+its locks. This is incomplete public acceptance, not success at this HEAD.
+
+A source-free standard-environment bridge diagnostic (`run-9umBy0`) identifies
+`Preparation(Graph(TaskLimit))` for both plain and grouped SQL. The independent
+JSON control reaches formal task compilation. The generated source Program has
+one Stage with 40 steps (`run-EzEiWH`); ordinary checked splitting encounters the
+unchanged standard 32-task bound. This is separate from grouping resolution.
+The diagnostic does not establish public execution success or attribute an
+incorrect limit to the common Owner.
+
+The existing set projection composer previously required an explicit `from`.
+It now also composes a two-member implicit-receiver SELECT, retaining that
+implicit receiver and its previously evaluated slots. Extra operation members,
+computed projection entries, mismatched producer names and shared/result
+boundaries retain refusal or their existing separate projections. Set outputs
+without retained Results use the existing terminal producer binding without
+an additional identity SELECT. No expression is reevaluated and no physical
+task split, capacity policy or Host admission limit is changed.
+
+Before this correction, two independent regressions fail (`run-AAkkGy`, 0/2):
+a complete eight-step DATA Program and the unchanged public SQL's 32-step shape.
+After correction, the JOIN/projection callers pass 17/17 (`run-l9ewJJ`). The
+final affected DATA/set, positional duplicate, aggregate and window tests pass
+50/50 (`run-QLj119`). Complete expected Programs were independently revised by
+column-projection composition and binding the final append directly; original
+values, expressions, NULL types, ordering and output columns were not changed.
+`run-vGTbdx` records seven old structural expectation failures before that update.
+This structural lowering change changes generated Program identities where
+projections are eliminated; no old Program or Run CID is relabeled. Grammar
+and common-contract preimages are unchanged.
+
+Latest adopted main is `ec9b3966a2126eecf8880e1fe1608fce26a5f3bc`, normally
+merged at `fa31ade181ebb4e13fc8c8c5dc6f3c12ecc66084` without conflicts. New
+distribution/Host preparation and complete Local/HTTPS acceptance are still
+pending for the correction. Earlier receipts remain evidence only for their
+recorded SHAs.
+
 ## Separate follow-up: untyped NULL set context
 
 The minimal source is `SELECT 2 AS id UNION ALL SELECT NULL`. The independently
