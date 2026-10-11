@@ -195,6 +195,10 @@ _PUBLICATION_SIGNATURES = {
     'finish': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
+    'prepare_commit': ('i64 i32 i32 i32', 'i32'),
+    'advance_commit': ('i64 i32 i32 i32', 'i32'),
+    'commit_progress': ('i64 i32 i32', 'i64'),
+    'finish_commit': ('i64 i32 i32', 'i32'),
 }
 _SOURCE_SIGNATURES = {
     'reserve_configuration': ('i64 i32 i32', 'i32'),
@@ -382,7 +386,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 19:
+            if self._exports['actql_host_abi_version'](self._store) != 20:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -738,6 +742,42 @@ class LocalCore:
 
     def close_publication(self, value: _Output) -> bool:
         return self._close_output(value, 'publication', 'close')
+
+    def prepare_publication_commit(self, value: _Output, request: _Input,
+                                   current_configuration: int) -> None:
+        """Validate proposed Store facts against original Core custody.
+
+        This is neither a Store write nor permission to publish or retry.
+        Core retains the immutable input until this publication closes.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._owned_input(request)
+            self._check('prepare_publication_commit', self._call(
+                'publication', 'prepare_commit', value.handle, request.handle,
+                current_configuration))
+
+    def advance_publication_commit(self, value: _Output, current_configuration: int,
+                                   quantum: int) -> LocalResultProgress:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local publication commit quantum')
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('advance_publication_commit', self._call(
+                'publication', 'advance_commit', value.handle,
+                current_configuration, quantum))
+            ready = self._call('publication', 'commit_progress', value.handle, 0)
+            work = self._call('publication', 'commit_progress', value.handle, 1)
+            if ready not in (0, 1) or not 0 <= work <= quantum:
+                raise LocalCoreError('publication_commit_progress', -33)
+            return LocalResultProgress(ready == 1, work)
+
+    def finish_publication_commit(self, value: _Output, current_configuration: int) -> None:
+        """Finish Core chain validation, without a durable acknowledgement."""
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('finish_publication_commit', self._call(
+                'publication', 'finish_commit', value.handle, current_configuration))
 
     def reserve_material(self, run: int, kind: int, *,
                          cleanup: Callable[[], bool]) -> _Output:
