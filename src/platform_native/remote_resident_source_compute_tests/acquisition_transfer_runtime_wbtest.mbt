@@ -22,6 +22,7 @@ fn acquisition_runtime_transfer_consumer(
   effect_pair? : (@host.ClientEffectRunMaterials, @host.ClientRequestIdentity)? = None,
   effect_producer? : @resident.ResidentEffectProducerExecuted? = None,
   provider? : Bool = false,
+  completion_free_review? : Bool = false,
   through_consumer_holder? : Bool = false,
   consumer_task? : Int = 1,
   chain_context? : RetainedNativeChainContext? = None,
@@ -680,6 +681,7 @@ fn acquisition_runtime_transfer_consumer(
       effect_materials=effect_pair.map(pair => pair.0),
       effect_producer~,
       provider~,
+      completion_free_review~,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     if chain_context is Some(_) ||

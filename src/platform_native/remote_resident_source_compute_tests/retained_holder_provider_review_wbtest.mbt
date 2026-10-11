@@ -5,6 +5,7 @@ fn retained_holder_review_policy(
   holder : @resident.ResidentRetainedConsumer,
   inputs : @strategy.CapturedEffectInputs,
   invocation : @publication.PublicationContract,
+  mapped_create? : Bool = false,
 ) -> @effect_provider.NativeResidentEffectReviewPolicy raise {
   let dispatch = @resident.resident_retained_consumer_request(holder)
   let mut result_index = -1
@@ -15,21 +16,37 @@ fn retained_holder_review_policy(
   }
   assert_true(result_index >= 0)
   let binding = {
-    ..provider_binding(),
+    ..(if mapped_create {
+      native_mapped_create_binding()
+    } else {
+      provider_binding()
+    }),
     run_invocation_cid: @publication.publication_contract_identity(invocation),
     dispatch_request_cid: @remote.dispatch_request_identity(dispatch),
   }
-  let catalog = provider_catalog(binding)
+  let catalog = if mapped_create {
+    native_mapped_create_catalog(binding)
+  } else {
+    provider_catalog(binding)
+  }
   {
     stage: 1,
     effect_id: "save",
     result_index,
-    mapping: provider_mapping(),
+    mapping: if mapped_create {
+      native_mapped_create_mapping()
+    } else {
+      provider_mapping()
+    },
     projection: @catalog.prepare_write_projection(
       catalog,
       binding,
       "ActQL_Test_Record__c",
-      @catalog.WriteUpdateById,
+      if mapped_create {
+        @catalog.WriteCreate
+      } else {
+        @catalog.WriteUpdateById
+      },
       ["Count__c"],
       1,
     ).unwrap(),
@@ -130,6 +147,32 @@ fn retained_holder_provider_review(
   let request = consumer.request_for_effect_review(inputs).unwrap()
   assert_eq(Some(request), materials.request)
   let policy = retained_holder_review_policy(holder, inputs, invocation)
+  // The create connection cannot reinterpret this genuine update member,
+  // export a different input, or acquire Provider authority from it.
+  let create_before = consumer.usage().reserved_retention_bytes
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_created_targets(
+      consumer,
+      materials,
+      inputs,
+      policy.stage,
+      policy.effect_id,
+      policy.result_index,
+      policy.mapping,
+      policy.projection,
+      policy.api_version,
+      policy.export_limits,
+      policy.body_limits,
+      policy.request_limits,
+      policy.max_rows,
+      policy.max_fields,
+      policy.max_work,
+      policy.max_utf16_units,
+      policy.preview_limits.max_wire_bytes,
+    )
+    is Err(ForeignMapping),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, create_before)
   let work = @effect_provider.prepare_native_resident_effect_review_from_context(
     holder, journal, owned_context, normalization, policy,
   ).unwrap()
@@ -300,7 +343,7 @@ fn retained_holder_provider_review(
       owned_result,
       invocation,
       complete.preview.preview,
-      [complete.preview.proof],
+      [complete.preview.proof.unwrap()],
       [complete.source],
       [complete.local_source],
       complete.inventory,

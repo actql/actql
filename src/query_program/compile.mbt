@@ -2062,7 +2062,7 @@ fn compile_steps(
             }
           }
         Some(Unpivot(clause)) => {
-          positional_destination_names.push(clause.value_column)
+          positional_destination_names.append(clause.value_columns)
           positional_destination_names.push(clause.name_column)
         }
         Some(Pivot(clause)) =>
@@ -2412,14 +2412,16 @@ fn compile_steps(
         1
       }
       if operation is Unpivot(clause) {
-        for name in clause.columns {
-          if positional_private_fields.any(field => {
-              same_name(name, { value: field, quoted: false, })
-            }) {
-            raise Abort(UnknownColumn)
-          }
-          if ambiguous_current_name(name) {
-            raise Abort(AmbiguousColumn)
+        for names in clause.column_sets {
+          for name in names {
+            if positional_private_fields.any(field => {
+                same_name(name, { value: field, quoted: false, })
+              }) {
+              raise Abort(UnknownColumn)
+            }
+            if ambiguous_current_name(name) {
+              raise Abort(AmbiguousColumn)
+            }
           }
         }
       }

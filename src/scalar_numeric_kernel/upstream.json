@@ -31,24 +31,24 @@
     },
     {
       "path": "algebraic_double_nonjs.mbt",
-      "sha256": "dfcb32c648036d049fd975e4593e2c5fcb7311c0daaf1a9ea57978bbba23b23b",
+      "sha256": "0560596bc5fd791ebca6455018b34341ab76024852faddb35534adbb57ff5028",
       "upstreamSha256": "22659d029eee75289adbde9c8c8d061b90b2e8275df3405036ed07d7fbe41d26"
     },
     {
       "path": "hyperbolic_double_nonjs.mbt",
-      "sha256": "23e18c23f885bef65d891546cfc7e49437b49b7828aff1824453913bafa6b025",
+      "sha256": "08f7d2583e94d0e108899b188b86ff950ee46a66391a6a8d8a2a800ad4664db5",
       "upstreamSha256": "f0496a13f38d14f582ec58115d2bdaec043d006c3fc0be84339a47892ce26f80"
     },
     {
       "path": "trig_double_nonjs.mbt",
-      "sha256": "d2e5e28007f1766d3c3e2521c61b04774a2d94f1962574a741f2c2a07bfa7ff9",
+      "sha256": "4b3497f932fd72a53741ee4652af600fdedd3b7a5c57a827ced0a65fa7d0c7f2",
       "upstreamSha256": "58e047d79d9f125c5f3f368bce8fba4d80078e5c039f6e8e8703fa89098a12f3"
     },
     {
       "path": "trig_double_sincos_non_native_or_js.mbt",
-      "sha256": "8b94a97b3ef9f459e7d714cc0736f93ae86d93eed608cb44588c1627b7b2c7fc",
+      "sha256": "8f6a4dc51fa4a0a17ebaa567ad2d958f768e0a9729a45103f6733ab6b2f20d4d",
       "upstreamSha256": "3a4ec8f4007f126085242faab5bf931a29378a8e23810ca6a924a7bad4148cc4"
     }
   ],
-  "adaptation": "Only documentation self-package references renamed; arithmetic source and license notices unchanged."
+  "adaptation": "Documentation self-package references renamed and repository formatting applied; arithmetic algorithms and license notices unchanged."
 }

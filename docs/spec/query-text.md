@@ -593,7 +593,7 @@ invented. This connects the selected
 without a new executor, wire format or range-binding rule.
 
 Pipe `UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value_column FOR name_column
-IN (column [[AS] row_value_alias], ...)) [AS alias]` connects the selected single-value
+IN (column [[AS] row_value_alias], ...)) [AS alias]` connects the selected
 [GoogleSQL UNPIVOT](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#unpivot_operator)
 to the common `unpivot` operation. The input columns are unqualified current
 column names, not expressions or references through a former range. Unmentioned
@@ -614,6 +614,25 @@ type/nullability requirement is a recorded common-profile gap for inputs whose
 selected columns differ only in nullability; the Frontend does not cast or infer
 types from rows to bypass it. Empty input retains the declared output contracts.
 
+Multi-column `UNPIVOT ((value_column, ...) FOR name_column IN
+((column, ...) [[AS] row_value_alias], ...))` rotates corresponding positions.
+Each input set MUST have the same arity as the output value columns. Component
+positions may have different types from one another, while corresponding
+positions across input sets retain the common exact type/nullability contract.
+The Frontend constructs an ordinary non-NULL closed object for each input set,
+expands those objects through common `unpivot`, and projects the components
+through ordinary property expressions. It does not add an evaluator, a cast,
+or a new wire/storage representation. Default and explicit EXCLUDE NULLS omit
+a tuple only when **all** emitted components are SQL NULL; partially NULL
+tuples survive. INCLUDE NULLS retains all tuples. Omitted row-value aliases
+join the current resolved input names with `_`; compiler slot names never
+become labels. The output scope consists of the unselected input columns in
+their original order, followed by the value columns in declared positional
+order and the name column. Existing fresh-scope and name-collision rules apply
+to every component. Integer row-value aliases remain outside the exact common
+value profile, as for single-value UNPIVOT. Differing corresponding nullability
+remains the recorded common-profile gap; it is not normalized by this lowering.
+
 String row-value aliases are decoded literal values, not identifiers. They may
 be empty, repeated, contain escapes, or differ only by Unicode normalization.
 They are preserved through the existing value contract. Omitted aliases use the
@@ -625,7 +644,7 @@ neither values nor labels are deduplicated. The copies reuse evaluated input
 slots and do not reevaluate input expressions. Private names remain unavailable
 as public labels or Result fields.
 
-The same single-value operation is accepted as a FROM postfix on a named table,
+The same single-value and multi-column operations are accepted as a FROM postfix on a named table,
 CTE or parenthesized Relation: `FROM input [AS original] UNPIVOT (...) [AS shaped]`.
 It transforms only that input before surrounding JOIN, WHERE or SELECT. Its output
 alias replaces the input range; selected columns and the old range do not survive.
