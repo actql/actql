@@ -66,6 +66,25 @@ pub(all) struct NativeEffectCloudCurrentRead {
   now_ms : () -> Int64
 }
 
+type NativeEffectCloudHostIdentity
+pub fn NativeEffectCloudHostIdentity::principal_id(Self) -> String
+
+pub(all) struct NativeEffectCloudHostIdentityRead {
+  control : NativeEffectCloudCurrentRead
+  scope : NativeEffectCloudHostIdentityScope
+  limits : @checkpoint_runtime.WireLimits
+}
+pub fn NativeEffectCloudHostIdentityRead::read_original_consumer(Self, @remote_resident_host.ResidentRetainedConsumer, @remote_resident_host.ResidentEffectProducerExecuted, @remote_journal.Journal) -> NativeEffectCloudHostIdentity?
+
+pub(all) struct NativeEffectCloudHostIdentityScope {
+  site_key : String
+  site_generation : Int64
+  workspace_id : String
+  authority_scope_cid : String
+  installation : String
+  expires_ms : Int64
+}
+
 pub(all) struct NativeEffectCloudReviewerRead {
   control : NativeEffectCloudCurrentRead
   scope : NativeEffectCloudReviewerScope

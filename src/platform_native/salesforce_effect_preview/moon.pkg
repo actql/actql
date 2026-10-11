@@ -9,6 +9,7 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/source_value" @source,
+  "actql/actql/value_admission" @values,
   "actql/actql/encode_core" @encode,
   "actql/actql/decode_core" @decode,
   "actql/actql/program_check" @checked,
