@@ -116,9 +116,11 @@ its locks. This is incomplete public acceptance, not success at this HEAD.
 
 A source-free standard-environment bridge diagnostic (`run-9umBy0`) identifies
 `Preparation(Graph(TaskLimit))` for both plain and grouped SQL. The independent
-JSON control reaches formal task compilation. The generated source Program has
-one Stage with 40 steps (`run-EzEiWH`); ordinary checked splitting encounters the
-unchanged standard 32-task bound. This is separate from grouping resolution.
+JSON control reaches formal task compilation. A direct Script compiler diagnostic
+has one Stage with 40 steps (`run-EzEiWH`); this was not the public query routing
+entry. The later routing counterexample below separates those two paths rather
+than treating this direct Script shape as the public Host's generated Program.
+The standard 32-task bound remains unchanged. This is separate from grouping resolution.
 The diagnostic does not establish public execution success or attribute an
 incorrect limit to the common Owner.
 
@@ -145,9 +147,38 @@ and common-contract preimages are unchanged.
 
 Latest adopted main is `ec9b3966a2126eecf8880e1fe1608fce26a5f3bc`, normally
 merged at `fa31ade181ebb4e13fc8c8c5dc6f3c12ecc66084` without conflicts. New
-distribution/Host preparation and complete Local/HTTPS acceptance are still
-pending for the correction. Earlier receipts remain evidence only for their
-recorded SHAs.
+complete Local/HTTPS acceptance is still pending for the correction. Earlier
+receipts remain evidence only for their recorded SHAs.
+
+## Public routing counterexample
+
+The exact clean correction HEAD `8faa617c83b7005a4167c436940753c953b852d1`
+normally produced five packages, with each tarball digest independently matched
+to the manifest. `run-b7y1md` passes the independent JSON control through formal
+task compilation, but plain SQL still refuses `Preparation(Graph(TaskLimit))`.
+Grouped SQL and Pipe were not reached by that fail-fast diagnostic. This is not
+successful public execution or evidence for a larger Host limit.
+
+The independently specified public-routing regression fails before correction
+in `run-utcZiD` (0/1): public lowering generates 31 Stages instead of the expected
+single producer Stage. The earlier test-development `Format` annotation error
+in `run-U98nVG` is separate. The direct Script regression did not exercise the
+public `compile()` routing decision, and its 32-step success cannot establish
+that decision's correctness.
+
+The existing JOIN/set routing detector covered a set consuming JOIN operands,
+but omitted a JOIN consuming set producers represented by parser-owned CTEs.
+It now sends this latter shape through the same existing Script composition.
+No CTE predicate resolver, common physical strategy, Result owner, expression
+contract or Host ceiling is changed. Public SQL and text now lower the unchanged
+source to one Stage with 32 steps and retain ceiling 10 and fields id/tag.
+
+The changed public entry plus existing JOIN/set, parenthesized key, projection
+and captured JOIN callers pass 17/17 on JS (`run-BX76J8`). New-SHA packages,
+standard Host preparation and complete packed Local/HTTPS execution remain
+unverified at this point. The Heavy slot was returned to A after terminal and
+actual release of `run-b7y1md`; the routing diagnostic used only a non-Heavy
+focused JS check in B's own worktree.
 
 ## Separate follow-up: untyped NULL set context
 
