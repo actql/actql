@@ -250,6 +250,8 @@ pub fn prepare_native_resident_effect_review_from_catalog_custody(
   }
   guard context.matches_holder(holder, journal) &&
     context.retention_matches(configuration.retention) &&
+    context.source_binding_cid(journal) ==
+    Some(configuration.source_binding_cid) &&
     current() &&
     context.facts(journal) is Some(facts) else {
     return reject(Unavailable)

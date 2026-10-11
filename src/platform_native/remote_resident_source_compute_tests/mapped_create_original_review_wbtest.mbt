@@ -220,6 +220,7 @@ fn native_mapped_create_context_review(
     .unwrap().1
   let policy = retained_holder_review_policy(
     holder,
+    journal,
     facts.inputs,
     invocation,
     mapped_create=true,

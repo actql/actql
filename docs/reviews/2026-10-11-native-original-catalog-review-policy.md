@@ -39,9 +39,10 @@ Configuration supplies already trusted Host retention, dependencies, source
 binding, actual Store authority and bounds. It grants no permission. The existing
 context verifies retention before capture; the existing Review/Original Owners
 verify the retained input and restore normalization from original materials.
-Production selection of `source_binding_cid` is still being checked with the
-integration owner; this change does not synthesize it or select it from Catalog
-bytes. A foreign/missing original binding must not be backfilled.
+Production `source_binding_cid` is the original consumer input binding projected
+from the existing live holder/context, independently checked against the Policy.
+It is neither the producer Source binding nor a CID selected from Catalog bytes.
+A foreign/missing original binding must not be backfilled.
 
 The Review consumes the context on success. Rejection uses its existing close
 Owner and returns the same pending context if cleanup is not confirmed. Catalog
@@ -64,3 +65,25 @@ is executed. Caller configuration loading, holder retention of Catalog failures,
 production Review routing, restart and final Result/release remain unfinished.
 Hosted CI is stopped; Draft is intentional. An ENOSPC while first writing this
 note prevented a commit; existing code and test evidence remained preserved.
+
+## Original consumer Source binding
+
+The existing `ResidentRetainedConsumer.effect_source_binding_cid` projection
+requires the actual journal's completed Effect computation, current receiver
+borrow, original captured inputs and transported request. The input context
+projects that same identity only while its retained facts remain current.
+Neither projection captures input, issues authority nor creates another binding.
+
+Review preparation independently compares the configured Source binding CID to
+this projection before Result export or Catalog readback. Review's current check
+retains that comparison before Provider operations. The existing Result
+occurrence, Artifact, Invocation, Retention and Store checks remain required.
+The initial Source producer binding is not the consumer binding.
+
+Existing physical fixture callers now obtain this CID from the actual holder.
+Additional Native assertions compare the projection to the saved consumer
+journal envelope, refuse the initial producer binding and a fixture CID, and
+reject foreign journals and closed contexts. These assertions are compiler
+checked only until a separately authorized physical verification window.
+An initial diagnostic compiler failure (an unnecessary optional unwrap on the
+non-optional protocol binding projection) remains recorded and was corrected.

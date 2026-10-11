@@ -125,7 +125,9 @@ fn NativeResidentEffectReview::current(
   !self.retiring &&
   self.holder.effect_computation(self.journal) is Some(owner) &&
   physical_equal(owner, self.consumer) &&
-  self.consumer.request_for_effect_review(self.inputs) == Some(self.request)
+  self.consumer.request_for_effect_review(self.inputs) == Some(self.request) &&
+  self.holder.effect_source_binding_cid(self.journal, self.inputs) ==
+  Some(self.policy.source_binding_cid)
 }
 
 ///|
@@ -149,6 +151,10 @@ pub fn prepare_native_resident_effect_review(
   let consumer = match holder.effect_computation(journal) {
     Some(value) => value
     None => return Err(Unavailable)
+  }
+  if holder.effect_source_binding_cid(journal, inputs) !=
+    Some(policy.source_binding_cid) {
+    return Err(Unavailable)
   }
   let dispatch = @resident.resident_retained_consumer_request(holder)
   let execution = @remote.dispatch_request_execution_scope(dispatch)
