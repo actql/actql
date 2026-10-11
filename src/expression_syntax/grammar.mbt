@@ -60,6 +60,7 @@ fn expression_role(
     | "chr"
     | "reverse"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"

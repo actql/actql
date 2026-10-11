@@ -1,7 +1,7 @@
 {
   "version": "actql-ordered-derive-fragment-vectors/0.1",
-  "extension_cid": "sha256:cc896dedd1b1a0efe805064e87fd1f65305717db3bc5f8e6d6196e9e4d89baf3",
-  "expected_aoa_node_cid": "sha256:2aba455272ef734588c3f8e10c5354659490c443b6a39b690d6f05f43367b5c2",
+  "extension_cid": "sha256:d4cc28b540008541d5555065240c172c90e30e53222d8153b7876351c68ef4d2",
+  "expected_aoa_node_cid": "sha256:f24dc3cfbaed9923395343aa8c7a7c06eb3b2a1a24c4799e21b3d3bdce2ecaf9",
   "source_step": {
     "id": "derive",
     "in": [
@@ -48,7 +48,7 @@
     ],
     "op": "REL.derive",
     "params": {
-      "row_kernel_contract_cid": "sha256:cc896dedd1b1a0efe805064e87fd1f65305717db3bc5f8e6d6196e9e4d89baf3",
+      "row_kernel_contract_cid": "sha256:d4cc28b540008541d5555065240c172c90e30e53222d8153b7876351c68ef4d2",
       "bindings": [
         {
           "name": "amount",
@@ -98,8 +98,8 @@
     },
     {
       "id": "graph_step",
-      "canonical": "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:cc896dedd1b1a0efe805064e87fd1f65305717db3bc5f8e6d6196e9e4d89baf3\"}}",
-      "cid": "sha256:2aba455272ef734588c3f8e10c5354659490c443b6a39b690d6f05f43367b5c2"
+      "canonical": "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:d4cc28b540008541d5555065240c172c90e30e53222d8153b7876351c68ef4d2\"}}",
+      "cid": "sha256:f24dc3cfbaed9923395343aa8c7a7c06eb3b2a1a24c4799e21b3d3bdce2ecaf9"
     }
   ]
 }

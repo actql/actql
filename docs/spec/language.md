@@ -1819,7 +1819,7 @@ recursively parsed as expressions. The Core scalar grammar contains:
 
 - arithmetic `add`, `subtract`, `multiply`, `divide`, and `modulo`;
 - boolean/comparison expressions, `case`, three-argument `if`, `coalesce`, and `nullif`;
-- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
+- `len`, `contains`, `starts_with`, `ends_with`, `concat`, `safe_div`, `safe_divide`, `safe_add`, `safe_subtract`, `safe_multiply`, `safe_negate`, `sqrt`, `cbrt`, `pow`, `exp`, `ln`, `log`, `log10`, `abs`, `sign`, `round`, `trunc`, `greatest`, `least`, and `floor`;
 - the authoring-only string `template` form;
 - `lower`, `upper`, `trim`, `ltrim`, `rtrim`, `substring`, `left`, `right`, `lpad`, `rpad`, `split`, and literal `replace`;
 - `date_trunc`, `date_add`, and `date_diff`; and
@@ -2000,6 +2000,46 @@ OCTET_LENGTH share `byte_length`; no canonical `octet_length` operation is
 added. UNICODE and CHR select their respective common nodes. Earlier pinned
 contract bodies retain their original meaning and identities.
 
+<!-- requirement-block: scalar-expressions.google-cbrt-signature -->
+`cbrt(value)` MUST accept exactly one finite binary64 Number operand and return
+Number with exactly the operand nullability. Untyped NULL takes the unique
+Number signature. No implicit conversion, distinct INT64, NUMERIC, BIGNUMERIC,
+Decimal or non-finite overload is introduced.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-value -->
+A demanded non-null `cbrt` MUST return the real cube root, including negative
+inputs, subnormals and largest finite magnitudes. Either zero sign produces
+canonical positive zero; NULL produces NULL. The finite Number domain adds no
+value-domain failure. Reject non-finite operands and preserve the existing
+arithmetic failure for an unexpected non-finite result.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-algorithm -->
+`cbrt` MUST use the same pinned portable MoonBit core Double
+cube-root primitive in `src/scalar_numeric_kernel` across JS, WebAssembly and Native,
+with canonical finite-result validation. Substitution with `pow(x, 1/3)` or logarithmic reconstruction
+or a frontend/Host evaluator is forbidden. Preserve all existing numeric
+accuracy and exception contracts. Identical admitted inputs and selected
+semantic contracts preserve exact logical Number bits across targets;
+live-BigQuery last-bit equivalence is not claimed.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-typing -->
+Typing MUST check the sole Number operand without evaluating it and return
+Number with exactly its nullability. Positive, negative, zero, subnormal and
+largest finite values remain within the admitted domain.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-demand-resources -->
+The common continuation MUST demand the sole child exactly once, preserving its
+failure before strict NULL propagation. Preserve enclosing lazy demand, retained
+roots, logical operand/result and control charges, live-value and workspace
+limits, and cooperative cancellation through the canonical unary scalar owner.
+
+<!-- requirement-block: scalar-expressions.google-cbrt-identity -->
+Canonical lowering MUST retain the closed direct unary source
+`{cbrt: expression}` and matching `{op: cbrt, body: expression_node}` machine
+node. SQL and expression-text CBRT select this same common operation without
+folding, duplication or synthetic children, including constant arguments.
+Earlier pinned bodies retain their meaning and identities.
+
 <!-- requirement-block: scalar-expressions.google-repeat-reverse-signatures -->
 `repeat(value, count)` MUST accept exactly a STRING and finite Number in that
 order and return String with their unioned nullability. `reverse(value)` accepts
@@ -2106,6 +2146,7 @@ The conversion/boundary truth table is normative:
 | `to_timestamp(string)` | canonical millisecond UTC `Z` spelling only; offsets fail |
 | `modulo(a,b)` | truncating remainder with dividend sign; zero divisor fails |
 | `sqrt(x)` | negative fails |
+| `cbrt(x)` | real cube root of a finite Number, including negatives; canonical positive zero; null propagates |
 | `pow(x,y)` | negative base requires integral exponent; zero with negative exponent fails; zero to zero is one; overflow fails and underflow returns canonical zero |
 | `exp(x)` | natural exponential; finite-input overflow fails; underflow returns canonical zero |
 | `ln(x)`, `log10(x)` | natural/base-ten logarithm; nonpositive input fails |
@@ -2190,6 +2231,7 @@ atomic, not null, except where the named function explicitly specifies it.
 | `starts_with`, `ends_with` | S, S → boolean | Default binary prefix/suffix comparison; result nullable exactly when either operand is nullable; both children evaluated once in authored order | RelA |
 | `pow`, `log` | N, N → N | Finite binary64 domains below; result nullable exactly when either operand is nullable; both ordered children evaluated once | RelA |
 | `exp`, `ln`, `log10` | N → N | Finite binary64 domains below; operand nullability preserved | RelA |
+| `cbrt` | N → N | Real cube root over all finite Number inputs; canonical positive zero; operand nullability preserved | RelA |
 | `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; legacy safe division by zero returns null, overflow fails | RelA |
 | `safe_add`, `safe_subtract`, `safe_multiply`, `safe_divide` | (N, N) → N nullable | Own overflow returns null; safe_divide also returns null for zero divisor; child failures propagate | RelA |
 | `safe_negate` | N → N | Finite binary64 negation cannot overflow; preserves operand nullability | RelA |
@@ -2551,7 +2593,7 @@ an optional final argument, not expression syntax.
 <!-- requirement-block: expression-text.signatures-mapping-constraints-len-x-sqrt-x -->
 | Signatures | Mapping / constraints |
 | --- | --- |
-| `len(x)`, `sqrt(x)`, `exp(x)`, `ln(x)`, `log10(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
+| `len(x)`, `sqrt(x)`, `cbrt(x)`, `exp(x)`, `ln(x)`, `log10(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
 | `trim(x, characters)`, `ltrim(x, characters)`, `rtrim(x, characters)` | corresponding scalar trim with an explicit STRING code-point set |
 | `pow(x, y)`, `power(x, y)` | canonical `pow` with two ordered Number expressions |
 | `log(x)` | canonical unary `ln` |
@@ -10477,7 +10519,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:eb9ab3caf738a132b248b2c9e2d6759830998fbf6f88cbcab2f6afa7e37377cd
+../../spec/contracts/actql-aoa.json# sha256:436b28a3c19b3ed01865c4243fc18fcb229705ec809cd7edd9b1f1af02af3c5f
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10486,13 +10528,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:a4b2c1f47389d0878f2ac7399f78f897ff8d3f3e944d3681db8eab70c1ff78ae
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:307f78ac2b6af9aa0d68fe05ff6bde35bd97d1c995785a8686aa0b26ab4901f7
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:e0571c80a1cfec0ef4f761bb1a6e91ac3bf689f35655b427700ee356f7e42421
+../../spec/contracts/actql-expressions.json# sha256:cc7a9bddc5a021640e62a802e4610886aa88281b2ed0ab304aed614d838c1557
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:740f0139243ad0a9ea64dbb728709a609346cc3eba3d17a81eacf32df1882387
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:28271b290baad55d92db98818d231ee0c33dfecff584e7e3b4c0949ae497b972
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:1dcdfcf6b82109a70481a74b24f0f8cccd9960e48a43c2b50e067501fbb2dbe4
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:97492fcc0dc831d394c4174a34aa4ca220ee899ea5c8be1dc41e2259a5b65733
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:d6cf423e215c42c5c84feb5ff472934d7541436badcde9ad6125e05a71349c7b
+../../spec/contracts/actql-expressions.json#/laws sha256:69df776529e431867f8d1e8f845582352f2d247fa3de778513d6e121a893eccc
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:42aac0c5d0c01dcaa5a3e41560233af5025d157e38c8e4a5a780e3b53974f51e
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:8acd72a79e2e6048de492139105adfa907feb0aa8ec36c0b400fc31abd3b1ae6
 ```
 
 <!-- stage-contract-pins:start -->

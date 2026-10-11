@@ -199,6 +199,7 @@ fn scalar_call(
     "LENGTH" => ("LENGTH", "len", 1, 1)
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "SQRT" => ("SQRT", "sqrt", 1, 1)
+    "CBRT" => ("CBRT", "cbrt", 1, 1)
     "POW" | "POWER" => ("POW", "pow", 2, 2)
     "EXP" => ("EXP", "exp", 1, 1)
     "LN" => ("LN", "ln", 1, 1)

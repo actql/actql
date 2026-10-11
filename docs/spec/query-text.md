@@ -129,6 +129,17 @@ preserved without a synthetic length expression. The admitted number indices
 are safe-integer-valued finite binary64 numbers; full INT64 and BYTES remain
 coverage gaps. Quoted/case variants retain the same function identity.
 
+`CBRT(value)` selects the direct unary `cbrt` common expression, following the
+[GoogleSQL cube-root rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#cbrt)
+within the existing finite Number domain. Positive and negative finite inputs
+produce their real cube root, either zero sign produces canonical positive zero,
+and NULL produces NULL. The pinned MoonBit math primitive supplies the numerical
+operation with existing finite-result validation; this does not promise general
+last-bit equality across targets or live BigQuery. No implicit conversion,
+Decimal, distinct INT64/NUMERIC/BIGNUMERIC, non-finite overload or SAFE prefix is
+added. Arity, type, once-only child demand, failure, resources, cancellation and
+canonical identity remain with the common expression owner.
+
 The finite Number scalar functions `POW(x, y)` and `POWER(x, y)` lower to the
 same `pow` operation. `EXP(x)`, `LN(x)` and `LOG10(x)` are unary. `LOG(x)` is a
 synonym of `LN(x)`; `LOG(x, base)` is binary and retains its ordered arguments.

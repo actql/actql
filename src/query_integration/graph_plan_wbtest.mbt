@@ -89,7 +89,7 @@ test "formal Graph Plan retains typed graph ports and keyed parallel-edge constr
   // The current contract is a pinned machine preimage, not a product-generated expectation.
   assert_true(
     compiled.contains(
-      "\"aoa_contract_cid\":\"sha256:eb9ab3caf738a132b248b2c9e2d6759830998fbf6f88cbcab2f6afa7e37377cd\"",
+      "\"aoa_contract_cid\":\"sha256:436b28a3c19b3ed01865c4243fc18fcb229705ec809cd7edd9b1f1af02af3c5f\"",
     ),
   )
   assert_eq(

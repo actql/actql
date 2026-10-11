@@ -582,3 +582,39 @@ initial 0.1; complete predecessor bodies and preimages remain frozen under the
 actual published Unicode parent. No BYTES, new Number domain, profile obligation,
 production limit or global comparison law is introduced. Contract registration
 alone does not establish execution support on an unverified target or consumer.
+
+
+## GoogleSQL finite Number cube root
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+GoogleSQL [CBRT](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#cbrt)
+returns a FLOAT64 cube root, including negative inputs, and propagates NULL.
+The adopted ActQL increment admits exactly its existing finite binary64 Number
+operand, with no implicit numeric conversion or new overload. Non-finite input
+and the separate SAFE prefix remain outside this increment. Canonical positive
+zero and the existing operand/arithmetic failure categories remain unchanged.
+
+The selected MoonBit core math `cbrt` primitive is the implementation owner.
+Using `pow(x, 1/3)` would lose the real negative-input operation and logarithmic
+reconstruction would introduce an unnecessary numerical algorithm. This choice
+preserves the existing finite-math accuracy/exception contracts; it does not
+weaken any earlier square-root, rounding, scalar arithmetic or other specified
+numeric obligation. GoogleSQL's displayed CBRT example itself illustrates that
+a general cross-library last-bit identity is not part of this scoped contract.
+
+The common direct unary source/machine body retains one authored child without
+folding, duplication or frontend evaluation. Typing preserves only the Number
+kind and input nullability. Grammar, closed schemas, declared laws and current
+dependent identities change together within initial 0.1; complete predecessor
+bodies and independent preimages remain frozen under the actual published
+REPEAT/REVERSE parent. No production limit, profile obligation, Decimal law or
+comparison rule changes. Registration alone does not establish execution on an
+unverified target or consumer.
+
+The implementation binding for this increment is the already adopted pinned
+portable numeric kernel in `src/scalar_numeric_kernel`, not target-selected
+platform math. Identical admitted inputs and selected contracts preserve exact
+logical Number bits across JS, WebAssembly and Native. Independent finite
+accuracy fixtures remain unchanged; they are not a universal accuracy bound
+or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
+new tolerance is introduced.

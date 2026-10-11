@@ -1909,6 +1909,7 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
   Exp
   Ln
   Log10
