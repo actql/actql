@@ -118,7 +118,7 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
   const commands = [], checks = [];
   const record = {sourceSha, artifact, artifactManifestSha256: hash(await readFile(join(artifactDirectory, 'artifact.json'))),
     inputs: selected.inputs, commands, checks, acceptance: false,
-    scope: 'Native CLI artifact; no npm install, Effect or full-holder release claim'};
+    scope: 'Native CLI artifact and original terminal cancellation lookup; no npm install, Effect, in-flight stop or full-holder release claim'};
   const snapshot = () => ({host: inspectNativeLocalJournal(join(root, 'host', 'client.sqlite3')),
     store: inspectNativeLocalJournal(join(managed, 'results', '.actql-publication.sqlite3'))});
   const invoke = args => {
@@ -156,7 +156,8 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
     await writeFile(join(root, 'source-installation.json'), JSON.stringify(installation) + '\r\n');
     await writeFile(join(root, 'account.json'), JSON.stringify({version: 'actql-execution-account-config/0.1',
       account_id: 'operator', entries: [permission('submit', 'run', 'submit'), permission('run-read', 'run', 'read'),
-        permission('result-read', 'result/answer', 'read'), permission('source-read', installation.native.source.source_ref, 'read')]}));
+        permission('cancel', 'run', 'cancel'), permission('result-read', 'result/answer', 'read'),
+        permission('source-read', installation.native.source.source_ref, 'read')]}));
     await writeFile(join(root, 'actql.config.json'), JSON.stringify({version: 'actql-config/0.1', account_config: 'account.json',
       native: {check_environment: {file: 'source-environment.json', evidence_bundle_cid: selected.environment.evidence_bundle_cid},
         local: {account_id: 'operator', principal: 'operator', connection: 'cli', state_parent: root, state_name: 'host',
@@ -268,12 +269,47 @@ export async function runNativeLocalSourceResult({artifactDirectory, sourceSha,
     refused(invoke(foreign), /LocalOriginalRunReferenceMismatch/u);
     assertJournalSnapshotUnchanged(afterReads, snapshot(), 'Foreign reference must fail without new originals or grant');
     checks.push('Foreign Run reference refused without modifying retained custody');
+    // A late cancellation is an immutable original operation, not physical
+    // stop or resource-release evidence. The actual Store commit supplies the
+    // terminal observation; no fixture inserts a fabricated terminal record.
+    const cancelRevision = Number(original.controlRevision);
+    assert(Number.isSafeInteger(cancelRevision) && cancelRevision >= 0 && cancelRevision <= 2147483647);
+    const cancelLookupArgs = ['lookup-cancellation', ...refs, '--cancel-id', 'original-terminal-cancel',
+      '--expected-revision', String(cancelRevision)];
+    const cancelExpected = {kind: 'local_cancellation_lookup', history: 'retained', ref: original.ref,
+      cancelRef: {...original.ref, cancelId: 'original-terminal-cancel', expectedRevision: cancelRevision},
+      action: 'already_terminal', recordedControlRevision: original.controlRevision};
+    const beforeCancel = snapshot();
+    assert.equal(success(invoke(cancelLookupArgs)).history, 'unresolved');
+    assertJournalSnapshotUnchanged(beforeCancel, snapshot(), 'Missing cancellation lookup does not issue an operation');
+    const lostCancel = invoke(['cancel', ...cancelLookupArgs.slice(1), '--operation-attempt-id', 'terminal-cancel-invocation']);
+    assert.equal(lostCancel.status, 0, lostCancel.stderr);
+    // Discard the operation reply. The next process uses only the submitted
+    // immutable reference and the original durable operation's lookup API.
+    const afterCancel = snapshot();
+    assert.deepEqual(success(invoke(cancelLookupArgs)), cancelExpected);
+    assert.deepEqual(success(invoke(cancelLookupArgs)), cancelExpected);
+    assertJournalSnapshotUnchanged(afterCancel, snapshot(), 'Original cancellation lookup changes neither operation nor release');
+    assert.equal(lookup().controlRevision, original.controlRevision, 'Already-terminal cancellation leaves Run control unchanged');
+    const storeOriginal = join(managed, 'results', '.actql-publication.sqlite3');
+    const heldStore = `${storeOriginal}.held-original`;
+    await rename(storeOriginal, heldStore);
+    try {
+      assert.deepEqual(success(invoke(cancelLookupArgs)), cancelExpected);
+      await assert.rejects(stat(storeOriginal), {code: 'ENOENT'}, 'Original cancellation lookup must not initialize a Store');
+    } finally {
+      await rename(heldStore, storeOriginal);
+    }
+    assertJournalSnapshotUnchanged(afterCancel, snapshot(), 'Metadata-only cancellation lookup cannot replace original Store custody');
+    record.terminalCancellation = cancelExpected;
+    record.afterCancellation = afterCancel;
+    checks.push('Discarded late cancellation reply is recovered from the same operation after exited processes, without Store open or terminal/release fabrication');
     // Changing the originally adopted file is not a current Policy update.
     const changed = structuredClone(selected.readOriginal);
     changed.native.result_read.max_bytes = 32768;
     await writeFile(join(root, 'read-installation.json'), JSON.stringify(changed));
     refused(invoke(readArgs('replacement-read')), /LocalConfigurationChanged/u);
-    assertJournalSnapshotUnchanged(afterReads, snapshot(), 'Replacing the selected original cannot refresh adoption or grant');
+    assertJournalSnapshotUnchanged(afterCancel, snapshot(), 'Replacing the selected original cannot refresh adoption or grant');
     checks.push('Changed adopted read original refused without refreshing custody');
     record.beforeReads = beforeReads; record.afterReads = afterReads; record.delivered = delivered;
     record.interrupted = interrupted;

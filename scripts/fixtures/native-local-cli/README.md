@@ -57,6 +57,16 @@ remain unchanged with monotonic clock/revision. The epoch authentication key
 and raw journal bodies are excluded from the acceptance receipt; original
 custody remains in the private Host/Store files.
 
+The prepared selection also gives the account explicit `run/cancel` authority.
+After the actual Result publication, a late cancellation must record
+`already_terminal` without changing Run control. Its reply is discarded, and
+separate exited CLI processes look up the exact submitted operation repeatedly.
+Lookup is also required to work while the original Store database is held at
+a different path, without opening or initializing a replacement. This checks
+original terminal-operation recovery; it does not establish in-flight physical
+stop, cancellation acceptance or cleanup completion. These cases are prepared
+and have not yet executed against a matching Native artifact.
+
 Successful exit does not prove npm installation, Effect approval, cleanup-fault
 retry, all temporary holders released, or physical Source/Compute call counts.
 Those need their corresponding public Owner observations and acceptance. The
@@ -84,8 +94,9 @@ renew a grant, claim a use, re-create Work or call a Provider. It neither
 discloses the original grant packet nor installs a newly named issuer file.
 The existing Host close must complete before publishing the reply.
 
-The new command and three Native-process refusal cases are prepared but have
-not been compiled or physically executed. They are excluded from the fixed
+The new command has passed matching Native type checking. Its three
+Native-process refusal cases are prepared but have not physically executed.
+They are excluded from the fixed
 older 33-case diagnostic selector. Full grant issuance, target observation,
 durable credential installation restoration and failed-projection response
 custody remain separate incomplete connections.
