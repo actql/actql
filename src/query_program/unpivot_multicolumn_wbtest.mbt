@@ -4,7 +4,7 @@
 fn assert_tuple_unpivot_wire(
   actual : @wire.Cursor,
   expected : @wire.Cursor,
-) raise {
+) -> Unit raise {
   match @wire.view(expected) {
     @wire.TextValue(value) => assert_eq(@wire.text(actual), Ok(value))
     @wire.ArrayValue(values) => {
