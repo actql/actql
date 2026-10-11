@@ -1152,6 +1152,9 @@ pub fn cleanup_model_execution(
       if execution.state.source is RestoredSlots(read) {
         release_model_slot_replay(read) |> ignore
       }
+      // Retire the added adapter captures only after original physical cleanup
+      // succeeds. Escaped terminal ACKs still retain their original Owner.
+      execution.state.enter_persistence = None
       execution.state.reclaimed = true
       finish_prepared_model_capacity(execution.state)
     }
