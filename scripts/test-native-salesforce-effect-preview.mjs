@@ -349,9 +349,9 @@ try {
   assert.equal(rejectedWrites, residentProposals ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
-  assert.equal(reviewUploads,residentOriginalHolder?3:0);
+  assert.equal(reviewUploads,residentOriginalHolder?5:0);
   assert.equal(checkpointReportRequests,residentOriginalHolder?2:0);
-  if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
+  if(residentOriginalHolder){for(const body of reviewUploadBodies.slice(1))assert.deepEqual(body,reviewUploadBodies[0]);}
   if (residentMappedCreate) {
     assert.equal(effectCurrentReports.length, 5, 'Denied or foreign queries reached the transport');
     assert.deepEqual(effectCurrentReports.map(value => [value.queryId, value.recoveryAction, value.responseSaved]), [

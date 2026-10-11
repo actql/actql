@@ -6,6 +6,9 @@ fn retained_holder_upload_original_review(
   journal_path : String,
   store : @store.Store,
   publication : @effect_provider.NativeResidentEffectReviewPublication,
+  context : @resident.ResidentEffectReviewInputContext,
+  journal : @dispatch_journal.Journal,
+  authority : String,
 ) -> Unit raise {
   let required = name => @env.get_env_var(name).unwrap()
   let http = @http.load_library(required("ACTQL_TEST_NATIVE_HTTP_LIBRARY")).unwrap()
@@ -148,5 +151,82 @@ fn retained_holder_upload_original_review(
     @remote.remote_effect_checkpoint_report_identity(after_report),
     @remote.remote_effect_checkpoint_report_identity(before_report),
   )
+  // Readback uses the genuine original consumer context, not the live Review
+  // factory. Its original Accepted report performs no additional report send;
+  // only the same confirmed review bytes are retried through the same uploader.
+  let before_restore = store.capacity_usage().unwrap().reserved_bytes
+  let restore_upload = authorize => {
+    @effect_provider.upload_native_resident_original_review_projection(
+      context,
+      journal,
+      store,
+      authority,
+      publication.crypto,
+      publication.key,
+      publication.limits,
+      client,
+      report_url,
+      url,
+      authorize,
+    )
+  }
+  assert_true(
+    restore_upload(() => false) is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_true(
+    @effect_provider.upload_native_resident_original_review_projection(
+      context,
+      journal,
+      store,
+      retained_compute_cid("f"),
+      publication.crypto,
+      publication.key,
+      publication.limits,
+      client,
+      report_url,
+      url,
+      () => true,
+    )
+    is Err(OriginalReview(Store(StateCollision))),
+  )
+  let original_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      original_reads.val += 1
+      original_reads.val < 3
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(original_reads.val, 3)
+  // Artifact save can outlive disclosure authority. Keep its original report
+  // and bytes, but do not turn remote success into current completion permission.
+  let save_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      save_reads.val += 1
+      save_reads.val < 5
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(save_reads.val, 5)
+  restore_upload(() => true).unwrap()
+  let (restored_report, restored_wire) = context
+    .read_original_review_projection(
+      journal,
+      store,
+      authority,
+      publication.crypto,
+      publication.key,
+      publication.limits,
+      () => true,
+    )
+    .unwrap()
+  assert_eq(restored_wire, before_wire)
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(restored_report),
+    @remote.remote_effect_checkpoint_report_json(before_report),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_restore)
+  assert_eq(target_reads.val, 0)
   assert_true(client.close())
 }
