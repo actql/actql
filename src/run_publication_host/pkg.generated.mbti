@@ -152,6 +152,8 @@ pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[U
 
 pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, ClientCompiledRun) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
+pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayout?, ClientInferPlanGraph, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelPreparationLayoutIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn check_recovered_client_table_schema_wire(RecoveredClientTablePreview, String, Int, Int, Int) -> Result[Unit, ClientTableInputIssue]
@@ -159,6 +161,8 @@ pub fn check_recovered_client_table_schema_wire(RecoveredClientTablePreview, Str
 pub fn check_source_free_client_effect_preview_identities(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, ClientEffectLocalIdentityIssue]
 
 pub fn claim_client_model_read_preparation(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[ClientModelReadConsumer, ClientModelReadPreparationIssue]
+
+pub fn claim_client_node_model_preparation_layout(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[ClientModelReadConsumer, ClientModelPreparationLayoutIssue]
 
 pub fn client_acquired_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 
@@ -1835,6 +1839,17 @@ pub(all) enum ClientModelInputCapacityIssue {
   Read(ClientModelReadPreparationIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ClientModelPreparationLayoutIssue {
+  Unavailable
+  InvalidLayout
+  RuntimeMismatch
+  LayoutMismatch
+  PreparationMismatch
+  PreparedRowsLimit
+  Profile(@check_environment.ModelTaskIssueKind)
+  Read(ClientModelReadPreparationIssue)
+} derive(Eq, @debug.Debug)
+
 type ClientModelReadConsumer
 
 type ClientModelReadPreparation
@@ -1846,6 +1861,18 @@ pub(all) enum ClientModelReadPreparationIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientModelReadScope
+
+pub(all) struct ClientNodeModelPreparationLayout {
+  response_profile : @check_environment.ModelResponseProfile
+  runtime_artifact_cid : String
+  layout_artifact_cid : String
+  program_definition_cid : String
+  parameter_values_cid : String
+  barrier_cid : String
+  prepared_rows : Int64
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
 
 pub(all) struct ClientProgramIdentity {
   program_definition_cid : String
