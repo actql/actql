@@ -6756,7 +6756,10 @@ pub fn compile(
   if @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
-    has_cte_unnest_input(query) {
+    has_cte_unnest_input(query) ||
+    @query.query_binding_count(query) > 0 ||
+    @query.producer_primary(query) is Some(_) ||
+    @query.graph_query(query) is Some(_) {
     return compile_query_script(
       @query.single_query_script(query),
       context,

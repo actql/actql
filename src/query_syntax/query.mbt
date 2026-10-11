@@ -236,6 +236,8 @@ pub(all) struct QueryBinding {
 ///|
 struct Query {
   source : Tokens
+  primary : ProducerPrimary?
+  implicit_source_alias : Bool
   // Parser-owned operand roles; generated names do not establish either role.
   positional_output : Bool
   bound_source : NamePart?
@@ -338,7 +340,6 @@ pub fn starts_query(
         keyword(first, "SELECT") ||
         keyword(first, "WITH") ||
         keyword(first, "FROM") ||
-        keyword(first, "DATA") ||
         keyword(first, "CREATE") ||
         first.value == Symbol(40),
       )
@@ -929,7 +930,7 @@ fn QueryParser::aggregate_expression(
 ///|
 fn QueryParser::source_name(
   self : QueryParser,
-) -> (Array[NamePart], NamePart?) raise QueryAbort {
+) -> (Array[NamePart], NamePart?, Bool) raise QueryAbort {
   let relation = self.path()
   let resolved = self.resolve_producer(relation)
   let explicit_alias = self.optional_source_alias()
@@ -939,7 +940,7 @@ fn QueryParser::source_name(
   } else {
     explicit_alias
   }
-  (resolved, source_alias)
+  (resolved, source_alias, explicit_alias is None && source_alias is Some(_))
 }
 
 ///|
@@ -966,10 +967,10 @@ fn QueryParser::optional_source_alias(
 ///|
 fn QueryParser::query_source(
   self : QueryParser,
-) -> (Array[NamePart], NamePart?, Array[QueryBinding]) raise QueryAbort {
+) -> (Array[NamePart], NamePart?, Array[QueryBinding], Bool) raise QueryAbort {
   if self.peek().value != Symbol(40) {
-    let (relation, source_alias) = self.source_name()
-    return self.from_postfix_source(relation, source_alias, [])
+    let (relation, source_alias, implicit_source_alias) = self.source_name()
+    return self.from_postfix_source(relation, source_alias, [], implicit_source_alias~)
   }
   let inner = self.parenthesized()
   let source_alias = self.optional_source_alias()
@@ -1011,6 +1012,8 @@ fn QueryParser::bind_query(
   }
   {
     source: self.source,
+    primary: None,
+    implicit_source_alias: false,
     positional_output: false,
     bound_source: Some(generated),
     bindings,
@@ -1159,7 +1162,7 @@ fn QueryParser::join_part(
     "inner"
   }
   self.keyword("JOIN")
-  let (relation, source_alias, bindings) = self.query_source()
+  let (relation, source_alias, bindings, _) = self.query_source()
   if kind == "cross" {
     return (
       {
@@ -2115,19 +2118,20 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       replacements: [],
     })
   let operations : Array[QueryOperation] = []
-  let (initial_relation, initial_alias, initial_ctes) = if self.has("FROM") {
+  let (initial_relation, initial_alias, initial_ctes, initial_implicit_alias) = if self.has("FROM") {
     self.keyword("FROM")
     if self.has("UNNEST") {
       operations.push(self.unnest_source())
-      ([], None, [])
+      ([], None, [], false)
     } else {
       self.query_source()
     }
   } else {
-    ([], None, [])
+    ([], None, [], false)
   }
   let mut relation = initial_relation
   let mut source_alias = initial_alias
+  let mut implicit_source_alias = initial_implicit_alias
   let mut bindings = initial_ctes
   let joins : Array[JoinPart] = []
   while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
@@ -2142,6 +2146,8 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       let expanded = self.bind_query(
         {
           source: self.source,
+          primary: None,
+    implicit_source_alias,
           positional_output: false,
           bound_source: None,
           relation,
@@ -2160,6 +2166,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       )
       relation = expanded.relation
       source_alias = expanded.source_alias
+      implicit_source_alias = expanded.implicit_source_alias
       bindings = expanded.bindings
       joins.clear()
       operations.clear()
@@ -2305,6 +2312,8 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   }
   {
     source: self.source,
+    primary: None,
+    implicit_source_alias,
     positional_output: false,
     bound_source: None,
     bindings,
@@ -2325,7 +2334,6 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::query(
   self : QueryParser,
   context? : QueryContext = StatementQuery,
-  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   if self.has("CREATE") {
     if context != StatementQuery {
@@ -2420,7 +2428,11 @@ fn QueryParser::query(
     }
   }
   let term = if self.has("FROM") {
-    self.pipe(context~, graph_data_body~)
+    self.pipe(context~)
+  } else if self.has("GRAPH") {
+    self.producer_query(GraphValue(self.graph()))
+  } else if self.has("MEAN_GRAPHS") {
+    self.producer_query(GraphGenerator(self.sga_call()))
   } else {
     self.sql()
   }
@@ -2600,29 +2612,27 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
 fn QueryParser::pipe(
   self : QueryParser,
   context? : QueryContext = StatementQuery,
-  graph_data_body? : Bool = false,
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
-  let (relation, source_alias, bindings) = if self.has("GRAPH") {
-    if context == PureQuery && !graph_data_body {
-      raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
-    }
+  let (relation, source_alias, bindings, implicit_source_alias) = if self.has("GRAPH") {
     self.keyword("GRAPH")
     let relation = self.resolve_producer(self.path())
     let label_field = self.graph_labels()
     graph = Some({ label_field, pattern: None, })
-    (relation, None, [])
+    (relation, None, [], false)
   } else if self.has("UNNEST") {
     operations.push(self.unnest_source())
-    ([], None, [])
+    ([], None, [], false)
   } else {
     self.query_source()
   }
   self.pipe_tail(
     {
       source: self.source,
+      primary: None,
+    implicit_source_alias,
       positional_output: false,
       bound_source: None,
       bindings,
@@ -2684,6 +2694,8 @@ fn QueryParser::pipe_tail(
       ) {
       let producer : Query = {
         source: self.source,
+        primary: input.primary,
+    implicit_source_alias: input.implicit_source_alias,
         positional_output: input.positional_output,
         bound_source: input.bound_source,
         bindings,
@@ -2708,6 +2720,8 @@ fn QueryParser::pipe_tail(
       !(operations.length() == 1 && operations[0] is Where(_)) {
       let producer : Query = {
         source: self.source,
+        primary: input.primary,
+    implicit_source_alias: input.implicit_source_alias,
         positional_output: input.positional_output,
         bound_source: input.bound_source,
         bindings,
@@ -3228,14 +3242,13 @@ fn QueryParser::pipe_tail(
       raise QueryAbort("Unknown Pipe operation", self.peek().start)
     }
   }
-  if graph is Some(current) && current.pattern is None {
-    raise QueryAbort("GRAPH_PATTERN_MATCH_REQUIRED", self.peek().start)
-  }
   if bindings.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
   {
     source: self.source,
+    primary: input.primary,
+    implicit_source_alias: input.implicit_source_alias,
     positional_output: input.positional_output,
     bound_source: input.bound_source,
     bindings,

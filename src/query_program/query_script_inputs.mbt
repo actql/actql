@@ -9,7 +9,7 @@ priv struct ScriptSources {
 }
 
 ///|
-// DATA reuses an admitted input, never reads a provider or creates another
+// WITH reuses an admitted input, never reads a provider or creates another
 // ledger. Keep the Host-requested capture boundary and retain its Result once
 // across every query/constructor reference to this input.
 fn bind_script_input(
@@ -81,12 +81,10 @@ fn unshared_script_sources(
 ) -> Array[String] {
   let counts : Map[String, Int] = Map([])
   let pending = [@query.script_query(script)]
-  for index in 0..<@query.data_declaration_count(script) {
-    match @query.data_declaration_at(script, index).unwrap().value {
-      RelationQuery(query) => pending.push(query)
-      Graph(mapping) =>
-        for
-          path in mapping.nodes.map(node => node.producer) +
+  while pending.pop() is Some(query) {
+    match @query.producer_primary(query) {
+      Some(GraphValue(mapping)) =>
+        for path in mapping.nodes.map(node => node.producer) +
           mapping.edges.map(edge => edge.producer) {
           for input in inputs {
             if input_relation_matches(path, input) {
@@ -94,13 +92,10 @@ fn unshared_script_sources(
             }
           }
         }
-      NamedGraphCall(_) =>
-        for input in inputs {
-          counts[input.name] = 2
-        }
+      Some(GraphGenerator(_)) =>
+        for input in inputs { counts[input.name] = 2 }
+      None => ()
     }
-  }
-  while pending.pop() is Some(query) {
     for index in 0..<@query.query_binding_count(query) {
       pending.push(@query.query_binding_at(query, index).unwrap().query)
     }

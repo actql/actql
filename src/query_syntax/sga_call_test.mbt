@@ -180,17 +180,15 @@ test "SGA parser shares work node depth and original source position limits" {
 }
 
 ///|
-test "SGA query and DATA composition share their original token stream" {
+test "SGA query and WITH composition share their original token stream" {
   let script = parse_query_script(
-    "DATA averaged = mean_graphs(with: [first, second]); DATA normalized = FROM averaged |> normalize_graph(); FROM GRAPH normalized |> normalize_graph() |> MATCH WALK (a:Node) |> SELECT a.id",
+    "WITH averaged AS (mean_graphs(with: [first, second])), normalized AS (FROM averaged |> normalize_graph()) FROM GRAPH normalized |> normalize_graph() |> MATCH WALK (a:Node) |> SELECT a.id",
     query_limits(),
   ).unwrap()
   assert_true(
-    data_declaration_at(script, 0).unwrap().value is NamedGraphCall(_),
+    producer_primary(query_binding_at(script_query(script), 0).unwrap().query) is Some(GraphGenerator(_)),
   )
-  guard data_declaration_at(script, 1).unwrap().value is RelationQuery(body) else {
-    fail("expected a query over a retained Graph producer")
-  }
+  let body = query_binding_at(script_query(script), 1).unwrap().query
   assert_true(operation_at(body, 0) is Some(GraphCall(_)))
   assert_eq(operation_count(after_graph_calls(body)), 0)
   let terminal = script_query(script)

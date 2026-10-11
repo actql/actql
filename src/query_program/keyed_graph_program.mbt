@@ -341,15 +341,20 @@ fn lower_script_keyed_graph_query(
   output : String,
   retained : Array[RetainedResult],
   known? : Array[Input] = [],
+  current? : ScriptGraph? = None,
 ) -> Input raise Abort {
   guard @query.graph_query(query) is Some(pattern_query) &&
     pattern_query.pattern is Some(pattern) else {
     raise Abort(UnsupportedGraph)
   }
-  let relation = @query.relation(query)
-  guard relation.length() == 1 else { raise Abort(UnknownRelation) }
-  guard script_graph_input(query, graphs) is Some(input_graph) else {
-    raise Abort(UnknownRelation)
+  let input_graph = match current {
+    Some(graph) => graph
+    None => {
+      guard script_graph_input(query, graphs) is Some(graph) else {
+        raise Abort(UnknownRelation)
+      }
+      graph
+    }
   }
   let graph = lower_script_graph_calls(
     construction,
@@ -359,6 +364,7 @@ fn lower_script_keyed_graph_query(
     steps,
     reserved,
     known~,
+    graphs~,
   )
   let query = @query.after_graph_calls(query)
   let mut projected = false

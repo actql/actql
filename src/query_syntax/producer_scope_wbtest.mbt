@@ -49,7 +49,7 @@ fn producer_scope_parser(text : String) -> QueryParser {
 ///|
 test "Graph mapping resolves nearest producer without renaming definitions" {
   let parser = producer_scope_parser(
-    "PROPERTY GRAPH (NODE TABLES (`ROWS` KEY (id) LABEL rows NO PROPERTIES) EDGE TABLES (catalog.edges AS E KEY (edge_id) SOURCE KEY (src) REFERENCES `ROWS` DESTINATION KEY (dst) REFERENCES `ROWS` LABEL R NO PROPERTIES))",
+    "GRAPH (NODE TABLES (`ROWS` KEY (id) LABEL rows NO PROPERTIES) EDGE TABLES (catalog.edges AS E KEY (edge_id) SOURCE KEY (src) REFERENCES `ROWS` DESTINATION KEY (dst) REFERENCES `ROWS` LABEL R NO PROPERTIES))",
   )
   let mapping = parser.graph()
   parser.end()
