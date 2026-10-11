@@ -855,7 +855,10 @@ pub fn NativeResidentEffectReview::retry_cleanup(
     self.retention_configuration is Some((_, _, _, _, _, limits)) &&
     self.captured is Some(capture) &&
     self.targets is Some(targets) &&
-    targets.length() == 1 &&
+    (
+      targets.length() == 1 ||
+      (self.created_targets is Some(created) && created.requests.length() == 1)
+    ) &&
     capture.preview.keys.length() == 1 {
     // Checkpoint budgets may exceed the common Ledger contract's ceilings.
     // Narrow this read's budget; never relax the Ledger Owner's admission.
