@@ -200,7 +200,7 @@ fn local_submission_start(
     },
   )
   let catalog = @checked.prepare_source_catalog(environment, {
-    max_work: 10000,
+    max_work: @run_host.client_standard_program_preparation_limits().checking.compilation.work,
     max_bytes: 65536,
     max_nodes: 8192,
     max_depth: 64,

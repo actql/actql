@@ -45,7 +45,9 @@ fn local_preparation_grant_lookup(
   let reference = @local_host.admit_native_local_preparation_grant_reference(
     crypto,
     required(child, "operation-cid"),
-    @utf8.encode(text_file(input_root, required(child, "grant-ref-file"), 49152L)),
+    @utf8.encode(
+      text_file(input_root, required(child, "grant-ref-file"), 49152L),
+    ),
   ).unwrap_or_else(() => stop("InvalidLocalPreparationGrantReference"))
   if !current() {
     stop("LocalPreparationGrantLookupAuthorizationDenied")
