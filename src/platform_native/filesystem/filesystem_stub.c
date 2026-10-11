@@ -591,7 +591,8 @@ int actql_native_private_file_projection_open(
   if (projection == NULL || !projection->ready ||
       !actql_native_filesystem_private_root_identity(projection->root)) return -1;
   int descriptor = openat(
-    projection->root->fd, projection->name, O_RDONLY | O_CLOEXEC | O_NOFOLLOW
+    projection->root->fd, projection->name,
+    O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK
   );
   if (!actql_native_private_file_projection_matches(projection, descriptor)) {
     if (descriptor >= 0) close(descriptor);

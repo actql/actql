@@ -5,6 +5,8 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 // Generated MoonBit programs supply this panic exit; the C diagnostic aborts
 // on the same runtime failure instead of supplying a substitute allocator.
@@ -54,6 +56,29 @@ static bool read_original(actql_native_private_file_projection *original) {
   if (accepted) assert(strcmp(authorization, "Authorization: Bearer fixture-token") == 0);
   actql_forget_authorization(authorization, length);
   return accepted;
+}
+
+// A replaced FIFO must be refused before opening can block. Isolate the probe
+// so the diagnostic can reap a defective implementation instead of hanging.
+static void assert_fifo_refused(actql_native_private_file_projection *original) {
+  pid_t child = fork();
+  assert(child >= 0);
+  if (child == 0) _exit(read_original(original) ? 1 : 0);
+  int status = 0;
+  struct timespec interval = {0, 10000000};
+  for (int tick = 0; tick < 100; tick += 1) {
+    pid_t observed = waitpid(child, &status, WNOHANG);
+    assert(observed >= 0);
+    if (observed == child) {
+      assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+      return;
+    }
+    assert(nanosleep(&interval, NULL) == 0);
+  }
+  assert(kill(child, SIGKILL) == 0);
+  assert(waitpid(child, &status, 0) == child && WIFSIGNALED(status));
+  fprintf(stderr, "original installation read blocked on a replacement FIFO\n");
+  assert(false);
 }
 
 static void passed(const char *name) {
@@ -216,6 +241,14 @@ int main(int argc, char **argv) {
 
   write_secret(original_path, "fixture-token\n");
   original = adopt(root, "bearer");
+  assert(unlink(original_path) == 0 && mkfifo(original_path, 0600) == 0);
+  assert_fifo_refused(original);
+  assert(unlink(original_path) == 0);
+  moonbit_decref(original);
+  passed("FIFO replacement is refused without blocking or transport entry");
+
+  write_secret(original_path, "fixture-token\n");
+  original = adopt(root, "bearer");
   assert(chmod(root_path, 0750) == 0 && !read_original(original));
   assert(chmod(root_path, 0700) == 0);
   passed("private-root revocation is checked again");
@@ -226,7 +259,7 @@ int main(int argc, char **argv) {
   assert(rmdir(root_path) == 0 && rename(moved, root_path) == 0);
   passed("directory replacement refuses retained fd with lost namespace custody");
   moonbit_decref(original); moonbit_decref(root);
-  assert(scenarios == 13 && sends == 2 && cleanups == 4);
-  printf("{\"cases\":13,\"transport_entries\":2,\"transport_cleanups\":4,\"public_acceptance\":false}\n");
+  assert(scenarios == 14 && sends == 2 && cleanups == 4);
+  printf("{\"cases\":14,\"transport_entries\":2,\"transport_cleanups\":4,\"public_acceptance\":false}\n");
   return 0;
 }

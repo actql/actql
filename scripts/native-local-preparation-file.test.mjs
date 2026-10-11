@@ -29,7 +29,7 @@ test('matching C original installation projection refuses replacement at prepara
   console.log(result.stdout);
   assert.equal(result.status, 0, `${result.error ?? ''}\n${result.stderr}`);
   const summary = JSON.parse(result.stdout.trim().split('\n').at(-1));
-  assert.deepEqual(summary, {cases: 13, transport_entries: 2,
+  assert.deepEqual(summary, {cases: 14, transport_entries: 2,
     transport_cleanups: 4, public_acceptance: false});
   console.log(JSON.stringify({diagnosticExecutableSha256:
     createHash('sha256').update(readFileSync(executable)).digest('hex'),
