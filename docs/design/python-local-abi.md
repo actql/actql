@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 31; this private ABI
+before opening the instance. `actql_host_abi_version` returns 32; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1260,3 +1260,20 @@ digest are physical observations only. The original Core payload Owner still
 requires its persisted ownership, current authorization, exact durable
 successor and Sealed transition. No pathname adoption, final-name installation,
 Store commit, capacity release or Run completion occurs in this operation.
+
+Private ABI32 extends the original `actql_payload_writing_*` transition loan
+with kind 3 for Sealed preparation. It requires the original confirmed, owned
+Writing record. A closed physical observation carries the original Store and
+material CIDs, canonical decimal strings for `device`, `inode` and nonnegative
+signed-64-bit `size`, and `physical_digest`. Missing, NULL, extra fields and
+noncanonical integers are refused. The existing payload Owner determines exact
+ownership, byte bounds and digest validity; the bridge adds no sealing rules.
+
+Preparation leaves the record in Writing. The same loan/current-authorization
+guards and original capacity-fenced CAS confirmation are shared with Writing
+and ownership. An uncertain CAS retains that original loan, record and input
+custody; read-only exact successor confirmation performs no second write.
+Neither a physical digest nor a produced Sealed candidate grants publisher
+authority, installs a final pathname, commits a Store or determines a Run
+outcome. Actual physical installation and durable publication remain separate
+existing Owner responsibilities.

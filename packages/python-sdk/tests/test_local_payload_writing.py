@@ -1,4 +1,4 @@
-"""Private Writing/Owned transition loans; semantic decisions stay in Core."""
+"""Private Writing/Owned/Sealed loans; semantic decisions stay in Core."""
 import copy
 from threading import RLock
 import unittest
@@ -74,12 +74,29 @@ class PayloadWritingCustodyTests(unittest.TestCase):
 
     def test_invalid_transition_selection_fails_before_ticket_or_io(self):
         core, request, _, calls, _, _ = self.bridge()
-        for kind in (True, False, 0, 3, 1.0, '1', None):
+        for kind in (True, False, 0, 4, 1.0, '1', None):
             with self.assertRaises(ValueError):
                 core.reserve_payload_writing(request, kind, cleanup=lambda: True)
         self.assertEqual(calls, [])
         self.assertEqual(core._next_ticket, 8)
         self.assertEqual(core._inputs, {})
+
+    def test_sealed_selection_forwards_original_physical_input_without_io(self):
+        core, request, observation, calls, _, _ = self.bridge()
+        original_call = core._call
+
+        def call(family, name, *args):
+            if family == 'payload_writing' and name == 'reserve':
+                calls.append((family, name, args))
+                self.assertEqual(args[:3], (23, 3, 8))
+                return 29
+            return original_call(family, name, *args)
+
+        core._call = call
+        record = core.reserve_payload_writing(request, 3, cleanup=lambda: True)
+        core.produce_payload_writing(record, observation, 31)
+        self.assertIn(('payload_writing', 'produce', (29, 11, 31)), calls)
+        self.assertFalse(any(f in ('run', 'source', 'task', 'publication') for f, _, _ in calls))
 
     def test_cached_bytes_still_recheck_current_authority(self):
         core, request, _, calls, state, wire = self.bridge()

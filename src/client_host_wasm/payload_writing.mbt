@@ -12,7 +12,20 @@ fn payload_physical_uint64(wire : String) -> UInt64? {
 }
 
 ///|
-/// One original Writing/Owned transition and its uncertain physical CAS. The payload
+fn payload_physical_size(wire : String) -> Int64? {
+  if wire.length() == 0 || wire.length() > 19 {
+    return None
+  }
+  let value : Int64 = @string.from_str(wire) catch { _ => return None }
+  if value >= 0L && value.to_string() == wire {
+    Some(value)
+  } else {
+    None
+  }
+}
+
+///|
+/// One original Writing/Owned/Sealed transition and its uncertain physical CAS. The payload
 /// Owner determines every state; this child only retains transport and custody.
 priv struct StoredPayloadWriting {
   parent : Int
@@ -47,6 +60,13 @@ pub fn reserve_payload_writing(
         kind == 2 &&
         @payload.publication_payload_record_state(original) is Writing &&
         @payload.publication_payload_record_ownership(original) is None &&
+        @payload.publication_payload_record_opaque_ownership(original) is None
+      ) ||
+      (
+        kind == 3 &&
+        @payload.publication_payload_record_state(original) is Writing &&
+        @payload.publication_payload_record_ownership(original) is Some(_) &&
+        @payload.publication_payload_record_generation(original) is None &&
         @payload.publication_payload_record_opaque_ownership(original) is None
       )
     ) else {
@@ -131,12 +151,17 @@ pub fn produce_payload_writing(
       }
       @payload.prepare_publication_payload_writing(original)
     } else {
+      let fields = if record.kind == 2 {
+        ["store_authority_cid", "material_generation_cid", "device", "inode"]
+      } else {
+        [
+          "store_authority_cid", "material_generation_cid", "device", "inode", "size",
+          "physical_digest",
+        ]
+      }
       guard value.copies.get(input) is Some((slot, _)) &&
         input_cursor(value, slot) is Some(cursor) &&
-        @decode.closed_object(cursor, [
-          "store_authority_cid", "material_generation_cid", "device", "inode",
-        ])
-        is Ok(object) &&
+        @decode.closed_object(cursor, fields) is Ok(object) &&
         required_text(object, "store_authority_cid") is Some(store) &&
         required_text(object, "material_generation_cid") is Some(material) &&
         required_text(object, "device") is Some(device_wire) &&
@@ -150,8 +175,23 @@ pub fn produce_payload_writing(
         material != @payload.publication_payload_material_identity(request) {
         return -32
       }
-      // Exact physical identity from the trusted Host; not a durable write.
-      @payload.prepare_publication_payload_owned(original, { device, inode, })
+      if record.kind == 2 {
+        // Exact physical identity from the trusted Host; not a durable write.
+        @payload.prepare_publication_payload_owned(original, { device, inode, })
+      } else {
+        guard required_text(object, "size") is Some(size_wire) &&
+          payload_physical_size(size_wire) is Some(size) &&
+          required_text(object, "physical_digest") is Some(physical_digest) else {
+          return -31
+        }
+        // The physical Host observed the stopped, flushed original descriptor.
+        // Only the existing payload Owner checks identity, bounds and sealing.
+        @payload.prepare_publication_payload_sealed(
+          original,
+          { device, inode, size, },
+          physical_digest,
+        )
+      }
     }
     match prepared {
       Err(_) => return -32

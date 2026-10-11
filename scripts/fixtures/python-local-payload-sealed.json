@@ -1,0 +1,18 @@
+{
+  "description": "Prepared private ABI32 original Core replay, actual file observations and Sealed CAS. Independent payload/digest comes from the existing Result storage fixture. Unexecuted until the corresponding module is built and authorized.",
+  "physical_copy_bytes": 131300,
+  "max_record_bytes": 65536,
+  "allocation_name": "alloc-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-1",
+  "source_queries": 3,
+  "opaque_record_writes": 7,
+  "cases": [
+    "original_confirmed_area_and_file_ownership_precede_sealed",
+    "bounded_original_result_replay_and_file_digest_without_redispatch",
+    "closed_physical_observations_and_original_owner_refusals",
+    "physical_sealed_candidate_keeps_original_writing_until_cas",
+    "lost_sealed_cas_ack_retains_original_custody_without_resend",
+    "exact_successor_and_current_authority_confirm_same_sealed_record",
+    "pending_transport_cleanup_retries_same_handle_and_borrow",
+    "physical_close_preserves_named_bytes_and_durable_capacity"
+  ]
+}

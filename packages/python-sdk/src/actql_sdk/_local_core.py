@@ -475,7 +475,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 31:
+            if self._exports['actql_host_abi_version'](self._store) != 32:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -1269,10 +1269,10 @@ class LocalCore:
 
     def reserve_payload_writing(self, request: _Output, kind: int, *,
                                cleanup: Callable[[], bool]) -> _Output:
-        """Project original Writing (1) or exact physical ownership (2); no file I/O."""
+        """Project Writing (1), physical ownership (2) or Sealed (3); Core decides."""
         with self._lock:
             self._owned_output(request, 'payload_record')
-            if type(kind) is not int or kind not in (1, 2):
+            if type(kind) is not int or kind not in (1, 2, 3):
                 raise ValueError('Invalid payload writing transition')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
