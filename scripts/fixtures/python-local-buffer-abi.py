@@ -61,6 +61,17 @@ try:
         left.store, left.nonce, handle) == -2
     assert left.exports['actql_result_binding_close'](
         left.store, left.nonce, handle) == -2
+    # Writing and physical ownership need the original confirmed Core record.
+    assert left.exports['actql_payload_writing_reserve'](
+        left.store, left.nonce, handle, 1, 65000, 131300) == -2
+    assert left.exports['actql_payload_writing_produce'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_writing_begin'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_writing_confirm'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_writing_close'](
+        left.store, right.nonce, handle) == -2
     assert left.call('allocated') == 2 * len(payload) + physical_bytes
     # Individually valid reservations still exceed one aggregate allowance.
     assert left.call('reserve', 2, len(payload), 128) == -4
