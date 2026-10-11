@@ -450,7 +450,9 @@ test "WITH captured expansion preserves required pipeline input order refusal" {
     )
     is Err(
       QueryLowering(
-        BindingPreparation(SourceProgram(Program(Order(1, PipelineOrder(issue)))))
+        BindingPreparation(
+          SourceProgram(Program(Order(1, PipelineOrder(issue))))
+        )
       )
     ) else {
     fail("expected the common required pipeline input order refusal")
