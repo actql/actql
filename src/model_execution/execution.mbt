@@ -180,6 +180,8 @@ struct ModelState {
   response_reconciliations : Map[Int, ModelResponseReconciliation]
   ledger : @resources.Ledger
   mut prepared_capacity : @resources.CapacityReservation?
+  // Private proposal; this extra reference has no adopted physical coefficient.
+  mut original_startup : OriginalModelStartup?
   reservations : Map[Int, @resources.Reservation]
   send_mask : Array[Bool]?
   mut reservation_next_slot : Int
@@ -310,6 +312,10 @@ fn advance_model(
   }
   if state.work >= state.limits.max_work {
     return @bounded.Failed(WorkLimit, 0, 0)
+  }
+  match charge_original_model_parent_work(state) {
+    Err(issue) => return @bounded.Failed(issue, 0, 0)
+    Ok(_) => ()
   }
   state.work += 1
   if state.phase is ReserveSlots {
@@ -735,6 +741,7 @@ fn start_model_owned(
   durable_calls? : Bool = false,
   send_mask? : Array[Bool]? = None,
   prepared_capacity? : PreparedModelCapacity? = None,
+  original_startup? : OriginalModelStartup? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   if egress_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
@@ -798,9 +805,18 @@ fn start_model_owned(
   if count > limits.max_work {
     return Err(InvalidLimits)
   }
-  let ledger = match @resources.create_ledger(limits.ledger) {
-    Ok(value) => value
-    Err(issue) => return Err(Ledger(issue))
+  if original_startup is Some(original) &&
+    (prepared_capacity is Some(_) ||
+    !(source is Provider(_)) ||
+    !original_model_startup_matches(original, rows, call_scope, limits, quantity_capacity)) {
+    return Err(RequestIdentity)
+  }
+  let ledger = match original_startup {
+    Some(original) => original.ledger
+    None => match @resources.create_ledger(limits.ledger) {
+      Ok(value) => value
+      Err(issue) => return Err(Ledger(issue))
+    }
   }
   if quantity_capacity is Some(capacity) {
     if !(source is Provider(_)) ||
@@ -812,9 +828,12 @@ fn start_model_owned(
       capacity.per_attempt.duration_ms > 9007199254740991L {
       return Err(InvalidLimits)
     }
-    match @resources.configure_quantities(ledger, capacity.limits) {
-      Err(issue) => return Err(Ledger(issue))
-      Ok(_) => ()
+    // Original quantity configuration predates read custody; compare, never reset.
+    if original_startup is None {
+      match @resources.configure_quantities(ledger, capacity.limits) {
+        Err(issue) => return Err(Ledger(issue))
+        Ok(_) => ()
+      }
     }
   }
   if send_mask is Some(mask) && (!durable_calls || mask.length() != count) {
@@ -823,19 +842,25 @@ fn start_model_owned(
   // The internal caller must supply the complete extra holding envelope, not
   // an eligible-send count or a spare portion of an attempt's evidence budget.
   // No public caller supplies this descriptor yet; no new key is retained.
-  let capacity = match
-    reserve_prepared_model_capacity(ledger, count, prepared_capacity) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let capacity = match original_startup {
+    Some(original) => Some(original.capacity)
+    None => match reserve_prepared_model_capacity(ledger, count, prepared_capacity) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
   }
   guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
-    if capacity is Some(reservation) {
+    if original_startup is None && capacity is Some(reservation) {
       match @resources.settle_capacity(ledger, reservation) {
         Ok(_) => ()
         Err(issue) => return Err(Ledger(issue))
       }
     }
     return Err(OutputIdentity)
+  }
+  // Refusals above leave the token unconsumed, with original cleanup custody.
+  if original_startup is Some(original) {
+    original.used = true
   }
   let reservations : Map[Int, @resources.Reservation] = Map([])
   let state : ModelState = {
@@ -857,6 +882,7 @@ fn start_model_owned(
     response_reconciliations: Map([]),
     ledger,
     prepared_capacity: capacity,
+    original_startup,
     reservations,
     send_mask: send_mask.map(mask => mask.copy()),
     reservation_next_slot: 0,
