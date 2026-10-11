@@ -1488,6 +1488,8 @@ pub(all) enum ManyOperator {
   ConcatStrict
   Replace
   Repeat
+  Translate
+  Instr
   Split
   Substring
   LeftString

@@ -1,0 +1,24 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-mW32qw",
+  "revision": "a9cd3335a4160f6064fb52fc6e9110875f1f3156",
+  "source": {
+    "revision": "a9cd3335a4160f6064fb52fc6e9110875f1f3156",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T20:08:48.989Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

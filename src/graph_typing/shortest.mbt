@@ -337,6 +337,34 @@ pub fn shortest_pending(value : CheckedShortest) -> Array[ShortestObligation] {
 }
 
 ///|
+/// O(1), independent of input data size; no obligation array is materialized.
+pub fn shortest_pending_count(value : CheckedShortest) -> Int {
+  let mut count = 0
+  shortest_pending_each(value, _ => count += 1)
+  count
+}
+
+///|
+/// O(1), without copying the obligation array; invalid indices return None.
+pub fn shortest_pending_at(
+  value : CheckedShortest,
+  index : Int,
+) -> ShortestObligation? {
+  if index < 0 {
+    return None
+  }
+  let mut count = 0
+  let mut found = None
+  shortest_pending_each(value, item => {
+    if count == index {
+      found = Some(item)
+    }
+    count += 1
+  })
+  found
+}
+
+///|
 fn shortest_pending_each(
   value : CheckedShortest,
   emit : (ShortestObligation) -> Unit,

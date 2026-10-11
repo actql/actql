@@ -161,7 +161,6 @@ test('typed literal writer ignores unrelated lookalike schemas and nested exampl
 test('typed literal ownership covers each current expression and EffectValue arm', () => {
   const expressions = JSON.parse(readFileSync('spec/contracts/actql-expressions.json'));
   const protocol = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
-  const original = structuredClone([expressions, protocol]);
   // Enumerate expected owners in the test without importing a product table.
   const source = [expressions.schemas.expression.$defs.expression,
     expressions.schemas.fragment.$defs.source_expression,
@@ -187,8 +186,32 @@ test('typed literal ownership covers each current expression and EffectValue arm
   for (const schema of machine) {
     schema.oneOf = schema.oneOf.filter(form => form.properties?.op?.const !== 'typed_literal');
   }
+  const withoutOwnedArms = structuredClone([expressions, protocol]);
   updateTypedJsonContracts(expressions, protocol, true);
-  assert.deepEqual([expressions, protocol], original);
+  // Missing-arm repair owns the new arm, not its historical position among
+  // alternatives later added by other writers. Preserve every foreign arm's
+  // exact body and order. Current-registry byte idempotence is tested separately.
+  for (const [schemas, typed, expected] of [
+    [source, form => form.required?.[0] === 'typed_literal', sourceTypedLiteral],
+    [machine, form => form.properties?.op?.const === 'typed_literal', nodeTypedLiteral],
+  ]) {
+    for (const schema of schemas) {
+      assert.deepEqual(schema.oneOf.filter(typed), [expected]);
+    }
+  }
+  // Reordered canonical preimages must carry their corresponding new pins.
+  // Validate them before excluding only the owned arms and these verified pins
+  // from the full foreign-content comparison. No registry file is written.
+  updateTypedJsonContracts(expressions, protocol);
+  for (const schema of source) {
+    schema.oneOf = schema.oneOf.filter(form => form.required?.[0] !== 'typed_literal');
+  }
+  for (const schema of machine) {
+    schema.oneOf = schema.oneOf.filter(form => form.properties?.op?.const !== 'typed_literal');
+  }
+  protocol.artifact_schema_cids = withoutOwnedArms[1].artifact_schema_cids;
+  protocol.artifact_registry_cid = withoutOwnedArms[1].artifact_registry_cid;
+  assert.deepEqual([expressions, protocol], withoutOwnedArms);
 });
 
 test('typed literal ownership rejects missing, duplicate and aliased roots before writing', () => {

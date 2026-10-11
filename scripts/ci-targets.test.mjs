@@ -76,14 +76,14 @@ test('ordinary filename cannot hide target-specific syntax changes', () => {
     assert.equal(result.targetSensitiveDiff, true, line);
   }
 });
-test('only PR updates and explicit dispatch trigger CI; main advance starts no run', () => {
-  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'workflow_dispatch']);
-  assert.deepEqual(workflow.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft']);
-  assert.equal(workflow.on.push, undefined);
+test('only main pushes and explicit dispatch trigger CI; PRs stay local', () => {
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['push', 'workflow_dispatch']);
+  assert.deepEqual(workflow.on.push.branches, ['main']);
+  assert.equal(workflow.on.pull_request, undefined);
   assert.equal(workflow.on.schedule, undefined);
   assert.equal(workflow.on.workflow_run, undefined);
   assert.equal(workflow.on.merge_group, undefined);
-  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix }}");
+  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}");
 });
 test('manual normal dispatch retains all full-family obligations, separate from probes', () => {
   const inputs = workflow.on.workflow_dispatch.inputs;
@@ -102,12 +102,15 @@ test('manual normal dispatch retains all full-family obligations, separate from 
       {...results, core: {result: status}}, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)}));
   }
 });
-test('PR updates and normal manual runs retain cancellation; performance remains separate', () => {
+test('active main finishes while pending work coalesces; branches and performance are separate', () => {
   assert.equal(workflow.concurrency.group, "${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}");
   assert.equal(workflow.concurrency.queue, undefined);
   const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
-  for (const [performance, expected] of [[false, true], [undefined, true], [true, false]]) {
-    assert.equal(runInNewContext(expression, {inputs: {performance_matrix: performance}}, {timeout: 100}), expected);
+  for (const ref of ['refs/heads/main', 'refs/heads/feature']) {
+    for (const performance of [false, undefined, true]) {
+      assert.equal(runInNewContext(expression, {github: {ref}, inputs: {performance_matrix: performance}},
+        {timeout: 100}), ref !== 'refs/heads/main' && !performance);
+    }
   }
 });
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
@@ -334,7 +337,8 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 // Exercise the real GitHub job expressions, including always() behavior.
 const scheduled = (name, needs, inputs = {}) => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
-  return Function('needs', 'inputs', 'always', `return (${expression});`)(needs, inputs, () => true);
+  return Function('needs', 'inputs', 'always', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true,
+    {ACTQL_MAIN_CI_ENABLED: 'true'}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
 };
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
   for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
@@ -574,8 +578,8 @@ test('declaration profile requires actual full history and validator regressions
 
 const checkpoint = () => ({baseSha: 'a'.repeat(40), testedSha: head, runId: 42, runAttempt: 1, workflowId: 7,
   policy: policyPaths.map(path => ({path, object: 'd'.repeat(40)})), reason: 'Verified full main checkpoint'});
-test('main narrow applicability requires checkpoint and complete cumulative declaration inventory', () => {
-  const selected = selectTargets([declarationFile], {event: 'push', mainBaseline: checkpoint(), declarationChanges: declarationChanges(), targetSensitiveDiff: true});
+test('historical main narrow applicability requires checkpoint and complete cumulative declaration inventory', () => {
+  const selected = selectTargets([declarationFile], {event: 'push', mainIntegration: false, mainBaseline: checkpoint(), declarationChanges: declarationChanges(), targetSensitiveDiff: true});
   assert.equal(validateSelection(selected).profile, 'declaration');
   assert.equal(selected.mainBaseline.baseSha, 'a'.repeat(40));
   const lines = verifyGate(plan(selected), results(selected), {...context, event: 'push'});
@@ -587,7 +591,7 @@ test('main narrow applicability requires checkpoint and complete cumulative decl
 });
 test('main cumulative product changes retain all backend coverage even for portable PR paths', () => {
   for (const paths of [[declarationFile, 'src/source_span/span.mbt'], ['src/source_span/span.mbt'], ['README.md']]) {
-    const selected = validateSelection(selectTargets(paths, {event: 'push', mainBaseline: checkpoint(), declarationChanges: declarationChanges()}));
+    const selected = validateSelection(selectTargets(paths, {event: 'push', mainIntegration: false, mainBaseline: checkpoint(), declarationChanges: declarationChanges()}));
     assert.equal(selected.profile, 'full'); assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
   }
 });
@@ -622,7 +626,7 @@ test('reviewed prose modifications compose with independently validated declarat
   assert.deepEqual(selected.declarationChanges, declarationChanges());
   for (const event of ['pull_request', 'push']) {
     const current = validateSelection(selectTargets(selected.paths, {...selected, event,
-      mainBaseline: event === 'push' ? checkpoint() : null}));
+      mainIntegration: false, mainBaseline: event === 'push' ? checkpoint() : null}));
     assert.equal(current.profile, 'declaration');
     assert.equal(verifyGate(plan(current), results(current), {...context, event}).length, gateJobs.length);
   }
@@ -764,7 +768,7 @@ test('Draft cannot start product, packed, proof or backend jobs; final gate stil
   // Converted-to-draft and ready events have the same PR ref/group. The existing
   // cancel-in-progress expression supersedes prior preparation/full attempts.
   assert(workflow.concurrency.group.includes('${{ github.ref }}'));
-  assert.equal(workflow.concurrency['cancel-in-progress'], '${{ !inputs.performance_matrix }}');
+  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}");
 });
 
 function draftStepEnabled(step, profile) {
@@ -793,5 +797,44 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   for (const profile of ['full', 'maintenance', 'declaration', 'focused-tests']) {
     assert(jobs.preflight.steps.filter(step => step.run === 'node scripts/check-moonbit-api.mjs').every(step => draftStepEnabled(step, profile)));
     assert(jobs.spec.steps.filter(step => step.run === 'npm run check:spec-after-preflight').every(step => draftStepEnabled(step, profile)));
+  }
+});
+
+test('every job fails closed before runner allocation until public and explicitly enabled', () => {
+  const guard = "vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
+  const performance = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  const probe = parse(readFileSync(new URL('../.github/workflows/packed-query-evidence-probe.yml', import.meta.url), 'utf8'));
+  assert.deepEqual(Object.keys(probe.on), ['workflow_call']);
+  for (const [name, job] of Object.entries({...jobs, ...performance.jobs, ...probe.jobs})) {
+    assert(job.if.startsWith('${{ ' + guard), name);
+    // Evaluate the actual prefix, independently of job-specific applicability.
+    const expression = job.if.slice(4, 4 + guard.length);
+    for (const [enabled, visibility, privateFlag, expected] of [
+      [undefined, 'public', false, false], ['', 'public', false, false],
+      ['false', 'public', false, false], ['true', 'private', true, false],
+      ['true', 'public', true, false], ['true', undefined, false, false],
+      ['true', 'public', undefined, false], ['true', 'public', null, false],
+      ['true', 'public', 0, false], ['true', 'public', 'false', false],
+      ['true', 'public', false, true],
+    ]) {
+      assert.equal(runInNewContext(expression, {vars: {ACTQL_MAIN_CI_ENABLED: enabled},
+        github: {event: {repository: {visibility, private: privateFlag}}}, toJSON: JSON.stringify}, {timeout: 100}), expected, name);
+    }
+  }
+  for (const name of ['check', 'client', 'pipeline-evidence']) assert(jobs[name].if.includes('always()'), name);
+});
+
+test('automatic main integration remains full even with valid narrow cumulative evidence', () => {
+  const cases = [
+    {paths: [declarationFile], declarationChanges: declarationChanges()},
+    {paths: ['docs/development.md'], maintenanceChanges: changes(['docs/development.md'])},
+    {paths: []},
+  ];
+  for (const inputs of cases) {
+    const selected = validateSelection(selectTargets(inputs.paths, {...inputs, event: 'push', mainBaseline: checkpoint()}));
+    assert.equal(selected.profile, 'full');
+    assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
+    const lines = verifyGate(plan(selected), results(selected), {...context, event: 'push'});
+    assert(!lines.some(line => line.startsWith('NOT APPLICABLE core')));
   }
 });

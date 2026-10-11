@@ -1,0 +1,15 @@
+Error: [4203]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:125:66 ]
+     │
+ 125 │     return resolve_imports(source, index, producers, limits).map(ProgramImports::Publication)
+     │                                                                  ─────────────┬─────────────  
+     │                                                                               ╰─────────────── Using constructors as higher order function directly is forbidden.
+─────╯
+Error: [4203]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/src/stage_results/checked_topology.mbt:147:63 ]
+     │
+ 147 │     Publication(v) => attach_imports(v, stage, max_work~).map(ProgramAttachedImports::Publication)
+     │                                                               ─────────────────┬─────────────────  
+     │                                                                                ╰─────────────────── Using constructors as higher order function directly is forbidden.
+─────╯
+Failed with 0 warnings, 2 errors.

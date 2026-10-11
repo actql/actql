@@ -143,6 +143,54 @@ pub fn handoff_client_model_read(
 }
 
 ///|
+// Verify already reserved derivation workspace on this exact checked Run/Host
+// read. The consumer still derives its complete overlap envelope separately.
+// Check the retained envelope before constructing its original preparation or
+// Execution as well. This verifies an existing token, without reserving again.
+pub fn client_model_read_preparation_available(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  execution_bytes : Int64,
+  retained_bytes? : Int64 = 0L,
+) -> Bool {
+  client_model_read_origin_matches(value, compiled, definition, plan) &&
+  @resources.funded_read_preparation_available(
+    value.claim,
+    value.origin,
+    execution_bytes,
+    retained_bytes~,
+  )
+}
+
+///|
+// The same original checked Run owner transfers byte custody atomically.
+// This does not authenticate arbitrary PreparedInferRows, select a physical
+// profile or authorize Model dispatch; those checked boundaries remain separate.
+pub fn handoff_client_model_read_capacity(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  (@resources.Ledger, @resources.CapacityReservation),
+  ClientModelReadPreparationIssue,
+] {
+  if !client_model_read_origin_matches(value, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.handoff_funded_read_capacity(
+    value.claim,
+    value.origin,
+    retained_bytes,
+    execution_bytes,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
 pub fn stop_client_model_read(value : ClientModelReadPreparation) -> Unit {
   @resources.stop_funded_read(value.claim)
 }

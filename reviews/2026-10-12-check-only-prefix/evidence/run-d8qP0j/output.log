@@ -1,0 +1,5 @@
+[actql/actql] test stage_results/prefix_topology_test.mbt:60 ("check-only prefix preserves capture projection imports and unresolved debts") failed: src/stage_results/prefix_topology_test.mbt:106:3-116:4@actql/actql FAILED: `false` is not true
+[actql/actql] test stage_results/prefix_topology_test.mbt:159 ("prefix check preserves bounded accounting and actual local ownership") failed: src/stage_results/prefix_topology_test.mbt:174:3-177:4@actql/actql FAILED: `false` is not true
+Total tests: 5, passed: 3, failed: 2.
+["moon","test","--target","js","src/stage_results/prefix_topology_test.mbt","src/pipeline_check_context/prefix_sourceview_test.mbt"]: process failed (2); counts={"tests":5,"passed":3,"failed":2,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/focused-evidence/focused-test-XFQYQs

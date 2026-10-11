@@ -718,7 +718,79 @@ that result. The regular `packed-query-evidence.test.mjs` gate exercises local
 capture, partial selection, ownership guards and the action's exact upload-status
 shell without rerunning packed product acceptance or a mutation campaign.
 
-## PR checks and manual integration checkpoints
+## Local PR review and opt-in main integration
+
+PRs use focused local tests and coordinator review. CI has no automatic
+`pull_request` trigger, including Draft/Ready transitions. This avoids waiting
+for hosted full integration before each merge; it does not turn local checks
+into full integration evidence. A regression found after merge must be fixed
+and verified at a new exact SHA before release.
+
+Hosted CI is dormant by default. Every job, including `always()` aggregates and
+manual performance/probe entry points, requires both repository visibility
+`public` (and `private == false`) and the repository Actions variable
+`ACTQL_MAIN_CI_ENABLED` equal to the literal string `true`. Missing values,
+private visibility and public visibility alone leave every job skipped before
+runner allocation. A skipped workflow/check is not successful test execution.
+
+### Activation after the repository becomes public
+
+1. The owner makes the repository public separately; this change does not
+   enable CI by itself. Keep the variable unset or false until explicit opt-in.
+2. Review Actions availability and the current branch protection/rulesets.
+   Required PR CI checks from the former policy may otherwise keep PRs waiting
+   forever. An owner must inspect and explicitly approve any needed rule change;
+   this workflow does not change rules, permissions, visibility or billing.
+   If the protection API is inaccessible, its state is unknown, not absent.
+3. After approval, set the repository Actions variable
+   `ACTQL_MAIN_CI_ENABLED=true` and enable Actions/this workflow if disabled.
+   Changing the variable does not itself dispatch a run. The next main push
+   triggers integration, or an explicitly authorized normal manual dispatch on
+   main can establish the first checkpoint.
+4. Inspect that run's exact SHA, attempt, selected full profile, final `check`
+   and all required jobs. Failed, cancelled, missing or skipped required jobs
+   are not green. To turn off future jobs, unset the variable or set it false;
+   this does not cancel an already admitted running job.
+
+Only pushes to `main` run automatically. Main integration selects the existing
+full job families, JS/wasm/native matrix and automatic macOS coverage even when
+an authenticated ancestor would permit a narrow cumulative selection. Mandatory
+history and admission checks still run before expensive fan-out. There is no
+new classifier, second test workflow or replacement proof campaign.
+
+The main normal concurrency group keeps one running integration and at most one
+pending run; GitHub replaces pending work with newer arrivals. It does not
+promise FIFO ordering or test every intermediate merge. The active run checks
+its immutable event SHA and can finish even if main advances. Admission binds
+that SHA to the actual checkout, repository identity and main workflow; PR and
+working-branch latest-head rejection remains intact. Main runs, working-branch
+dispatches and performance/probe modes use separate concurrency groups.
+
+Manual normal dispatch remains available after opt-in for a working branch or
+main. Its existing explicit `native_macos=true` option is preserved. Optional
+performance and intentionally failing evidence probes remain separate modes;
+neither creates a full integration checkpoint.
+
+Release only a specific main SHA with a successful full integration `check`
+and the required successful jobs from that exact run attempt/SHA. A newer main
+head, a skipped dormant workflow, narrow green receipt, ancestor checkpoint,
+local tests or performance result is insufficient. Inspect actual obligations
+(including macOS when selected), not just overall workflow color. This is the
+release review requirement; this configuration does not add a release publisher
+or claim to enforce existing publishing permissions. Existing explicit release
+approval requirements remain unchanged.
+
+Checkpoint lookup retains workflow/repository identity, first-parent ancestry,
+exact successful attempt/jobs and policy-object authentication. Admission code
+is part of that policy identity. Historical narrow evidence remains narrow and
+cannot be promoted into a full checkpoint. The historical policy below is
+retained for understanding old receipts and regression fixtures; it is no longer
+the active trigger or merge-wait policy.
+
+### Historical PR checks and manual integration checkpoints
+
+The following records the superseded PR-triggered policy and its evidence
+semantics. Its event and command descriptions apply to historical runs only.
 
 Normal CI runs on PR opened, synchronize, reopened, ready_for_review and
 converted_to_draft events. There is no
@@ -728,7 +800,7 @@ checks. A changed PR head still needs its own applicable checks; missing,
 failed or stale required evidence is not converted into a pass. The recorded
 checkout may be the PR's synthetic merge at event time, not current main.
 
-### Draft preparation and Ready verification
+#### Historical Draft preparation and Ready verification
 
 Draft pushes and reopen events run preparation checks, not merge verification.
 The existing five jobs (`select-targets`, `preflight`, `lint`, `spec`, `check`)

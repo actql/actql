@@ -660,3 +660,41 @@ logical Number bits across JS, WebAssembly and Native. Independent finite
 accuracy fixtures remain unchanged; they are not a universal accuracy bound
 or a claim of live-BigQuery last-bit equivalence. No alternate evaluator or
 new tolerance is introduced.
+
+
+## GoogleSQL STRING translation and occurrence position
+
+The normative owner is [Scalar expressions](../spec/language.md#scalar-expressions).
+TRANSLATE adds simultaneous scalar substitution/deletion with duplicate-source
+validation. INSTR adds direction, position, occurrence and overlapping matches.
+The [GoogleSQL reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions)
+defines these operations; only its STRING/default binary behavior is selected.
+Exact strings, including astral scalars, combining marks and NUL, are retained
+without normalization. Neither operation adds BYTES, collation or regex.
+
+Google's position and occurrence parameters are INT64. ActQL intentionally
+adapts them to its finite binary64 Number domain, following the already adopted
+REPEAT count adaptation: integral nonzero position and integral positive
+occurrence, with no new INT64 or safe-integer cap. Check those domains before
+empty or out-of-range shortcuts, then compare with bounded scalar counts before
+integer conversion. Huge valid unreachable values yield zero. Earlier SUBSTR,
+padding and other numeric domains are unaffected; this is not an INT64 overload.
+
+The prose reference does not detail empty-pattern boundaries. The [pinned Google implementation](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/public/functions/string.cc#L620-L769)
+forward and backward UTF-8 search branches resolve them as
+length-plus-one boundaries. Forward search starts at position; backward empty
+search starts at length plus position plus two. Thus the default empty/empty
+result is one, ('ab', '', 1, 3) yields three, and ('a', '', -1) yields two.
+These explicit adopted edges follow ordinary empty-subsequence boundaries and
+are fixed independently of ActQL execution; live BigQuery verification is a
+separate obligation, not implied by inspecting the reference implementation.
+
+Common strict child demand, later child error preservation, NULL propagation,
+lazy outer demand, existing resource admission and cooperative cancellation
+remain unchanged. TRANSLATE retains only the input codepoint maximum because
+mapping can delete scalars or expand encoded width. INSTR nullability includes
+all supplied operands. Canonical arrays preserve authored optional-argument
+omission; equal values do not erase identity differences or justify rewriting
+INSTR as STRPOS. Initial 0.1 schemas, laws, grammar and dependent identities move
+together; published predecessor bodies, profiles, barriers and limits remain
+unchanged. Source admission is not execution conformance for unverified targets.
