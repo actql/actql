@@ -2712,6 +2712,7 @@ fn serve_holder_output(
                     })
                   EffectComputation =>
                     @resident_host.resident_effect_retained_consumer_producer_identity(
+                      environment.journal,
                       admission,
                       resident_effect_limits(admission),
                       configuration,
