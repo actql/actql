@@ -10,7 +10,12 @@ test "WITH Graph shared SQL and text route matches independent Program" {
     ),
     {
       source: { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
-      tree: { max_nodes: 8192, max_depth: 64, max_string_bytes: 65536, max_total_string_bytes: 65536, },
+      tree: {
+        max_nodes: 8192,
+        max_depth: 64,
+        max_string_bytes: 65536,
+        max_total_string_bytes: 65536,
+      },
       max_stages: 32,
     },
     format=Json,
@@ -19,11 +24,18 @@ test "WITH Graph shared SQL and text route matches independent Program" {
   @program.emit_program_source(expected, writer)
   let expected_text = @encode.finish(writer)
   for format in [Text, Sql] {
-    let actual = lower(source, format, Some(context), source_path="bindings.sql").unwrap()
+    let actual = lower(
+      source,
+      format,
+      Some(context),
+      source_path="bindings.sql",
+    ).unwrap()
     assert_eq(actual.format, @program.Json)
     assert_eq(actual.document, expected_text)
     let program = actual.program.unwrap()
-    let steps = @wire.elements(lookup(@program.stage_body(@program.stages(program)[0]), "steps")).unwrap()
+    let steps = @wire.elements(
+      lookup(@program.stage_body(@program.stages(program)[0]), "steps"),
+    ).unwrap()
     let span = @wire.cursor_span(lookup(steps[3], "graph"))
     assert_eq(span.source_path, "bindings.sql")
     assert_eq(span.start_byte, 48)
@@ -34,7 +46,21 @@ test "WITH Graph shared SQL and text route matches independent Program" {
 ///|
 test "public WITH cutover rejects retired DATA without structural fallback" {
   for format in [Text, Sql] {
-    assert_true(lower("DATA n = SELECT 1 AS id; SELECT id FROM n", format, Some(test_context())) is Err(WrongQueryForm))
-    assert_true(lower("WITH g AS (PROPERTY GRAPH (NODE TABLES (records KEY (id)))) SELECT 1 AS id", format, Some(test_context())) is Err(QuerySyntax(_)))
+    assert_true(
+      lower(
+        "DATA n = SELECT 1 AS id; SELECT id FROM n",
+        format,
+        Some(test_context()),
+      )
+      is Err(WrongQueryForm),
+    )
+    assert_true(
+      lower(
+        "WITH g AS (PROPERTY GRAPH (NODE TABLES (records KEY (id)))) SELECT 1 AS id",
+        format,
+        Some(test_context()),
+      )
+      is Err(QuerySyntax(_)),
+    )
   }
 }

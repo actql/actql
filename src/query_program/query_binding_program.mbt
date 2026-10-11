@@ -43,10 +43,18 @@ fn lower_script_primary(
       }
       steps.push(
         lower_graph_step(
-          { ..construction, generated: @origin.range(
-            @query.query_document(query), mapping.start, mapping.end,
-          ).unwrap(), },
-          mapping, known, output, producer_names~,
+          {
+            ..construction,
+            generated: @origin.range(
+              @query.query_document(query),
+              mapping.start,
+              mapping.end,
+            ).unwrap(),
+          },
+          mapping,
+          known,
+          output,
+          producer_names~,
         ),
       )
       Some({

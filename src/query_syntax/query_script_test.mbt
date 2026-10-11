@@ -56,7 +56,8 @@ test "WITH rejects duplicate names malformed and retired entry points" {
     starts_query(
       "DATA n = SELECT 1 AS id; SELECT id FROM n",
       query_limits().lexical,
-    ) is Ok(false),
+    )
+    is Ok(false),
   )
 }
 
