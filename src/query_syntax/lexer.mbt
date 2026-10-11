@@ -303,6 +303,25 @@ fn Scanner::name(self : Scanner) -> String raise {
 fn Scanner::number(self : Scanner) -> String raise {
   let start = self.byte_offset
   let output = StringBuilder()
+  if self.peek() == Some(48) &&
+    (self.peek(ahead=1) == Some(120) || self.peek(ahead=1) == Some(88)) {
+    for _ in 0..<2 {
+      self.budget.charge(LiteralBytes, 1, self.byte_offset)
+      output.write_char(self.advance().unsafe_to_char())
+    }
+    let mut digits = 0
+    while self.peek() is Some(n) &&
+          (digit(n) || (n >= 65 && n <= 70) || (n >= 97 && n <= 102)) {
+      self.budget.charge(LiteralBytes, 1, self.byte_offset)
+      output.write_char(self.advance().unsafe_to_char())
+      digits += 1
+    }
+    if digits == 0 ||
+      (self.peek() is Some(n) && (identifier_start(n) || n == 46)) {
+      raise LexicalAbort(InvalidNumber, start)
+    }
+    return output.to_string()
+  }
   let mut count = 0
   while self.peek() is Some(n) && digit(n) {
     self.budget.charge(LiteralBytes, 1, self.byte_offset)
