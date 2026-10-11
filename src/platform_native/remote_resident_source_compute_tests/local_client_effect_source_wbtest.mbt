@@ -556,6 +556,89 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
     )
     .unwrap()
   let facts = capture.facts().unwrap()
+  // The preparation fence retains this same started Work and actual capture.
+  // Identity projection does not obtain an issuer/read grant or enter Provider
+  // I/O. These are matching Native definitions until physically executed.
+  let retained_revision = match journal.lookup(request, true) {
+    Ok(@client.Retained(record)) =>
+      @client.native_client_run_record_revision(record)
+    _ => abort("original preparation Work missing")
+  }
+  let fence = work
+    .prepare_observation_fence(capture, 1, "save", 10000, 65536, 4096, 64)
+    .unwrap()
+  let fence_identity = fence.identity().unwrap()
+  let fields = @credential.local_preparation_fence_fields(fence_identity)
+  assert_eq(
+    fields.client_request_intent_cid,
+    @host.client_request_intent_cid(request),
+  )
+  assert_eq(
+    fields.client_request_scope_cid,
+    @host.client_request_scope_cid(request),
+  )
+  assert_eq(
+    fields.run_invocation_cid,
+    @publication.publication_contract_identity(facts.invocation),
+  )
+  assert_eq(
+    fields.unit_definition_cid,
+    @host.client_effect_local_invocation_unit_definition_cid(
+      @host.client_effect_local_artifact_invocation(facts.consumer),
+    ),
+  )
+  let checked_occurrence = @host.issue_source_free_client_effect_local_identity(
+    facts.materials.prepared,
+    facts.inputs,
+    0,
+    facts.consumer,
+    10000,
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  assert_eq(
+    fields.operation_occurrence_cid,
+    @host.client_effect_local_identity_cid(checked_occurrence),
+  )
+  for (stage, effect) in [(0, "save"), (1, "foreign")] {
+    assert_true(
+      work.prepare_observation_fence(
+        capture, stage, effect, 10000, 65536, 4096, 64,
+      )
+      is Err(@client.Member(@host.InvalidMember)),
+    )
+  }
+  assert_true(
+    work.prepare_observation_fence(capture, 1, "save", 0, 65536, 4096, 64)
+    is Err(@client.Member(@host.InvalidMember)),
+  )
+  assert_true(
+    work.prepare_observation_fence(capture, 1, "save", 10000, 1, 4096, 64)
+    is Err(@client.Occurrence(@host.Encoding)),
+  )
+  authorized = false
+  assert_true(
+    fence.identity() is Err(@client.Original(@client.AuthorizationDenied)),
+  )
+  assert_true(
+    work.prepare_observation_fence(capture, 1, "save", 10000, 65536, 4096, 64)
+    is Err(@client.Original(@client.AuthorizationDenied)),
+  )
+  authorized = true
+  assert_eq(
+    @credential.local_preparation_fence_cid(fence.identity().unwrap()),
+    @credential.local_preparation_fence_cid(fence_identity),
+  )
+  guard journal.lookup(request, true) is Ok(@client.Retained(after_fence)) else {
+    fail("fence observation lost the original Run")
+  }
+  assert_eq(
+    @client.native_client_run_record_revision(after_fence),
+    retained_revision,
+  )
+  assert_eq(acquisitions, 1)
+  assert_eq(computations, 1)
   assert_eq(facts.materials.request, Some(request))
   // Review must retain the accepted request, not require a Remote receiver.
   assert_eq(owner.request_for_effect_review(facts.inputs), Some(request))
@@ -751,6 +834,9 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
     original_work=if review { Some((work, journal)) } else { None },
   )
   authorized = false
+  assert_true(
+    fence.identity() is Err(@client.Original(@client.AuthorizationDenied)),
+  )
   assert_true(capture.facts() is None)
   assert_false(work.close())
   assert_eq(stop_custodies.length(), if review { 0 } else { 1 })
@@ -765,6 +851,12 @@ fn native_local_effect_capture_acceptance(review : Bool) -> Unit raise {
   }
   assert_true(capture.close())
   assert_true(capture.close())
+  authorized = true
+  assert_true(fence.identity() is Err(_))
+  assert_true(
+    work.prepare_observation_fence(capture, 1, "save", 10000, 65536, 4096, 64)
+    is Err(_),
+  )
   assert_true(owner.request_for_effect_review(facts.inputs) is None)
   assert_true(
     owner.effect_review_input_binding(facts.materials, facts.inputs, request)

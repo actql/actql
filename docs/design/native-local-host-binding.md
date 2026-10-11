@@ -340,6 +340,18 @@ bytes only. The initial operation is `salesforce:record:observe`, method `GET`,
 with the existing empty-body SHA-256 digest. A preparation grant cannot authorize
 PATCH, mutation resume, approval or a renewed execution claim.
 
+`NativeClientEffectSourceWork.prepare_observation_fence` binds the same retained
+first-start witness to the live original capture context. The existing checked
+Effect identity issuer resolves the authored member against its actual consumer
+Artifact and pinned inputs. The fence uses that occurrence CID, the captured Run
+Invocation, the consumer Unit definition and original Client request projections.
+It never receives these five identities as caller-selected strings. The context,
+inputs, checked preparation, actual captured Run and Artifact must still be the
+same live Owners when the fence is read. Current Work/cancellation/Checkpoint
+checks bracket capture callbacks and identity encoding. Closing the capture or
+losing current permission invalidates protected use; identity bytes cannot
+reconstruct or renew the token after process exit.
+
 Preparation uses the existing `actql-local-credential-use/0.1` record and finite
 ordinal rules. The distinct original grant CID identifies the typed alternative;
 restore never claims another ordinal or refreshes expiry. Old Local resume and

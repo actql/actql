@@ -26,6 +26,7 @@ import {
   "actql/actql/platform_native/publication_store",
   "actql/actql/platform_native/result_access",
   "actql/actql/physical_resources" @resources,
+  "actql/actql/physical_strategy" @strategy,
   "actql/actql/platform_native/signature" @crypto,
   "actql/actql/encode_core" @encode,
   "actql/actql/source_value" @source,
