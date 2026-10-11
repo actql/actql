@@ -120,7 +120,7 @@ class OriginalCommitProjection:
         current publisher stage. Failure keeps the same original handles.
         """
         with self._core._lock:
-            self._ready()
+            self._current()
             self._core.validate_publication_commit_payload_binding(
                 self._publication, record, self._configuration, result, binding_index)
 
@@ -134,6 +134,35 @@ class OriginalCommitProjection:
         """Consume the Owner's scoped key and original index CID, not JSON body."""
         self._project(7, True, consume, expected_generation)
 
+    def project_index_lookup_key(self, consume: Callable[[str], object]) -> None:
+        """Borrow only the Core-issued scoped key for a read-only inspection.
+
+        No candidate index CID/body or CAS expectation is delivered. The trusted
+        Host checks original File/six facts/current publisher, then uses this
+        key in the same Store read snapshot. It forwards actual stored bytes to
+        Core; an older valid stored attempt must not be replaced by the candidate.
+        The synchronous consumer must not retain this projection loan or key.
+        Any failure retains the same original output for explicit cleanup.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original Local index lookup consumer')
+        with self._core._lock:
+            self._ready()
+            self._projecting = True
+            try:
+                output = self._output()
+                self._core.produce_publication_commit_index_key(output, self._configuration)
+                raw = self._core.read_publication_commit_material(output)
+                key = LocalByteStore.namespaced_key('public_index', self._address(raw, index_key=True))
+                if consume(key) is not None:
+                    raise ValueError('Invalid synchronous Local index lookup consumer result')
+                del key, raw
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_commit_projection_cleanup', -9)
+            finally:
+                self._projecting = False
+
     def project_schema(self, result: int, consume: Callable[[ByteWrite], object], *,
                        expected_generation: int | None = None) -> None:
         """Consume original receipt identity/wire into the schema namespace.
@@ -144,9 +173,21 @@ class OriginalCommitProjection:
         self._project(result, False, consume, expected_generation, schema=True)
 
     def _ready(self) -> None:
-        if self._closing or self._projecting or self._outputs:
+        self._current()
+        if self._projecting or self._outputs:
+            raise RuntimeError('Local commit projection is closing or cleanup is pending')
+
+    def _current(self) -> None:
+        """Read-only nominal check even while original projection loans are live.
+
+        This starts no new projection or cleanup. The caller holds Core/File
+        locks, and existing Core checks still decide current binding facts.
+        """
+        if self._closing:
             raise RuntimeError('Local commit projection is closing or cleanup is pending')
         self._core._publication_configuration(self._publication, self._configuration)
+        for output in self._outputs:
+            self._core._owned_output(output, 'publication_commit_export')
 
     def _project(self, ordinal: int, index_reference: bool,
                  consume: Callable[[ByteWrite], object], generation: int | None, *,

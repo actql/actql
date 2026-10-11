@@ -1368,6 +1368,7 @@ pub fn PublicationCommitPreparation::release_view(Self, PublicationCommitReadVie
 pub fn PublicationCommitPreparation::view_binding(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::view_contract(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::view_count(Self, PublicationCommitReadView) -> Result[Int, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::view_inspected_index_reference(Self, PublicationCommitReadView, String, PublicationContract, Int) -> Result[String, PublicationCommitIssue]
 
 type PublicationCommitReadView
 

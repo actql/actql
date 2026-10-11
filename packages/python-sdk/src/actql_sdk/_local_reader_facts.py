@@ -82,7 +82,12 @@ class OriginalReaderFacts:
     def _ready(self) -> None:
         if self._closing or self._acquisition_ticket is not None:
             raise RuntimeError('Local reader facts are closing or acquisition is unresolved')
-        self._projection._ready()
+        if self._active:
+            # A read snapshot may hold the original key output during its
+            # synchronous lookup. Recheck facts without replacing that loan.
+            self._projection._current()
+        else:
+            self._projection._ready()
         self._projection._core._owned_output(self._record, 'payload_record')
 
     @contextmanager
