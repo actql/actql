@@ -1,0 +1,124 @@
+[
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moon",
+      "fmt",
+      "-w",
+      "src/query_program/query_analytic_offset.mbt"
+    ],
+    "exit_code": 2,
+    "elapsed_seconds": 0.005,
+    "stdout": "",
+    "stderr": "error: unexpected argument '-w' found\n\n  tip: to pass '-w' as a value, use '-- -w'\n\nUsage: moon fmt [OPTIONS] [PATH]... [-- <ARGS>...]\n\nFor more information, try '--help'.\n"
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_program/query_analytic_offset.mbt"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.018,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_program/grouped_analytic_offset_test.mbt"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.008,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_program/positive_navigation_offset_test.mbt"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.007,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.01,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/fixtures/analytic-offset-source-input.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.103,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/positive-navigation-offset-source-input.test.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.024,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/analytic-offset-profiles.test.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.025,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/public-query-profiles.test.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.025,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/client-values-run-materials-vector.test.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.026,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "reviews/2026-10-11-positive-navigation-offset-control/identity-preimage-preparation.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.024,
+    "stdout": "",
+    "stderr": ""
+  }
+]

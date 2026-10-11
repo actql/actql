@@ -1,0 +1,6 @@
+{
+  "link": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-distinct-order-receiver-scope/node_modules",
+  "realPath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-qualify-group-aggregate-slots/node_modules",
+  "use": "Read-only static freshness dependencies; no install or mutation in borrowed target.",
+  "protected": true
+}

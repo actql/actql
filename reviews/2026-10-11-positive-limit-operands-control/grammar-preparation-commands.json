@@ -1,0 +1,57 @@
+[
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/compilation-manifests.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.231,
+    "stdout": "grammar-preparation-00.stdout.log",
+    "stderr": "grammar-preparation-00.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/update-document-metadata.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.776,
+    "stdout": "grammar-preparation-01.stdout.log",
+    "stderr": "grammar-preparation-01.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-actql-spec-family.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.704,
+    "stdout": "grammar-preparation-02.stdout.log",
+    "stderr": "grammar-preparation-02.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-canonical-json.mjs",
+      "--write"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.92,
+    "stdout": "grammar-preparation-03.stdout.log",
+    "stderr": "grammar-preparation-03.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "reviews/2026-10-11-positive-limit-operands-control/identity-preimage-preparation.mjs",
+      "reviews/2026-10-11-positive-limit-operands-control/current-values-preimages.json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.128,
+    "stdout": "grammar-preparation-04.stdout.log",
+    "stderr": "grammar-preparation-04.stderr.log"
+  }
+]

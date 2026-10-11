@@ -25,7 +25,9 @@ test('hex integer fixtures enter the ordinary and existing narrow packed paths',
   assert.ok(consumer.includes('scopeInputs.successes.push(...hexIntegerSuccesses)'));
   assert.ok(consumer.includes('scopeInputs.refusals.push(...hexIntegerRefusals)'));
   assert.ok(consumer.includes('hexIntegerOnly ? {successes: hexIntegerSuccesses, refusals: hexIntegerRefusals}'));
-  assert.match(consumer, /const scopeOnly = hexIntegerOnly \|\|/u);
+  const selectors = consumer.match(/const scopeOnly = ([^;]+);/u)?.[1];
+  assert.ok(selectors);
+  assert.equal(selectors.split(/\s*\|\|\s*/u).filter(term => term === 'hexIntegerOnly').length, 1);
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_HEX_INTEGER_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/hex-integer-source-input.mjs', 'hex-integer-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = [^;]*'--hex-integer-only'/u);

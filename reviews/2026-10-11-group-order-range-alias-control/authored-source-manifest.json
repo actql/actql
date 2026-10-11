@@ -1,0 +1,34 @@
+[
+  {
+    "path": "src/query_program/group_order_range_alias_test.mbt",
+    "sha256": "be61eebdef8bb012a7a20972e04f6a1c21d4e5008e92b0b28ecba2f26363f4ec"
+  },
+  {
+    "path": "src/query_program/query_order_grouped_expression.mbt",
+    "sha256": "940c6f84ce60ad70c303c1177ee22add79255cc57d7c9d44ca01e7c0ada83652"
+  },
+  {
+    "path": "scripts/fixtures/group-order-range-alias-source-input.mjs",
+    "sha256": "2c0da9892130b8f1939b63c6ef9f1f0a30d6bdea5e4525b87d03a3e3b9075a6b"
+  },
+  {
+    "path": "scripts/fixtures/packed-public-query.mjs",
+    "sha256": "f4230a19fee14e7c3b770670d5524eb8704d52dbb401167ffb33858b8003cced"
+  },
+  {
+    "path": "scripts/test-packed-public-query.mjs",
+    "sha256": "dca60e1bc33bbe8d44e46868f463487ddfae56c4cb09c0a7525fbfb8e767d03e"
+  },
+  {
+    "path": "scripts/public-query-profiles.test.mjs",
+    "sha256": "87b3b709125ef45af354b4320ad59545968179e6b72d61a71c313c43de963f19"
+  },
+  {
+    "path": "scripts/fixtures/public-query-inventory.json",
+    "sha256": "a86881ac70d291fcc3e776cf06a163bb27fa94e50892cf0ee2d965dd5fa5fd67"
+  },
+  {
+    "path": "scripts/group-order-range-alias-source-input.test.mjs",
+    "sha256": "565e15aca4de7a9e5b02f86eedf71d50d86bec816504c8b5ac23d7d2665abd86"
+  }
+]

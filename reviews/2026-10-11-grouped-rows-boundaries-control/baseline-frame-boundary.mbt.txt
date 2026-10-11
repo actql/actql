@@ -1,0 +1,35 @@
+fn QueryParser::frame_boundary(
+  self : QueryParser,
+) -> FrameBoundary raise QueryAbort {
+  if self.has("UNBOUNDED") {
+    self.keyword("UNBOUNDED")
+    if self.has("PRECEDING") {
+      self.keyword("PRECEDING")
+      return UnboundedPreceding
+    }
+    self.keyword("FOLLOWING")
+    return UnboundedFollowing
+  }
+  if self.has("CURRENT") {
+    self.keyword("CURRENT")
+    self.keyword("ROW")
+    return CurrentRow
+  }
+  if self.peek().value is Parameter(name) {
+    ignore(self.advance())
+    if self.has("PRECEDING") {
+      self.keyword("PRECEDING")
+      return PrecedingParameter(self.source.identifier(name))
+    }
+    self.keyword("FOLLOWING")
+    return FollowingParameter(self.source.identifier(name))
+  }
+  let distance = self.safe_integer(true)
+  if self.has("PRECEDING") {
+    self.keyword("PRECEDING")
+    Preceding(distance)
+  } else {
+    self.keyword("FOLLOWING")
+    Following(distance)
+  }
+}

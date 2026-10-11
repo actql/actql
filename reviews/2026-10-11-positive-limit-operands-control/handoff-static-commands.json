@@ -1,0 +1,23 @@
+[
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-document-links.mjs"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 2.735,
+    "stdout": "handoff-static-0.stdout.log",
+    "stderr": "handoff-static-0.stderr.log"
+  },
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.072,
+    "stdout": "handoff-static-1.stdout.log",
+    "stderr": "handoff-static-1.stderr.log"
+  }
+]

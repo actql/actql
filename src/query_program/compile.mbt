@@ -6174,9 +6174,13 @@ fn compile_steps(
           // A materialized DISTINCT/SELECT cannot sort through a range slot
           // that its projection removed. An identical selected expression is
           // handled below using the evaluated output slot.
-          if pipe_selected &&
+          if (pipe_selected || pending_select is Some(_)) &&
             path.length() > 1 &&
-            order_output_slot([path[0]], selected_output_slots) is Some(_) {
+            order_output_slot(
+              [path[0]],
+              pending_bindings + selected_output_slots,
+            )
+            is Some(_) {
             return None
           }
           let current = pipe_expression_slot(
@@ -6424,7 +6428,11 @@ fn compile_steps(
               let direct = match kind {
                 Reference(path) =>
                   order_expression_slot(
-                    path, query, input, selected_input_fields, order_analytic_slots,
+                    path,
+                    query,
+                    input,
+                    selected_input_fields,
+                    order_analytic_slots + pending_bindings,
                   )
                 _ => None
               }
