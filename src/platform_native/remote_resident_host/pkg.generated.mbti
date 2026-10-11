@@ -447,6 +447,7 @@ pub(all) enum ResidentEffectReviewInputIssue {
 
 type ResidentEffectReviewRetention
 pub fn ResidentEffectReviewRetention::confirm_original_checkpoint(Self, ResidentSourceCompute, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract) -> Result[@checkpoint_runtime.PersistedCheckpoint, ResidentEffectReviewRetentionIssue]
+pub fn ResidentEffectReviewRetention::original_approval_scope(Self) -> Result[ResidentOriginalEffectApprovalScope, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::original_completion_evidence(Self, ResidentSourceCompute, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract, () -> Bool, Int) -> Result[ResidentOriginalEffectCompletionEvidence, ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::original_review_projection(Self, ResidentSourceCompute, @run_publication_host.ClientRequestIdentity, @actql/actql/run_publication.PublicationContract, () -> Bool, Int) -> Result[(@checkpoint_runtime.PersistedCheckpoint, String), ResidentEffectReviewRetentionIssue]
 pub fn ResidentEffectReviewRetention::persist(Self, @publication_store.Store, computation_capacity? : ResidentEffectComputationCapacity?) -> Result[@remote_site_protocol.RemoteEffectCheckpointReport, ResidentEffectReviewRetentionIssue]
@@ -614,6 +615,9 @@ pub(all) enum ResidentLocalEffectCaptureIssue {
   Imported(@run_publication_host.ClientEffectImportedEvidenceIssue)
   Result(ResidentEffectResultCaptureIssue)
 }
+
+type ResidentOriginalEffectApprovalScope
+pub fn ResidentOriginalEffectApprovalScope::current_for(Self, @run_publication_host.ClientRequestIdentity, String, String) -> String?
 
 pub struct ResidentOriginalEffectCompletionEvidence {
   checkpoint_cid : String
