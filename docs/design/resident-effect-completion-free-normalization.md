@@ -98,21 +98,29 @@ custody rather than silently dropping it.
 
 ## Admitted material custody and Native review
 
-Effect material admission retains the exact saved journal, full material digest,
-original Run/request binding and its admitted compilation Owner in a private
-custody projection. `restore_client_effect_run_normalization` requires that
-same projection and Owner, rechecks the retained checker inventory, and admits
-only the published fixed journal identity. Missing custody, copied projection,
-foreign compilation/Run/request, unsupported inventory and another catalog
-refuse. Repeated restoration admits the saved bytes; it never calls the journal
-issuer, prepares/compiles a replacement or refreshes identity or authority.
+`issue_prepared_client_effect_normalization_materials` issues exact material
+bytes under the original preparation's normalization Owner and returns an opaque
+`ClientEffectIssuedNormalizationMaterials`. That Owner retains the issuance
+projection; copied projections are refused. The wire accessor does not confer
+trust on another string.
 
-This is the normalization inverse on an existing admitted execution Owner.
+Effect material admission requires this original projection when the wire
+contains a normalization journal. It verifies exact original bytes and Run CID
+before execution preparation. An appended fixed journal, a changed material,
+or a journal-bearing wire without original issuance proof is refused as
+`UnverifiedOriginalMaterials`. The ordinary absent-journal path is unchanged.
+The admitted custody retains the original issuance projection as well as the
+restored execution Owner. Restoration verifies both before admitting saved
+journal bytes; it does not issue, prepare or compile a replacement.
+
+This projection is process-local. No cross-process trusted original-material
+binding is installed by this API, and the existing poll envelope does not sign
+arbitrary appended material bytes. A digest or self-described receipt cannot
+replace that missing provenance. Native admission of journal-bearing materials
+without the original projection therefore fails closed; public remote Effect
+restoration remains unconnected pending a verified existing Owner binding.
 The existing initial execution-material admission still prepares/compiles its
-saved execution input once. This change does not remove that separate execution
-reconstruction, establish a serializable opaque compiler snapshot, or claim
-that the poll envelope signs arbitrary material bytes. Material digests identify
-content, not transport provenance or current authorization.
+saved execution input once; this change does not establish a compiler snapshot.
 
 `prepare_native_resident_effect_review_from_original_materials` obtains this
 journal from the actual holder context's material Owner before calling the

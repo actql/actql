@@ -150,11 +150,24 @@ pub fn admit_client_effect_run_materials(
   manifests : ClientCompilationManifests,
   limits : ClientValuesRunMaterialsLimits,
   effect_limits : ClientEffectComputationLimits,
+  original_materials? : ClientEffectIssuedNormalizationMaterials? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(materials, expressions, operations) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
+  }
+  // A self-described wire and its digest cannot establish original issuance.
+  // Check exact bytes against the original Owner before execution admission.
+  if body.normalization_wire is Some(_) {
+    guard original_materials is Some(issued) &&
+      original_effect_materials_match(
+        issued, materials, expected_run_definition_cid,
+      ) else {
+      return Err(Normalization(UnverifiedOriginalMaterials))
+    }
+  } else if original_materials is Some(_) {
+    return Err(Normalization(UnverifiedOriginalMaterials))
   }
   let prepared = match
     prepare_client_effect_computation(
@@ -241,7 +254,11 @@ pub fn admit_client_effect_run_materials(
   let normalization = match body.normalization_wire {
     None => None
     Some(wire) => {
+      guard original_materials is Some(issued) else {
+        return Err(Normalization(UnverifiedOriginalMaterials))
+      }
       let custody : ClientEffectNormalizationMaterialCustody = {
+        issued,
         compilation,
         run_cid: expected_run_definition_cid,
         request,

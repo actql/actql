@@ -63,6 +63,7 @@ test "normalization refuses foreign preparation and copied projection before rev
     owner: original.owner,
     inventory: original.inventory,
     journal: original.journal,
+    issued_materials: original.issued_materials,
   }
   assert_true(
     prepared_client_effect_normalization_evidence(owner, copied)

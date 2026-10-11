@@ -1,7 +1,75 @@
 ///|
+/// Exact bytes issued under the original preparation's normalization Owner.
+/// This process-local projection is not a serializable transport credential.
+struct ClientEffectIssuedNormalizationMaterials {
+  original : ClientEffectNormalization
+  run_cid : String
+  wire : String
+}
+
+///|
+/// Issue and retain the original bytes before dispatch. Caller-supplied wire
+/// cannot create this projection. Approval and current authority stay separate.
+pub fn issue_prepared_client_effect_normalization_materials(
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  original : ClientEffectNormalization,
+  request? : ClientRequestIdentity? = None,
+) -> Result[
+  ClientEffectIssuedNormalizationMaterials,
+  ClientEffectRunMaterialsIssue,
+] {
+  let wire = match
+    issue_prepared_client_effect_run_materials(
+      allowed,
+      definition,
+      request~,
+      normalization=Some(original),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let run_cid = @publication.publication_contract_identity(definition)
+  for issued in original.issued_materials {
+    if issued.wire == wire && issued.run_cid == run_cid {
+      return Ok(issued)
+    }
+  }
+  let issued = { original, run_cid, wire, }
+  original.issued_materials.push(issued)
+  Ok(issued)
+}
+
+///|
+pub fn client_effect_issued_normalization_materials_wire(
+  issued : ClientEffectIssuedNormalizationMaterials,
+) -> String {
+  issued.wire
+}
+
+///|
+fn original_effect_materials_match(
+  issued : ClientEffectIssuedNormalizationMaterials,
+  wire : String,
+  run_cid : String,
+) -> Bool {
+  issued.wire == wire &&
+  issued.run_cid == run_cid &&
+  issued.original.issued_materials.any(fn(original) {
+    physical_equal(original, issued)
+  }) &&
+  prepared_client_effect_normalization_evidence(
+    issued.original.owner,
+    issued.original,
+  )
+  is Ok(_)
+}
+
+///|
 /// Exact journal custody retained by the existing original Run material
 /// admission. It grants neither execution, approval nor current authority.
 struct ClientEffectNormalizationMaterialCustody {
+  issued : ClientEffectIssuedNormalizationMaterials
   compilation : ClientEffectCompilation
   run_cid : String
   request : ClientRequestIdentity?
@@ -37,6 +105,17 @@ pub fn restore_client_effect_run_normalization(
     @publication.publication_contract_identity(materials.run_definition) &&
     custody.request == materials.request else {
     return Err(ForeignMaterials)
+  }
+  if !original_effect_materials_match(
+      custody.issued,
+      custody.issued.wire,
+      custody.run_cid,
+    ) ||
+    custody.materials_cid !=
+    "sha256:" + @sha.hex(@utf8.encode(custody.issued.wire)) ||
+    custody.journal_wire !=
+    @publication.run_evidence_value_json(custody.issued.original.journal) {
+    return Err(UnverifiedOriginalMaterials)
   }
   // The retained original checker inventory, not wire shape or execution
   // success, supplies the applicability proof. Missing/unsupported proof

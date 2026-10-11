@@ -4,6 +4,7 @@ pub(all) enum ClientEffectNormalizationIssue {
   ForeignPreparation
   ForeignMaterials
   MissingOriginalJournal
+  UnverifiedOriginalMaterials
   ForeignCatalog
   SubstitutedJournal
   Evidence(@publication.RunEvidenceValueIssue)
@@ -17,6 +18,7 @@ struct ClientEffectNormalization {
   owner : PreparedClientEffectComputation
   inventory : @checked.CompletionFreeInventory
   journal : @publication.RunEvidenceValue
+  issued_materials : Array[ClientEffectIssuedNormalizationMaterials]
 }
 
 ///|
@@ -48,7 +50,7 @@ pub fn issue_prepared_client_effect_normalization(
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  let issued = { owner, inventory, journal, }
+  let issued = { owner, inventory, journal, issued_materials: [], }
   owner.normalization = Some(issued)
   Ok(issued)
 }
