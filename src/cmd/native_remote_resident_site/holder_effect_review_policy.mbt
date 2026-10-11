@@ -225,6 +225,8 @@ fn load_holder_effect_review_policy(
       created_at: read(14),
       expires_at: read(15),
       limits: { max_wire_bytes: max_bytes, max_nodes, max_depth, },
+      // Review wire settings do not select a representation funding profile.
+      computation_capacity: None,
       current,
       // This finite adapter accepts create only. Any accidental update path
       // receives a refusal; no observe grant or fake target is manufactured.

@@ -21,13 +21,15 @@ fn open_holder_effect_review_installation(
   resources : HolderOutputResources,
   export_limits : @host.PublicationOutputExportLimits,
   original : HolderEffectOriginalPolicyContext,
+  preparation? : HolderEffectPreparationCapacity? = None,
 ) -> HolderEffectCatalogReviewCustody? raise CommandStop {
   guard holder_effect_review_roots(
       optional(matches, "effect-review-root"),
       optional(matches, "effect-catalog-root"),
     )
     is Some((policy_root, catalog_root)) &&
-    original.current() else {
+    original.current() &&
+    preparation is Some(prepared) else {
     return None
   }
   let policy = load_holder_effect_review_policy(
@@ -46,6 +48,7 @@ fn open_holder_effect_review_installation(
       policy.configuration.preview_limits.max_nodes,
       policy.configuration.preview_limits.max_depth,
       policy.current,
+      preparation_envelope=Some(prepared.catalog),
     )
     is Some(installed) else {
     return None
@@ -55,6 +58,7 @@ fn open_holder_effect_review_installation(
   // the existing close/retry path still owns every acquired resource.
   let publication = {
     ..policy.publication,
+    computation_capacity: Some(prepared.computation),
     current: () => (policy.current)() && original.current(),
   }
   Some(
