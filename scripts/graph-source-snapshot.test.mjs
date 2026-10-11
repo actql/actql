@@ -20,15 +20,15 @@ await mkdir(scratch, {recursive: true});
 // two ordered TRAIL paths of length two. Neither parser output nor a product
 // snapshot encoder is used to construct this expectation.
 const source = `
-DATA n = SELECT 1 AS id;
-DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst
-  UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst;
-DATA g = PROPERTY GRAPH (
+WITH n AS (SELECT 1 AS id)
+ , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst
+  UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)
+ , g AS (GRAPH (
   NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)
   EDGE TABLES (e AS E KEY (key)
     SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N
     LABEL R NO PROPERTIES)
-);
+))
 FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node)
   |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths
 `;

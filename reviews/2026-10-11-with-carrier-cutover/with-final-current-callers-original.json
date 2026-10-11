@@ -1,0 +1,3471 @@
+{
+  "source": "79118a7d6acde76a33a48d80abed533a928eaac8",
+  "snapshots": {
+    "source-graph-member-input": {
+      "sourceGraphMemberProgram": {
+        "version": "actql/0.1",
+        "id": "fixture.source_graph_member",
+        "params": {
+          "minimum": {
+            "type": "number",
+            "nullable": false
+          },
+          "p1": {
+            "type": "object",
+            "nullable": true,
+            "fields": {
+              "score": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          },
+          "p2": {
+            "type": "object",
+            "nullable": true,
+            "fields": {
+              "score": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          },
+          "p3": {
+            "type": "object",
+            "nullable": true,
+            "fields": {
+              "score": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          },
+          "p4": {
+            "type": "object",
+            "nullable": true,
+            "fields": {
+              "score": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          }
+        },
+        "stages": [
+          {
+            "id": "capture",
+            "inputs": {
+              "remote": {
+                "connector": "crm/main",
+                "resource": "r"
+              }
+            },
+            "steps": [
+              {
+                "from": "remote",
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "id"
+                    },
+                    {
+                      "$param": "minimum"
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "captured"
+              }
+            ],
+            "results": {
+              "source": {
+                "from": "captured",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "records": {
+                "result": {
+                  "stage": "capture",
+                  "result": "source"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "records",
+                "derive": {
+                  "payload": {
+                    "case": {
+                      "when": [
+                        {
+                          "when": {
+                            "eq": [
+                              {
+                                "field": "id"
+                              },
+                              {
+                                "literal": 1
+                              }
+                            ]
+                          },
+                          "then": {
+                            "$param": "p1"
+                          }
+                        },
+                        {
+                          "when": {
+                            "eq": [
+                              {
+                                "field": "id"
+                              },
+                              {
+                                "literal": 2
+                              }
+                            ]
+                          },
+                          "then": {
+                            "$param": "p2"
+                          }
+                        },
+                        {
+                          "when": {
+                            "eq": [
+                              {
+                                "field": "id"
+                              },
+                              {
+                                "literal": 3
+                              }
+                            ]
+                          },
+                          "then": {
+                            "$param": "p3"
+                          }
+                        }
+                      ],
+                      "else": {
+                        "$param": "p4"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "select": [
+                  "id",
+                  "payload"
+                ],
+                "as": "objects"
+              },
+              {
+                "graph": {
+                  "version": "actql-graph-constructor/0.1",
+                  "nodes": [
+                    {
+                      "name": "N",
+                      "from": "objects",
+                      "key": [
+                        "id"
+                      ],
+                      "labels": [
+                        {
+                          "name": "Person",
+                          "properties": {
+                            "mode": "columns",
+                            "columns": [
+                              {
+                                "from": "id",
+                                "to": "id"
+                              },
+                              {
+                                "from": "payload",
+                                "to": "payload"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "edges": []
+                },
+                "as": "g"
+              },
+              {
+                "from": "g",
+                "match_nodes": {
+                  "definition": "N",
+                  "label": "Person",
+                  "where": {
+                    "literal": true
+                  },
+                  "fields": [
+                    "id",
+                    "payload"
+                  ]
+                },
+                "as": "matched"
+              },
+              {
+                "from": "matched",
+                "derive": {
+                  "score": {
+                    "property": {
+                      "name": "score",
+                      "value": {
+                        "field": "payload"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "select": [
+                  "id",
+                  "score"
+                ]
+              },
+              {
+                "sort": [
+                  {
+                    "field": "id",
+                    "dir": "asc",
+                    "nulls": "first"
+                  }
+                ],
+                "as": "ordered"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "ordered",
+                "fields": [
+                  "id",
+                  "score"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "matched": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      },
+      "sourceGraphMemberRefusals": [
+        {
+          "name": "source-graph-member-invalid-missing-member",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.payload.MISSING AS score",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ]
+        },
+        {
+          "name": "source-graph-member-invalid-scalar-receiver",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id.score AS score",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ]
+        },
+        {
+          "name": "source-graph-member-invalid-removed-receiver",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id |> WHERE a.payload.SCORE > 0",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ]
+        },
+        {
+          "name": "source-graph-member-invalid-same-select-alias",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.payload AS kept, kept.SCORE AS score",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ]
+        }
+      ],
+      "sourceGraphMemberSuccesses": [
+        {
+          "name": "source-graph-member-independent-json",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.source_graph_member\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false},\"p1\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"p2\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"p3\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"p4\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}}},\"stages\":[{\"id\":\"capture\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"from\":\"remote\",\"filter\":{\"gt\":[{\"field\":\"id\"},{\"$param\":\"minimum\"}]}},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"source\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{\"id\":\"main\",\"inputs\":{\"records\":{\"result\":{\"stage\":\"capture\",\"result\":\"source\"}}},\"steps\":[{\"from\":\"records\",\"derive\":{\"payload\":{\"case\":{\"when\":[{\"when\":{\"eq\":[{\"field\":\"id\"},{\"literal\":1}]},\"then\":{\"$param\":\"p1\"}},{\"when\":{\"eq\":[{\"field\":\"id\"},{\"literal\":2}]},\"then\":{\"$param\":\"p2\"}},{\"when\":{\"eq\":[{\"field\":\"id\"},{\"literal\":3}]},\"then\":{\"$param\":\"p3\"}}],\"else\":{\"$param\":\"p4\"}}}}},{\"select\":[\"id\",\"payload\"],\"as\":\"objects\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"objects\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Person\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"id\",\"to\":\"id\"},{\"from\":\"payload\",\"to\":\"payload\"}]}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"label\":\"Person\",\"where\":{\"literal\":true},\"fields\":[\"id\",\"payload\"]},\"as\":\"matched\"},{\"from\":\"matched\",\"derive\":{\"score\":{\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload\"}}}}},{\"select\":[\"id\",\"score\"]},{\"sort\":[{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"ordered\"}],\"results\":{\"rows\":{\"from\":\"ordered\",\"fields\":[\"id\",\"score\"]}}}],\"results\":{\"matched\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "results": {
+            "matched": {
+              "rows": [
+                {
+                  "id": 1,
+                  "score": 20
+                },
+                {
+                  "id": 2,
+                  "score": 10
+                },
+                {
+                  "id": 3,
+                  "score": null
+                },
+                {
+                  "id": 4,
+                  "score": null
+                }
+              ],
+              "columns": [
+                {
+                  "name": "id",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "source-graph-member-declared-member",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id, a.payload.score AS score |> ORDER BY id |> RESULT matched",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "results": {
+            "matched": {
+              "rows": [
+                {
+                  "id": 1,
+                  "score": 20
+                },
+                {
+                  "id": 2,
+                  "score": 10
+                },
+                {
+                  "id": 3,
+                  "score": null
+                },
+                {
+                  "id": 4,
+                  "score": null
+                }
+              ],
+              "columns": [
+                {
+                  "name": "id",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "source-graph-member-folded-member",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id, a.payload.SCORE AS score |> ORDER BY id |> RESULT matched",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "results": {
+            "matched": {
+              "rows": [
+                {
+                  "id": 1,
+                  "score": 20
+                },
+                {
+                  "id": 2,
+                  "score": 10
+                },
+                {
+                  "id": 3,
+                  "score": null
+                },
+                {
+                  "id": 4,
+                  "score": null
+                }
+              ],
+              "columns": [
+                {
+                  "name": "id",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "source-graph-member-quoted-member",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT `A`.`ID` AS id, `A`.`PAYLOAD`.`ScOrE` AS score |> ORDER BY id |> RESULT matched",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "results": {
+            "matched": {
+              "rows": [
+                {
+                  "id": 1,
+                  "score": 20
+                },
+                {
+                  "id": 2,
+                  "score": 10
+                },
+                {
+                  "id": 3,
+                  "score": null
+                },
+                {
+                  "id": 4,
+                  "score": null
+                }
+              ],
+              "columns": [
+                {
+                  "name": "id",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "source-graph-member-projected-receiver",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id AS id, a.payload AS kept |> SELECT id, kept.SCORE AS score |> ORDER BY id |> RESULT matched",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "results": {
+            "matched": {
+              "rows": [
+                {
+                  "id": 1,
+                  "score": 20
+                },
+                {
+                  "id": 2,
+                  "score": 10
+                },
+                {
+                  "id": 3,
+                  "score": null
+                },
+                {
+                  "id": 4,
+                  "score": null
+                }
+              ],
+              "columns": [
+                {
+                  "name": "id",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "source-graph-member-null-receiver-and-member",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> WHERE a.payload.SCORE IS NULL |> SELECT a.id AS id, a.payload.SCORE AS score |> ORDER BY id |> RESULT matched",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "results": {
+            "matched": {
+              "rows": [
+                {
+                  "id": 3,
+                  "score": null
+                },
+                {
+                  "id": 4,
+                  "score": null
+                }
+              ],
+              "columns": [
+                {
+                  "name": "id",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "source-graph-member-typed-empty",
+          "format": "aql-text",
+          "text": "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload FROM records WHERE id > @minimum; DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK (a:Person) |> WHERE a.payload.SCORE > 100 |> SELECT a.id AS id, a.payload.SCORE AS score |> ORDER BY id |> RESULT matched",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "p1": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p2": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p3": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            },
+            "p4": {
+              "type": "object",
+              "nullable": true,
+              "fields": {
+                "score": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "parameters": {
+            "minimum": 0,
+            "p1": {
+              "score": 20
+            },
+            "p2": {
+              "score": 10
+            },
+            "p3": null,
+            "p4": {
+              "score": null
+            }
+          },
+          "sourceRows": [
+            {
+              "id": 2,
+              "amount": 10
+            },
+            {
+              "id": 1,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": null
+            },
+            {
+              "id": 4,
+              "amount": 40
+            },
+            {
+              "id": 0,
+              "amount": 99
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "results": {
+            "matched": {
+              "rows": [],
+              "columns": [
+                {
+                  "name": "id",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "graph-delta-json-source": {
+      "graphDeltaJsonProgram": {
+        "version": "actql/0.1",
+        "id": "fixture.query_pair",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "aql_source_free_unit": {
+                      "type": "boolean",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "aql_source_free_unit": true
+                    }
+                  ]
+                },
+                "as": "aql_script_seed_1"
+              },
+              {
+                "from": "aql_script_seed_1",
+                "derive": {
+                  "aql_query_expr_0": {
+                    "literal": 1
+                  },
+                  "aql_query_expr_1": {
+                    "literal": 7
+                  }
+                }
+              },
+              {
+                "select": [
+                  {
+                    "node_key": "aql_query_expr_0"
+                  },
+                  {
+                    "p": "aql_query_expr_1"
+                  }
+                ],
+                "as": "aql_data_0"
+              },
+              {
+                "graph": {
+                  "version": "actql-graph-constructor/0.1",
+                  "nodes": [
+                    {
+                      "name": "N",
+                      "from": "aql_data_0",
+                      "key": [
+                        "node_key"
+                      ],
+                      "labels": [
+                        {
+                          "name": "Person",
+                          "properties": {
+                            "mode": "columns",
+                            "columns": [
+                              {
+                                "from": "p",
+                                "to": "p"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "edges": []
+                },
+                "as": "aql_data_2"
+              },
+              {
+                "values": {
+                  "schema": {
+                    "aql_source_free_unit": {
+                      "type": "boolean",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "aql_source_free_unit": true
+                    }
+                  ]
+                },
+                "as": "aql_script_seed_4"
+              },
+              {
+                "from": "aql_script_seed_4",
+                "derive": {
+                  "aql_query_expr_0": {
+                    "typed_literal": {
+                      "type": "json",
+                      "value": "{\"base_graph_cid\":\"sha256:c8cc2e373daae2ed0889d0584c3bf8c17267b97cb69ff84b2d5c51bbca715521\",\"edges\":{\"add\":[],\"remove\":[],\"update\":[]},\"graph_contract_cid\":\"sha256:8cd1d8aacc3f58ba719dd5e1219fb49c53bd1908e724606511a7147790a94a17\",\"nodes\":{\"add\":[],\"remove\":[],\"update\":[{\"after\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":8}},\"before\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":7}}}]},\"target_graph_cid\":\"sha256:aeb95420b23c14424e553374173364d5503df5eb33eef35406e464feee47ceb5\",\"version\":\"actql-graph-delta/0.1\"}"
+                    }
+                  }
+                }
+              },
+              {
+                "select": [
+                  {
+                    "delta": "aql_query_expr_0"
+                  }
+                ],
+                "as": "aql_data_3"
+              },
+              {
+                "from": "aql_data_2",
+                "apply_graph_delta": {
+                  "with": "aql_data_3",
+                  "field": "delta"
+                },
+                "as": "aql_sga_5"
+              },
+              {
+                "from": "aql_sga_5",
+                "node_rows": true,
+                "as": "aql_sga_6"
+              },
+              {
+                "from": "aql_sga_6",
+                "select": [
+                  "p",
+                  "node_key"
+                ]
+              },
+              {
+                "select": [
+                  "p",
+                  "node_key"
+                ],
+                "as": "aql_script_result"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_script_result",
+                "fields": [
+                  "p",
+                  "node_key"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      },
+      "graphDeltaJsonSource": "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA changes = SELECT JSON r'''{\"base_graph_cid\":\"sha256:c8cc2e373daae2ed0889d0584c3bf8c17267b97cb69ff84b2d5c51bbca715521\",\"edges\":{\"add\":[],\"remove\":[],\"update\":[]},\"graph_contract_cid\":\"sha256:8cd1d8aacc3f58ba719dd5e1219fb49c53bd1908e724606511a7147790a94a17\",\"nodes\":{\"add\":[],\"remove\":[],\"update\":[{\"after\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":8}},\"before\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":7}}}]},\"target_graph_cid\":\"sha256:aeb95420b23c14424e553374173364d5503df5eb33eef35406e464feee47ceb5\",\"version\":\"actql-graph-delta/0.1\"}''' AS delta; FROM g |> apply_graph_delta(with: changes, field: \"delta\") |> node_rows() |> SELECT p, node_key |> RESULT answer",
+      "graphDeltaJsonSuccesses": [
+        {
+          "name": "graph-delta-authored-json-source",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA changes = SELECT JSON r'''{\"base_graph_cid\":\"sha256:c8cc2e373daae2ed0889d0584c3bf8c17267b97cb69ff84b2d5c51bbca715521\",\"edges\":{\"add\":[],\"remove\":[],\"update\":[]},\"graph_contract_cid\":\"sha256:8cd1d8aacc3f58ba719dd5e1219fb49c53bd1908e724606511a7147790a94a17\",\"nodes\":{\"add\":[],\"remove\":[],\"update\":[{\"after\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":8}},\"before\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":7}}}]},\"target_graph_cid\":\"sha256:aeb95420b23c14424e553374173364d5503df5eb33eef35406e464feee47ceb5\",\"version\":\"actql-graph-delta/0.1\"}''' AS delta; FROM g |> apply_graph_delta(with: changes, field: \"delta\") |> node_rows() |> SELECT p, node_key |> RESULT answer",
+          "expected": [
+            {
+              "p": 8,
+              "node_key": 1
+            }
+          ],
+          "columns": [
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "node_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-delta-authored-json-program",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.query_pair\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"aql_source_free_unit\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"aql_source_free_unit\":true}]},\"as\":\"aql_script_seed_1\"},{\"from\":\"aql_script_seed_1\",\"derive\":{\"aql_query_expr_0\":{\"literal\":1},\"aql_query_expr_1\":{\"literal\":7}}},{\"select\":[{\"node_key\":\"aql_query_expr_0\"},{\"p\":\"aql_query_expr_1\"}],\"as\":\"aql_data_0\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"aql_data_0\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Person\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"p\",\"to\":\"p\"}]}}]}],\"edges\":[]},\"as\":\"aql_data_2\"},{\"values\":{\"schema\":{\"aql_source_free_unit\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"aql_source_free_unit\":true}]},\"as\":\"aql_script_seed_4\"},{\"from\":\"aql_script_seed_4\",\"derive\":{\"aql_query_expr_0\":{\"typed_literal\":{\"type\":\"json\",\"value\":\"{\\\"base_graph_cid\\\":\\\"sha256:c8cc2e373daae2ed0889d0584c3bf8c17267b97cb69ff84b2d5c51bbca715521\\\",\\\"edges\\\":{\\\"add\\\":[],\\\"remove\\\":[],\\\"update\\\":[]},\\\"graph_contract_cid\\\":\\\"sha256:8cd1d8aacc3f58ba719dd5e1219fb49c53bd1908e724606511a7147790a94a17\\\",\\\"nodes\\\":{\\\"add\\\":[],\\\"remove\\\":[],\\\"update\\\":[{\\\"after\\\":{\\\"id\\\":{\\\"definition\\\":\\\"N\\\",\\\"domain\\\":\\\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\\\",\\\"key\\\":[1],\\\"key_types\\\":[{\\\"kind\\\":\\\"number\\\"}]},\\\"key\\\":[1],\\\"props\\\":{\\\"p\\\":8}},\\\"before\\\":{\\\"id\\\":{\\\"definition\\\":\\\"N\\\",\\\"domain\\\":\\\"sha256:d1f467b6f6bf05cf2676ee816a7d0b5666ba19e68a52072177e0fa3c8b98bd14\\\",\\\"key\\\":[1],\\\"key_types\\\":[{\\\"kind\\\":\\\"number\\\"}]},\\\"key\\\":[1],\\\"props\\\":{\\\"p\\\":7}}}]},\\\"target_graph_cid\\\":\\\"sha256:aeb95420b23c14424e553374173364d5503df5eb33eef35406e464feee47ceb5\\\",\\\"version\\\":\\\"actql-graph-delta/0.1\\\"}\"}}}},{\"select\":[{\"delta\":\"aql_query_expr_0\"}],\"as\":\"aql_data_3\"},{\"from\":\"aql_data_2\",\"apply_graph_delta\":{\"with\":\"aql_data_3\",\"field\":\"delta\"},\"as\":\"aql_sga_5\"},{\"from\":\"aql_sga_5\",\"node_rows\":true,\"as\":\"aql_sga_6\"},{\"from\":\"aql_sga_6\",\"select\":[\"p\",\"node_key\"]},{\"select\":[\"p\",\"node_key\"],\"as\":\"aql_script_result\"}],\"results\":{\"rows\":{\"from\":\"aql_script_result\",\"fields\":[\"p\",\"node_key\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "expected": [
+            {
+              "p": 8,
+              "node_key": 1
+            }
+          ],
+          "columns": [
+            {
+              "name": "p",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "node_key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "sourceReadCount": 0
+        }
+      ]
+    },
+    "nearest-public-input": {
+      "successes": [
+        {
+          "name": "nearest-json-control",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.nearest_keep\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"request_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"note\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[{\"request_id\":\"q1\",\"embedding\":[1,0],\"note\":null}]},\"as\":\"queries\"},{\"values\":{\"schema\":{\"item_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]},\"as\":\"candidates\"},{\"from\":\"candidates\",\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"item_id\",\"candidate_vector\":\"embedding\",\"query_id\":\"request_id\",\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}},{\"join\":{\"with\":\"queries\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"query_id\",\"right\":\"request_id\"}],\"select\":{\"note\":\"right.note\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"join\":{\"with\":\"candidates\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"candidate_id\",\"right\":\"item_id\"}],\"select\":{\"note\":\"left.note\",\"label\":\"right.label\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"derive\":{\"neighbor\":{\"object\":{\"query_key\":{\"object\":{\"request_id\":{\"field\":\"query_id\"}}},\"candidate_key\":{\"object\":{\"item_id\":{\"field\":\"candidate_id\"}}},\"score\":{\"field\":\"score\"},\"rank\":{\"field\":\"rank\"}}}}},{\"select\":[\"note\",\"label\",\"neighbor\"],\"as\":\"out\"}],\"results\":{\"rows\":{\"from\":\"out\",\"fields\":[\"note\",\"label\",\"neighbor\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "note": null,
+                  "label": "first",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "a"
+                    },
+                    "score": 1,
+                    "rank": 1
+                  }
+                },
+                {
+                  "note": null,
+                  "label": "second",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "b"
+                    },
+                    "score": 0,
+                    "rank": 2
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "note",
+                  "contract": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "neighbor",
+                  "contract": {
+                    "type": "object",
+                    "nullable": false,
+                    "additional_properties": false,
+                    "fields": {
+                      "query_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "request_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "candidate_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "item_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": false
+                      },
+                      "rank": {
+                        "type": "number",
+                        "nullable": false
+                      }
+                    }
+                  }
+                }
+              ],
+              "unordered": true
+            }
+          }
+        },
+        {
+          "name": "nearest-json-empty",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.nearest_keep.empty\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"request_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"note\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[]},\"as\":\"queries\"},{\"values\":{\"schema\":{\"item_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]},\"as\":\"candidates\"},{\"from\":\"candidates\",\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"item_id\",\"candidate_vector\":\"embedding\",\"query_id\":\"request_id\",\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}},{\"join\":{\"with\":\"queries\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"query_id\",\"right\":\"request_id\"}],\"select\":{\"note\":\"right.note\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"join\":{\"with\":\"candidates\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"candidate_id\",\"right\":\"item_id\"}],\"select\":{\"note\":\"left.note\",\"label\":\"right.label\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"derive\":{\"neighbor\":{\"object\":{\"query_key\":{\"object\":{\"request_id\":{\"field\":\"query_id\"}}},\"candidate_key\":{\"object\":{\"item_id\":{\"field\":\"candidate_id\"}}},\"score\":{\"field\":\"score\"},\"rank\":{\"field\":\"rank\"}}}}},{\"select\":[\"note\",\"label\",\"neighbor\"],\"as\":\"out\"}],\"results\":{\"rows\":{\"from\":\"out\",\"fields\":[\"note\",\"label\",\"neighbor\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "results": {
+            "answer": {
+              "rows": [],
+              "columns": [
+                {
+                  "name": "note",
+                  "contract": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "neighbor",
+                  "contract": {
+                    "type": "object",
+                    "nullable": false,
+                    "additional_properties": false,
+                    "fields": {
+                      "query_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "request_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "candidate_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "item_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": false
+                      },
+                      "rank": {
+                        "type": "number",
+                        "nullable": false
+                      }
+                    }
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-source-keep",
+          "format": "aql-text",
+          "text": "FROM queries AS q\n|> NEAREST candidates AS c\n   QUERY KEY (q.request_id) VECTOR q.embedding\n   CANDIDATE KEY (c.item_id) VECTOR c.embedding\n   METRIC dot K 2\n   KEEP (q.note, c.label) AS neighbor\n|> ORDER BY neighbor.rank\n",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "note": null,
+                  "label": "first",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "a"
+                    },
+                    "score": 1,
+                    "rank": 1
+                  }
+                },
+                {
+                  "note": null,
+                  "label": "second",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "b"
+                    },
+                    "score": 0,
+                    "rank": 2
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "note",
+                  "contract": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "neighbor",
+                  "contract": {
+                    "type": "object",
+                    "nullable": false,
+                    "additional_properties": false,
+                    "fields": {
+                      "query_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "request_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "candidate_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "item_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": false
+                      },
+                      "rank": {
+                        "type": "number",
+                        "nullable": false
+                      }
+                    }
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-data-source-keep",
+          "format": "aql-text",
+          "text": "DATA qs = FROM queries; DATA cs = FROM candidates;\n        FROM qs AS q |> NEAREST cs AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2\n        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "note": null,
+                  "label": "first",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "a"
+                    },
+                    "score": 1,
+                    "rank": 1
+                  }
+                },
+                {
+                  "note": null,
+                  "label": "second",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "b"
+                    },
+                    "score": 0,
+                    "rank": 2
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "note",
+                  "contract": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "neighbor",
+                  "contract": {
+                    "type": "object",
+                    "nullable": false,
+                    "additional_properties": false,
+                    "fields": {
+                      "query_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "request_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "candidate_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "item_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": false
+                      },
+                      "rank": {
+                        "type": "number",
+                        "nullable": false
+                      }
+                    }
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-source-query-vector-expression",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR IF(TRUE, q.embedding, q.embedding)\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2\n        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "note": null,
+                  "label": "first",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "a"
+                    },
+                    "score": 1,
+                    "rank": 1
+                  }
+                },
+                {
+                  "note": null,
+                  "label": "second",
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "b"
+                    },
+                    "score": 0,
+                    "rank": 2
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "note",
+                  "contract": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "neighbor",
+                  "contract": {
+                    "type": "object",
+                    "nullable": false,
+                    "additional_properties": false,
+                    "fields": {
+                      "query_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "request_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "candidate_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "item_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": false
+                      },
+                      "rank": {
+                        "type": "number",
+                        "nullable": false
+                      }
+                    }
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-source-omitted-keep",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2 AS neighbor |> ORDER BY neighbor.rank",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "a"
+                    },
+                    "score": 1,
+                    "rank": 1
+                  }
+                },
+                {
+                  "neighbor": {
+                    "query_key": {
+                      "request_id": "q1"
+                    },
+                    "candidate_key": {
+                      "item_id": "b"
+                    },
+                    "score": 0,
+                    "rank": 2
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "neighbor",
+                  "contract": {
+                    "type": "object",
+                    "nullable": false,
+                    "additional_properties": false,
+                    "fields": {
+                      "query_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "request_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "candidate_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "item_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": false
+                      },
+                      "rank": {
+                        "type": "number",
+                        "nullable": false
+                      }
+                    }
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-source-empty",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> WHERE FALSE |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2\n        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank",
+          "results": {
+            "answer": {
+              "rows": [],
+              "columns": [
+                {
+                  "name": "note",
+                  "contract": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "neighbor",
+                  "contract": {
+                    "type": "object",
+                    "nullable": false,
+                    "additional_properties": false,
+                    "fields": {
+                      "query_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "request_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "candidate_key": {
+                        "type": "object",
+                        "nullable": false,
+                        "additional_properties": false,
+                        "fields": {
+                          "item_id": {
+                            "type": "string",
+                            "nullable": false
+                          }
+                        }
+                      },
+                      "score": {
+                        "type": "number",
+                        "nullable": false
+                      },
+                      "rank": {
+                        "type": "number",
+                        "nullable": false
+                      }
+                    }
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-json-member-control",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.nearest_keep.member\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"request_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"note\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[{\"request_id\":\"q1\",\"embedding\":[1,0],\"note\":null}]},\"as\":\"queries\"},{\"values\":{\"schema\":{\"item_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]},\"as\":\"candidates\"},{\"from\":\"candidates\",\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"item_id\",\"candidate_vector\":\"embedding\",\"query_id\":\"request_id\",\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}},{\"join\":{\"with\":\"queries\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"query_id\",\"right\":\"request_id\"}],\"select\":{\"note\":\"right.note\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"join\":{\"with\":\"candidates\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"candidate_id\",\"right\":\"item_id\"}],\"select\":{\"note\":\"left.note\",\"label\":\"right.label\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"derive\":{\"neighbor\":{\"object\":{\"query_key\":{\"object\":{\"request_id\":{\"field\":\"query_id\"}}},\"candidate_key\":{\"object\":{\"item_id\":{\"field\":\"candidate_id\"}}},\"score\":{\"field\":\"score\"},\"rank\":{\"field\":\"rank\"}}}}},{\"select\":[\"note\",\"label\",\"neighbor\"],\"as\":\"out\"},{\"from\":\"out\",\"derive\":{\"label\":{\"field\":\"label\"},\"score\":{\"property\":{\"value\":{\"field\":\"neighbor\"},\"name\":\"score\"}}}},{\"select\":[\"label\",\"score\"]},{\"sort\":[{\"field\":\"score\",\"dir\":\"desc\",\"nulls\":\"last\"},{\"field\":\"label\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"projected\"}],\"results\":{\"rows\":{\"from\":\"projected\",\"fields\":[\"label\",\"score\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "label": "first",
+                  "score": 1
+                },
+                {
+                  "label": "second",
+                  "score": 0
+                }
+              ],
+              "columns": [
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-source-member-case",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2 KEEP (q.note, c.label) AS neighbor\n        |> SELECT label, neighbor.SCORE AS score |> ORDER BY score DESC, label",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "label": "first",
+                  "score": 1
+                },
+                {
+                  "label": "second",
+                  "score": 0
+                }
+              ],
+              "columns": [
+                {
+                  "name": "label",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "score",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-json-key-member-control",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.nearest_keep.key_members\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"request_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"note\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[{\"request_id\":\"q1\",\"embedding\":[1,0],\"note\":null}]},\"as\":\"queries\"},{\"values\":{\"schema\":{\"item_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]},\"as\":\"candidates\"},{\"from\":\"candidates\",\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"item_id\",\"candidate_vector\":\"embedding\",\"query_id\":\"request_id\",\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}},{\"join\":{\"with\":\"queries\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"query_id\",\"right\":\"request_id\"}],\"select\":{\"note\":\"right.note\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"join\":{\"with\":\"candidates\",\"kind\":\"inner\",\"cardinality\":\"many_to_one\",\"on\":[{\"left\":\"candidate_id\",\"right\":\"item_id\"}],\"select\":{\"note\":\"left.note\",\"label\":\"right.label\",\"query_id\":\"left.query_id\",\"candidate_id\":\"left.candidate_id\",\"score\":\"left.score\",\"rank\":\"left.rank\"}}},{\"derive\":{\"neighbor\":{\"object\":{\"query_key\":{\"object\":{\"request_id\":{\"field\":\"query_id\"}}},\"candidate_key\":{\"object\":{\"item_id\":{\"field\":\"candidate_id\"}}},\"score\":{\"field\":\"score\"},\"rank\":{\"field\":\"rank\"}}}}},{\"select\":[\"note\",\"label\",\"neighbor\"],\"as\":\"out\"},{\"from\":\"out\",\"derive\":{\"request_id\":{\"property\":{\"value\":{\"property\":{\"value\":{\"field\":\"neighbor\"},\"name\":\"query_key\"}},\"name\":\"request_id\"}},\"item_id\":{\"property\":{\"value\":{\"property\":{\"value\":{\"field\":\"neighbor\"},\"name\":\"candidate_key\"}},\"name\":\"item_id\"}},\"rank\":{\"property\":{\"value\":{\"field\":\"neighbor\"},\"name\":\"rank\"}}}},{\"select\":[\"request_id\",\"item_id\",\"rank\"]},{\"sort\":[{\"field\":\"rank\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"projected\"}],\"results\":{\"rows\":{\"from\":\"projected\",\"fields\":[\"request_id\",\"item_id\",\"rank\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "request_id": "q1",
+                  "item_id": "a",
+                  "rank": 1
+                },
+                {
+                  "request_id": "q1",
+                  "item_id": "b",
+                  "rank": 2
+                }
+              ],
+              "columns": [
+                {
+                  "name": "request_id",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "item_id",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "rank",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        },
+        {
+          "name": "nearest-source-key-member-case",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2 KEEP (q.note, c.label) AS neighbor\n        |> SELECT neighbor.QUERY_KEY.REQUEST_ID AS request_id,\n          neighbor.`CaNdIdAtE_KeY`.`ItEm_Id` AS item_id, neighbor.RANK AS rank\n        |> ORDER BY rank",
+          "results": {
+            "answer": {
+              "rows": [
+                {
+                  "request_id": "q1",
+                  "item_id": "a",
+                  "rank": 1
+                },
+                {
+                  "request_id": "q1",
+                  "item_id": "b",
+                  "rank": 2
+                }
+              ],
+              "columns": [
+                {
+                  "name": "request_id",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "item_id",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "rank",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "unordered": false
+            }
+          }
+        }
+      ],
+      "refusals": [
+        {
+          "name": "nearest-data-forward-candidate",
+          "format": "aql-text",
+          "text": "DATA matched = FROM queries AS q |> NEAREST later AS c\n        QUERY KEY (q.request_id) VECTOR q.embedding\n        CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 AS neighbor;\n        DATA later = FROM candidates; FROM matched"
+        },
+        {
+          "name": "nearest-unknown-result-member",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2 AS neighbor |> SELECT neighbor.MISSING"
+        },
+        {
+          "name": "nearest-dropped-input",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2 AS neighbor |> SELECT q.note"
+        },
+        {
+          "name": "nearest-result-name-collision",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2 KEEP (q.note AS neighbor) AS neighbor"
+        },
+        {
+          "name": "nearest-unknown-alias",
+          "format": "aql-text",
+          "text": "FROM missing_nearest_queries AS q |> NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2 AS neighbor"
+        },
+        {
+          "name": "nearest-missing-query-key",
+          "format": "aql-text",
+          "text": "FROM queries AS q |> NEAREST candidates AS c\n        QUERY KEY (q.missing_key) VECTOR q.embedding\n        CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 AS neighbor"
+        }
+      ]
+    },
+    "pipe-join-input": {
+      "pipeJoinInputProgram": {
+        "version": "actql/0.1",
+        "id": "fixture.pipe_join_input",
+        "params": {
+          "minimum": {
+            "type": "number",
+            "nullable": false
+          },
+          "take": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "stages": [
+          {
+            "id": "capture",
+            "inputs": {
+              "remote": {
+                "connector": "crm/main",
+                "resource": "r"
+              }
+            },
+            "steps": [
+              {
+                "from": "remote",
+                "filter": {
+                  "literal": true
+                }
+              },
+              {
+                "select": [
+                  "amount",
+                  "id"
+                ],
+                "as": "captured"
+              }
+            ],
+            "results": {
+              "source": {
+                "from": "captured",
+                "fields": [
+                  "amount",
+                  "id"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "records": {
+                "result": {
+                  "stage": "capture",
+                  "result": "source"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "records",
+                "derive": {
+                  "key": {
+                    "add": [
+                      {
+                        "field": "id"
+                      },
+                      {
+                        "literal": 10
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "select": [
+                  "amount",
+                  "key"
+                ]
+              },
+              {
+                "filter": {
+                  "gte": [
+                    {
+                      "field": "key"
+                    },
+                    {
+                      "$param": "minimum"
+                    }
+                  ]
+                }
+              },
+              {
+                "sort": [
+                  {
+                    "field": "key",
+                    "dir": "asc",
+                    "nulls": "first"
+                  }
+                ]
+              },
+              {
+                "take": {
+                  "count": {
+                    "$param": "take"
+                  },
+                  "offset": 0
+                },
+                "as": "lefts"
+              },
+              {
+                "values": {
+                  "schema": {
+                    "key": {
+                      "type": "number",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "key": 13
+                    }
+                  ]
+                },
+                "as": "rights"
+              },
+              {
+                "from": "lefts",
+                "join": {
+                  "with": "rights",
+                  "kind": "inner",
+                  "on": [
+                    {
+                      "left": "key",
+                      "right": "key"
+                    }
+                  ],
+                  "max_output_rows": 10,
+                  "select": {
+                    "amount": "left.amount",
+                    "key": "left.key",
+                    "matched": "right.key"
+                  }
+                },
+                "as": "joined"
+              },
+              {
+                "sort": [
+                  {
+                    "field": "key",
+                    "dir": "asc",
+                    "nulls": "first"
+                  },
+                  {
+                    "field": "amount",
+                    "dir": "asc",
+                    "nulls": "first"
+                  }
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "out",
+                "fields": [
+                  "amount",
+                  "key",
+                  "matched"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      },
+      "pipeJoinInputRefusals": [
+        {
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON old.id = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "name": "pipe-join-input-refuse-removed-range",
+          "expectedCode": "ClientProgramInvalidInput"
+        },
+        {
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.id = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "name": "pipe-join-input-refuse-removed-column",
+          "expectedCode": "ClientProgramInvalidInput"
+        },
+        {
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS l ON l.key = l.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "name": "pipe-join-input-refuse-duplicate-range",
+          "expectedCode": "ClientProgramInvalidInput"
+        },
+        {
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 0 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "name": "pipe-join-input-refuse-invalid-ceiling"
+        },
+        {
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "name": "pipe-join-input-refuse-undeclared"
+        },
+        {
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12
+          },
+          "name": "pipe-join-input-refuse-missing"
+        }
+      ],
+      "pipeJoinInputSuccesses": [
+        {
+          "name": "pipe-join-input-independent-json",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.pipe_join_input\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false},\"take\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[{\"id\":\"capture\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"from\":\"remote\",\"filter\":{\"literal\":true}},{\"select\":[\"amount\",\"id\"],\"as\":\"captured\"}],\"results\":{\"source\":{\"from\":\"captured\",\"fields\":[\"amount\",\"id\"]}}},{\"id\":\"main\",\"inputs\":{\"records\":{\"result\":{\"stage\":\"capture\",\"result\":\"source\"}}},\"steps\":[{\"from\":\"records\",\"derive\":{\"key\":{\"add\":[{\"field\":\"id\"},{\"literal\":10}]}}},{\"select\":[\"amount\",\"key\"]},{\"filter\":{\"gte\":[{\"field\":\"key\"},{\"$param\":\"minimum\"}]}},{\"sort\":[{\"field\":\"key\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"take\":{\"count\":{\"$param\":\"take\"},\"offset\":0},\"as\":\"lefts\"},{\"values\":{\"schema\":{\"key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"key\":13}]},\"as\":\"rights\"},{\"from\":\"lefts\",\"join\":{\"with\":\"rights\",\"kind\":\"inner\",\"on\":[{\"left\":\"key\",\"right\":\"key\"}],\"max_output_rows\":10,\"select\":{\"amount\":\"left.amount\",\"key\":\"left.key\",\"matched\":\"right.key\"}},\"as\":\"joined\"},{\"sort\":[{\"field\":\"key\",\"dir\":\"asc\",\"nulls\":\"first\"},{\"field\":\"amount\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"out\"}],\"results\":{\"rows\":{\"from\":\"out\",\"fields\":[\"amount\",\"key\",\"matched\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 30,
+              "key": 13,
+              "matched": 13
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-projected-prefix",
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 30,
+              "key": 13,
+              "matched": 13
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-sql-head",
+          "format": "aql-text",
+          "text": "SELECT id + 10 AS key, amount FROM records AS old |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 30,
+              "key": 13,
+              "matched": 13
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-data-body",
+          "format": "aql-text",
+          "text": "DATA joined = FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST; FROM joined |> RESULT answer",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 30,
+              "key": 13,
+              "matched": 13
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-empty-typed",
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "sourceRows": [],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": []
+        },
+        {
+          "name": "pipe-join-input-nullable-left",
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> LEFT JOIN (SELECT 12 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 11,
+            "take": 2
+          },
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": null,
+              "key": 11,
+              "matched": null
+            },
+            {
+              "amount": 20,
+              "key": 12,
+              "matched": 12
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-set-then-rebind",
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> AS previous |> SET key = key + 1 |> AS l |> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.key AS key, r.key AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 20,
+              "key": 13,
+              "matched": 13
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-unqualified-current-row",
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT id + 10 AS key, amount |> WHERE key >= @minimum |> ORDER BY key |> LIMIT @take |> JOIN (SELECT 13 AS k) AS r ON key = r.k MAX_OUTPUT_ROWS 10 |> SELECT amount AS amount, key AS key, r.k AS matched |> ORDER BY key, amount NULLS FIRST",
+          "parameterDeclarations": {
+            "minimum": {
+              "type": "number",
+              "nullable": false
+            },
+            "take": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "parameters": {
+            "minimum": 12,
+            "take": 2
+          },
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 30,
+              "key": 13,
+              "matched": 13
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-where-between-fused-joins",
+          "format": "aql-text",
+          "text": "FROM records AS l |> JOIN (SELECT 3 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 10 |> WHERE r.k > 2 |> JOIN (SELECT 3 AS k) AS s ON r.k = s.k MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.id AS key, s.k AS matched |> ORDER BY key",
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 3
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 3
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-shared-source-keeps-right-complete",
+          "format": "aql-text",
+          "text": "FROM records AS old |> SELECT amount, id |> AS l |> WHERE l.id = 3 |> CROSS JOIN records AS r MAX_OUTPUT_ROWS 10 |> SELECT l.amount AS amount, l.id AS key, r.id AS matched |> ORDER BY key, matched",
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "amount",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "key",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "matched",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 1
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 1
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 2
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 2
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 3
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 3
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 3
+            },
+            {
+              "amount": 30,
+              "key": 3,
+              "matched": 3
+            }
+          ]
+        },
+        {
+          "name": "pipe-join-input-aggregate-prefix",
+          "format": "aql-text",
+          "text": "FROM records |> AGGREGATE COUNT(*) AS n GROUP BY id |> AS l |> JOIN (SELECT 3 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 10 |> SELECT l.n AS n, l.id AS id |> ORDER BY id",
+          "sourceRows": [
+            {
+              "id": 3,
+              "amount": 30
+            },
+            {
+              "id": 1,
+              "amount": null
+            },
+            {
+              "id": 2,
+              "amount": 20
+            },
+            {
+              "id": 3,
+              "amount": 30
+            }
+          ],
+          "sourceReadSessionCount": 1,
+          "columns": [
+            {
+              "name": "n",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "id",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ],
+          "expected": [
+            {
+              "n": 2,
+              "id": 3
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "originals": {
+    "scripts/fixtures/source-graph-member-input.mjs": {
+      "source": "// Independent Source-to-Graph expectations. Flat rows use the standard\n// installed Source; object values use existing typed parameters and CASE.\n// This does not claim that raw object Source capture has an order witness.\nconst number = {type: 'number', nullable: false};\nconst score = {...number, nullable: true};\nconst payload = {type: 'object', nullable: true, fields: {score}};\nconst parameterDeclarations = {minimum: number, p1: payload, p2: payload,\n  p3: payload, p4: payload};\nconst parameters = {minimum: 0, p1: {score: 20}, p2: {score: 10},\n  p3: null, p4: {score: null}};\nconst sourceRows = [{id: 2, amount: 10}, {id: 1, amount: 20},\n  {id: 3, amount: null}, {id: 4, amount: 40}, {id: 0, amount: 99}];\nconst columns = [{name: 'id', contract: number}, {name: 'score', contract: score}];\nconst expected = [{id: 1, score: 20}, {id: 2, score: 10},\n  {id: 3, score: null}, {id: 4, score: null}];\nconst data = 'DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 '\n  + 'WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload '\n  + 'FROM records WHERE id > @minimum; ';\nconst graph = 'DATA g = PROPERTY GRAPH (NODE TABLES '\n  + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); ';\nconst head = data + graph + 'FROM GRAPH g |> MATCH WALK (a:Person) |> ';\nconst results = rows => ({matched: {rows, columns}});\nconst sourceCase = (name, tail, rows = expected, extra = {}) => ({\n  name: 'source-graph-member-' + name, format: 'aql-text',\n  text: head + tail + ' |> ORDER BY id |> RESULT matched',\n  parameterDeclarations, parameters, sourceRows, sourceReadSessionCount: 1,\n  results: results(rows), ...extra,\n});\n\n// Authored ordinary Program, including actual Source acquisition and the\n// original predicate/parameters. The compiler does not generate this control.\nexport const sourceGraphMemberProgram = {version: 'actql/0.1',\n  id: 'fixture.source_graph_member', params: parameterDeclarations,\n  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},\n    steps: [{from: 'remote', filter: {gt: [{field: 'id'}, {$param: 'minimum'}]}},\n      {select: ['id'], as: 'captured'}],\n    results: {source: {from: 'captured', fields: ['id']}}},\n  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},\n    steps: [{from: 'records', derive: {payload: {case: {when: [\n      {when: {eq: [{field: 'id'}, {literal: 1}]}, then: {$param: 'p1'}},\n      {when: {eq: [{field: 'id'}, {literal: 2}]}, then: {$param: 'p2'}},\n      {when: {eq: [{field: 'id'}, {literal: 3}]}, then: {$param: 'p3'}},\n    ], else: {$param: 'p4'}}}}},\n    {select: ['id', 'payload'], as: 'objects'},\n    {graph: {version: 'actql-graph-constructor/0.1',\n      nodes: [{name: 'N', from: 'objects', key: ['id'], labels: [{name: 'Person',\n        properties: {mode: 'columns', columns: [{from: 'id', to: 'id'},\n          {from: 'payload', to: 'payload'}]}}]}], edges: []}, as: 'g'},\n    {from: 'g', match_nodes: {definition: 'N', label: 'Person',\n      where: {literal: true}, fields: ['id', 'payload']}, as: 'matched'},\n    {from: 'matched', derive: {score: {property: {name: 'score', value: {field: 'payload'}}}}},\n    {select: ['id', 'score']},\n    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'},\n  ], results: {rows: {from: 'ordered', fields: ['id', 'score']}}}],\n  results: {matched: {from: {stage: 'main', result: 'rows'}}}};\n\nexport const sourceGraphMemberSuccesses = [\n  sourceCase('independent-json', '', expected, {format: 'json',\n    text: JSON.stringify(sourceGraphMemberProgram), parameterDeclarations: undefined}),\n  sourceCase('declared-member', 'SELECT a.id AS id, a.payload.score AS score'),\n  sourceCase('folded-member', 'SELECT a.id AS id, a.payload.SCORE AS score'),\n  sourceCase('quoted-member', 'SELECT `A`.`ID` AS id, `A`.`PAYLOAD`.`ScOrE` AS score'),\n  sourceCase('projected-receiver',\n    'SELECT a.id AS id, a.payload AS kept |> SELECT id, kept.SCORE AS score'),\n  sourceCase('null-receiver-and-member',\n    'WHERE a.payload.SCORE IS NULL |> SELECT a.id AS id, a.payload.SCORE AS score',\n    [{id: 3, score: null}, {id: 4, score: null}]),\n  sourceCase('typed-empty',\n    'WHERE a.payload.SCORE > 100 |> SELECT a.id AS id, a.payload.SCORE AS score', []),\n];\nexport const sourceGraphMemberRefusals = [\n  ['missing-member', 'SELECT a.payload.MISSING AS score'],\n  ['scalar-receiver', 'SELECT a.id.score AS score'],\n  ['removed-receiver', 'SELECT a.id AS id |> WHERE a.payload.SCORE > 0'],\n  ['same-select-alias', 'SELECT a.payload AS kept, kept.SCORE AS score'],\n].map(([name, tail]) => ({name: 'source-graph-member-invalid-' + name,\n  format: 'aql-text', text: head + tail, parameterDeclarations, parameters, sourceRows}));\n",
+      "sha256": "d84b2257638a3496211712dba2a3688a1c064afdc257e517a9d39eb2a77b0960"
+    },
+    "scripts/fixtures/graph-delta-json-source.mjs": {
+      "source": "import {createHash} from 'node:crypto';\nimport {canonicalText} from '../check-canonical-json.mjs';\n\n// Independently authored producer, contract and snapshots. Expected identities\n// use the admitted definition preimage, never a compiler or runtime response.\nconst cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');\nconst seed = {schema: {aql_source_free_unit: {type: 'boolean', nullable: false}},\n  rows: [{aql_source_free_unit: true}]};\nconst derive = {aql_query_expr_0: {literal: 1}, aql_query_expr_1: {literal: 7}};\nconst select = [{node_key: 'aql_query_expr_0'}, {p: 'aql_query_expr_1'}];\nconst constructor = {version: 'actql-graph-constructor/0.1',\n  nodes: [{name: 'N', from: 'aql_data_0', key: ['node_key'], labels: [{name: 'Person',\n    properties: {mode: 'columns', columns: [{from: 'p', to: 'p'}]}}]}], edges: []};\nconst mapping = structuredClone(constructor);\ndelete mapping.nodes[0].from;\nmapping.nodes[0].input_occurrence = 0;\nconst domain = cid({constructor: mapping, producer_definitions: [{body: {select},\n  dependencies: [{body: {derive}, dependencies: [{body: {values: seed}, dependencies: []}]}]}],\nversion: 'actql-graph-definition/0.1'});\nconst number = {type: 'number', nullable: false};\nconst identityLaw = 'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34';\nconst contract = {version: 'actql-graph-contract/0.1', domain,\n  identity_law_cid: identityLaw, value_law_cid: identityLaw,\n  node_definitions: [{name: 'N', key_columns: ['node_key'], key_contracts: [number],\n    labels: {Person: ['p']}, properties: {p: number}}], edge_definitions: []};\nconst contractCid = cid(contract);\nconst id = {definition: 'N', domain, key: [1], key_types: [{kind: 'number'}]};\nconst before = {id, key: [1], props: {p: 7}};\nconst after = {id, key: [1], props: {p: 8}};\nconst snapshot = node => ['actql-graph-snapshot/0.1', contractCid, contract, [node], []];\nconst delta = {version: 'actql-graph-delta/0.1', graph_contract_cid: contractCid,\n  base_graph_cid: cid(snapshot(before)), target_graph_cid: cid(snapshot(after)),\n  nodes: {add: [], remove: [], update: [{before, after}]}, edges: {add: [], remove: [], update: []}};\nconst deltaText = canonicalText(delta);\n\nexport const graphDeltaJsonSource = 'DATA n = SELECT 1 AS node_key, 7 AS p; '\n  + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); '\n  + \"DATA changes = SELECT JSON r'''\" + deltaText + \"''' AS delta; \"\n  + 'FROM g |> apply_graph_delta(with: changes, field: \"delta\") '\n  + '|> node_rows() |> SELECT p, node_key |> RESULT answer';\n\nexport const graphDeltaJsonProgram = {version: 'actql/0.1', id: 'fixture.query_pair',\n  stages: [{id: 'main', inputs: {}, steps: [\n    {values: seed, as: 'aql_script_seed_1'},\n    {from: 'aql_script_seed_1', derive}, {select, as: 'aql_data_0'},\n    {graph: constructor, as: 'aql_data_2'},\n    {values: seed, as: 'aql_script_seed_4'},\n    {from: 'aql_script_seed_4', derive: {aql_query_expr_0: {typed_literal: {type: 'json', value: deltaText}}}},\n    {select: [{delta: 'aql_query_expr_0'}], as: 'aql_data_3'},\n    {from: 'aql_data_2', apply_graph_delta: {with: 'aql_data_3', field: 'delta'}, as: 'aql_sga_5'},\n    {from: 'aql_sga_5', node_rows: true, as: 'aql_sga_6'},\n    {from: 'aql_sga_6', select: ['p', 'node_key']},\n    {select: ['p', 'node_key'], as: 'aql_script_result'},\n  ], results: {rows: {from: 'aql_script_result', fields: ['p', 'node_key']}}}],\nresults: {answer: {from: {stage: 'main', result: 'rows'}}}};\n\nconst expected = [{p: 8, node_key: 1}];\nconst columns = ['p', 'node_key'].map(name => ({name, contract: number}));\nexport const graphDeltaJsonSuccesses = [\n  {name: 'graph-delta-authored-json-source', format: 'aql-text', text: graphDeltaJsonSource,\n    expected, columns, sourceReadCount: 0},\n  {name: 'graph-delta-authored-json-program', format: 'json', text: JSON.stringify(graphDeltaJsonProgram),\n    expected, columns, sourceReadCount: 0},\n];\n",
+      "sha256": "f62e8e21636278e0d599a59478cfbeeed90876dc0c6fb510c70185fb551543fe"
+    },
+    "scripts/fixtures/nearest-public-input.mjs": {
+      "source": "// Independent expectations and a public-Client acceptance consumer. The caller\n// installs typed sources through the ordinary Host; this module never supplies\n// a Catalog, checker, schema override or VecA provider.\nimport assert from 'node:assert/strict';\nimport {readFile} from 'node:fs/promises';\nimport {join} from 'node:path';\nimport {exercisePublicQueryInput} from './public-query-input.mjs';\n\nconst nearest = `NEAREST candidates AS c\n  QUERY KEY (q.request_id) VECTOR q.embedding\n  CANDIDATE KEY (c.item_id) VECTOR c.embedding\n  METRIC dot K 2`;\n\nexport async function nearestPublicInputFixtures(directory) {\n  const json = async file => JSON.parse(await readFile(join(directory, file), 'utf8'));\n  const program = await json('common-minimal.program.json');\n  const rows = await json('expected-rows.json');\n  const {columns} = await json('expected-schema.json');\n  const keptSource = await readFile(join(directory, 'kept.ordered.aql'), 'utf8');\n  // These transformations use authored independent fixtures, never product\n  // output. An empty Values input retains its declared schema; omitted KEEP\n  // projects only the independently specified result object.\n  const emptyProgram = structuredClone(program);\n  emptyProgram.id += '.empty';\n  emptyProgram.stages[0].steps[0].values.rows = [];\n  const result = (rows, columns, unordered = false) => ({\n    answer: {rows, columns, unordered},\n  });\n  const successes = [\n    {name: 'nearest-json-control', format: 'json', text: JSON.stringify(program),\n      results: result(rows, columns, true)},\n    {name: 'nearest-json-empty', format: 'json', text: JSON.stringify(emptyProgram),\n      results: result([], columns)},\n    {name: 'nearest-source-keep', format: 'aql-text', text: keptSource,\n      results: result(rows, columns)},\n    {name: 'nearest-data-source-keep', format: 'aql-text',\n      text: `DATA qs = FROM queries; DATA cs = FROM candidates;\n        FROM qs AS q |> ${nearest.replace('NEAREST candidates', 'NEAREST cs')}\n        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,\n      results: result(rows, columns)},\n    {name: 'nearest-source-query-vector-expression', format: 'aql-text',\n      text: `FROM queries AS q |> ${nearest.replace('VECTOR q.embedding',\n        'VECTOR IF(TRUE, q.embedding, q.embedding)')}\n        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,\n      results: result(rows, columns)},\n    {name: 'nearest-source-omitted-keep', format: 'aql-text',\n      text: `FROM queries AS q |> ${nearest} AS neighbor |> ORDER BY neighbor.rank`,\n      results: result(rows.map(({neighbor}) => ({neighbor})), [columns[2]])},\n    {name: 'nearest-source-empty', format: 'aql-text',\n      text: `FROM queries AS q |> WHERE FALSE |> ${nearest}\n        KEEP (q.note, c.label) AS neighbor |> ORDER BY neighbor.rank`,\n      results: result([], columns)},\n  ];\n  // Author ordinary post-NEAREST projections from the independent machine\n  // input. Do not obtain either expression names or expected rows from lowering.\n  const scalar = type => ({type, nullable: false});\n  const memberRows = [{label: 'first', score: 1}, {label: 'second', score: 0}];\n  const memberColumns = [{name: 'label', contract: scalar('string')},\n    {name: 'score', contract: scalar('number')}];\n  const keyRows = [{request_id: 'q1', item_id: 'a', rank: 1},\n    {request_id: 'q1', item_id: 'b', rank: 2}];\n  const keyColumns = [{name: 'request_id', contract: scalar('string')},\n    {name: 'item_id', contract: scalar('string')},\n    {name: 'rank', contract: scalar('number')}];\n  const property = (value, name) => ({property: {value, name}});\n  const field = name => ({field: name});\n  const member = name => property(field('neighbor'), name);\n  const projection = (id, expressions, ordering) => {\n    const control = structuredClone(program);\n    control.id += id;\n    const stage = control.stages[0];\n    stage.steps.push({from: 'out', derive: expressions},\n      {select: Object.keys(expressions)}, {sort: ordering, as: 'projected'});\n    stage.results.rows = {from: 'projected', fields: Object.keys(expressions)};\n    return JSON.stringify(control);\n  };\n  successes.push(\n    {name: 'nearest-json-member-control', format: 'json', text: projection('.member',\n      {label: field('label'), score: member('score')},\n      [{field: 'score', dir: 'desc', nulls: 'last'},\n        {field: 'label', dir: 'asc', nulls: 'first'}]),\n    results: result(memberRows, memberColumns)},\n    {name: 'nearest-source-member-case', format: 'aql-text',\n      text: `FROM queries AS q |> ${nearest} KEEP (q.note, c.label) AS neighbor\n        |> SELECT label, neighbor.SCORE AS score |> ORDER BY score DESC, label`,\n      results: result(memberRows, memberColumns)},\n    {name: 'nearest-json-key-member-control', format: 'json', text: projection('.key_members',\n      {request_id: property(member('query_key'), 'request_id'),\n        item_id: property(member('candidate_key'), 'item_id'), rank: member('rank')},\n      [{field: 'rank', dir: 'asc', nulls: 'first'}]),\n    results: result(keyRows, keyColumns)},\n    {name: 'nearest-source-key-member-case', format: 'aql-text',\n      text: `FROM queries AS q |> ${nearest} KEEP (q.note, c.label) AS neighbor\n        |> SELECT neighbor.QUERY_KEY.REQUEST_ID AS request_id,\n          neighbor.\\`CaNdIdAtE_KeY\\`.\\`ItEm_Id\\` AS item_id, neighbor.RANK AS rank\n        |> ORDER BY rank`, results: result(keyRows, keyColumns)},\n  );\n  const refusals = [\n    {name: 'nearest-data-forward-candidate', format: 'aql-text',\n      text: `DATA matched = FROM queries AS q |> NEAREST later AS c\n        QUERY KEY (q.request_id) VECTOR q.embedding\n        CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 AS neighbor;\n        DATA later = FROM candidates; FROM matched`},\n    {name: 'nearest-unknown-result-member', format: 'aql-text',\n      text: `FROM queries AS q |> ${nearest} AS neighbor |> SELECT neighbor.MISSING`},\n    {name: 'nearest-dropped-input', format: 'aql-text',\n      text: `FROM queries AS q |> ${nearest} AS neighbor |> SELECT q.note`},\n    {name: 'nearest-result-name-collision', format: 'aql-text',\n      text: `FROM queries AS q |> ${nearest} KEEP (q.note AS neighbor) AS neighbor`},\n    {name: 'nearest-unknown-alias', format: 'aql-text',\n      text: `FROM missing_nearest_queries AS q |> ${nearest} AS neighbor`},\n    {name: 'nearest-missing-query-key', format: 'aql-text',\n      text: `FROM queries AS q |> NEAREST candidates AS c\n        QUERY KEY (q.missing_key) VECTOR q.embedding\n        CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 AS neighbor`},\n  ];\n  return {successes, refusals};\n}\n\n// Use this unchanged consumer with installed Local and HTTP connect options.\n// observe is the existing acceptance counter boundary: acceptedRuns/sourceIo\n// and, when supplied, sourceReads/sourceReadSessions. It is not a product API.\nexport async function exerciseNearestPublicInput(connect, options,\n  {directory, requestPrefix, observe}) {\n  const {successes, refusals} = await nearestPublicInputFixtures(directory);\n  const expected = new Map(successes.map(test => [test.name, test.results.answer]));\n  return exercisePublicQueryInput(connect, options, {\n    requestPrefix, observe, successes, refusals,\n    async completedCase({name, execution, beforeSubmit, beforeRead}) {\n      if (name.startsWith('nearest-json-')) {\n        assert.equal(beforeRead.sourceIo, beforeSubmit.sourceIo,\n          'closed Values control must not acquire an installed source');\n      }\n      const before = await observe();\n      const contract = expected.get(name);\n      const result = execution.result('answer');\n      const description = await result.describe();\n      assert.deepEqual(description.ref, execution.ref);\n      assert.equal(description.resultName, 'answer');\n      assert.equal(description.serialization.format, 'jsonl');\n      assert.equal(description.serialization.version, 'actql-jsonl/0.1');\n      assert.deepEqual(description.columns, contract.columns);\n      const reader = result.rows({signal: AbortSignal.timeout(60_000)});\n      const rows = [];\n      for await (const row of reader) rows.push(row);\n      assert.equal(reader.state(), 'complete');\n      if (contract.unordered) {\n        // Sort only the test copy by the independently specified unique ranks;\n        // the un-ordered JSON control promises a multiset, not delivery order.\n        rows.sort((left, right) => left.neighbor.rank - right.neighbor.rank);\n      }\n      assert.deepEqual(rows, contract.rows);\n      assert.deepEqual(await observe(), before,\n        'metadata and streamed rereads must not accept or acquire again');\n    },\n  });\n}\n",
+      "sha256": "e688002fdba0bbec36a3a8ca36fe3618c32571c20e0cbfe3a5b424f962500ba1"
+    },
+    "scripts/fixtures/pipe-join-input.mjs": {
+      "source": "// Independent common Program and Result obligations, never compiler output.\nconst number = {type: 'number', nullable: false};\nconst nullable = {...number, nullable: true};\nconst declarations = {minimum: number, take: number};\nconst sourceRows = [{id: 3, amount: 30}, {id: 1, amount: null},\n  {id: 2, amount: 20}, {id: 3, amount: 30}];\nconst columns = [{name: 'amount', contract: nullable},\n  {name: 'key', contract: number}, {name: 'matched', contract: number}];\nconst expected = [{amount: 30, key: 13, matched: 13}];\nexport const pipeJoinInputProgram = {version: 'actql/0.1', id: 'fixture.pipe_join_input',\n  params: declarations,\n  stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},\n    steps: [{from: 'remote', filter: {literal: true}},\n      {select: ['amount', 'id'], as: 'captured'}],\n    results: {source: {from: 'captured', fields: ['amount', 'id']}}},\n  {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},\n    steps: [{from: 'records', derive: {key: {add: [{field: 'id'}, {literal: 10}]}}},\n      {select: ['amount', 'key']},\n      {filter: {gte: [{field: 'key'}, {$param: 'minimum'}]}},\n      {sort: [{field: 'key', dir: 'asc', nulls: 'first'}]},\n      {take: {count: {$param: 'take'}, offset: 0}, as: 'lefts'},\n      {values: {schema: {key: number}, rows: [{key: 13}]}, as: 'rights'},\n      {from: 'lefts', join: {with: 'rights', kind: 'inner',\n        on: [{left: 'key', right: 'key'}], max_output_rows: 10,\n        select: {amount: 'left.amount', key: 'left.key', matched: 'right.key'}}, as: 'joined'},\n      {sort: [{field: 'key', dir: 'asc', nulls: 'first'},\n        {field: 'amount', dir: 'asc', nulls: 'first'}], as: 'out'}],\n    results: {rows: {from: 'out', fields: ['amount', 'key', 'matched']}}}],\n  results: {answer: {from: {stage: 'main', result: 'rows'}}}};\nconst prefix = 'FROM records AS old |> SELECT id + 10 AS key, amount |> AS l '\n  + '|> WHERE l.key >= @minimum |> ORDER BY key |> LIMIT @take ';\nconst join = '|> JOIN (SELECT 13 AS key) AS r ON l.key = r.key MAX_OUTPUT_ROWS 10 ';\nconst projection = '|> SELECT l.amount AS amount, l.key AS key, r.key AS matched '\n  + '|> ORDER BY key, amount NULLS FIRST';\nconst source = prefix + join + projection;\nconst success = (name, text, extra = {}) => ({name: 'pipe-join-input-' + name,\n  format: 'aql-text', text, parameterDeclarations: declarations,\n  parameters: {minimum: 12, take: 2}, sourceRows, sourceReadSessionCount: 1,\n  columns, expected, ...extra});\nexport const pipeJoinInputSuccesses = [\n  success('independent-json', JSON.stringify(pipeJoinInputProgram),\n    {format: 'json', parameterDeclarations: undefined}),\n  success('projected-prefix', source),\n  success('sql-head', source.replace('FROM records AS old |> SELECT id + 10 AS key, amount',\n    'SELECT id + 10 AS key, amount FROM records AS old')),\n  success('data-body', 'DATA joined = ' + source + '; FROM joined |> RESULT answer'),\n  success('empty-typed', source, {sourceRows: [], expected: []}),\n  success('nullable-left', prefix + join.replace('JOIN (SELECT 13', 'LEFT JOIN (SELECT 12')\n    + projection, {parameters: {minimum: 11, take: 2},\n    columns: [...columns.slice(0, 2), {name: 'matched', contract: nullable}],\n    expected: [{amount: null, key: 11, matched: null}, {amount: 20, key: 12, matched: 12}]}),\n  success('set-then-rebind', source.replace('|> AS l', '|> AS previous |> SET key = key + 1 |> AS l'),\n    {expected: [{amount: 20, key: 13, matched: 13}]}),\n  success('unqualified-current-row', source.replace(' |> AS l ', ' ')\n    .replaceAll('l.', '').replace('SELECT 13 AS key', 'SELECT 13 AS k')\n    .replaceAll('r.key', 'r.k')),\n  success('where-between-fused-joins', 'FROM records AS l '\n    + '|> JOIN (SELECT 3 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 10 '\n    + '|> WHERE r.k > 2 |> JOIN (SELECT 3 AS k) AS s ON r.k = s.k MAX_OUTPUT_ROWS 10 '\n    + '|> SELECT l.amount AS amount, l.id AS key, s.k AS matched |> ORDER BY key',\n    {parameterDeclarations: undefined, parameters: undefined,\n    expected: [{amount: 30, key: 3, matched: 3}, {amount: 30, key: 3, matched: 3}]}),\n  success('shared-source-keeps-right-complete', 'FROM records AS old |> SELECT amount, id '\n    + '|> AS l |> WHERE l.id = 3 |> CROSS JOIN records AS r MAX_OUTPUT_ROWS 10 '\n    + '|> SELECT l.amount AS amount, l.id AS key, r.id AS matched |> ORDER BY key, matched',\n    {parameterDeclarations: undefined, parameters: undefined, expected: [\n      {amount: 30, key: 3, matched: 1}, {amount: 30, key: 3, matched: 1},\n      {amount: 30, key: 3, matched: 2}, {amount: 30, key: 3, matched: 2},\n      {amount: 30, key: 3, matched: 3}, {amount: 30, key: 3, matched: 3},\n      {amount: 30, key: 3, matched: 3}, {amount: 30, key: 3, matched: 3}]}),\n  success('aggregate-prefix', 'FROM records |> AGGREGATE COUNT(*) AS n GROUP BY id '\n    + '|> AS l |> JOIN (SELECT 3 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 10 '\n    + '|> SELECT l.n AS n, l.id AS id |> ORDER BY id',\n    {parameterDeclarations: undefined, parameters: undefined,\n    columns: ['n', 'id'].map(name => ({name, contract: number})), expected: [{n: 2, id: 3}]}),\n];\nexport const pipeJoinInputRefusals = [\n  {name: 'removed-range', expectedCode: 'ClientProgramInvalidInput', text: source.replace('l.key = r.key', 'old.id = r.key')},\n  {name: 'removed-column', expectedCode: 'ClientProgramInvalidInput', text: source.replace('l.key = r.key', 'l.id = r.key')},\n  {name: 'duplicate-range', expectedCode: 'ClientProgramInvalidInput', text: source.replace('AS r ON l.key = r.key', 'AS l ON l.key = l.key')},\n  {name: 'invalid-ceiling', text: source.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 0')},\n  {name: 'undeclared', parameterDeclarations: undefined, parameters: undefined},\n  {name: 'missing', parameters: {minimum: 12}},\n].map(item => ({format: 'aql-text', text: source,\n  parameterDeclarations: declarations, parameters: {minimum: 12, take: 2}, ...item,\n  name: 'pipe-join-input-refuse-' + item.name}));\n",
+      "sha256": "543dcfb656769c71c1859f7d571b7b290791dad55b2b60044c1c34666ced7402"
+    },
+    "scripts/fixtures/python-local-preparation-abi.py": {
+      "source": "\"\"\"Real Wasm common-Checker preparation; no Run acceptance or physical work.\"\"\"\nimport hashlib\nimport json\nfrom pathlib import Path\nimport sys\nimport wasmtime\nfrom python_local_physical import PhysicalFixture\n\n\n# Independent configuration and authored inputs. No product output generates\n# either a source fixture or an expected diagnostic/result location.\nENVIRONMENT = b'{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],\"evidence_bundle_cid\":\"sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904\",\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1000,\"max_artifact_bytes\":1000,\"max_artifact_rows\":1000,\"max_effect_items\":1000,\"max_graph_input_edges\":1000,\"max_graph_input_nodes\":1000,\"max_graph_output_rows\":1000,\"max_graph_paths\":1000,\"max_infer_items\":1000,\"max_model_input_tokens_per_item\":1000,\"max_model_request_bytes_per_item\":1000,\"max_model_total_duration_ms\":1000,\"max_nested_value_bytes\":1000,\"max_nested_value_depth\":1000,\"max_relation_output_rows\":1000,\"max_temporal_matches_per_key\":1000,\"max_temporal_output_rows\":1000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}'\nPROGRAM = {'version': 'actql/0.1', 'id': 'python.local.structured', 'stages': [\n    {'id': 'seed', 'inputs': {}, 'steps': [\n        {'values': {'schema': {'n': {'type': 'number', 'nullable': False}},\n                    'rows': [{'n': 1}]}, 'as': 'data'}],\n     'results': {'rows': {'from': 'data', 'fields': ['n']}}},\n    {'id': 'compute', 'inputs': {'seed': {'result': {'stage': 'seed', 'result': 'rows'}}},\n     'steps': [{'derive': {'value': 'n + 1'}, 'as': 'derived'},\n               {'select': ['value'], 'as': 'selected'}],\n     'results': {'rows': {'from': 'selected', 'fields': ['value']}}}],\n    'results': {'answer': {'from': {'stage': 'compute', 'result': 'rows'}}}}\nAQL = 'DATA seed = SELECT 1 AS n; FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer'\n\n\ndef encode(value):\n    return json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')\n\n\nmodule = Path(sys.argv[1]).read_bytes()\nfixture = PhysicalFixture(module, 303, capacity=65536, slots=16)\n\n\ndef program_call(name, *args):\n    return fixture.exports['actql_program_' + name](fixture.store, fixture.nonce, *args)\n\n\ntry:\n    config = fixture.copy(1, ENVIRONMENT, sys.getsizeof(ENVIRONMENT))\n    environment = program_call('install_environment', config)\n    assert environment > config\n    for ticket, value, kind, minimum in [(2, PROGRAM, 1, 2), (3, AQL, 2, 1)]:\n        payload = encode(value)\n        source = fixture.copy(ticket, payload, sys.getsizeof(payload))\n        prepared = program_call('reserve_preparation', environment, source, kind)\n        assert prepared > source\n        assert program_call('prepared_results', prepared) == -23\n        assert program_call('prepare', prepared) == 0\n        assert program_call('prepare', prepared) == 0\n        assert program_call('prepared_results', prepared) == 1\n        assert program_call('prepared_tasks', prepared) >= minimum\n        assert program_call('close_environment', environment) == -9\n        assert fixture.call('close', source) == -9\n        assert ticket not in fixture.cleanups\n        assert program_call('close_preparation', prepared) == -9\n        fixture.stop_ready = True\n        assert program_call('close_preparation', prepared) == 0\n        assert program_call('prepared_results', prepared) == -2\n        fixture.cleanup_ready = True\n        assert fixture.call('close', source) == 0\n        fixture.stop_ready = False\n        fixture.cleanup_ready = False\n    # A rejected input owns custody as well; it is not converted to a prepared\n    # empty Program and cannot release while its physical reader is pending.\n    bad = encode({'version': 'actql/0.1', 'id': 'invalid', 'stages': []})\n    source = fixture.copy(4, bad, sys.getsizeof(bad))\n    rejected = program_call('reserve_preparation', environment, source, 1)\n    assert rejected > source\n    assert program_call('prepare', rejected) == 0\n    assert program_call('prepared_results', rejected) == -22\n    assert program_call('prepared_tasks', rejected) == -22\n    assert fixture.call('close_pool') == -9\n    assert fixture.call('reserved') == 65536\n    fixture.stop_ready = True\n    assert program_call('close_preparation', rejected) == 0\n    assert program_call('close_environment', environment) == 0\n    assert fixture.call('close_pool') == -9\n    assert fixture.call('reserved') == 65536\n    fixture.cleanup_ready = True\n    assert fixture.call('close_pool') == 0\n    assert fixture.call('reserved') == 0\n    assert len(fixture.cleanups) == 4\nfinally:\n    fixture.close()\n\ntrapped = PhysicalFixture(module, 404, capacity=65536, slots=16, fuel=100000000)\ntry:\n    def trapped_call(name, *args):\n        return trapped.exports['actql_program_' + name](trapped.store, trapped.nonce, *args)\n    config = trapped.copy(1, ENVIRONMENT, sys.getsizeof(ENVIRONMENT))\n    environment = trapped_call('install_environment', config)\n    payload = encode(PROGRAM)\n    source = trapped.copy(2, payload, sys.getsizeof(payload))\n    preparation = trapped_call('reserve_preparation', environment, source, 1)\n    assert preparation > source\n    retained = trapped.call('allocated')\n    trapped.store.set_fuel(5000)\n    try:\n        trapped_call('prepare', preparation)\n    except wasmtime.Trap:\n        pass\n    else:\n        raise AssertionError('Expected an actual physical Wasm interruption')\n    trapped.store.set_fuel(100000000)\n    assert trapped_call('prepared_results', preparation) == -23\n    assert trapped_call('prepare', preparation) == -23\n    assert trapped.call('allocated') == retained\n    assert trapped_call('close_preparation', preparation) == -9\n    trapped.stop_ready = True\n    assert trapped_call('close_preparation', preparation) == 0\n    assert trapped_call('close_environment', environment) == 0\n    trapped.cleanup_ready = True\n    assert trapped.call('close_pool') == 0\n    assert trapped.call('reserved') == 0\nfinally:\n    trapped.close()\n\nprint(json.dumps({'success': True, 'module_sha256': hashlib.sha256(module).hexdigest(),\n                  'cases': ['structured_core_preparation', 'aql_core_preparation',\n                            'input_borrow_custody', 'environment_lifetime',\n                            'typed_rejection_custody', 'physical_stop_retry',\n                            'cleanup_failure_reservation', 'final_settlement',\n                            'wasm_trap_custody', 'no_implicit_preparation_retry']}))\n",
+      "sha256": "13c2bf636f882640417d776f0758574bd774340a5fd48db108676d656f9307d1"
+    },
+    "scripts/fixtures/two-source-without-effect.aql": {
+      "source": "DATA left_rows = FROM left_records |> WHERE id >= 0 |> SELECT id, amount;\nDATA right_rows = FROM right_records |> WHERE id >= 0 |> SELECT id, amount;\nDATA joined_rows = SELECT l.id AS id, l.amount AS left_amount, r.amount AS right_amount\n  FROM left_rows AS l JOIN right_rows AS r ON l.id = r.id MAX_OUTPUT_ROWS 100;\nFROM joined_rows\n  |> WHERE id = 1\n  |> EXTEND 'high' AS risk, 'a00000000000002' AS target_id, 'review-required' AS next_name\n  |> SELECT id, left_amount, right_amount, risk, target_id, next_name\n  |> ORDER BY id, left_amount, right_amount\n  |> RESULT updates\n",
+      "sha256": "458bc76e8030b6407f9632f0f5ce3f2b8f91ab6150f8e76fba69f454479cf431"
+    },
+    "scripts/fixtures/two-source-with-effect.aql.template": {
+      "source": "DATA left_rows = FROM left_records |> WHERE id >= 0 |> SELECT id, amount;\nDATA right_rows = FROM right_records |> WHERE id >= 0 |> SELECT id, amount;\nDATA joined_rows = SELECT l.id AS id, l.amount AS left_amount, r.amount AS right_amount\n  FROM left_rows AS l JOIN right_rows AS r ON l.id = r.id MAX_OUTPUT_ROWS 100;\nFROM joined_rows\n  |> WHERE id = 1\n  |> EXTEND 'high' AS risk, 'a00000000000002' AS target_id, 'review-required' AS next_name\n  |> SELECT id, left_amount, right_amount, risk, target_id, next_name\n  |> ORDER BY id, left_amount, right_amount\n  |> RESULT updates\n  |> EFFECT save UPDATE TARGET 'connector://crm-main/Test_Record__c'\n     MAPPING `__PUBLICATION_MAPPING_REF__`\n     FROM RESULT updates ID target_id SET (Name = next_name)\n",
+      "sha256": "f1f3b382aa1d9982c3a49122678b90362abd8ec21252c3b796a842b520dae033"
+    },
+    "scripts/graph-source-snapshot.test.mjs": {
+      "source": "import assert from 'node:assert/strict';\nimport {generateKeyPairSync} from 'node:crypto';\nimport {mkdir, mkdtemp, readFile, readdir} from 'node:fs/promises';\nimport {createServer} from 'node:https';\nimport {userInfo} from 'node:os';\nimport {getCACertificates, setDefaultCACertificates} from 'node:tls';\nimport test from 'node:test';\nimport {canonicalText} from './check-canonical-json.mjs';\n\nconst packed = process.env.ACTQL_GRAPH_PACKED === '1';\nconst {connect} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');\nconst {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed\n  ? new URL('./adapters/host-node/embedded-local.mjs', import.meta.resolve('@actql/local-node'))\n  : '../adapters/host-node/embedded-local.mjs');\nconst scratch = new URL(packed ? './source-snapshot-state/'\n  : '../_build/graph-source-snapshot/', import.meta.url);\nawait mkdir(scratch, {recursive: true});\n\n// Authored source and oracle: two independently keyed self-loops allow exactly\n// two ordered TRAIL paths of length two. Neither parser output nor a product\n// snapshot encoder is used to construct this expectation.\nconst source = `\nDATA n = SELECT 1 AS id;\nDATA e = SELECT 10 AS key, 1 AS src, 1 AS dst\n  UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst;\nDATA g = PROPERTY GRAPH (\n  NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)\n  EDGE TABLES (e AS E KEY (key)\n    SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N\n    LABEL R NO PROPERTIES)\n);\nFROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node)\n  |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths\n`;\nconst expectedRows = [{depth: 2}, {depth: 2}];\nconst expectedColumns = [{name: 'depth', contract: {type: 'number', nullable: false}}];\n\nfor (const mode of ['local', 'remote']) {\n  test(`authored Graph source preserves parallel edges through snapshot and ${mode} Result`,\n    {timeout: 60_000}, async t => {\n      const directory = await mkdtemp(new URL(`${mode}-`, scratch));\n      const events = [];\n      const completed = new Map();\n      const waiters = new Map();\n      const keys = generateKeyPairSync('ed25519');\n      const authorization = {\n        accountConfiguration: canonicalText({\n          version: 'actql-execution-account-config/0.1', account_id: 'source-snapshot-owner',\n          entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true},\n            connection: {all: true}, resource: {all: true}, operation: {all: true}, exclusions: []}],\n        }),\n        hostKey: {keyId: 'source-snapshot-host',\n          privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},\n        reviewers: [{keyId: 'source-snapshot-reviewer', reviewerId: 'source-snapshot-reviewer',\n          principalId: userInfo().username,\n          publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],\n        faultInjection(name, detail) {\n          events.push(name);\n          if (name === 'computed') {\n            completed.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);\n            waiters.get(detail.ref.runDefinitionCid)?.();\n          }\n        },\n      };\n      let client;\n      if (mode === 'local') {\n        client = await connectEmbeddedLocal({mode, owner: 'local', installation: {directory, authorization}});\n      } else {\n        const host = await openInstalledRemoteHttpHost({directory, authorization,\n          authenticate: header => header === 'Bearer source-snapshot-token' ? userInfo().username : undefined});\n        t.after(() => host.close());\n        let material;\n        if (packed) {\n          const read = name => readFile(new URL(`./tls/${name}`, import.meta.url));\n          material = {ca: await read('ca.crt'), siteKey: await read('site.key'),\n            siteCertificate: await read('site.crt')};\n        } else {\n          const {certificates} = await import('../adapters/site-node/https-agent-harness.mjs');\n          material = await certificates(await mkdtemp(new URL('tls-', scratch)));\n        }\n        const previousCAs = getCACertificates('default');\n        setDefaultCACertificates([...previousCAs, material.ca.toString('utf8')]);\n        t.after(() => setDefaultCACertificates(previousCAs));\n        const server = createServer({key: material.siteKey, cert: material.siteCertificate}, host.handler);\n        await new Promise((resolve, reject) => {\n          server.once('error', reject);\n          server.listen(0, '127.0.0.1', resolve);\n        });\n        t.after(async () => {\n          server.closeAllConnections();\n          await new Promise(resolve => server.close(resolve));\n        });\n        client = await connect({mode, endpoint: `https://127.0.0.1:${server.address().port}/`,\n          token: 'source-snapshot-token'});\n      }\n      t.after(() => client.close());\n      const requestId = `source-snapshot-${mode}`;\n      const run = await client.startSource(source, {format: 'aql-text', requestId});\n      assert.equal((await run.wait()).status, 'succeeded');\n      assert.deepEqual(await run.result('paths').all(), expectedRows);\n      assert.deepEqual((await run.result('paths').describe()).columns, expectedColumns);\n      if (!completed.has(run.ref.runDefinitionCid)) {\n        await new Promise((resolve, reject) => {\n          const timer = setTimeout(() => {\n            waiters.delete(run.ref.runDefinitionCid);\n            reject(new Error('SourceSnapshotCompletionNotObserved'));\n          }, 15_000);\n          waiters.set(run.ref.runDefinitionCid, () => {clearTimeout(timer); resolve();});\n        });\n      }\n      const snapshots = completed.get(run.ref.runDefinitionCid);\n      assert.equal(snapshots.length, 1, 'one constructed Graph is saved and restored by the existing owner');\n      const [snapshot] = snapshots;\n      assert.match(snapshot.cid, /^sha256:[0-9a-f]{64}$/u);\n      assert.ok(snapshot.bytes > 0);\n      assert.equal(snapshot.verifiedReadBytes, snapshot.bytes);\n      assert.equal(snapshot.sourceReleased, true);\n      assert.equal(snapshot.restored, true);\n      assert.equal(snapshot.temporaryBodyReclaimed, true);\n      assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);\n      const beforeReuse = events.length;\n      assert.deepEqual(await (await client.attach(run.ref)).result('paths').all(), expectedRows);\n      assert.deepEqual((await client.startSource(source, {format: 'aql-text', requestId})).ref, run.ref);\n      assert.equal(events.length, beforeReuse, 'read/attach/request reuse dispatches no new work');\n      assert.equal(completed.size, 1);\n      t.diagnostic('Authored source → ordinary Host → saved/restored Graph → TRAIL Named Result; no independent exact snapshot CID claim');\n    });\n}\n",
+      "sha256": "ba8b6c0fd7c85ffb9b0ab02548c9cff67a1ba0c07c8e49685a953935fa16faa9"
+    }
+  }
+}

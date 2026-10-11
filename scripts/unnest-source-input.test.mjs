@@ -155,7 +155,7 @@ test('range/field collision controls distinguish receiver NULLs and current star
   }
 });
 
-test('scalar stars have independent typed empty expectations and preserve the DATA source', () => {
+test('scalar stars have independent typed empty expectations and preserve the WITH binding source', () => {
   const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
   const control = byName.get('unnest-json-control');
   for (const name of ['scalar-star-sql', 'scalar-star-pipe', 'scalar-star-data-binding']) {

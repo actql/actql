@@ -352,7 +352,7 @@ const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const dataSetStrategyInputs = {
-  // Retain main's independent JSON control once. The DATA source group shares
+  // Retain main's independent JSON control once. The WITH binding source group shares
   // this input rather than duplicating the same machine Program and run.
   successes: [{name: 'independent-ordered-data-set', format: 'json',
     text: await readFile('data-set-strategy-program.json', 'utf8'),
