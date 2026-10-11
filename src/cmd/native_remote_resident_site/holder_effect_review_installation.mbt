@@ -69,14 +69,21 @@ fn open_holder_effect_review_installation(
       publication.crypto,
       publication.key,
       () => {
-        match
-          original.journal.effect_checkpoint_report(
-            original.task.request,
-            publication.limits,
-          ) {
-          Ok(_) => false
-          Err(issue) => holder_catalog_checkpoint_missing(issue)
+        // Original/current holder custody is required independently of the
+        // resource DB. The existing Journal Owner checks exact original
+        // dispatch, grant, attempt, runtime, Site generation and use ID.
+        if !original.current() {
+          return Err(@journal.StaleSiteBinding)
         }
+        let retained = original.journal.effect_catalog_use(
+          original.task.request,
+          installed.grant,
+          installed.use_id,
+        )
+        if !original.current() {
+          return Err(@journal.StaleSiteBinding)
+        }
+        retained
       },
       publication,
     ),

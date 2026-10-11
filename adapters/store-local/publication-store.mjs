@@ -1060,7 +1060,10 @@ export async function openLocalPublicationStore(
         sameClockFile(lastClockObservation.state, before)) {
       return lastClockObservation.value;
     }
-    const bytes = await readFile(path);
+    // Keep this original metadata size as the receive ceiling, not merely the
+    // Store-wide limit. Growth cannot allocate a larger readFile buffer before
+    // the clock/cache mutation check below observes it.
+    const bytes = await readBounded(path, Number(before.size));
     const after = await lstat(path, {bigint: true});
     if (!sameClockFile(before, after)) fail('PublicationClockUncertain');
     let value;
