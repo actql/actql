@@ -96,8 +96,7 @@ test "Graph Delta source keeps invalid argument bodies at the common checker" {
         @pipeline.InvalidBody
       "apply_graph_delta(with: changes, field: 'missing')" =>
         @pipeline.Graph(UnknownDeltaField("missing"))
-      "apply_graph_delta(with: changes, field: 1)" =>
-        @pipeline.InvalidBody
+      "apply_graph_delta(with: changes, field: 1)" => @pipeline.InvalidBody
       _ => fail("undeclared malformed Delta control")
     }
     // The unified WITH owner runs the ordinary common static checker before

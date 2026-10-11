@@ -10,7 +10,12 @@ test "FULL explicit CTE projection matches an independent complete Program" {
     format=Json,
   ).unwrap()
   match
-    @check.check_parsed(staged_control, check_environment(), None, check_limits()) {
+    @check.check_parsed(
+      staged_control,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("the independent keyed FULL Program must be checked")
@@ -24,7 +29,8 @@ test "FULL explicit CTE projection matches an independent complete Program" {
     construction_limits().program,
     format=Json,
   ).unwrap()
-  match @check.check_parsed(expected, check_environment(), None, check_limits()) {
+  match
+    @check.check_parsed(expected, check_environment(), None, check_limits()) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("the independent unified WITH FULL Program must be checked")
