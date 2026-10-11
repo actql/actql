@@ -2947,8 +2947,8 @@ test('positive LIMIT operands retain the complete predecessor Values identity pr
   assert.equal(cid(prior.program_identity.definition), prior.program_identity.programCid);
   assert.equal(cid(prior.program_identity.semantics), prior.program_identity.semanticsCid);
   // Source sign support changes grammar-bound plans, not Values ownership.
-  assert.deepEqual(prior.values_dependencies, valuesDependencyOracle());
-  assert.equal(prior.program_identity.programCid, valuesProgramOracle().programCid);
+  // Later Scalar contracts change the current Values closure independently.
+  assertRetainedValuesInputs(prior);
 });
 
 
