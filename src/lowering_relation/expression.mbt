@@ -50,6 +50,7 @@ pub(all) enum UnaryOperator {
   ByteLength
   Unicode
   Chr
+  Reverse
   Upper
   Lower
   Trim
@@ -57,6 +58,7 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
   Exp
   Ln
   Log10
@@ -110,6 +112,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Repeat
   Split
   Substring
   LeftString
@@ -235,6 +238,7 @@ fn expression_tag(
     | "rtrim"
     | "floor"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -285,6 +289,8 @@ fn expression_tag(
     | "byte_length"
     | "unicode"
     | "chr"
+    | "reverse"
+    | "repeat"
     | "replace"
     | "split"
     | "substring"
@@ -356,6 +362,7 @@ fn expression_children(
     | "lower"
     | "floor"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -368,7 +375,7 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
-    "len" | "byte_length" | "unicode" | "chr" => [body]
+    "len" | "byte_length" | "unicode" | "chr" | "reverse" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -959,6 +966,7 @@ fn lower_typed_expression_measured(
           }
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
+        "cbrt" => Unary(Cbrt, args[0])
         "exp" => Unary(Exp, args[0])
         "ln" => Unary(Ln, args[0])
         "log10" => Unary(Log10, args[0])
@@ -981,6 +989,7 @@ fn lower_typed_expression_measured(
         "byte_length" => Unary(ByteLength, args[0])
         "unicode" => Unary(Unicode, args[0])
         "chr" => Unary(Chr, args[0])
+        "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
@@ -1033,6 +1042,7 @@ fn lower_typed_expression_measured(
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "repeat" => Many(Repeat, args)
         "split" => Many(Split, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)

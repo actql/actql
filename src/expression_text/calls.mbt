@@ -56,8 +56,10 @@ fn Parser::call(
     | "octet_length"
     | "unicode"
     | "chr"
+    | "reverse"
     | "len"
     | "sqrt"
+    | "cbrt"
     | "exp"
     | "ln"
     | "log10"
@@ -76,7 +78,8 @@ fn Parser::call(
     | "nfkc"
     | "case_fold" => (1, 1)
     "trim" | "ltrim" | "rtrim" | "round" | "trunc" | "log" => (1, 2)
-    "left"
+    "repeat"
+    | "left"
     | "right"
     | "contains"
     | "pow"

@@ -731,6 +731,7 @@ fn advance_expression_frame_impl(
             }
             if op == @lower.Split ||
               op == @lower.Replace ||
+              op == @lower.Repeat ||
               op == @lower.Substring ||
               op == @lower.LeftString ||
               op == @lower.RightString ||
@@ -740,7 +741,9 @@ fn advance_expression_frame_impl(
                 children.length() == 1 || children.length() == 2
               } else if op == @lower.Replace {
                 children.length() == 3
-              } else if op == @lower.LeftString || op == @lower.RightString {
+              } else if op == @lower.LeftString ||
+                op == @lower.RightString ||
+                op == @lower.Repeat {
                 children.length() == 2
               } else {
                 children.length() == 2 || children.length() == 3
@@ -752,6 +755,8 @@ fn advance_expression_frame_impl(
                 TextArguments({
                   kind: if op == @lower.Split {
                     TextSplit
+                  } else if op == @lower.Repeat {
+                    TextRepeat
                   } else if op == @lower.Replace {
                     TextReplace
                   } else if op == @lower.LeftString {
@@ -782,6 +787,7 @@ fn advance_expression_frame_impl(
               Concat
               | ConcatStrict
               | Replace
+              | Repeat
               | Split
               | Substring
               | LeftString
@@ -1138,6 +1144,7 @@ fn advance_expression_frame_impl(
               op == @lower.ByteLength ||
               op == @lower.Unicode ||
               op == @lower.Chr ||
+              op == @lower.Reverse ||
               op == @lower.Upper ||
               op == @lower.Lower ||
               op == @lower.Trim ||
@@ -1154,6 +1161,8 @@ fn advance_expression_frame_impl(
                     TextByteLength
                   } else if op == @lower.Unicode {
                     TextUnicode
+                  } else if op == @lower.Reverse {
+                    TextReverse
                   } else if op == @lower.Chr {
                     TextChr
                   } else if op == @lower.Upper {
@@ -1513,6 +1522,7 @@ fn advance_expression_frame_impl(
             }
             let combined = match op {
               Replace
+              | Repeat
               | Split
               | Substring
               | LeftString

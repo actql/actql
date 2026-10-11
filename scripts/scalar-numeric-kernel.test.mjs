@@ -10,7 +10,7 @@ test('scalar Owner selects one pinned portable numeric source on every target', 
   assert.equal(manifest.toolchain, '0.10.12+1634b282e');
   assert.equal(manifest.files.length, 9);
   const laws = JSON.parse(read('spec/contracts/actql-expressions.json')).laws;
-  for (const name of ['pow', 'exp', 'ln', 'log', 'log10']) {
+  for (const name of ['pow', 'exp', 'ln', 'log', 'log10', 'cbrt']) {
     assert.ok(laws[name].algorithm.includes('sha256:' + sha(read('src/scalar_numeric_kernel/upstream.json'))));
   }
   for (const file of manifest.files) {
