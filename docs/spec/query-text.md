@@ -1674,6 +1674,13 @@ checker and physical assertion owner validate non-null, present, unique tuples
 before a consumer can use their key evidence. Assertion success preserves every
 row and its order; it never deduplicates. An empty key tuple is rejected.
 
+In the supported equality-key JOIN profile, grouping parentheses around either
+key reference preserve the same resolved column or scalar value-table receiver.
+`ON (l.id) = ((r.id))` uses the same key mapping as `ON l.id = r.id`, including
+conjunctions of keys. Grouping alone does not make arithmetic, a cast, an object
+or a whole ordinary row into a supported JOIN key; existing key comparability,
+NULL matching, range precedence and output ceilings remain unchanged.
+
 An optional `MAX_OUTPUT_ROWS positive_integer` suffix on each JOIN retains its
 existing `max_output_rows` author guard. The integer must be exactly representable
 in the safe integer range. Lowering rejects a guard above its admitted frontend

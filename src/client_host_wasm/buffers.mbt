@@ -41,6 +41,7 @@ priv struct Instance {
   native_attempts : Map[Int, StoredNativeAttempt]
   native_commands : Map[Int, StoredNativeCommand]
   computes : Map[Int, StoredNativeCompute]
+  source_publications : Map[Int, StoredSourcePublication]
   tasks : Map[Int, StoredManagedTask]
   result_exports : Map[Int, StoredResultExport]
   result_chunks : Map[Int, StoredResultChunk]
@@ -148,6 +149,7 @@ pub fn open(
         native_attempts: {},
         native_commands: {},
         computes: {},
+        source_publications: {},
         tasks: {},
         result_exports: {},
         result_chunks: {},
@@ -309,6 +311,7 @@ pub fn close_pool(nonce : Int64) -> Int {
   // their existing stop/cleanup boundary before the Root can be closed.
   if !value.native_attempts.is_empty() ||
     !value.computes.is_empty() ||
+    !value.source_publications.is_empty() ||
     !value.tasks.is_empty() ||
     !value.result_exports.is_empty() ||
     !value.result_chunks.is_empty() {
@@ -342,6 +345,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.native_attempts.clear()
     value.native_commands.clear()
     value.computes.clear()
+    value.source_publications.clear()
     value.tasks.clear()
     value.result_exports.clear()
     value.result_chunks.clear()

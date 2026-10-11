@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 16; this private ABI
+before opening the instance. `actql_host_abi_version` returns 17; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 16 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 17 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -766,3 +766,24 @@ Each clock advance uses one physical CAS; conflict or lost acknowledgement is
 unknown and does not cause an automatic retry. The physical generation is not
 a Run revision. Current account/scope evaluation remains mandatory on each Core
 projection; an old authenticator is not a permanent authorization grant.
+
+### Captured Source publication facts
+
+Private ABI 17 borrows the original Native capture from its configured Compute
+Host. Source identity uses the existing bounded Relation identity frame. Each
+advance retains its cursor, limits, cancellation and monotone logical work; it
+neither reacquires the Source nor releases the acquisition reservation. The
+retained-wire representation continues to use its own existing identity path.
+
+The portable Local wrapper issues logical input and Source evidence using the
+existing checked graph, exact capture, Catalog membership and Source issuers.
+It checks current read authority before preparation and again after the final
+yield. Authority scope and effective policy come from the original Run and
+checked Source facts, not authored input or arbitrary caller CIDs.
+
+A Source projection reserves its complete 64 KiB output and physical-copy
+allowance before encoding. It pins the original Compute/acquisition until
+explicit close succeeds. Failed output cleanup or input stop retains the same
+child handle; successful output cleanup is not repeated. These typed facts
+are inputs to the existing invocation/publication chain, not Run admission,
+terminal success, durable Result publication or recovery permission.
