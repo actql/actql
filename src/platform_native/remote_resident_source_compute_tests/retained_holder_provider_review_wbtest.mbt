@@ -5,6 +5,7 @@ fn retained_holder_review_policy(
   holder : @resident.ResidentRetainedConsumer,
   inputs : @strategy.CapturedEffectInputs,
   invocation : @publication.PublicationContract,
+  mapped_create? : Bool = false,
 ) -> @effect_provider.NativeResidentEffectReviewPolicy raise {
   let dispatch = @resident.resident_retained_consumer_request(holder)
   let mut result_index = -1
@@ -15,21 +16,37 @@ fn retained_holder_review_policy(
   }
   assert_true(result_index >= 0)
   let binding = {
-    ..provider_binding(),
+    ..(if mapped_create {
+      native_mapped_create_binding()
+    } else {
+      provider_binding()
+    }),
     run_invocation_cid: @publication.publication_contract_identity(invocation),
     dispatch_request_cid: @remote.dispatch_request_identity(dispatch),
   }
-  let catalog = provider_catalog(binding)
+  let catalog = if mapped_create {
+    native_mapped_create_catalog(binding)
+  } else {
+    provider_catalog(binding)
+  }
   {
     stage: 1,
     effect_id: "save",
     result_index,
-    mapping: provider_mapping(),
+    mapping: if mapped_create {
+      native_mapped_create_mapping()
+    } else {
+      provider_mapping()
+    },
     projection: @catalog.prepare_write_projection(
       catalog,
       binding,
       "ActQL_Test_Record__c",
-      @catalog.WriteUpdateById,
+      if mapped_create {
+        @catalog.WriteCreate
+      } else {
+        @catalog.WriteUpdateById
+      },
       ["Count__c"],
       1,
     ).unwrap(),
