@@ -857,6 +857,41 @@ parent revokes binding issuance. Issuance alone proves neither physical retentio
 Store commit, publication permission nor a Run outcome. A durable Store must
 still verify its actual payload and current publication authority separately.
 
+### Original checked publication intent and preflight
+
+`prepare_local_publication_intent` reads every Named Result name and producer
+from the original LocalRunPlan's checked graph. The existing checked inventory
+Owner creates their Result definitions, and the existing publication issuers
+create the request and attempt. No supplied subset, semantic JSON or replacement
+Result definition enters this path. A Host-selected inventory limit rejects the
+whole preparation when exceeded; it never shortens the inventory. Result names
+retain the existing Result Definition Owner's canonical-text requirements.
+The Host supplies the original fence CID and optional external idempotency key
+to the existing attempt issuer. This fixes intent; it does not prove a live fence
+or turn an idempotency key into permission to repeat an unknown operation.
+
+`check_local_source_publication_preflight` requires the exact captured Source
+invocation and its original plan. It checks current Run and Source access and
+live Source identity, then delegates the complete immutable scope to the existing
+publication preflight. Preparation must precede the first Compute activation;
+an active or completed Compute frontier or a pending activation grant is
+refused. The Host must retain this preparation before invoking its existing
+task activation Owner.
+
+The resulting opaque LocalPublicationPreflight retains the original intent,
+invocation and a copy of the aligned retention array. Mutable policy arrays are
+not exposed. `issue_local_preflight_result_publication` checks the exact Result
+definition and derives its retention from that preparation, then calls the
+existing completed-output and Local Result publication Owners. It rechecks
+current access and live Source custody, so an old preparation is not permanent
+authority. Preparation performs no Source acquisition or Compute activation.
+
+These facts grant neither Run admission nor Store publication permission. The
+physical publisher must separately check its current publication authority and
+durable transaction boundary. The preparation's original admission, compiled
+plan, Program definition, Source logical input, policy and authority references
+must remain bound through final Receipt, Captured Run and commit validation.
+
 ### Original publication commit validation
 
 Private ABI 20 adds `actql_publication_prepare_commit`,
