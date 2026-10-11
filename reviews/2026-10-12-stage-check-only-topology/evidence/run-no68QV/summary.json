@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-10-11T17:40:36.733Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "checked-topology-pinned-interface",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/relation_results",
+        "src/stage_results",
+        "src/pipeline_check_context"
+      ],
+      "startedAt": "2026-10-11T17:40:36.816Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:40:40.937Z",
+      "endedAt": "2026-10-11T17:40:40.973Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "43957f18-75a9-4179-b0d7-aa2cd0d665de",
+    "pid": 57930,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+    "startedAt": "2026-10-11T17:40:36.809Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/_build/local-checks/attempts/run-no68QV"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-1b19ab159a259a7241ded8424dc718f1fdf88fee1ad239f513cb5fe4317f5b51.lock"
+  ],
+  "endedAt": "2026-10-11T17:40:41.094Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

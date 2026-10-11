@@ -1,0 +1,49 @@
+{
+  "startedAt": "2026-10-11T17:44:42.611Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "selected moon tests",
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/stage_results/checked_topology_test.mbt",
+        "src/pipeline_check_context/checked_topology_test.mbt"
+      ],
+      "startedAt": "2026-10-11T17:44:42.694Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T17:44:49.056Z",
+      "endedAt": "2026-10-11T17:44:49.058Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "f084d198-0177-4ae6-b6e1-84f4a4a10b58",
+    "pid": 61326,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology",
+    "startedAt": "2026-10-11T17:44:42.689Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/_build/local-checks/attempts/run-gv16xF"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-1b19ab159a259a7241ded8424dc718f1fdf88fee1ad239f513cb5fe4317f5b51.lock"
+  ],
+  "endedAt": "2026-10-11T17:44:49.126Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
