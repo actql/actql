@@ -3429,7 +3429,17 @@ fn serve_holder_output(
               guard tasks.get(output_identity) is Some(output_task) &&
                 !output_task.released &&
                 !output_task.release_requested &&
-                output_task.executed is Some(output_owner) else {
+                holder_result_output(output_task, effect_resume_configuration, () => {
+                  exclusive_current() &&
+                  effect_evidence_read(output_task.request) &&
+                  @resident.check_resident_dispatch_delegation(
+                    delegation,
+                    output_task.request,
+                    @site.site_generation(environment.site),
+                  )
+                  is Ok(_)
+                })
+                is Some(output_owner) else {
                 report("output-plan-failed", [("reason", "foreign-dispatch")])
                 continue
               }
@@ -3487,7 +3497,17 @@ fn serve_holder_output(
               guard tasks.get(output_identity) is Some(output_task) &&
                 !output_task.released &&
                 !output_task.release_requested &&
-                output_task.executed is Some(output_owner) else {
+                holder_result_output(output_task, effect_resume_configuration, () => {
+                  exclusive_current() &&
+                  effect_evidence_read(output_task.request) &&
+                  @resident.check_resident_dispatch_delegation(
+                    delegation,
+                    output_task.request,
+                    @site.site_generation(environment.site),
+                  )
+                  is Ok(_)
+                })
+                is Some(output_owner) else {
                 report("output-plan-failed", [("reason", "foreign-dispatch")])
                 continue
               }

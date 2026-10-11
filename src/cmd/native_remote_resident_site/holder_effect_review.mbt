@@ -217,3 +217,37 @@ fn execute_holder_effect_resume(
     }
   }
 }
+
+///|
+/// Route the retained Result through the original Review's saved-response and
+/// final Receipt Owners. The ordinary output path stays unchanged; an Effect
+/// computation with no installed Review never acquires a Result identity here.
+fn holder_result_output(
+  task : HolderTaskCustody,
+  configuration : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectResumeConfiguration?,
+  authorize_evidence_read : () -> Bool,
+) -> @resident_host.ResidentExecuted? {
+  if task.released || task.release_requested {
+    return None
+  }
+  match task.effect_review {
+    None => task.executed
+    Some(review) => {
+      guard configuration(task.request) is Some(installed) else { return None }
+      match
+        review.completed_result_output(
+          authorize_evidence_read,
+          installed.limits,
+        ) {
+        Ok((executed, _)) => Some(executed)
+        Err(_) => {
+          report("effect-output-pending", [
+            ("request_cid", @remote.dispatch_request_identity(task.request)),
+            ("reason", "original-custody"),
+          ])
+          None
+        }
+      }
+    }
+  }
+}

@@ -78,6 +78,12 @@ fn retained_holder_write_row(
       limits,
     )
   }
+  // A completed computation and a signed proposal do not expose a Named Result
+  // before the original row outcome and final Receipt chain are available.
+  assert_true(
+    work.completed_result_output(() => true, limits)
+    is Err(Row(ReconciliationRequired)),
+  )
   let delivery = @remote.prepare_remote_effect_resume_delivery(
     report,
     resolution,
@@ -453,6 +459,10 @@ fn retained_holder_write_row(
   )
   assert_true(work.settle_saved_row(limits) is Err(Journal(Physical(_))))
   assert_true(work.retry_approved_row_custody() is Err(Journal(Physical(_))))
+  assert_true(
+    work.completed_result_output(() => true, limits)
+    is Err(Row(Journal(Physical(_)))),
+  )
   assert_eq(retry_accesses.val, 0)
   mark("terminal-failure-start")
   assert_true(
@@ -626,6 +636,26 @@ fn retained_holder_write_row(
     ).unwrap(),
     0,
   )
+  assert_true(
+    work.completed_result_output(() => false, limits) is Err(EvidenceDenied),
+  )
+  let (published_output, published_completion) = work
+    .completed_result_output(() => true, limits)
+    .unwrap()
+  assert_eq(
+    @remote.dispatch_request_identity(published_output.request),
+    work.dispatch_identity(),
+  )
+  assert_eq(
+    published_output.result_definition_cid,
+    Some(@publication.publication_contract_identity(result.definition)),
+  )
+  assert_eq(
+    @publication.publication_contract_json(published_completion.final_receipt),
+    @publication.publication_contract_json(completion.final_receipt),
+  )
+  assert_eq(retry_accesses.val, 0)
+  assert_eq(consumer.usage().reserved_retention_bytes, before)
   mark("repeated-receipts-start")
   let repeated_completion = work
     .complete_saved_effect(() => true, limits)
