@@ -85,6 +85,11 @@ def call(family, name, *args):
     return fixture.exports['actql_' + family + '_' + name](fixture.store, fixture.nonce, *args)
 
 
+def assert_status(family, name, expected, *args):
+    actual = call(family, name, *args)
+    assert actual == expected, (family, name, 'expected', expected, 'actual', actual)
+
+
 def publication_policy():
     return frozen_publication_policy(root)
 
@@ -501,8 +506,8 @@ try:
             assert pending_publication > 0
             pending_status = call('publication', 'prepare', pending_publication, configuration)
             assert pending_status == -2, ('Unfinished Result publication prepare', pending_status)
-            assert call('publication', 'length', pending_publication) == -33
-            assert call('publication', 'close', pending_publication) == 0
+            assert_status('publication', 'length', -33, pending_publication)
+            assert_status('publication', 'close', 0, pending_publication)
             publication_cases.append('unfinished_original_result_export_cannot_attest_publication')
         for _ in range(100):
             ticket += 1
@@ -539,9 +544,9 @@ try:
 
             for supplied, code in ((None, -31), ([], -31), ([result, result], -2), ([tasks[0]], -2)):
                 value = publication_loan(results=supplied)
-                assert call('publication', 'prepare', value, configuration) == code
-                assert call('publication', 'length', value) == -33
-                assert call('publication', 'close', value) == 0
+                assert_status('publication', 'prepare', code, value, configuration)
+                assert_status('publication', 'length', -33, value)
+                assert_status('publication', 'close', 0, value)
             publication_cases.append('null_empty_duplicate_foreign_result_inventory_refused')
             missing = copy({'retention': retention_wire, 'max_work': 100,
                             'max_workspace_slots': 100000})
@@ -549,19 +554,28 @@ try:
             fixture.inputs[ticket] = b''
             value = call('publication', 'reserve', source_pin, missing, ticket, 2097200)
             assert value > 0
-            assert call('publication', 'prepare', value, configuration) == -31
-            assert call('publication', 'length', value) == -33
-            assert call('publication', 'close', value) == 0
+            assert_status('publication', 'prepare', -31, value, configuration)
+            assert_status('publication', 'length', -33, value)
+            assert_status('publication', 'close', 0, value)
             publication_cases.append('absent_inventory_is_not_null_or_full_inventory')
             exhausted = publication_loan(max_work=1)
-            assert call('publication', 'prepare', exhausted, configuration) == 0
-            assert call('publication', 'finish', exhausted, configuration) == -7
-            assert call('publication', 'advance', exhausted, configuration, 1) == 0
-            assert call('publication', 'advance', exhausted, configuration, 1) == -32
-            assert call('publication', 'progress', exhausted, 2) == 1
-            assert call('publication', 'length', exhausted) == -33
-            assert call('publication', 'close', exhausted) == 0
+            assert_status('publication', 'prepare', 0, exhausted, configuration)
+            assert_status('publication', 'finish', -7, exhausted, configuration)
+            assert_status('publication', 'advance', 0, exhausted, configuration, 1)
+            assert_status('publication', 'advance', -32, exhausted, configuration, 1)
+            assert_status('publication', 'progress', 1, exhausted, 2)
+            assert_status('publication', 'length', -33, exhausted)
+            assert_status('publication', 'close', 0, exhausted)
             assert call('compute', 'configured', compute) == 0
+            # An issued projection belongs to its original retention body.
+            # A new child may borrow it, but cannot substitute another policy.
+            foreign_retention = json.loads(expected['retention_preimage'])
+            foreign_retention['clock_contract_cid'] = 'sha256:' + '8' * 64
+            foreign_retention['effective_retention_policy_cid'] = 'sha256:' + hashlib.sha256(encode(foreign_retention)).hexdigest()
+            foreign = publication_loan(retention=encode(foreign_retention).decode())
+            assert_status('publication', 'prepare', -32, foreign, configuration)
+            assert_status('publication', 'length', -33, foreign)
+            assert_status('publication', 'close', 0, foreign)
             publication_cases.append('unfinished_budget_refusal_retains_work_and_original_compute')
             denied_account = json.loads(account)
             denied_account['entries'][0]['outcome'] = 'deny'
@@ -569,16 +583,16 @@ try:
                 **CONFIGURATION, 'account': encode(denied_account).decode()}))
             assert denied_configuration > 0
             revoked = publication_loan()
-            assert call('publication', 'prepare', revoked, configuration) == 0
-            assert call('publication', 'prepare', revoked, denied_configuration) == -32
-            assert call('publication', 'advance', revoked, denied_configuration, 7) == -32
-            assert call('publication', 'length', revoked) == -33
-            assert call('publication', 'close', revoked) == 0
+            assert_status('publication', 'prepare', 0, revoked, configuration)
+            assert_status('publication', 'prepare', -32, revoked, denied_configuration)
+            assert_status('publication', 'advance', -32, revoked, denied_configuration, 7)
+            assert_status('publication', 'length', -33, revoked)
+            assert_status('publication', 'close', 0, revoked)
             publication_cases.append('current_authority_checked_before_each_owner_yield')
             expected_work = expected_body = None
             for quantum in (7, 100):
                 value = publication_loan()
-                assert call('publication', 'prepare', value, configuration) == 0
+                assert_status('publication', 'prepare', 0, value, configuration)
                 spent = 0
                 for _ in range(100000):
                     advanced = call('publication', 'advance', value, configuration, quantum)
@@ -594,11 +608,11 @@ try:
                 if expected_work is None:
                     expected_work = spent
                 assert spent == expected_work
-                assert call('publication', 'finish', value, denied_configuration) == -32
-                assert call('publication', 'length', value) == -33
-                assert call('publication', 'finish', value, configuration) == 0
-                assert call('publication', 'finish', value, denied_configuration) == -32
-                assert call('publication', 'finish', value, configuration) == 0
+                assert_status('publication', 'finish', -32, value, denied_configuration)
+                assert_status('publication', 'length', -33, value)
+                assert_status('publication', 'finish', 0, value, configuration)
+                assert_status('publication', 'finish', -32, value, denied_configuration)
+                assert_status('publication', 'finish', 0, value, configuration)
                 size = call('publication', 'length', value)
                 assert 0 < size <= 1048576
                 body = json.loads(bytes(fixture.call('byte', value, index) for index in range(size)))
@@ -632,13 +646,13 @@ try:
                     # same child output and reader cleanup both succeed.
                     assert call('result', 'close', result) == -9
                     assert call('source_publication', 'close', source_pin) == -9
-                    assert call('publication', 'finish', value, configuration) == -32
+                    assert_status('publication', 'finish', -32, value, configuration)
                 fixture.cleanup_ready = False
                 reserved = fixture.call('reserved')
-                assert call('publication', 'close', value) == -9
+                assert_status('publication', 'close', -9, value)
                 assert fixture.call('reserved') == reserved
                 fixture.cleanup_ready = True
-                assert call('publication', 'close', value) == 0
+                assert_status('publication', 'close', 0, value)
                 assert call('compute', 'configured', compute) == 0
                 publication_cases.append('quantum_' + str(quantum) + '_exact_snapshot_manifest_receipt_capture_and_cleanup')
             assert call('run', 'close_configuration', denied_configuration) == 0
