@@ -53,6 +53,7 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
   const port = createSdkModelPreflight({moon, request, preparation: handle,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n,
       durationMs: 500n}, responseLimits: limits, checked: value => value,
+    observeAt: () => '2026-10-12T00:00:00.000Z',
     notify() { state.wakes++; }, fetch(url, init) {
       state.calls++;
       assert.equal(url, 'https://fixture.invalid/v1/chat/completions');
@@ -95,6 +96,7 @@ test('real SDK preflight retains one plan and starts only its original consumed 
   const observed = await until(() => call.poll(), value => value.kind === 'chat');
   assert.deepEqual(observed.value.originalRaw.body, new Uint8Array(originalBytes));
   assert.equal(observed.value.originalRaw.transportComplete, true);
+  assert.equal(observed.value.originalRaw.observedAt, '2026-10-12T00:00:00.000Z');
   assert.equal(f.state.saves, 1);
   assert.equal(call.poll().value, observed.value);
   await release(f);

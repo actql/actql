@@ -7,9 +7,11 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 // by the original Run Ledger before this port is installed. No budget, grant,
 // execution state or scheduler is inferred here. Common owns every transition.
 export function createSdkModelPreflight({moon, request, preparation, profile,
-  installation, quantities, fetch, responseLimits, persistRaw, notify, checked}) {
+  installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
+  observeAt}) {
   if (typeof fetch !== 'function' || typeof persistRaw !== 'function' ||
-      typeof notify !== 'function' || typeof checked !== 'function') {
+      typeof notify !== 'function' || typeof checked !== 'function' ||
+      typeof observeAt !== 'function') {
     throw new TypeError('InvalidSdkModelPort');
   }
   let prepared;
@@ -82,7 +84,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     // Freeze fetch/init/bounds before Common consumes its one-shot Entry.
     preparationTerminal = true;
     try {
-      prepareSdkTransport(preparation, {fetch, responseLimits});
+      prepareSdkTransport(preparation, {fetch, responseLimits, observeAt});
       plan = checked(moon.clientProgramModelAsyncPhysicalRequestPlan(request,
         BigInt(original.requestBytes), quantities.tokens, quantities.costUnits,
         quantities.durationMs, profile, installation, start));

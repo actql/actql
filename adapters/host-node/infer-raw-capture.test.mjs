@@ -7,7 +7,8 @@ import {createHash} from 'node:crypto';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
-import {createModelRawCaptureStorePort} from './infer-raw-capture.mjs';
+import {createModelRawCaptureStorePort, createModelRawTransportPersistence}
+  from './infer-raw-capture.mjs';
 
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const authority = digest('raw Store authority');
@@ -159,4 +160,76 @@ test('private raw Chat port retains invalid UTF8 saved receipt without issuing a
   assert.equal(port.holding.status().committed, true);
   assert.equal(await port.holding.abort(), false);
   await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('installed raw transport caller binds actual bytes and facts before same Store receipt', async t => {
+  const bytes = Buffer.from('{"opaque":"é\\r\\n"}', 'utf8');
+  const f = await fixture(t, {bytes});
+  const call = Object.freeze({original: Symbol('physical call double')});
+  const registration = Object.freeze({original: Symbol('installed capture double')});
+  const retained = [];
+  let observations = 0;
+  f.moon.clientProgramObserveInferRawCapture = (actual, installation, content,
+    count, status, eof, at) => {
+    assert.equal(actual, call);
+    assert.equal(installation, registration);
+    assert.equal(content, digest(bytes));
+    assert.equal(count, bytes.byteLength);
+    assert.equal(status, 200);
+    assert.equal(eof, true);
+    assert.equal(at, '2026-10-12T00:00:00.000Z');
+    observations++;
+    return {$tag: 1, _0: f.view};
+  };
+  const persist = createModelRawTransportPersistence({store: f.physical,
+    moon: f.moon, registration, retainHolding: port => retained.push(port)});
+  const saved = await persist(call, {body: bytes, status: 200,
+    transportComplete: true, observedAt: '2026-10-12T00:00:00.000Z'});
+  assert.equal(saved.receipt, f.receipt);
+  assert.equal(saved.response.body, bytes.toString('utf8'));
+  assert.equal(observations, 1);
+  assert.equal(retained.length, 1);
+  assert.equal(retained[0].holding.status().committed, true);
+  assert.equal(f.state.writes, 1);
+  assert.equal(f.state.acknowledgements, 1);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('missing Host clock or foreign Core call refuses before raw persistence', async t => {
+  const f = await fixture(t);
+  let observations = 0;
+  let holdings = 0;
+  f.moon.clientProgramObserveInferRawCapture = () => {
+    observations++;
+    return {$tag: 0, _0: {kind: 'ForeignCall'}};
+  };
+  const persist = createModelRawTransportPersistence({store: f.physical,
+    moon: f.moon, registration: {}, retainHolding: () => { holdings++; }});
+  await assert.rejects(persist({}, {body: f.bytes, status: 503,
+    transportComplete: false}), {message: 'MissingOriginalRawTransportFacts'});
+  assert.equal(observations, 0);
+  await assert.rejects(persist({}, {body: f.bytes, status: 503,
+    transportComplete: false, observedAt: '2026-10-12T00:00:00.000Z'}),
+  {code: 'MoonBitHostFailure'});
+  assert.equal(observations, 1);
+  assert.equal(holdings, 0);
+  assert.equal(f.state.writes, 0);
+});
+
+test('parent custody refusal keeps same cleanup handle and performs no Store write', async t => {
+  const f = await fixture(t);
+  f.moon.clientProgramObserveInferRawCapture = () => ({$tag: 1, _0: f.view});
+  const persist = createModelRawTransportPersistence({store: f.physical,
+    moon: f.moon, registration: {}, retainHolding: () => { throw 'custody refused'; }});
+  let originalCleanup;
+  await assert.rejects(persist({}, {body: f.bytes, status: 503,
+    transportComplete: false, observedAt: '2026-10-12T00:00:00.000Z'}), error => {
+    assert.equal(error.message, 'ModelRawCustodyPending');
+    assert.equal(error.rawCustodyRetained, true);
+    originalCleanup = error.cleanupHandle;
+    return true;
+  });
+  assert.equal(f.state.writes, 0);
+  assert.equal(f.state.acknowledgements, 0);
+  assert.equal(await originalCleanup.abort(), true);
 });

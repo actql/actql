@@ -1,6 +1,7 @@
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {createHash} from 'node:crypto';
 
 const tuple = (value, length) => {
   const fields = Array.isArray(value) ? value
@@ -84,4 +85,39 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
       }
     },
   });
+}
+
+// Trusted installed physical caller only. The parent retains this SAME Store
+// holding before persistence, including callback/save failures. Core admits
+// the descriptor from the original call and registration, not hand-built JSON.
+export function createModelRawTransportPersistence({store, moon, registration,
+  retainHolding}) {
+  if (typeof retainHolding !== 'function') throw new TypeError('MissingRawHoldingCustody');
+  return async (call, raw) => {
+    if (!(raw?.body instanceof Uint8Array) ||
+        typeof raw.transportComplete !== 'boolean' ||
+        typeof raw.observedAt !== 'string') {
+      throw new TypeError('MissingOriginalRawTransportFacts');
+    }
+    const contentCid = `sha256:${createHash('sha256').update(raw.body).digest('hex')}`;
+    const view = checked(moon.clientProgramObserveInferRawCapture(call,
+      registration, contentCid, raw.body.byteLength, raw.status,
+      raw.transportComplete, raw.observedAt));
+    const port = createModelRawCaptureStorePort(store, moon, view, raw.body);
+    try {
+      // Outside Entry/commit boundaries. This transfers cleanup responsibility,
+      // not permission to enter, persist, disclose or publish an answer.
+      retainHolding(port);
+      // No extra provider metadata was observed by this physical profile.
+      // Unknown response fields remain in the authenticated raw Artifact.
+      return await port.persistChat(undefined);
+    } catch (error) {
+      const retained = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error
+        : new Error('ModelRawCustodyPending', {cause: error});
+      retained.rawCustodyRetained = true;
+      retained.cleanupHandle ??= port.holding;
+      throw retained;
+    }
+  };
 }
