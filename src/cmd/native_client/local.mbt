@@ -103,7 +103,9 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     operation == "connect" ||
     operation == "new-submission" ||
     operation == "lookup-submission" ||
+    operation == "checkpoint-state" ||
     operation == "lookup-preparation-grant" ||
+    operation == "lookup-preparation-raw" ||
     operation == "lookup-cancellation" ||
     operation == "cancel" ||
     operation == "delivery-attempt" ||

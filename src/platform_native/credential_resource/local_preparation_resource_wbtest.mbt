@@ -291,6 +291,26 @@ test "Native Preparation installation never borrows Remote or Resume authorizati
     )
     is Err(@sqlite.NotFound),
   )
+  // A valid current Work/installation without raw Store custody cannot use
+  // the former unretained GET path. No ordinal or original use is consumed.
+  assert_true(
+    call_native_local_preparation_credential_resource_guarded_request_at_path(
+      prep_only,
+      grant,
+      "missing-raw-before-entry",
+      preparation,
+      preparation.request_path,
+      () => true,
+    )
+    is Err(InvalidConfiguration),
+  )
+  assert_true(
+    database.read(
+      use_scope(@credential.local_preparation_credential_grant_cid(grant)),
+      "missing-raw-before-entry",
+    )
+    is Err(@sqlite.NotFound),
+  )
   assert_true(client.close())
   writer.cancel().unwrap()
   database.close_checked().unwrap()

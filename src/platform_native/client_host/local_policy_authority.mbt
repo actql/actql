@@ -1,13 +1,20 @@
 ///|
 // Only this Native Host assembly constructs the authority binding. No public
 // operation accepts a caller-provided allow callback inside a transaction.
+priv enum NativeLocalPolicyAuthorityPurpose {
+  SubmitOriginals
+  ReadRunMaterials
+  ReadResultPolicy(String)
+}
+
+///|
 priv struct NativeLocalPolicyAuthority {
   host : NativeLocalHostConnection
   crypto : @crypto.Library
   principal : String
   connection : String
   scope : String
-  result_name : String?
+  purpose : NativeLocalPolicyAuthorityPurpose
 }
 
 ///|
@@ -27,7 +34,10 @@ fn NativeLocalPolicyAuthority::current_for(
     scope == self.scope) {
     return false
   }
-  let operation = if self.result_name is None { "submit" } else { "read" }
+  let operation = match self.purpose {
+    SubmitOriginals => "submit"
+    ReadRunMaterials | ReadResultPolicy(_) => "read"
+  }
   if !(self.host.authorize({
       principal: self.principal,
       connection: self.connection,
@@ -37,9 +47,9 @@ fn NativeLocalPolicyAuthority::current_for(
     is Ok(@authorization.Allow(_))) {
     return false
   }
-  match self.result_name {
-    None => true
-    Some(name) =>
+  match self.purpose {
+    SubmitOriginals | ReadRunMaterials => true
+    ReadResultPolicy(name) =>
       self.host.authorize({
         principal: self.principal,
         connection: self.connection,
@@ -51,15 +61,16 @@ fn NativeLocalPolicyAuthority::current_for(
 }
 
 ///|
-fn native_local_policy_authority(
+fn native_local_policy_authority_for(
   host : NativeLocalHostConnection,
   crypto : @crypto.Library,
   principal : String,
   connection : String,
   request : @host.ClientRequestIdentity,
-  result_name : String?,
+  purpose : NativeLocalPolicyAuthorityPurpose,
 ) -> Result[NativeLocalPolicyAuthority, NativeClientRunJournalIssue] {
-  if result_name is Some(name) && (name.is_empty() || name.length() > 128) {
+  if purpose is ReadResultPolicy(name) &&
+    (name.is_empty() || name.length() > 128) {
     return Err(AuthorizationDenied)
   }
   let authority : NativeLocalPolicyAuthority = {
@@ -68,12 +79,35 @@ fn native_local_policy_authority(
     principal,
     connection,
     scope: @host.client_request_authority_scope_cid(request),
-    result_name,
+    purpose,
   }
   if !authority.current_for(host.journal, request) {
     return Err(AuthorizationDenied)
   }
   Ok(authority)
+}
+
+///|
+// Preserve the existing submit and named-Result Policy entry semantics.
+fn native_local_policy_authority(
+  host : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  result_name : String?,
+) -> Result[NativeLocalPolicyAuthority, NativeClientRunJournalIssue] {
+  native_local_policy_authority_for(
+    host,
+    crypto,
+    principal,
+    connection,
+    request,
+    match result_name {
+      None => SubmitOriginals
+      Some(name) => ReadResultPolicy(name)
+    },
+  )
 }
 
 ///|
