@@ -767,7 +767,8 @@
         "|> ASSERT UNIQUE BY (fields)",
         "|> DISTINCT",
         "|> PIVOT",
-        "|> UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value FOR name IN (columns)) [AS alias]"
+        "|> UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value FOR name IN (columns)) [AS alias]",
+        "|> UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] ((values) FOR name IN ((columns) [AS label], ...)) [AS alias]"
       ],
       "canonical_lowering": "shared Query AST and ordinary Steps",
       "preconditions": [
@@ -775,7 +776,7 @@
         "range-alias preservation",
         "DISTINCT compares visible value slots and preserves only surviving range columns",
         "PIVOT retains current unaggregated keys and authored result column order; common checker owns type and NULL rules",
-        "single-value UNPIVOT replaces the input range scope and uses the common exact type/nullability contract; default excludes SQL NULL"
+        "UNPIVOT replaces the input range scope and uses the common exact type/nullability contract for corresponding positions; multi-column default excludes only all-NULL tuples"
       ],
       "spec_section": "7.2-7.4",
       "execution_evidence_ids": [],
