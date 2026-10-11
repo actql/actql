@@ -26,10 +26,10 @@ test('main-only advance does not invalidate an unchanged PR head', async () => {
   assert.equal(result.revision, head);
   assert.deepEqual(calls, ['pull/123/head']);
 });
-test('push and dispatch admission compare the exact ref with tested SHA', async () => {
+test('working-branch push and dispatch admission retain the latest-ref guard', async () => {
   for (const event of ['push', 'workflow_dispatch']) {
-    const context = {...env, GITHUB_EVENT_NAME: event, GITHUB_REF: 'refs/heads/main'};
-    assert.deepEqual(revisionToCheck(context, {}), {ref: 'heads/main', expected: merge});
+    const context = {...env, GITHUB_EVENT_NAME: event, GITHUB_REF: 'refs/heads/feature'};
+    assert.deepEqual(revisionToCheck(context, {}), {ref: 'heads/feature', expected: merge});
     await assertCurrentRevision(context, {}, async () => merge);
     await assert.rejects(assertCurrentRevision(context, {}, async () => newer), /superseded/u);
   }
@@ -130,4 +130,39 @@ test('failed, skipped, cancelled or missing preflight cannot become a passing fi
   }
   delete results.preflight;
   assert.throws(() => verifyGate(plan, results, context), /inventory/u);
+});
+
+function mainFixture(event = 'push') {
+  return {context: {...env, GITHUB_EVENT_NAME: event, GITHUB_REF: 'refs/heads/main',
+    GITHUB_REPOSITORY_ID: '12', GITHUB_WORKFLOW_SHA: merge, GITHUB_WORKFLOW_REF: 'actql/actql/.github/workflows/ci.yml@refs/heads/main'},
+  body: {ref: 'refs/heads/main', after: merge, deleted: false,
+    repository: {id: 12, full_name: 'actql/actql', visibility: 'public', private: false}}};
+}
+test('authenticated fixed main push and dispatch finish despite later main advancement', async () => {
+  for (const event of ['push', 'workflow_dispatch']) {
+    const {context, body} = mainFixture(event);
+    let lookups = 0;
+    assert.deepEqual(await assertCurrentRevision(context, body, async () => { lookups++; return newer; },
+      {checkoutRevision: merge}), {ref: 'heads/main', revision: merge});
+    assert.equal(lookups, 0, 'moving main must not invalidate this immutable event checkout');
+  }
+});
+test('fixed main exception rejects missing or conflicting event, repository, workflow and checkout identities', async () => {
+  for (const mutate of [
+    f => { f.body.after = newer; }, f => { f.context.GITHUB_WORKFLOW_SHA = newer; }, f => { f.body.ref = 'refs/heads/feature'; },
+    f => { f.body.deleted = true; }, f => { delete f.body.deleted; },
+    f => { f.body.repository.id = 13; }, f => { f.body.repository.full_name = 'fork/actql'; },
+    f => { delete f.body.repository; }, f => { f.context.GITHUB_REPOSITORY_ID = ''; },
+    f => { f.context.GITHUB_WORKFLOW_REF = 'actql/actql/.github/workflows/ci.yml@refs/heads/feature'; },
+    f => { f.body.repository.private = true; }, f => { delete f.body.repository.visibility; },
+    f => { f.body.inputs = {performance_matrix: true}; },
+    f => { f.body.inputs = {packed_query_evidence_probe: 'true'}; },
+  ]) {
+    const f = mainFixture(); mutate(f);
+    await assert.rejects(assertCurrentRevision(f.context, f.body, async () => merge, {checkoutRevision: merge}));
+  }
+  const {context, body} = mainFixture();
+  for (const checkoutRevision of [null, newer, 'invalid']) {
+    await assert.rejects(assertCurrentRevision(context, body, async () => merge, {checkoutRevision}));
+  }
 });
