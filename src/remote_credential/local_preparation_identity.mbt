@@ -16,7 +16,7 @@ struct LocalPreparationFenceIdentity {
   fields : LocalPreparationFenceFields
   body : String
   cid : String
-}
+} derive(Eq, Debug)
 
 ///|
 pub fn prepare_local_preparation_fence_identity(

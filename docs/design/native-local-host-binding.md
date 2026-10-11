@@ -298,8 +298,8 @@ are not publicly callable: the actual checked Provider request and installation
 must still be supplied by the trusted Host assembly before a CLI grant operation
 can consume them. Stand-alone packet/custody fixture definitions do not prove
 Provider authorization, physical approval, crash recovery or public CLI success.
-The missing pre-approval target-observation fence remains a separate scoped
-ordering question; it is not supplied by inventing a future resume claim.
+Pre-approval target observation uses a distinct preparation fence issued at
+the original first-start boundary. It cannot borrow a future resume claim.
 
 Trusted Host assembly connects to the existing original Submission, pre-start
 Run persistence, checked Source/Compute, publication and Result Owners. Prepare
@@ -321,6 +321,31 @@ materials and unknown Effect responsibility. Metadata lookup does not reopen a
 payload, consume another read grant or send a Provider request. A new read is an
 explicit new operation; receipt-confirmed completion remains distinct from a
 delivered prefix or normal transport terminator.
+
+## Direct Local preparation credential identity
+
+The read-only preparation alternative retains the full original closed fence
+identity, including the Client request intent/scope, checked observation
+occurrence, actual Run invocation and Unit definition. Admission of its body or
+CID is an identity check only. Trusted Native assembly separately retains the
+opaque first-start witness from the original Work/journal and checks current
+permission and cancellation before protected I/O. Public identity constructors
+and decoders cannot issue or reconstruct that operational witness.
+
+`actql-local-preparation-credential-grant/0.1` uses the same finite Local grant
+field map, replacing `fence_claimant`, `fence_generation` and `fence_intent_cid`
+with `preparation_fence_cid`. The reader requires the full admitted original
+fence, matches its CID and original scope projections, and admits exact canonical
+bytes only. The initial operation is `salesforce:record:observe`, method `GET`,
+with the existing empty-body SHA-256 digest. A preparation grant cannot authorize
+PATCH, mutation resume, approval or a renewed execution claim.
+
+Preparation uses the existing `actql-local-credential-use/0.1` record and finite
+ordinal rules. The distinct original grant CID identifies the typed alternative;
+restore never claims another ordinal or refreshes expiry. Old Local resume and
+Remote grant/use bodies and CIDs remain unchanged. Preparation identity, original
+grant acknowledgement, durable use claim and actual Provider entry are distinct
+facts. Absence or a reconstructed identity never proves an observation unsent.
 
 ## Independent acceptance requirements
 

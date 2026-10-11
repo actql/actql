@@ -16,11 +16,17 @@ pub fn admit_local_credential_grant_json(String, String) -> Result[LocalCredenti
 
 pub fn admit_local_credential_use_json(LocalCredentialGrant, String, String) -> Result[LocalCredentialUse, RemoteCredentialIssue]
 
+pub fn admit_local_preparation_credential_grant_json(String, String, LocalPreparationFenceIdentity) -> Result[LocalPreparationCredentialGrant, RemoteCredentialIssue]
+
+pub fn admit_local_preparation_credential_use_json(LocalPreparationCredentialGrant, String, String) -> Result[LocalPreparationCredentialUse, RemoteCredentialIssue]
+
 pub fn admit_local_preparation_fence_json(String, String) -> Result[LocalPreparationFenceIdentity, RemoteCredentialIssue]
 
 pub fn authorize_credential_use(RemoteCredentialUse, Int64, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[Unit, RemoteCredentialIssue]
 
 pub fn authorize_local_credential_use(LocalCredentialUse, Int64, Bool, LocalCredentialScope) -> Result[Unit, RemoteCredentialIssue]
+
+pub fn authorize_local_preparation_credential_use(LocalPreparationCredentialUse, Int64, Bool, LocalPreparationCredentialScope) -> Result[Unit, RemoteCredentialIssue]
 
 pub fn credential_grant_cid(RemoteCredentialGrant) -> String
 
@@ -56,6 +62,20 @@ pub fn local_credential_use_json(LocalCredentialUse) -> Result[String, RemoteCre
 
 pub fn local_credential_use_projection(LocalCredentialUse) -> (String, String, Int)
 
+pub fn local_preparation_credential_grant_cid(LocalPreparationCredentialGrant) -> String
+
+pub fn local_preparation_credential_grant_json(LocalPreparationCredentialGrant) -> Result[String, RemoteCredentialIssue]
+
+pub fn local_preparation_credential_grant_limits(LocalPreparationCredentialGrant) -> (Int, Int64)
+
+pub fn local_preparation_credential_grant_scope(LocalPreparationCredentialGrant) -> LocalPreparationCredentialScope
+
+pub fn local_preparation_credential_use_cid(LocalPreparationCredentialUse) -> String
+
+pub fn local_preparation_credential_use_json(LocalPreparationCredentialUse) -> Result[String, RemoteCredentialIssue]
+
+pub fn local_preparation_credential_use_projection(LocalPreparationCredentialUse) -> (String, String, Int)
+
 pub fn local_preparation_fence_cid(LocalPreparationFenceIdentity) -> String
 
 pub fn local_preparation_fence_fields(LocalPreparationFenceIdentity) -> LocalPreparationFenceFields
@@ -71,6 +91,10 @@ pub fn prepare_grant(String, String, String, String, String, Int, String, String
 pub fn prepare_local_credential_grant(String, LocalCredentialScope, Int64, Int) -> Result[LocalCredentialGrant, RemoteCredentialIssue]
 
 pub fn prepare_local_credential_use(LocalCredentialGrant, String, Int64, Int, Bool, LocalCredentialScope) -> Result[LocalCredentialUse, RemoteCredentialIssue]
+
+pub fn prepare_local_preparation_credential_grant(String, LocalPreparationCredentialScope, Int64, Int) -> Result[LocalPreparationCredentialGrant, RemoteCredentialIssue]
+
+pub fn prepare_local_preparation_credential_use(LocalPreparationCredentialGrant, String, Int64, Int, Bool, LocalPreparationCredentialScope) -> Result[LocalPreparationCredentialUse, RemoteCredentialIssue]
 
 pub fn prepare_local_preparation_fence_identity(LocalPreparationFenceFields) -> Result[LocalPreparationFenceIdentity, RemoteCredentialIssue]
 
@@ -105,6 +129,32 @@ pub(all) struct LocalCredentialScope {
 
 type LocalCredentialUse
 
+type LocalPreparationCredentialGrant
+
+pub(all) struct LocalPreparationCredentialScope {
+  account_configuration_cid : String
+  account_id : String
+  attempt_id : String
+  authority_scope_cid : String
+  connector_registration : String
+  connector_revision : String
+  preparation_fence : LocalPreparationFenceIdentity
+  host_adoption_cid : String
+  operation : String
+  operation_occurrence_cid : String
+  principal : String
+  request_body_cid : String
+  request_cid : String
+  request_method : String
+  request_path : String
+  resource_origin : String
+  run_invocation_cid : String
+  submission_scope_cid : String
+  unit_definition_cid : String
+} derive(Eq, @debug.Debug)
+
+type LocalPreparationCredentialUse
+
 pub(all) struct LocalPreparationFenceFields {
   client_request_intent_cid : String
   client_request_scope_cid : String
@@ -113,7 +163,7 @@ pub(all) struct LocalPreparationFenceFields {
   unit_definition_cid : String
 } derive(Eq, @debug.Debug)
 
-type LocalPreparationFenceIdentity
+type LocalPreparationFenceIdentity derive(Eq, @debug.Debug)
 
 type RemoteCredentialGrant
 
