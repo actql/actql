@@ -1,4 +1,4 @@
-// Draft PRs run preparation checks; ready PRs retain normal required coverage.
+// Main integration uses full coverage; historical PR profiles remain interpretable.
 // An exact maintenance inventory may omit whole unrelated job families.
 // Selected evidence campaigns retain their complete three-target contract.
 import assert from 'node:assert/strict';
@@ -87,12 +87,21 @@ export function pullRequestDraft(event, payload) {
   if (payload.action === 'converted_to_draft') assert.equal(draft, true, 'Inconsistent draft event');
   return draft;
 }
-export function selectTargets(paths, {draft = null, event = 'pull_request', nativeMacos = false, failure = null,
+export function selectTargets(paths, {draft = null, event = 'pull_request', mainIntegration = event === 'push', nativeMacos = false, failure = null,
   targetSensitiveDiff = false, maintenanceChanges = null, declarationChanges = null, focusedChanges = null, focusedTests = null, mainBaseline = null} = {}) {
   if (mainBaseline !== null) validateMainBaseline(mainBaseline);
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
     profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null, declarationChanges: null, focusedChanges: null, focusedTests: null, mainBaseline});
+  // Automatic main integration always executes the existing full profile.
+  // Historical bounded selections remain interpretable; their receipts are not
+  // upgraded into full checkpoints or release authorization.
+  if (mainIntegration) {
+    assert(['push', 'workflow_dispatch'].includes(event), 'Invalid main integration event');
+    const result = full('Main integration requires every full runtime and proof family');
+    if (event === 'workflow_dispatch') result.macos = nativeMacos;
+    return result;
+  }
   if (event === 'pull_request' && draft !== null) {
     assert.equal(typeof draft, 'boolean', 'Invalid PR draft state');
     if (draft) {
@@ -297,6 +306,8 @@ async function main() {
     } catch { failure = 'Main checkpoint or cumulative diff unavailable'; }
   }
   const selected = validateSelection(selectTargets(changes.paths, {event: process.env.GITHUB_EVENT_NAME, draft,
+    mainIntegration: process.env.GITHUB_EVENT_NAME === 'push' ||
+      process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.GITHUB_REF === 'refs/heads/main',
     nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
     maintenanceChanges: changes.maintenanceChanges, declarationChanges: changes.declarationChanges,
     focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, mainBaseline}));

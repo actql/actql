@@ -172,3 +172,10 @@ test('A product change without successful CI followed by declaration B keeps pro
     assert(paths.includes('src/product.mbt')); assert.equal(paths.length, 2);
   } finally {rmSync(dir, {recursive: true, force: true});}
 });
+
+test('main admission policy changes invalidate otherwise successful checkpoint reuse', async () => {
+  assert(policyPaths.includes('scripts/ci-preflight.mjs'));
+  const f = fixture(), originalGit = f.options.git;
+  f.options.git = args => args[1] === `${base}:scripts/ci-preflight.mjs` ? sha('f') : originalGit(args);
+  assert.equal((await resolveMainBaseline(f.options)).baseSha, null);
+});
