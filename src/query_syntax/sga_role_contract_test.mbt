@@ -32,6 +32,11 @@ test "P2 SGA MATCH output bindings and selected fields accept identifiers" {
   ).unwrap()
   assert_eq(call.arguments[0].1, TextValue("E"))
   assert_eq(call.arguments[1].1, TextValue("R"))
+  assert_eq(call.arguments[2].1, ObjectValue([
+    ("identity", OutputName({value: "edge_key", quoted: false})),
+    ("source", OutputName({value: "src", quoted: false})),
+    ("target", OutputName({value: "dst", quoted: false})),
+  ]))
   assert_eq(call.arguments[4].1, ListValue([
     FieldReference([{value: "edge_key", quoted: false}]),
     FieldReference([{value: "src", quoted: false}]),
