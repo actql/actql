@@ -256,7 +256,9 @@ test "Graph producer references use the shared query name rules" {
     name: "aql_script_cte_1",
   }
   assert_eq(
-    mapping_resolved_name([{ value: "n", quoted: true, }], [binding, repeated_binding]),
+    mapping_resolved_name([{ value: "n", quoted: true, }], [
+      binding, repeated_binding,
+    ]),
     "AmbiguousRelation",
   )
   let qualified = {
