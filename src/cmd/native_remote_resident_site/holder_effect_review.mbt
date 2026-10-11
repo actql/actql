@@ -181,3 +181,39 @@ fn holder_effect_current_task(
   }
   Some(task)
 }
+
+///|
+/// Resume only an already retained original Review under independent current
+/// Host roles and resume observations. A terminal row receipt is not dispatch
+/// completion, Result publication, formal release or physical cleanup.
+fn execute_holder_effect_resume(
+  task : HolderTaskCustody,
+  body : String,
+  configuration : @effect_review.NativeResidentEffectResumeConfiguration,
+  current_site : () -> Bool,
+) -> Bool {
+  let current = () => {
+    !task.released && !task.release_requested && current_site()
+  }
+  guard current() &&
+    task.effect_review is Some(review) &&
+    review.dispatch_identity() ==
+    @remote.dispatch_request_identity(task.request) else {
+    return false
+  }
+  match review.execute_remote_approved_row(body, configuration, current) {
+    Ok(_) => {
+      report("effect-row-settled", [
+        ("request_cid", @remote.dispatch_request_identity(task.request)),
+      ])
+      true
+    }
+    Err(_) => {
+      report("effect-resume-pending", [
+        ("request_cid", @remote.dispatch_request_identity(task.request)),
+        ("reason", "original-custody"),
+      ])
+      false
+    }
+  }
+}
