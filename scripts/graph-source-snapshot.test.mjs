@@ -21,9 +21,9 @@ await mkdir(scratch, {recursive: true});
 // snapshot encoder is used to construct this expectation.
 const source = `
 WITH n AS (SELECT 1 AS id)
- , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst
+, e AS (SELECT 10 AS key, 1 AS src, 1 AS dst
   UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)
- , g AS (GRAPH (
+, g AS (GRAPH (
   NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)
   EDGE TABLES (e AS E KEY (key)
     SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N

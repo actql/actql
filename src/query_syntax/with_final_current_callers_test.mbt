@@ -69,7 +69,7 @@ test "WITH final python callers parse" {
 test "WITH final snapshot callers parse" {
   for
     text in [
-      "\nWITH n AS (SELECT 1 AS id)\n , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst\n  UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)\n , g AS (GRAPH (\n  NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)\n  EDGE TABLES (e AS E KEY (key)\n    SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N\n    LABEL R NO PROPERTIES)\n))\nFROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node)\n  |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths\n",
+      "\nWITH n AS (SELECT 1 AS id)\n, e AS (SELECT 10 AS key, 1 AS src, 1 AS dst\n  UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)\n, g AS (GRAPH (\n  NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)\n  EDGE TABLES (e AS E KEY (key)\n    SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N\n    LABEL R NO PROPERTIES)\n))\nFROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node)\n  |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths\n",
     ] {
     let _ = parse_query_script(text, query_limits()).unwrap()
   }
