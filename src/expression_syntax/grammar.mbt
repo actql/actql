@@ -133,6 +133,8 @@ fn expression_role(
     | "safe_multiply"
     | "replace"
     | "repeat"
+    | "translate"
+    | "instr"
     | "left"
     | "right"
     | "lpad"
@@ -180,6 +182,8 @@ fn arity(
 ) -> Unit raise Stop {
   let valid = match tag {
     "array" => true
+    "instr" => size >= 2 && size <= 4
+    "translate" => size == 3
     "split" => size == 1 || size == 2
     "lpad" | "rpad" => size == 2 || size == 3
     "and"

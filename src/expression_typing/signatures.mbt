@@ -338,6 +338,41 @@ fn infer(
     "reverse" =>
       // Reordering scalars preserves every admitted scalar/UTF-8 length bound.
       typed(t, require_type(t, nodes, node.children[0], "string"), source)
+    "translate" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let source_set = require_type(t, nodes, node.children[1], "string")
+      let target_set = require_type(t, nodes, node.children[2], "string")
+      guard input.shape is @contract.Text(limits) else {
+        fail(source, TypeMismatch("string"))
+      }
+      // One scalar maps to at most one scalar, but may expand UTF-8 bytes.
+      // Deletion drops minima; no authored operand is evaluated during typing.
+      typed(
+        t,
+        @contract.string_contract(
+          nullable=input.nullable || source_set.nullable || target_set.nullable,
+          max_codepoints=limits.max_codepoints,
+        ).unwrap(),
+        source,
+      )
+    }
+    "instr" => {
+      let mut nullable = false
+      for i, child in node.children {
+        nullable = require_type(
+            t,
+            nodes,
+            child,
+            if i < 2 {
+              "string"
+            } else {
+              "number"
+            },
+          ).nullable ||
+          nullable
+      }
+      primitive(t, NumberType, nullable, source)
+    }
     "repeat" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let count = require_type(t, nodes, node.children[1], "number")

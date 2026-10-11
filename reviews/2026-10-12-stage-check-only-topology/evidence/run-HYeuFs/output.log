@@ -1,0 +1,3 @@
+Total tests: 20, passed: 20, failed: 0.
+["moon","test","--target","js","src/stage_results/checked_topology_test.mbt","src/stage_results/local_program_test.mbt","src/stage_results/imports_test.mbt","src/pipeline_check_context/checked_topology_test.mbt","src/pipeline_check_context/calendar_topology_test.mbt","src/relation_results/ports_test.mbt"]: executed; counts={"tests":20,"passed":20,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-stage-check-only-topology/_build/focused-evidence/focused-test-7hwS3O
