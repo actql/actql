@@ -53,7 +53,15 @@ fn prepare_sourceview_program_internal(
   (@stage_results.ResultWiring, @stage_results.LocalProgramUsage, Int),
   SourceViewProgramIssue,
 ] {
-  match prepare_sourceview_topology_internal(views, locals, limits, calendar~, model_tasks~, check_only=false) {
+  match
+    prepare_sourceview_topology_internal(
+      views,
+      locals,
+      limits,
+      calendar~,
+      model_tasks~,
+      check_only=false,
+    ) {
     Ok((Publication(wiring), usage, extra)) => Ok((wiring, usage, extra))
     Ok(_) => abort("mixed preparation modes")
     Err(e) => Err(e)
@@ -82,8 +90,19 @@ pub fn check_sourceview_program(
   limits : @stage_results.LocalProgramLimits,
   calendar? : @environment.SelectedCalendarProfile? = None,
   model_tasks? : @environment.ModelTasks? = None,
-) -> Result[(SourceViewCheckedTopology, @stage_results.LocalProgramUsage), SourceViewProgramIssue] {
-  match prepare_sourceview_topology_internal(views, locals, limits, calendar~, model_tasks~, check_only=true) {
+) -> Result[
+  (SourceViewCheckedTopology, @stage_results.LocalProgramUsage),
+  SourceViewProgramIssue,
+] {
+  match
+    prepare_sourceview_topology_internal(
+      views,
+      locals,
+      limits,
+      calendar~,
+      model_tasks~,
+      check_only=true,
+    ) {
     Ok((Topology(topology), usage, _)) => Ok((topology, usage))
     Ok(_) => abort("mixed preparation modes")
     Err(e) => Err(e)
@@ -91,13 +110,26 @@ pub fn check_sourceview_program(
 }
 
 ///|
-pub fn sourceview_checked_topology(value : SourceViewCheckedTopology) -> @stage_results.CheckedTopology { value.topology }
+pub fn sourceview_checked_topology(
+  value : SourceViewCheckedTopology,
+) -> @stage_results.CheckedTopology {
+  value.topology
+}
 
 ///|
-pub fn topology_sourceviews(value : SourceViewCheckedTopology) -> @sourceviews.PipelineInputs { value.views }
+pub fn topology_sourceviews(
+  value : SourceViewCheckedTopology,
+) -> @sourceviews.PipelineInputs {
+  value.views
+}
 
 ///|
-pub fn topology_sourceview_attachment_at(value : SourceViewCheckedTopology, index : Int) -> @sourceviews.PipelineAttachment? { value.attachments.get(index) }
+pub fn topology_sourceview_attachment_at(
+  value : SourceViewCheckedTopology,
+  index : Int,
+) -> @sourceviews.PipelineAttachment? {
+  value.attachments.get(index)
+}
 
 ///|
 fn prepare_sourceview_topology_internal(
@@ -107,7 +139,10 @@ fn prepare_sourceview_topology_internal(
   calendar? : @environment.SelectedCalendarProfile? = None,
   model_tasks? : @environment.ModelTasks? = None,
   check_only~ : Bool,
-) -> Result[(SourceViewPreparation, @stage_results.LocalProgramUsage, Int), SourceViewProgramIssue] {
+) -> Result[
+  (SourceViewPreparation, @stage_results.LocalProgramUsage, Int),
+  SourceViewProgramIssue,
+] {
   if limits.max_work < 0 ||
     limits.max_text_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -197,17 +232,25 @@ fn prepare_sourceview_topology_internal(
   }
   let checked_limits = { ..limits, max_work: limits.max_work - extra, }
   let prepared = if check_only {
-    @stage_results.check_local_program(source, checked_limits,
-      environment=Some(locals), sourceview_registrations=Some(registrations),
-      calendar_profile=calendar.map(@environment.selected_calendar_profile), model_tasks~,
+    @stage_results.check_local_program(
+      source,
+      checked_limits,
+      environment=Some(locals),
+      sourceview_registrations=Some(registrations),
+      calendar_profile=calendar.map(@environment.selected_calendar_profile),
+      model_tasks~,
     ).map(fn(result) {
       let (topology, usage) = result
       (Topology({ topology, views, attachments: [], }), usage)
     })
   } else {
-    @stage_results.prepare_local_program(source, checked_limits,
-      environment=Some(locals), sourceview_registrations=Some(registrations),
-      calendar_profile=calendar.map(@environment.selected_calendar_profile), model_tasks~,
+    @stage_results.prepare_local_program(
+      source,
+      checked_limits,
+      environment=Some(locals),
+      sourceview_registrations=Some(registrations),
+      calendar_profile=calendar.map(@environment.selected_calendar_profile),
+      model_tasks~,
     ).map(fn(result) {
       let (wiring, usage) = result
       (Publication(wiring), usage)
@@ -215,18 +258,27 @@ fn prepare_sourceview_topology_internal(
   }
   let (wiring, used) = match prepared {
     Ok(v) => v
-    Err(Pipeline(stage, issue)) if issue.kind is @pipeline.Calendar(MissingProfile) =>
-      return Err(match missing_calendar {
-        Some(selection) => MissingCalendarArtifact(selection)
-        None => MissingCalendarSelection(stage, issue)
-      })
+    Err(Pipeline(stage, issue)) if issue.kind
+      is @pipeline.Calendar(MissingProfile) =>
+      return Err(
+        match missing_calendar {
+          Some(selection) => MissingCalendarArtifact(selection)
+          None => MissingCalendarSelection(stage, issue)
+        },
+      )
     Err(e) => return Err(Program(e))
   }
   let mut remaining = limits.max_work - extra - used.work
   for stage in 0..<count {
     let collected = match wiring {
-      Publication(v) => @stage_results.stage_port_source(@stage_results.wiring_stage_at(v, stage).unwrap())
-      Topology(v) => @stage_results.topology_stage_source(@stage_results.topology_stage_at(v.topology, stage).unwrap())
+      Publication(v) =>
+        @stage_results.stage_port_source(
+          @stage_results.wiring_stage_at(v, stage).unwrap(),
+        )
+      Topology(v) =>
+        @stage_results.topology_stage_source(
+          @stage_results.topology_stage_at(v.topology, stage).unwrap(),
+        )
     }
     // The exact view/collection prefixes are already charged; reserve only this
     // correspondence check's additional work, never a same-shaped substitute.
@@ -237,7 +289,9 @@ fn prepare_sourceview_topology_internal(
       Err(e) => return Err(Registration(stage, e))
     }
     remaining -= @sourceviews.pipeline_attachment_work(checked) - shared
-    if wiring is Topology(v) { v.attachments.push(checked) }
+    if wiring is Topology(v) {
+      v.attachments.push(checked)
+    }
   }
   let work = limits.max_work - remaining
   Ok((wiring, { ..used, work, }, work - used.work - prior))

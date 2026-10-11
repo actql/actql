@@ -54,8 +54,16 @@ pub fn prepare_local_program(
   calendar_profile? : @calendar_profile.Profile? = None,
   model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue] {
-  match prepare_program_internal(source, limits, environment~, sourceview_registrations~,
-    calendar_profile~, model_tasks~, check_only=false) {
+  match
+    prepare_program_internal(
+      source,
+      limits,
+      environment~,
+      sourceview_registrations~,
+      calendar_profile~,
+      model_tasks~,
+      check_only=false,
+    ) {
     Ok((Publication(wiring), usage)) => Ok((wiring, usage))
     Ok(_) => abort("mixed preparation modes")
     Err(e) => Err(e)
@@ -74,8 +82,16 @@ pub fn check_local_program(
   calendar_profile? : @calendar_profile.Profile? = None,
   model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[(CheckedTopology, LocalProgramUsage), LocalProgramIssue] {
-  match prepare_program_internal(source, limits, environment~, sourceview_registrations~,
-    calendar_profile~, model_tasks~, check_only=true) {
+  match
+    prepare_program_internal(
+      source,
+      limits,
+      environment~,
+      sourceview_registrations~,
+      calendar_profile~,
+      model_tasks~,
+      check_only=true,
+    ) {
     Ok((Topology(topology), usage)) => Ok((topology, usage))
     Ok(_) => abort("mixed preparation modes")
     Err(e) => Err(e)
@@ -183,11 +199,13 @@ fn prepare_program_internal(
     nodes -= local_used.nodes
     text -= local_used.text_bytes
     let resolved = match
-      resolve_program_imports(source, i, stages, {
-        max_work: work,
-        max_imports: work,
-        max_text_bytes: text,
-      }, check_only) {
+      resolve_program_imports(
+        source,
+        i,
+        stages,
+        { max_work: work, max_imports: work, max_text_bytes: text, },
+        check_only,
+      ) {
       Err(e) => return Err(Import(i, e))
       Ok(v) => v
     }
@@ -344,50 +362,77 @@ fn prepare_program_internal(
     nodes -= used.nodes
     text -= used.text_bytes
     let (publication, projected, contextual, projection_used) = if check_only {
-      let contextual = match @pipeline.resolve_contextual_closure(pipeline,
-        max_steps=work, max_work=work, max_text_bytes=text) {
-        Err(e) => return Err(Order(i,
-          if physical_equal(e.pipeline, pipeline) { @results.PipelineOrder(e.issue) }
-          else { @results.ProducerOrder(e) }))
+      let contextual = match
+        @pipeline.resolve_contextual_closure(
+          pipeline,
+          max_steps=work,
+          max_work=work,
+          max_text_bytes=text,
+        ) {
+        Err(e) =>
+          return Err(
+            Order(
+              i,
+              if physical_equal(e.pipeline, pipeline) {
+                @results.PipelineOrder(e.issue)
+              } else {
+                @results.ProducerOrder(e)
+              },
+            ),
+          )
         Ok(v) => v
       }
-      let (order_work, order_text) = @pipeline.contextual_closure_usage(contextual)
-      let inputs = match @results.prepare_checked_inputs(checked, {
-        max_results: result_count, max_work: work - order_work, max_nodes: nodes,
-        max_text_bytes: text - order_text, max_depth: limits.max_depth,
-      }) {
+      let (order_work, order_text) = @pipeline.contextual_closure_usage(
+        contextual,
+      )
+      let inputs = match
+        @results.prepare_checked_inputs(checked, {
+          max_results: result_count,
+          max_work: work - order_work,
+          max_nodes: nodes,
+          max_text_bytes: text - order_text,
+          max_depth: limits.max_depth,
+        }) {
         Err(e) => return Err(Ports(i, e))
         Ok(v) => v
       }
       let used = @results.checked_inputs_usage(inputs)
-      (None, Some(inputs), Some(contextual), { ..used,
-        work: used.work + order_work, text_bytes: used.text_bytes + order_text, })
+      (
+        None,
+        Some(inputs),
+        Some(contextual),
+        {
+          ..used,
+          work: used.work + order_work,
+          text_bytes: used.text_bytes + order_text,
+        },
+      )
     } else {
-    let orders = match
-      @results.resolve_all_orders(checked, {
-        // Contextual traversal includes earlier producers, not new source steps.
-        max_steps: work,
-        max_results: result_count,
-        max_work: work,
-        max_text_bytes: text,
-      }) {
-      Err(e) => return Err(Order(i, e))
-      Ok(v) => v
-    }
-    // prepare_ports includes the orders' prefix; bill the combined result once.
-    let ports = match
-      @results.prepare_ports(orders, {
-        max_results: result_count,
-        max_work: work,
-        max_nodes: nodes,
-        max_text_bytes: text,
-        max_depth: limits.max_depth,
-      }) {
-      Err(e) => return Err(Ports(i, e))
-      Ok(v) => v
-    }
-    let used = @results.ports_usage(ports)
-    (Some(ports), None, None, used)
+      let orders = match
+        @results.resolve_all_orders(checked, {
+          // Contextual traversal includes earlier producers, not new source steps.
+          max_steps: work,
+          max_results: result_count,
+          max_work: work,
+          max_text_bytes: text,
+        }) {
+        Err(e) => return Err(Order(i, e))
+        Ok(v) => v
+      }
+      // prepare_ports includes the orders' prefix; bill the combined result once.
+      let ports = match
+        @results.prepare_ports(orders, {
+          max_results: result_count,
+          max_work: work,
+          max_nodes: nodes,
+          max_text_bytes: text,
+          max_depth: limits.max_depth,
+        }) {
+        Err(e) => return Err(Ports(i, e))
+        Ok(v) => v
+      }
+      let used = @results.ports_usage(ports)
+      (Some(ports), None, None, used)
     }
     work -= projection_used.work
     nodes -= projection_used.nodes
@@ -417,11 +462,18 @@ fn prepare_program_internal(
       }
     }
     let owner : ProgramStage = match publication {
-      Some(ports) => match bind_ports(collected, ports, table_inputs~) {
-        Err(e) => return Err(Import(i, e))
-        Ok(v) => Publication(v)
-      }
-      None => Topology({ stage: collected, results: projected.unwrap(), contextual: contextual.unwrap(), table_inputs, })
+      Some(ports) =>
+        match bind_ports(collected, ports, table_inputs~) {
+          Err(e) => return Err(Import(i, e))
+          Ok(v) => Publication(v)
+        }
+      None =>
+        Topology({
+          stage: collected,
+          results: projected.unwrap(),
+          contextual: contextual.unwrap(),
+          table_inputs,
+        })
     }
     wiring_work += projection_used.work + program_attached_work(attached)
     wiring_text += projection_used.text_bytes + import_text
@@ -429,14 +481,29 @@ fn prepare_program_internal(
     imports.push(attached)
   }
   if check_only {
-    let topology = match finish_checked_topology(source, stages, imports, {
-      max_work: work, max_text_bytes: text,
-      max_imports: limits.max_work, max_exports: limits.max_work,
-    }, local_inputs, environment, reconciled_inputs, {
-      work: limits.max_work - work, nodes: limits.max_nodes - nodes,
-      tokens: limits.max_tokens - tokens, text_bytes: limits.max_text_bytes - text,
-      steps: limits.max_steps - steps, results: limits.max_results - results,
-    }) {
+    let topology = match
+      finish_checked_topology(
+        source,
+        stages,
+        imports,
+        {
+          max_work: work,
+          max_text_bytes: text,
+          max_imports: limits.max_work,
+          max_exports: limits.max_work,
+        },
+        local_inputs,
+        environment,
+        reconciled_inputs,
+        {
+          work: limits.max_work - work,
+          nodes: limits.max_nodes - nodes,
+          tokens: limits.max_tokens - tokens,
+          text_bytes: limits.max_text_bytes - text,
+          steps: limits.max_steps - steps,
+          results: limits.max_results - results,
+        },
+      ) {
       Err(e) => return Err(Wiring(e))
       Ok(v) => v
     }
@@ -447,7 +514,9 @@ fn prepare_program_internal(
     owner
   })
   let imports = imports.map(fn(imported) {
-    guard imported is Publication(owner) else { abort("mixed preparation modes") }
+    guard imported is Publication(owner) else {
+      abort("mixed preparation modes")
+    }
     owner
   })
   let wired = match

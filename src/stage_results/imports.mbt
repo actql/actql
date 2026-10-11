@@ -95,19 +95,28 @@ pub fn resolve_imports(
   producers : Array[StagePorts],
   limits : ImportLimits,
 ) -> Result[ResultImports, ImportIssue] {
-  let (entries, work, text_bytes) = match resolve_result_references(
-    source, stage_index, producers, limits,
-    owner_stage=fn(owner) { owner.stage },
-    lookup=fn(owner, name) { @results.lookup_port(owner.ports, name) },
-  ) {
+  let (entries, work, text_bytes) = match
+    resolve_result_references(
+      source,
+      stage_index,
+      producers,
+      limits,
+      owner_stage=fn(owner) { owner.stage },
+      lookup=fn(owner, name) { @results.lookup_port(owner.ports, name) },
+    ) {
     Err(e) => return Err(e)
     Ok(v) => v
   }
-  Ok({ source, stage: stage_index,
+  Ok({
+    source,
+    stage: stage_index,
     entries: entries.map(fn(entry) {
       let (name, producer, port) = entry
       { name, producer, port, }
-    }), work, text_bytes, })
+    }),
+    work,
+    text_bytes,
+  })
 }
 
 ///|

@@ -60,10 +60,14 @@ pub fn prepare_ports(
     }
     work -= 1
     let definition = results.definitions[i]
-    let (projection, projection_used) = match check_result_projection(
-      results, i, { max_results: limits.max_results, max_work: work,
-        max_nodes: nodes, max_text_bytes: text, max_depth: limits.max_depth, }
-    ) {
+    let (projection, projection_used) = match
+      check_result_projection(results, i, {
+        max_results: limits.max_results,
+        max_work: work,
+        max_nodes: nodes,
+        max_text_bytes: text,
+        max_depth: limits.max_depth,
+      }) {
       Err(e) => return Err(e)
       Ok(v) => v
     }
