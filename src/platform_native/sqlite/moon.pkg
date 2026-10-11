@@ -6,6 +6,7 @@ import {
 
 import {
   "moonbitlang/core/env",
+  "actql/actql/platform_native/filesystem",
 } for "wbtest"
 
 options(
@@ -14,6 +15,7 @@ options(
     "sqlite_native.mbt": [ "native" ],
     "sqlite_unsupported.mbt": [ "not", "native" ],
     "sqlite_wbtest.mbt": [ "native" ],
+    "existing_database_wbtest.mbt": [ "native" ],
     "sqlite_unsupported_wbtest.mbt": [ "not", "native" ],
   },
 )

@@ -52,6 +52,15 @@ pub fn Library::open_database(
 }
 
 ///|
+pub fn Library::open_existing_database(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::read(
   _self : Database,
   scope : String,

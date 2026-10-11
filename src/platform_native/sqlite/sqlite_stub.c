@@ -637,11 +637,12 @@ moonbit_bytes_t actql_native_sqlite_library_version(
   return actql_copy_message(library->libversion());
 }
 
-void *actql_native_sqlite_open_database(
+static void *actql_open_database(
   actql_native_sqlite_library *library,
   moonbit_bytes_t path,
   int32_t length,
-  int64_t max_body_bytes
+  int64_t max_body_bytes,
+  bool existing
 ) {
   actql_native_sqlite_database *database = moonbit_make_external_object(
     actql_native_sqlite_database_finalize,
@@ -655,17 +656,43 @@ void *actql_native_sqlite_open_database(
     actql_replace_error(&database->error, "SQLite library is unavailable");
     return database;
   }
+  if (existing && (length < 2 || length > 4096 || path[0] != '/' ||
+      memchr(path, 0, (size_t)length) != NULL)) {
+    actql_replace_error(&database->error, "invalid existing database path");
+    return database;
+  }
   char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
     actql_replace_error(&database->error, "database path allocation failed");
     return database;
   }
+  int pinned = -1;
+  struct stat original;
+  if (existing) {
+    pinned = open(path_text, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (pinned < 0 || fstat(pinned, &original) != 0 ||
+        !S_ISREG(original.st_mode) || original.st_size < 1) {
+      if (pinned >= 0) close(pinned);
+      free(path_text);
+      actql_replace_error(&database->error, "existing database is unavailable");
+      return database;
+    }
+  }
+  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
+  flags |= existing ? SQLITE_OPEN_NOFOLLOW : SQLITE_OPEN_CREATE;
   int code = library->open_v2(
     path_text,
     &database->database,
-    SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX,
+    flags,
     NULL
   );
+  if (code == SQLITE_OK && existing) {
+    struct stat selected;
+    if (lstat(path_text, &selected) != 0 || !S_ISREG(selected.st_mode) ||
+        selected.st_dev != original.st_dev || selected.st_ino != original.st_ino)
+      code = SQLITE_CANTOPEN;
+  }
+  if (pinned >= 0) close(pinned);
   free(path_text);
   if (code != SQLITE_OK) {
     actql_database_error(database, "open SQLite database failed");
@@ -682,13 +709,47 @@ void *actql_native_sqlite_open_database(
     database->database = NULL;
     return database;
   }
-  if (!actql_initialize_schema(database)) {
+  // Restoration validates the retained schema. It cannot create tables,
+  // migrate the format, or infer fresh custody from a missing record.
+  database->opened = true;
+  bool admitted = existing
+    ? actql_native_sqlite_inspection_schema(database) != 0 &&
+      actql_exec(database, "PRAGMA synchronous=FULL;PRAGMA foreign_keys=ON") == SQLITE_OK
+    : actql_initialize_schema(database);
+  if (!admitted) {
+    database->opened = false;
     library->close_v2(database->database);
     database->database = NULL;
     return database;
   }
   database->opened = true;
   return database;
+}
+
+void *actql_native_sqlite_open_database(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path,
+  int32_t length,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, false);
+}
+
+void *actql_native_sqlite_open_existing_database(
+  actql_native_sqlite_library *library,
+  moonbit_bytes_t path,
+  int32_t length,
+  int64_t max_body_bytes
+) {
+  return actql_open_database(library, path, length, max_body_bytes, true);
+}
+
+// Whitebox-only loss of one schema constituent in an owner-created fixture.
+int32_t actql_native_sqlite_test_drop_capacity(
+  actql_native_sqlite_database *database
+) {
+  return database != NULL && database->opened &&
+    actql_exec(database, "DROP TABLE actql_capacity") == SQLITE_OK;
 }
 
 int32_t actql_native_sqlite_database_ready(

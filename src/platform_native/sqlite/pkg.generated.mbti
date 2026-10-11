@@ -28,6 +28,7 @@ pub fn Database::transaction_fenced(Self) -> Bool
 
 type Library
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
+pub fn Library::open_existing_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_inspection_database(Self, String, Int64) -> Database
 pub fn Library::version(Self) -> String
 

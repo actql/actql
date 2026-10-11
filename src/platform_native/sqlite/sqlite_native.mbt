@@ -31,6 +31,15 @@ extern "C" fn open_database_ffi(
 
 ///|
 #borrow(library, path)
+extern "C" fn open_existing_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_open_existing_database"
+
+///|
+#borrow(library, path)
 extern "C" fn open_inspection_database_ffi(
   library : Library,
   path : Bytes,
@@ -241,6 +250,32 @@ pub fn Library::open_database(
   }
   let encoded = @utf8.encode(path)
   let database = open_database_ffi(
+    self,
+    encoded,
+    encoded.length(),
+    max_body_bytes,
+  )
+  if database_ready_ffi(database) {
+    Ok(database)
+  } else {
+    Err(DatabaseOpen(decode_message(database_error_ffi(database))))
+  }
+}
+
+///|
+/// Open a retained journal without creation or schema repair. The caller must
+/// first admit its original format/custody and contain the absolute path under
+/// its pinned managed Root; this physical operation issues no authority.
+pub fn Library::open_existing_database(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  if max_body_bytes < 0L {
+    return Err(InvalidLimit)
+  }
+  let encoded = @utf8.encode(path)
+  let database = open_existing_database_ffi(
     self,
     encoded,
     encoded.length(),
