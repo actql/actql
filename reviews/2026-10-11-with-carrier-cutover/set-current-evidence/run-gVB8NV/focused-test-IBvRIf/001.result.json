@@ -1,0 +1,45 @@
+{
+  "id": "001",
+  "command": "moon",
+  "args": [
+    "test",
+    "--target",
+    "js",
+    "src/query_program/set_member_scope_test.mbt",
+    "src/query_program/set_member_public_source_test.mbt",
+    "src/query_program/set_corresponding_test.mbt",
+    "src/query_program/set_inner_by_name_test.mbt",
+    "src/query_program/set_by_name_list_test.mbt",
+    "src/query_program/set_projection_compaction_test.mbt",
+    "src/query_program/set_window_private_scope_test.mbt"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "b90a1a8e7880b3624456587a3256c7aecbf1bed7",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-11T22:28:25.260Z",
+  "endedAt": "2026-10-11T22:28:34.672Z",
+  "elapsedMs": 9408.267042000001,
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "complete": true,
+  "verificationStatus": 0,
+  "outputComplete": true,
+  "outputLimitBytes": 67108864,
+  "counts": {
+    "tests": 24,
+    "passed": 24,
+    "failed": 0,
+    "cancelled": null,
+    "skipped": null,
+    "todo": null
+  }
+}
