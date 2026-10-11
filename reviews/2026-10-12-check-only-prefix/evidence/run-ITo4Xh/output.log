@@ -1,0 +1,4 @@
+[actql/actql] test stage_results/prefix_topology_test.mbt:158 ("prefix check preserves bounded accounting and actual local ownership") failed: src/stage_results/prefix_topology_test.mbt:178:15-178:76@actql/actql FAILED: one-less work must fail at the charged order boundary
+Total tests: 5, passed: 4, failed: 1.
+["moon","test","--target","js","src/stage_results/prefix_topology_test.mbt","src/pipeline_check_context/prefix_sourceview_test.mbt"]: process failed (2); counts={"tests":5,"passed":4,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/focused-evidence/focused-test-OfdUMf

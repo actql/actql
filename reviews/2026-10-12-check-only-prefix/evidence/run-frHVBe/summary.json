@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-10-11T20:08:13.922Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Generate actual prefix Owner interfaces",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/stage_syntax",
+        "src/stage_parameters",
+        "src/stage_results"
+      ],
+      "startedAt": "2026-10-11T20:08:13.991Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:08:14.859Z",
+      "endedAt": "2026-10-11T20:08:14.862Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "fa4a6fcf-0494-4ae3-8823-d395498d50fa",
+    "pid": 13636,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix",
+    "startedAt": "2026-10-11T20:08:13.979Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-check-only-program-prefix/_build/local-checks/attempts/run-frHVBe"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-f0581b6a95b2b92fe6323dbc34aedc0ea2de7b77c5a9411e8cb00854df3a25e6.lock"
+  ],
+  "endedAt": "2026-10-11T20:08:15.003Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

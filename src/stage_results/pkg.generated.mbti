@@ -789,6 +789,7 @@ pub enum Issue {
 
 pub enum LocalProgramIssue {
   InvalidLimits
+  CheckOnlyPrefix
   BudgetExceeded
   ForeignEnvironmentSource
   ForeignModelEnvironment
@@ -863,6 +864,7 @@ pub(all) struct Usage {
 pub(all) enum WiringIssue {
   InvalidLimits
   StageCountMismatch
+  CheckOnlyPrefix
   ForeignStage(Int)
   ForeignProducer(Int, String)
   UnknownExport(String, String)
