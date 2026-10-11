@@ -46,7 +46,7 @@ test "public set member text sources keep declared parameters" {
   }
   let actual = compile_query_script(
     @query.parse_query_script(
-      "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0; WITH chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id",
+      "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0), chosen AS (SELECT id, payload FROM objects INTERSECT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id",
       syntax_limits(),
     ).unwrap(),
     context,
@@ -70,7 +70,7 @@ test "public set member text sources keep declared parameters" {
   assert_false(semantic(actual).contains("\"name\":\"SCORE\""))
   let actual = compile_query_script(
     @query.parse_query_script(
-      "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0; DATA chosen = FROM objects |> SELECT id, payload |> INTERSECT DISTINCT (FROM objects |> WHERE id <> 1 |> SELECT id, payload); FROM chosen |> SELECT id, payload.`SCORE` AS score |> ORDER BY id",
+      "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0), chosen AS (FROM objects |> SELECT id, payload |> INTERSECT DISTINCT (FROM objects |> WHERE id <> 1 |> SELECT id, payload)) FROM chosen |> SELECT id, payload.`SCORE` AS score |> ORDER BY id",
       syntax_limits(),
     ).unwrap(),
     context,
@@ -94,7 +94,7 @@ test "public set member text sources keep declared parameters" {
   assert_false(semantic(actual).contains("\"name\":\"SCORE\""))
   let actual = compile_query_script(
     @query.parse_query_script(
-      "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0; WITH chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id",
+      "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0), chosen AS (SELECT id, payload FROM objects EXCEPT DISTINCT SELECT id, payload FROM objects WHERE id <> 1) SELECT id, payload.SCORE AS score FROM chosen ORDER BY id",
       syntax_limits(),
     ).unwrap(),
     context,
@@ -118,7 +118,7 @@ test "public set member text sources keep declared parameters" {
   assert_false(semantic(actual).contains("\"name\":\"SCORE\""))
   let actual = compile_query_script(
     @query.parse_query_script(
-      "DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0; DATA chosen = FROM objects |> SELECT id, payload |> EXCEPT DISTINCT (FROM objects |> WHERE id <> 1 |> SELECT id, payload); FROM chosen |> SELECT id, payload.`SCORE` AS score |> ORDER BY id",
+      "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0), chosen AS (FROM objects |> SELECT id, payload |> EXCEPT DISTINCT (FROM objects |> WHERE id <> 1 |> SELECT id, payload)) FROM chosen |> SELECT id, payload.`SCORE` AS score |> ORDER BY id",
       syntax_limits(),
     ).unwrap(),
     context,

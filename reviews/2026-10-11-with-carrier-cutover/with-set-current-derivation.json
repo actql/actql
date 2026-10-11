@@ -1,0 +1,10 @@
+{
+  "source": "0783279498e1ccc6b9b283a8eca50c3374e01320",
+  "derivation": [
+    "WITH e reserves existing cte0; source-free set term/seed/alignment reservations are unchanged. Complete independent Programs update only final binding spelling aql_data_0 to aql_script_cte_0.",
+    "SQL/CTE/Pipe set alignment retains BY NAME ON order, CORRESPONDING/INNER common-name projection, explicit case spelling, duplicate/null values and private-window columns.",
+    "Incompatible WITH set bodies are fully statically checked by the existing common Append owner before demand. Exact IncompatibleContracts(y) or IncompatibleContracts(ignored) is required; no invalid Program is invented to defer the same error.",
+    "Public case IDs/ordinary JSON/parameters/Source predicates/ordered schemas/capture counts remain stable. Only authored DATA wrappers become WITH; historical grammar/preimages remain immutable."
+  ],
+  "public_execution": "not performed"
+}

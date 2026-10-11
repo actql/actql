@@ -2,7 +2,7 @@
 test "INNER BY NAME aligns evaluated inputs into an authored Program" {
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":2}}},{"select":[{"x":"aql_query_expr_0"},{"left_only":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":3},"aql_query_expr_1":{"literal":4}}},{"select":[{"x":"aql_query_expr_0"},{"right_only":"aql_query_expr_1"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","select":["x"],"as":"aql_data_set_left_5"},{"from":"aql_data_set_term_3","select":["x"],"as":"aql_data_set_aligned_6"},{"from":"aql_data_set_left_5","append":{"with":"aql_data_set_aligned_6"},"as":"aql_data_0"},{"from":"aql_data_0","select":["x"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["x"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":2}}},{"select":[{"x":"aql_query_expr_0"},{"left_only":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":3},"aql_query_expr_1":{"literal":4}}},{"select":[{"x":"aql_query_expr_0"},{"right_only":"aql_query_expr_1"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","select":["x"],"as":"aql_data_set_left_5"},{"from":"aql_data_set_term_3","select":["x"],"as":"aql_data_set_aligned_6"},{"from":"aql_data_set_left_5","append":{"with":"aql_data_set_aligned_6"},"as":"aql_script_cte_0"},{"from":"aql_script_cte_0","select":["x"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["x"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -14,7 +14,7 @@ test "INNER BY NAME aligns evaluated inputs into an authored Program" {
     NeedsInputs(_) => fail("INNER alignment adds no acquisition")
   }
   let actual = compile_with_set(
-    "DATA e = SELECT 1 AS x, 2 AS left_only INNER UNION ALL BY NAME SELECT 3 AS x, 4 AS right_only; FROM e |> SELECT x",
+    "WITH e AS (SELECT 1 AS x, 2 AS left_only INNER UNION ALL BY NAME SELECT 3 AS x, 4 AS right_only) FROM e |> SELECT x",
   )
   assert_eq(semantic(actual), semantic(expected))
 }
@@ -48,8 +48,8 @@ test "SQL INNER chain omits globally absent columns before comparing set types" 
     values_context(),
     construction_limits(),
   ).unwrap()
-  let data = compile_with_set("DATA e = " + sql + "; FROM e |> SELECT x")
-  for actual in [root, data] {
+  let bound = compile_with_set("WITH e AS (" + sql + ") FROM e |> SELECT x")
+  for actual in [root, bound] {
     match
       @check.check_parsed(actual, check_environment(), None, check_limits()) {
       Checked(_) => ()
@@ -58,12 +58,9 @@ test "SQL INNER chain omits globally absent columns before comparing set types" 
     }
   }
   // Two sequential Pipe sets compare their intermediate common column.
-  let pipe = compile_with_set(
-    "DATA e = SELECT 1 AS x, 2 AS ignored |> INNER UNION ALL BY NAME (SELECT 3 AS x, 'text' AS ignored) |> INNER UNION ALL BY NAME (SELECT 4 AS x); FROM e |> SELECT x",
-  )
-  assert_true(
-    @check.check_parsed(pipe, check_environment(), None, check_limits())
-    is Rejected(_),
+  expect_with_set_append_refusal(
+    "WITH e AS (SELECT 1 AS x, 2 AS ignored |> INNER UNION ALL BY NAME (SELECT 3 AS x, 'text' AS ignored) |> INNER UNION ALL BY NAME (SELECT 4 AS x)) FROM e |> SELECT x",
+    "ignored",
   )
 }
 

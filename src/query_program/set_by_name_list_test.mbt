@@ -2,7 +2,7 @@
 test "BY NAME ON reorders both inputs into the authored Program" {
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":2}}},{"select":[{"x":"aql_query_expr_0"},{"y":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":3},"aql_query_expr_1":{"literal":4}}},{"select":[{"y":"aql_query_expr_0"},{"x":"aql_query_expr_1"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","select":["y","x"],"as":"aql_data_set_left_5"},{"from":"aql_data_set_left_5","append":{"with":"aql_data_set_term_3"},"as":"aql_data_0"},{"from":"aql_data_0","select":["y","x"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["y","x"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":2}}},{"select":[{"x":"aql_query_expr_0"},{"y":"aql_query_expr_1"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":3},"aql_query_expr_1":{"literal":4}}},{"select":[{"y":"aql_query_expr_0"},{"x":"aql_query_expr_1"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","select":["y","x"],"as":"aql_data_set_left_5"},{"from":"aql_data_set_left_5","append":{"with":"aql_data_set_term_3"},"as":"aql_script_cte_0"},{"from":"aql_script_cte_0","select":["y","x"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["y","x"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -15,7 +15,7 @@ test "BY NAME ON reorders both inputs into the authored Program" {
     NeedsInputs(_) => fail("BY NAME ON adds no acquisition")
   }
   let actual = compile_with_set(
-    "DATA e = SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 3 AS y, 4 AS x; FROM e |> SELECT y, x",
+    "WITH e AS (SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 3 AS y, 4 AS x) FROM e |> SELECT y, x",
   )
   assert_eq(semantic(actual), semantic(expected))
   match @check.check_parsed(actual, check_environment(), None, check_limits()) {
@@ -84,12 +84,12 @@ test "BY NAME ON rejects invalid lists with the set diagnostic" {
 }
 
 ///|
-test "BY NAME ON DATA has the same set diagnostic and common type checking" {
+test "BY NAME ON WITH has the same set diagnostic and common type checking" {
   for
     text in [
-      "DATA e = SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (x) SELECT 3 AS x, 4 AS y; FROM e |> SELECT x",
-      "DATA e = SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (`x`, X) SELECT 3 AS x, 4 AS y; FROM e |> SELECT x",
-      "DATA e = SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 3 AS y; FROM e |> SELECT y, x",
+      "WITH e AS (SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (x) SELECT 3 AS x, 4 AS y) FROM e |> SELECT x",
+      "WITH e AS (SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (`x`, X) SELECT 3 AS x, 4 AS y) FROM e |> SELECT x",
+      "WITH e AS (SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 3 AS y) FROM e |> SELECT y, x",
     ] {
     assert_true(
       compile_query_script(
@@ -101,11 +101,24 @@ test "BY NAME ON DATA has the same set diagnostic and common type checking" {
       msg=text,
     )
   }
-  let bad_type = compile_with_set(
-    "DATA e = SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 'wrong' AS y, 4 AS x; FROM e |> SELECT y, x",
+  expect_with_set_append_refusal(
+    "WITH e AS (SELECT 1 AS x, 2 AS y UNION ALL BY NAME ON (y, x) SELECT 'wrong' AS y, 4 AS x) FROM e |> SELECT y, x",
+    "y",
   )
-  assert_true(
-    @check.check_parsed(bad_type, check_environment(), None, check_limits())
-    is Rejected(_),
+}
+
+///|
+fn expect_with_set_append_refusal(text : String, field : String) -> Unit raise {
+  let result = compile_query_script(
+    @query.parse_query_script(text, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  )
+  guard result is Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) else {
+    fail("expected the common static WITH Append refusal")
+  }
+  assert_eq(
+    issue.kind,
+    @pipeline.Append(IncompatibleContracts(@schema.Unqualified(field), [])),
   )
 }
