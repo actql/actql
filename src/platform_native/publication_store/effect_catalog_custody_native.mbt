@@ -124,6 +124,8 @@ pub fn Store::restore_effect_catalog_custody(
         key: key[:].to_owned(),
         envelope: Bytes::new(0),
         reservation_bytes: bytes,
+        reservation_objects: 1L,
+        preparation: None,
         terminal: row.body,
         capacity_key: "effect-catalog:" + holding,
         table: "effect_catalog_custody",

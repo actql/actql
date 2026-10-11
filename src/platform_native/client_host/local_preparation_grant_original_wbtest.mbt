@@ -168,7 +168,7 @@ test "Native preparation original append replay preserves its exact allowance an
   for _ in 0..<3 {
     host.journal
     .transaction(() => {
-      binding.append_grant_original_locked(original, () => Ok(()))
+      append_preparation_test_original(binding, original, () => Ok(()))
     })
     .unwrap()
     assert_eq(
@@ -190,7 +190,7 @@ test "Native preparation original append replay preserves its exact allowance an
   )
   assert_true(
     host.journal.transaction(() => {
-      binding.append_grant_original_locked(changed, () => Ok(()))
+      append_preparation_test_original(binding, changed, () => Ok(()))
     })
     is Err(Checkpoint(NeedsOriginalContinuation)),
   )
@@ -229,7 +229,7 @@ test "Native preparation append refuses loss of current authority without retain
     .unwrap()
   assert_true(
     host.journal.transaction(() => {
-      binding.append_grant_original_locked(original, () => {
+      append_preparation_test_original(binding, original, () => {
         Err(AuthorizationDenied)
       })
     })
@@ -246,14 +246,14 @@ test "Native preparation append refuses loss of current authority without retain
   assert_true(binding.lookup_grant_original(original) is Ok(None))
   host.journal
   .transaction(() => {
-    binding.append_grant_original_locked(original, () => Ok(()))
+    append_preparation_test_original(binding, original, () => Ok(()))
   })
   .unwrap()
   // Even an exact replay must pass the final current check; refusing it does
   // not delete the original or replace its expiry, allowance or reservation.
   assert_true(
     host.journal.transaction(() => {
-      binding.append_grant_original_locked(original, () => {
+      append_preparation_test_original(binding, original, () => {
         Err(AuthorizationDenied)
       })
     })
@@ -300,7 +300,7 @@ test "Native preparation append refuses missing exact reservation without repair
     .unwrap()
   host.journal
   .transaction(() => {
-    binding.append_grant_original_locked(original, () => Ok(()))
+    append_preparation_test_original(binding, original, () => Ok(()))
   })
   .unwrap()
   host.database
@@ -314,7 +314,7 @@ test "Native preparation append refuses missing exact reservation without repair
   |> ignore
   assert_true(
     host.journal.transaction(() => {
-      binding.append_grant_original_locked(original, () => Ok(()))
+      append_preparation_test_original(binding, original, () => Ok(()))
     })
     is Err(CustodyLost),
   )

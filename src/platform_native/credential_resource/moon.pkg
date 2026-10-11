@@ -7,10 +7,15 @@ import {
   "actql/actql/platform_native/signature",
   "actql/actql/platform_native/sqlite",
   "actql/actql/platform_native/trusted_clock",
+  "actql/actql/platform_native/publication_store" @publication,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
 
 options(
-  targets: { "guarded_write_native_wbtest.mbt": [ "native" ] },
+  targets: {
+    "guarded_write_native_wbtest.mbt": [ "native" ],
+    "remote_use_retention_native_wbtest.mbt": [ "native" ],
+    "remote_initial_use_native_wbtest.mbt": [ "native" ],
+  },
 )

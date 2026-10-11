@@ -14,7 +14,7 @@ pub(all) enum ClientEffectNormalizationIssue {
 /// Original preparation owns the completion inventory and its issued bytes.
 /// The normative journal preimage has no additional Program binding fields;
 /// this opaque projection and the original materials chain own those links.
-priv enum ClientEffectNormalizationInventory {
+enum ClientEffectNormalizationInventory {
   MappedCreate(@checked.CompletionFreeInventory)
   LocalUpdate(@checked.LocalUpdateCompletionFreeInventory)
 }
@@ -42,9 +42,91 @@ pub fn client_effect_local_update_completion_free_catalog_cid() -> String {
 pub fn client_effect_normalization_catalog_cid(
   value : ClientEffectNormalization,
 ) -> String {
-  match value.inventory {
-    MappedCreate(_) => client_effect_completion_free_catalog_cid()
-    LocalUpdate(_) => client_effect_local_update_completion_free_catalog_cid()
+  client_effect_normalization_inventory_profile(value.inventory).1
+}
+
+///|
+fn client_effect_normalization_inventory_profile(
+  inventory : ClientEffectNormalizationInventory,
+) -> (String, String) {
+  match inventory {
+    MappedCreate(_) =>
+      (
+        "actql-resident-effect-completion-free/0.1",
+        client_effect_completion_free_catalog_cid(),
+      )
+    LocalUpdate(_) =>
+      (
+        "actql-local-update-completion-free/0.1",
+        client_effect_local_update_completion_free_catalog_cid(),
+      )
+  }
+}
+
+///|
+fn client_effect_normalization_inventory_journal_cid(
+  inventory : ClientEffectNormalizationInventory,
+) -> String {
+  match inventory {
+    MappedCreate(_) =>
+      "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087"
+    LocalUpdate(_) =>
+      "sha256:e9f69915b6368e0c8e1669b010e57e65f633bd5a8d589d3b3575c2b043f4b44d"
+  }
+}
+
+///|
+fn same_client_effect_normalization_profile(
+  left : ClientEffectNormalizationInventory?,
+  right : ClientEffectNormalizationInventory?,
+) -> Bool {
+  // Profile equality is not inventory custody. Physical Owner checks are
+  // required separately before compilation, issuance and material readback.
+  match (left, right) {
+    (None, None)
+    | (Some(MappedCreate(_)), Some(MappedCreate(_)))
+    | (Some(LocalUpdate(_)), Some(LocalUpdate(_))) => true
+    _ => false
+  }
+}
+
+///|
+fn checked_client_effect_normalization_inventory(
+  owner : PreparedClientEffectComputation,
+) -> Result[ClientEffectNormalizationInventory, ClientEffectNormalizationIssue] {
+  let headers = @checked.effect_program_static_headers(owner.candidate)
+  guard @syntax.effect_header_count(headers) == 1 else {
+    return Err(Inventory(ProfileNotInstalled))
+  }
+  match
+    @syntax.effect_header_kind(@syntax.effect_header_at(headers, 0).unwrap()) {
+    "create" =>
+      @checked.effect_program_completion_free_inventory(owner.candidate)
+      .map(fn(value) { MappedCreate(value) })
+      .map_err(fn(issue) { Inventory(issue) })
+    "update" =>
+      @checked.effect_program_local_update_completion_free_inventory(
+        owner.candidate,
+      )
+      .map(fn(value) { LocalUpdate(value) })
+      .map_err(fn(issue) { Inventory(issue) })
+    _ => Err(Inventory(ProfileNotInstalled))
+  }
+}
+
+///|
+fn client_effect_normalization_inventory_matches(
+  inventory : ClientEffectNormalizationInventory,
+  owner : PreparedClientEffectComputation,
+) -> Bool {
+  match inventory {
+    MappedCreate(inventory) =>
+      @checked.completion_free_inventory_matches(inventory, owner.candidate)
+    LocalUpdate(inventory) =>
+      @checked.local_update_completion_free_inventory_matches(
+        inventory,
+        owner.candidate,
+      )
   }
 }
 
@@ -123,15 +205,10 @@ pub fn prepared_client_effect_normalization_evidence(
   owner : PreparedClientEffectComputation,
   value : ClientEffectNormalization,
 ) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {
-  let matches = match value.inventory {
-    MappedCreate(inventory) =>
-      @checked.completion_free_inventory_matches(inventory, owner.candidate)
-    LocalUpdate(inventory) =>
-      @checked.local_update_completion_free_inventory_matches(
-        inventory,
-        owner.candidate,
-      )
-  }
+  let matches = client_effect_normalization_inventory_matches(
+    value.inventory,
+    owner,
+  )
   if !physical_equal(owner, value.owner) ||
     !(owner.normalization is Some(original) && physical_equal(original, value)) ||
     !matches {

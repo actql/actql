@@ -6,15 +6,17 @@ priv struct PrivateEffectEvidenceCustody {
   store : Store
   crypto : @signature.Library
   key : Bytes
-  envelope : Bytes
+  mut envelope : Bytes
   reservation_bytes : Int64
+  reservation_objects : Int64
+  preparation : PrivateEvidencePreparation?
   terminal : Bytes
   capacity_key : String
   table : String
   holding : String
   kind : String
   semantic_cid : String
-  wire : String
+  mut wire : String
   step_prefix : String
   mut transaction_uncertain : Bool
 }
@@ -55,6 +57,8 @@ fn prepare_private_effect_custody(
     key: owned_key,
     envelope,
     reservation_bytes: envelope.length().to_int64(),
+    reservation_objects: 1L,
+    preparation: None,
     terminal: @utf8.encode(terminal),
     capacity_key: step_prefix + ":" + holding,
     table,
@@ -336,7 +340,14 @@ fn PrivateEffectEvidenceCustody::read(
     return Ok((row, true))
   }
   if row.revision != 0L ||
-    row.body.length().to_int64() != self.reservation_bytes {
+    (
+      self.preparation is None &&
+      row.body.length().to_int64() != self.reservation_bytes
+    ) ||
+    (
+      self.preparation is Some(_) &&
+      row.body.length().to_int64() > self.reservation_bytes
+    ) {
     return Err(StateCollision)
   }
   let plain = match
@@ -374,6 +385,11 @@ fn PrivateEffectEvidenceCustody::persist(
     Err(issue) => return Err(Database(issue))
   }
   let operation = () => {
+    match self.confirm_preparation() {
+      Ok(false) => ()
+      Ok(true) => return Err(RecoveryRequired)
+      Err(issue) => return Err(issue)
+    }
     match self.read() {
       Ok((_, true)) => return Err(RecoveryRequired)
       Ok((_, false)) => ()
@@ -385,10 +401,11 @@ fn PrivateEffectEvidenceCustody::persist(
         "publication_payload",
         self.capacity_key,
         self.reservation_bytes,
-        1L,
+        self.reservation_objects,
         self.store.capacity_bytes,
         self.store.max_objects,
       ) {
+      Ok(true) if self.preparation is Some(_) => return Err(StateCollision)
       Ok(_) => ()
       Err(issue) => return Err(Database(issue))
     }
@@ -430,11 +447,13 @@ fn PrivateEffectEvidenceCustody::persist(
     }
   }
   observe(self.store, self.step_prefix + "-persisted")
-  match self.read() {
-    Ok((_, false)) => Ok(())
-    Ok((_, true)) => Err(RecoveryRequired)
-    Err(issue) => Err(issue)
-  }
+  allocation_prepare(self.store, self.step_prefix + "-after-persist-readback", () => {
+    match self.read() {
+      Ok((_, false)) => Ok(())
+      Ok((_, true)) => Err(RecoveryRequired)
+      Err(issue) => Err(issue)
+    }
+  })
 }
 
 ///|
@@ -485,6 +504,10 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
     Ok((_, false)) => return Err(CleanupPending)
     Err(issue) => return Err(issue)
   }
+  match self.retire_preparation() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match
     allocation_prepare(
       self.store,
@@ -495,7 +518,7 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
           "publication_payload",
           self.capacity_key,
           self.reservation_bytes,
-          1L,
+          self.reservation_objects,
         )
         .map_err(issue => Database(issue))
       },

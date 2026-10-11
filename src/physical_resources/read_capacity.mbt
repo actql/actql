@@ -92,6 +92,31 @@ pub fn capacity_reservation_matches(
 }
 
 ///|
+/// Read only the allowance of this original byte-only token. Aggregate free
+/// capacity, another token or equal bytes on another Ledger cannot substitute
+/// for it. This neither claims a new consumer nor grants any send/permission;
+/// the caller still proves original custody, complete simultaneous bounds and
+/// cleanup responsibility through their existing Owners.
+pub fn capacity_reservation_covers(
+  ledger : Ledger,
+  reservation : CapacityReservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  let token = reservation.reservation
+  retained_bytes >= 0L &&
+  execution_bytes >= 0L &&
+  physical_equal(ledger, token.owner) &&
+  token.open &&
+  !token.cleanup_pending &&
+  retained_bytes <= token.retention &&
+  execution_bytes <= token.execution &&
+  token.transfer == 0L &&
+  token.quantities is None &&
+  token.uncertain_quantities is None
+}
+
+///|
 /// Call only on the existing owner's confirmed physical cleanup path. A
 /// cancellation request or logical read completion is not that acknowledgement.
 pub fn settle_capacity(

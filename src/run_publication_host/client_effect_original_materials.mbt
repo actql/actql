@@ -14,14 +14,24 @@ pub fn issue_prepared_client_effect_run_materials(
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
   }
-  if allowed.compilation.normalization_profile && normalization is None {
+  if allowed.compilation.normalization_profile is Some(_) &&
+    normalization is None {
     return Err(Normalization(MissingOriginalJournal))
   }
   let normalization_wire = match normalization {
     None => None
     Some(original) =>
       match prepared_client_effect_normalization_evidence(prepared, original) {
-        Ok(value) => Some(@publication.run_evidence_value_json(value))
+        Ok(value) => {
+          if original.inventory is LocalUpdate(_) &&
+            !same_client_effect_normalization_profile(
+              Some(original.inventory),
+              allowed.compilation.normalization_profile,
+            ) {
+            return Err(Normalization(ForeignCatalog))
+          }
+          Some(@publication.run_evidence_value_json(value))
+        }
         Err(issue) => return Err(Normalization(issue))
       }
   }

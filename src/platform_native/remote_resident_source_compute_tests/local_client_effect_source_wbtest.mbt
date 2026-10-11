@@ -226,9 +226,36 @@ test "Native original accepted Effect Run acquires once computes its Result and 
   ).unwrap()
   assert_eq(acquisitions, 1)
   assert_eq(consumers, 0)
+  let before_original_capture = work.usage()
+  // This accepted legacy fixture deliberately has no original normalization
+  // custody. Even actual acquisition cannot substitute an empty journal.
+  assert_true(
+    work.prepare_original_capture_context(
+      retained_compute_effect_retention(),
+      resident_compute_limits(),
+      65536,
+      4096,
+      64,
+    )
+    is Err(@client.Normalization(@host.MissingOriginalJournal)),
+  )
+  assert_eq(work.usage(), before_original_capture)
+  assert_eq(acquisitions, 1)
+  assert_eq(consumers, 0)
   // Reclaiming the original file proves the consumer uses retained input.
   resident_compute_reclaim(root, name)
   authorized = false
+  // Current authorization is checked before exposing missing original custody.
+  assert_true(
+    work.prepare_original_capture_context(
+      retained_compute_effect_retention(),
+      resident_compute_limits(),
+      65536,
+      4096,
+      64,
+    )
+    is Err(@client.Original(@client.AuthorizationDenied)),
+  )
   assert_true(
     work.execute_task(1)
     is Err(@client.NativeClientSourceWorkIssue::AuthorizationDenied),

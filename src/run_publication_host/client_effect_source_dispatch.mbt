@@ -102,7 +102,7 @@ pub fn prepare_client_effect_source_input_binding(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !compilation.normalization_profile {
+  if compilation.normalization_profile is None {
     return Ok(source)
   }
   guard request is Some(original) else { return Err(ForeignRequest) }
