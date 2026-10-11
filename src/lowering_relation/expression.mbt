@@ -101,6 +101,8 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
@@ -265,6 +267,8 @@ fn expression_tag(
     | "and"
     | "or"
     | "coalesce"
+    | "greatest"
+    | "least"
     | "concat"
     | "concat_strict"
     | "len"
@@ -983,6 +987,8 @@ fn lower_typed_expression_measured(
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)
+        "greatest" => Many(Greatest, args)
+        "least" => Many(Least, args)
         "concat" => Many(Concat, args)
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)

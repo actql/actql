@@ -626,6 +626,56 @@ test "expression corpus accepted: 125" {
 }
 
 ///|
+test "expression corpus accepted: 126" {
+  assert_tree("greatest(1, -2, 3, 1)", "{\"greatest\":[{\"literal\":1},{\"literal\":-2},{\"literal\":3},{\"literal\":1}]}")
+}
+
+///|
+test "expression corpus accepted: 127" {
+  assert_tree("greatest(7)", "{\"greatest\":[{\"literal\":7}]}")
+}
+
+///|
+test "expression corpus accepted: 128" {
+  assert_tree("greatest(NULL)", "{\"greatest\":[{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 129" {
+  assert_tree("greatest(NULL, NULL)", "{\"greatest\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 130" {
+  assert_tree("greatest(x, $q, 2)", "{\"greatest\":[{\"field\":\"x\"},{\"$param\":\"q\"},{\"literal\":2}]}")
+}
+
+///|
+test "expression corpus accepted: 131" {
+  assert_tree("least(1, -2, 3, 1)", "{\"least\":[{\"literal\":1},{\"literal\":-2},{\"literal\":3},{\"literal\":1}]}")
+}
+
+///|
+test "expression corpus accepted: 132" {
+  assert_tree("least(7)", "{\"least\":[{\"literal\":7}]}")
+}
+
+///|
+test "expression corpus accepted: 133" {
+  assert_tree("least(NULL)", "{\"least\":[{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 134" {
+  assert_tree("least(NULL, NULL)", "{\"least\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 135" {
+  assert_tree("least(x, $q, 2)", "{\"least\":[{\"field\":\"x\"},{\"$param\":\"q\"},{\"literal\":2}]}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -1013,4 +1063,34 @@ test "expression corpus rejected: 77" {
 ///|
 test "expression corpus rejected: 78" {
   assert_true(parse("log10(1,2)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 79" {
+  assert_true(parse("greatest()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 80" {
+  assert_true(parse("greatest(1,)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 81" {
+  assert_true(parse("greatest(,1)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 82" {
+  assert_true(parse("least()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 83" {
+  assert_true(parse("least(1,)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 84" {
+  assert_true(parse("least(,1)", test_limits()) is Err(_))
 }

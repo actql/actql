@@ -238,6 +238,8 @@ fn emit_frames(
                   And => "and"
                   Or => "or"
                   Coalesce => "coalesce"
+                  Greatest => "greatest"
+                  Least => "least"
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
                   Replace => "replace"

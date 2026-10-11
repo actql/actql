@@ -42,6 +42,18 @@ export const googleScalarLaws = {
     "evaluation": "Evaluate the demanded child exactly once. Preserve child failures, enclosing lazy demand, first-failure order, cancellation and existing logical work, frame, workspace and live-value budgets. Reuse the canonical unary scalar evaluator.",
     "identity": "The closed source form is {log10: expression}; the machine node is {op: log10, body: expression_node}. Retain the operation and child, including constants. Earlier contract CIDs retain their earlier meanings."
   },
+  greatest: {
+    signature: 'One or more finite binary64 number operands; the result is number and is nullable exactly when any operand is nullable. Every immediate untyped NULL takes the unique number signature, including an all-NULL argument list. No implicit conversion, STRING, BOOLEAN, temporal, decimal, BYTES, non-finite value or collation overload is admitted.',
+    value: 'Return the greatest operand in the existing finite numeric order. Any NULL operand produces NULL, including a singleton NULL. A non-null singleton returns itself. Equal values and repeated operands preserve their value; zero uses the existing canonical positive zero. No arithmetic overflow, precision reduction or non-finite result is introduced.',
+    evaluation: 'Evaluate every demanded child exactly once in authored order, including all later children after NULL, and preserve the first child failure. NULL does not short-circuit the argument list. Enclosing lazy demand, logical entry/operand/result charges, retained live roots, control/workspace bounds and cancellation cleanup remain owned by the common expression continuation. Fold accumulators are not additional semantic expression results.',
+    identity: 'The closed source form is {greatest: [first, ...]} and the machine node is {op: greatest, body: [first_node, ...]} with a nonempty array. Retain the authored operation, argument order, repetitions and singleton node; do not sort, deduplicate or constant fold children. Earlier contract CIDs retain their earlier meanings.',
+  },
+  least: {
+    signature: 'One or more finite binary64 number operands; the result is number and is nullable exactly when any operand is nullable. Every immediate untyped NULL takes the unique number signature, including an all-NULL argument list. No implicit conversion, STRING, BOOLEAN, temporal, decimal, BYTES, non-finite value or collation overload is admitted.',
+    value: 'Return the least operand in the existing finite numeric order. Any NULL operand produces NULL, including a singleton NULL. A non-null singleton returns itself. Equal values and repeated operands preserve their value; zero uses the existing canonical positive zero. No arithmetic overflow, precision reduction or non-finite result is introduced.',
+    evaluation: 'Evaluate every demanded child exactly once in authored order, including all later children after NULL, and preserve the first child failure. NULL does not short-circuit the argument list. Enclosing lazy demand, logical entry/operand/result charges, retained live roots, control/workspace bounds and cancellation cleanup remain owned by the common expression continuation. Fold accumulators are not additional semantic expression results.',
+    identity: 'The closed source form is {least: [first, ...]} and the machine node is {op: least, body: [first_node, ...]} with a nonempty array. Retain the authored operation, argument order, repetitions and singleton node; do not sort, deduplicate or constant fold children. Earlier contract CIDs retain their earlier meanings.',
+  },
   starts_with: {
     signature: stringSignature,
     value: 'Return whether the second string is an exact prefix of the first, using their retained Unicode scalar sequences with default binary comparison. The empty prefix matches every non-null string, including the empty string. A longer prefix does not match. No normalization, case folding, trimming or locale rule is applied. Either NULL operand produces NULL.',
@@ -129,7 +141,7 @@ export const googleScalarLaws = {
     identity: 'The closed source form is {sign: expression}; the closed machine node is {op: sign, body: expression_node}. Retain the SIGN node and its child in canonical lowering. Earlier expression contract CIDs retain their earlier meaning.',
   },
 };
-const templates = {pow: 'contains', exp: 'abs', ln: 'abs', log: 'contains', log10: 'abs', starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', trim: 'abs', ltrim: 'abs', rtrim: 'abs', round: 'abs', trunc: 'abs', safe_add: 'contains', safe_subtract: 'contains', safe_multiply: 'contains', safe_divide: 'contains', safe_negate: 'abs'};
+const templates = {greatest: 'abs', least: 'abs', pow: 'contains', exp: 'abs', ln: 'abs', log: 'contains', log10: 'abs', starts_with: 'contains', ends_with: 'contains', strpos: 'contains', sign: 'abs', trim: 'abs', ltrim: 'abs', rtrim: 'abs', round: 'abs', trunc: 'abs', safe_add: 'contains', safe_subtract: 'contains', safe_multiply: 'contains', safe_divide: 'contains', safe_negate: 'abs'};
 
 // Unicode 16.0 PropList.txt White_Space, not host-language trim or regex \s.
 export const trimWhiteSpaceCodePoints = [
@@ -167,6 +179,11 @@ function visit(value, write, counts) {
           expected.required = [name];
           expected.properties = {[name]: expected.properties[template]};
         } else expected.properties.op.const = name;
+        if (['greatest', 'least'].includes(name)) {
+          const key = kind === 'source' ? name : 'body';
+          expected.properties[key] = {type: 'array', minItems: 1,
+            items: expected.properties[key]};
+        }
         if (['trim', 'ltrim', 'rtrim', 'round', 'trunc'].includes(name)) {
           const key = kind === 'source' ? name : 'body';
           const unary = expected.properties[key];

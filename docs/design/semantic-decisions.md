@@ -493,3 +493,27 @@ introduced.
 References:
 - https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions
 - https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/public/functions/math.h
+
+## Finite Number GREATEST and LEAST
+
+GoogleSQL accepts one or more compatible orderable arguments, propagates NULL,
+and evaluates ordinary function arguments before applying the function. Its
+STRING ordering is by Unicode code point. ActQL's existing shared comparison,
+ordering, aggregate extrema and canonical-name paths use UTF-16 code units.
+U+10000 sorts before U+E000 in UTF-16 but after it by Unicode code point.
+Changing that shared law would affect identities and callers outside numeric
+extrema, while a function-local STRING comparator would create a second meaning.
+
+The adopted bounded implementation therefore supports finite Number arguments
+only, reusing the common finite-number comparator and Many continuation. Other
+orderable overloads remain explicit implementation gaps, not claims of GoogleSQL
+conformance or new language-wide prohibitions. No IEEE specials or decimal
+coercions are added. NULL never skips another demanded argument; outer lazy
+branches remain lazy. Singletons, repetitions and authored order remain in
+canonical lowering. The unique number signature resolves immediate and all-NULL
+arguments to nullable Number. Existing work, live-root, frame and workspace
+limits and cancellation cleanup remain with their existing owners.
+
+Sources: [GoogleSQL mathematical functions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#greatest),
+[STRING comparison](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#string_type),
+and [conditional expressions](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/conditional_expressions).

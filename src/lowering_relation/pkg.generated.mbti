@@ -1460,6 +1460,8 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace

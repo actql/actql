@@ -102,7 +102,8 @@ fn Parser::call(
     "decimal_divide" => (5, 5)
     "regex_match" => (2, 3)
     "regex_extract" | "regex_replace" => (3, 4)
-    "concat" | "concat_strict" | "coalesce" => (1, self.tokens.length())
+    "concat" | "concat_strict" | "coalesce" | "greatest" | "least" =>
+      (1, self.tokens.length())
     "vector_concat" => (2, self.tokens.length())
     _ => raise UnknownFunction(token.start, token.end)
   }
