@@ -1,0 +1,19 @@
+{
+  "command": [
+    "git",
+    "merge",
+    "--no-edit",
+    "-m",
+    "chore(frontend): adopt hex integer main integration",
+    "origin/main"
+  ],
+  "exitCode": 1,
+  "head": "bcd9bfdf41d29b31e015657c2551148878818fe5",
+  "mergeHead": "e3bbe9c34ae89100917eff26a21737648c1e1a01",
+  "conflicts": [
+    "scripts/fixtures/packed-public-query.mjs",
+    "scripts/fixtures/public-query-inventory.json",
+    "scripts/public-query-profiles.test.mjs"
+  ],
+  "resolution": "Preserve both independently authored fixture groups; enumerate combined registration from source data. No product expectations changed."
+}

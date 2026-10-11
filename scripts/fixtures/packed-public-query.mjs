@@ -1,5 +1,7 @@
+import {distinctOrderReceiverSuccesses, distinctOrderReceiverRefusals} from './distinct-order-receiver-source-input.mjs';
 import {groupedRowsBoundarySuccesses, groupedRowsBoundaryRefusals} from './grouped-rows-boundary-source-input.mjs';
 import {positiveLimitSuccesses, positiveLimitRefusals} from './positive-limit-source-input.mjs';
+import {groupOrderRangeAliasSuccesses, groupOrderRangeAliasRefusals} from './group-order-range-alias-source-input.mjs';
 import {hexIntegerSuccesses, hexIntegerRefusals} from './hex-integer-source-input.mjs';
 import {unpivotMulticolumnSuccesses, unpivotMulticolumnRefusals} from './unpivot-multicolumn-source-input.mjs';
 import {cteValueTableSuccesses, cteValueTableRefusals} from './cte-value-table-source-input.mjs';
@@ -283,6 +285,7 @@ const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
 const groupSelectScopeOnly = process.env.ACTQL_TEST_GROUP_SELECT_SCOPE_ONLY === '1';
 const implicitPropertyOnly = process.env.ACTQL_TEST_IMPLICIT_PROPERTY_ONLY === '1';
 const computedObjectPropertyOnly = process.env.ACTQL_TEST_COMPUTED_OBJECT_PROPERTY_ONLY === '1';
+const groupOrderRangeAliasOnly = process.env.ACTQL_TEST_GROUP_ORDER_RANGE_ALIAS_ONLY === '1';
 const orderGroupedSubexpressionOnly = process.env.ACTQL_TEST_ORDER_GROUPED_SUBEXPRESSION_ONLY === '1';
 const groupHavingImplicitAliasesOnly = process.env.ACTQL_TEST_GROUP_HAVING_IMPLICIT_ALIASES_ONLY === '1';
 const groupedImplicitPropertyNamesOnly = process.env.ACTQL_TEST_GROUPED_IMPLICIT_PROPERTY_NAMES_ONLY === '1';
@@ -338,7 +341,8 @@ const namedWindowOnly = process.env.ACTQL_TEST_NAMED_WINDOW_ONLY === '1';
 const countifDistinctOnly = process.env.ACTQL_TEST_COUNTIF_DISTINCT_ONLY === '1';
 const analyticDistinctFrameOnly = process.env.ACTQL_TEST_ANALYTIC_DISTINCT_FRAME_ONLY === '1';
 const distinctAggregateOrderOnly = process.env.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY === '1';
-const scopeOnly = groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchDataProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
+const distinctOrderReceiverOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_RECEIVER_ONLY === '1';
+const scopeOnly = distinctOrderReceiverOnly || groupOrderRangeAliasOnly || groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchDataProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -359,7 +363,8 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = hexIntegerOnly ? {successes: hexIntegerSuccesses, refusals: hexIntegerRefusals}
+const scopeInputs = distinctOrderReceiverOnly ? {successes: distinctOrderReceiverSuccesses, refusals: distinctOrderReceiverRefusals}
+  : hexIntegerOnly ? {successes: hexIntegerSuccesses, refusals: hexIntegerRefusals}
   : inputStageResultOnly ? {successes: inputStageResultSuccesses, refusals: []}
   : typedSubscriptOnly ? {successes: typedSubscriptSuccesses, refusals: typedSubscriptRefusals,
     executionFailures: typedSubscriptExecutionFailures}
@@ -449,6 +454,7 @@ const scopeInputs = hexIntegerOnly ? {successes: hexIntegerSuccesses, refusals: 
   : computedObjectPropertyOnly ? {successes: computedObjectPropertySuccesses,
     refusals: computedObjectPropertyRefusals, executionFailures: computedObjectPropertyExecutionFailures}
   : groupOrdinalOnly ? {successes: groupOrdinalSuccesses, refusals: groupOrdinalRefusals}
+  : groupOrderRangeAliasOnly ? {successes: groupOrderRangeAliasSuccesses, refusals: groupOrderRangeAliasRefusals}
   : orderGroupedSubexpressionOnly ? {successes: orderGroupedSubexpressionSuccesses, refusals: orderGroupedSubexpressionRefusals}
   : groupHavingImplicitAliasesOnly ? {successes: groupHavingImplicitAliasSuccesses, refusals: groupHavingImplicitAliasRefusals}
   : groupedImplicitPropertyNamesOnly ? {successes: groupedImplicitPropertyNameSuccesses, refusals: groupedImplicitPropertyNameRefusals}
@@ -529,6 +535,8 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...countifDistinctSuccesses);
   scopeInputs.successes.push(...minMaxDistinctSuccesses);
   scopeInputs.refusals.push(...minMaxDistinctRefusals);
+  scopeInputs.successes.push(...groupOrderRangeAliasSuccesses);
+  scopeInputs.refusals.push(...groupOrderRangeAliasRefusals);
   scopeInputs.successes.push(...groupByAllSuccesses);
   scopeInputs.successes.push(...groupPropertyReceiverSuccesses);
   scopeInputs.refusals.push(...groupPropertyReceiverRefusals);
@@ -729,6 +737,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...distinctOrderRefusals);
   scopeInputs.successes.push(...distinctOrderMemberSuccesses);
   scopeInputs.refusals.push(...distinctOrderMemberRefusals);
+  scopeInputs.successes.push(...distinctOrderReceiverSuccesses);
+  scopeInputs.refusals.push(...distinctOrderReceiverRefusals);
   scopeInputs.successes.push(...graphRowSourceSuccesses);
   scopeInputs.refusals.push(...graphRowSourceRefusals);
   scopeInputs.successes.push(...matchDataProducerSuccesses);
