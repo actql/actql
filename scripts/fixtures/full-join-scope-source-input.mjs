@@ -78,7 +78,7 @@ export const fullJoinScopeSuccesses = [
   // The same independently authored JSON control above specifies these rows,
   // types, acquisition and bound. Explicit SELECT must not choose a refusal
   // path merely because its projection has no star.
-  success('explicit-select', prefix + body.replace('l.*', 'l.amount, l.id') + ')'),
+  success('explicit-select', prefix + body.replace('l.*', 'l.amount, l.id')),
   success('explicit-pipe', prefix + 'FROM lefts AS l |> FULL JOIN rights AS r '
     + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 |> SELECT l.amount, l.id, r.id AS rid '
     + '|> ORDER BY id NULLS LAST, rid NULLS LAST'),
