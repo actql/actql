@@ -1622,6 +1622,7 @@ fn analytic_boundary(
     UnboundedPreceding => construction.text("unbounded_preceding")
     CurrentRow => construction.text("current_row")
     UnboundedFollowing => construction.text("unbounded_following")
+    Preceding(0L) | Following(0L) => construction.text("current_row")
     Preceding(distance) =>
       construction.object([
         ("preceding", construction.add(Number(distance.to_double()))),
@@ -1648,6 +1649,33 @@ fn analytic_boundary(
 }
 
 ///|
+// Zero physical distance denotes the current row. Validate authored boundary
+// categories before that projection: zero cannot make an illegal interval
+// spelling legal. Parameter distances remain with the common positive domain.
+fn validate_literal_zero_frame(frame : @query.AnalyticFrame) -> Unit raise Abort {
+  let zero = frame.start is Preceding(0L) ||
+    frame.start is Following(0L) ||
+    frame.end is Preceding(0L) ||
+    frame.end is Following(0L)
+  if !zero {
+    return
+  }
+  let category = fn(boundary : @query.FrameBoundary) -> Int {
+    match boundary {
+      UnboundedPreceding => 0
+      Preceding(_) | PrecedingParameter(_) => 1
+      CurrentRow => 2
+      Following(_) | FollowingParameter(_) => 3
+      UnboundedFollowing => 4
+    }
+  }
+  if category(frame.start) > category(frame.end) ||
+    frame.start is UnboundedFollowing || frame.end is UnboundedPreceding {
+    raise Abort(InvalidQuery)
+  }
+}
+
+///|
 fn lower_analytic_call(
   construction : Construction,
   call : @query.AnalyticCall,
@@ -1655,6 +1683,9 @@ fn lower_analytic_call(
   max_work : Int,
   max_collection_bytes : Int64,
 ) -> @builder.Node raise Abort {
+  if call.window.frame is Some(frame) {
+    validate_literal_zero_frame(frame)
+  }
   match call.aggregate {
     Some(aggregate) => {
       // The selected SQL analytic contract forbids DISTINCT with window ORDER
