@@ -315,7 +315,8 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     value.run_configurations.get(handle) is Some(record) else {
     return -2
   }
-  if value.tasks.values().any(task => task.current_configuration == handle) ||
+  if value.submissions.values().any(record => record.configuration == handle) ||
+    value.tasks.values().any(task => task.current_configuration == handle) ||
     value.runs.values().any(run => run.configuration == handle) ||
     value.physical_starts
     .values()

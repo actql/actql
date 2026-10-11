@@ -162,6 +162,12 @@ _RUN_SIGNATURES = {
     'physical_start_ready': ('i64 i32', 'i32'),
     'close_physical_start': ('i64 i32', 'i32'),
 }
+_SUBMISSION_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _MATERIAL_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
     'produce': ('i64 i32', 'i32'),
@@ -313,6 +319,8 @@ class LocalCore:
                              for name, value in _PROGRAM_SIGNATURES.items()})
             expected.update({'actql_run_' + name: value
                              for name, value in _RUN_SIGNATURES.items()})
+            expected.update({'actql_submission_' + name: value
+                             for name, value in _SUBMISSION_SIGNATURES.items()})
             expected.update({'actql_material_' + name: value
                              for name, value in _MATERIAL_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
@@ -352,7 +360,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 15:
+            if self._exports['actql_host_abi_version'](self._store) != 16:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -528,6 +536,40 @@ class LocalCore:
             self._loans.pop(value.ticket)
             self._released.discard(value.ticket)
             return True
+
+    def reserve_submission_projection(self, configuration: int, source: _Input,
+                                      kind: int, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain one Core epoch/identity projection, never execution permission."""
+        with self._lock:
+            self._owned_input(source)
+            if (self._closing or type(configuration) is not int or
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2)):
+                raise ValueError('Invalid Local Submission projection')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 4096
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'submission')))
+            handle = self._call('submission', 'reserve', configuration, source.handle,
+                                kind, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_submission_projection', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'submission')
+            self._loans[ticket] = value
+            return value
+
+    def produce_submission_projection(self, value: _Output) -> None:
+        self._produce_output(value, 'submission', 'produce')
+
+    def read_submission_projection(self, value: _Output) -> bytes:
+        return self._read_output(value, 'submission', 'length')
+
+    def close_submission_projection(self, value: _Output) -> bool:
+        return self._close_output(value, 'submission', 'close')
 
     def reserve_material(self, run: int, kind: int, *,
                          cleanup: Callable[[], bool]) -> _Output:

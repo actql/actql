@@ -51,6 +51,8 @@ class LocalByteStore:
         self._lock = RLock()
         self._closed = False
         self._ready = False
+        self._created = False
+        self._creation_claimed = False
         self._opening_descriptor: int | None = None
         self._max_records = max_records
         self._max_record_bytes = max_record_bytes
@@ -71,6 +73,7 @@ class LocalByteStore:
                     or metadata.st_uid != os.getuid()):
                 raise LocalStorageError('Local physical storage must be a private owned file')
         else:
+            self._created = True
             try:
                 self._close_descriptor()
             except BaseException as original:
@@ -108,6 +111,19 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    def claim_creation(self) -> bool:
+        """Consume this handle's exclusive new-file observation once.
+
+        Missing credentials in a reopened or populated store are not a fresh
+        Host. A failed bootstrap does not restore this physical observation.
+        """
+        with self._lock:
+            self._open()
+            if not self._created or self._creation_claimed:
+                return False
+            self._creation_claimed = True
+            return bool(self._connection.execute('SELECT EXISTS(SELECT 1 FROM core_bytes)').fetchone()[0] == 0)
 
     def _open(self) -> None:
         if self._closed or not self._ready:
