@@ -19,6 +19,7 @@ pub enum ExpressionBody {
   EmptyArray
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
+  Subscript(Expression, Expression)
   Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
@@ -163,6 +164,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     | TypedNull
     | EmptyArray
     | Property(_, _, _)
+    | Subscript(_, _)
     | Cast(_)
     | Unary(_, _)
     | Binary(_, _, _)
@@ -265,7 +267,7 @@ fn expression_tag(
     | "cast"
     | "if"
     | "case" => ()
-    "array" | "empty_array" | "object" | "property" => ()
+    "array" | "empty_array" | "object" | "property" | "subscript" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
 }
@@ -290,6 +292,13 @@ fn expression_children(
     }
     "property" =>
       [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
+    "subscript" => {
+      let object = @decode.open_object(body).unwrap()
+      [
+        @decode.lookup(object, "value").unwrap(),
+        @decode.lookup(object, "index").unwrap(),
+      ]
+    }
     "object" => {
       let count = @decode.object_length(body).unwrap()
       if count > max_nodes {
@@ -781,6 +790,7 @@ fn lower_typed_expression_measured(
       let lowered = match tag {
         "array" => Array(args)
         "empty_array" => EmptyArray
+        "subscript" => Subscript(args[0], args[1])
         "object" => {
           guard contract.shape is @contract.Object(contracts) else {
             expression_fail(cursor, MissingTypeAnnotation)
@@ -1022,6 +1032,7 @@ fn lower_typed_expression_measured(
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
           Property(child, _, _) => child.uses_veca
+          Subscript(value, index) => value.uses_veca || index.uses_veca
           Array(children) => children.any(child => child.uses_veca)
           Object(fields) => fields.any(field => field.1.uses_veca)
           Cast(child) => child.uses_veca
