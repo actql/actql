@@ -618,6 +618,8 @@ pub fn client_task_run_binding_definition_cid(ClientTaskRunBinding) -> String
 
 pub fn client_task_run_binding_result_names(ClientTaskRunBinding) -> Array[String]
 
+pub fn client_task_static_plan_view(PreparedClientProgram, ClientTaskCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
+
 pub fn client_transfer_binding(ClientTransferInput) -> @remote_site_protocol.RemoteInputBinding
 
 pub fn client_transfer_destination_receipt_cid(ClientTransferInput) -> String
@@ -667,6 +669,8 @@ pub fn client_values_run_binding_definition_cid(ClientValuesRunBinding) -> Strin
 pub fn client_values_run_binding_result_name(ClientValuesRunBinding) -> String
 
 pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
+
+pub fn client_values_static_plan_view(PreparedClientProgram, ClientValuesCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
 
 pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
 
@@ -1768,6 +1772,16 @@ pub struct ClientInferSavedCallScope {
 }
 
 type ClientInferSourceInput
+
+pub(all) enum ClientInteractivePlanIssue {
+  ForeignCompilation
+  InvalidReadLimits
+  MissingCheckedOccurrence
+  UnsupportedCarrierContract
+  Encoding
+  Evidence(@run_publication.RunEvidenceValueIssue)
+  Contract(@run_publication.PublicationContractIssue)
+} derive(Eq, @debug.Debug)
 
 type ClientLocalNormalization
 
