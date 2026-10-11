@@ -93,9 +93,9 @@ test "ROUND and TRUNC SQL and Pipe field calls match an independent Program" {
 }
 
 ///|
-test "ROUND and TRUNC refuse optional N and rounding mode before checking" {
+test "ROUND and TRUNC refuse unsupported arity and rounding mode before checking" {
   for name in ["ROUND", "TRUNC"] {
-    for argument in ["", "2.5, 0", "2.5, 0, 'ROUND_HALF_EVEN'"] {
+    for argument in ["", "2.5, 0, 'ROUND_HALF_EVEN'"] {
       let source = "SELECT " + name + "(" + argument + ") AS value"
       assert_true(
         compile(

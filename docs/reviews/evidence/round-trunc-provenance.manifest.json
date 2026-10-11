@@ -1,0 +1,384 @@
+{
+  "format": "actql-round-trunc-review-evidence-candidate/0.1",
+  "created_at_utc": "2026-10-10T15:24:36.520276+00:00",
+  "status": "Pinned-reference, selected cross-target and clean logical-integration checks verified. Final generated-closure and public Host acceptance are reported on the submitted Draft revision.",
+  "reference": {
+    "repository": "https://github.com/google/googlesql",
+    "commit": "81c15b796138185c046aefe852321011fdf96615",
+    "license": "Apache-2.0",
+    "source_paths": [
+      "googlesql/common/round_decimal.cc",
+      "googlesql/common/round_decimal.h",
+      "googlesql/common/double_double.h"
+    ],
+    "live_bigquery": false
+  },
+  "reference_compiler": {
+    "command": "g++",
+    "version": "g++ (Debian 14.2.0-19) 14.2.0",
+    "target": "x86_64-linux-gnu",
+    "resolved_executable": "/usr/bin/x86_64-linux-gnu-g++-14",
+    "executable_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+    "common_flags": [
+      "-std=c++17",
+      "-O2",
+      "-ffp-contract=off",
+      "-fPIC",
+      "-shared"
+    ],
+    "dekker_extra_flags": [],
+    "fma_extra_flags": [
+      "-DFP_FAST_FMA"
+    ],
+    "target_macros": {
+      "__FLT_EVAL_METHOD__": 0,
+      "__FINITE_MATH_ONLY__": 0,
+      "__GCC_IEC_559": 2,
+      "__SIZEOF_DOUBLE__": 8,
+      "__SIZEOF_LONG_LONG__": 8
+    }
+  },
+  "reference_platform": {
+    "system": "Linux",
+    "release": "6.18.44",
+    "machine": "x86_64",
+    "libc": [
+      "glibc",
+      "2.41"
+    ],
+    "python": "3.12.14",
+    "ctypes_double_bytes": 8,
+    "ctypes_long_long_bytes": 8,
+    "fegetround": 0,
+    "rounding_mode": "FE_TONEAREST (0)"
+  },
+  "files": {
+    "portability/corpus/round-precision-reference.json": "10f2cb66b5a974f96bf23fdd0d597514fd0de90cec842bf599a11d83671ae300",
+    "docs/reviews/repro/round-precision/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "docs/reviews/repro/round-precision/NOTICE.md": "3239b189055cf279e55ada5a5370965505544664e53b7548267cee20b57e7fb8",
+    "docs/reviews/repro/round-precision/README.md": "e92d39173e4cb1ac04f06fb2047c8ef09adf99e9bf9f1339ca955b13138dd9ed",
+    "docs/reviews/repro/round-precision/include/absl/base/casts.h": "66ba08e9d84fed6636b852402db050402b15b01b34ea59483def7a4f3baa13a3",
+    "docs/reviews/repro/round-precision/include/absl/base/macros.h": "fb2e7c1bcc3140f6807cf827651219772923364c307499d268f09b477547f9aa",
+    "docs/reviews/repro/round-precision/include/absl/base/optimization.h": "a9108a42153717a0d7feebcc9ce8be39d9284f1f4d64662c3ae77ee043d0dd23",
+    "docs/reviews/repro/round-precision/include/absl/types/compare.h": "108d6e069ed7c257bdbb25be98fd3cf96f65c59a0d73f2d9a39b4c10b607e637",
+    "docs/reviews/repro/round-precision/verify_round_precision.py": "5c2da2ba0fd6aa1795c568fae4d0350c8d35c2a4cbd7e26cb989b6c0c9155393",
+    "docs/reviews/repro/round-precision/wrapper.cc": "768d4ed9b7c87c54e916c117dde530e9417b767e300786f9c00ad33c8c42fb3c",
+    "docs/reviews/repro/round-precision-native/README.md": "bb0159629663bdd98fb79ce7d7f8540e3f54345d14731f152012e08fccc27bfe",
+    "docs/reviews/repro/round-precision-native/collect_native_release.py": "78e686a19aa552d4074131eec83a75cb88c7e826d117a177cd1fecc58f2c8a62",
+    "docs/reviews/repro/round-precision-native/prepare_native_release.py": "998dbea2ba983711cc50cb97b9aed6ec764da193682e51e3bad110f5d8d66b88"
+  },
+  "fixed_vectors": {
+    "input_position_pairs": 1000,
+    "scalar_outputs": 2000,
+    "round_overflow_cases": 8,
+    "trunc_overflow_cases": 0,
+    "power_pair_cases": 647,
+    "reference_fma_dekker_mismatches": 0,
+    "expectation_owner": "Pinned standalone C++ reference plus ActQL positive-zero and finite-overflow admission adaptations.",
+    "product_output_used_for_expectations": false
+  },
+  "rejected_proxies": [
+    {
+      "name": "Exact decimal integer selection with one final rational conversion",
+      "status": "rejected",
+      "reason": "Does not preserve reference subnormal double rounding."
+    },
+    {
+      "name": "Exact integer selection, RN(k*5^-n), then binary scaling",
+      "status": "rejected",
+      "initial_sample_operations": 997750,
+      "initial_sample_mismatches": 0,
+      "targeted_active_operations": 12363612,
+      "targeted_output_mismatches": 18,
+      "counts_are_non_additive": true,
+      "reason": "Does not reproduce reference integer-selection tolerance or rounded double-double multiplication."
+    }
+  ],
+  "working_tree_receipts": [
+    {
+      "target": "js",
+      "kind": "working-tree",
+      "local_attempt": "run-7774VG",
+      "focused_invocation": "focused-test-xDzxEc",
+      "revision": "8b51ac1f0da3656695e6b699e208f5fc331e2cb6",
+      "dirty": true,
+      "started_at": "2026-10-10T15:17:42.168Z",
+      "ended_at": "2026-10-10T15:17:53.645Z",
+      "command": [
+        "moon",
+        "test",
+        "--target",
+        "js",
+        "src/execution_relation/round_precision_execution_wbtest.mbt",
+        "src/execution_relation/round_precision_reference.generated_wbtest.mbt",
+        "src/execution_relation/round_precision_powers.generated_wbtest.mbt"
+      ],
+      "status": "passed",
+      "counts": {
+        "tests": 13,
+        "passed": 13,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      },
+      "focused_summary_sha256": "6a5609175ac833ee3dd1b809d38483d14800dc29cf9e4caa6cce6ac5cc139d23",
+      "local_summary_sha256": "b6c2a2b94626dc3958734928c430b237b5f99901a1e0fa8475763b00a4ab5326"
+    },
+    {
+      "target": "wasm",
+      "kind": "working-tree",
+      "local_attempt": "run-ha2min",
+      "focused_invocation": "focused-test-JtQ6dC",
+      "revision": "8b51ac1f0da3656695e6b699e208f5fc331e2cb6",
+      "dirty": true,
+      "started_at": "2026-10-10T15:18:11.930Z",
+      "ended_at": "2026-10-10T15:18:29.696Z",
+      "command": [
+        "moon",
+        "test",
+        "--target",
+        "wasm",
+        "src/execution_relation/round_precision_execution_wbtest.mbt",
+        "src/execution_relation/round_precision_reference.generated_wbtest.mbt",
+        "src/execution_relation/round_precision_powers.generated_wbtest.mbt"
+      ],
+      "status": "passed",
+      "counts": {
+        "tests": 13,
+        "passed": 13,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      },
+      "focused_summary_sha256": "faefc5344c8035fb77b858492962316551e2369eda764537d24dbd2273f6dbd0",
+      "local_summary_sha256": "0bae081986eae9800980b135da0012e9673b21bff9b9e7826111d8995afe8552"
+    },
+    {
+      "target": "native",
+      "kind": "working-tree",
+      "local_attempt": "run-L2bqrf",
+      "focused_invocation": "focused-test-o8naKw",
+      "revision": "8b51ac1f0da3656695e6b699e208f5fc331e2cb6",
+      "dirty": true,
+      "started_at": "2026-10-10T15:18:51.037Z",
+      "ended_at": "2026-10-10T15:19:47.123Z",
+      "command": [
+        "moon",
+        "test",
+        "--target",
+        "native",
+        "src/execution_relation/round_precision_execution_wbtest.mbt",
+        "src/execution_relation/round_precision_reference.generated_wbtest.mbt",
+        "src/execution_relation/round_precision_powers.generated_wbtest.mbt"
+      ],
+      "status": "passed",
+      "counts": {
+        "tests": 13,
+        "passed": 13,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      },
+      "focused_summary_sha256": "cb2a6620af51d04de87e6a4636ef9dfcb69ff016c72d98600e612d4ab3e59f78",
+      "local_summary_sha256": "73db37dec25cb5bd1edf9185150eb8ed440cb272016b950bf45e042b046f6a24"
+    }
+  ],
+  "clean_commit_receipts": [
+    {
+      "revision": "2781ca39d0b010142de009e7ce550e201d9b6fc1",
+      "tree": "5d8015032eff01046d7a13cae1730530fe551984",
+      "target": "js",
+      "scope": "Logical integration atop the exact SAFE predecessor tree, before final generated identity closure",
+      "tests": 1062,
+      "passed": 1062,
+      "failed": 0,
+      "source_tree_unchanged": true,
+      "receipts": [
+        {
+          "path": "_build/local-checks/attempts/run-Ev6loE/summary.json",
+          "sha256": "882fda4c02d75e202f1f8e98c3e0038b40a507b600167810d35bd3863b516d7e"
+        },
+        {
+          "path": "_build/focused-evidence/focused-test-rTaT7c/summary.json",
+          "sha256": "93e7d785517e9e57170a111a58d3348b216727e8166daebff7702acb57de9cc1"
+        }
+      ]
+    }
+  ],
+  "remaining_limits": [
+    "No live BigQuery execution.",
+    "No exhaustive all-binary64 equivalence proof.",
+    "Selected tests do not establish full Core, packed distribution, Host acceptance, or hosted CI.",
+    "Final submitted commit and clean-tree receipts must be attached before making revision-bound verification claims."
+  ],
+  "additional_working_tree_evidence": [
+    {
+      "scope": "Frontend and affected callers",
+      "kind": "working-tree",
+      "local_attempt": "run-6TmcpS",
+      "focused_invocation": "focused-test-qza32v",
+      "revision": "8b51ac1f0da3656695e6b699e208f5fc331e2cb6",
+      "dirty": true,
+      "status": "passed",
+      "counts": {
+        "tests": 1034,
+        "passed": 1034,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      },
+      "focused_summary_sha256": "9666580c0175ea0dbc19500ed64f4d021bd532f7bc86c1178cb539463246b837"
+    },
+    {
+      "scope": "Reference generator and scalar laws",
+      "kind": "working-tree",
+      "local_attempt": "run-NRC55y",
+      "focused_invocation": "focused-test-zFTDVL",
+      "revision": "8b51ac1f0da3656695e6b699e208f5fc331e2cb6",
+      "dirty": true,
+      "status": "passed",
+      "counts": {
+        "tests": 6,
+        "passed": 6,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "focused_summary_sha256": "918cf04bb1b4827f802852eb4a7b59ce77ad6959e505290ce2e21e19630732d2"
+    }
+  ],
+  "public_host_execution": {
+    "status": "unverified",
+    "prerequisites": [
+      "Integration including SAFE behavior",
+      "Fresh runtime build",
+      "Actual public Host execution receipt"
+    ]
+  },
+  "document_sha256": "3e3a6f9af5afc50d595dd8562ddf0d9bb8beb96bdfca4bffc3375b1cd4c26f53",
+  "reference_source_sha256": {
+    "round_decimal.cc": "cea59c46644f894fc204d434b7f56f65501b103fdd1f3a81c99304343bdee78d",
+    "round_decimal.h": "5a3c7b86e0f86c373c25b6424711bc7a0881faf0e2db266657cd2c8019acd13c",
+    "double_double.h": "cfc04e97cad3e04109ad3f91f2f96347ecf63a7aa1750421f4b27c1c0bceb91a"
+  },
+  "reproduction": {
+    "entrypoint": "docs/reviews/repro/round-precision/verify_round_precision.py",
+    "command": [
+      "python3",
+      "docs/reviews/repro/round-precision/verify_round_precision.py",
+      "--reference-root",
+      "/path/to/pinned/googlesql",
+      "--corpus",
+      "portability/corpus/round-precision-reference.json",
+      "--compiler",
+      "g++",
+      "--report",
+      "/tmp/actql-round-precision-reference.json"
+    ],
+    "fetches_or_installs": false,
+    "product_code_executed": false,
+    "expectations_regenerated": false,
+    "retains_compiled_binaries": false,
+    "self_test": {
+      "status": "passed",
+      "source_sha256": {
+        "round_decimal.cc": "cea59c46644f894fc204d434b7f56f65501b103fdd1f3a81c99304343bdee78d",
+        "round_decimal.h": "5a3c7b86e0f86c373c25b6424711bc7a0881faf0e2db266657cd2c8019acd13c",
+        "double_double.h": "cfc04e97cad3e04109ad3f91f2f96347ecf63a7aa1750421f4b27c1c0bceb91a"
+      },
+      "corpus_sha256": "10f2cb66b5a974f96bf23fdd0d597514fd0de90cec842bf599a11d83671ae300",
+      "compiler": {
+        "path": "/usr/bin/x86_64-linux-gnu-g++-14",
+        "sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+        "version": "x86_64-linux-gnu-g++-14 (Debian 14.2.0-19) 14.2.0",
+        "target": "x86_64-linux-gnu"
+      },
+      "variants": {
+        "dekker": {
+          "compile_command": [
+            "/usr/bin/x86_64-linux-gnu-g++-14",
+            "-std=c++17",
+            "-O2",
+            "-ffp-contract=off",
+            "-fPIC",
+            "-shared",
+            "-DACTQL_REFERENCE_DEKKER=1",
+            "-Ireference",
+            "-Iharness/include",
+            "harness/wrapper.cc",
+            "-o",
+            "reference_dekker.so"
+          ],
+          "library_sha256": "3eb2ba14df6912d373ca2a9fb4a80aa0c442078f41c849e3e0a1678ff078b63c",
+          "scalar_operations": 2000,
+          "scalar_mismatch_count": 0,
+          "scalar_mismatch_examples": [],
+          "power_pairs": 647,
+          "power_pair_mismatch_count": 0,
+          "power_pair_mismatch_examples": []
+        },
+        "fma": {
+          "compile_command": [
+            "/usr/bin/x86_64-linux-gnu-g++-14",
+            "-std=c++17",
+            "-O2",
+            "-ffp-contract=off",
+            "-fPIC",
+            "-shared",
+            "-DFP_FAST_FMA=1",
+            "-Ireference",
+            "-Iharness/include",
+            "harness/wrapper.cc",
+            "-o",
+            "reference_fma.so"
+          ],
+          "library_sha256": "15afee0036126e5f781efa720605ce4ee83ed6d4be1595b1db205b585c813bdb",
+          "scalar_operations": 2000,
+          "scalar_mismatch_count": 0,
+          "scalar_mismatch_examples": [],
+          "power_pairs": 647,
+          "power_pair_mismatch_count": 0,
+          "power_pair_mismatch_examples": []
+        }
+      },
+      "fma_dekker_raw_output_differences": 0,
+      "report_sha256": "dea85c3dbeee42224ba0d2f0daec7f4d3c859698eb6db73a43554ea991a6b6bc"
+    }
+  },
+  "optimized_native_product": {
+    "status": "unverified",
+    "local_attempt": "run-UQqvxS",
+    "budget_seconds": 180,
+    "result": "timeout during compilation before test execution",
+    "exit_code": 124,
+    "cap_extended": false
+  },
+  "additional_runtime_check": {
+    "local_attempt": "run-39QmVR",
+    "scope": "fast-path operand charges and validation cleanup added after initial three-target corpus run",
+    "target": "js",
+    "tests": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "isolated_native_release": {
+    "status": "passed",
+    "tests": 6,
+    "local_attempt": "run-axr7Go",
+    "focused_invocation": "focused-test-v0spxG",
+    "evidence_path": "docs/reviews/evidence/round-precision-native-release.json",
+    "evidence_sha256": "567a604206b096ff17f2732d94619709d1f366b0ce1107989b22349cfb9a6fbd",
+    "scope": "Byte-identical numerical source with minimal type plumbing; no product-owner/accounting or full Native acceptance."
+  },
+  "published_predecessor": {
+    "revision": "0a561739e64ed93d647c24219225ea6e41e4d1f6",
+    "tree": "aae5ce55104dec14f5accc5da482cca24a241fbb",
+    "local_tree_identical_revision": "48e1259b1874d34e63cf5bac5cbf358c72ae576e",
+    "draft_pr": 1330
+  }
+}

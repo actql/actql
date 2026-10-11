@@ -97,9 +97,10 @@ test('SAFE arithmetic retains exact predecessor contracts and complete identity 
     assert.equal(cid(item.body), item.cid);
   }
   const earlier = Object.fromEntries(history.contracts.map(item => [item.id, item.body]));
-  const expression = read('spec/contracts/actql-expressions.json');
-  const protocol = read('spec/contracts/actql-protocol-schemas.json');
-  const program = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  // Freeze this transition's exact adopted successor before later scalar extensions.
+  const adopted = Object.fromEntries(read('portability/corpus/historical/pre-round-precision-contract-identities.json').contracts.map(item => [item.id, item.body]));
+  const expression = adopted.expression_contract;
+  const program = adopted.program_schema;
   function withoutSafe(value) {
     if (Array.isArray(value)) return value.map(withoutSafe);
     if (value === null || typeof value !== 'object') return value;
@@ -114,14 +115,14 @@ test('SAFE arithmetic retains exact predecessor contracts and complete identity 
   assert.deepEqual(withoutSafe(program), earlier.program_schema);
   assert.notEqual(cid(expression), expected.expression_contract);
   assert.notEqual(cid(program), expected.program_schema);
-  const scalar = read('spec/dependencies/aoa-rela-scalar-laws.json');
+  const scalar = adopted.scalar_law_manifest;
   updateSafeArithmeticScalarLaw(scalar);
   const priorScalar = structuredClone(scalar);
   delete priorScalar.number.safe_arithmetic;
   assert.deepEqual(priorScalar, earlier.scalar_law_manifest);
   assert.notEqual(cid(scalar), expected.scalar_law_manifest);
-  assert.deepEqual(read('spec/contracts/actql-production-profile-schemas.json'), earlier.production_profile_registry);
-  assert.deepEqual(read('spec/manifests/actql-barrier-contracts-0.1.json'), earlier.barrier_manifest);
+  assert.deepEqual(adopted.production_profile_registry, earlier.production_profile_registry);
+  assert.deepEqual(adopted.barrier_manifest, earlier.barrier_manifest);
   for (const entry of history.expression_fragments.cases) {
     assert.equal(canonical(entry.body), entry.canonical);
     assert.equal(cid(entry.body), entry.cid);

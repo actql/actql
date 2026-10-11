@@ -1932,6 +1932,7 @@ The conversion/boundary truth table is normative:
 | `sign(x)` | exactly -1, positive zero or 1 for negative, zero or positive finite binary64 input; either zero sign yields positive zero; null propagates |
 | `round(x)` | nearest integer, with exact halfway cases rounded away from zero; finite binary64 number only; null propagates |
 | `trunc(x)` | nearest integer toward zero; finite binary64 number only; null propagates |
+| `round(x,n)`, `trunc(x,n)` | finite binary64 decimal-position rules below, with integral number `n`; either null operand yields null; ROUND overflow fails |
 | `starts_with(value, prefix)`, `ends_with(value, suffix)` | exact retained-string prefix or suffix comparison; empty prefix/suffix matches every non-null string; either null operand yields null |
 | `len(null)` | null |
 | `concat(...values)` | string operands; skip nulls, concatenate in order; all null yields the empty string |
@@ -2005,7 +2006,8 @@ atomic, not null, except where the named function explicitly specifies it.
 | `sqrt`, `floor`, `safe_div` | N operands → N | Negative square root fails; legacy safe division by zero returns null, overflow fails | RelA |
 | `safe_add`, `safe_subtract`, `safe_multiply`, `safe_divide` | (N, N) → N nullable | Own overflow returns null; safe_divide also returns null for zero divisor; child failures propagate | RelA |
 | `safe_negate` | N → N | Finite binary64 negation cannot overflow; preserves operand nullability | RelA |
-| `abs`, `sign`, `round`, `trunc` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
+| `abs`, `sign` | N → N | One child evaluated once on demand; operand nullability is preserved; no decimal overload, implicit conversion or non-finite value | RelA |
+| `round`, `trunc` | N → N or N × N → N | One or two children evaluated once on demand in authored order; result nullable exactly when any child is nullable; explicit decimal position must be integral when both values are non-null | RelA |
 | `to_number`, `to_boolean`, `to_timestamp` | S or the exact target type → indicated type | [Explicit casts](#casts) closed conversion table; same-type identity | RelA |
 | `to_string` | string, number, decimal, boolean, timestamp, or date → S | Canonical spelling; json/object/array/vector and both reference types are rejected | RelA |
 | `date_trunc`, `date_add`, `date_diff` | Date/timestamp and fixed unit/number operands | Same temporal domain; [Scalar expressions](#scalar-expressions) units and result rules | RelA |
@@ -2046,25 +2048,78 @@ non-overlapping left-to-right and an empty search is a no-op. `lower`/`upper`
 use Unicode 16.0 default mappings; a runtime without exactly those tables MUST
 reject those functions rather than use host-dependent mappings.
 
-<!-- requirement-block: scalar-expressions.round-trunc scalar-expressions.round-trunc-evaluation scalar-expressions.round-trunc-budgets scalar-expressions.round-trunc-exclusions -->
-`round(x)` and `trunc(x)` MUST each take exactly one finite binary64 `number`
-and preserve its nullability. Untyped NULL takes that unique signature and
-produces NULL. `round` returns the nearest integral value, with halfway cases
-away from zero; `trunc` returns the integer obtained by discarding the
-fractional part toward zero. Every already-integral finite input, including
-the largest finite magnitudes, is unchanged. Results follow the existing
-positive-zero canonicalization. Neither operation can overflow for an admitted
-finite input. The operand MUST be evaluated exactly once when demanded;
-child failure identity, lazy demand, cancellation and existing work, frame,
-workspace and live-value budgets MUST be preserved.
+<!-- requirement-block: scalar-expressions.round-trunc scalar-expressions.round-trunc-evaluation scalar-expressions.round-trunc-precision-integrality scalar-expressions.round-trunc-precision-position-bounds scalar-expressions.round-trunc-precision-algorithm scalar-expressions.round-trunc-precision-final-scaling scalar-expressions.round-trunc-precision-operation-order scalar-expressions.round-trunc-precision-overflow scalar-expressions.round-trunc-budgets scalar-expressions.round-trunc-exclusions scalar-expressions.round-trunc-precision-identity -->
+`round(x)` and `trunc(x)` MUST each take one finite binary64 `number`,
+optionally followed by a second finite binary64 `number` expression `n` for the
+decimal position. The result is `number`, nullable exactly when any operand is
+nullable. Untyped NULL takes the unique number signature. The unary value and
+canonical body are unchanged: `round(x)` returns the nearest integral value,
+with halfway cases away from zero; `trunc(x)` discards the fractional part
+toward zero. Every already-integral finite input, including the largest finite
+magnitudes, is unchanged by the unary forms, which cannot overflow.
 
-These unary value rules align with GoogleSQL `ROUND(X)` and `TRUNC(X)` on
-finite FLOAT64 values. Optional decimal-position `N`, `rounding_mode`, decimal
-or distinct integer overloads, implicit conversion and non-finite values are
+With explicit `n`, positive positions select places right of the decimal point
+and negative positions select places left of it. Each demanded child MUST be
+evaluated exactly once in authored left-to-right order, including evaluation of
+`n` after a NULL `x`. Only after both evaluations succeed does either NULL
+produce NULL. Otherwise a non-integral `n` MUST fail with the existing arithmetic
+failure, without truncation or implicit conversion. Integral `n > 323` leaves
+`x` unchanged and integral `n < -308` returns canonical positive zero; these
+comparisons MUST precede any narrowing to a bounded integer. `n = 0` uses the
+unary value rule. The position is an ActQL binary64 number, including integral
+values outside the safe-integer range, rather than a distinct GoogleSQL INT64
+value. This does not introduce an INT64 type, a full INT64 overload or exact
+representation of every INT64 position.
+
+For `-308 <= n <= 323`, the selected value algorithm is the finite-input
+`DecimalRounding<false>`/`RoundDecimal` or
+`DecimalRounding<true>`/`TruncDecimal` in
+[GoogleSQL `round_decimal.cc` at revision
+`81c15b796138185c046aefe852321011fdf96615`](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/common/round_decimal.cc),
+with `Full<double>` from the same revision's
+[`double_double.h`](https://github.com/google/googlesql/blob/81c15b796138185c046aefe852321011fdf96615/googlesql/common/double_double.h).
+The selected product path is the portable `ComputeDekkerProduct`/`Split` path,
+with every individual binary64 addition, subtraction and multiplication rounded
+to nearest, ties-to-even. Implementations MUST preserve the reference's range
+reductions, power-of-five pairs `high = RN(5^k)` and
+`low = RN(5^k - high)` for `-323 <= k <= 323`, `FromSum` and `Fast2Sum`
+operation order, relative-error correction with `2^-105`, sticky-bit adjustment,
+signed halfway-away selection for ROUND and the negative-correction floor rule
+for TRUNC, and the `Full`-by-`Full` multiplication order. Here RN rounds the
+exact operand to binary64, nearest ties-to-even. Implementations may derive
+the pinned high/low pairs exactly rather than store the table.
+
+The final product's high binary64 component MUST be selected before the
+separate final power-of-two scaling, including its additional rounding for
+subnormal results. Fused multiply-add, reassociation, a single binary64
+`x * 10^n` calculation, or ideal exact-rational decimal rounding MUST NOT replace
+the prescribed sequence. In particular, the selected results include
+`round(1.005,2) = 1`, `round(2.675,2) = 2.67`, `trunc(0.3,1) = 0.2`,
+`round(2.2250738585072014e-308,311) = 2.2250000000000004e-308`, and
+`round(2.328158521232893e41,-26) = 2.3281585212328932e41`.
+These results describe the selected binary64 implementation sequence, not
+rounding exact decimal spellings to an ideal rational result.
+
+A non-finite ROUND result MUST fail with the existing arithmetic failure.
+TRUNC cannot overflow for admitted finite input and integral position. All
+zero results follow the existing positive-zero canonicalization. Child failure
+identity, lazy demand, first-failure order, cancellation and existing work,
+frame, workspace and live-value budgets MUST be preserved. Decimal-position
+work remains bounded and cancellable, and no-op value cases do not skip logical
+operand charges.
+
+This is a selected finite-FLOAT64 compatibility boundary, not a claim about
+live BigQuery behavior or execution coverage on every target. A third
+`rounding_mode` argument, NUMERIC/BIGNUMERIC or other decimal overloads,
+distinct integer overloads, implicit conversion and non-finite values remain
 outside this ActQL profile; they MUST NOT be silently ignored or coerced.
-The common source forms are `{round: expression}` and `{trunc: expression}`;
-machine nodes retain the operation and sole child without constant folding.
-Earlier expression contract CIDs retain their earlier meanings.
+The common source forms remain `{round: expression}` and `{trunc: expression}`
+for one child, and are `{round: [value, n]}` and `{trunc: [value, n]}` for two.
+Machine bodies retain the sole child or the two-element ordered array,
+respectively. Explicit `n = 0` and no-op positions MUST retain the two children;
+they do not become a unary body or a constant. Existing unary canonical bytes
+and earlier expression contract meanings remain unchanged; earlier contract
+CIDs do not acquire the new overload.
 
 <!-- requirement-block: scalar-expressions.trim -->
 `trim(value)` with its character set omitted MUST take one string and remove the longest leading and
@@ -2238,6 +2293,7 @@ an optional final argument, not expression syntax.
 | --- | --- |
 | `len(x)`, `sqrt(x)`, `abs(x)`, `sign(x)`, `round(x)`, `trunc(x)`, `safe_negate(x)`, `floor(x)`, `lower(x)`, `upper(x)`, `trim(x)`, `ltrim(x)`, `rtrim(x)` | corresponding unary scalar function |
 | `trim(x, characters)`, `ltrim(x, characters)`, `rtrim(x, characters)` | corresponding scalar trim with an explicit STRING code-point set |
+| `round(x, n)`, `trunc(x, n)` | corresponding finite binary64 scalar with an explicit integral NUMBER decimal-position expression |
 | `to_number(x)`, `to_string(x)`, `to_boolean(x)`, `to_timestamp(x)` | explicit conversion |
 | `contains(value, part)`, `starts_with(value, prefix)`, `ends_with(value, suffix)`, `strpos(value, subvalue)`, `safe_div(left, right)`, `safe_add(left, right)`, `safe_subtract(left, right)`, `safe_multiply(left, right)`, `safe_divide(left, right)`, `replace(value, search, replacement)` | corresponding scalar function |
 | `concat(x, ...)`, `concat_strict(x, ...)`, `coalesce(x, ...)`, `if(condition, then_value, else_value)` | corresponding scalar function or conditional tree |
@@ -10155,7 +10211,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:55d0202bf89438490a27b7cc7f5996c096e0fbe879e3c4868b81de81edf13e53
+../../spec/contracts/actql-aoa.json# sha256:fd7c7c298d51392bf9034a6e999373068d5f73065420ba5276b7af1ab66d3072
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -10164,13 +10220,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:e54333eb86d263a364eb5a106775e34815de5c59c128995469af218911bbfbdd
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:5cd7e4d1f632a291776cfd9c9b79b0d62419c18850dde07dde34b0d0f9db205d
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:bd505adfc4c7da349bfab01d5aa39adefeaaff7ca7154c3e26de9cb0732589f4
+../../spec/contracts/actql-expressions.json# sha256:f1535aecc9cdc2c476ac7219947d806ca3718e21614983e1a4c0081b29925915
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:0f6da91d702bc6063f1ad66ed084fd7df37028912b59e63d73f4a3c4bf2555f7
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:cc901cc8dec4bc3fb92a677b4ec6b7bae7f143a52ca39216b76b9e061936a597
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
-../../spec/contracts/actql-expressions.json#/laws sha256:93f0c1503ea21923f0f1e25b47621482099ff6815e3a06124bef49c0cbf01749
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:6ba46385fdc0212be4c6fb6cd1a649e1f30d2535775ce0b9c504bf1a23f6e287
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:0fb299b1a878dfce8da6de5fe5ee2ebef18c2c4b60de7e881b06e187eea8b64c
+../../spec/contracts/actql-expressions.json#/laws sha256:1c95eceaaef8207fee616832e3291f951cddae874077276778940b87829b09e5
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:f1661e535dcb9a56b19dee493b7d974af11f9473f4e39345dfc4c69d182c6fc0
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:fb4d935382338782a54ce5d3e81dd532c05762d9ce446f2600a0a30d49ab4d53
 ```
 
 <!-- stage-contract-pins:start -->

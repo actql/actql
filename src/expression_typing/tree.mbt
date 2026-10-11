@@ -156,7 +156,7 @@ fn flatten(
         children.push((args[0], Form))
         children.push((args[1], Membership))
       }
-      "trim" | "ltrim" | "rtrim" =>
+      "trim" | "ltrim" | "rtrim" | "round" | "trunc" =>
         if @decode.array_length(body) is Some(_) {
           for child in decoded(@decode.elements(body), body) {
             children.push((child, Form))
@@ -175,8 +175,6 @@ fn flatten(
       | "sqrt"
       | "abs"
       | "sign"
-      | "round"
-      | "trunc"
       | "safe_negate"
       | "floor"
       | "lower"

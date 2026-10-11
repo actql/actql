@@ -71,6 +71,8 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  RoundAt
+  TruncAt
   Strpos
   TrimSet
   LTrimSet
@@ -304,7 +306,7 @@ fn expression_children(
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
-    "trim" | "ltrim" | "rtrim" =>
+    "trim" | "ltrim" | "rtrim" | "round" | "trunc" =>
       if @decode.array_length(body) is Some(_) {
         @decode.elements(body).unwrap()
       } else {
@@ -317,8 +319,6 @@ fn expression_children(
     | "sqrt"
     | "abs"
     | "sign"
-    | "round"
-    | "trunc"
     | "safe_negate"
     | "not"
     | "is_null"
@@ -918,8 +918,18 @@ fn lower_typed_expression_measured(
         "sqrt" => Unary(Sqrt, args[0])
         "abs" => Unary(Abs, args[0])
         "sign" => Unary(Sign, args[0])
-        "round" => Unary(Round, args[0])
-        "trunc" => Unary(Trunc, args[0])
+        "round" =>
+          if args.length() == 1 {
+            Unary(Round, args[0])
+          } else {
+            Binary(RoundAt, args[0], args[1])
+          }
+        "trunc" =>
+          if args.length() == 1 {
+            Unary(Trunc, args[0])
+          } else {
+            Binary(TruncAt, args[0], args[1])
+          }
         "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])

@@ -1,0 +1,163 @@
+{
+  "format": "actql-isolated-native-release-evidence/0.1",
+  "scope": "Isolated arithmetic only; not expression-owner/accounting or full Native acceptance.",
+  "status": "passed",
+  "actual_tests": {
+    "tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "cancelled": null,
+    "skipped": null,
+    "todo": null
+  },
+  "fixed_expectations": {
+    "input_position_pairs": 1000,
+    "scalar_outputs": 2000,
+    "power_pairs": 647,
+    "counts_non_additive_across_targets": true
+  },
+  "inputs": {
+    "src/execution_relation/decimal_rounding.mbt": "86e4f15e4918f89dd640d603db49db2d4f08c8948c165908ee07ca2ab456f021",
+    "src/execution_relation/round_precision_reference.generated_wbtest.mbt": "f5a71bd8d53e7450780a462660b9fa09779c5be05206b918e07f6e986a0d7f00",
+    "src/execution_relation/round_precision_powers.generated_wbtest.mbt": "bfd991a90bd0b22ce0113a069a15677e3f2363fc26334a6e6c8dead6e80ffaf4"
+  },
+  "scalar_source": {
+    "path": "src/execution_relation/scalar.mbt",
+    "sha256": "de001ca4b3054ada591c6b951e19225d0e0b007d003519396393b379fafcdba7"
+  },
+  "extractions": {
+    "finite": {
+      "byte_start": 940,
+      "byte_end_exclusive": 1117,
+      "line_start": 44,
+      "line_end": 50,
+      "sha256": "095fa3a06c83f91e7db5fab66e5f35fc8681fafc0e6b74858688ce36ac0750e5"
+    },
+    "Round_Trunc_unary_arm": {
+      "byte_start": 2198,
+      "byte_end_exclusive": 3092,
+      "line_start": 86,
+      "line_end": 107,
+      "sha256": "abb2b2127a4b840af14cd695c92c9d4cda6e371f0ed765d4fd78025afc9d1637"
+    },
+    "ScalarIssue_type": {
+      "byte_start": 271,
+      "byte_end_exclusive": 389,
+      "line_start": 13,
+      "line_end": 17,
+      "sha256": "f13ffa02b9ce239e5c4bbfc7da98942677fa2b0900ef7cccb318f63d148b3de3"
+    }
+  },
+  "pre_run_hashes_verified": true,
+  "post_run_hashes_verified": true,
+  "current_hashes_reverified": true,
+  "toolchain": {
+    "moon": {
+      "path": "/workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/bin/moon",
+      "sha256": "ebf6f42b9c1667cbd1e3bff5cf7fb091f1250a3eea417724e5b1a80de49783a9"
+    },
+    "moonc": {
+      "path": "/workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/bin/moonc",
+      "sha256": "a1fe6384cda566b33addc2082ab55845a712bd6b5f8a74244371a92b8afa7b36"
+    },
+    "node": {
+      "path": "/workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/node/bin/node",
+      "sha256": "1bec56ef7cfa9a76f3e0b7c0a87f220eb73f23102b9c0b4c7529a3f7c3ce7c31"
+    },
+    "cc": {
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f"
+    },
+    "moon_version": "moon 0.1.20260904 (94521db 2026-09-04) /workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/bin/moon\nmoonc v0.10.12+1634b282e (2026-09-07) /workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/bin/moonc\nmoonrun 0.1.20260904 (94521db 2026-09-04) /workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg",
+    "cc_version": "cc (Debian 14.2.0-19) 14.2.0"
+  },
+  "installed_toolchain_manifest_sha256": "743335f03bad01abaf4825faafa5a1d874d976853802546bd3e6a773a9f7016b",
+  "installed_toolchain_pin": {
+    "version": "0.10.12+1634b282e",
+    "moon": "0.1.20260904 (94521db 2026-09-04)",
+    "moonc": "v0.10.12+1634b282e (2026-09-07)",
+    "archives": {
+      "darwin-arm64": {
+        "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+        "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+      },
+      "linux-x64": {
+        "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+        "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+      }
+    },
+    "core": {
+      "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+      "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+    }
+  },
+  "budget": {
+    "seconds": 180,
+    "termination_grace_seconds": 5,
+    "cpu_affinity": [
+      0,
+      1,
+      2
+    ]
+  },
+  "receipts": {
+    "local_attempt": "run-axr7Go",
+    "local_summary_sha256": "1838c58d3446dfa636edaf7d754d74ae72d62a5ac1ce713177077dc7cf2f76f4",
+    "focused_invocation": "focused-test-v0spxG",
+    "focused_summary_sha256": "aebdef06cea33cb3ee01585ceea65c56a028279f6bb624fb99a3a625347c1bb4",
+    "started_at": "2026-10-10T15:38:49.477Z",
+    "ended_at": "2026-10-10T15:39:01.529Z",
+    "complete": true,
+    "source_revision": {
+      "revision": null,
+      "root": null,
+      "dirty": null
+    },
+    "wrapper_sources": {
+      "scripts/test-execution.mjs": "47fa425d60e4c4c084dd320f51e627e96ffe84f008f15757c523daac950e188a",
+      "scripts/local-checks-guard.mjs": "663ab2225ab52012cde5110819f68e170084974f4fb33f06bb1371bb2cb1e865",
+      "scripts/local-checks-supervisor.mjs": "a63e8e68587b9fb9d1992ae3bbf62430dd5a869161cfd17f0961ece599769b1c",
+      "scripts/packed-query-evidence.mjs": "9610be5005317f2c52c0596669897f12cc5edd695c1fb14231385ccdb28e4d6d"
+    }
+  },
+  "native_compiler": {
+    "identity": {
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f"
+    },
+    "command": [
+      "/usr/bin/cc",
+      "-o",
+      "./_build/native/release/test/kernel/kernel.whitebox_test.exe",
+      "-I/workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/include",
+      "-fwrapv",
+      "-fno-strict-aliasing",
+      "-O2",
+      "-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC",
+      "/workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/lib/libmoonbitrun.o",
+      "./_build/native/release/test/kernel/kernel.whitebox_test.c",
+      "./_build/native/release/test/libruntime-4970e3622c72d37e.a",
+      "-lm",
+      "/workspace/scratch/297d05bac248/scalar-side-trim-92d331/toolchains/moonbit/lib/libbacktrace.a"
+    ],
+    "flags_source": "Moon --dry-run for unchanged successful Native --release configuration; no compilation or tests executed by this capture.",
+    "plan_sha256": "943aaab6fa1ce181af9c67e80dda153af02b4b6929c043ff53ed75a436af8d53",
+    "floating_point_flag_overrides": []
+  },
+  "executed_artifact": {
+    "file": "kernel.whitebox_test.exe",
+    "sha256": "7b37e8ae981e9fb02d80a719400c41f42595b7f34845192edb5525f74c954c6e",
+    "bytes": 1374672,
+    "generated_c_sha256": "cdfca1040e2a643ac3224f858ea5f4332ca930fc2cfd66ed487302ab101732e6",
+    "generated_c_bytes": 3044415,
+    "binaries_in_pr": false
+  },
+  "preparer_sha256": "998dbea2ba983711cc50cb97b9aed6ec764da193682e51e3bad110f5d8d66b88",
+  "plumbing_sha256": "d9a792774e8c3b9af4ef1c129e8e0696dde97f8c5bdd13584ae303e0280dd995",
+  "warning": "Unused DECIMAL_ROUNDING_SLOTS in the isolated package; expression-owner/accounting code is intentionally absent.",
+  "limits": [
+    "Isolated copied-source arithmetic evidence, not product-owner/accounting or full Native acceptance.",
+    "No full-package Native --release pass; prior run-UQqvxS timed out at 180 seconds before tests.",
+    "No clean-commit, other compiler/architecture, public Host, packed distribution or live BigQuery claim."
+  ]
+}
