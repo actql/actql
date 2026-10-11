@@ -1,0 +1,183 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Current projected MATCH producer caller/public fixture/selection retirement into WITH. Independent ordinary JSON controls and public case IDs/oracles/counts preserved. No product/common API changed.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-match-producer-original-callers.json",
+  "independent_derivation": "with-match-producer-derivation.json",
+  "cohort": {
+    "normal": 10,
+    "refusal": 7,
+    "selection": "--match-with-producer-only",
+    "public_execution": "not performed"
+  },
+  "runs": [
+    {
+      "run": "run-ZbdJ6s",
+      "source": "726610ec474eeac16583f4e945fcb10d5c9ad60d",
+      "tree": "28056981116c90e613a928b31ad3403e71e79168",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 17870,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/match_with_producer_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-ZbdJ6s/local-checks/summary.json",
+          "sha256": "ac86c5305275876fc5dcf442eb4db4d3ebf3e8b4e8af2965ea9d34883ff41b5f"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-ZbdJ6s/local-checks/output.log",
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        }
+      },
+      "formatter": "one-file whitespace-only"
+    },
+    {
+      "run": "run-gGIZ24",
+      "source": "b92249c09bd9094aa0ba8c2365c12cb783bb1ea2",
+      "tree": "db1298f8e96877e247c13fcb26b43999f0854da8",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 18148,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/match_with_producer_test.mbt"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/match-with-producer-source-input.test.mjs"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/local-checks/summary.json",
+          "sha256": "adf64a4531caa8cc36f75681c6173af06312573ea41f997e315f3c12dc960c8c"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/local-checks/output.log",
+          "sha256": "72d6be43ccd758b0acf8e8a6df5fec346d742310a95849eccc2b20f9cec5f3b1"
+        },
+        "focused-test-K2E2x0/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/0001.summary.json",
+          "sha256": "a936de97af4eef7dd7d0e40521f7906a2947fc595d931f0db016d2734186f10b"
+        },
+        "focused-test-K2E2x0/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/summary.json",
+          "sha256": "776e0b54bbcaa84526834eedf9d4cd7693596dc2444e441dcf8642243dedd181"
+        },
+        "focused-test-K2E2x0/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/001.stdout.log",
+          "sha256": "29250d71d26eddc15e31c1bdd9bba84e69f30e65ab60f24e083ca22ffdaddc4a"
+        },
+        "focused-test-K2E2x0/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/001.started.json",
+          "sha256": "0b2d4d0ed78f3b18a9e21f01491214e0991b2f21cc1415a7aab41154e2bebb0b"
+        },
+        "focused-test-K2E2x0/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/001.result.json",
+          "sha256": "7366ac3eaf36dca8724ff02b428b41dbfef0936642c9560b3951bf259c69065c"
+        },
+        "focused-test-K2E2x0/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-K2E2x0/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/0002.summary.json",
+          "sha256": "aee3b08fe438a7a1590b5134fa24a8da4dd2d94d4c0332380a5c5db6f2776f00"
+        },
+        "focused-test-K2E2x0/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/0004.summary.json",
+          "sha256": "776e0b54bbcaa84526834eedf9d4cd7693596dc2444e441dcf8642243dedd181"
+        },
+        "focused-test-K2E2x0/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-K2E2x0/0003.summary.json",
+          "sha256": "7ef231ea942a880296578af06c77604181dd0661932dbb62a2cf7672162f2b2c"
+        },
+        "focused-test-aZtlPy/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/0001.summary.json",
+          "sha256": "54f3399b0a9bafbf64b59c97c513d44c32c71ab7a928163a099207f2bfcbdf51"
+        },
+        "focused-test-aZtlPy/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/summary.json",
+          "sha256": "f46a4973a2952d84b5586a1d3a25181beb96ef255a6be0e8e9c0051abaa7ed2e"
+        },
+        "focused-test-aZtlPy/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/001.stdout.log",
+          "sha256": "1f0ed8ef77e4704355b5134bc091d64e5d3385c02f36ddbadcd2923e07fbd5b4"
+        },
+        "focused-test-aZtlPy/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/001.started.json",
+          "sha256": "cf5aef3f676c264a7ecc0a802e3cf57933386f4ec40fa8240815dd92f8a3809c"
+        },
+        "focused-test-aZtlPy/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/001.result.json",
+          "sha256": "6bf35fca79e4080a2606f85f75f3ba3c0c424a6cb1c8ad8882ce6ee45d93fd28"
+        },
+        "focused-test-aZtlPy/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-aZtlPy/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/0002.summary.json",
+          "sha256": "7fc68a8ba691289951644770a4e64d1e345e5cf19eaa7a2c5ee1f341d24f02eb"
+        },
+        "focused-test-aZtlPy/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/0004.summary.json",
+          "sha256": "f46a4973a2952d84b5586a1d3a25181beb96ef255a6be0e8e9c0051abaa7ed2e"
+        },
+        "focused-test-aZtlPy/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/match-producer-retirement-evidence/run-gGIZ24/focused-test-aZtlPy/0003.summary.json",
+          "sha256": "8434e454a766e3f311b6df9d16dd3703e0ae7c879f9ee59ace6bf4ec1da41891"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 7,
+        "passed": 7,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      },
+      "actual_node_counts": {
+        "tests": 5,
+        "passed": 5,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    }
+  ],
+  "unexecuted": [
+    "Host Local/HTTPS values/full ordered schema and Source read reuse",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ]
+}

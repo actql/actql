@@ -510,3 +510,30 @@ The final bounded formatter changes one file's whitespace only; JS16/16
 remains evidence of its exact source. Owner/group/ownlock absence was checked
 after each terminal receipt. This is compile/check evidence, not Host rows,
 packages or Local/HTTPS. No shortest API, Graph Owner or validator is changed.
+
+## Projected MATCH WITH caller and public fixture retirement
+
+[p1-match-producer-retirement-execution.json](p1-match-producer-retirement-execution.json)
+records clean `b92249c09bd9094aa0ba8c2365c12cb783bb1ea2`: actual JS7/7
+and Node5/5 (`run-gGIZ24`). WITH-bound projected MATCH, nested WITH and
+derived-table producers use the unified query owner and ordinary checker.
+Pattern aliases, removed properties and private identities do not reappear
+in the Relation continuation. The complete independently authored lowering
+changes only deterministic producer names; ordinary JSON controls are byte
+identical. NULL, typed empty output, quoted binding/star, normalization and
+parallel-edge TRAIL remain covered by existing controls.
+
+The public fixture keeps its original 10 normal/7 refusal case IDs, full
+ordered column contracts, rows, read count2/session1 and one Source reference
+with predicate id=2. Current files/exports/selection use WITH, including
+`--match-with-producer-only`, copied and registered in ordinary packed
+acceptance. Nested RESULT is refused by the existing pure-body parser, with
+InvalidInput rather than the old DATA lowerer's implementation-limit route.
+This is not a product refusal relaxation. The immutable predecessor and old
+Program IDs retain their bytes.
+
+Pinned formatting changes one file's whitespace only. Exact source/tree,
+commands and all raw receipts/SHA256 remain tracked; actual Owner/group and
+ownlock were absent after each terminal run. Public Host/Local/HTTPS, package
+production and Source reuse are still unexecuted. The new cohort registration
+and static checks do not establish its public execution.
