@@ -1,4 +1,17 @@
 ///|
+// Extract the actual existing common pipeline refusal at WITH static admission.
+// This helper performs no typing and does not manufacture an invalid Program.
+fn with_graph_predicate_refusal(
+  result : Result[@program.Program, Issue],
+) -> @pipeline.IssueKind raise {
+  match result {
+    Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => issue.kind
+    Err(other) => fail("expected common pipeline refusal: " + @debug.to_string(other))
+    Ok(_) => fail("invalid predicate must not pass WITH static checking")
+  }
+}
+
+///|
 fn graph_property_predicate_context() -> Context {
   let values = @wire.admit(
     @source.parse_json(
@@ -29,7 +42,7 @@ fn graph_property_predicate_source(
   selection? : String = "a.id",
   output? : String = "id",
 ) -> String {
-  "DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); FROM GRAPH g |> MATCH WALK " +
+  "WITH g AS (GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Person PROPERTIES (id, payload)))) FROM GRAPH g |> MATCH WALK " +
   pattern +
   " |> SELECT " +
   selection +
@@ -42,7 +55,7 @@ fn graph_property_predicate_expected() -> @program.Program {
   // Independent ordinary Program, not a snapshot of compiler output.
   @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":2,"payload":{"score":10}},{"id":1,"payload":{"score":20}},{"id":3,"payload":null},{"id":4,"payload":{"score":null}}]},"as":"aql_script_seed_2"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_seed_2","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"payload","to":"payload"}]}}]}],"edges":[]},"as":"aql_data_1"},{"from":"aql_data_1","match_nodes":{"definition":"N","where":{"gt":[{"property":{"name":"score","value":{"field":"payload"}}},{"literal":10}]},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","payload"],"label":"Person"},"as":"aql_keyed_seeds_3"},{"from":"aql_keyed_seeds_3","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":2,"payload":{"score":10}},{"id":1,"payload":{"score":20}},{"id":3,"payload":null},{"id":4,"payload":{"score":null}}]},"as":"aql_script_seed_2"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_seed_2","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"payload","to":"payload"}]}}]}],"edges":[]},"as":"aql_with_graph_1"},{"from":"aql_with_graph_1","match_nodes":{"definition":"N","where":{"gt":[{"property":{"name":"score","value":{"field":"payload"}}},{"literal":10}]},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","payload"],"label":"Person"},"as":"aql_keyed_seeds_3"},{"from":"aql_keyed_seeds_3","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -181,30 +194,15 @@ test "Graph property predicate delegates missing members and scalar receivers to
       @query.parse_query_script(
         graph_property_predicate_source("(a:Person WHERE " + predicate + ")"),
         syntax_limits(),
-      ).unwrap(),
-      graph_property_predicate_context(),
-      construction_limits(),
-    ).unwrap()
-    guard @check.check_parsed(
-        program,
-        graph_rows_environment(),
-        None,
-        check_limits(),
       )
-      is Rejected(diagnostic) else {
-      fail("invalid object member/receiver must not pass ordinary checking")
-    }
-    guard @check.diagnostic_cause(diagnostic)
-      is Source(SourceView(Program(Program(Pipeline(_, issue))))) else {
-      fail("member failure belongs to ordinary pipeline typing")
-    }
+    let kind = with_graph_predicate_refusal(program)
     if missing {
       assert_true(
-        issue.kind is @pipeline.GraphMatch(Typing(UnknownField("missing"))),
+        kind is @pipeline.GraphMatch(Typing(UnknownField("missing"))),
       )
     } else {
       assert_true(
-        issue.kind
+        kind
         is @pipeline.GraphMatch(Typing(TypeMismatch("closed object receiver"))),
       )
     }
