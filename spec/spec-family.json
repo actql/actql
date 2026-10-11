@@ -961,6 +961,12 @@
           "pointer": "/artifact_schemas/model_capture_bundle_compatible",
           "cid": "sha256:750be57601bea98a9446d2ec3222e6f1cde2e2c40069cbef917fc475a15e9ddb",
           "version": "actql-protocol-schema-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/artifact_schemas/model_response_profile",
+          "cid": "sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7",
+          "version": "actql-protocol-schema-registry/0.1"
         }
       ],
       "normative_imports": [
@@ -1811,7 +1817,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:bd83418e41693e24ae86510ba2ac257116c69a766b061026b1716b38f69217c0"
+          "document_cid": "sha256:5046558cf61cc9916466f071d7c8d26878fcfea41426d0aa7c154c1753b00150"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1884,7 +1890,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:bd83418e41693e24ae86510ba2ac257116c69a766b061026b1716b38f69217c0"
+          "document_cid": "sha256:5046558cf61cc9916466f071d7c8d26878fcfea41426d0aa7c154c1753b00150"
         }
       ]
     },
@@ -2020,7 +2026,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:bd83418e41693e24ae86510ba2ac257116c69a766b061026b1716b38f69217c0"
+          "document_cid": "sha256:5046558cf61cc9916466f071d7c8d26878fcfea41426d0aa7c154c1753b00150"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -2207,7 +2213,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:bd83418e41693e24ae86510ba2ac257116c69a766b061026b1716b38f69217c0"
+          "document_cid": "sha256:5046558cf61cc9916466f071d7c8d26878fcfea41426d0aa7c154c1753b00150"
         },
         {
           "owner": "actql.protocol.artifacts",
