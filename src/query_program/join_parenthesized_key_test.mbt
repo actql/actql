@@ -85,3 +85,56 @@ test "parentheses do not turn arithmetic object or ordinary row keys into column
     assert_true(row_on_query(source) is Err(UnsupportedJoin), msg=source)
   }
 }
+
+///|
+test "public nullable duplicate JOIN sources reach the ordinary checker" {
+  let base = check_limits()
+  // This public source lowers to more than the small fixture's 20 steps.
+  let limits = {
+    ..base,
+    compilation: {
+      ..base.compilation,
+      structure: { ..base.compilation.structure, steps: 100, },
+    },
+  }
+  let left = "SELECT 2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64) UNION ALL SELECT 1 UNION ALL SELECT 2"
+  let right = "SELECT 2 AS key,20 AS tag UNION ALL SELECT CAST(NULL AS FLOAT64),99 UNION ALL SELECT 2,21 UNION ALL SELECT 3,30"
+  for
+    source in [
+      "SELECT l.id,r.tag FROM (" +
+      left +
+      ") l JOIN (" +
+      right +
+      ") r ON l.id=r.key MAX_OUTPUT_ROWS 10 ORDER BY tag,id",
+      "SELECT l.id,r.tag FROM (" +
+      left +
+      ") l JOIN (" +
+      right +
+      ") r ON (l.id)=((r.key)) MAX_OUTPUT_ROWS 10 ORDER BY tag,id",
+      "FROM (" +
+      left +
+      ") l |> JOIN (" +
+      right +
+      ") r ON (((l.id)=(r.key)) AND ((r.key)=((l.id)))) MAX_OUTPUT_ROWS 10 |> SELECT l.id,r.tag |> ORDER BY tag,id",
+    ] {
+    let p = row_on_query(source).unwrap()
+    match
+      @check.check_parsed(p, check_environment(numeric=true), None, limits) {
+      Checked(_) => ()
+      Rejected(issue) => {
+        let cause = @check.diagnostic_cause(issue)
+        match cause {
+          Source(SourceView(Program(Program(Pipeline(_, error))))) =>
+            fail(
+              "pipeline refusal: " +
+              @debug.to_string(error.kind) +
+              "\n" +
+              semantic(p),
+            )
+          _ => raise cause
+        }
+      }
+      _ => fail("closed public source must reach ordinary checking")
+    }
+  }
+}

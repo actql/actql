@@ -222,6 +222,10 @@ test('parenthesized JOIN controls retain equality keys NULLs duplicates and expl
   assert.deepEqual(cases.get('join-parenthesized-'+name).columns,
    [{name:'id',contract:{type:'number',nullable:true}},{name:'tag',contract:{type:'number',nullable:false}}]);
  }
+ for(const name of ['sql-null-duplicates','pipe-conjunction']){
+  assert.equal(cases.get('join-parenthesized-'+name).text.split('CAST(NULL AS FLOAT64)').length-1,2,
+   'the source declares the same nullable Number key contracts as the independent JSON control');
+ }
  assert.ok(cases.get('join-parenthesized-quoted-cte').text.includes('((`L`.id))=(r.id)'));
  assert.ok(cases.get('join-parenthesized-scalar-receivers').text.includes('((l))=(r)'));
  assert.equal(cases.get('join-parenthesized-acquired-source').sourceReadSessionCount,1);

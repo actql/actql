@@ -962,8 +962,10 @@ export const parenthesizedJoinControl = {version:'actql/0.1',id:'fixture.parenth
   {from:'left',join:{with:'right',kind:'inner',on:[{left:'id',right:'key'}],max_output_rows:10,select:{id:'left.id',tag:'right.tag'}},as:'joined'},
   {from:'joined',sort:[{field:'tag',dir:'asc',nulls:'first'},{field:'id',dir:'asc',nulls:'first'}],as:'out'},
  ],results:{rows:{from:'out',fields:['id','tag']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
-const parenthesizedLeft='SELECT 2 AS id UNION ALL SELECT NULL UNION ALL SELECT 1 UNION ALL SELECT 2';
-const parenthesizedRight='SELECT 2 AS key,20 AS tag UNION ALL SELECT NULL,99 UNION ALL SELECT 2,21 UNION ALL SELECT 3,30';
+// Explicit FLOAT64 NULLs match the independently declared Number control.
+// Untyped NULL set inference is a separate retained frontend gap.
+const parenthesizedLeft='SELECT 2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64) UNION ALL SELECT 1 UNION ALL SELECT 2';
+const parenthesizedRight='SELECT 2 AS key,20 AS tag UNION ALL SELECT CAST(NULL AS FLOAT64),99 UNION ALL SELECT 2,21 UNION ALL SELECT 3,30';
 const parenthesizedJoinCase=(name,text,format='sql')=>({name:'join-parenthesized-'+name,format,text,
  expected:[{id:2,tag:20},{id:2,tag:20},{id:2,tag:21},{id:2,tag:21}],
  columns:[relationNumber('id',true),relationNumber('tag')],sourceReadCount:0,sourceReadSessionCount:0});

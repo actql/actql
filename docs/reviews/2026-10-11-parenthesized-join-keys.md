@@ -69,6 +69,52 @@ must not repair generated Programs.
 - No full Core, Wasm/Native execution, full packed campaign, hosted CI or vendor
   differential test is claimed. No PR merge is performed.
 
+## First packed refusal and independent input correction
+
+The clean submitted HEAD `6a0cdb24fadc75b8bf44f853a8a8ecca299c18c8`
+produced the normal five packages, with independently verified manifest digests.
+Guard `run-mi0tCB` then ran the existing composition cohort once. Its Local
+JSON control passed, but the next SQL source was not accepted with
+`ClientProgramInvalidInput`; HTTPS stopped through sibling cancellation.
+No complete transport inventory exists. Original evidence is retained at
+`worktrees/.codex-scratch/public-query-evidence-UiTzUO` (relative to the workspace
+root). Both transport workers terminated, the guard released its locks, and the
+existing harness reclaimed its disposable installation. The next heavy slot
+was handed to A for #1350 without interrupting execution or deleting its lock.
+
+The same unparenthesized SQL reaches a checker refusal:
+`Source(SourceView(Program(Program(Pipeline(_, Operation(Expression(NullTypeUnresolved)))))))`.
+The UNION operand `SELECT NULL` lowers to a standalone untyped `literal:null`
+derive before append/JOIN; it has no peer type at that expression boundary.
+This is a separate set-context typing gap, not a grouping-parentheses refusal.
+The corrected diagnostic is `run-B8Re0V`, 4/5. The earlier small fixture limit
+of 20 steps produced a test-only `BudgetExceeded` (`run-18W4en`); the source
+has more steps, so the focused checker fixture uses 100. No Host ceiling changed.
+`run-TzSRog` is only a test-development Debug formatting compile failure.
+
+The public JOIN source now writes `CAST(NULL AS FLOAT64)` for both nullable
+keys, matching the independent JSON control's explicitly declared Number
+contracts. It keeps every row, duplicate, expected type, column order, output
+ceiling and expected result unchanged. The normal checker now accepts the
+plain/grouped SQL and grouped Pipe conjunction (`run-yOjHxE`, 5/5).
+This input correction does not implement set-context inference and does not
+claim that the original untyped sources passed. The original source, expected
+rows and precise refusal remain in the separate retained follow-up below.
+New-HEAD packed acceptance is still pending; old failure is not success evidence.
+The corrected fixture/inventory Node checks pass 50/50 (`run-nxz2mp`); authored
+registration counts are unchanged, with a new digest for the corrected sources.
+
+## Separate follow-up: untyped NULL set context
+
+The minimal source is `SELECT 2 AS id UNION ALL SELECT NULL`. The independently
+expected values are `[{"id":2},{"id":null}]`, retaining the selected numeric
+output contract. The current lowerer exports a standalone untyped NULL derive,
+which the ordinary expression checker rejects before the append can supply
+peer typing. Fix this through the existing logical expression/type contracts;
+do not infer a type from executed rows, weaken the checker, or create a second
+execution path. This gap remains open, and no permanent language restriction
+or successful public execution is asserted here.
+
 ## Separate follow-up: CTE value-table binding
 
 A new CTE-UNNEST scalar-receiver probe rejects its plain, unparenthesized
