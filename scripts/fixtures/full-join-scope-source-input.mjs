@@ -18,8 +18,8 @@ export const fullJoinScopeProgram = {version: 'actql/0.1', id: 'fixture.full_joi
       {sort: [{field: 'id', dir: 'asc', nulls: 'last'}, {field: 'rid', dir: 'asc', nulls: 'last'}], as: 'ordered'}],
     results: {rows: {from: 'ordered', fields: ['amount', 'id', 'rid']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-const prefix = 'DATA base = FROM records |> ASSERT UNIQUE BY (id); '
-  + 'DATA lefts = FROM base |> WHERE id <= 2; DATA rights = FROM base |> WHERE id >= 2; ';
+const prefix = 'WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) '
+  + ', lefts AS (FROM base |> WHERE id <= 2) , rights AS (FROM base |> WHERE id >= 2) ';
 const body = 'SELECT l.*, r.id AS rid FROM lefts AS l FULL JOIN rights AS r '
   + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id NULLS LAST, rid NULLS LAST';
 const success = (name, text, extra = {}) => ({name: 'full-join-scope-' + name,
@@ -82,7 +82,7 @@ export const fullJoinScopeSuccesses = [
   success('explicit-pipe', prefix + 'FROM lefts AS l |> FULL JOIN rights AS r '
     + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 |> SELECT l.amount, l.id, r.id AS rid '
     + '|> ORDER BY id NULLS LAST, rid NULLS LAST'),
-  success('explicit-cte', 'DATA base = FROM records |> ASSERT UNIQUE BY (id); '
+  success('explicit-cte', 'WITH base AS (FROM records |> ASSERT UNIQUE BY (id)) '
     + 'WITH lefts AS (FROM base |> WHERE id <= 2), rights AS (FROM base |> WHERE id >= 2) '
     + body.replace('l.*', 'l.amount, l.id')),
   success('explicit-empty', prefix + body.replace('l.*', 'l.amount, l.id'),

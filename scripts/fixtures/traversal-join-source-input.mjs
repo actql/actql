@@ -26,12 +26,12 @@ const control = emit => {
     ], results: {out: {from: 'sorted', fields: ['depth', 'tag']}}}],
     results: {answer: {from: {stage: 'main', result: 'out'}}}});
 };
-const source = 'DATA n = SELECT 1 AS node_key; '
-  + 'DATA e = SELECT 11 AS edge_key, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 1 AS dst_key; '
-  + 'DATA r = SELECT 2 AS depth, 20 AS tag UNION ALL SELECT 2 AS depth, 10 AS tag; '
-  + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) '
-  + 'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); ';
-const seeds = 'DATA seeds = FROM g |> node_rows() |> SELECT id AS element; ';
+const source = 'WITH n AS (SELECT 1 AS node_key) '
+  + ', e AS (SELECT 11 AS edge_key, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 1 AS dst_key) '
+  + ', r AS (SELECT 2 AS depth, 20 AS tag UNION ALL SELECT 2 AS depth, 10 AS tag) '
+  + ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) '
+  + 'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) ';
+const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
 const call = emit => "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 2, max_hops: 2, path_mode: 'trail', emit: '"
   + emit + "', max_output_rows: 10)";
 const tail = (key, bound = 10) => ' |> AS v |> JOIN r AS rr ON v.' + key + ' = rr.depth MAX_OUTPUT_ROWS ' + bound
