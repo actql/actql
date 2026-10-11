@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 11; this private ABI
+before opening the instance. `actql_host_abi_version` returns 15; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 14 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 15 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -715,3 +715,27 @@ ceiling. This query starts no physical I/O and grants no reservation, Source
 permission or execution guarantee. Root admission still checks overlapping
 Wasm, transfer, DuckDB, Native and Compute reservations. Earlier modules are
 rejected rather than adapted.
+
+## Durable dispatch reservation boundary
+
+Private ABI 15 projects `actql_run_dispatch_action` from the existing common
+Run-start Owner. The trusted Host supplies the exact retained request record,
+Run Definition CID and closed physical journal facts. Current installed Account
+authorization and the original context/tuple are checked in Core. The result
+is either ReserveDispatch or ReconcileReservedDispatch; malformed records,
+foreign handles, changed intent, Run identity and authority are rejected.
+
+The physical Python adapter performs one compare-and-exchange after that
+decision. A competing generation or lost commit acknowledgement is unknown;
+there is no automatic retry. Reconciliation reads the original record and
+evaluates current Core authority again. Physical CAS generation is distinct
+from the Run/control revision. A dispatch reservation is neither Submission
+admission nor a physical-start claim, and cannot authorize Source or Compute.
+The separate existing physical-start Owner and atomic start claim remain
+mandatory before physical I/O. No missing record supplies evidence about
+previous execution. Closing the byte store cancels no Run.
+
+The journal adapter stores physical flags with the original Core-issued request
+kept as an exact string. It does not normalize or reissue the request. Original
+materials, public Submission/epoch binding, durable Result publication and
+whole-product resource accounting are separate required product connections.

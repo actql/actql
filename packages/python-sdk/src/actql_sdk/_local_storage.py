@@ -32,10 +32,11 @@ class LocalStorageInitializationError(LocalStorageError):
 
 
 class LocalByteStore:
-    """Store Core-issued bytes unchanged, without interpreting their state.
+    """Store Core-issued bytes or trusted Host physical facts unchanged.
 
     This private physical adapter is not the public Run journal. Missing bytes
-    and CAS conflicts must be returned to the existing Core Owners. The Host
+    and CAS conflicts must be returned to the existing Core Owners. This store
+    does not interpret physical facts or turn them into Run decisions. The Host
     must reserve SQLite/Python workspace separately from the payload limits.
     """
 
