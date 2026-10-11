@@ -1,0 +1,18 @@
+{
+  "description": "Independently fixed expectations for completed publication transport retirement; not generated from product output.",
+  "capacity_bytes": 8388608,
+  "allocation_bytes": 4194352,
+  "pending_status": -9,
+  "unprepared_status": -33,
+  "retired_length_status": -33,
+  "retired_byte_status": -2,
+  "input_close_while_borrowed_status": -9,
+  "cases": [
+    "unfinished_output_cannot_retire_semantic_custody",
+    "same_output_cleanup_retry_releases_only_exact_allocation",
+    "retired_output_refuses_reads_and_keeps_original_input_borrow",
+    "original_roots_and_current_authority_survive_output_retirement",
+    "original_commit_candidate_and_children_use_retired_parent_output",
+    "full_close_returns_same_original_input_borrow_after_output_retirement"
+  ]
+}

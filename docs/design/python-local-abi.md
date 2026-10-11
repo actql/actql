@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 25; this private ABI
+before opening the instance. `actql_host_abi_version` returns 26; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -1075,3 +1075,13 @@ its existing child guards and returns the original input borrow only after its
 stop/cleanup responsibilities complete. Failed earlier Source/input close cannot
 release their held capacity. No capacity formula, resource ceiling or fuel budget
 changes, and no Source or Compute is repeated to recover space.
+
+The private ABI26 `actql_publication_retire_output` releases only the completed
+publication wire projection through the existing buffer Owner. A successful
+retirement preserves original Receipt/Captured Run roots, Result pins, preflight
+and exact input borrow for child binding and commit validation. Cleanup failure
+retains the same output handle and allocation; only successful cleanup marks the
+transport closed. Retirement grants neither publisher authority nor Store
+acceptance. Full close still waits for children and returns the original borrow.
+The private Python method discards its copied wire only after the same physical
+cleanup succeeds, while retaining its nominal semantic loan.
