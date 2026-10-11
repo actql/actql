@@ -7,7 +7,8 @@ import {admitEnvironment, prepareEffect, compileEffect, effectExecutionShape,
   issueAllowedEffectRun, issueEffectRunDefinition, privateRunDefinition,
   privateEffectRunEvidence, privateEffectCompilationWires, prepareEffectRequest, requestFields,
   issuePreparedEffectRunMaterials, admitEffectRunMaterials,
-  restoreEffectRunNormalization, sealRunEvidenceValue} from '@actql/run-host-core';
+  restoreEffectRunNormalization, sealRunEvidenceValue, effectSourceInputBinding,
+  issueEffectSourceDispatch} from '@actql/run-host-core';
 
 // Existing authoring inputs only. No normalization or execution fixture is
 // supplied to the issuer: the actual original checked Owner proves its scope.
@@ -185,4 +186,26 @@ test('a separate process restores the Run-bound journal from independently retai
   assert.deepEqual(restored.request, retained.request);
   assert.equal(restored.journal.cid, journalCid);
   assert.equal(restored.journal.wire, JSON.parse(proof.wire).normalization_journal_json);
+});
+
+test('finite-profile Source dispatch binds the independently issued original request', () => {
+  const original = issued(document, 'completion-free');
+  const binding = JSON.parse(effectSourceInputBinding(original.compilation, original.request));
+  assert.equal(binding.version, 'actql-effect-source-input-binding/0.1');
+  const request = JSON.parse(binding.original_request_json);
+  assert.equal(request.caller_request_id, requestFields(original.request).requestId);
+  assert.deepEqual(JSON.parse(binding.source_binding_json), {
+    source_contract_cid: 'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+    source_ref: 'connector://crm/main/r#v'});
+  assert.throws(() => effectSourceInputBinding(original.compilation),
+    {code: 'RunHostEffectSourceBindingRejected'});
+  const other = prepareEffectRequest(original.prepared, original.compilation, fixed('c'), 'other-source-caller');
+  assert.notEqual(effectSourceInputBinding(original.compilation, original.request),
+    effectSourceInputBinding(original.compilation, other));
+  const selection = {taskAttempt: 1, dispatchId: 'original-producer', siteKey: 'site',
+    siteGeneration: 1, runtimeBundleCid: fixed('d'), connectorRegistration: 'local',
+    connectorRevision: 'local/1', strategyRevision: 'strategy/1', obligationsCid: fixed('2'),
+    budgetCid: fixed('3'), evidenceIssuerCapabilityCid: fixed('4'), grantCid: fixed('5')};
+  assert.notEqual(issueEffectSourceDispatch(original.allowed, original.definition, original.request, selection).cid,
+    issueEffectSourceDispatch(original.allowed, original.definition, other, selection).cid);
 });

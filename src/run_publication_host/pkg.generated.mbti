@@ -322,6 +322,8 @@ pub fn client_effect_run_receipt_bindings(ClientEffectRunMaterials, Int, Int, In
 
 pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 
+pub fn client_effect_source_binding_request(@remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest) -> Result[ClientRequestIdentity?, ClientEffectSourceDispatchIssue]
+
 pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
 
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
@@ -918,7 +920,7 @@ pub fn prepare_client_effect_retained_task_dispatch(ClientEffectAllowedRun, @run
 
 pub fn prepare_client_effect_source_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectSourceDispatchIssue]
 
-pub fn prepare_client_effect_source_input_binding(ClientEffectCompilation) -> Result[@remote_site_protocol.RemoteInputBinding, ClientEffectSourceDispatchIssue]
+pub fn prepare_client_effect_source_input_binding(ClientEffectCompilation, request? : ClientRequestIdentity?) -> Result[@remote_site_protocol.RemoteInputBinding, ClientEffectSourceDispatchIssue]
 
 pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 

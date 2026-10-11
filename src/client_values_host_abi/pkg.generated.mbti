@@ -124,7 +124,7 @@ pub fn client_values_host_effect_shape(@run_publication_host.ClientEffectCompila
 
 pub fn client_values_host_effect_source_evidence_facts(@run_publication_host.ClientEffectCompilation, Int, Int) -> Array[String]?
 
-pub fn client_values_host_effect_source_input_binding(@run_publication_host.ClientEffectCompilation) -> Result[String, @run_publication_host.ClientEffectSourceDispatchIssue]
+pub fn client_values_host_effect_source_input_binding(@run_publication_host.ClientEffectCompilation, @run_publication_host.ClientRequestIdentity?) -> Result[String, @run_publication_host.ClientEffectSourceDispatchIssue]
 
 pub fn client_values_host_effect_start_current(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 

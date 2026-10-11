@@ -19,8 +19,9 @@ pub fn client_values_host_effect_request_identity(
 #export_name("clientValuesHostEffectSourceInputBinding")
 pub fn client_values_host_effect_source_input_binding(
   compilation : @host.ClientEffectCompilation,
+  request : @host.ClientRequestIdentity?,
 ) -> Result[String, @host.ClientEffectSourceDispatchIssue] {
-  @host.prepare_client_effect_source_input_binding(compilation).map(
+  @host.prepare_client_effect_source_input_binding(compilation, request~).map(
     @remote.remote_input_binding_body,
   )
 }

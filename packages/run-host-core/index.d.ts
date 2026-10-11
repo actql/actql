@@ -143,7 +143,7 @@ export function effectRunStartCurrent(allowed: AllowedEffectRun,
 /** Caller identity only; no Source permission or Effect approval. */
 export function prepareEffectRequest(prepared: PreparedEffectProgram,
   compilation: EffectCompilation, authorityScopeCid: string, requestId: string): RequestIdentity;
-export function effectSourceInputBinding(compilation: EffectCompilation): string;
+export function effectSourceInputBinding(compilation: EffectCompilation, request?: RequestIdentity): string;
 export function issueEffectSourceDispatch(allowed: AllowedEffectRun,
   definition: RunDefinition, request: RequestIdentity,
   selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
