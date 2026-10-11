@@ -3,6 +3,7 @@
 // this adapter does not authorize dispatch or issue a public Run outcome.
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {claimInferIoNotification} from './infer-io-notification.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -26,7 +27,8 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
-  signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation}) {
+  signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
+  ioNotification}) {
   if (retainOperation !== undefined && typeof retainOperation !== 'function') {
     throw new TypeError('InvalidInferOperationCustody');
   }
@@ -70,7 +72,12 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       savedCapture !== undefined || savedSlots !== undefined)) {
     throw new TypeError('InvalidRestoredInferInput');
   }
-  const active = checked(restoredInput !== undefined && composedInput !== undefined
+  if (ioNotification !== undefined && (provider === undefined || composedInput !== undefined)) {
+    throw new TypeError('InvalidInferIoNotificationProfile');
+  }
+  let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
+  let active;
+  try { active = checked(restoredInput !== undefined && composedInput !== undefined
     ? moon.clientProgramStartRestoredComposedInferInput(composedInput.occurrence, graph,
       composedInput.prefix, provider, restoredInput.snapshot.binding,
       restoredInput.snapshot.descriptorWire, restoredInput.snapshot.rows,
@@ -97,8 +104,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         : moon.clientProgramStartAcquiredInferExecution(preparedProgram, step,
           graph, registry, values, provider, acquiredInput, fragment, ordered)
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
-        graph, registry, values, savedCapture, fragment, ordered));
-  const requestStop = () => moon.clientProgramCancelInferExecution(active);
+        graph, registry, values, savedCapture, fragment, ordered)); }
+  catch (error) { io?.close(); io = undefined; throw error; }
+  let stopNotified = false;
+  const requestStop = () => {
+    const result = moon.clientProgramCancelInferExecution(active);
+    // Deliver a new stop request once. Repeated sticky cancellation cannot
+    // turn a still-pending physical save into a zero-work polling loop.
+    if (!stopNotified) { stopNotified = true; io?.notify(); }
+    return result;
+  };
   signal?.addEventListener('abort', requestStop, {once: true});
   let flight;
   let closeFlight;
@@ -114,6 +129,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (reclaimed) {
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
+      io?.close();
+      io = undefined;
     }
     return reclaimed;
   }
@@ -121,9 +138,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   async function drive() {
     for (;;) {
       if (closing || signal?.aborted) requestStop();
-      const poll = checked(moon.clientProgramAdvanceInferExecution(active,
-        quantum));
-      const kind = moon.clientProgramInferExecutionPollKind(poll);
+      // Arm before polling: a completion during the poll must not be lost.
+      // Only Core may decide whether the notification has changed its state.
+      const ticket = io?.arm();
+      let poll, kind;
+      try {
+        poll = checked(moon.clientProgramAdvanceInferExecution(active, quantum));
+        kind = moon.clientProgramInferExecutionPollKind(poll);
+        if (kind === 'await_io') {
+          if (ticket === undefined) throw new Error('InferIoNotificationUnavailable');
+          await ticket.promise;
+          continue;
+        }
+      } finally { ticket?.dispose(); }
       if (kind === 'waiting') {
         const preparedCallSet = moon.clientProgramInferPreparedCallSet(active);
         if (preparedCallSet === undefined) throw new Error('InferPreparedOwnerUnavailable');
@@ -181,8 +208,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // attempt. requestStop is sticky, so this cannot dispatch another slot.
     while (!moon.clientProgramInferExecutionStopped(active)) {
       requestStop();
-      const poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-      const kind = moon.clientProgramInferExecutionPollKind(poll);
+      const ticket = io?.arm();
+      let poll, kind;
+      try {
+        poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+        kind = moon.clientProgramInferExecutionPollKind(poll);
+        if (kind === 'await_io') {
+          if (ticket === undefined) throw pending();
+          await ticket.promise;
+          continue;
+        }
+      } finally { ticket?.dispose(); }
       if (kind === 'settling') {
         if (typeof cleanupSettlement !== 'function') throw pending();
         const settlement = moon.clientProgramInferCallSettlement(active);
