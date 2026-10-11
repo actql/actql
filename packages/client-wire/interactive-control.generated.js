@@ -2616,10 +2616,7 @@ const schemas = {
       "run_id",
       "status",
       "updated_at",
-      "control_revision",
-      "pause_pending",
-      "expiry_pending",
-      "cleanup_pending"
+      "control_revision"
     ],
     "properties": {
       "version": {
@@ -3783,10 +3780,7 @@ const schemas = {
           "run_id",
           "status",
           "updated_at",
-          "control_revision",
-          "pause_pending",
-          "expiry_pending",
-          "cleanup_pending"
+          "control_revision"
         ],
         "properties": {
           "version": {
@@ -4865,10 +4859,7 @@ const schemas = {
                   "run_id",
                   "status",
                   "updated_at",
-                  "control_revision",
-                  "pause_pending",
-                  "expiry_pending",
-                  "cleanup_pending"
+                  "control_revision"
                 ],
                 "properties": {
                   "version": {
@@ -9138,10 +9129,7 @@ const schemas = {
           "run_id",
           "status",
           "updated_at",
-          "control_revision",
-          "pause_pending",
-          "expiry_pending",
-          "cleanup_pending"
+          "control_revision"
         ],
         "properties": {
           "version": {
@@ -12207,7 +12195,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:3c5ac1f07df01e4fce5517268e797f2aafa1fb9edba41a780b4764da84d11ecc";
+export const interactiveControlRegistryCid = "sha256:0ea08057000fa5eb37b20a358442fcaf933149d859ee8842e2a9bd4629a1494d";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);

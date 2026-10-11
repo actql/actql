@@ -197,7 +197,8 @@ export function interactiveRunControlSchemas() {
     ttl_policy_cid: cid, pause_pending: bool, expiry_pending: bool,
     cleanup_pending: bool,
   }, ['legacy_state', 'resume_origin', 'stop_reason', 'boundary',
-    'matched_breakpoints', 'paused_at', 'expires_at', 'ttl_policy_cid'], [
+    'matched_breakpoints', 'paused_at', 'expires_at', 'ttl_policy_cid',
+    'pause_pending', 'expiry_pending', 'cleanup_pending'], [
     when('status', 'paused', {
       required: ['stop_reason', 'boundary', 'matched_breakpoints', 'paused_at',
         'expires_at', 'ttl_policy_cid'], not: {required: ['legacy_state']},

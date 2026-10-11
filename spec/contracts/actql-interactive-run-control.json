@@ -1426,10 +1426,7 @@
         "run_id",
         "status",
         "updated_at",
-        "control_revision",
-        "pause_pending",
-        "expiry_pending",
-        "cleanup_pending"
+        "control_revision"
       ],
       "properties": {
         "version": {
@@ -3191,7 +3188,7 @@
     "run_control_capabilities": "sha256:8ef39dfb5463ce5518cc213da341906af7fc9f74996a172608f574dd874a6794",
     "plan_view": "sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4",
     "control_resume_origin": "sha256:a6aecb1e607745939e7d1e3a16a89c61ec9d0d6ff272aab22e000f40687ea13f",
-    "controlled_run_state": "sha256:bbae06fd0f5062ab8812d7029f51191f0ea05bed0a2ed5402a3bc52aa4564f3f",
+    "controlled_run_state": "sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c",
     "control_command": "sha256:3652d5b0ccd085bcb7077cae918e6c802fa6d8e7d2ef57fdf533b591bcb23365",
     "control_operation_ref": "sha256:789a793ad961d9b353c7ce7e7291c5ea6332c5c5eda5626a86ddeb89b762f2b8",
     "control_operation_receipt": "sha256:22eeab3c3f9f494a4bb19441508e774e9fe647e7df0cf7bf4b63ac2a895c0822",
@@ -3299,5 +3296,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:3c5ac1f07df01e4fce5517268e797f2aafa1fb9edba41a780b4764da84d11ecc"
+  "registry_cid": "sha256:0ea08057000fa5eb37b20a358442fcaf933149d859ee8842e2a9bd4629a1494d"
 }

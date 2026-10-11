@@ -1026,6 +1026,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/interactive-pending-observation",
+      "statement_sha256": "ed3bd6834e9c30c97e11948ebf1c820775937bba1aaa8b8db1610ee799f7097a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/interactive-pending-unknown",
+      "statement_sha256": "cf4c2d7d7bd559fc82cf28b71787a7ca5f91587907ce7bc3fee3b4333517d7f2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interactive-run-control",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/interactive-capability",
       "statement_sha256": "db406dbab3ddfa36ae668bde1e36bacdffee5732b3b5aa66992e43597bdb9408",
       "status": "pending",
