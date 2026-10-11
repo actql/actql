@@ -12,6 +12,8 @@ pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, In
 
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
 
+pub fn capacity_reservation_covers(Ledger, CapacityReservation, Int64, Int64) -> Bool
+
 pub fn capacity_reservation_matches(Ledger, CapacityReservation, Int64, Int64) -> Bool
 
 pub fn capacity_reservation_open(CapacityReservation) -> Bool
