@@ -80,6 +80,7 @@ import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {installClientOwnerObservations} from './client-owner-observations.mjs';
+import {installClientStaticPlan} from './client-interactive-plan.mjs';
 import {createClientOwnerCursorCodec} from './client-owner-cursor.mjs';
 import {installClientEffectObservations} from './client-effect-observations.mjs';
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
@@ -549,6 +550,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
     allowEffects: effectInstallation !== undefined});
+  const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
+    authorize: hostConnection});
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
@@ -2589,7 +2592,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value),
-    negotiate, prepareSubmit, check, attach,
+    negotiate, prepareSubmit, check, plan, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},

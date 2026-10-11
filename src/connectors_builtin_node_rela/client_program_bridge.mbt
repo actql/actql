@@ -1481,6 +1481,36 @@ pub fn client_program_compile_local_tasks(
 }
 
 ///|
+// Read-only projections retain the original compiler owner. They issue no
+// Run admission, open no material and make no provider call.
+#export_name("clientProgramValuesStaticPlanView")
+pub fn client_program_values_static_plan_view(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientValuesCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientInteractivePlanIssue] {
+  @publication_host.client_values_static_plan_view(
+    prepared, compiled, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramTaskStaticPlanView")
+pub fn client_program_task_static_plan_view(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientTaskCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientInteractivePlanIssue] {
+  @publication_host.client_task_static_plan_view(
+    prepared, compiled, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramTaskCompilationPlanWire")
 pub fn client_program_task_compilation_plan_wire(
   value : @publication_host.ClientTaskCompilation,

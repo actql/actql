@@ -103,6 +103,9 @@ export type WireClientBodyByOperation = Readonly<{
   'restart-intent': WireClientBodyByOperation['submit-intent'] & Readonly<{
     unresolvedHistory: WireSubmissionRestart}>;
   'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;
+  plan: Omit<WireClientBodyByOperation['submit'], 'requestId' | 'parameters'> & Readonly<{
+    parameters: Record<string, unknown> | null;
+    maxWireBytes: number; maxNodes: number; maxDepth: number}>;
   check: WireBodyBase & (Readonly<{
     kind: 'text'; input: Readonly<{
       text: string;

@@ -78,3 +78,21 @@ Read-only PlanView/Inspect may be connected independently. Durable execution
 control, Sample capture, Cost Guards and other Host/runtime profiles require
 separate original-Owner implementations and acceptance; they are not implied
 by these contract definitions.
+
+## Static compiler projection
+
+The Node read service prepares through the installed ordinary checker, then
+uses the existing Values or task compilation issuer. The shared MoonBit
+projection requires that compilation's exact original prepared owner and reads
+the checked Stage IR, including fused logical operations and input-only
+Relation Stages. It accepts no caller-authored map as compiler provenance.
+
+The `plan` request carries the authored input, supplied parameters and finite
+wire/node/depth limits, but no submission or Run identity. Its static service
+does not depend on the request journal, Source acquisition or execution driver.
+Current connection access is checked before preparation and again before
+returning the view. Unsupported compilation profiles refuse rather than
+running a probe or issuing an executable Run. Unknown work remains unknown;
+stop, Sample, intermediate retention, cost and batch capabilities remain
+uninstalled. The SDK checks the returned map's self-CID and Plan binding; this
+read grants no execution authority and does not install runtime control.

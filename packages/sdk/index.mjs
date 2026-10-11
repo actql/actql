@@ -15,6 +15,7 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
   validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
+import {validWirePlanViewShape} from '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {formatOperationExplanation} from './operation-formats.mjs';
@@ -2448,6 +2449,29 @@ async function connectSelected(selected, port) {
       }
       checkRequests.set(outcome, body);
       return freezeInput(outcome);
+    },
+    // Read the adopted static compiler projection without allocating a Run or
+    // submission identity. Runtime control and Sample collection are separate.
+    plan: async (input, options = {}) => {
+      const kind = options.kind ?? (typeof input === 'string' ? 'aql' : 'program');
+      const body = snapshotClientRequest({kind,
+        input: kind === 'aql' ? {text: input, format: options.format ?? 'aql-text',
+          ...(options.parameterDeclarations === undefined ? {} :
+            {parameterDeclarations: options.parameterDeclarations})} : input,
+        parameters: options.parameters ?? null,
+        maxWireBytes: options.maxWireBytes ?? 65536,
+        maxNodes: options.maxNodes ?? 10000, maxDepth: options.maxDepth ?? 64});
+      if (!validClientBody('plan', {connection: selected.wire, ...body})) {
+        fail('InvalidClientPlanRequest');
+      }
+      const response = await exchange('plan', body, options.signal);
+      const view = detachResponse(captureResponse(await responseValue(response)));
+      if (!validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
+      const map = view.logical_map;
+      const {self_cid: observed, ...preimage} = map;
+      if (map.compiled_plan_cid !== view.compiled_plan_cid ||
+          await contentCid(preimage) !== observed) fail('InvalidClientHostPlanView');
+      return freezeInput(view);
     },
     start: (program, options = {}) => {
       if (program === null || typeof program !== 'object' ||

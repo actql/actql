@@ -16,6 +16,7 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validCheckOutcome,
   validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
+import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
 
@@ -163,7 +164,7 @@ export function createClientHttpHandler({
   negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  check, maxRequestBytes = 65536, observe, loopbackHttp = false,
+  check, plan, maxRequestBytes = 65536, observe, loopbackHttp = false,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -310,6 +311,13 @@ export function createClientHttpHandler({
           invalid('InvalidClientHostRunState');
         }
         sendJson(state);
+      } else if (operation === 'plan') {
+        const observer = observationAttempt(response);
+        try {
+          const view = await invoke(plan, observer.signal);
+          if (!validWirePlanViewShape(view)) invalid('InvalidClientHostPlanView');
+          sendJson(view);
+        } finally { observer.release(); }
       } else if (operation === 'owner-observations') {
         const views = await invoke(observeOwners);
         if (!validOwnerObservations(views,ref,body)) invalid('InvalidClientHostOwnerObservations');

@@ -16911,6 +16911,15 @@ const operationKeys = {
     "scope",
     "parameters"
   ],
+  "plan": [
+    "connection",
+    "kind",
+    "input",
+    "parameters",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
   "attach": [
     "connection",
     "ref"
