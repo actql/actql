@@ -501,6 +501,131 @@ test "expression corpus accepted: 100" {
 }
 
 ///|
+test "expression corpus accepted: 101" {
+  assert_tree("pow(2, 3)", "{\"pow\":[{\"literal\":2},{\"literal\":3}]}")
+}
+
+///|
+test "expression corpus accepted: 102" {
+  assert_tree("pow(NULL, NULL)", "{\"pow\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 103" {
+  assert_tree("pow(x, $q)", "{\"pow\":[{\"field\":\"x\"},{\"$param\":\"q\"}]}")
+}
+
+///|
+test "expression corpus accepted: 104" {
+  assert_tree("power(2, 3)", "{\"pow\":[{\"literal\":2},{\"literal\":3}]}")
+}
+
+///|
+test "expression corpus accepted: 105" {
+  assert_tree("power(NULL, NULL)", "{\"pow\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 106" {
+  assert_tree("power(x, $q)", "{\"pow\":[{\"field\":\"x\"},{\"$param\":\"q\"}]}")
+}
+
+///|
+test "expression corpus accepted: 107" {
+  assert_tree("log(2, 3)", "{\"log\":[{\"literal\":2},{\"literal\":3}]}")
+}
+
+///|
+test "expression corpus accepted: 108" {
+  assert_tree("log(NULL, NULL)", "{\"log\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 109" {
+  assert_tree("log(x, $q)", "{\"log\":[{\"field\":\"x\"},{\"$param\":\"q\"}]}")
+}
+
+///|
+test "expression corpus accepted: 110" {
+  assert_tree("exp(1)", "{\"exp\":{\"literal\":1}}")
+}
+
+///|
+test "expression corpus accepted: 111" {
+  assert_tree("exp(NULL)", "{\"exp\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 112" {
+  assert_tree("exp(x)", "{\"exp\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 113" {
+  assert_tree("exp($q)", "{\"exp\":{\"$param\":\"q\"}}")
+}
+
+///|
+test "expression corpus accepted: 114" {
+  assert_tree("ln(1)", "{\"ln\":{\"literal\":1}}")
+}
+
+///|
+test "expression corpus accepted: 115" {
+  assert_tree("ln(NULL)", "{\"ln\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 116" {
+  assert_tree("ln(x)", "{\"ln\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 117" {
+  assert_tree("ln($q)", "{\"ln\":{\"$param\":\"q\"}}")
+}
+
+///|
+test "expression corpus accepted: 118" {
+  assert_tree("log(1)", "{\"ln\":{\"literal\":1}}")
+}
+
+///|
+test "expression corpus accepted: 119" {
+  assert_tree("log(NULL)", "{\"ln\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 120" {
+  assert_tree("log(x)", "{\"ln\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 121" {
+  assert_tree("log($q)", "{\"ln\":{\"$param\":\"q\"}}")
+}
+
+///|
+test "expression corpus accepted: 122" {
+  assert_tree("log10(1)", "{\"log10\":{\"literal\":1}}")
+}
+
+///|
+test "expression corpus accepted: 123" {
+  assert_tree("log10(NULL)", "{\"log10\":{\"literal\":null}}")
+}
+
+///|
+test "expression corpus accepted: 124" {
+  assert_tree("log10(x)", "{\"log10\":{\"field\":\"x\"}}")
+}
+
+///|
+test "expression corpus accepted: 125" {
+  assert_tree("log10($q)", "{\"log10\":{\"$param\":\"q\"}}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -803,4 +928,89 @@ test "expression corpus rejected: 60" {
 ///|
 test "expression corpus rejected: 61" {
   assert_true(parse("trunc(x,)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 62" {
+  assert_true(parse("pow()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 63" {
+  assert_true(parse("pow(1,)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 64" {
+  assert_true(parse("pow(1, 2, 3)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 65" {
+  assert_true(parse("pow(1)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 66" {
+  assert_true(parse("power()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 67" {
+  assert_true(parse("power(1,)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 68" {
+  assert_true(parse("power(1, 2, 3)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 69" {
+  assert_true(parse("power(1)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 70" {
+  assert_true(parse("log()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 71" {
+  assert_true(parse("log(1,)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 72" {
+  assert_true(parse("log(1, 2, 3)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 73" {
+  assert_true(parse("exp()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 74" {
+  assert_true(parse("exp(1,2)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 75" {
+  assert_true(parse("ln()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 76" {
+  assert_true(parse("ln(1,2)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 77" {
+  assert_true(parse("log10()", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 78" {
+  assert_true(parse("log10(1,2)", test_limits()) is Err(_))
 }

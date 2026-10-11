@@ -129,6 +129,13 @@ preserved without a synthetic length expression. The admitted number indices
 are safe-integer-valued finite binary64 numbers; full INT64 and BYTES remain
 coverage gaps. Quoted/case variants retain the same function identity.
 
+The finite Number scalar functions `POW(x, y)` and `POWER(x, y)` lower to the
+same `pow` operation. `EXP(x)`, `LN(x)` and `LOG10(x)` are unary. `LOG(x)` is a
+synonym of `LN(x)`; `LOG(x, base)` is binary and retains its ordered arguments.
+The common expression finite-domain, NULL and arithmetic-failure rules apply.
+No distinct INT64/NUMERIC/BIGNUMERIC or non-finite overload is added. `MOD` is
+not admitted as a GoogleSQL FLOAT64 function; internal `%` remains unchanged.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive

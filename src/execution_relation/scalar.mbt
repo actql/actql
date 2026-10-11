@@ -134,6 +134,23 @@ pub fn unary(
         Number(n) => finite(if n < 0.0 { -n } else { n })
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
+    Exp | Ln | Log10 =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else if op == @lower.Exp {
+            finite(@math.exp(n))
+          } else if n <= 0.0 {
+            Err(ArithmeticFailure)
+          } else if op == @lower.Ln {
+            finite(@math.ln(n))
+          } else {
+            finite(@math.log10(n))
+          }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
     Sqrt =>
       match value {
         Null => Ok(Null)
@@ -349,6 +366,8 @@ pub fn binary(
     | Multiply
     | Divide
     | Modulo
+    | Pow
+    | Log
     | SafeAdd
     | SafeSubtract
     | SafeMultiply
@@ -373,6 +392,20 @@ pub fn binary(
             finite(a / b)
           }
         Modulo => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a % b) }
+        Pow =>
+          if (a < 0.0 && b.trunc() != b) || (a == 0.0 && b < 0.0) {
+            Err(ArithmeticFailure)
+          } else {
+            // Integrality stays in binary64, including finite exponents beyond
+            // every bounded integer range. Reuse canonical finite/zero handling.
+            finite(@math.pow(a, b))
+          }
+        Log =>
+          if a <= 0.0 || b <= 0.0 || b == 1.0 {
+            Err(ArithmeticFailure)
+          } else {
+            finite(@math.ln(a) / @math.ln(b))
+          }
         Equal
         | NotEqual
         | IsDistinctFrom
@@ -461,6 +494,8 @@ fn binary_comparison_result(
     | SafeSubtract
     | SafeMultiply
     | Modulo
+    | Pow
+    | Log
     | In
     | NotIn
     | RoundAt
