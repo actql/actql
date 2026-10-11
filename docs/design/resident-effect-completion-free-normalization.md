@@ -263,9 +263,19 @@ continues to require and verify its Plan proof. The nominal create projection is
 process-local and remains tied to the same consumer and captured inputs. It is
 not durable approval, a physical target observation or a mutation permit.
 
-This connection supplies Preview and capture preparation. The existing Native
-approved-row write adapter still rejects create because it requires an observed
-update target. Approval, current mutation authorization, durable Effect dispatch
-and saved-response reconciliation require their own connection to the existing
-Owners. Empty create batches are explicitly unsupported by this adapter; that
-implementation boundary is not a restriction on the language's create semantics.
+The approved-row adapter supports one admitted create or update request. For
+create it retains the original Catalog binding's origin, validates the exact
+content/occurrence correlation against the held request, and does not fabricate
+a target observation. Update continues to require its original observed target
+and version guard. A current credential scope must match the typed request's
+distinct mutation operation, original invocation, dispatch, Site generation and
+resource origin. Only create selects POST; only a guarded update selects PATCH.
+
+The original review and resolution Owners still establish approval and the
+current resume fence. Before either verb is sent, the same journal claims the
+existing Ledger dispatch; an existing claim is a reconciliation obligation,
+not permission for another send. Both operations retain their raw response
+through the same save/retry and typed outcome projection. Reconstructing row
+custody never grants permission to write. Empty or multiple create rows remain
+explicitly unsupported by this single-row adapter; those implementation
+boundaries are not restrictions on the language's create semantics.
