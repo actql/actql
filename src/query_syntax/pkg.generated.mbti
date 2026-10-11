@@ -400,7 +400,9 @@ pub(all) struct NearestClause {
 
 pub(all) struct PivotClause {
   function_name : String
+  count_star : Bool
   argument : Array[NamePart]
+  argument_expression : Expression?
   column : Array[NamePart]
   prefix : NamePart?
   values : Array[(String, NamePart?)]

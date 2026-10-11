@@ -1,0 +1,497 @@
+"""Explicit standalone C API consumer; not public Local or wheel acceptance."""
+import argparse
+import ctypes as C
+import hashlib
+import io
+import json
+import platform
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+from threading import Event, Thread
+import time
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
+from actql_sdk._local_duckdb import (  # noqa: E402
+    DuckDBConnection, DuckDBLibrary, DuckDBPhysicalError, DuckDBTransferLimits, DuckDBParameter,
+    _Result,
+)
+from actql_sdk._local_core import LocalCore, LocalCoreError, LocalCoreResources
+from actql_sdk._local_duckdb_workspace import DuckDBWorkspace
+from actql_sdk._local_command import native_command  # noqa: E402
+
+parser = argparse.ArgumentParser()
+parser.add_argument('library', type=Path)
+parser.add_argument('--digest', required=True)
+parser.add_argument('--version', required=True)
+parser.add_argument('--module', type=Path)
+parser.add_argument('--workspace-only', action='store_true')
+args = parser.parse_args()
+assert not args.workspace_only or args.module is not None, 'Workspace selection requires a real module'
+assert subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT,
+                               text=True) == '', 'Use committed physical adapter source'
+library = DuckDBLibrary(args.library, digest=args.digest, version=args.version)
+
+
+class StandaloneDuckDBTests(unittest.TestCase):
+    def setUp(self):
+        self.connection = DuckDBConnection(library, '', memory_bytes=67_108_864,
+                                           readonly=False)
+        self.stream = None
+
+    def tearDown(self):
+        if self.stream is not None:
+            self.assertTrue(self.stream.close())
+        self.assertTrue(self.connection.close())
+
+    def query(self, sql, **limits):
+        self.stream = self.connection.prepare(sql, DuckDBTransferLimits(**limits))
+        self.stream.execute()
+        return self.stream
+
+    def rows(self, sql, **limits):
+        stream = self.query(sql, **limits)
+        destination = bytearray(limits.get('max_row_bytes', 4096))
+        result = []
+        while (count := stream.read_row(destination)) is not None:
+            result.append(bytes(destination[:count]))
+        return result
+
+    def test_fixed_native_codec_values_and_fields(self):
+        # Unicode spelling, raw line endings, embedded NULL, integer boundaries
+        # and IEEE bits are independently fixed, not copied from this producer.
+        rows = self.rows("SELECT '-9223372036854775808'::BIGINT AS n, "
+            "18446744073709551615::UBIGINT AS u, TRUE AS flag, "
+            "NULL::VARCHAR AS missing, 'é' || chr(13) || chr(10) || chr(0) || '😀' AS \"名/称~\", "
+            "1.5::DOUBLE AS d, 1.5::FLOAT AS f, 12.30::DECIMAL(5,2) AS dec, "
+            "'-170141183460469231731687303715884105728'::HUGEINT AS huge, "
+            "340282366920938463463374607431768211455::UHUGEINT AS uhuge")
+        self.assertEqual(rows, [
+            b'["-9223372036854775808","18446744073709551615",true,null,'
+            b'"e\xcc\x81\\u000d\\u000a\\u0000\xf0\x9f\x98\x80",'
+            b'"3ff8000000000000","3fc00000","1230",'
+            b'"-170141183460469231731687303715884105728",'
+            b'"340282366920938463463374607431768211455"]',
+        ])
+        destination = bytearray(4096)
+        count = self.stream.write_fields(destination)
+        self.assertEqual(json.loads(bytes(destination[:count])), [
+            ['n', 'BIGINT', None, None], ['u', 'UBIGINT', None, None],
+            ['flag', 'BOOLEAN', None, None], ['missing', 'VARCHAR', None, None],
+            ['名/称~', 'VARCHAR', None, None], ['d', 'DOUBLE', None, None],
+            ['f', 'FLOAT', None, None], ['dec', 'DECIMAL', '5', '2'],
+            ['huge', 'HUGEINT', None, None], ['uhuge', 'UHUGEINT', None, None],
+        ])
+
+    def test_read_view_preserves_snapshot_across_queries_and_observes_commit(self):
+        self.rows('CREATE TABLE records AS SELECT 1::BIGINT AS id')
+        self.assertTrue(self.stream.close())
+        self.stream = None
+        view = self.connection.begin_read_view()
+        try:
+            self.assertFalse(view.committed)
+            self.assertEqual(self.rows('SELECT id FROM records'), [b'["1"]'])
+            self.assertTrue(self.stream.close())
+            self.stream = None
+            # An independent physical connection changes the same database.
+            # The captured view must keep the value seen by its first query.
+            other = C.c_void_p()
+            changed = _Result()
+            self.assertEqual(library.api.duckdb_connect(
+                self.connection._database, C.byref(other)), 0)
+            try:
+                self.assertEqual(library.api.duckdb_query(
+                    other, b'UPDATE records SET id = 2', C.byref(changed)), 0)
+            finally:
+                library.api.duckdb_destroy_result(C.byref(changed))
+                library.api.duckdb_disconnect(C.byref(other))
+            self.assertEqual(self.rows('SELECT id FROM records'), [b'["1"]'])
+            with self.assertRaises(DuckDBPhysicalError):
+                view.commit()
+            self.assertTrue(self.stream.close())
+            self.stream = None
+            view.commit()
+            self.assertTrue(view.committed)
+            with self.assertRaises(DuckDBPhysicalError):
+                view.commit()
+        finally:
+            if self.stream is not None:
+                self.assertTrue(self.stream.close())
+                self.stream = None
+            self.assertTrue(view.close())
+        self.assertEqual(self.rows('SELECT id FROM records'), [b'["2"]'])
+
+    def test_lost_commit_reply_is_not_replayed_or_reported_as_settlement(self):
+        view = self.connection.begin_read_view()
+        native = library.api.duckdb_query
+        commands = []
+
+        def lost_reply(connection, command, result):
+            commands.append(command)
+            self.assertEqual(native(connection, command, result), 0)
+            raise OSError('Lost physical control reply')
+
+        with patch.object(library.api, 'duckdb_query', side_effect=lost_reply):
+            with self.assertRaises(OSError) as failure:
+                view.commit()
+            self.assertIs(failure.exception.physical_cleanup, view)
+            self.assertFalse(view.committed)
+            self.assertFalse(self.connection.close())
+            self.assertTrue(view.close())
+        self.assertEqual(commands, [b'COMMIT'])
+        self.assertTrue(self.connection.close())
+
+    def test_commit_cleanup_failure_retries_same_actual_result_without_control_io(self):
+        view = self.connection.begin_read_view()
+        destroy = library.api.duckdb_destroy_result
+        attempts = 0
+
+        def fail_once(result):
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise OSError('Physical result cleanup pending')
+            destroy(result)
+
+        with patch.object(library.api, 'duckdb_destroy_result', side_effect=fail_once):
+            with self.assertRaises(OSError) as failure:
+                view.commit()
+            self.assertIs(failure.exception.physical_cleanup, view)
+            self.assertTrue(view.committed)
+            self.assertFalse(self.connection.close())
+            with self.assertRaises(DuckDBPhysicalError):
+                view.commit()
+            self.assertTrue(view.close())
+            self.assertTrue(view.close())
+        self.assertEqual(attempts, 2)
+
+    def test_core_scalar_parameter_codec_preserves_bits_null_and_raw_text(self):
+        parameters = (DuckDBParameter('DOUBLE', '3ff8000000000000'),
+                      DuckDBParameter('DOUBLE', '8000000000000000'),
+                      DuckDBParameter('VARCHAR', 'é\r\n\0😀'),
+                      DuckDBParameter('BOOLEAN', True), DuckDBParameter('VARCHAR', None))
+        self.stream = self.connection.prepare(
+            'SELECT ?::DOUBLE AS n, ?::DOUBLE AS zero, ?::VARCHAR AS text, '
+            '?::BOOLEAN AS flag, ?::VARCHAR AS missing', DuckDBTransferLimits(),
+            parameters=parameters)
+        self.stream.execute()
+        destination = bytearray(256)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]),
+            b'[["3ff8000000000000"],["8000000000000000"],'
+            b'["e\xcc\x81\\u000d\\u000a\\u0000\xf0\x9f\x98\x80"],[true],[null]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+
+    def test_shared_core_command_projection_reaches_actual_native_binding(self):
+        command = native_command(
+            b'{"sql":"SELECT ?::DOUBLE AS n, ?::VARCHAR AS text, ?::BOOLEAN AS flag, ?::VARCHAR AS missing",'
+            b'"parameters":[{"type":{"id":"DOUBLE"},"value":"3ff8000000000000"},'
+            b'{"type":{"id":"VARCHAR"},"value":"e\xcc\x81\\r\\n\\u0000\xf0\x9f\x98\x80"},'
+            b'{"type":{"id":"BOOLEAN"},"value":false},'
+            b'{"type":{"id":"VARCHAR"},"value":null}]}')
+        self.stream = self.connection.prepare(command.sql, DuckDBTransferLimits(),
+                                              parameters=command.parameters)
+        self.stream.execute()
+        destination = bytearray(256)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]),
+            b'[["3ff8000000000000"],["e\xcc\x81\\u000d\\u000a\\u0000\xf0\x9f\x98\x80"],[false],[null]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+
+    def test_bound_metadata_names_select_exact_table_without_interpolation(self):
+        self.rows('CREATE TABLE "名/称~" AS SELECT 7::BIGINT AS n')
+        self.assertTrue(self.stream.close())
+        self.stream = self.connection.prepare(
+            'SELECT column_name FROM information_schema.columns '
+            'WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position',
+            DuckDBTransferLimits(), parameters=(DuckDBParameter('VARCHAR', 'main'),
+                                                DuckDBParameter('VARCHAR', '名/称~')))
+        self.stream.execute()
+        destination = bytearray(32)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]), b'[["n"]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+
+    def test_unbound_parameter_is_refused_before_execution(self):
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'count mismatch'):
+            self.connection.prepare('SELECT ?::DOUBLE AS n', DuckDBTransferLimits())
+        self.assertEqual(self.rows('SELECT 7::BIGINT AS n'), [b'["7"]'])
+
+    def test_one_row_columns_preserve_native_values_and_empty_end(self):
+        stream = self.query("SELECT i::BIGINT AS n, CASE WHEN i = 1 THEN NULL "
+            "ELSE 'é' || chr(13) || chr(10) || '😀' END AS text "
+            "FROM range(3) t(i) ORDER BY i", max_rows=3)
+        destination = bytearray(128)
+        fixed = [b'[["0"],["e\xcc\x81\\u000d\\u000a\xf0\x9f\x98\x80"]]',
+                 b'[["1"],[null]]',
+                 b'[["2"],["e\xcc\x81\\u000d\\u000a\xf0\x9f\x98\x80"]]']
+        actual = []
+        while (count := stream.read_column_row(destination)) is not None:
+            actual.append(bytes(destination[:count]))
+        self.assertEqual(actual, fixed)
+        self.assertIsNone(stream.read_row(destination))
+
+    def test_column_framing_overflow_never_delivers_or_retries_partial_row(self):
+        stream = self.query('SELECT 7::BIGINT AS n', max_row_bytes=6)
+        destination = bytearray(6)
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'row capacity'):
+            stream.read_column_row(destination)
+        self.assertEqual(len(destination), 6)
+        self.assertFalse(self.connection.close())
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'cannot read'):
+            stream.read_row(bytearray(6))
+
+    def test_empty_is_end_without_a_fabricated_row(self):
+        self.assertEqual(self.rows('SELECT 1 AS n WHERE FALSE', max_rows=0), [])
+
+    def test_multiple_chunks_preserve_explicit_order(self):
+        rows = self.rows('SELECT i FROM range(2051) t(i) ORDER BY i DESC', max_rows=2051)
+        self.assertEqual(rows, [f'["{i}"]'.encode('ascii') for i in range(2050, -1, -1)])
+
+    def test_long_varchar_refused_before_python_cell_copy(self):
+        stream = self.query("SELECT repeat('z', 65537)", max_cell_bytes=65536)
+        with patch.object(C.c_ubyte, 'from_address', side_effect=AssertionError('Copied oversized cell')):
+            with self.assertRaisesRegex(DuckDBPhysicalError, 'cell capacity'):
+                stream.read_row(bytearray(128))
+        self.assertFalse(self.connection.close())
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'cannot read'):
+            stream.read_row(bytearray(128))
+
+    def test_capacity_refusal_does_not_turn_partial_row_into_success(self):
+        stream = self.query("SELECT 'abcdef'", max_row_bytes=4)
+        destination = bytearray(4)
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'row capacity'):
+            stream.read_row(destination)
+        self.assertEqual(len(destination), 4)
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'cannot read'):
+            stream.read_row(destination)
+
+    def test_row_limit_does_not_report_end(self):
+        stream = self.query('SELECT i FROM range(2) t(i) ORDER BY i', max_rows=1)
+        destination = bytearray(32)
+        count = stream.read_row(destination)
+        self.assertEqual(bytes(destination[:count]), b'["0"]')
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'row count capacity'):
+            stream.read_row(destination)
+
+    def test_unsupported_physical_type_refused_before_fetch(self):
+        self.stream = self.connection.prepare('SELECT [1,2]', DuckDBTransferLimits())
+        with self.assertRaisesRegex(DuckDBPhysicalError, 'Unsupported'):
+            self.stream.execute()
+
+    def test_connection_cleanup_keeps_live_result_and_retries_same_handle(self):
+        stream = self.query('SELECT 7 AS n')
+        retained = stream._result.internal
+        self.assertFalse(self.connection.close())
+        actual = library.api.duckdb_destroy_result
+        with patch.object(library.api, 'duckdb_destroy_result', side_effect=OSError('cleanup failure')):
+            with self.assertRaises(OSError):
+                stream.close()
+        self.assertEqual(stream._result.internal, retained)
+        self.assertIn(stream, self.connection._streams)
+        with patch.object(library.api, 'duckdb_destroy_result', wraps=actual) as destroy:
+            self.assertTrue(stream.close())
+            self.assertTrue(stream.close())
+            destroy.assert_called_once()
+        self.assertTrue(self.connection.close())
+
+    def test_canonical_settings_are_observed(self):
+        rows = self.rows("SELECT current_setting('enable_external_access'), "
+            "current_setting('autoinstall_known_extensions'), "
+            "current_setting('autoload_known_extensions'), "
+            "current_setting('allow_unsigned_extensions'), "
+            "current_setting('preserve_insertion_order'), "
+            "current_setting('threads'), current_setting('max_temp_directory_size'), "
+            "current_setting('default_collation')")
+        self.assertEqual(rows, [b'[false,false,false,false,true,"1","0 bytes","binary"]'])
+
+    def test_interrupt_delivery_is_not_stop_until_native_call_returns(self):
+        self.stream = self.connection.prepare(
+            'SELECT sum(a.i::DOUBLE*b.i) FROM range(100000) a(i), range(100000) b(i)',
+            DuckDBTransferLimits())
+        entered = Event()
+        returned = Event()
+        outcome = []
+        execute = library.api.duckdb_execute_prepared_streaming
+
+        def physical_call(*arguments):
+            entered.set()
+            return execute(*arguments)
+
+        def worker():
+            try:
+                self.stream.execute()
+                outcome.append('completed')
+            except DuckDBPhysicalError:
+                outcome.append('physical_error')
+            finally:
+                returned.set()
+
+        with patch.object(library.api, 'duckdb_execute_prepared_streaming', side_effect=physical_call):
+            thread = Thread(target=worker, daemon=True)
+            thread.start()
+            self.assertTrue(entered.wait(1))
+            try:
+                # Only a short bounded native diagnostic; no completed work is
+                # required. Give the C call time to enter before interruption.
+                time.sleep(0.02)
+                self.assertFalse(returned.is_set())
+                self.assertFalse(self.stream.close())
+                self.assertFalse(self.connection.close())
+            finally:
+                self.connection.interrupt()
+            self.assertTrue(returned.wait(2), 'Native execution did not acknowledge interruption')
+            thread.join(timeout=1)
+        self.assertEqual(outcome, ['physical_error'])
+        self.assertTrue(self.stream.close())
+        self.assertTrue(self.connection.close())
+
+    def test_readonly_source_blocks_write_physically(self):
+        self.assertTrue(self.connection.close())
+        with tempfile.TemporaryDirectory() as directory:
+            path = str(Path(directory) / 'source.duckdb')
+            self.connection = DuckDBConnection(library, path, memory_bytes=67_108_864,
+                                               readonly=False)
+            self.rows('CREATE TABLE source AS SELECT 2::BIGINT AS n')
+            self.assertTrue(self.stream.close())
+            self.assertTrue(self.connection.close())
+            self.connection = DuckDBConnection(library, path, memory_bytes=67_108_864)
+            self.stream = None
+            self.assertEqual(self.rows('SELECT n FROM source'), [b'["2"]'])
+            self.assertTrue(self.stream.close())
+            self.stream = self.connection.prepare('INSERT INTO source VALUES (3)',
+                                                  DuckDBTransferLimits())
+            with self.assertRaisesRegex(DuckDBPhysicalError, 'physical execution'):
+                self.stream.execute()
+            self.assertTrue(self.stream.close())
+            self.assertEqual(self.rows('SELECT n FROM source'), [b'["2"]'])
+            self.assertTrue(self.stream.close())
+            self.assertTrue(self.connection.close())
+
+
+class SharedWorkspaceTests(unittest.TestCase):
+    def setUp(self):
+        self.module = args.module.read_bytes()
+        self.digest = hashlib.sha256(self.module).hexdigest()
+        self.workspace_bytes = 67_108_864
+        self.core = LocalCore(self.module, digest=self.digest, transfer_capacity=65536,
+            resources=LocalCoreResources(0, 16, 0, 0, 0,
+                16 * 1024 * 1024 + 65536 + self.workspace_bytes))
+        self.workspace = None
+        self.stream = None
+
+    def tearDown(self):
+        if self.stream is not None:
+            self.assertTrue(self.stream.close())
+        if self.workspace is not None:
+            self.assertTrue(self.workspace.close())
+        self.assertTrue(self.core.close())
+
+    def open(self):
+        self.workspace = DuckDBWorkspace(self.core, library, '',
+            workspace_bytes=self.workspace_bytes, memory_bytes=self.workspace_bytes,
+            readonly=False)
+        return self.workspace.connection()
+
+    def reserved(self):
+        return self.core._call('workspace', 'root_reserved')
+
+    def test_capacity_refusal_has_zero_native_open(self):
+        self.workspace_bytes += 1
+        with patch.object(library.api, 'duckdb_open_ext', wraps=library.api.duckdb_open_ext) as opened:
+            with self.assertRaises(LocalCoreError) as caught:
+                self.open()
+            self.assertEqual(caught.exception.code, -4)
+            self.assertEqual(opened.call_count, 0)
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_actual_rows_and_closed_statement_keep_workspace_until_release(self):
+        connection = self.open()
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+        self.stream = connection.prepare(
+            "SELECT 1.5::DOUBLE AS n, NULL::VARCHAR AS nullable, 'é' || chr(13) || chr(10) || '😀' AS text",
+            DuckDBTransferLimits(max_rows=1, max_row_bytes=4096))
+        self.stream.execute()
+        destination = bytearray(4096)
+        count = self.stream.read_column_row(destination)
+        self.assertEqual(bytes(destination[:count]),
+            b'[["3ff8000000000000"],[null],["e\xcc\x81\\u000d\\u000a\xf0\x9f\x98\x80"]]')
+        self.assertIsNone(self.stream.read_column_row(destination))
+        self.assertFalse(self.workspace.close())
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+        self.assertTrue(self.stream.close())
+        self.stream = None
+        self.assertTrue(self.workspace.close())
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_original_native_disconnect_failure_retains_same_root_loan(self):
+        connection = self.open()
+        original = library.api.duckdb_disconnect
+        handles = []
+        def disconnect(pointer):
+            handles.append(C.cast(pointer, C.POINTER(C.c_void_p))[0])
+            if len(handles) == 1:
+                raise OSError('independent physical disconnect failure')
+            return original(pointer)
+        with patch.object(library.api, 'duckdb_disconnect', side_effect=disconnect):
+            self.assertFalse(self.workspace.close())
+            self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+            self.assertIs(self.workspace._connection, connection)
+            self.assertTrue(self.workspace.close())
+        self.assertEqual(len(handles), 2)
+        self.assertEqual(handles[0], handles[1])
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_failed_connect_and_native_cleanup_retain_original_database(self):
+        original = library.api.duckdb_close
+        handles = []
+        def close(pointer):
+            handles.append(C.cast(pointer, C.POINTER(C.c_void_p))[0])
+            if len(handles) <= 2:
+                raise OSError('independent database cleanup failure')
+            return original(pointer)
+        with patch.object(library.api, 'duckdb_connect', return_value=1) as connected, \
+             patch.object(library.api, 'duckdb_close', side_effect=close), \
+             patch.object(library.api, 'duckdb_open_ext', wraps=library.api.duckdb_open_ext) as opened:
+            with self.assertRaises(DuckDBPhysicalError) as caught:
+                self.open()
+            self.workspace = caught.exception.physical_cleanup
+            self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+            self.assertTrue(self.workspace.close())
+            self.assertEqual(opened.call_count, 1)
+            self.assertEqual(connected.call_count, 1)
+        self.assertEqual(len(handles), 3)
+        self.assertTrue(all(handle == handles[0] for handle in handles))
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+    def test_callback_busy_observation_holds_reservation_without_interrupt(self):
+        connection = self.open()
+        with patch.object(library.api, 'duckdb_interrupt', wraps=library.api.duckdb_interrupt) as interrupted:
+            connection._io.acquire()
+            try:
+                self.assertFalse(self.workspace.close())
+                self.assertEqual(interrupted.call_count, 0)
+                self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536 + 67_108_864)
+            finally:
+                connection._io.release()
+            self.assertTrue(self.workspace.close())
+        self.assertEqual(self.reserved(), 16 * 1024 * 1024 + 65536)
+
+
+output = io.StringIO()
+result = unittest.TextTestRunner(stream=output, verbosity=2).run(
+    unittest.defaultTestLoader.loadTestsFromTestCase(
+        SharedWorkspaceTests if args.workspace_only else StandaloneDuckDBTests))
+sys.stderr.write(output.getvalue())
+source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+print(json.dumps({'source_sha': source, 'library': str(args.library),
+    'library_sha256': args.digest, 'library_version': args.version,
+    'python': sys.version, 'platform': platform.platform(),
+    'machine': platform.machine(), 'tests': result.testsRun, 'success': result.wasSuccessful(),
+    'module_source': str(args.module) if args.module is not None else None,
+    'workspace_selection': args.workspace_only, 'public_local_acceptance': False, 'wheel_acceptance': False}))
+sys.exit(0 if result.wasSuccessful() and result.testsRun == (5 if args.workspace_only else 20) and not result.skipped else 1)

@@ -273,6 +273,241 @@ export const queryCompositionSuccesses = [
     expected: [], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
 
 ];
+// Independently authored unaliased table-query controls. Source aliases remain
+// optional syntax; current columns, row scopes and explicit result order do not.
+const optionalNumber = (name,nullable=false) => ({name,contract:{type:'number',nullable}});
+const optionalCase = (name,text,expected,columns,extra={}) => ({name:'derived-optional-'+name,
+ format:'sql',text,expected,columns,sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const optionalNullProgram={"version":"actql/0.1","id":"fixture.optional_derived_alias","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true}},"rows":[{"id":1},{"id":null},{"id":2},{"id":1}]},"as":"rows"},{"from":"rows","filter":{"not":{"is_null":{"field":"id"}}}},{"sort":[{"field":"id","dir":"desc","nulls":"first"}]},{"take":3},{"select":["id"],"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}};
+const optionalRangeHead="FROM (SELECT 1 AS x,20 AS y UNION ALL SELECT 2,10) base |> AS r |> SET x=x+10";
+queryCompositionSuccesses.push(
+ optionalCase('range-snapshot-json-control',JSON.stringify({"version":"actql/0.1","id":"fixture.optional_range_snapshot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"rows"},{"from":"rows","derive":{"current":{"add":[{"field":"x"},{"literal":10}]}}},{"select":[{"original":"x"},"current","y"]},{"sort":[{"field":"original","dir":"asc","nulls":"first"}],"as":"out"}],"results":{"rows":{"from":"out","fields":["original","current","y"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}),[{original:1,current:11,y:20},{original:2,current:12,y:10}],[optionalNumber('original'),optionalNumber('current'),optionalNumber('y')],{format:'json'}),
+ optionalCase('null-duplicate-json-control',JSON.stringify(optionalNullProgram),
+  [{id:2},{id:1},{id:1}],[optionalNumber('id',true)],{format:'json'}),
+ optionalCase('null-duplicate-set-source',"SELECT id FROM (SELECT 1 AS id UNION ALL SELECT CAST(NULL AS FLOAT64) UNION ALL SELECT 2 UNION ALL SELECT 1) WHERE id IS NOT NULL ORDER BY id DESC NULLS FIRST LIMIT 3",
+  [{id:2},{id:1},{id:1}],[optionalNumber('id',true)]),
+ optionalCase('identity-star',"SELECT * FROM (SELECT 1 AS id,'x' AS label)",[{id:1,label:'x'}],
+  [optionalNumber('id'),{name:'label',contract:{type:'string',nullable:false,max_utf8_bytes:1}}]),
+ optionalCase('range-snapshot',"SELECT r.x AS original,x AS current,y FROM ("+optionalRangeHead+") ORDER BY original",
+  [{original:1,current:11,y:20},{original:2,current:12,y:10}],
+  [optionalNumber('original'),optionalNumber('current'),optionalNumber('y')]),
+ optionalCase('range-through-parentheses',"SELECT r.x AS original FROM ((FROM (SELECT 1 AS x UNION ALL SELECT 2) base |> AS r)) ORDER BY original",
+  [{original:1},{original:2}],[optionalNumber('original')]),
+ optionalCase('explicit-alias-replaces-ranges',"SELECT chosen.x AS current,chosen.y FROM ("+optionalRangeHead+") chosen ORDER BY current",
+  [{current:11,y:20},{current:12,y:10}],[optionalNumber('current'),optionalNumber('y')]),
+ optionalCase('scalar-value-table',"SELECT element AS value FROM (FROM UNNEST([1,CAST(NULL AS FLOAT64),2,1]) AS element) ORDER BY value DESC NULLS FIRST",
+  [{value:null},{value:2},{value:1},{value:1}],[optionalNumber('value',true)]),
+ optionalCase('left-and-right-join-sources',"SELECT lefts.id,right_value FROM (SELECT 1 AS id UNION ALL SELECT 2) lefts JOIN (SELECT 1 AS key,100 AS right_value) ON lefts.id=key MAX_OUTPUT_ROWS 10 ORDER BY lefts.id",
+  [{id:1,right_value:100}],[optionalNumber('id'),optionalNumber('right_value')]),
+ optionalCase('pipe-query-head',"FROM (SELECT 1 AS id UNION ALL SELECT 2) |> WHERE id>1 |> SELECT id |> ORDER BY id",
+  [{id:2}],[optionalNumber('id')],{format:'aql-text'}),
+ optionalCase('captured-null',"SELECT amount,id FROM (FROM records |> WHERE amount IS NULL |> SELECT id,amount) ORDER BY id",
+  [{amount:null,id:1}],[optionalNumber('amount',true),optionalNumber('id')],
+  {sourceReadCount:undefined,sourceReadSessionCount:1}),
+ optionalCase('captured-range-snapshot',"SELECT id,r.amount AS original,amount AS current FROM (FROM records |> AS r |> SET amount=99) ORDER BY id",
+  [{id:1,original:null,current:99},{id:2,original:20,current:99},{id:3,original:30,current:99},{id:3,original:30,current:99}],
+  [optionalNumber('id'),optionalNumber('original',true),optionalNumber('current')],
+  {sourceReadCount:undefined,sourceReadSessionCount:1}),
+ optionalCase('closed-set-fields',"SELECT id FROM (SELECT 1 AS id UNION ALL BY NAME SELECT 2 AS id) ORDER BY id",
+  [{id:1},{id:2}],[optionalNumber('id')]),
+);
+
+// A derived alias names the existing value-table receiver, including the
+// whole nullable object. It does not manufacture a STRUCT around a scalar.
+const derivedScalarDeclarations={items:{type:'array',nullable:true,max_items:3,
+ items:{type:'number',nullable:true}}};
+const derivedScalarItems=[2,null,2];
+const derivedScalarControl={version:'actql/0.1',id:'fixture.derived_scalar_alias',
+ params:derivedScalarDeclarations,stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'value'}},
+ {sort:[{field:'value',dir:'asc',nulls:'first'}]},
+ {select:['value'],as:'out'},
+ ],results:{rows:{from:'out',fields:['value']}}}],
+ results:{answer:{from:{stage:'main',result:'rows'}}}};
+const derivedValueCase=(name,text,expected,columns,extra={})=>({
+ name:'derived-value-'+name,format:'sql',text,expected,columns,
+ parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},
+ sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const derivedValueColumns=[optionalNumber('value',true)];
+const derivedScalarRows=[{value:null},{value:2},{value:2}];
+const derivedScalarText='SELECT chosen AS value FROM (FROM UNNEST(@items) element) chosen ORDER BY value NULLS FIRST';
+const derivedObjectContract={type:'object',nullable:true,fields:{id:{type:'number',nullable:false},label:{type:'string',nullable:true}}};
+const derivedObjectDeclarations={items:{type:'array',nullable:true,max_items:3,items:derivedObjectContract}};
+const derivedObjectItems=[{id:2,label:'kept'},null,{id:2,label:null}];
+const derivedObjectRows=[{value:null,id:null},{value:{id:2,label:null},id:2},{value:{id:2,label:'kept'},id:2}];
+const derivedObjectColumns=[{name:'value',contract:{...derivedObjectContract,additional_properties:false}},optionalNumber('id',true)];
+const derivedObjectControl={version:'actql/0.1',id:'fixture.derived_object_alias',params:derivedObjectDeclarations,
+ stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'element'}},
+ {derive:{id:{property:{value:{field:'element'},name:'id'}},label:{property:{value:{field:'element'},name:'label'}}}},
+ {sort:[{field:'id',dir:'asc',nulls:'first'},{field:'label',dir:'asc',nulls:'first'}]},
+ {select:[{value:'element'},'id'],as:'out'},
+ ],results:{rows:{from:'out',fields:['value','id']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+queryCompositionSuccesses.push(
+ derivedValueCase('scalar-json-control',JSON.stringify(derivedScalarControl),derivedScalarRows,derivedValueColumns,{format:'json',parameterDeclarations:undefined}),
+ derivedValueCase('scalar-receiver',derivedScalarText,derivedScalarRows,derivedValueColumns),
+ derivedValueCase('quoted-scalar','FROM (FROM UNNEST(@items) element) `ORDER` |> SELECT `ORDER` AS value |> ORDER BY value NULLS FIRST',derivedScalarRows,derivedValueColumns,{format:'aql-text'}),
+ derivedValueCase('scalar-empty',derivedScalarText,[],derivedValueColumns,{parameters:{items:[]}}),
+ derivedValueCase('scalar-null-array',derivedScalarText,[],derivedValueColumns,{parameters:{items:null}}),
+ derivedValueCase('object-json-control',JSON.stringify(derivedObjectControl),derivedObjectRows,derivedObjectColumns,{format:'json',parameterDeclarations:undefined,parameters:{items:derivedObjectItems}}),
+ derivedValueCase('object-whole-and-property','SELECT chosen AS value,chosen.id AS id FROM (FROM UNNEST(@items) element) chosen ORDER BY id NULLS FIRST,value.label NULLS FIRST',derivedObjectRows,derivedObjectColumns,{parameterDeclarations:derivedObjectDeclarations,parameters:{items:derivedObjectItems}}),
+ derivedValueCase('object-star','SELECT chosen.* FROM (FROM UNNEST(@items) element) chosen ORDER BY id NULLS FIRST,label NULLS FIRST',
+ [{id:null,label:null},{id:2,label:null},{id:2,label:'kept'}],[optionalNumber('id',true),{name:'label',contract:{type:'string',nullable:true}}],{parameterDeclarations:derivedObjectDeclarations,parameters:{items:derivedObjectItems}}),
+ derivedValueCase('object-empty','SELECT chosen AS value,chosen.id AS id FROM (FROM UNNEST(@items) element) chosen ORDER BY id NULLS FIRST,value.label NULLS FIRST',[],derivedObjectColumns,{parameterDeclarations:derivedObjectDeclarations,parameters:{items:[]}}),
+ derivedValueCase('offset-row-columns','SELECT chosen.element AS value,chosen.position FROM (FROM UNNEST(@items) element WITH OFFSET position) chosen ORDER BY position',
+ [{value:2,position:0},{value:null,position:1},{value:2,position:2}],[optionalNumber('value',true),optionalNumber('position')]),
+ derivedValueCase('offset-row-star','SELECT chosen.* FROM (FROM UNNEST(@items) element WITH OFFSET position) chosen ORDER BY position',
+ [{element:2,position:0},{element:null,position:1},{element:2,position:2}],[optionalNumber('element',true),optionalNumber('position')]),
+);
+
+// JOIN carries the admitted operand kind: a value-table receiver stays a
+// value, while WITH OFFSET is an ordinary row. Controls are authored JSON.
+export const joinValueControl={version:'actql/0.1',id:'fixture.join_value_receiver',params:derivedScalarDeclarations,
+ stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{id:{type:'number',nullable:false}},rows:[{id:7}]},as:'left'},
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'element'},as:'right'},
+ {from:'left',cross_join:{with:'right',max_output_rows:10,select:{value:'right.element'}},as:'joined'},
+ {from:'joined',sort:[{field:'value',dir:'asc',nulls:'first'}]},
+ {select:['value'],as:'out'},
+ ],results:{rows:{from:'out',fields:['value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const joinValueCase=(name,text,expected=derivedScalarRows,columns=derivedValueColumns,extra={})=>({
+ name:'join-value-'+name,format:'sql',text,expected,columns,
+ parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},
+ sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const joinValueScalarText='SELECT r AS value FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST(@items) old_r) r MAX_OUTPUT_ROWS 10 ORDER BY value NULLS FIRST';
+queryCompositionSuccesses.push(
+ joinValueCase('json-control',JSON.stringify(joinValueControl),derivedScalarRows,derivedValueColumns,{format:'json',parameterDeclarations:undefined}),
+ joinValueCase('right-null-duplicates',joinValueScalarText),
+ joinValueCase('right-empty',joinValueScalarText,[],derivedValueColumns,{parameters:{items:[]}}),
+ joinValueCase('quoted-right','FROM (SELECT 7 AS id) l |> CROSS JOIN (FROM UNNEST(@items) old_r) `ORDER` MAX_OUTPUT_ROWS 10 |> SELECT `ORDER` AS value |> ORDER BY value NULLS FIRST',derivedScalarRows,derivedValueColumns,{format:'aql-text'}),
+ joinValueCase('both-scalar-on','SELECT l AS left_value,r AS right_value FROM (FROM UNNEST([1,2]) old_l) l JOIN (FROM UNNEST([2,3]) old_r) r ON l=r MAX_OUTPUT_ROWS 10 ORDER BY left_value',[{left_value:2,right_value:2}],[optionalNumber('left_value'),optionalNumber('right_value')],{parameterDeclarations:undefined,parameters:undefined}),
+ joinValueCase('right-range-column-collision','SELECT r AS value FROM (SELECT 1 AS id,90 AS r) l JOIN (FROM UNNEST([1,2]) old_r) r ON l.id=r MAX_OUTPUT_ROWS 10',[{value:1}],[optionalNumber('value')],{parameterDeclarations:undefined,parameters:undefined}),
+ joinValueCase('left-null-extension','SELECT l.id,r AS value FROM (SELECT 1 AS id UNION ALL SELECT 3) l LEFT JOIN (FROM UNNEST([1,2]) old_r) r ON l.id=r MAX_OUTPUT_ROWS 10 ORDER BY l.id',[{id:1,value:1},{id:3,value:null}],[optionalNumber('id'),optionalNumber('value',true)],{parameterDeclarations:undefined,parameters:undefined}),
+ joinValueCase('right-object','SELECT r AS value,r.id AS id FROM (SELECT 7 AS key) l CROSS JOIN (FROM UNNEST(@items) old_r) r MAX_OUTPUT_ROWS 10 ORDER BY id NULLS FIRST,value.label NULLS FIRST',derivedObjectRows,derivedObjectColumns,{parameterDeclarations:derivedObjectDeclarations,parameters:{items:derivedObjectItems}}),
+ joinValueCase('offset-row','SELECT r AS row,r.element AS value,r.position FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST(@items) element WITH OFFSET position) r MAX_OUTPUT_ROWS 10 ORDER BY position',
+ [{row:{element:2,position:0},value:2,position:0},{row:{element:null,position:1},value:null,position:1},{row:{element:2,position:2},value:2,position:2}],
+ [{name:'row',contract:{type:'object',nullable:false,fields:{element:{type:'number',nullable:true},position:{type:'number',nullable:false}},additional_properties:false}},optionalNumber('value',true),optionalNumber('position')]),
+);
+
+
+// Independent ordinary-row expectations. A NULL element is one NULL field,
+// not a NULL row; the declared OFFSET remains non-NULL.
+const wholeRowHead='FROM UNNEST(@items) element WITH OFFSET position';
+const wholeRowFields={element:{type:'number',nullable:true},position:{type:'number',nullable:false}};
+const wholeRowColumn={name:'row',contract:{type:'object',nullable:false,fields:wholeRowFields,additional_properties:false}};
+const wholeRowRows=[{row:{element:2,position:0},value:2,position:0},{row:{element:null,position:1},value:null,position:1},{row:{element:2,position:2},value:2,position:2}];
+const wholeRowColumns=[wholeRowColumn,optionalNumber('value',true),optionalNumber('position')];
+const wholeRowSource='SELECT chosen AS row,chosen.element AS value,chosen.position FROM ('+wholeRowHead+') chosen ORDER BY position';
+const wholeRowControl={version:'actql/0.1',id:'fixture.whole_row_range',params:derivedScalarDeclarations,stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:{unit:{type:'boolean',nullable:false}},rows:[{unit:true}]},as:'seed'},
+ {from:'seed',derive:{items:{$param:'items'}}},
+ {unnest:{column:'items',as:'element',with_index:'position'}},
+ {derive:{row:{object:{element:{field:'element'},position:{field:'position'}}}}},
+ {select:['row',{value:'element'},'position']},
+ {sort:[{field:'position',dir:'asc',nulls:'first'}],as:'out'},
+ ],results:{rows:{from:'out',fields:['row','value','position']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const wholeRowCase=(name,text,expected=wholeRowRows,columns=wholeRowColumns,extra={})=>({name:'whole-row-'+name,format:'sql',text,expected,columns,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},sourceReadCount:0,sourceReadSessionCount:0,...extra});
+queryCompositionSuccesses.push(
+ wholeRowCase('json-control',JSON.stringify(wholeRowControl),wholeRowRows,wholeRowColumns,{format:'json',parameterDeclarations:undefined}),
+ wholeRowCase('offset-receiver',wholeRowSource),
+ wholeRowCase('empty',wholeRowSource,[],wholeRowColumns,{parameters:{items:[]}}),
+ wholeRowCase('implicit-output-name','FROM ('+wholeRowHead+') chosen |> SELECT chosen |> ORDER BY chosen.position',wholeRowRows.map(r=>({chosen:r.row})),[{...wholeRowColumn,name:'chosen'}],{format:'aql-text'}),
+ wholeRowCase('immutable-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> SELECT chosen AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({...r,value:r.position+10})),[wholeRowColumn,optionalNumber('value'),optionalNumber('position')],{format:'aql-text'}),
+ wholeRowCase('rebound-set','FROM ('+wholeRowHead+') chosen |> SET element = position + 10 |> AS fresh |> SELECT fresh AS row,element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({row:{element:r.position+10,position:r.position},value:r.position+10,position:r.position})),[{...wholeRowColumn,contract:{...wholeRowColumn.contract,fields:{...wholeRowFields,element:{type:'number',nullable:false}}}},optionalNumber('value'),optionalNumber('position')],{format:'aql-text'}),
+ wholeRowCase('drop-rename-rebind','FROM ('+wholeRowHead+') chosen |> DROP element |> RENAME position AS index |> AS fresh |> SELECT fresh AS row,index |> ORDER BY index',[{row:{index:0},index:0},{row:{index:1},index:1},{row:{index:2},index:2}],[{name:'row',contract:{type:'object',nullable:false,fields:{index:{type:'number',nullable:false}},additional_properties:false}},optionalNumber('index')],{format:'aql-text'}),
+ wholeRowCase('range-priority','FROM ('+wholeRowHead+') chosen |> AS element |> SELECT element AS value,position |> ORDER BY position',wholeRowRows.map(r=>({value:r.row,position:r.position})),[{...wholeRowColumn,name:'value'},optionalNumber('position')],{format:'aql-text'}),
+ wholeRowCase('computed-order','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT fresh AS row |> ORDER BY IF(TRUE,fresh,NULL).position DESC',wholeRowRows.toReversed().map(r=>({row:r.row})),[wholeRowColumn],{format:'aql-text'}),
+);
+
+// Fixed NameScope::AddNameTarget: an input range shadows a current column.
+// CopyNameScopeWithOverridingNames gives ORDER aliases a separate nearer scope.
+const shadowHead='FROM ('+wholeRowHead+') chosen |> AS element';
+const shadowCase=(name,text,expected,columns,extra={})=>({...wholeRowCase(name,text,expected,columns),name:'range-shadow-'+name,format:'aql-text',...extra});
+const shadowPayloadDeclaration={payload:{type:'object',nullable:true,fields:{score:{type:'number',nullable:false}}}};
+const shadowPayloadText='FROM (SELECT 90 AS score,@payload AS payload) |> AS payload |> SELECT (payload).score AS value';
+const shadowScoreControl={version:'actql/0.1',id:'fixture.range_shadow_score',stages:[{id:'main',inputs:{},steps:[{values:{schema:{score:{type:'number',nullable:false},payload:{type:'object',nullable:true,fields:{score:{type:'number',nullable:false}}}},rows:[{score:90,payload:{score:10}}]},as:'objects'},{from:'objects',select:[{value:'score'}],as:'out'}],results:{rows:{from:'out',fields:['value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+queryCompositionSuccesses.push(
+ shadowCase('where-row',shadowHead+' |> WHERE COALESCE(element,NULL).position > 0 |> SELECT element AS row,position |> ORDER BY position',[{row:{element:null,position:1},position:1},{row:{element:2,position:2},position:2}],[wholeRowColumn,optionalNumber('position')]),
+ shadowCase('set-removes-range',shadowHead+' |> SET element = position + 10 |> SELECT element AS value,position |> ORDER BY position',[{value:10,position:0},{value:11,position:1},{value:12,position:2}],[optionalNumber('value'),optionalNumber('position')]),
+ shadowCase('order-alias',shadowHead+' |> SELECT position AS element |> ORDER BY element DESC',[{element:2},{element:1},{element:0}],[optionalNumber('element')]),
+ shadowCase('extend-surviving-range','FROM ('+wholeRowHead+') chosen |> AS kept |> EXTEND 99 AS kept |> SELECT kept AS row,position |> ORDER BY position',wholeRowRows.map(r=>({row:r.row,position:r.position})),[wholeRowColumn,optionalNumber('position')]),
+ shadowCase('object-column-json-control',JSON.stringify(shadowScoreControl),[{value:90}],[optionalNumber('value')],{format:'json',parameterDeclarations:undefined,parameters:undefined}),
+ shadowCase('object-column',shadowPayloadText,[{value:90}],[optionalNumber('value')],{parameterDeclarations:shadowPayloadDeclaration,parameters:{payload:{score:10}}}),
+ shadowCase('null-object-column',shadowPayloadText,[{value:90}],[optionalNumber('value')],{parameterDeclarations:shadowPayloadDeclaration,parameters:{payload:null}}),
+);
+
+// JOIN rows reuse the existing range/column scope and closed-object form.
+// These rows and contracts are authored from SQL multiplicity/null extension,
+// independently of compiler output. FULL retains explicit key evidence.
+const joinedLeft='(SELECT 20 AS amount,2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64),1 UNION ALL SELECT 20,2)';
+const joinedRight='(SELECT 2 AS id,20 AS marker UNION ALL SELECT 4,40)';
+const joinedLeftFields={amount:{type:'number',nullable:true},id:{type:'number',nullable:false}};
+const joinedObject=(name,fields)=>({name,contract:{type:'object',nullable:false,fields,additional_properties:false}});
+const joinedLeftColumn=joinedObject('left_row',joinedLeftFields);
+const joinedRightColumn=joinedObject('right_row',{id:{type:'number',nullable:false}});
+const joinedCrossRows=[
+ {left_row:{amount:null,id:1},right_row:{id:7}},
+ {left_row:{amount:20,id:2},right_row:{id:7}},
+ {left_row:{amount:20,id:2},right_row:{id:7}},
+];
+export const joinedRowControl={version:'actql/0.1',id:'fixture.joined_rows',stages:[{id:'main',inputs:{},steps:[
+ {values:{schema:joinedLeftFields,rows:[{amount:20,id:2},{amount:null,id:1},{amount:20,id:2}]},as:'left'},
+ {values:{schema:{id:{type:'number',nullable:false}},rows:[{id:7}]},as:'right'},
+ {from:'left',cross_join:{with:'right',max_output_rows:10,select:{left_amount:'left.amount',left_id:'left.id',right_id:'right.id'}},as:'joined'},
+ {from:'joined',derive:{left_row:{object:{amount:{field:'left_amount'},id:{field:'left_id'}}},right_row:{object:{id:{field:'right_id'}}}}},
+ {sort:[{field:'left_id',dir:'asc',nulls:'first'}]},
+ {select:['left_row','right_row'],as:'out'},
+ ],results:{rows:{from:'out',fields:['left_row','right_row']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
+const joinedCase=(name,text,expected=joinedCrossRows,columns=[joinedLeftColumn,joinedRightColumn],extra={})=>({name:'joined-row-'+name,format:'sql',text,expected,columns,sourceReadCount:0,sourceReadSessionCount:0,...extra});
+const joinedCrossSource='SELECT l AS left_row,r AS right_row FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 ORDER BY l.id';
+const joinedNullableRight=joinedObject('right_row',{id:{type:'number',nullable:true},marker:{type:'number',nullable:true}});
+const joinedNonNullRight=joinedObject('right_row',{id:{type:'number',nullable:false},marker:{type:'number',nullable:false}});
+const joinedNullableLeft=joinedObject('left_row',{amount:{type:'number',nullable:true},id:{type:'number',nullable:true}});
+const joinedAliasSource='SELECT COALESCE(l,NULL).amount AS original,r AS l,l.id AS id FROM (SELECT 1 AS id,20 AS amount UNION ALL SELECT 2,10 UNION ALL SELECT 2,10) l JOIN (SELECT 1 AS id,10 AS amount UNION ALL SELECT 2,30) r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY COALESCE(l,NULL).amount';
+const joinedAliasColumns=[optionalNumber('original'),joinedObject('l',{amount:{type:'number',nullable:false},id:{type:'number',nullable:false}}),optionalNumber('id')];
+queryCompositionSuccesses.push(
+ joinedCase('json-control',JSON.stringify(joinedRowControl),joinedCrossRows,[joinedLeftColumn,joinedRightColumn],{format:'json'}),
+ joinedCase('cross-null-duplicates',joinedCrossSource),
+ joinedCase('empty',joinedCrossSource.replace(joinedLeft, '(SELECT CAST(NULL AS FLOAT64) AS amount,1 AS id WHERE FALSE)'),[],[joinedLeftColumn,joinedRightColumn]),
+ joinedCase('range-column-collision','SELECT l AS row FROM (SELECT 7 AS l,9 AS id) l CROSS JOIN (SELECT 2 AS id) r MAX_OUTPUT_ROWS 10',[{row:{l:7,id:9}}],[joinedObject('row',{l:{type:'number',nullable:false},id:{type:'number',nullable:false}})]),
+ joinedCase('quoted-range','SELECT `ORDER` AS left_row,r AS right_row FROM '+joinedLeft+' `ORDER` CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 ORDER BY `ORDER`.id'),
+ joinedCase('left-null-extension','SELECT l AS left_row,r AS right_row FROM '+joinedLeft+' l LEFT JOIN '+joinedRight+' r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY l.id',[
+  {left_row:{amount:null,id:1},right_row:{id:null,marker:null}},
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+ ],[joinedLeftColumn,joinedNullableRight]),
+ joinedCase('right-null-extension','SELECT l AS left_row,r AS right_row FROM '+joinedLeft+' l RIGHT JOIN '+joinedRight+' r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY r.id',[
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+  {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
+  {left_row:{amount:null,id:null},right_row:{id:4,marker:40}},
+ ],[joinedNullableLeft,joinedNonNullRight]),
+ joinedCase('full-using','DATA lefts = FROM (SELECT 1 AS id UNION ALL SELECT 2) |> ASSERT UNIQUE BY (id); DATA rights = FROM '+joinedRight+' |> ASSERT UNIQUE BY (id); SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id',[
+  {left_row:{id:1},right_row:{id:null,marker:null}},
+  {left_row:{id:2},right_row:{id:2,marker:20}},
+  {left_row:{id:null},right_row:{id:4,marker:40}},
+ ],[joinedObject('left_row',{id:{type:'number',nullable:true}}),joinedNullableRight],{format:'aql-text'}),
+ joinedCase('pre-join-predicate','FROM '+joinedLeft+' l |> WHERE COALESCE(l,NULL).id > 1 |> LIMIT 1 |> CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 |> SELECT l AS left_row,r AS right_row',[{left_row:{amount:20,id:2},right_row:{id:7}}],[joinedLeftColumn,joinedRightColumn],{format:'aql-text'}),
+ joinedCase('order-alias-not-input-reuse',joinedAliasSource,[
+  {original:20,l:{amount:10,id:1},id:1},
+  {original:10,l:{amount:30,id:2},id:2},
+  {original:10,l:{amount:30,id:2},id:2},
+ ],joinedAliasColumns),
+ joinedCase('shared-acquired-cte','WITH chosen AS (SELECT amount,id FROM records) SELECT l AS left_row,r AS right_row FROM chosen l JOIN chosen r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY l.id',[
+  {left_row:{amount:null,id:1},right_row:{amount:null,id:1}},
+  {left_row:{amount:20,id:2},right_row:{amount:20,id:2}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+  {left_row:{amount:30,id:3},right_row:{amount:30,id:3}},
+ ],[joinedLeftColumn,joinedObject('right_row',joinedLeftFields)],{sourceReadCount:undefined,sourceReadSessionCount:1}),
+);
+
 export const queryCompositionRefusals = [
   {name: 'nested-cte-octal-range', format: 'sql',
     text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
@@ -313,6 +548,43 @@ export const queryCompositionRefusals = [
     text: '(SELECT id FROM records;)'},
 
 ];
+queryCompositionRefusals.push(...[
+ ['unregistered-qualifier','SELECT chosen.id FROM (SELECT 1 AS id)'],
+ ['projected-old-range','SELECT r.x FROM (FROM (SELECT 1 AS x) base |> AS r |> SELECT x)'],
+ ['explicit-alias-old-range','SELECT r.x FROM ('+optionalRangeHead+') chosen'],
+ ['set-old-range','SELECT before.id FROM (SELECT 1 AS id UNION ALL SELECT 2)'],
+ ['private-producer','SELECT aql_query_source_0.id FROM (SELECT 1 AS id)'],
+ ['ambiguous-column','SELECT id FROM (SELECT 1 AS id) CROSS JOIN (SELECT 2 AS id) MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'derived-optional-refusal-'+name,format:'sql',text,
+ expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['old-scalar-receiver','SELECT element AS value FROM (FROM UNNEST(@items) element) chosen'],
+ ['scalar-star','SELECT chosen.* FROM (FROM UNNEST(@items) element) chosen'],
+ ['unregistered-scalar-property','SELECT chosen.score AS value FROM (FROM UNNEST(@items) element) chosen'],
+ ['duplicate-derived-alias','SELECT chosen.value FROM (FROM UNNEST(@items) element) chosen CROSS JOIN (SELECT 1 AS value) chosen MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'derived-value-refusal-'+name,format:'sql',text,
+ parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['displaced','aql-text','FROM ('+wholeRowHead+') chosen |> AS fresh |> SELECT chosen AS row'],
+ ['removed','aql-text','FROM ('+wholeRowHead+') chosen |> SELECT element |> WHERE element > 0 |> SELECT chosen AS row'],
+ ['missing-member','sql','SELECT (chosen).missing AS value FROM ('+wholeRowHead+') chosen'],
+ ['distinct-hidden','aql-text','FROM ('+wholeRowHead+') chosen |> SELECT DISTINCT element |> ORDER BY IF(TRUE,chosen,NULL).position'],
+].map(([name,format,text])=>({name:'whole-row-refusal-'+name,format,text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['drop-removes-range',shadowHead+' |> DROP element |> SELECT element AS row'],
+ ['row-is-not-number',shadowHead+' |> SELECT element + 1 AS value'],
+].map(([name,text])=>({name:'range-shadow-refusal-'+name,format:'aql-text',text,parameterDeclarations:derivedScalarDeclarations,parameters:{items:derivedScalarItems},expectedCode:'ClientProgramInvalidInput'})));
+
+queryCompositionRefusals.push(...[
+ ['missing-row-member','SELECT (l).missing AS value FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10'],
+ ['row-is-not-number','SELECT l+1 AS value FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10'],
+ ['displaced-range','FROM '+joinedLeft+' l |> CROSS JOIN (SELECT 7 AS id) r MAX_OUTPUT_ROWS 10 |> AS current |> SELECT l AS row'],
+ ['duplicate-range','SELECT l AS row FROM '+joinedLeft+' l CROSS JOIN (SELECT 7 AS id) l MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'joined-row-refusal-'+name,format:name==='displaced-range'?'aql-text':'sql',text,expectedCode:'ClientProgramInvalidInput'})));
+
 export const querySuccesses = [
   {name: 'sql', format: 'sql',
     text: 'SELECT id FROM records WHERE amount >= @minimum ORDER BY id',
@@ -651,3 +923,9 @@ export async function exercisePublicQueryInput(connect, options,
     await client.close();
   }
 }
+
+queryCompositionRefusals.push(...[
+ ['old-receiver','SELECT old_r FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
+ ['scalar-star','SELECT r.* FROM (SELECT 7 AS id) l CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
+ ['duplicate-range','SELECT r AS value FROM (SELECT 7 AS id) r CROSS JOIN (FROM UNNEST([1,2]) old_r) r MAX_OUTPUT_ROWS 10'],
+].map(([name,text])=>({name:'join-value-refusal-'+name,format:'sql',text,expectedCode:'ClientProgramInvalidInput'})));

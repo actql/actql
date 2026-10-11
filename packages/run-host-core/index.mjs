@@ -364,6 +364,20 @@ export function effectReviewCheckpointBinding(allowed, definition, wire) {
     previewCid: fields[5], reviewProjectionCid: fields[6], continuationCid: fields[7]});
 }
 
+/** Original checked member IDs, not Source grants or Effect authority. */
+export function effectReviewCheckpointMembers(allowed, definition, wire) {
+  if (typeof wire !== 'string' || wire.length > 65536 || new TextEncoder().encode(wire).length > 65536) {
+    throw new TypeError('InvalidRunHostCheckpointWire');
+  }
+  const {value} = requireHandle(effectAllowedRuns, allowed);
+  const members = checked(owner.clientValuesHostEffectCheckpointMembers(value,
+    requireHandle(definitions, definition), wire), 'RunHostEffectCheckpointMembersRejected');
+  if (!Array.isArray(members) || members.length === 0 || members.length > 64 ||
+      members.some(value => typeof value !== 'string' || value.length === 0) ||
+      new Set(members).size !== members.length) throw new Error('InvalidRunHostCheckpointMembers');
+  return Object.freeze([...members]);
+}
+
 /** Original Effect caller; capture is not a newly submitted input Artifact. */
 export function prepareEffectRequest(prepared, compilation, authorityScopeCid, requestId) {
   effectCompilationFor(prepared, compilation);

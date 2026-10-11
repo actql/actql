@@ -17,7 +17,7 @@ fn append_distinct_order_member_expression(
     group_reference_parts(pair.0, @query.expression_root(pair.0)) is Some(_)
   })
   let resolve_input = fn(path : Array[@query.NamePart]) -> String? {
-    pipe_slot(path, input_scope.visible, input_scope.ranges)
+    scope_expression_slot(path, input_scope)
   }
   let resolve_order_input = fn(path : Array[@query.NamePart]) -> String? {
     match order_output_slot(path, aliases) {

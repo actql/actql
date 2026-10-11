@@ -402,14 +402,17 @@ LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
-Pipe `PIVOT(aggregate(column) [AS prefix] FOR axis IN ('value' [AS name], ...))
+Pipe `PIVOT(aggregate(expression) [AS prefix] FOR axis IN ('value' [AS name], ...))
 [AS range]` connects the selected
 [GoogleSQL PIVOT profile](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#pivot_pipe_operator)
 to the ordinary common `pivot` operation. This initial surface supports one
-SUM, AVG, COUNT, MIN or MAX of a current or range-qualified input column, a
+SUM, AVG, COUNT, MIN or MAX of a scalar expression over current or range-qualified
+input columns, parameters and existing scalar operations, or COUNT(*), a
 String axis and a nonempty list of static String bucket values. The current
 columns not consumed by the aggregate argument or axis become implicit group
-keys in their current order. Existing evaluated slots are reused, including
+keys in their current order. All input slots referenced by the argument, including
+receivers of property access, are consumed. A constant or parameter-only argument
+consumes no input columns. Existing evaluated slots are reused, including
 SET/RENAME slots. The common checker owns key, aggregate, numeric, type and
 NULL evidence; no fill, cast, default ceiling or uniqueness is invented.
 
@@ -430,8 +433,40 @@ retain their implicit index group. Empty input with no implicit keys has one
 global group; empty keyed input has no groups. These are existing common pivot
 rules, not frontend implementations of aggregation.
 
-FROM-suffix PIVOT, multiple aggregates, aggregate expressions/modifiers,
-COUNT(*), non-String axes and NULL bucket constants remain unimplemented
+COUNT(*) references no input column. All current columns other than the axis
+remain implicit group keys; NULLs in those columns do not exclude the row from
+counting. Lowering derives one private nonnullable row witness and counts that
+witness with the existing pivot operation. It is neither an index column nor a
+public field. COUNT(column) retains its existing NULL-excluding argument and
+consumed-column behavior. Empty global input returns zero for each declared
+COUNT bucket; keyed empty input has no groups. No other aggregate accepts star.
+
+Scalar arguments use the ordinary expression lowerer and one private derive before
+pivoting. That private value is neither an implicit group key nor a public column.
+Current and immutable-range references retain their existing resolved slots: a
+reference to an old value does not consume a different current replacement slot.
+Nested aggregate calls are refused; property typing and NULL propagation remain
+owned by the common checker and expression evaluator.
+
+The same selected PIVOT clause is supported as a FROM postfix, on a named
+Relation/CTE or a parenthesized query, before surrounding JOIN, WHERE and SELECT.
+A parenthesized PIVOT input may omit its input alias. References inside PIVOT
+resolve against that input and its optional alias. The postfix result exposes
+only its output columns and optional result alias; input ranges and consumed
+columns do not escape. This follows the fixed GoogleSQL analyzer's fresh PIVOT
+NameList. Quoted names remain names, including `PIVOT` and `ORDER` aliases.
+
+A postfix becomes an ordinary projected producer through the existing query
+binding path, so both left and right JOIN inputs use their transformed Relation.
+No SQL rewriting, new acquisition/storage owner or physical-placement selector
+is introduced. The existing Program Stage/result dependency carries the value;
+WHERE on the pivot output remains downstream. All predicates and explicit JOIN
+bounds retain their original expressions and values. Other postfix operators,
+correlated outer-row inputs and the broader multiple-aggregate surface remain
+separate coverage, rather than being approximated by this connection.
+
+Multiple aggregates, aggregate modifiers,
+non-String axes and NULL bucket constants remain unimplemented
 surface coverage. The common requirement that bucket values also be admitted
 output field names, with unique values and no collision with physical index
 fields, is a recorded restriction of the existing contract. This does not
@@ -649,6 +684,33 @@ expressions, WHERE and ORDER BY. AS does not restore dropped names or expose
 compiler helper slots. These are the adopted
 [GoogleSQL Pipe scope rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax).
 
+A bare surviving range over an ordinary Relation denotes a non-NULL closed
+object of that range's declared columns, read from its evaluated value slots.
+NULL field values do not make the row object NULL. Within the input scope, a
+range name shadows a same-named column, including an object column. Value-table
+ranges still denote their original whole-value slot: their kind comes from the
+admitted scope, not from a column name or sampled value. An ORDER output alias
+belongs to a nearer overriding scope and takes precedence over an input name.
+Column-selector positions such as USING and ITEM KEY remain distinct from
+expression reference lookup. The expression uses the common object form;
+AS itself neither derives an object nor changes an acquisition boundary.
+
+JOIN row expressions use this same scope and common object construction. A
+row receiver denotes the complete declared fields of its operand, including
+the original qualified USING keys. Null extension changes those fields'
+nullability; it does not make the constructed ordinary row object NULL.
+Whole-row references inside predicates retain their authored evaluation point,
+and ORDER aliases override input row receivers before SELECT-expression reuse.
+Row lookup does not manufacture key, uniqueness or order evidence: FULL JOIN
+continues to require its existing checked identity premises.
+SET, DROP and RENAME retain a surviving range's original field names/slots;
+AS rebinds only the current visible columns. A removed range or unavailable
+post-projection slot cannot be recovered through whole-row construction.
+A single value-table range still denotes its original scalar or object value,
+not a one-field wrapper. Common typing owns property validity, field presence
+and nullability. This follows the selected
+[GoogleSQL range-variable rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#range_variables).
+
 Ordinary SELECT may order by a visible non-output input expression. After
 DISTINCT, ordering must be resolvable from the selected expressions or their
 aliases. Helper slots do not participate in DISTINCT equality or Named Result
@@ -741,7 +803,7 @@ with the existing JOIN lowerer; final ORDER BY/LIMIT sees only the combined
 output. Input binding does not add another source read or materialization.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
-body, named FROM/JOIN subquery and parenthesized query operand use the same
+body, FROM/JOIN table subquery and parenthesized query operand use the same
 relational query composition: SELECT or FROM-starting Pipe, set expressions,
 optional ORDER BY/LIMIT, and a pure Pipe tail. Parentheses retain the inner
 query's scope and ORDER BY/LIMIT placement. A Pipe operator following a set
@@ -760,11 +822,26 @@ from published Source View path resolution. This is lexical producer binding,
 not SQL rewriting or repeated execution. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
 complete query. INFER and RESULT declarations are excluded from CTE bodies.
+A table subquery's alias is optional. On an ordinary row, an explicit alias
+replaces input ranges with one range over the current output. A single value
+table retains its value kind and replaces its receiver name: a scalar remains
+a scalar and a nullable object remains the original nullable object, not a
+new STRUCT of projected fields. Apply the existing AS rules before retaining
+this scope. OFFSET or other added columns make an ordinary row with qualified
+columns; scalar receiver star remains invalid. Without an alias, surviving query ranges
+and value-table receivers are preserved using the existing private scope binding.
+A completed SELECT or set exposes only its current projected columns, so omission
+does not revive displaced aliases, hidden slots or removed inputs. Transparent
+query parentheses preserve that same scope; set operands still close their input
+ranges. Generated producer identifiers do not become authored range aliases.
+Subquery ordering is not an outer SQL order promise: keep explicit ORDER BY and
+LIMIT placement, and compare an unordered outer Relation as a multiset.
+
 Recursive declarations,
 forward references and references to a displaced range variable remain
 invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.
 
-Nonrecursive CTEs and named, noncorrelated FROM subqueries use checked producer
+Nonrecursive CTEs and noncorrelated FROM subqueries use checked producer
 references, so reusing a source does not imply another physical read.
 Standalone query assembly can retain a producer as a Stage Result. A CTE
 inside a DATA query body may instead reference an existing pipeline step;

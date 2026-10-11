@@ -138,7 +138,9 @@ pub(all) struct KeepItem {
 ///|
 pub(all) struct PivotClause {
   function_name : String
+  count_star : Bool
   argument : Array[NamePart]
+  argument_expression : Expression?
   column : Array[NamePart]
   prefix : NamePart?
   values : Array[(String, NamePart?)]
@@ -931,7 +933,7 @@ fn QueryParser::optional_source_alias(
     ![
       "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",
       "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
-      "QUALIFY", "WINDOW",
+      "QUALIFY", "WINDOW", "PIVOT",
     ].contains(value.to_upper()) {
     Some(self.name())
   } else {
@@ -945,14 +947,24 @@ fn QueryParser::query_source(
 ) -> (Array[NamePart], NamePart?, Array[CtePart]) raise QueryAbort {
   if self.peek().value != Symbol(40) {
     let (relation, source_alias) = self.source_name()
-    return (relation, source_alias, [])
+    return self.from_pivot_source(relation, source_alias, [])
   }
-  let bound = self.bind_query(self.parenthesized())
-  let source_alias = match self.optional_source_alias() {
-    Some(value) => value
-    None => raise QueryAbort("Subquery requires an alias", self.peek().start)
+  let inner = self.parenthesized()
+  let source_alias = self.optional_source_alias()
+  if source_alias is Some(result_range) && query_output_carries_ranges(inner) {
+    // Apply the existing AS rules to the actual output kind before retaining
+    // it. A value-table receiver is a value, not an ordinary whole-row object.
+    let bound = self.bind_query(
+      { ..inner, operations: inner.operations + [Alias(result_range)], },
+      carry_ranges=true,
+    )
+    return self.from_pivot_source(bound.relation, None, bound.ctes)
   }
-  (bound.relation, Some(source_alias), bound.ctes)
+  // An explicit alias creates one projected range. Without it, preserve the
+  // inner query's current names/ranges through the existing continuation scope.
+  let carry_ranges = source_alias is None && query_output_carries_ranges(inner)
+  let bound = self.bind_query(inner, carry_ranges~)
+  self.from_pivot_source(bound.relation, source_alias, bound.ctes)
 }
 
 ///|
@@ -1062,15 +1074,23 @@ fn QueryParser::mark_positional_output(
 fn QueryParser::sql_operand(
   self : QueryParser,
   positional_output? : Bool = false,
+  set_operand? : Bool = false,
 ) -> Query raise QueryAbort {
   if self.peek().value == Symbol(40) {
     let inner = self.parenthesized()
+    let carry_ranges = !set_operand &&
+      !self.has("UNION") &&
+      !self.has("INTERSECT") &&
+      !self.has("EXCEPT") &&
+      !self.starts_inner_set() &&
+      query_output_carries_ranges(inner)
     self.bind_query(
       if positional_output {
         self.mark_positional_output(inner)
       } else {
         inner
       },
+      carry_ranges~,
     )
   } else {
     self.sql_term()
@@ -1581,20 +1601,23 @@ fn QueryParser::over(
 }
 
 ///|
+fn query_aggregate_function_name(name : String) -> Bool {
+  [
+    "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG", "VAR_POP",
+    "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+  ].contains(upper_ascii(name))
+}
+
+///|
 fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
   match self.peek().value {
     Word(name) | QuotedName(name) =>
-      [
-        "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
-        "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
-      ].contains(
-        upper_ascii(
-          if self.peek().value is QuotedName(_) {
-            self.source.identifier(name)
-          } else {
-            name
-          },
-        ),
+      query_aggregate_function_name(
+        if self.peek().value is QuotedName(_) {
+          self.source.identifier(name)
+        } else {
+          name
+        },
       ) &&
       self.source.tokens.get(self.index + 1).map(token => token.value) ==
       Some(Symbol(40))
@@ -2410,7 +2433,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
           (kind, duplicates, by_name, inner_by_name, by_name_columns),
         )
     }
-    let right = self.sql_operand(positional_output=!by_name)
+    let right = self.sql_operand(positional_output=!by_name, set_operand=true)
     for cte in right.ctes {
       ctes.push(cte)
     }

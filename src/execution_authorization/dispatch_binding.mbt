@@ -92,3 +92,13 @@ pub fn dispatch_authorization_basis(
 ) -> DispatchBasis {
   value.basis
 }
+
+///|
+/// The runtime action of this already evaluated, subject-bound decision.
+/// Consumers must match the original binding against the current configuration
+/// before using it. This accessor performs no new authorization or delegation.
+pub fn dispatch_authorization_action(
+  value : DispatchAuthorization,
+) -> RuntimeAction {
+  AuthorizedForDispatch(value.basis)
+}

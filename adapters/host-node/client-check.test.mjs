@@ -5956,7 +5956,11 @@ for (const entrance of ['local', 'http']) {
     for (const [text, value, quoted, format] of [
       ['SELECT 1 AS n FROM missing', 'missing', false, 'sql'],
       ['FROM missing |> SELECT 1 AS n', 'missing', false, 'aql-text'],
-      ['SELECT 1 AS n FROM `e\u0301/~🧭`', 'e\u0301/~🧭', true, 'sql'],
+      // Resolver facts use the common admitted NFC/LF name, while the original
+      // authored input remains unchanged and is checked separately below.
+      ['SELECT 1 AS n FROM `e\u0301/~🧭`', 'é/~🧭', true, 'sql'],
+      ['SELECT 1 AS n FROM `e\\u0301/~🧭`', 'é/~🧭', true, 'sql'],
+      ['SELECT 1 AS n FROM `line\\rname`', 'line\nname', true, 'sql'],
     ]) {
       const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format});
       assert.equal(outcome.outcome, 'completed', '[check-mutation:namespace-public-outcome]');

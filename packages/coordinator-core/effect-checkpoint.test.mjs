@@ -203,6 +203,7 @@ test('formal current query preserves fixed original report and Native reply corr
   const query = effectCurrentObservations.prepareQuery(original, current.query.body.effect_id,
     current.query.body.query_id, {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32});
   assert.equal(effectCurrentObservations.queryJson(query), current.query.canonical);
+  assert.equal(effectCurrentObservations.pollJson(query), current.poll.canonical);
   assert.equal(effectCurrentObservations.queryFacts(query).queryCid, current.query.cid);
   for (const vector of current.replies) {
     const reply = effectCurrentObservations.admitReplyJson(query, vector.canonical,
@@ -222,6 +223,7 @@ test('formal current handles reject copied metadata and stale replies without in
   const original = report(), query = effectCurrentObservations.prepareQuery(original, 'write-1', 'query-original', bounds);
   assert.throws(() => effectCurrentObservations.prepareQuery({...original}, 'write-1', 'query-original', bounds));
   assert.throws(() => effectCurrentObservations.queryJson({...query}), {message: 'InvalidEffectCurrentHandle'});
+  assert.throws(() => effectCurrentObservations.pollJson({...query}), {message: 'InvalidEffectCurrentHandle'});
   assert.throws(() => effectCurrentObservations.admitReplyJson({...query}, current.replies[0].canonical, bounds));
   const fresh = effectCurrentObservations.prepareQuery(original, 'write-1', 'query-fresh', bounds);
   assert.throws(() => effectCurrentObservations.admitReplyJson(fresh, current.replies[1].canonical, bounds));

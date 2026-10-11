@@ -87,6 +87,8 @@ export const effectCurrentObservations: Readonly<{
   prepareQuery(report: EffectCheckpointReport, effectId: string, queryId: string,
     limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>): EffectCurrentQuery;
   queryJson(query: EffectCurrentQuery): string;
+  /** Bounded routing only; the receiver must admit its own original report. */
+  pollJson(query: EffectCurrentQuery): string;
   queryFacts(query: EffectCurrentQuery): Readonly<{queryCid: string; reportCid: string;
     dispatchCid: string; checkpointCid: string; effectId: string; queryId: string}>;
   admitReplyJson(query: EffectCurrentQuery, body: string,

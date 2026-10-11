@@ -31,6 +31,12 @@ pub(all) enum PhysicalParameterBinding {
 } derive(Eq, Debug)
 
 ///|
+/// Select an installed physical binding profile from the existing projection.
+pub fn physical_parameter_type_id(parameter : PhysicalParameter) -> String {
+  parameter.id
+}
+
+///|
 fn parameter_type(
   contract : @contract.Contract,
 ) -> Result[(String, (Int, Int)?), ValueIssue] {
@@ -201,7 +207,7 @@ pub fn physical_parameter_binding(
 }
 
 ///|
-/// Emit one prepared parameter in the private Node adapter format. The caller's
+/// Emit one prepared parameter in the shared physical adapter format. The caller's
 /// bounded writer counts transport construction; it is not a logical-work credit.
 pub fn emit_physical_parameter(
   parameter : PhysicalParameter,

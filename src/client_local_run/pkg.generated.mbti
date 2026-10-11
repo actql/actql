@@ -1,0 +1,158 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_local_run"
+
+import {
+  "actql/actql/client_local_host",
+  "actql/actql/client_local_preparation",
+  "actql/actql/connectors/duckdb/acquisition",
+  "actql/actql/connectors/duckdb/host",
+  "actql/actql/connectors/local/driver",
+  "actql/actql/connectors_builtin",
+  "actql/actql/execution_authorization",
+  "actql/actql/execution_query",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_host",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
+  "actql/actql/program_check",
+  "actql/actql/query_planning",
+  "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn authorize_local_native_source(LocalNativeSourceConfiguration, @execution_authorization.AdmittedAccountConfiguration) -> Result[@execution_authorization.DispatchAuthorization, LocalNativeSourceIssue]
+
+pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Result[LocalComputeStart, LocalComputeIssue]
+
+pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+
+pub fn configure_captured_source_local_compute_on_ledger(LocalRunPlan, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+
+pub fn configure_local_native_source(LocalRunPlan, Int, Int, String, String, String?, String?, String, String, String, String, String, @execution_authorization.AccessTuple, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalNativeSourceConfiguration, LocalNativeSourceIssue]
+
+pub fn configure_source_free_local_compute(LocalRunPlan, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+
+pub fn confirm_local_compute_start(LocalComputeHost, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[LocalComputeStart, LocalComputeIssue]
+
+pub fn confirm_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[LocalRunPhysicalStart, LocalRunIssue]
+
+pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[String, LocalRunIssue]
+
+pub fn local_compute_producers(LocalComputeHost) -> Array[Int]
+
+pub fn local_compute_run(LocalComputeHost) -> @physical_strategy.CapturedDAG
+
+pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @host.NativeHostConfiguration
+
+pub fn local_native_source_requirement(LocalNativeSourceConfiguration) -> @query_planning.QueryRequirement
+
+pub fn local_run_admission(LocalRunPlan) -> @run_publication.RunPublicationAdmission
+
+pub fn local_run_compilation(LocalRunPlan) -> @run_publication_host.ClientTaskCompilation
+
+pub fn local_run_definition(LocalRunPlan) -> @run_publication.PublicationContract
+
+pub fn local_run_definition_cid(LocalRunPlan) -> String
+
+pub fn local_run_material_limits() -> @run_publication_host.ClientValuesRunMaterialsLimits
+
+pub fn local_run_prepared(LocalRunPlan) -> @run_publication_host.PreparedClientProgram
+
+pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
+
+pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Bool, LocalRunIssue]
+
+pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
+
+pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn restore_captured_source_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn restore_local_run_materials(String, String) -> Result[@run_publication_host.ClientTaskRunMaterials, LocalRunIssue]
+
+pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn restore_source_free_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
+
+pub fn start_local_native_source(LocalNativeSourceConfiguration, LocalRunPhysicalStart, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[@host.NativeHostRun, LocalNativeSourceIssue]
+
+// Errors
+
+// Types and methods
+pub struct LocalComputeHost {
+  plan : LocalRunPlan
+  setup : @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+}
+
+pub(all) enum LocalComputeIssue {
+  AuthorizationMismatch
+  UnsupportedCapability
+  Configuration
+  Task(@physical_strategy.RunIssue)
+  Obligations(@execution_relation.ManagedObligationIssue)
+  Dispatch(@connectors_builtin.ConfiguredDispatchIssue[@physical_strategy.RunIssue])
+  Managed(@driver.LocalDispatchIssue)
+  Estimate(@physical_host.AdaptiveEstimateIssue[@physical_strategy.RunIssue])
+  Start(LocalRunIssue)
+  StartNotPermitted
+}
+
+pub struct LocalComputeStart {
+  host : LocalComputeHost
+}
+
+pub struct LocalNativeSourceConfiguration {
+  plan : LocalRunPlan
+  requirement : @query_planning.QueryRequirement
+  setup : @host.NativeHostConfiguration
+  read_tuple : @execution_authorization.AccessTuple
+  read_context_cid : String
+  read_account_id : String
+}
+
+pub(all) enum LocalNativeSourceIssue {
+  UnsupportedCapability
+  InvalidReadBinding
+  ForeignRunStart
+  AuthorizationMismatch
+  Requirement(@client_local_host.ClientLocalQueryIssue)
+  Configuration(@client_local_host.ClientDuckDBAcquisitionIssue)
+  Host(@host.NativeHostIssue)
+}
+
+pub(all) enum LocalRunIssue {
+  AuthorizationMismatch
+  UnsupportedCapability
+  Request(@run_publication_host.ClientRequestIdentityIssue)
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Compilation(@run_publication_host.ClientTaskCompilationIssue)
+  Admission(@run_publication_host.ClientCompiledRunIssue)
+  Materials(@run_publication_host.ClientTaskRunMaterialsIssue)
+  Start(@run_publication_host.ClientRunStartIssue)
+  StartNotPermitted
+}
+
+pub struct LocalRunPhysicalStart {
+  plan : LocalRunPlan
+}
+
+pub struct LocalRunPlan {
+  input : @client_local_preparation.LocalPreparedInput
+  prepared : @run_publication_host.PreparedClientProgram
+  request : @run_publication_host.ClientRequestIdentity
+  compilation : @run_publication_host.ClientTaskCompilation
+  admission : @run_publication.RunPublicationAdmission
+  definition : @run_publication.PublicationContract
+  account_id : String
+  tuple : @execution_authorization.AccessTuple
+  execution_context_cid : String
+}
+
+// Type aliases
+
+// Traits

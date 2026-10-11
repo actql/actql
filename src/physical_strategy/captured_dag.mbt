@@ -1992,3 +1992,15 @@ pub fn captured_effect_run_matches_checked(
 ) -> Bool {
   !run.captured.stopped && physical_equal(run.checked, checked)
 }
+
+///|
+/// Observe tracked task/result obligations after stop and port retirement.
+/// Caller-owned Source captures, resident environments and unrelated shared
+/// Ledger reservations remain separate physical Host responsibilities.
+pub fn captured_task_retirement_pending(run : CapturedDAG) -> Bool {
+  !run.stopped ||
+  run.running is Some(_) ||
+  run.executions.any(execution => execution is Some(_)) ||
+  run.resources.any(resource => resource is Some(_)) ||
+  run.lifetimes.any(lifetime => lifetime.pins != 0)
+}
