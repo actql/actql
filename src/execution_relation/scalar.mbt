@@ -607,6 +607,8 @@ pub fn boolean_pair(
     | ConcatStrict
     | Replace
     | Repeat
+    | Translate
+    | Instr
     | Split
     | Substring
     | LeftString
