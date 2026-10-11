@@ -759,6 +759,22 @@ pub fn client_program_prepare_infer_node_read_layout(
 }
 
 ///|
+/// The original owning Run keeps the scope even if no read was admitted.
+/// The acknowledgement is a separate physical-cleanup fact, not read failure.
+#export_name("clientProgramFinishInferOriginalReadScope")
+pub fn client_program_finish_infer_original_read_scope(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, @publication_host.ClientModelReadPreparationIssue] {
+  @publication_host.finish_client_model_read_scope(
+    scope, compiled, definition, graph, original_run_cleanup_complete,
+  )
+}
+
+///|
 /// Claim the original funded read once before Node IO/control allocation.
 #export_name("clientProgramClaimInferOriginalPreparation")
 pub fn client_program_claim_infer_original_preparation(

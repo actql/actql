@@ -109,6 +109,57 @@ test "original read scope reaches Model through the same configured Ledger" {
 }
 
 ///|
+test "original read scope keeps failed read custody until original cleanup" {
+  let prepared = fixture_prepared()
+  let plan = call_identity_plan(prepared)
+  let (compiled, definition) = original_input_capacity_run(prepared, plan)
+  let base = standard_limits().model
+  let limits : @model.ModelExecutionLimits = {
+    ..base,
+    ledger: { ..base.ledger, retained_bytes: 9L, execution_bytes: 7L, },
+  }
+  let scope = begin_original_model_read_scope(
+    compiled,
+    definition,
+    plan,
+    limits,
+    None,
+    3L,
+    2L,
+    4,
+    2,
+    0,
+  ).unwrap()
+  assert_true(
+    @publication_host.prepare_client_model_read(scope, 7L, 5L)
+    is Err(
+      @publication_host.Resource(@resources.Resource(@resources.RetentionLimit))
+    ),
+  )
+  // No preparation exists, but the original scope still owns bootstrap.
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      scope, compiled, definition, plan, false,
+    ).unwrap(),
+  )
+  assert_true(
+    @publication_host.prepare_client_model_read(scope, 7L, 5L)
+    is Err(@publication_host.Resource(@resources.IncompleteInventory)),
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope, compiled, definition, plan, true,
+    ).unwrap(),
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope, compiled, definition, plan, true,
+    )
+    is Err(@publication_host.Resource(@resources.SpentClaim)),
+  )
+}
+
+///|
 test "original read scope refuses invalid bootstrap and foreign originals without IO" {
   let prepared = fixture_prepared()
   let plan = call_identity_plan(prepared)
