@@ -1373,3 +1373,19 @@ All named bytes and durable Store capacity remain with their existing Owners.
 The Core payload verifier, current publisher and public Local/recovery assembly
 remain separate integrations; descriptor/chunk limits are not aggregate process
 memory accounting.
+
+Original filesystem Sealed binding uses the existing completed Result Owner.
+The record's request body and identity must match the payload intent issued from
+that same live export, and its exact physical byte count and digest then pass
+through `issue_durable_binding`. This retains the original value, schema,
+ordering, codec and retention checks rather than adding a Python payload parser
+or another value verifier. A merely prepared Sealed candidate, Opaque custody,
+foreign request or changed physical content cannot acquire this binding.
+
+The Local wrapper first reuses the original nominal preflight/Result and
+revalidates current Run/Source authority, then checks the original publication
+attempt. This is a read-only binding operation: it does not advance the record,
+read or rewrite a payload, acknowledge a Store commit or grant publisher
+permission. Physical generation opening/digest observation and trusted Host
+Store/Policy/target authorization remain separate prerequisites. Parent Result
+cleanup revokes the content facts even when a valid durable record remains.

@@ -46,6 +46,8 @@ pub fn install_local_preflight_publisher_port(LocalPublicationPreflight, String,
 
 pub fn issue_local_preflight_result_publication(LocalPublicationPreflight, Int, @run_publication_host.PublicationOutputExport, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalPublicationIntentIssue]
 
+pub fn issue_local_preflight_sealed_result_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalPublicationPayloadIssue]
+
 pub fn issue_local_result_durable_binding(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
 
 pub fn issue_local_result_publication(LocalComputeHost, LocalSourceInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalResultPublicationIssue]
