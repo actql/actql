@@ -1,0 +1,322 @@
+///|
+// Private metadata inside the existing versioned Run row. The material wire
+// remains the exact existing Owner projection, not a new transport credential.
+priv struct NativeClientEffectMaterialOriginalPacket {
+  intent_cid : String
+  materials_cid : String
+  materials_wire : String
+  request_scope_cid : String
+  run_definition_cid : String
+  submission_reference : String
+}
+
+///|
+/// A current-authorized read of original private-journal bytes. This is not a
+/// normalization proof, work claim, restored compilation or Provider permit.
+/// Explicit restoration must still use the existing material Owner with this
+/// independently retained request and Run, never identities from candidate wire.
+struct NativeClientRetainedEffectMaterials {
+  request : @host.ClientRequestIdentity
+  definition : @publication.PublicationContract
+  materials_wire : String
+  materials_cid : String
+}
+
+///|
+pub fn native_client_retained_effect_materials_wire(
+  original : NativeClientRetainedEffectMaterials,
+) -> String {
+  original.materials_wire
+}
+
+///|
+pub fn native_client_retained_effect_materials_cid(
+  original : NativeClientRetainedEffectMaterials,
+) -> String {
+  original.materials_cid
+}
+
+///|
+pub fn native_client_retained_effect_materials_request(
+  original : NativeClientRetainedEffectMaterials,
+) -> @host.ClientRequestIdentity {
+  original.request
+}
+
+///|
+pub fn native_client_retained_effect_materials_run(
+  original : NativeClientRetainedEffectMaterials,
+) -> @publication.PublicationContract {
+  original.definition
+}
+
+///|
+fn effect_material_original_packet_wire(
+  packet : NativeClientEffectMaterialOriginalPacket,
+) -> Result[String, NativeClientRunJournalIssue] {
+  try {
+    let writer = @encode.writer(131072, 16, 2)
+    @encode.begin_object(writer)
+    for
+      (key, value) in [
+        ("intent_cid", packet.intent_cid),
+        ("materials_cid", packet.materials_cid),
+        ("materials_wire", packet.materials_wire),
+        ("request_scope_cid", packet.request_scope_cid),
+        ("run_definition_cid", packet.run_definition_cid),
+        ("submission_reference", packet.submission_reference),
+      ] {
+      @encode.key(writer, key)
+      @encode.string_value(writer, value)
+    }
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    @encode.OutputLimit => Err(CapacityExceeded)
+    _ => Err(Encoding)
+  }
+}
+
+///|
+fn read_effect_material_original_packet(
+  wire : String,
+) -> Result[
+  NativeClientEffectMaterialOriginalPacket,
+  NativeClientRunJournalIssue,
+] {
+  let source = match
+    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+      max_input_bytes: 131072,
+      max_nodes: 16,
+      max_depth: 2,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let cursor = match
+    @decode.admit(source, {
+      max_nodes: 16,
+      max_depth: 2,
+      max_string_bytes: 131072,
+      max_total_string_bytes: 131072,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  guard @decode.closed_object(cursor, [
+      "intent_cid", "materials_cid", "materials_wire", "request_scope_cid", "run_definition_cid",
+      "submission_reference",
+    ])
+    is Ok(fields) &&
+    epoch_text(fields, "intent_cid") is Some(intent_cid) &&
+    epoch_text(fields, "materials_cid") is Some(materials_cid) &&
+    epoch_text(fields, "materials_wire") is Some(materials_wire) &&
+    !materials_wire.is_empty() &&
+    epoch_text(fields, "request_scope_cid") is Some(request_scope_cid) &&
+    epoch_text(fields, "run_definition_cid") is Some(run_definition_cid) &&
+    epoch_text(fields, "submission_reference") is Some(submission_reference) else {
+    return Err(CustodyLost)
+  }
+  let packet : NativeClientEffectMaterialOriginalPacket = {
+    intent_cid,
+    materials_cid,
+    materials_wire,
+    request_scope_cid,
+    run_definition_cid,
+    submission_reference,
+  }
+  guard effect_material_original_packet_wire(packet) is Ok(canonical) &&
+    canonical == wire else {
+    return Err(CustodyLost)
+  }
+  Ok(packet)
+}
+
+///|
+/// Accept the original Run and already-issued packet in the same transaction.
+/// Material binding and current submit authorization are existing Owners.
+/// An existing equal packet is reused; missing accepted custody is not backfilled
+/// even before physical start. The existing record capacity is unchanged.
+pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  issued : @host.ClientEffectIssuedNormalizationMaterials,
+  now : Double,
+) -> Result[
+  NativeClientSubmittedIntentRecord,
+  NativeClientSubmittedEffectMaterialsIssue,
+] {
+  let authority = match
+    native_local_policy_authority_for(
+      self,
+      crypto,
+      principal,
+      connection,
+      request,
+      SubmitOriginals,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  match
+    self.journal.authorize_submitted_run(
+      self.epoch,
+      reference,
+      request,
+      authority.scope,
+      authority.current_for(self.journal, request),
+      now,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard preparation.preparation is EffectComputation(prepared) &&
+    physical_equal(
+      prepared,
+      @host.client_effect_compilation_owner(allowed.compilation),
+    ) else {
+    return Err(ForeignPreparation)
+  }
+  let materials = match
+    @host.bind_prepared_client_effect_original_materials(
+      allowed,
+      definition,
+      issued,
+      request=Some(request),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Materials(issue))
+  }
+  guard @host.client_effect_normalization_materials_cid(materials)
+    is Some(materials_cid) else {
+    return Err(Materials(Normalization(UnverifiedOriginalMaterials)))
+  }
+  let packet : NativeClientEffectMaterialOriginalPacket = {
+    intent_cid: preparation.intent_cid,
+    materials_cid,
+    materials_wire: @host.client_effect_issued_normalization_materials_wire(
+      issued,
+    ),
+    request_scope_cid: @host.client_request_scope_cid(request),
+    run_definition_cid: @publication.publication_contract_identity(definition),
+    submission_reference: reference.wire,
+  }
+  let wire = match effect_material_original_packet_wire(packet) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  self.journal
+  .accept_original_submitted_run(
+    self.epoch,
+    reference,
+    preparation.intent_cid,
+    request,
+    definition,
+    authority.scope,
+    authority.current_for(self.journal, request),
+    effect_material_originals=Some(wire),
+    current_fence=Some(() => authority.current_for(self.journal, request)),
+  )
+  .map_err(issue => Journal(issue))
+}
+
+///|
+/// Read the original packet through current Run read authority. No preparation,
+/// compilation, normalization issuance, Source acquisition or send occurs.
+/// Missing or inconsistent custody is a refusal, never a new material packet.
+pub fn NativeLocalHostConnection::lookup_submitted_effect_material_original(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+) -> Result[
+  NativeClientRetainedEffectMaterials,
+  NativeClientSubmittedEffectMaterialsIssue,
+] {
+  let authority = match
+    native_local_policy_authority_for(
+      self,
+      crypto,
+      principal,
+      connection,
+      request,
+      ReadRunMaterials,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let original = match
+    self.journal.lookup_submitted_intent(
+      self.epoch,
+      reference,
+      authority.scope,
+      authority.current_for(self.journal, request),
+      now,
+    ) {
+    Ok(Submitted(value)) => value
+    Ok(UnresolvedSubmissionHistory) => return Err(UnresolvedHistory)
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard original.run_admission is Some(admission) else {
+    return Err(MissingRunAdmission)
+  }
+  if @host.client_request_identity_relation(admission.request, request) !=
+    @host.SameRequest {
+    return Err(ChangedIntent)
+  }
+  self.journal
+  .transaction(() => {
+    if !authority.current_for(self.journal, request) {
+      return Err(AuthorizationDenied)
+    }
+    let record = match self.journal.retained(request) {
+      Ok(Some(value)) => value
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    if @publication.publication_contract_identity(record.definition) !=
+      admission.run_definition_cid {
+      return Err(ForeignRun)
+    }
+    guard record.effect_material_originals is Some(wire) else {
+      return Err(MissingEffectMaterialOriginal)
+    }
+    let packet = match read_effect_material_original_packet(wire) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if packet.intent_cid != @host.client_submitted_intent_cid(original.intent) ||
+      packet.submission_reference != reference.wire ||
+      packet.request_scope_cid != @host.client_request_scope_cid(request) ||
+      packet.run_definition_cid != admission.run_definition_cid {
+      return Err(CustodyLost)
+    }
+    // Hash the exact retained wire. Configuration canonicalization must never
+    // normalize Program/parameter values or replace an absent original packet.
+    guard local_adoption_digest(crypto, @utf8.encode(packet.materials_wire))
+      is Ok(digest) &&
+      digest == packet.materials_cid else {
+      return Err(CustodyLost)
+    }
+    if !authority.current_for(self.journal, request) {
+      return Err(AuthorizationDenied)
+    }
+    Ok({
+      request: record.request,
+      definition: record.definition,
+      materials_wire: packet.materials_wire,
+      materials_cid: packet.materials_cid,
+    })
+  })
+  .map_err(issue => Journal(issue))
+}

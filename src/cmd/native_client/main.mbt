@@ -805,6 +805,10 @@ fn command() -> @argparse.Command {
       @argparse.Command("lookup-submission", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
       ]),
+      @argparse.Command("checkpoint-state", options=[
+        @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("ref-file", required=true),
+      ]),
       @argparse.Command("lookup-preparation-grant", options=[
         @argparse.OptionArg("grant-ref-file", required=true),
         @argparse.OptionArg("operation-cid", required=true),
@@ -873,6 +877,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     "remote" =>
       if matches.subcommand is Some(("check", _)) ||
         matches.subcommand is Some(("adopt", _)) ||
+        matches.subcommand is Some(("checkpoint-state", _)) ||
         matches.subcommand is Some(("lookup-preparation-grant", _)) ||
         matches.subcommand is Some(("lookup-preparation-raw", _)) {
         stop("operation requires an explicit Local configuration")
