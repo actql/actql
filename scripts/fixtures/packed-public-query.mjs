@@ -56,6 +56,8 @@ import {graphShortestSourceSuccesses, graphShortestSourceRefusals}
 import {graphMeanSourceOracles, graphMeanSourceRefusals}
   from './graph-mean-source-input.mjs';
 import {inputStageResultSuccesses} from './input-stage-result.mjs';
+import {typedSubscriptSuccesses, typedSubscriptRefusals, typedSubscriptExecutionFailures}
+  from './typed-subscript-input.mjs';
 import {graphRemainingOperationInputs, graphRemainingOperationCohortInputs}
   from './graph-remaining-operation-inputs.mjs';
 import {createRetainedGraphAuthorization, observeRetainedGraphDispatch}
@@ -263,7 +265,8 @@ const fromUnpivotOnly = process.env.ACTQL_TEST_FROM_UNPIVOT_ONLY === '1';
 const pipeUnpivotOnly = process.env.ACTQL_TEST_PIPE_UNPIVOT_ONLY === '1';
 const unnestOnly = process.env.ACTQL_TEST_UNNEST_SOURCE_ONLY === '1';
 const inputStageResultOnly = process.env.ACTQL_TEST_INPUT_STAGE_RESULT_ONLY === '1';
-const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1' || inputStageResultOnly;
+const typedSubscriptOnly = process.env.ACTQL_TEST_TYPED_SUBSCRIPT_ONLY === '1';
+const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1' || inputStageResultOnly || typedSubscriptOnly;
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
@@ -347,6 +350,8 @@ const dataSetStrategyInputs = {
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
 const scopeInputs = inputStageResultOnly ? {successes: inputStageResultSuccesses, refusals: []}
+  : typedSubscriptOnly ? {successes: typedSubscriptSuccesses, refusals: typedSubscriptRefusals,
+    executionFailures: typedSubscriptExecutionFailures}
   : graphRemainingOperationsOnly ? graphRemainingOperationInputs
   : concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}
   : analyticDistinctFrameOnly ? {successes: analyticDistinctFrameSuccesses, refusals: analyticDistinctFrameRefusals}
@@ -1107,7 +1112,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
     cohort.successes.at(-1)?.name]);
   const saved = {mode, profileName, directory, sourceProfilePath, hostCapacityPolicy, samples: []};
   if (inputStageResultOnly) saved.retainedRelationOutput = true;
-  if (graphRemainingOperationsOnly || inputStageResultOnly) {
+  if (graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly) {
     saved.expectedSampleNames = [...boundaryNames];
     saved.authorization = authorization;
   }
@@ -1131,7 +1136,7 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0;
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
-  const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+  const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
     ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
   const retainedLeases = [];
@@ -1161,7 +1166,7 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0;
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
-    const authorization = graphRemainingOperationsOnly || inputStageResultOnly
+    const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
       ? createRetainedGraphAuthorization() : undefined;
     const physicalDispatches = [];
     const retainedLeases = [];

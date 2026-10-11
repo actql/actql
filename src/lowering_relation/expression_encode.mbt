@@ -159,6 +159,14 @@ fn emit_frames(
             pending.push(EndObject)
             pending.push(PropertyValue(value))
           }
+          Subscript(value, index) => {
+            pending.push(Op("subscript"))
+            @encode.begin_object(output)
+            @encode.key(output, "index")
+            pending.push(EndObject)
+            pending.push(PropertyValue(value))
+            pending.push(Expr(index))
+          }
           Cast(child) => {
             pending.push(Op("cast"))
             @encode.begin_object(output)
