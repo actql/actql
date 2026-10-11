@@ -122,7 +122,7 @@ fn resolve_program_imports(
       guard stage is Publication(owner) else { abort("mixed preparation modes") }
       owner
     })
-    return resolve_imports(source, index, producers, limits).map(ProgramImports::Publication)
+    return resolve_imports(source, index, producers, limits).map(fn(v) { ProgramImports::Publication(v) })
   }
   let (entries, work, text_bytes) = match resolve_result_references(
     source, index, stages, limits, owner_stage=program_stage,
@@ -144,7 +144,7 @@ fn attach_program_imports(
   value : ProgramImports, stage : @parameters.CollectedStage, max_work : Int,
 ) -> Result[ProgramAttachedImports, ImportIssue] {
   match value {
-    Publication(v) => attach_imports(v, stage, max_work~).map(ProgramAttachedImports::Publication)
+    Publication(v) => attach_imports(v, stage, max_work~).map(fn(v) { ProgramAttachedImports::Publication(v) })
     Topology(v) => {
       if max_work < 0 { return Err(InvalidLimits) }
       if !physical_equal(v.source, @parameters.source(stage)) { return Err(ForeignSource) }
