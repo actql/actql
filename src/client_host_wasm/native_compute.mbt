@@ -10,7 +10,6 @@ priv struct StoredNativeCompute {
   mut outcome : Result[Unit, @local_run.LocalComputeIssue]?
   mut host : @local_run.LocalComputeHost?
   mut start : @local_run.LocalComputeStart?
-  mut source : @query.CapturedInputSource?
 }
 
 ///|
@@ -49,7 +48,6 @@ pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int 
     outcome: None,
     host: None,
     start: None,
-    source: None,
   }
   original.compute_reserved = true
   value.next_handle += 1
@@ -149,7 +147,6 @@ pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
       return 0
     }
   }
-  record.source = Some(source)
   // Keep the Host even if binding or later cleanup is interrupted.
   record.host = Some(host)
   match @local_run.bind_local_compute_start(host, start) {
