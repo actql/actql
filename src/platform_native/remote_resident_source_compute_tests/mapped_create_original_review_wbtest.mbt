@@ -88,7 +88,7 @@ fn native_mapped_create_mapping() -> @catalog.ExecutionMapping {
 ///|
 /// Compose authoring inputs only. The original preparation audits this actual
 /// Program and issues normalization/material custody; none is copied here.
-fn native_mapped_create_authoring() -> (String, String, String) {
+fn native_mapped_create_authoring() -> (String, String, String) raise {
   let declaration = native_mapped_create_declaration()
   let mapping = native_mapped_create_mapping()
   let environment = provider_json(native_completion_free_environment)
@@ -99,16 +99,35 @@ fn native_mapped_create_authoring() -> (String, String, String) {
     fields["connector_manifest"] is Object(manifest) else {
     abort("explicit Source configuration")
   }
-  catalogs.push(provider_json(declaration.catalog))
+  // Replace only the old Effect connection declaration. Keep the separate
+  // original Source connections and avoid two versions of the same Catalog.
+  fields["connector_catalogs"] = Json::array(
+    catalogs.filter(value => {
+      guard value is Object(catalog) else { abort("authoring Catalog") }
+      catalog["connector_id"] != Json::string("crm")
+    }),
+  )
+  guard fields["connector_catalogs"] is Array(installed_catalogs) &&
+    manifest["connectors"] is Array(connectors) else {
+    abort("authoring connector inventory")
+  }
+  installed_catalogs.push(provider_json(declaration.catalog))
   for wire in declaration.contracts {
     contracts.push(provider_json(wire))
   }
   for wire in declaration.view_bodies {
     views.push(provider_json(wire))
   }
-  manifest["connectors"] = Json::array([
-    provider_json(declaration.manifest_entry),
-  ])
+  let installed_connectors = connectors.filter(value => {
+    guard value is Object(connector) else { abort("authoring connector") }
+    connector["connector"] != Json::string("crm")
+  })
+  installed_connectors.push(provider_json(declaration.manifest_entry))
+  let indexed_connectors = installed_connectors.map(value => {
+    (@sha.hex(@utf8.encode(provider_canonical(value))), value)
+  })
+  indexed_connectors.sort_by((a, b) => a.0.compare(b.0))
+  manifest["connectors"] = Json::array(indexed_connectors.map(value => value.1))
   fields["mapping_contracts"] = Json::array([provider_json(mapping.body)])
   for section in ["connector_catalogs", "contract_registry", "source_views"] {
     guard fields[section] is Array(entries) else {
@@ -134,7 +153,18 @@ fn native_mapped_create_authoring() -> (String, String, String) {
   }
   create["target"] = Json::string(declaration.writables[0].target_ref)
   create["mapping"] = Json::string(mapping.mapping_ref)
-  (provider_canonical(environment), cid, provider_canonical(document))
+  let wire = provider_canonical(environment)
+  match
+    @environment.read(@utf8.encode(wire), cid, {
+      max_bytes: 65536,
+      max_nodes: 4096,
+      max_depth: 64,
+      max_members: 256,
+    }) {
+    Ok(_) => ()
+    Err(issue) => fail("Mapped create authoring: " + @debug.to_string(issue))
+  }
+  (wire, cid, provider_canonical(document))
 }
 
 ///|
@@ -255,5 +285,20 @@ fn native_mapped_create_context_review(
   assert_eq(
     consumer.usage().reserved_retention_bytes,
     consumer_usage.reserved_retention_bytes,
+  )
+}
+
+///|
+test "mapped create authoring retains original Source and Effect connections" {
+  let (materials, request, _) = native_completion_free_effect_fixture(
+    authoring=Some(native_mapped_create_authoring()),
+  )
+  assert_eq(materials.request, Some(request))
+  assert_true(
+    @host.prepare_client_effect_source_input_binding(
+      materials.compilation,
+      request=Some(request),
+    )
+    is Ok(_),
   )
 }
