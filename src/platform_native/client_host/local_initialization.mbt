@@ -5,6 +5,7 @@ fn initialize_native_local_client_custody(
   database : @sqlite.Database,
   crypto : @crypto.Library,
   adoption : Bytes,
+  settings? : NativeLocalConfigurationSelection? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if database.transaction_fenced() {
     return Err(Fenced)
@@ -13,7 +14,9 @@ fn initialize_native_local_client_custody(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  let result = initialize_native_local_client_rows(database, crypto, adoption)
+  let result = initialize_native_local_client_rows(
+    database, crypto, adoption, settings,
+  )
   match result {
     Ok(_) =>
       match database.commit() {
@@ -39,14 +42,16 @@ fn initialize_native_local_client_rows(
   database : @sqlite.Database,
   crypto : @crypto.Library,
   adoption : Bytes,
+  settings : NativeLocalConfigurationSelection?,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   // Refuse preexisting or partially lost custody before generating any key.
   for
     record_namespace in [
-      "client_local_adoption", "client_submission_epoch", "client_run_custody", "client_runs",
-      "client_effect_custody", "client_effect_response_meta", "client_effect_response_bytes",
-      "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
-      "client_cancel_originals", "client_submitted_intent_custody", "client_submitted_intents",
+      "client_local_adoption", "client_local_settings", "client_submission_epoch",
+      "client_run_custody", "client_runs", "client_effect_custody", "client_effect_response_meta",
+      "client_effect_response_bytes", "client_effect_row_receipt", "client_cancellations",
+      "client_cancel_custody", "client_cancel_originals", "client_submitted_intent_custody",
+      "client_submitted_intents",
     ] {
     match database.scan_after(record_namespace, "") {
       Err(@sqlite.NotFound) => ()
@@ -65,6 +70,12 @@ fn initialize_native_local_client_rows(
   match initialize_native_client_submitted_intents(database) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
+  }
+  if settings is Some(settings) {
+    match settings.persist(database) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   database
   .insert("client_local_adoption", "adoption", adoption)

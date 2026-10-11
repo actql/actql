@@ -33,6 +33,12 @@ generate Provider read/apply permissions. Source read and Effect apply remain
 independently authorized at their existing boundaries. Approval does not supply
 otherwise denied authority.
 
+Ordinary reconnection is retained-only. It cannot create a state child, stage
+an absent account copy or initialize a database, key or epoch. Only the explicit
+adoption operation may continue a matching unfinished initialization. The
+operator must first select a private configuration root; configured physical
+libraries are not loaded from an untrusted discovery root.
+
 ## Initialization and interrupted adoption
 
 Freshness requires an exclusive, explicitly selected private Host-state creation
@@ -86,6 +92,22 @@ constituents without creation, migration or schema repair. Fresh initialization
 has a separate exclusive creation proof; ordinary open or physical absence is
 not that proof.
 
+The explicitly selected runtime configuration originals accompany account
+adoption. The bounded selection admits at most eight distinct single-component
+file names, each with at most 64 KiB of exact bytes. It excludes the separately
+bound account file. Its immutable manifest records raw-content digests, source
+file generations and the actual selected private managed-root identity. The
+manifest is bounded to 8 KiB and is included in the initialization intent.
+
+Finalization stores this manifest and the selected original bytes in the
+existing SQLite transaction with Submission epoch custody and final adoption.
+Reopening checks exact membership and original bytes, source generations and
+managed-root custody before returning configuration or authorization material.
+Missing stored originals are not copied back from a currently available source,
+and a byte-identical replacement file cannot assume its predecessor's identity.
+These configuration records confer no execution permission; the existing
+execution-account Owner evaluates each current access tuple.
+
 ## Direct Local credential grant/use scope
 
 Add a distinct typed Direct Local scope to the existing common credential
@@ -121,6 +143,14 @@ Run persistence, checked Source/Compute, publication and Result Owners. Prepare
 and durably bind the original Run before protected physical work. The public
 CLI then exposes bounded read, original lookup and cancellation through those
 Owners. An exited CLI is not evidence of cancellation or cleanup completion.
+
+Configuration adoption does not establish checked-publication applicability.
+Effect-free Local publication uses its own distinct frozen catalog and the
+original checked-preparation audit proving zero semantic completions. A Resident
+catalog is not a substitute. A real completion, including sole-view completion,
+cannot be represented as an empty journal; it requires the original applicable
+completion evidence or refusal. Publication and Receipt remain with their
+existing Owners.
 
 Restore the original Submission and Run, not a newly compiled execution.
 Preserve saved Source/Compute/Model responses, request identities, approved

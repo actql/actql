@@ -54,6 +54,7 @@ fn NativeLocalAdoptionSession::prepare_journal_file(
     Err(issue) => return Err(Filesystem(issue))
   }
   let ownership = match existing {
+    None if self.existing_only => return Err(CustodyLost)
     None => {
       // Retained proof with a missing DB is custody loss, never first use.
       for name in ["journal-custody.json", "journal-initializing.json"] {
@@ -144,6 +145,7 @@ pub fn NativeLocalAdoptionSession::open_journal(
     Err(issue) => return Err(Filesystem(issue))
   }
   let first = match marker {
+    None if self.existing_only => return Err(CustodyLost)
     None => {
       guard self.root.inspect_generation("client.sqlite3") is Ok(Some(file)) &&
         file.device == ownership.device &&
@@ -229,7 +231,12 @@ fn NativeLocalAdoptionSession::bind_journal(
   }
   if first {
     match
-      initialize_native_local_client_custody(database, crypto, adoption_body) {
+      initialize_native_local_client_custody(
+        database,
+        crypto,
+        adoption_body,
+        settings=Some(self.settings),
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -315,6 +322,10 @@ pub fn NativeLocalHostConnection::check_binding(
     file.device == self.ownership.device &&
     file.inode == self.ownership.inode else {
     return Err(CustodyLost)
+  }
+  match self.session.settings.check_retained(self.database) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   local_adoption_row(self.database, self.adoption_body)
 }

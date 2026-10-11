@@ -12,6 +12,8 @@ struct NativeLocalAdoptionSession {
   source_generation : @filesystem.NativeFileGeneration
   source_body : Bytes
   configuration : @authorization.AdmittedAccountConfiguration
+  settings : NativeLocalConfigurationSelection
+  existing_only : Bool
   root_ownership : @filesystem.NativeFileOwnership
   state_path : String
   intent_body : Bytes
@@ -230,6 +232,9 @@ pub fn begin_native_local_host_adoption(
   source_name : String,
   account_id : String,
   crypto : @crypto.Library,
+  configuration_files? : Array[String] = [],
+  managed_root_path? : String? = None,
+  existing_only? : Bool = false,
 ) -> Result[NativeLocalAdoptionSession, NativeLocalAdoptionIssue] {
   if !local_adoption_name(state_name) ||
     !local_adoption_name(source_name) ||
@@ -264,6 +269,13 @@ pub fn begin_native_local_host_adoption(
   if configuration.bootstrap_profile() is Some(_) {
     return Err(UninstalledBootstrapProfile)
   }
+  let settings = match
+    select_native_local_configuration(
+      source_root, source_name, configuration_files, managed_root_path, crypto,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let parent = match @filesystem.open_private_root(parent_path) {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
@@ -282,6 +294,7 @@ pub fn begin_native_local_host_adoption(
   }
   let created = match original {
     Some(value) => value
+    None if existing_only => return Err(CustodyLost)
     None =>
       match parent.create_directory(state_name) {
         Ok(value) => value
@@ -308,9 +321,9 @@ pub fn begin_native_local_host_adoption(
   }
   let keys = [
     "account_id", "configuration_cid", "content_cid", "nonce", "parent_device", "parent_inode",
-    "root_device", "root_inode", "source_device", "source_file", "source_inode",
-    "source_path", "source_root_device", "source_root_inode", "source_size", "state_name",
-    "version",
+    "root_device", "root_inode", "settings_cid", "source_device", "source_file",
+    "source_inode", "source_path", "source_root_device", "source_root_inode", "source_size",
+    "state_name", "version",
   ]
   let expected = [
     account_id,
@@ -321,6 +334,7 @@ pub fn begin_native_local_host_adoption(
     parent_ownership.inode.to_string(),
     created.device.to_string(),
     created.inode.to_string(),
+    settings.manifest_cid,
     source_generation.device.to_string(),
     source_name,
     source_generation.inode.to_string(),
@@ -385,6 +399,8 @@ pub fn begin_native_local_host_adoption(
     source_generation,
     source_body,
     configuration,
+    settings,
+    existing_only,
     root_ownership: created,
     state_path: parent_path + "/" + state_name,
     intent_body,
@@ -430,7 +446,7 @@ fn NativeLocalAdoptionSession::check_original(
   if source != self.source_body {
     return Err(SourceChanged)
   }
-  Ok(())
+  self.settings.check_source(self.source_root)
 }
 
 ///|
@@ -449,6 +465,7 @@ pub fn NativeLocalAdoptionSession::stage_configuration(
   }
   let keys = ["device", "inode", "intent_cid", "size", "version"]
   let generation = match existing {
+    None if self.existing_only => return Err(CustodyLost)
     None => {
       // An initialized or possibly initialized Host must never regenerate an
       // account file, even if both its content and creation witness disappeared.
