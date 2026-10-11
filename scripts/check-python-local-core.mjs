@@ -14,8 +14,9 @@ assert.ok(python,'Select the isolated Python Wasmtime environment');
 const physicalBoundary=process.argv.includes('--physical-boundary');
 const dispatchBoundary=process.argv.includes('--dispatch-boundary');
 const submissionBoundary=process.argv.includes('--submission-boundary');
+const invocationBoundary=process.argv.includes('--publication-invocation-boundary');
 const sourcePublicationBoundary=process.argv.includes('--source-publication-boundary');
-assert.ok([physicalBoundary,dispatchBoundary,submissionBoundary,sourcePublicationBoundary].filter(Boolean).length<=1,
+assert.ok([physicalBoundary,dispatchBoundary,submissionBoundary,sourcePublicationBoundary,invocationBoundary].filter(Boolean).length<=1,
   'Select one focused boundary');
 
 function run(command,args,timeout=60000){
@@ -51,7 +52,7 @@ if(process.argv.includes('--build-and-consume')){
   const result=JSON.parse(output);
   assert.equal(result.success,true);
   assert.equal(result.module_sha256,digest);
-  if(sourcePublicationBoundary){
+  if(sourcePublicationBoundary || invocationBoundary){
     const library=process.env.ACTQL_PYTHON_DUCKDB_LIBRARY;
     const libraryDigest=process.env.ACTQL_PYTHON_DUCKDB_SHA256;
     assert.ok(library && /^[0-9a-f]{64}$/u.test(libraryDigest ?? ''),
@@ -65,13 +66,29 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(native.success,true);
     assert.equal(native.module_sha256,digest);
     assert.equal(native.cases.length,14);
-    assert.equal(native.source_publication_cases.length,9);
+    assert.equal(native.source_publication_cases.length,11);
+    const invocationEvidence={};
+    if(invocationBoundary){
+      const material=JSON.parse(run(python,['scripts/fixtures/python-local-material-abi.py',module]));
+      assert.equal(material.success,true);
+      assert.equal(material.module_sha256,digest);
+      assert.equal(material.material_cases,9);
+      const explicit=JSON.parse(run(python,['scripts/fixtures/python-local-native-result-abi.py',
+        module,library,libraryDigest,'--bounded-inventory-root','--source-publication','--explicit-view'],120000));
+      assert.equal(explicit.success,true);
+      assert.equal(explicit.module_sha256,digest);
+      assert.equal(explicit.explicit_authored_view,true);
+      assert.equal(explicit.normalization_completion_free,true);
+      assert.equal(explicit.cases.length,14);
+      assert.equal(explicit.source_publication_cases.length,11);
+      Object.assign(invocationEvidence,{material,explicit});
+    }
     const record={source_sha:source,module,module_sha256:digest,
-      scope:'private_captured_source_publication_facts',
-      moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,native,
+      scope:invocationBoundary?'private_original_normalization_and_captured_invocation':'private_captured_source_publication_facts',
+      moonc:run('moonc',['-v']),python:run(python,['--version']),result,physical,native,...invocationEvidence,
       public_local_acceptance:false,durable_run_acceptance:false,
       default_fuel_acceptance:false,global_memory_accounting:false};
-    const file=join(receipt,'source-publication-boundary-receipt.json');
+    const file=join(receipt,invocationBoundary?'publication-invocation-boundary-receipt.json':'source-publication-boundary-receipt.json');
     try{
       await writeFile(file,JSON.stringify(record,null,2)+'\n',{flag:'wx'});
     }catch(error){
@@ -168,6 +185,7 @@ if(process.argv.includes('--build-and-consume')){
     args:[fileURLToPath(import.meta.url),'--build-and-consume',...(physicalBoundary?['--physical-boundary']:[]),
       ...(dispatchBoundary?['--dispatch-boundary']:[]),
       ...(submissionBoundary?['--submission-boundary']:[]),
-      ...(sourcePublicationBoundary?['--source-publication-boundary']:[])],
+      ...(sourcePublicationBoundary?['--source-publication-boundary']:[]),
+      ...(invocationBoundary?['--publication-invocation-boundary']:[])],
   }]});
 }
