@@ -73,7 +73,10 @@ export function prepareProgram(document: string, format: 'json' | 'yaml',
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
-export function compileEffect(prepared: PreparedEffectProgram): EffectCompilation;
+/** Explicit finite normalization profile, selected before original Run issuance.
+ * Actual semantic completions refuse; current authority/approval stay separate. */
+export function compileEffect(prepared: PreparedEffectProgram,
+  options?: Readonly<{normalizationProfile?: 'completion-free'}>): EffectCompilation;
 export function effectExecutionShape(prepared: PreparedEffectProgram,
   compilation: EffectCompilation): Readonly<{taskCount: number; acquisitionCount: number; effectCount: number}>;
 /** Checked coordinates only; these grant no acquisition, start or approval. */
@@ -125,10 +128,12 @@ export function issuePreparedEffectRunMaterials(allowed: AllowedEffectRun,
 export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
   compilation: EffectCompilation; allowed: AllowedEffectRun;
   definition: RunDefinition; request?: RequestIdentity}>;
+/** definitionCid and expectedRequest must come from trusted original durable
+ * context, independently of candidate wire. This is not current authorization. */
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
   profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
     sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>,
-  original?: IssuedEffectRunMaterials): RestoredEffectRun;
+  original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity): RestoredEffectRun;
 /** Requires the exact admitted material object; does not grant approval. */
 export function restoreEffectRunNormalization(materials: RestoredEffectRun): RunEvidence;
 /** Original saved policy lifetime, not current Host authority or approval. */

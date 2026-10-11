@@ -14,6 +14,9 @@ pub fn issue_prepared_client_effect_run_materials(
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
   }
+  if allowed.compilation.normalization_profile && normalization is None {
+    return Err(Normalization(MissingOriginalJournal))
+  }
   let normalization_wire = match normalization {
     None => None
     Some(original) =>
@@ -39,6 +42,22 @@ pub fn issue_prepared_client_effect_run_materials(
       }
     }
   }
+  encode_prepared_client_effect_materials(
+    allowed, definition, request_wire, normalization_wire,
+  )
+}
+
+///|
+/// The shared bounded projection codec is also used to verify canonical
+/// material bytes after original Run admission. It does not issue a journal,
+/// authorization, invocation or Run and has no replacement authoring inputs.
+fn encode_prepared_client_effect_materials(
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  request_wire : String?,
+  normalization_wire : String?,
+) -> Result[String, ClientEffectRunMaterialsIssue] {
+  let prepared = client_effect_compilation_owner(allowed.compilation)
   let (program, parameters, environment) = try {
     let source_writer = @encode.writer(65536, 8192, 64)
     @syntax.emit_program_source(prepared.source, source_writer)

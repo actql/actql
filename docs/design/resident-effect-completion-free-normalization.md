@@ -121,14 +121,53 @@ The admitted custody retains the original issuance projection as well as the
 restored execution Owner. Restoration verifies both before admitting saved
 journal bytes; it does not issue, prepare or compile a replacement.
 
-This projection is process-local. No cross-process trusted original-material
-binding is installed by this API, and the existing poll envelope does not sign
-arbitrary appended material bytes. A digest or self-described receipt cannot
-replace that missing provenance. Native admission of journal-bearing materials
-without the original projection therefore fails closed; public remote Effect
-restoration remains unconnected pending a verified existing Owner binding.
-The existing initial execution-material admission still prepares/compiles its
-saved execution input once; this change does not establish a compiler snapshot.
+The nominal issuance projection is process-local. It cannot be serialized as a
+transport credential. The existing poll envelope does not sign arbitrary
+material bytes; a digest or self-described receipt cannot replace provenance.
+
+## Original Run-bound finite profile
+
+For a completion-free Run that must restore across processes, explicitly pass
+the original normalization projection to `issue_prepared_client_effect_compilation`
+before issuing the allowed Run. The compiler verifies the exact original
+preparation and inventory, then includes the existing frozen catalog under
+`actql-resident-effect-completion-free/0.1` in the Bound Invocation Template and
+compiled plan's `required_profile_contracts`. The saved invocation and Run
+identity transitively bind that selection. The runtime package exposes this
+selection as `compileEffect(prepared, {normalizationProfile: 'completion-free'})`.
+It does not infer the profile from Program shape or silently retry another one.
+
+At execution-material admission, a journal-bearing wire without a local issuance
+projection selects this profile only provisionally. The actual checked inventory,
+saved invocation, saved authorization and independently selected original Run CID
+must match. A fixed empty journal appended to a Run compiled without that profile
+fails: it cannot change that original Run identity. The canonical fixed journal
+is admitted without issuing another journal. Profile-bearing issuance refuses
+if the original journal is omitted.
+
+The Run CID does not bind a logical caller request. Wire-only profile restoration
+also compares the admitted request with `expected_request`, selected independently
+from the original durable Host/journal context. Absence is compared as well; a
+candidate cannot add, omit or substitute another request from the same Program.
+The runtime package accepts that existing typed request as the fifth argument of
+`admitEffectRunMaterials`. Choosing either expected identity from candidate wire
+would violate this API's trusted caller boundary. These identities are not
+current authorization, Site delegation, an approval or a mutation permit.
+
+After those checks, the existing bounded projection codec verifies the entire
+canonical material wire. The admitted custody retains the verified compilation,
+original Run/request, journal bytes and a correlation digest. No issuance cache,
+new trust root, signature scheme or cleanup ledger is introduced. Restoring the
+journal from that custody performs no preparation, compilation or issuance.
+The existing initial execution-material admission still reconstructs execution
+ownership once; this is not a serializable compiler snapshot or a claim of
+no-repreparation for the whole execution path.
+
+The production Native/Cloud caller must connect the independently retained Run
+and request context before using this wire-only entry. This common/runtime
+connection alone does not prove that trusted transport, physical Native review,
+approval, Provider execution or public Cloud Effect is installed. Previously
+issued Runs do not acquire the new profile or a new identity during recovery.
 
 `prepare_native_resident_effect_review_from_original_materials` obtains this
 journal from the actual holder context's material Owner before calling the
