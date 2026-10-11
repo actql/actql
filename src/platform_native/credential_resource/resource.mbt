@@ -10,6 +10,7 @@ pub(all) enum NativeCredentialResourceIssue {
   Transport(@http.NativeHttpIssue)
   TrustedClockRollback
   TerminalRecordFailed(String, @sqlite.NativeSqliteIssue)
+  RawObservation(@publication.NativePublicationStoreIssue)
 }
 
 ///|
@@ -91,6 +92,7 @@ struct NativeCredentialResourceService {
   preparation_installations : Array[
     NativeLocalPreparationCredentialInstallation,
   ]
+  preparation_raw_store : NativeLocalPreparationRawStore?
   clock : () -> Int64
 }
 
@@ -359,6 +361,7 @@ fn install_native_credential_resource_service_with_clock(
   preparation_installations? : Array[
     NativeLocalPreparationCredentialInstallation,
   ] = [],
+  preparation_raw_store? : NativeLocalPreparationRawStore? = None,
 ) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue] {
   if operations.is_empty() ||
     operations.any(operation => !valid_operation(operation)) {
@@ -380,6 +383,7 @@ fn install_native_credential_resource_service_with_clock(
     authorize_local,
     authorize_preparation,
     preparation_installations: preparation_installations.map(value => value),
+    preparation_raw_store,
     clock,
   })
 }
@@ -557,8 +561,10 @@ fn call_native_credential_resource_owned_scope(
     return Err(AccessDenied)
   }
   let preparation_file = preparation_installation_for(service, scope)
-  if scope is PreparationScope(_) && preparation_file is None {
-    return Err(AccessDenied)
+  if scope is PreparationScope(_) {
+    if preparation_file is None {
+      return Err(AccessDenied)
+    }
   }
   // Isolate the bytes from caller mutation during authorization callbacks.
   let saved_body = Bytes::from_array(body.to_array())
@@ -607,6 +613,11 @@ fn call_native_credential_resource_owned_scope(
   }
   if current is Some(check) && !check() {
     return Err(AccessDenied)
+  }
+  // The preparation profile has no unretained-response fallback. This check
+  // follows current authorization but precedes ordinal claim and physical I/O.
+  if scope is PreparationScope(_) && service.preparation_raw_store is None {
+    return Err(InvalidConfiguration)
   }
   let ordinal = match
     service.database.claim_ordinal_action(
@@ -661,6 +672,17 @@ fn call_native_credential_resource_owned_scope(
       return Err(UseAlreadyClaimed)
     }
     Err(issue) => return Err(Journal(issue))
+  }
+  let raw_custody = match
+    prepare_original_raw_custody(service, grant, credential_use) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if raw_custody is Some(custody) {
+    match custody.reserve() {
+      Ok(_) => ()
+      Err(issue) => return Err(RawObservation(issue))
+    }
   }
   let send_time = match observe_trusted_clock(service) {
     Ok(value) => value
@@ -751,6 +773,22 @@ fn call_native_credential_resource_owned_scope(
         Err(other) => return Err(other)
       }
   }
+  if raw_custody is Some(custody) {
+    // Even non2xx and unadmitted Catalog bytes are retained before terminal
+    // outcome/ACK. A save or readback failure keeps this original use claimed;
+    // subsequent entry cannot allocate another ordinal or repeat the GET.
+    match custody.persist(response.status, response.body) {
+      Ok(_) => ()
+      Err(issue) => return Err(RawObservation(issue))
+    }
+    match custody.confirm() {
+      Ok(original) if original.use_cid == use_cid &&
+        original.status == response.status &&
+        original.body == response.body => ()
+      Ok(_) => return Err(RawObservation(@publication.StateCollision))
+      Err(issue) => return Err(RawObservation(issue))
+    }
+  }
   if response.status < 200 || response.status >= 300 {
     match
       persist_outcome(
@@ -760,7 +798,16 @@ fn call_native_credential_resource_owned_scope(
         "failed",
         Some(response.status),
       ) {
-      Ok(_) =>
+      Ok(_) => {
+        if raw_custody is Some(_) {
+          match
+            authorize_original_raw_return(
+              service, grant, credential_use, scope, current,
+            ) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+        }
         return if verb == @http.Get {
           Err(ResourceRejected(response.status))
         } else {
@@ -768,6 +815,7 @@ fn call_native_credential_resource_owned_scope(
           // HTTP rejection is not itself a semantic Effect outcome.
           Ok({ use_cid, status: response.status, body: response.body, })
         }
+      }
       Err(Journal(issue)) => return Err(TerminalRecordFailed("failed", issue))
       Err(other) => return Err(other)
     }
@@ -783,6 +831,15 @@ fn call_native_credential_resource_owned_scope(
     Err(Journal(issue)) => return Err(TerminalRecordFailed("succeeded", issue))
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if raw_custody is Some(_) {
+    match
+      authorize_original_raw_return(
+        service, grant, credential_use, scope, current,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   Ok({ use_cid, status: response.status, body: response.body, })
 }
