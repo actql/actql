@@ -37,6 +37,7 @@ fn native_client_effect_fixture_run(
   preparation : NativeClientSubmittedPreparation,
   reference : NativeClientSubmissionReference,
   run_id : String,
+  scope? : String = "sha256:" + "a".repeat(64),
 ) -> (
   @host.ClientRequestIdentity,
   @host.ClientEffectAllowedRun,
@@ -64,7 +65,7 @@ fn native_client_effect_fixture_run(
   ).unwrap()
   let allowed = @host.issue_client_effect_allowed_run(
     compilation,
-    "sha256:" + "a".repeat(64),
+    scope,
     "sha256:" + "b".repeat(64),
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
@@ -73,7 +74,7 @@ fn native_client_effect_fixture_run(
   ).unwrap()
   let request = @host.prepare_client_effect_request_identity(
     prepared,
-    "sha256:" + "a".repeat(64),
+    scope,
     reference.request_id,
     @host.source_free_caller_input_intent_cid(),
   ).unwrap()
