@@ -483,6 +483,7 @@ pub(all) struct SetPart {
 
 pub(all) enum SgaArgument {
   Producer(NamePart)
+  FieldReference(Array[NamePart])
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
