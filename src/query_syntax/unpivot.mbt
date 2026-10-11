@@ -43,13 +43,11 @@ fn QueryParser::unpivot_clause(
       match node.kind {
         StringLiteral(value) => Some(TextLabel(value))
         Number(value) => {
-          for index in 0..<value.length() {
-            if value[index] < '0' || value[index] > '9' {
-              raise QueryAbort(
-                "UNPIVOT row alias requires a String or integer literal",
-                node.start,
-              )
-            }
+          guard exact_integer_literal(value) is Some(_) else {
+            raise QueryAbort(
+              "UNPIVOT row alias requires a String or integer literal",
+              node.start,
+            )
           }
           Some(IntegerLabel(value))
         }

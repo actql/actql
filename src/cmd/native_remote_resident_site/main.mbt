@@ -2645,11 +2645,11 @@ fn serve_holder_output(
   effect_producer? : @resident_host.ResidentEffectProducerExecuted? = None,
   // Independent operator installation remains a separate entry. A missing
   // installation refuses evidence access instead of adopting poll policy.
-  effect_review_policy? : (HolderEffectOriginalPolicyContext) -> @effect_review.NativeResidentEffectReviewPolicy? = _ => {
+  effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody? = _ => {
     None
   },
   effect_evidence_read? : (@remote.DispatchRequest) -> Bool = _ => false,
-  effect_review_publication? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication? = _ => {
+  effect_review_publication? : (@remote.DispatchRequest) -> HolderEffectReviewPublication? = _ => {
     None
   },
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
@@ -2758,7 +2758,7 @@ fn serve_holder_output(
                 tasks,
                 environment.journal,
                 resources,
-                effect_review_policy,
+                effect_catalog_review,
                 effect_review_publication,
                 current_authority,
               ),
@@ -3057,7 +3057,7 @@ fn serve_holder_output(
                             tasks,
                             environment.journal,
                             resources,
-                            effect_review_policy,
+                            effect_catalog_review,
                             effect_review_publication,
                             () => {
                               exclusive_current() &&

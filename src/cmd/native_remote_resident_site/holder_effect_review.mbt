@@ -1,73 +1,4 @@
 ///|
-/// Independently installed typed Provider configuration is never a projection
-/// of a poll or candidate materials. Preparation joins completed holders and
-/// their journal through existing Original, capture and normalization Owners.
-fn prepare_holder_effect_review(
-  task : HolderTaskCustody,
-  tasks : Map[String, HolderTaskCustody],
-  journal : @journal.Journal,
-  policy : @effect_review.NativeResidentEffectReviewPolicy,
-) -> Bool {
-  if task.released || task.release_requested {
-    return false
-  }
-  // A replay retains the same owner. It cannot refresh policy or replace
-  // original inputs, and this projection grants no write authority.
-  if task.effect_review is Some(_) {
-    return true
-  }
-  if task.effect_review_cleanup is Some(pending) {
-    if !pending.close() {
-      return false
-    }
-    task.effect_review_cleanup = None
-  }
-  guard task.consumer is Some(consumer) &&
-    task.producer_identity is Some(identity) &&
-    tasks.get(identity) is Some(producer) &&
-    !producer.released &&
-    producer.effect_producer is Some(original) else {
-    return false
-  }
-  let context = match
-    consumer.prepare_effect_review_inputs(
-      journal,
-      original,
-      journal,
-      policy.stage,
-      0,
-      policy.retention,
-      policy.export_limits,
-      // The existing finite one-Source/two-task capture fixture uses this
-      // connection budget. It is not a language-level Run-count restriction.
-      4,
-      policy.max_work,
-      policy.preview_limits.max_wire_bytes,
-      policy.preview_limits.max_nodes,
-      policy.preview_limits.max_depth,
-    ) {
-    Ok(value) => value
-    Err(failure) => {
-      task.effect_review_cleanup = failure.pending
-      return false
-    }
-  }
-  match
-    @effect_review.prepare_native_resident_effect_review_from_original_materials(
-      consumer, journal, context, policy,
-    ) {
-    Ok(review) => {
-      task.effect_review = Some(review)
-      true
-    }
-    Err(failure) => {
-      task.effect_review_cleanup = failure.pending
-      false
-    }
-  }
-}
-
-///|
 /// Cleanup failure preserves the exact existing owner for retry. Neither an
 /// input close nor a Review close is formal dispatch cleanup or release.
 fn close_holder_effect_review(task : HolderTaskCustody) -> Bool {
@@ -83,16 +14,62 @@ fn close_holder_effect_review(task : HolderTaskCustody) -> Bool {
     }
     task.effect_review_cleanup = None
   }
+  if task.effect_catalog_review is Some(catalog) {
+    if !catalog.close() {
+      return false
+    }
+    task.effect_catalog_review = None
+  }
   true
 }
 
 ///|
-/// Publish only the exact live task's prepared Review. A pending Store write,
-/// typed ACK or artifact upload retains this Owner for explicit retry; it is
-/// neither ordinary Output success nor approval or dispatch cleanup.
+/// Independent Host checkpoint parameters. The artifact destination is not an
+/// input: it is selected after the original Owner has issued a saved report.
+priv struct HolderEffectReviewPublication {
+  crypto : @signature.Library
+  key : Bytes
+  checkpoint_id : String
+  created_at : String
+  expires_at : String
+  limits : @checkpoint.WireLimits
+  current : () -> Bool
+  access : (Int, @effect_catalog.SingleWriteRequest) -> Result[
+    @effect_review.NativeSalesforceTargetAccess,
+    @effect_review.NativeSalesforcePreviewIssue,
+  ]
+}
+
+///|
+/// Use the same configured Site/generation route as observations. Only a
+/// sealed Checkpoint from the original report supplies the final path member;
+/// no candidate URL, future checkpoint identity or new hash is accepted.
+fn holder_effect_review_artifact_url(
+  observation_url : String,
+  checkpoint : @checkpoint.SealedCheckpoint,
+) -> String? {
+  let suffix = "/outbound/observations"
+  if !observation_url.has_prefix("https://") ||
+    !observation_url.has_suffix(suffix) {
+    return None
+  }
+  Some(
+    observation_url.unsafe_substring(
+      start=0,
+      end=observation_url.length() - suffix.length(),
+    ) +
+    "/effect-reviews/" +
+    checkpoint.checkpoint_cid,
+  )
+}
+
+///|
+/// Publish only the exact live task's prepared Review. Prepare/save precedes
+/// route selection. The existing upload Owner confirms the original typed ACK
+/// before sending artifact bytes; each failure keeps the same Review custody.
 fn publish_holder_effect_review(
   task : HolderTaskCustody,
-  configuration : @effect_review.NativeResidentEffectReviewPublication,
+  configuration : HolderEffectReviewPublication,
   resources : HolderOutputResources,
   authorize_evidence_read : () -> Bool,
 ) -> Bool {
@@ -103,14 +80,54 @@ fn publish_holder_effect_review(
     @remote.dispatch_request_identity(task.request) else {
     return false
   }
-  match
-    review.publish_review(
-      resources.store,
-      resources.control,
-      configuration,
-      authorize_evidence_read,
-    ) {
-    Ok(original) => {
+  let current = () => {
+    !task.released &&
+    !task.release_requested &&
+    authorize_evidence_read() &&
+    (configuration.current)()
+  }
+  let original = (fn() -> @remote.RemoteEffectCheckpointReport? {
+    guard current() else { return None }
+    guard review.observe(configuration.access) is Ok(_) && current() else {
+      return None
+    }
+    let original = match
+      review.persist_and_retain_report(
+        resources.store,
+        configuration.crypto,
+        configuration.key,
+        configuration.checkpoint_id,
+        configuration.created_at,
+        configuration.expires_at,
+        configuration.limits,
+      ) {
+      Ok(original) => original
+      Err(_) => return None
+    }
+    // Select the route only after the original Owner has issued and retained
+    // its report. A failed current check leaves all custody with that Owner.
+    guard current() &&
+      holder_effect_review_artifact_url(
+        resources.observation_url,
+        @remote.remote_effect_checkpoint_report_checkpoint(original),
+      )
+      is Some(artifact_url) &&
+      current() else {
+      return None
+    }
+    guard review.upload_review_projection(
+        resources.control,
+        resources.observation_url,
+        artifact_url,
+        current,
+      )
+      is Ok(_) else {
+      return None
+    }
+    Some(original)
+  })()
+  match original {
+    Some(original) => {
       report("effect-review-reported", [
         ("request_cid", review.dispatch_identity()),
         (
@@ -120,7 +137,7 @@ fn publish_holder_effect_review(
       ])
       true
     }
-    Err(_) => {
+    None => {
       report("effect-review-pending", [
         ("request_cid", review.dispatch_identity()),
         ("reason", "original-custody"),
@@ -139,8 +156,8 @@ fn drive_holder_effect_review(
   tasks : Map[String, HolderTaskCustody],
   journal : @journal.Journal,
   resources : HolderOutputResources,
-  policy : (HolderEffectOriginalPolicyContext) -> @effect_review.NativeResidentEffectReviewPolicy?,
-  publication : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication?,
+  installation : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody?,
+  publication : (@remote.DispatchRequest) -> HolderEffectReviewPublication?,
   authorize_evidence_read : () -> Bool,
 ) -> Bool {
   guard !task.released &&
@@ -155,31 +172,16 @@ fn drive_holder_effect_review(
       is Some(original) else {
       return false
     }
-    guard holder_effect_policy_read_current(
-        () => authorize_evidence_read() && original.current(),
-        () => policy(original),
-      )
-      is Some(installed) else {
-      return false
+    if task.effect_catalog_review is None {
+      // Retain acquired handles even when authority changes during setup.
+      // Refusing adoption cannot abandon the installation's cleanup owner.
+      guard installation(original) is Some(installed) else { return false }
+      task.effect_catalog_review = Some(installed)
     }
-    guard original.invocation(
-        installed.preview_limits.max_wire_bytes,
-        installed.preview_limits.max_nodes,
-        installed.preview_limits.max_depth,
-      )
-      is Some((_, invocation)) &&
-      @effect_catalog.catalog_observation_matches_binding(installed.catalog, {
-        ..installed.catalog.binding,
-        run_invocation_cid: @publication.publication_contract_identity(
-          invocation,
-        ),
-        dispatch_request_cid: @remote.dispatch_request_identity(task.request),
-      }) &&
-      authorize_evidence_read() &&
-      original.current() else {
-      return false
-    }
-    if !prepare_holder_effect_review(task, tasks, journal, installed) {
+    guard task.effect_catalog_review is Some(installed) &&
+      prepare_holder_effect_catalog_review(
+        task, original, journal, resources, installed, authorize_evidence_read,
+      ) else {
       report("effect-review-pending", [
         ("request_cid", @remote.dispatch_request_identity(task.request)),
         ("reason", "original-custody"),
