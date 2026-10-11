@@ -619,7 +619,7 @@ fn selected_relation(
 }
 
 ///|
-// DATA/CTE producer aliases and published relation paths retain their
+// WITH producer aliases and published relation paths retain their
 // respective rules at every query and constructor entry.
 fn input_relation_matches(
   relation : Array[@query.NamePart],
