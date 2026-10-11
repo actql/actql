@@ -1,0 +1,18 @@
+{
+  "version": "actql-config/0.1",
+  "native": {
+    "result_read": {
+      "enabled": true,
+      "principal": "operator",
+      "connection": "cli",
+      "result_names": ["answer"],
+      "formats": ["jsonl"],
+      "purpose": "inspection",
+      "sink": "stdout",
+      "data_policy_cids": ["sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf"],
+      "max_bytes": 65536,
+      "max_uses": 1,
+      "expires_at": "2099-01-01T00:00:00.000Z"
+    }
+  }
+}
