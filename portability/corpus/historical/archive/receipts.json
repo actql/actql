@@ -1,0 +1,92 @@
+{
+  "portability/corpus/historical/pre-finite-math-contract-identities.json": {
+    "raw_sha256": "8d7743e39ad1e6be8cc0cddc7b26c12fb1543b68dd83c51f1f7f4de6d3ddfed3",
+    "raw_bytes": 3047927,
+    "canonical_sha256": "c8909a0bcfe12a9c36a98143620c4c9e260d3ef2a40b0300298ef695584adf9c",
+    "canonical_bytes": 777593
+  },
+  "portability/corpus/historical/pre-finite-math-preimages.json": {
+    "raw_sha256": "fa5437cafdbde6452b202c19acefdfaa9089dfddcfc24a79bd572ec476562f00",
+    "raw_bytes": 334540,
+    "canonical_sha256": "6e493bab7d787593c1c1c4a43814c28afabd375e4d0aca7296fc93f4a294080d",
+    "canonical_bytes": 159965
+  },
+  "portability/corpus/historical/pre-number-extrema-contract-identities.json": {
+    "raw_sha256": "05aec95bbdac410bee530daee540b1bcca89af6967ce551c471b74b161c1cc1c",
+    "raw_bytes": 3075946,
+    "canonical_sha256": "99353f2faf9e58e371012de8ec1fbf5df3fb198e99ce63d99127f368b28dd53e",
+    "canonical_bytes": 791611
+  },
+  "portability/corpus/historical/pre-number-extrema-preimages.json": {
+    "raw_sha256": "91414d99f02d549c4a42219aa2a10e8219179fb6bc92a5cc8a9d630b535c8d65",
+    "raw_bytes": 334543,
+    "canonical_sha256": "24fd1a20cd85056c949e2ecb4b27183824e05c18443376f2ed0876706fcd288d",
+    "canonical_bytes": 159968
+  },
+  "portability/corpus/historical/pre-pad-sides-contract-identities.json": {
+    "raw_sha256": "01ab43e4d5f65affdd0c284801226b278f4e682938e2697afc0ae780e04dcdcf",
+    "raw_bytes": 3088160,
+    "canonical_sha256": "f6464dc5b379788f1b6a7e278aa0cfd759e1b24bc6aed4d18d53cadddd5c842f",
+    "canonical_bytes": 797443
+  },
+  "portability/corpus/historical/pre-pad-sides-preimages.json": {
+    "raw_sha256": "3be01dea42d783de503f202c27e6f59640e2fda6c7e5209858c7a15312d6a001",
+    "raw_bytes": 334538,
+    "canonical_sha256": "cce60eda97ffbc7a4dda7c36c2b44724d787557bc63d1de659f9452651072646",
+    "canonical_bytes": 159963
+  },
+  "portability/corpus/historical/pre-split-contract-identities.json": {
+    "raw_sha256": "7e8d98b7cf1cb214b655772794770c47af344cc4a2e44bdd34a0e81b2c096808",
+    "raw_bytes": 3115079,
+    "canonical_sha256": "f8c539dd5608c46bbcb985e8e90fb692958dcbcfa71df1517dc24936a4e02e35",
+    "canonical_bytes": 810798
+  },
+  "portability/corpus/historical/pre-split-preimages.json": {
+    "raw_sha256": "0bce8d255df69728bd26ca5c2be8ee14e5ed241af83aa9d0c395108dc1daa788",
+    "raw_bytes": 334534,
+    "canonical_sha256": "012abae7ae2ed6d90b2e43eb3355f88dca2828d9c12d99267ccef19482a27055",
+    "canonical_bytes": 159959
+  },
+  "portability/corpus/historical/pre-unicode-scalars-contract-identities.json": {
+    "raw_sha256": "0b6e70b0ecace90aab86769a33f1fcc7f4cd23bf12456c6d0bce31a09c592453",
+    "raw_bytes": 3123223,
+    "canonical_sha256": "6692b77da7953ebc3a9cc9133000317ffd825ec447161b2b3a6fd667d1f23211",
+    "canonical_bytes": 815523
+  },
+  "portability/corpus/historical/pre-unicode-scalars-preimages.json": {
+    "raw_sha256": "8c4581f6b3ed06ff2243f01dfb346153936ee6222c050a94d21a2b6790a90336",
+    "raw_bytes": 334544,
+    "canonical_sha256": "714af6f712a7485a810bcef3fca556f222da8199ae799884b1f345a73d387d34",
+    "canonical_bytes": 159969
+  },
+  "scripts/fixtures/pre-finite-math-values-identities.json": {
+    "raw_sha256": "c2add7cea3f9fb8c574bcb74ba9c109752501bb04df69b56902b67545dfedfaa",
+    "raw_bytes": 25586,
+    "canonical_sha256": "48ed34e2debe626f548d3dd6ed5e1697524217fd310fc44267b5d8dc99893326",
+    "canonical_bytes": 18118
+  },
+  "scripts/fixtures/pre-number-extrema-values-identities.json": {
+    "raw_sha256": "cec98370d566057a631b96180f87745516a45cc310938f4f7c10fbd023719e7e",
+    "raw_bytes": 25600,
+    "canonical_sha256": "607a2dc800e4e749fbe62a5895b312819f29585266c1d4fc2ff6a5fa83125c7e",
+    "canonical_bytes": 18128
+  },
+  "scripts/fixtures/pre-pad-sides-values-identities.json": {
+    "raw_sha256": "72a690c76f286ca97c93e57c4d6121127caa980070a3dfd99d81886ecabfbe3c",
+    "raw_bytes": 25590,
+    "canonical_sha256": "3a27a675623f8e1631e065875914bc07d799157586b1c601e9943d03d1a8d12b",
+    "canonical_bytes": 18118
+  },
+  "scripts/fixtures/pre-split-values-identities.json": {
+    "raw_sha256": "44ff18daaf767832c6e8902a93d0a34fe473eb2adaa3a77621d360043da00ebf",
+    "raw_bytes": 25582,
+    "canonical_sha256": "0ba72368ac4788e88998e206f1388f3d0c37923ca0fd2675834be5390e14ad14",
+    "canonical_bytes": 18110
+  },
+  "scripts/fixtures/pre-unicode-scalars-values-identities.json": {
+    "raw_sha256": "5c52c20a264b7c01402cc95893cc28c66a11fee06346deb572fc0b55decda706",
+    "raw_bytes": 25602,
+    "canonical_sha256": "c999055162696a5939cfb32953d6bf47fd639afa194668936b6b2f8b921c1e64",
+    "canonical_bytes": 18130
+  }
+}
