@@ -401,6 +401,106 @@ test "expression corpus accepted: 80" {
 }
 
 ///|
+test "expression corpus accepted: 81" {
+  assert_tree("round(x,y)", "{\"round\":[{\"field\":\"x\"},{\"field\":\"y\"}]}")
+}
+
+///|
+test "expression corpus accepted: 82" {
+  assert_tree("round(x,2)", "{\"round\":[{\"field\":\"x\"},{\"literal\":2}]}")
+}
+
+///|
+test "expression corpus accepted: 83" {
+  assert_tree("round($value,$digits)", "{\"round\":[{\"$param\":\"value\"},{\"$param\":\"digits\"}]}")
+}
+
+///|
+test "expression corpus accepted: 84" {
+  assert_tree("round(x,$digits + 1)", "{\"round\":[{\"field\":\"x\"},{\"add\":[{\"$param\":\"digits\"},{\"literal\":1}]}]}")
+}
+
+///|
+test "expression corpus accepted: 85" {
+  assert_tree("round(-1.25,-1)", "{\"round\":[{\"literal\":-1.25},{\"literal\":-1}]}")
+}
+
+///|
+test "expression corpus accepted: 86" {
+  assert_tree("round(1.25,0)", "{\"round\":[{\"literal\":1.25},{\"literal\":0}]}")
+}
+
+///|
+test "expression corpus accepted: 87" {
+  assert_tree("round(1.25,1.5)", "{\"round\":[{\"literal\":1.25},{\"literal\":1.5}]}")
+}
+
+///|
+test "expression corpus accepted: 88" {
+  assert_tree("round(NULL,2)", "{\"round\":[{\"literal\":null},{\"literal\":2}]}")
+}
+
+///|
+test "expression corpus accepted: 89" {
+  assert_tree("round(1,NULL)", "{\"round\":[{\"literal\":1},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 90" {
+  assert_tree("round(NULL,NULL)", "{\"round\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 91" {
+  assert_tree("trunc(x,y)", "{\"trunc\":[{\"field\":\"x\"},{\"field\":\"y\"}]}")
+}
+
+///|
+test "expression corpus accepted: 92" {
+  assert_tree("trunc(x,2)", "{\"trunc\":[{\"field\":\"x\"},{\"literal\":2}]}")
+}
+
+///|
+test "expression corpus accepted: 93" {
+  assert_tree("trunc($value,$digits)", "{\"trunc\":[{\"$param\":\"value\"},{\"$param\":\"digits\"}]}")
+}
+
+///|
+test "expression corpus accepted: 94" {
+  assert_tree("trunc(x,$digits + 1)", "{\"trunc\":[{\"field\":\"x\"},{\"add\":[{\"$param\":\"digits\"},{\"literal\":1}]}]}")
+}
+
+///|
+test "expression corpus accepted: 95" {
+  assert_tree("trunc(-1.25,-1)", "{\"trunc\":[{\"literal\":-1.25},{\"literal\":-1}]}")
+}
+
+///|
+test "expression corpus accepted: 96" {
+  assert_tree("trunc(1.25,0)", "{\"trunc\":[{\"literal\":1.25},{\"literal\":0}]}")
+}
+
+///|
+test "expression corpus accepted: 97" {
+  assert_tree("trunc(1.25,1.5)", "{\"trunc\":[{\"literal\":1.25},{\"literal\":1.5}]}")
+}
+
+///|
+test "expression corpus accepted: 98" {
+  assert_tree("trunc(NULL,2)", "{\"trunc\":[{\"literal\":null},{\"literal\":2}]}")
+}
+
+///|
+test "expression corpus accepted: 99" {
+  assert_tree("trunc(1,NULL)", "{\"trunc\":[{\"literal\":1},{\"literal\":null}]}")
+}
+
+///|
+test "expression corpus accepted: 100" {
+  assert_tree("trunc(NULL,NULL)", "{\"trunc\":[{\"literal\":null},{\"literal\":null}]}")
+}
+
+///|
 test "expression corpus rejected: 1" {
   assert_true(parse("x IS NULL.c", test_limits()) is Err(_))
 }
@@ -637,50 +737,70 @@ test "expression corpus rejected: 47" {
 
 ///|
 test "expression corpus rejected: 48" {
-  assert_true(parse("round(x,y)", test_limits()) is Err(_))
-}
-
-///|
-test "expression corpus rejected: 49" {
-  assert_true(parse("trunc(x,y)", test_limits()) is Err(_))
-}
-
-///|
-test "expression corpus rejected: 50" {
   assert_true(parse("ltrim()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 51" {
+test "expression corpus rejected: 49" {
   assert_true(parse("ltrim(s,' ',s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 52" {
+test "expression corpus rejected: 50" {
   assert_true(parse("LTRIM(s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 53" {
+test "expression corpus rejected: 51" {
   assert_true(parse("rtrim()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 54" {
+test "expression corpus rejected: 52" {
   assert_true(parse("rtrim(s,' ',s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 55" {
+test "expression corpus rejected: 53" {
   assert_true(parse("RTRIM(s)", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 56" {
+test "expression corpus rejected: 54" {
   assert_true(parse("trim()", test_limits()) is Err(_))
 }
 
 ///|
-test "expression corpus rejected: 57" {
+test "expression corpus rejected: 55" {
   assert_true(parse("trim(s,' ',s)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 56" {
+  assert_true(parse("round(x,2,'ROUND_HALF_EVEN')", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 57" {
+  assert_true(parse("round(x,2,3)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 58" {
+  assert_true(parse("round(x,)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 59" {
+  assert_true(parse("trunc(x,2,'ROUND_HALF_EVEN')", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 60" {
+  assert_true(parse("trunc(x,2,3)", test_limits()) is Err(_))
+}
+
+///|
+test "expression corpus rejected: 61" {
+  assert_true(parse("trunc(x,)", test_limits()) is Err(_))
 }
