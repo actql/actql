@@ -428,7 +428,12 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(beforeAsBody, {...beforeSetBody,
     query_text_grammar_sha256: 'd81bb2648d3c74bba4fcad4e5243e25572c63b392195cb152552f0dbff34e148',
     query_text_rules_sha256: 'e2db699ca728c632a34e1e4686a492a5570760c718e10e58b7e9d49bcb3648d9'});
-  const currentExpected = 'sha256:b88867a4416267a08d51e0e6e8b0b6f415ca9479d2be647ded3dd701e07e24c7';
+  // Retain the former fixed body under its own historical closure.
+  const oldFixed = read('scripts/fixtures/pre-zero-rows-boundary-values-identities.json').grammar;
+  const {grammar_manifest_cid: oldFixedCid, ...oldFixedBody} = oldFixed;
+  assert.equal(oldFixedCid, 'sha256:b88867a4416267a08d51e0e6e8b0b6f415ca9479d2be647ded3dd701e07e24c7');
+  assert.equal(cid(oldFixedBody), oldFixedCid);
+  const currentExpected = 'sha256:c74b336ae4363e26b12e7af399b46791ce463755f66e47f12f557d1e7e72eab8';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
