@@ -282,6 +282,7 @@ class ReaderFactsTests(unittest.TestCase):
                             return -35 if outcome == 'denied' else -36
                     return code
                 core._call = call
+                facts.validate()
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     original = self.original(store)
                     expected = LocalFileError if outcome == 'mutate' else (asyncio.CancelledError if outcome == 'cancel' else LocalCoreError)
