@@ -2628,8 +2628,10 @@ fn QueryParser::pipe(
     ) {
     self.keyword("GRAPH")
     let relation = self.resolve_producer(self.path())
-    let label_field = self.graph_labels()
-    graph = Some({ label_field, pattern: None, })
+    if self.has("LABELS") {
+      raise QueryAbort("Graph LABELS annotation is retired", self.peek().start)
+    }
+    graph = Some({ pattern: None, })
     (relation, None, [], false)
   } else if self.has("UNNEST") {
     operations.push(self.unnest_source())
@@ -2781,21 +2783,16 @@ fn QueryParser::pipe_tail(
       match graph {
         Some(current) if current.pattern is None => {
           let pattern = self.graph_match()
-          // Syntax preserves a label. Its owner is resolved by lowering:
-          // graphs carry label membership themselves; the legacy
-          // property-mapping profile requires its explicit annotation.
-          graph = Some({ ..current, pattern: Some(pattern), })
+          // The resolved Graph owns label membership, independently of
+          // ordinary property values and optional FROM GRAPH spelling.
+          graph = Some({ pattern: Some(pattern), })
         }
         Some(_) =>
           raise QueryAbort(
             "GRAPH_PATTERN_UNSUPPORTED_SHAPE: a second MATCH needs a separate Graph input",
             self.peek().start,
           )
-        None =>
-          raise QueryAbort(
-            "GRAPH_PATTERN_GRAPH_SOURCE_REQUIRED",
-            self.peek().start,
-          )
+        None => graph = Some({ pattern: Some(self.graph_match()), })
       }
     } else if self.has("UNION") ||
       self.has("INTERSECT") ||

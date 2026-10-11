@@ -81,7 +81,26 @@ test "public SQL and Text reject retired Graph LABELS before preparation" {
         format,
         Some(test_context()),
       )
-      is Err(QuerySyntax({ issue: @syntax.Syntax("Graph LABELS annotation is retired"), .. })),
+      is Err(
+        QuerySyntax(
+          { issue: @syntax.Syntax("Graph LABELS annotation is retired"), .. }
+        )
+      ),
+    )
+  }
+}
+
+///|
+test "public typed Graph FROM does not admit an implicit Relation projection" {
+  let formats : Array[Format] = [Text, Sql]
+  for format in formats {
+    assert_true(
+      lower(
+        "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES))) FROM GRAPH g |> SELECT id",
+        format,
+        Some(test_context()),
+      )
+      is Err(QueryLowering(@query.UnsupportedGraph)),
     )
   }
 }

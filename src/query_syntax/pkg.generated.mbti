@@ -295,7 +295,6 @@ pub(all) enum GraphPropertySelection {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct GraphQuery {
-  label_field : String?
   pattern : GraphPattern?
 }
 
@@ -523,7 +522,6 @@ pub struct Token {
   value : Lexeme
   start : Int
   end : Int
-  annotation_compatible : Bool
 } derive(Eq, @debug.Debug)
 
 type Tokens

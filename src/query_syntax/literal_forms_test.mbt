@@ -66,7 +66,7 @@ test "literal forms reject unterminated delimiters and invalid concatenation" {
 }
 
 ///|
-test "literal chunk decoding remains bounded and annotations retain their profile" {
+test "literal chunk decoding remains bounded for raw and triple strings" {
   for source in ["r'\\n日'", "'''a\r\n😀'''", "r'''\\r'''", "'日' \"😀\""] {
     let tokens = tokenize(source, limits()).unwrap()
     let bytes = usage(tokens, LiteralBytes)
@@ -86,6 +86,6 @@ test "literal chunk decoding remains bounded and annotations retain their profil
   }
   for source in ["r\"field\"", "\"\"\"field\"\"\""] {
     let tokens = tokenize(source, limits()).unwrap()
-    assert_true(!token_at(tokens, 0).unwrap().annotation_compatible)
+    assert_eq(token_at(tokens, 0).unwrap().value, Text("field"))
   }
 }

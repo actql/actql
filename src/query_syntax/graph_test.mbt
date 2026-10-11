@@ -15,12 +15,11 @@ test "Graph LABELS property annotation is retired at the authored token" {
 ///|
 test "Graph MATCH retains source labels, mode and directed occurrences" {
   let query = parse_query(
-    "FROM GRAPH crm_graph LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH ACYCLIC (a:Account)-[e:HAS_CONTACT]->(b:Contact) |> SELECT a.name AS account_name;",
+    "FROM GRAPH crm_graph |> MATCH ACYCLIC (a:Account)-[e:HAS_CONTACT]->(b:Contact) |> SELECT a.name AS account_name;",
     query_limits(),
   ).unwrap()
   assert_eq(relation(query), [{ value: "crm_graph", quoted: false, }])
   let graph = graph_query(query).unwrap()
-  assert_eq(graph.label_field, Some("entity_type"))
   let pattern = graph.pattern.unwrap()
   assert_eq(pattern.mode, Acyclic)
   assert_eq(pattern.nodes.length(), 2)
@@ -87,7 +86,6 @@ test "Graph MATCH rejects open, repeated and unowned patterns" {
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->{1,1}(b)-[:R]->(c) |> SELECT a.id",
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[e:R]->{1,2}(b) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a)-[:R]->{2,1}(b) |> SELECT a.id",
       "FROM GRAPH g |> MATCH UNKNOWN (a) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a) |> MATCH WALK (b) |> SELECT a.id",
-      "FROM rows |> MATCH WALK (a) |> SELECT a.id", "FROM GRAPH g |> SELECT id",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
@@ -100,7 +98,6 @@ test "Graph label syntax preserves membership without choosing a property" {
     query_limits(),
   ).unwrap()
   let graph = graph_query(parsed).unwrap()
-  assert_true(graph.label_field is None)
   assert_eq(
     graph.pattern.unwrap().nodes[0].label,
     Some({ value: "Account", quoted: false, }),
@@ -179,4 +176,15 @@ test "Graph path mode defaults to WALK without changing shape or source bounds" 
     )
     is Err(_),
   )
+}
+
+///|
+test "typed Graph source and unmarked MATCH leave Carrier checks to lowering" {
+  for
+    text in [
+      "FROM GRAPH g |> SELECT id", "FROM g |> MATCH WALK (a:Node) |> SELECT a.id",
+      "FROM rows |> MATCH WALK (a:Node) |> SELECT a.id",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Ok(_), msg=text)
+  }
 }
