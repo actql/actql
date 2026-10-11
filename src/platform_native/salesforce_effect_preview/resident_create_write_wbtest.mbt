@@ -3,7 +3,7 @@
 /// requests, not a Native execution or a substitute approval/dispatch claim.
 fn resident_write_method_request(
   operation : @catalog.WriteOperation,
-) -> @catalog.SingleWriteRequest raise {
+) -> @catalog.SingleWriteRequest {
   let cid = "sha256:" + "a".repeat(64)
   let binding : @catalog.CatalogObservationBinding = {
     namespace_id: "method-test",
