@@ -88,6 +88,14 @@ pub(all) enum NativeResidentEffectCompletionIssue {
 
 type NativeResidentEffectCreatedTargets
 
+pub(all) enum NativeResidentEffectCurrentReportIssue {
+  Unavailable
+  EvidenceDenied
+  Query(@remote_site_protocol.DispatchIssue)
+  Observation(NativeResidentEffectObservationIssue)
+  Transport(@remote_client.NativeRemoteClientIssue)
+}
+
 pub struct NativeResidentEffectObservation {
   dispatch_request_cid : String
   report_cid : String
@@ -158,6 +166,7 @@ pub fn NativeResidentEffectReview::persist_and_retain_report(Self, @publication_
 pub fn NativeResidentEffectReview::prepare_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits, delivery_claim? : @checkpoint_runtime.ResumeClaim?) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_remote_approved_row(Self, String, @checkpoint_runtime.HostAuthentication, Array[@checkpoint_runtime.ReviewerAuthority], Array[NativeEffectHostAuthority], () -> Bool, () -> NativeEffectResumeObservation?, () -> String, NativeResidentEffectWriteLimits) -> Result[NativeResidentEffectApprovedRow, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::prepare_retention(Self, @signature.Library, Bytes, String, String, String, @checkpoint_runtime.WireLimits) -> Result[@remote_resident_host.ResidentEffectReviewRetention, NativeResidentEffectReviewIssue]
+pub fn NativeResidentEffectReview::report_effect_current(Self, String, @http_client.Client, String, () -> Bool, @checkpoint_runtime.WireLimits) -> Result[@remote_site_protocol.RemoteEffectCurrentReply, NativeResidentEffectCurrentReportIssue]
 pub fn NativeResidentEffectReview::restore_journal(Self, @remote_journal.Journal) -> Result[Unit, NativeResidentEffectReviewIssue]
 pub fn NativeResidentEffectReview::restore_row_custody(Self, @checkpoint_runtime.WireLimits) -> Result[@remote_journal.NativeEffectRowCustody?, NativeResidentEffectWriteIssue]
 pub fn NativeResidentEffectReview::result_capture(Self) -> @remote_resident_host.ResidentEffectResultCapture?
