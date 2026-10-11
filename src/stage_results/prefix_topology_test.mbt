@@ -171,20 +171,15 @@ test "prefix check preserves bounded accounting and actual local ownership" {
   let (_, again) = check_local_program(source, exact).unwrap()
   assert_eq(again, used)
   let short = check_local_program(source, { ..exact, max_work: used.work - 1, })
-  match short {
-    Err(BudgetExceeded | Wiring(BudgetExceeded)) => ()
-    Err(Order(1, PipelineOrder(issue))) =>
-      assert_eq(issue.kind, @pipeline.BudgetExceeded)
-    Err(LocalInput(i, _)) => fail("short work: local input \{i}")
-    Err(Import(i, _)) => fail("short work: import \{i}")
-    Err(Pipeline(i, issue)) => fail("short work: pipeline \{i} " + @debug.to_string(issue.kind))
-    Err(Collection(i, _)) => fail("short work: collection \{i}")
-    Err(Results(i, _)) => fail("short work: results \{i}")
-    Err(Order(i, _)) => fail("short work: other order \{i}")
-    Err(Ports(i, _)) => fail("short work: ports \{i}")
-    Err(TableInputs(i, _)) => fail("short work: table inputs \{i}")
-    Err(Wiring(_)) => fail("short work: other wiring")
-    Err(_) => fail("short work: other preparation issue")
-    Ok(_) => fail("one-less work must refuse")
+  // The shared closure checks each real import occurrence. One-less work
+  // exhausts the capture producer on the second consumer input, not publication.
+  guard short is Err(Order(1, ProducerOrder(issue))) else {
+    fail("one-less work must refuse the actual captured producer closure")
   }
+  assert_eq(issue.issue.kind, @pipeline.BudgetExceeded)
+  let capture = topology_stage_at(topology, 0).unwrap()
+  let producer = @collection.pipeline(
+    @parameters.collection(topology_stage_source(capture)),
+  )
+  assert_true(physical_equal(issue.pipeline, producer))
 }
