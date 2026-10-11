@@ -4,18 +4,16 @@ fn prepare_publication_commit_owner(
   record : StoredPublication,
   account : @authorization.AdmittedAccountConfiguration,
   borrow : @buffers.BufferBorrow,
-) -> Result[@publication.PublicationCommitPreparation, Unit] {
+) -> Result[
+  (@publication.PublicationContract, @publication.PublicationCommitPreparation),
+  Unit,
+] {
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "bindings", "request", "attempt", "index_entry",
-    ])
-    is Ok(object) &&
+    @decode.closed_object(cursor, ["bindings", "committed_at"]) is Ok(object) &&
     @decode.required(object, "bindings") is Ok(bindings_cursor) &&
     @decode.elements(bindings_cursor) is Ok(binding_values) &&
     binding_values.length() == record.publications.length() &&
-    required_text(object, "request") is Some(request_wire) &&
-    required_text(object, "attempt") is Some(attempt_wire) &&
-    required_text(object, "index_entry") is Some(index_wire) &&
+    required_text(object, "committed_at") is Some(committed_at) &&
     record.manifest is Some(manifest) &&
     record.receipt is Some(receipt) &&
     record.captured is Some(captured) &&
@@ -40,49 +38,21 @@ fn prepare_publication_commit_owner(
       Err(_) => return Err(())
     }
   }
-  let request = match
-    @publication.admit_publication_contract(
-      "publication_request", request_wire, 1048576, 100000, 64,
-    ) {
-    Ok(contract) => contract
-    Err(_) => return Err(())
-  }
-  let attempt = match
-    @publication.admit_publication_contract(
-      "publication_attempt", attempt_wire, 1048576, 100000, 64,
-    ) {
-    Ok(contract) => contract
-    Err(_) => return Err(())
-  }
-  let (original_request, original_attempt) = @local_run.local_publication_preflight_contracts(
+  @local_run.prepare_local_preflight_commit_candidate(
     preflight,
-  )
-  if @publication.publication_contract_identity(request) !=
-    @publication.publication_contract_identity(original_request) ||
-    @publication.publication_contract_identity(attempt) !=
-    @publication.publication_contract_identity(original_attempt) {
-    return Err(())
-  }
-  let index_entry = match
-    @publication.admit_publication_contract(
-      "public_index_entry", index_wire, 1048576, 100000, 64,
-    ) {
-    Ok(contract) => contract
-    Err(_) => return Err(())
-  }
-  @local_run.start_local_publication_commit_check(
     manifest,
     normalization,
     receipt,
     captured,
     bindings,
-    request,
-    attempt,
-    index_entry,
+    committed_at,
     account,
-    1048576,
-    100000,
-    64,
+    {
+      max_results: value.workspace_slots,
+      max_wire_bytes: 1048576,
+      max_nodes: 100000,
+      max_depth: 64,
+    },
     record.max_workspace,
   ).map_err(_ => ())
 }
@@ -146,7 +116,8 @@ pub fn prepare_publication_commit(
   )
   record.pending = false
   match result {
-    Ok(commit) => {
+    Ok((index_entry, commit)) => {
+      record.commit_index = Some(index_entry)
       record.commit = Some(commit)
       0
     }
