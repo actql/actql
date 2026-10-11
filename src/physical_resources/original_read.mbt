@@ -39,12 +39,16 @@ priv struct OriginalReservationSnapshot {
 } derive(Eq)
 
 ///|
-priv enum FundedReadPhase {
+priv enum FundedReadPhase[T] {
   Reading
+  Preparing(FundedReadConsumer[T])
+  ConsumerStarted(FundedReadConsumer[T])
   HandedOff
+  ConsumerHandedOff(FundedReadConsumer[T])
   Stopping
+  ConsumerStopping(FundedReadConsumer[T])
   Reclaimed
-} derive(Eq)
+}
 
 ///|
 struct FundedReadClaim[T] {
@@ -52,7 +56,15 @@ struct FundedReadClaim[T] {
   read : CapacityReservation
   read_state : OriginalReservationSnapshot
   admitted : OriginalLedgerSnapshot
-  mut phase : FundedReadPhase
+  mut phase : FundedReadPhase[T]
+}
+
+///|
+// One original read admits only one early preparation. This opaque borrowed
+// control is not a new reservation, owner or permission to dispatch a Model.
+// Its representation and overlap belong to the already funded read envelope.
+struct FundedReadConsumer[T] {
+  mut claim : FundedReadClaim[T]?
 }
 
 ///|
@@ -354,13 +366,96 @@ pub fn[T] fund_original_read(
 
 ///|
 pub fn[T] funded_read_available(claim : FundedReadClaim[T], origin : T) -> Bool {
-  claim.phase == Reading &&
+  claim.phase is Reading && funded_read_state_matches(claim, origin)
+}
+
+///|
+fn[T] funded_read_state_matches(claim : FundedReadClaim[T], origin : T) -> Bool {
   physical_equal(origin, claim.descriptor.origin) &&
   capacity_reservation_open(claim.read) &&
   capacity_reservation_open(claim.descriptor.bootstrap) &&
   original_reservation_snapshot(claim.read.reservation) == claim.read_state &&
   original_ledger_snapshot(claim.descriptor.ledger) == claim.admitted &&
   original_tokens_match(claim.descriptor)
+}
+
+///|
+// Validate before allocating this control or any consuming Execution. The
+// complete envelope includes this control and all concurrently retained users.
+// A positive envelope alone is not a proof of its physical adequacy.
+pub fn[T] claim_funded_read_preparation(
+  claim : FundedReadClaim[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[FundedReadConsumer[T], OriginalReadIssue] {
+  if !physical_equal(origin, claim.descriptor.origin) {
+    return Err(ForeignOrigin)
+  }
+  if !(claim.phase is Reading) {
+    return Err(SpentClaim)
+  }
+  if retained_bytes <= 0L || execution_bytes <= 0L {
+    return Err(Resource(InvalidCharge))
+  }
+  if !funded_read_state_matches(claim, origin) {
+    return Err(ChangedOriginalState)
+  }
+  if claim.read.reservation.retention < retained_bytes {
+    return Err(Resource(RetentionLimit))
+  }
+  if claim.read.reservation.execution < execution_bytes {
+    return Err(Resource(ExecutionLimit))
+  }
+  let consumer : FundedReadConsumer[T] = { claim: Some(claim), }
+  claim.phase = Preparing(consumer)
+  Ok(consumer)
+}
+
+///|
+pub fn[T] funded_read_consumer_available(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  guard consumer.claim is Some(claim) else { return false }
+  funded_read_claim_has_active_consumer(claim, consumer) &&
+  retained_bytes > 0L &&
+  execution_bytes > 0L &&
+  funded_read_state_matches(claim, origin) &&
+  claim.read.reservation.retention >= retained_bytes &&
+  claim.read.reservation.execution >= execution_bytes
+}
+
+///|
+// Only the issued early consumer can continue its original handoff. Failure
+// keeps this same control retryable; success does not refund or reset anything.
+pub fn[T] handoff_funded_read_consumer_capacity(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[(Ledger, CapacityReservation), OriginalReadIssue] {
+  guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  if !physical_equal(origin, claim.descriptor.origin) {
+    return Err(ForeignOrigin)
+  }
+  if !(claim.phase is ConsumerStarted(current) &&
+    physical_equal(current, consumer)) {
+    return Err(SpentClaim)
+  }
+  if !funded_read_state_matches(claim, origin) {
+    return Err(ChangedOriginalState)
+  }
+  let ledger = claim.descriptor.ledger
+  let capacity = match
+    reserve_capacity(ledger, retained_bytes, execution_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  claim.phase = ConsumerHandedOff(consumer)
+  Ok((ledger, capacity))
 }
 
 ///|
@@ -373,7 +468,7 @@ pub fn[T] handoff_funded_read(
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }
-  if claim.phase != Reading {
+  if !(claim.phase is Reading) {
     return Err(SpentClaim)
   }
   if !funded_read_available(claim, origin) {
@@ -417,7 +512,7 @@ pub fn[T] handoff_funded_read_capacity(
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }
-  if claim.phase != Reading {
+  if !(claim.phase is Reading) {
     return Err(SpentClaim)
   }
   if !funded_read_available(claim, origin) {
@@ -435,8 +530,12 @@ pub fn[T] handoff_funded_read_capacity(
 
 ///|
 pub fn[T] stop_funded_read(claim : FundedReadClaim[T]) -> Unit {
-  if claim.phase != Reclaimed {
-    claim.phase = Stopping
+  match claim.phase {
+    Reading | HandedOff => claim.phase = Stopping
+    Preparing(consumer)
+    | ConsumerStarted(consumer)
+    | ConsumerHandedOff(consumer) => claim.phase = ConsumerStopping(consumer)
+    Stopping | ConsumerStopping(_) | Reclaimed => ()
   }
 }
 
@@ -448,7 +547,7 @@ pub fn[T] settle_funded_read(
   claim : FundedReadClaim[T],
   physical_cleanup_complete : Bool,
 ) -> Result[Unit, OriginalReadIssue] {
-  if claim.phase == Reclaimed {
+  if claim.phase is Reclaimed {
     return Err(SpentClaim)
   }
   if !physical_cleanup_complete {
@@ -468,8 +567,103 @@ pub fn[T] settle_funded_read(
   claim.descriptor.delegations.clear()
   claim.descriptor.delegations.shrink_to_fit()
   settle_capacity(ledger, claim.read).unwrap()
+  // Failed cleanup retains both directions. A retired escaped consumer must
+  // not keep the original graph alive after its reservation has been returned.
+  match claim.phase {
+    Preparing(consumer)
+    | ConsumerStarted(consumer)
+    | ConsumerHandedOff(consumer)
+    | ConsumerStopping(consumer) => consumer.claim = None
+    _ => ()
+  }
   // The original Run's final cleanup retires the census/bootstrap separately.
   // Another live child or a zero-byte holding still prevents that return.
   claim.phase = Reclaimed
+  Ok(())
+}
+
+///|
+// A bounded borrow of the original opaque binding; no Ledger or token escapes.
+// Retired controls return None. Availability and current fences are checked by
+// the consuming Host, so this is neither send permission nor restored authority.
+pub fn[T] funded_read_consumer_origin(consumer : FundedReadConsumer[T]) -> T? {
+  guard consumer.claim is Some(claim) else { return None }
+  if funded_read_claim_has_active_consumer(claim, consumer) &&
+    funded_read_state_matches(claim, claim.descriptor.origin) {
+    Some(claim.descriptor.origin)
+  } else {
+    None
+  }
+}
+
+///|
+pub fn[T] stop_funded_read_consumer(consumer : FundedReadConsumer[T]) -> Unit {
+  if consumer.claim is Some(claim) &&
+    funded_read_claim_has_consumer(claim, consumer) {
+    stop_funded_read(claim)
+  }
+}
+
+///|
+pub fn[T] settle_funded_read_consumer(
+  consumer : FundedReadConsumer[T],
+  physical_cleanup_complete : Bool,
+) -> Result[Unit, OriginalReadIssue] {
+  guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  if !funded_read_claim_has_consumer(claim, consumer) {
+    return Err(SpentClaim)
+  }
+  settle_funded_read(claim, physical_cleanup_complete)
+}
+
+///|
+fn[T] funded_read_claim_has_active_consumer(
+  claim : FundedReadClaim[T],
+  consumer : FundedReadConsumer[T],
+) -> Bool {
+  match claim.phase {
+    Preparing(current) | ConsumerStarted(current) =>
+      physical_equal(current, consumer)
+    _ => false
+  }
+}
+
+///|
+fn[T] funded_read_claim_has_consumer(
+  claim : FundedReadClaim[T],
+  consumer : FundedReadConsumer[T],
+) -> Bool {
+  match claim.phase {
+    Preparing(current)
+    | ConsumerStarted(current)
+    | ConsumerHandedOff(current)
+    | ConsumerStopping(current) => physical_equal(current, consumer)
+    _ => false
+  }
+}
+
+///|
+// The early IO control and consuming Execution are separate allocation sites.
+// Claiming the read once does not permit an aliased ticket to start twice.
+// This synchronous transition precedes the consuming Execution allocation.
+pub fn[T] enter_funded_read_consumer(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, OriginalReadIssue] {
+  guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  if !physical_equal(origin, claim.descriptor.origin) {
+    return Err(ForeignOrigin)
+  }
+  if !(claim.phase is Preparing(current) && physical_equal(current, consumer)) {
+    return Err(SpentClaim)
+  }
+  if !funded_read_consumer_available(
+      consumer, origin, retained_bytes, execution_bytes,
+    ) {
+    return Err(ChangedOriginalState)
+  }
+  claim.phase = ConsumerStarted(consumer)
   Ok(())
 }
