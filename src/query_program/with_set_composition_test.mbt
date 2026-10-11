@@ -98,7 +98,8 @@ test "WITH sets reject shape scope nested publication and incompatible types" {
     @query.parse_query_script(
       "WITH e AS (SELECT 1 AS x UNION ALL (SELECT 2 AS x |> RESULT hidden)) FROM e |> SELECT x",
       syntax_limits(),
-    ) is Err(_),
+    )
+    is Err(_),
   )
   // The same common Append type rejection now precedes demand/publication.
   assert_true(
@@ -107,10 +108,22 @@ test "WITH sets reject shape scope nested publication and incompatible types" {
         "WITH e AS (SELECT 1 AS x UNION ALL SELECT 'wrong' AS x) FROM e |> SELECT x",
         syntax_limits(),
       ).unwrap(),
-      { ..fixture_context(), inputs: [], }, construction_limits(),
-    ) is Err(BindingPreparation(LocalProgram(Pipeline(0, {
-      kind: Append(IncompatibleContracts(@schema.Unqualified("x"), [])), ..
-    })))),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(
+      BindingPreparation(
+        LocalProgram(
+          Pipeline(
+            0,
+            {
+              kind: Append(IncompatibleContracts(@schema.Unqualified("x"), [])),
+              ..
+            }
+          )
+        )
+      )
+    ),
   )
   let query = @query.parse_query_script(
     "WITH e AS (SELECT 2 AS x UNION ALL SELECT 1 AS x ORDER BY x + 1) FROM e |> SELECT x",
