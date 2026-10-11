@@ -149,3 +149,14 @@ test "WITH typed producer cannot use a row range or skip explicit bridge" {
     is Ok(_),
   )
 }
+
+///|
+test "WITH carrier prefix never discards an unlowered Graph call" {
+  let queries = [
+    "WITH prepared AS (FROM candidates |> to_vectors(id: item_id, vector: embedding) |> components(kind: 'weak')) FROM prepared |> vectors() |> SELECT item_id",
+    "WITH prepared AS (FROM candidates |> to_vectors(id: item_id, vector: embedding)) FROM prepared |> vectors() |> components(kind: 'weak') |> SELECT item_id",
+  ]
+  for text in queries {
+    assert_true(with_carrier_program(text, nearest_context()) is Err(UnsupportedGraph))
+  }
+}
