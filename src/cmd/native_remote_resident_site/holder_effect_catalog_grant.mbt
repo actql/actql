@@ -126,13 +126,13 @@ fn open_holder_effect_catalog_installation(
   // the whole overlapping snapshot/record/closure/control/workspace lifetime.
   // No wire limit or positive placeholder selects an installed numeric profile.
   // Missing layout funding remains unavailable, including restore-only setup.
-  guard preparation_envelope is Some(required) &&
+  guard preparation_envelope is Some(preparation) &&
     original.current() &&
     configuration_current() &&
     original.consumer.read_catalog_preparation_capacity(
       original.journal,
       original.producer,
-      required,
+      preparation,
     )
     is Ok(_) &&
     original.current() &&
@@ -240,7 +240,7 @@ fn open_holder_effect_catalog_installation(
     original.consumer.read_catalog_preparation_capacity(
       original.journal,
       original.producer,
-      required,
+      preparation,
     )
     is Ok(_) &&
     snapshot.all(entry => {
@@ -254,7 +254,7 @@ fn open_holder_effect_catalog_installation(
     original.consumer.read_catalog_preparation_capacity(
       original.journal,
       original.producer,
-      required,
+      preparation,
     )
     is Ok(_)
   }
