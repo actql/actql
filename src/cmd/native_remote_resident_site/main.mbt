@@ -2648,7 +2648,9 @@ fn serve_holder_output(
   effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody? = _ => {
     None
   },
-  effect_evidence_read? : (@remote.DispatchRequest) -> Bool = _ => false,
+  effect_host_admission? : (HolderEffectOriginalPolicyContext) -> HolderEffectHostAdmission? = _ => {
+    None
+  },
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
     None
   },
@@ -2678,6 +2680,22 @@ fn serve_holder_output(
     effect_producer~,
   )
   tasks.set(identity, original)
+  let evidence_allowed = (
+    task : HolderTaskCustody,
+    purpose : HolderEffectEvidencePurpose,
+  ) => {
+    guard holder_effect_original_policy_context(
+        task,
+        tasks,
+        environment.journal,
+      )
+      is Some(context) else {
+      return false
+    }
+    holder_effect_evidence_allowed(
+      context, resources, purpose, effect_host_admission,
+    )
+  }
   if holder_effect_computation(original, environment.journal) is Some(_) {
     report("effect-computation-custody-retained", [("request_cid", identity)])
   }
@@ -2729,7 +2747,7 @@ fn serve_holder_output(
             }
             let current_authority = () => {
               exclusive_current() &&
-              effect_evidence_read(task.request) &&
+              evidence_allowed(task, Read) &&
               @resident.check_resident_dispatch_delegation(
                 delegation,
                 task.request,
@@ -2757,6 +2775,7 @@ fn serve_holder_output(
                 resources,
                 effect_catalog_review,
                 current_authority,
+                () => current_authority() && evidence_allowed(task, Publication),
               ),
             )
           }
@@ -2831,9 +2850,15 @@ fn serve_holder_output(
           match poll {
             Ok(query) => {
               let selected = @remote.remote_poll_effect_current_request(query)
+              guard holder_effect_current_task(tasks, selected) is Some(task) else {
+                report("effect-current-pending", [
+                  ("reason", "review-owner-unavailable"),
+                ])
+                continue
+              }
               let current_authority = () => {
                 exclusive_current() &&
-                effect_evidence_read(selected) &&
+                evidence_allowed(task, Read) &&
                 @resident.check_resident_dispatch_delegation(
                   delegation,
                   selected,
@@ -2841,8 +2866,7 @@ fn serve_holder_output(
                 )
                 is Ok(_)
               }
-              guard current_authority() &&
-                holder_effect_current_task(tasks, selected) is Some(task) else {
+              guard current_authority() else {
                 report("effect-current-pending", [
                   ("reason", "review-owner-unavailable"),
                 ])
@@ -3056,13 +3080,17 @@ fn serve_holder_output(
                             effect_catalog_review,
                             () => {
                               exclusive_current() &&
-                              effect_evidence_read(task.request) &&
+                              evidence_allowed(task, Read) &&
                               @resident.check_resident_dispatch_delegation(
                                 delegation,
                                 task.request,
                                 @site.site_generation(environment.site),
                               )
                               is Ok(_)
+                            },
+                            () => {
+                              exclusive_current() &&
+                              evidence_allowed(task, Publication)
                             },
                           ),
                         )
@@ -3456,7 +3484,7 @@ fn serve_holder_output(
                 !output_task.release_requested &&
                 holder_result_output(output_task, effect_resume_installation, () => {
                   exclusive_current() &&
-                  effect_evidence_read(output_task.request) &&
+                  evidence_allowed(output_task, Read) &&
                   @resident.check_resident_dispatch_delegation(
                     delegation,
                     output_task.request,
@@ -3524,7 +3552,7 @@ fn serve_holder_output(
                 !output_task.release_requested &&
                 holder_result_output(output_task, effect_resume_installation, () => {
                   exclusive_current() &&
-                  effect_evidence_read(output_task.request) &&
+                  evidence_allowed(output_task, Read) &&
                   @resident.check_resident_dispatch_delegation(
                     delegation,
                     output_task.request,
