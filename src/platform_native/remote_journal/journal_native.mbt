@@ -245,6 +245,21 @@ pub fn Journal::accept(
   (@remote.DispatchAcceptance, @remote.DispatchRecord),
   NativeRemoteJournalIssue,
 ] {
+  self.accept_with_initial_custody(request, None)
+}
+
+///|
+/// The optional private custody callback runs only inside the actual initial
+/// acceptance transaction, after the authoritative duplicate read. It cannot
+/// run on restoration, duplicate acceptance or cancellation-first records.
+fn Journal::accept_with_initial_custody(
+  self : Journal,
+  request : @remote.DispatchRequest,
+  retain_initial : ((Bytes) -> Result[Unit, NativeRemoteJournalIssue])?,
+) -> Result[
+  (@remote.DispatchAcceptance, @remote.DispatchRecord),
+  NativeRemoteJournalIssue,
+] {
   if self.closed {
     return Err(Closed)
   }
@@ -277,6 +292,15 @@ pub fn Journal::accept(
         Err(issue) => {
           ignore(self.database.rollback())
           return Err(Physical(issue))
+        }
+      }
+      if retain_initial is Some(retain) {
+        match retain(body) {
+          Ok(_) => ()
+          Err(issue) => {
+            ignore(self.database.rollback())
+            return Err(issue)
+          }
         }
       }
       match self.database.insert("site_dispatch", key, body) {
