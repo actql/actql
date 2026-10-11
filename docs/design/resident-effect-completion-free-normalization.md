@@ -112,11 +112,12 @@ custody reference makes those per-Run bytes reclaimable by the runtime. Repeated
 issuance can return another valid proof; wire equality does not acquire proof.
 This adds neither a Run count limit nor a new resource reservation Owner.
 
-Effect material admission requires this original projection when the wire
-contains a normalization journal. It verifies exact original bytes and Run CID
-before execution preparation. An appended fixed journal, a changed material,
-or a journal-bearing wire without original issuance proof is refused as
-`UnverifiedOriginalMaterials`. The ordinary absent-journal path is unchanged.
+For a Run compiled without the finite profile described below, journal-bearing
+Effect material admission requires this original projection. It verifies exact
+original bytes and Run CID before execution preparation. An appended fixed
+journal, a changed material, or a journal-bearing wire without original issuance
+proof is refused as `UnverifiedOriginalMaterials`. The ordinary absent-journal
+path is unchanged.
 The admitted custody retains the original issuance projection as well as the
 restored execution Owner. Restoration verifies both before admitting saved
 journal bytes; it does not issue, prepare or compile a replacement.
