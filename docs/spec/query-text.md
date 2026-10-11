@@ -454,10 +454,16 @@ syntax; the parameter is lowered to the common `preceding`/`following`
 Parameter slot. Declarations and bound values use ordinary Program checking,
 including safe-integer and interval-order validation; no default replaces a
 missing or invalid binding. This connection retains the current common
-contract's positive distances. GoogleSQL also permits zero numeric boundaries;
-that difference remains a common-contract coverage gap, not a restriction of
-GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
-are not implemented in this profile.
+contract's positive parameter distances. Literal `0 PRECEDING` and
+`0 FOLLOWING` retain their authored direction in syntax and lower to the
+existing common `current_row` boundary: the physical offset is zero. Authored
+boundary categories are checked before this projection, so an illegal
+`CURRENT ROW ... 0 PRECEDING` or `0 FOLLOWING ... CURRENT ROW` interval is not
+made legal by collapsing its endpoints. The same rule applies to named-window
+frames and the single-boundary `ROWS 0 PRECEDING` form. Bound parameter zero
+remains a common-contract coverage gap and is rejected; it is not replaced by
+an inferred default or special execution. Row-dependent and arithmetic boundary
+expressions, RANGE and GROUPS are not implemented in this profile.
 
 The selected GoogleSQL single-boundary `ROWS` form has an implicit
 `CURRENT ROW` upper boundary. `ROWS 2 PRECEDING`, `ROWS @before PRECEDING`,

@@ -1594,7 +1594,7 @@ fn QueryParser::frame_boundary(
     self.keyword("FOLLOWING")
     return FollowingParameter(self.source.identifier(name))
   }
-  let distance = self.safe_integer(false)
+  let distance = self.safe_integer(true)
   if self.has("PRECEDING") {
     self.keyword("PRECEDING")
     Preceding(distance)
