@@ -19,6 +19,18 @@ test "profile obligations map to their declared module without discharging other
     None,
   )
   assert_eq(
+    operation_profile_requirement(
+      TraverseRequirement(ShortestRequirement(ResolveShortestProfile)),
+    ),
+    Some(GraphProfile),
+  )
+  assert_eq(
+    operation_profile_requirement(
+      TraverseRequirement(ShortestRequirement(ValidateEveryShortestWeight)),
+    ),
+    None,
+  )
+  assert_eq(
     operation_profile_requirement(TraverseRequirement(AdmitTraversalGraph)),
     None,
   )

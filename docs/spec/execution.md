@@ -596,7 +596,7 @@ selected common contract. The initial scan/filter/select profile has no ordered
 derive step: `request.row_kernel_limits` is absent, not an invented set of
 filter/select limits or a zero-valued exemption.
 
-<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:9608ad74c77fd6db17b8b4949414f054e664742106d26cfaabb781e0248adccd -->
+<!-- machine-import: ../../spec/contracts/actql-query-resource-scopes.json# sha256:c204e55e41d2773945b354a8821e82afe859e5cd40eaa513978519557e6cf73a -->
 The [pinned resource-scope contract](../../spec/contracts/actql-query-resource-scopes.json)
 distinguishes measurement, subject and binding at `/limits`. Acquisition `max_rows`
 counts complete select-output occurrences, not scanned or received rows.

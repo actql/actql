@@ -1,0 +1,19 @@
+{
+  "name": "@actql/explorer",
+  "version": "0.0.0-development",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "dependencies": {
+    "@actql/client-wire": "0.0.0-development",
+    "@actql/explorer-ui": "0.0.0-development",
+    "hono": "4.13.13",
+    "@hono/node-server": "2.1.4"
+  },
+  "peerDependencies": {"@actql/sdk": "0.0.0-development"},
+  "exports": {
+    ".": {"types": "./gateway.d.ts", "default": "./gateway.mjs"},
+    "./browser-source": {"types": "./browser-source.d.ts", "default": "./browser-source.mjs"}
+  },
+  "files": ["gateway.mjs", "gateway.d.ts", "browser-source.mjs", "browser-source.d.ts", "README.md"]
+}

@@ -3252,13 +3252,21 @@ export async function openLocalPublicationStore(
     return true;
   };
 
-  const consumeObject = async (cid, accept) => {
-    active();
-    if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
-    const path = objectPath(cid);
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  const consumeObject = async (cid, accept, closed) => {
+    let handle;
+    try {
+      active();
+      if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
+      const path = objectPath(cid);
+      handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    } catch (error) {
+      closed?.(); // No original FD was acquired.
+      throw error;
+    }
     const hash = createHash('sha256');
     let bytes = 0;
+    let readFailure;
+    let readFailed = false;
     try {
       const before = await handle.stat();
       if (!before.isFile() || before.size > configuration.maxObjectBytes) {
@@ -3278,8 +3286,46 @@ export async function openLocalPublicationStore(
         fail('PublicationObjectCorrupt');
       }
       return Object.freeze({cid, bytes});
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      try {
+        await handle.close();
+        closed?.();
+      } catch (closeFailure) {
+        // A view of this SAME original read/FD, not a replacement reader,
+        // cleanup owner or proof of successful consumption. Keep its existing
+        // active-reader count until close succeeds; never reopen by path.
+        let original = handle;
+        let retire = closed;
+        let flight;
+        const status = () => Object.freeze({pending: original !== undefined});
+        const cleanup = Object.freeze({
+          status,
+          retry() {
+            if (flight !== undefined) return flight;
+            if (original === undefined) return Promise.resolve(status());
+            flight = Promise.resolve().then(() => original.close()).then(() => {
+              original = undefined;
+              const acknowledge = retire;
+              retire = undefined;
+              acknowledge?.();
+              return status();
+            }).finally(() => { flight = undefined; });
+            return flight;
+          },
+        });
+        const primary = readFailed ? readFailure : closeFailure;
+        const failure = primary !== null && typeof primary === 'object' &&
+          Object.isExtensible(primary) && primary.cleanupHandle === undefined
+          ? primary : new Error('PublicationObjectReaderCleanupPending', {cause: primary});
+        failure.cleanupHandle = cleanup;
+        failure.cleanupPending = true;
+        failure.cleanupError = closeFailure;
+        throw failure;
+      }
     }
   };
 
@@ -4198,14 +4244,16 @@ export async function openLocalPublicationStore(
       holdingCid,
       (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
     );
-    try {
-      return await consumeObject(record.objects[objectIndex].cid, accept);
-    } finally {
+    let released = false;
+    const closed = () => {
+      if (released) return;
+      released = true;
       const remaining =
         (activePhysicalHoldingReaders.get(holdingCid) ?? 1) - 1;
       if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
       else activePhysicalHoldingReaders.set(holdingCid, remaining);
-    }
+    };
+    return await consumeObject(record.objects[objectIndex].cid, accept, closed);
   };
 
   const ensurePhysicalHoldingDeletion = async record => {
