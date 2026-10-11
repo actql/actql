@@ -72,6 +72,7 @@ fn publish_holder_effect_review(
   configuration : HolderEffectReviewPublication,
   resources : HolderOutputResources,
   authorize_evidence_read : () -> Bool,
+  authorize_publication : () -> Bool,
 ) -> Bool {
   guard !task.released &&
     !task.release_requested &&
@@ -84,6 +85,7 @@ fn publish_holder_effect_review(
     !task.released &&
     !task.release_requested &&
     authorize_evidence_read() &&
+    authorize_publication() &&
     (configuration.current)()
   }
   let original = (fn() -> @remote.RemoteEffectCheckpointReport? {
@@ -158,6 +160,7 @@ fn drive_holder_effect_review(
   resources : HolderOutputResources,
   installation : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody?,
   authorize_evidence_read : () -> Bool,
+  authorize_publication : () -> Bool,
 ) -> Bool {
   guard !task.released &&
     !task.release_requested &&
@@ -196,6 +199,7 @@ fn drive_holder_effect_review(
     installed.publication,
     resources,
     authorize_evidence_read,
+    authorize_publication,
   )
 }
 
