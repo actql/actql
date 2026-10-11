@@ -1619,6 +1619,65 @@ implementation limitation. This profile does not narrow the language's
 contract-bounded retry semantics. Unknown outcomes retain accounting and
 capture responsibility; replay cannot silently invoke the provider again.
 
+<a id="model-response-profile"></a>
+
+### Installed Model response profile
+
+<!-- requirement-block: model-response-profile.body -->
+The initial `actql-model-response-profile/0.1` MUST be a closed canonical
+body with the registered adapter, operation, task, completion, probability,
+observations, limits, controls and self identity fields, matching its reference,
+`self_cid` and the canonical SHA-256 preimage excluding only root `self_cid`.
+Unknown versions or fields, omitted nullable discriminators, invalid numbers
+and noncanonical bytes refuse; no body is repaired. This owned contract is
+distinct from private physical port `model-physical-port/1`, external SDK
+interface v4 and package versions. Existing Task, evidence, capture and
+synchronous API contracts retain their original identities and behavior.
+
+<!-- requirement-block: model-response-profile.installation -->
+The existing installed-provider boundary MUST bind the original adapter build,
+builder/codec/validator identifiers and revisions, optional SDK package/version
+and exact transitive lock Artifact, fixed endpoint/POST operation, checked Task
+CID and input/output schema CIDs to the selected profile before entry/send.
+An SDK-free profile explicitly has `sdk: null`; a fake lock does not substitute.
+Build, validator and lock originals exclude the containing configuration, so
+the profile does not recursively bind a configuration that references itself.
+The existing configuration original and its schema reference this profile CID.
+Credentials and current endpoint/egress authority remain separate. A matching
+body or a plain cross-reference record is neither trusted installation nor
+operational conformance, permission, captured response, or resource funding.
+
+<!-- requirement-block: model-response-profile.completion -->
+Actual successful adoption MUST independently validate complete transport,
+the selected endpoint envelope and checked output through the bound codec,
+without deriving completion, precision, authority or retry from the profile
+declaration, opaque metadata, SDK defaults or a missing finish observation.
+`generation_finish` requires that codec's successful nontruncated endpoint
+finish; `native_decision` requires its native complete Decision envelope.
+Generation has `probability: null`; Decision binds an explicit native/estimated
+source and a registered precision/law profile, separately from its answer shape.
+The currently admitted native Decision Task rejects estimated support.
+Supported raw fields form a unique subset in the registered observation order.
+Actual token quantities, provider IDs and bounded metadata remain independently
+nullable, preserving observed zero, empty object, original values and unknown.
+
+<!-- requirement-block: model-response-profile.bounds -->
+The initial single-request profile MUST declare positive finite request,
+response, chunk/count, header, metadata, parse work/node/depth, adapter holding
+and workspace bounds, at most four active/unsettled slots, one model request
+and disabled retry/fallback/hedging/tools/repair/cache/media fetch/workflow
+restore/SDK telemetry/redirect controls, enforcing these through its installation.
+These integer quantities are at most 2147483647, using checked wide arithmetic
+for simultaneous comparisons; overflow refuses, never wraps. Declared adapter
+holding covers at least response backing plus one chunk and headers, but that
+minimum is not the whole resource sum. External chunk allocation before a read,
+SDK decode copies/objects, Promises, retained readers, original request/Entry,
+input/response/capture/unknown holdings and cleanup-pending custody remain funded
+in the existing cumulative resource Owner. Byte bounds do not prove parser CPU
+or isolation bounds. A declaration without verified enforcement and cumulative
+funding cannot be installed as a public async capability. Replay still uses
+original saved evidence and performs no new inference.
+
 <a id="model-attempt-evidence"></a>
 
 ### Model attempt evidence
@@ -2010,6 +2069,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_key sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_prompt sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_response_profile sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_retry_policy sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_backoff sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:2ef4cc7eb176d29e8abadf8be9c4741b4253ddfae554667dc51e68fe5c0c0a72
