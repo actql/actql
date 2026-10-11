@@ -464,7 +464,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 13 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 14 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -704,3 +704,14 @@ and reservation quantities. It does not rerun search, derive admission from
 explanation text, or change a Run. The trusted Host may inspect the reported
 resource rejection before fixing its preflight inventory. A single assessment
 is not a claim that all strategies were explored.
+
+
+Private ABI 14 exposes the existing single-capture Local capacity inventory
+through `actql_source_capacity`: retained, execution ceiling and transfer bytes.
+The checked requirement must match the installed Native configuration; the same
+Compute sequence/store inventory sizes the retained suffix. Native retained
+capacity is additional to that suffix, under the existing 512 MiB inventory
+ceiling. This query starts no physical I/O and grants no reservation, Source
+permission or execution guarantee. Root admission still checks overlapping
+Wasm, transfer, DuckDB, Native and Compute reservations. Earlier modules are
+rejected rather than adapted.

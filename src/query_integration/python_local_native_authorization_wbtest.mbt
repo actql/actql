@@ -317,6 +317,51 @@ test "Local Native acquisition requires separate current subject-bound read auth
 }
 
 ///|
+test "Local single Source plans its retained suffix before physical acquisition" {
+  let (plan, _, _) = python_native_plan("native-capacity-before-io")
+  let configuration = python_native_configuration(plan, python_native_tuple()).unwrap()
+  let selected = @local_run.local_native_source_configuration(configuration)
+  let registry = @identity.stringify_value(
+    registered_body(),
+    100000,
+    10000,
+    100,
+  )
+  let values = @identity.stringify_value(
+    registered_values(),
+    100000,
+    10000,
+    100,
+  )
+  let fragment = Some(
+    @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+  )
+  let planned = @client_local_host.single_captured_local_ledger_limits(
+    @local_run.local_run_prepared(plan),
+    selected,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  assert_true(planned.retained_bytes > 200000000L)
+  assert_true(planned.retained_bytes <= 536870912L)
+  assert_eq(planned.execution_bytes, 536870912L)
+  // Invalid installed contracts do not produce a fabricated fitting plan.
+  assert_true(
+    @client_local_host.single_captured_local_ledger_limits(
+      @local_run.local_run_prepared(plan),
+      selected,
+      "{}",
+      values,
+      fragment,
+      None,
+    )
+    is None,
+  )
+}
+
+///|
 test "Local Native Source configuration cannot substitute caller operation or original Run start" {
   let (plan, _, _) = python_native_plan("first-native-run")
   let (_, foreign_start, _) = python_native_plan("second-native-run")

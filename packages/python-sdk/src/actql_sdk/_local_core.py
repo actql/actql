@@ -89,6 +89,13 @@ class LocalTaskProgress:
     work: int
 
 
+@dataclass(frozen=True, slots=True)
+class LocalNativeCapacity:
+    retained_bytes: int
+    execution_bytes: int
+    transfer_bytes: int
+
+
 @dataclass(frozen=True, slots=True, eq=False)
 class _Compute:
     owner: object
@@ -169,6 +176,7 @@ _SOURCE_SIGNATURES = {
     'configure': ('i64 i32', 'i32'),
     'configured': ('i64 i32', 'i32'),
     'configuration_issue': ('i64 i32', 'i32'),
+    'capacity': ('i64 i32 i32', 'i64'),
     'close_configuration': ('i64 i32', 'i32'),
     'reserve_attempt': ('i64 i32 i32 i32', 'i32'),
     'start': ('i64 i32', 'i32'),
@@ -343,7 +351,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 13:
+            if self._exports['actql_host_abi_version'](self._store) != 14:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -542,6 +550,18 @@ class LocalCore:
         if (type(value) is not _NativeAttempt or value.owner is not self._identity
                 or self._native_loans.get(value.handle) is not value):
             raise ValueError('Foreign or released Local Native attempt')
+
+    def native_configuration_capacity(self, configuration: int) -> LocalNativeCapacity:
+        """Read the existing Core inventory; this does not reserve or start I/O."""
+        with self._lock:
+            if self._closing or type(configuration) is not int or configuration <= 0:
+                raise ValueError('Invalid Local Native configuration')
+            values = [self._call('source', 'capacity', configuration, field)
+                      for field in range(3)]
+            for value in values:
+                if value < 0:
+                    raise LocalCoreError('native_configuration_capacity', value)
+            return LocalNativeCapacity(*values)
 
     def reserve_native_attempt(self, configuration: int, start: int, input: _Input, *,
                                settled: Callable[[], bool], stopped: Callable[[], bool],

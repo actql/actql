@@ -6,6 +6,7 @@ priv struct StoredNativeSourceConfiguration {
   borrow : @buffers.BufferBorrow
   mut invoked : Bool
   mut attempt_reserved : Bool
+  mut capacity : @resources.LedgerLimits?
   mut outcome : Result[
     @local_run.LocalNativeSourceConfiguration,
     @local_run.LocalNativeSourceIssue,
@@ -68,6 +69,7 @@ pub fn reserve_native_source_configuration(
     borrow,
     invoked: false,
     attempt_reserved: false,
+    capacity: None,
     outcome: None,
   }
   original.native_source_reserved = true
@@ -139,7 +141,39 @@ pub fn configure_native_source(nonce : Int64, handle : Int) -> Int {
       context,
     ),
   )
+  if record.outcome is Some(Ok(configuration)) {
+    record.capacity = @local_host.single_captured_local_ledger_limits(
+      @local_run.local_run_prepared(plan),
+      @local_run.local_native_source_configuration(configuration),
+      registry,
+      values,
+      fragment,
+      ordered,
+    )
+  }
   0
+}
+
+///|
+/// Read the existing checked inventory without physical Source acquisition.
+/// It is a capacity request, not admission or evidence of successful execution.
+#export_name("actql_source_capacity")
+pub fn native_source_capacity(
+  nonce : Int64,
+  handle : Int,
+  field : Int,
+) -> Int64 {
+  guard selected(nonce) is Some(value) &&
+    value.native_sources.get(handle) is Some(record) &&
+    record.capacity is Some(capacity) else {
+    return -2L
+  }
+  match field {
+    0 => capacity.retained_bytes
+    1 => capacity.execution_bytes
+    2 => capacity.transfer_bytes
+    _ => -3L
+  }
 }
 
 ///|

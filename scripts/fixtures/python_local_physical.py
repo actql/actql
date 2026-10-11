@@ -4,7 +4,7 @@ import wasmtime
 
 class PhysicalFixture:
     def __init__(self, module, nonce, capacity=256, slots=8, fuel=None,
-                 execution_bytes=None):
+                 execution_bytes=None, retained_bytes=200_000_000):
         self.inputs = {}
         self.cleanups = {}
         self.reads = 0
@@ -40,7 +40,7 @@ class PhysicalFixture:
         self.exports = self.instance.exports(self.store)
         envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
         assert self.call('open', capacity, slots, 1048576, 100000, slots + 2, slots,
-                              32000000, 200000000, envelope) == 0
+                              32000000, retained_bytes, envelope) == 0
 
     def call(self, name, *args):
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)

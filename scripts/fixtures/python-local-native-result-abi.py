@@ -19,7 +19,8 @@ from actql_sdk._local_duckdb import DuckDBLibrary, DuckDBConnection, DuckDBTrans
 
 module_path, library_path, library_digest = sys.argv[1:4]
 cleanup_only = sys.argv[4:] == ['--native-cleanup-only']
-assert sys.argv[4:] in ([], ['--native-cleanup-only'])
+inventory_root = sys.argv[4:] == ['--bounded-inventory-root']
+assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'])
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -34,7 +35,8 @@ class NativeFixture(PhysicalFixture):
         self.native_stop_ready = True
         self.native_cleanup_ready = True
         super().__init__(module, 1001, capacity=8_388_608, slots=64,
-                         fuel=None, execution_bytes=536_870_912)
+                         fuel=None, execution_bytes=536_870_912,
+                         retained_bytes=536_870_912 if inventory_root else 200_000_000)
 
     def native_settled(self, handle):
         assert handle == self.attempt and self.view is not None
@@ -138,7 +140,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 13
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 14
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -197,6 +199,10 @@ try:
     assert source > 0 and call('source', 'configure', source) == 0
     configured = call('source', 'configured', source)
     assert configured == 0, ('Original typed Source construction failure', call('source', 'configuration_issue', source))
+    inventory = [call('source', 'capacity', source, field) for field in range(3)]
+    assert 200_000_000 < inventory[0] <= 536_870_912
+    assert inventory[1] == 536_870_912 and inventory[2] >= 3_000_000
+    assert fixture.queries == 0, 'Capacity planning must not fetch Source'
     fixture.attempt = call('source', 'reserve_attempt', source, start, copy({
         **read_account, 'attempt_nonce': 'native-result-private-fixture'}))
     assert fixture.attempt > 0 and call('source', 'start', fixture.attempt) == 0
@@ -357,7 +363,9 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'library_sha256': library_digest, 'success': True,
                   'scope': ('private_unmetered_native_cleanup_boundary' if cleanup_only
                             else 'private_unmetered_native_compute_result_boundary'),
-                  'execution_bytes': 536_870_912, 'source_queries': fixture.queries,
+                  'execution_bytes': 536_870_912,
+                  'retained_bytes': 536_870_912 if inventory_root else 200_000_000,
+                  'checked_inventory': inventory, 'source_queries': fixture.queries,
                   'public_local_acceptance': False, 'durable_run_acceptance': False,
                   'default_fuel_acceptance': False,
                   'global_memory_accounting': False,
