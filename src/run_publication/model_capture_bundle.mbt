@@ -21,6 +21,35 @@ pub struct ModelCaptureRecordRead {
 }
 
 ///|
+/// Historical admitted fields retain their historical provenance. New
+/// reported fields are observations, not independent proof of provider truth.
+pub(all) enum ModelCaptureObservationOrigin {
+  HistoricalAdmitted
+  Reported
+} derive(Eq, Debug)
+
+///|
+/// A structural read of the original immutable evidence, not a send,
+/// completeness or publication capability. The restoring execution still
+/// binds its selected profile, attempt, typed output and authenticated custody.
+pub(all) struct ModelCaptureObservation {
+  origin : ModelCaptureObservationOrigin
+  provider_model : String?
+  provider_revision : String?
+  provider_request_id : String?
+  gateway_request_id : String?
+  input_tokens : Int64?
+  output_tokens : Int64?
+  provider_finish_reason : String?
+  historical_finish_reason : String?
+  response_profile_cid : String?
+  response_complete : Bool?
+  raw_response_artifact_cid : String?
+  provider_metadata : @json.CanonicalValue?
+  observed_at : String
+}
+
+///|
 /// The Host supplies exact bytes read from authenticated, confirmed private
 /// Store custody. Protocol admission is a bounded document operation under
 /// its installed byte/node/depth ceilings, not a model dispatch or replay.
@@ -168,4 +197,104 @@ pub fn model_capture_record_tokens(
     return None
   }
   Some((input.to_int64(), output.to_int64()))
+}
+
+///|
+fn model_capture_optional_tokens(
+  evidence : @json.CanonicalValue,
+  field : String,
+) -> Result[Int64?, RunEvidenceValueIssue] {
+  match @json.object_field(evidence, field) {
+    Some(@json.Null) => Ok(None)
+    Some(@json.Number(value)) => {
+      if value < 0.0 || value >= 9223372036854775808.0 {
+        return Err(RunEvidenceInvalidShape)
+      }
+      let tokens = value.to_int64()
+      if tokens.to_double() != value {
+        return Err(RunEvidenceInvalidShape)
+      }
+      Ok(Some(tokens))
+    }
+    _ => Err(RunEvidenceInvalidShape)
+  }
+}
+
+///|
+/// Lift exact old/new records without fabricating absent usage or turning the
+/// old writer's fixed stop into a provider-reported finish reason. The legacy
+/// paired-token accessor remains unchanged; new callers use both independent
+/// options here. This reader never invokes a provider or rehashes a response.
+pub fn model_capture_record_observation(
+  value : ModelCaptureRecordRead,
+) -> Result[ModelCaptureObservation, RunEvidenceValueIssue] {
+  let body = value.evidence.value
+  let version = optional_string(@json.object_field(body, "version"))
+  let historical = match version {
+    Some("actql-model-invocation-evidence/0.1") => true
+    Some("actql-model-invocation-evidence/0.2") => false
+    _ => return Err(RunEvidenceInvalidShape)
+  }
+  guard optional_string(@json.object_field(body, "observed_at"))
+    is Some(observed_at) else {
+    return Err(RunEvidenceInvalidShape)
+  }
+  let input_tokens = match model_capture_optional_tokens(body, "input_tokens") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let output_tokens = match
+    model_capture_optional_tokens(body, "output_tokens") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    origin: if historical {
+      HistoricalAdmitted
+    } else {
+      Reported
+    },
+    provider_model: optional_string(
+      @json.object_field(body, "provider_reported_model_id"),
+    ),
+    provider_revision: optional_string(
+      @json.object_field(body, "provider_reported_revision"),
+    ),
+    provider_request_id: optional_string(
+      @json.object_field(body, "provider_request_id"),
+    ),
+    gateway_request_id: optional_string(
+      @json.object_field(body, "gateway_request_id"),
+    ),
+    input_tokens,
+    output_tokens,
+    provider_finish_reason: if historical {
+      None
+    } else {
+      optional_string(@json.object_field(body, "finish_reason"))
+    },
+    historical_finish_reason: if historical {
+      optional_string(@json.object_field(body, "finish_reason"))
+    } else {
+      None
+    },
+    response_profile_cid: optional_string(
+      @json.object_field(body, "response_profile_cid"),
+    ),
+    response_complete: if historical {
+      None
+    } else {
+      Some(true)
+    },
+    raw_response_artifact_cid: optional_string(
+      @json.object_field(body, "raw_response_artifact_cid"),
+    ),
+    // Borrow the already admitted immutable subtree. Do not stringify, copy
+    // or reinterpret unknown metadata as an execution or retry instruction.
+    provider_metadata: match @json.object_field(body, "provider_metadata") {
+      Some(metadata) if metadata is @json.Object(_) => Some(metadata)
+      _ => None
+    },
+    observed_at,
+  })
 }

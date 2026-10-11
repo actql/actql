@@ -7766,10 +7766,27 @@ order has no semantic meaning.
 <!-- requirement-block: infer.every-successful-call-must-emit-versioned-evidence-binding-the-modeltask -->
 Every successful call MUST emit versioned evidence binding the ModelTask,
 semantic request, call-slot identity, input-result artifact, input-row identity, authored and
-provider-reported model identities, provider request ID, attempt count, raw
-structured-response artifact, validated structured output, token usage, finish reason,
-and observation time. Exact replay reuses the captured response; a fresh model
-call creates new evidence and a new Invocation identity.
+provider-reported model observations, provider request observation, attempt count,
+structured-response artifact, validated structured output, token observations,
+finish observation and Host observation time. Exact historical 0.1 evidence
+retains its required fields and original identity. New invocation evidence 0.2
+records unavailable defined provider fields and each unavailable token quantity
+as explicit NULL, never guessed zero or an SDK-generated provider identity.
+Complete checked response evidence binds the selected response profile and its
+completeness assertion independently of optional finish reason. Raw response
+bytes and canonical structured-response artifacts are distinct identities.
+Exact replay reuses the captured response and its original evidence; a fresh
+model call creates new evidence and a new Invocation identity.
+
+<!-- requirement-block: infer.opaque-provider-metadata-preserves-observed-content -->
+Additional provider metadata MUST be bounded opaque JSON object data, or NULL when
+unobserved. An empty object denotes an actually observed empty object. Preserve
+unknown fields and original string values; do not infer permissions, response
+completeness, answer precision or retries from them. Metadata shares the
+existing response/evidence byte, node, depth and funded-retention limits. Reuse
+original raw/structured Artifact custody where available; do not create a
+second body-sized copy or independent metadata Store. An unknown metadata
+field does not make an otherwise required answer malformed.
 
 <!-- requirement-block: infer.effect-preview-derived-from-an-inference-result-must-bind-the infer.effect-apply-must-not-rerun-inference -->
 Effect Preview derived from an inference result MUST bind every actually

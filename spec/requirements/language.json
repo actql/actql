@@ -7022,7 +7022,18 @@
     },
     {
       "requirement_id": "actql.language/infer.every-successful-call-must-emit-versioned-evidence-binding-the-modeltask",
-      "statement_sha256": "f9f5a88014075fc23a7122524879baf5265feb806ab84079f211fb2d10d8f8d6",
+      "statement_sha256": "1aefa6f446dcea865e57ae323098e92dd1ca08c690d95eab6cc58e5a2c0fcf5e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "infer",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/infer.opaque-provider-metadata-preserves-observed-content",
+      "statement_sha256": "b726b3cd60a7d4c46ba6e0509a6456246206d0b8edbe94b1b31296f8d289d12f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

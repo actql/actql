@@ -1438,6 +1438,45 @@ interpreting supplied tags as proof of admission is not an alternative.
 
 <a id="model-call-slot-identity"></a>
 
+### Versioned Model response observations
+
+<!-- requirement-block: model-response-observation.exact-version-compatibility model-response-observation.refuse-mixed-versions -->
+Invocation evidence and embedded capture bundles have explicit 0.1 and 0.2
+readers. The original closed 0.1 body, identity exclusion and schema pin MUST
+remain unchanged. A bundle 0.1 embeds evidence 0.1; a bundle 0.2 embeds evidence
+0.2. Unknown versions, version mixing, modified self identity, foreign Slot
+and semantic-request bindings MUST be refused, not repaired or downgraded.
+
+<!-- requirement-block: model-response-observation.defined-unknown-and-provenance -->
+New evidence 0.2 MUST retain the original Task, Slot, attempt, input Artifact,
+typed-key identity, fixed request and checked output bindings. It binds a
+selected `response_profile_cid` and `response_complete: true` assertion for an
+adopted successful response. That structural assertion is not independent
+provider conformance or dispatch authority. Provider model/revision/request
+and gateway IDs, input/output token quantities, finish reason and raw response
+Artifact CID are independently nullable defined fields, with explicit NULL
+for unavailable observations. Do not synthesize observed zero, SDK default
+provider fields, raw bytes or success output for unresolved failure.
+Historical 0.1 fields are lifted with historical admitted provenance; its
+fixed `stop` remains a historical finish assertion, not a new provider report.
+
+<!-- requirement-block: model-response-observation.opaque-metadata -->
+`provider_metadata` MUST be a required field containing NULL for unobserved data or
+a finite opaque JSON object preserving its actual content. An observed empty
+object and unobserved metadata have distinct canonical bodies/CIDs. Unknown
+metadata keys are pure data, not interpreted references, completeness, answer
+precision, permission or retry policy. The same bounded canonical decoder and
+funded evidence/response envelope applies to all nested metadata, including
+aggregate byte/node/depth limits. Reuse existing original Artifact custody and
+immutable subtrees rather than creating an independent metadata Owner or copy.
+
+<!-- requirement-block: model-response-observation.original-replay -->
+Replay MUST retain the original evidence/CID and independently bind it to the
+original request, checked output and authenticated Store custody. Reading a
+compatible shape or CID alone is not executed-attempt, publication or resend
+authority. A raw HTTP artifact and a canonical structured response remain
+distinct, even when they contain the same observed metadata.
+
 ### Model call-slot identity
 
 The four closed `actql-model-*/0.1` identity envelopes distinguish call
@@ -1947,6 +1986,10 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_v02 sha256:805e0cb2268f07fe3170ff6910fcb9dcd6144af9f938bbfbac5b9c374bd89507
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_v02 sha256:4189020dcd411ebb243807e6e4195d4672f1cb35e5959dd77adf7785b96b01e5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence_compatible sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle_compatible sha256:d81d8cd5930edcef76afe18085537b0c008a1c7cfeb5f000acd9c1fe121a0e54
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task_v02 sha256:23ef51950192891ab9c18e6c7c779ce4cd4fe17456f810bcdcc0c8b11229b38d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_prompt sha256:dda24589bf95171a297fb7da656d4371b92a0db243065e77e4db160d975e4e38
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/decision_answers sha256:9074415d38b503da958213551086f760cac638fecc5b422b6af591bfe3356ac2
