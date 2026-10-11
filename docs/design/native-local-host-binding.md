@@ -259,6 +259,28 @@ does not establish that a request was unsent or can be sent again.
 
 ## Public execution and restoration
 
+The preparation identity uses the separately adopted closed
+`actql-local-preparation-fence/0.1` body: original Client intent/scope, checked
+operation occurrence, actual Run invocation and checked Unit definition. Public
+body/CID admission verifies identity only. It cannot create an operational token,
+resume generation or credential permission. Existing Local resume and Remote
+grant bodies/CIDs are unchanged.
+
+The original Work's durable first-start seam now produces a private witness
+only after a successful new start and final current authorization/cancellation
+check. The same Effect Work retains it before acquisition. False or unknown
+claims do not return a witness, and reopening a started Run cannot mint another.
+The observed Run revision is independently current, never part of this immutable
+identity. Evidence borrowing and cleanup retain their existing paths after a
+Checkpoint; a preparation-only check cannot redefine those responsibilities.
+
+Binding the complete identity to actual checked occurrence/invocation and the
+GET-only preparation grant/Catalog request is still required. Source-bearing
+invocation evidence is obtained from the original captured Source owner, not a
+replacement invocation template or fabricated future CID. The first-start
+witness is not itself a checked target-read grant. Matching Native target
+observation and public recovery remain separate, unexecuted acceptance.
+
 Private grant-original custody now has a bounded appended packet separate from
 the initial adoption preimage. The user-chosen operation ID and original
 Submission scope determine its stable lookup key. The intent binds the exact

@@ -13,6 +13,7 @@ struct NativeClientEffectSourceWork {
   current_authorization : () -> Bool
   capture_started_at : String
   capture_completed_at : String
+  first_start : NativeClientWorkFirstStart
 }
 
 ///|
@@ -22,7 +23,10 @@ fn claim_native_client_effect_work_start(
   allowed : @host.ClientEffectAllowedRun,
   definition : @publication.PublicationContract,
   current_authorization : () -> Bool,
-) -> Result[@host.PreparedClientEffectRun, NativeClientSourceWorkIssue] {
+) -> Result[
+  (@host.PreparedClientEffectRun, NativeClientWorkFirstStart),
+  NativeClientSourceWorkIssue,
+] {
   if !current_authorization() {
     return Err(AuthorizationDenied)
   }
@@ -45,10 +49,10 @@ fn claim_native_client_effect_work_start(
     Err(issue) => return Err(Journal(issue))
   }
   match
-    claim_native_client_retained_work_start(
+    claim_native_client_retained_work_first_start(
       journal, request, current_authorization,
     ) {
-    Ok(_) => Ok(bound)
+    Ok(start) => Ok((bound, start))
     Err(issue) => Err(issue)
   }
 }
@@ -110,7 +114,7 @@ pub fn open_native_client_effect_source_work(
     ) {
     return Err(OriginalRunNotCurrent)
   }
-  let bound = match
+  let (bound, first_start) = match
     claim_native_client_effect_work_start(
       journal, request, allowed, definition, current_authorization,
     ) {
@@ -149,6 +153,7 @@ pub fn open_native_client_effect_source_work(
         current_authorization,
         capture_started_at,
         capture_completed_at: current_time(),
+        first_start,
       })
     Err((issue, cleanup)) => Err(Open(issue, cleanup))
   }
@@ -174,6 +179,24 @@ fn NativeClientEffectSourceWork::require_current(
     self.request,
     self.current_authorization,
   )
+}
+
+///|
+// The observation grant assembly requires this original operational witness,
+// not a reconstructed CID. Post-Checkpoint evidence/cleanup keep their existing
+// paths; this preparation check does not redefine their authorization.
+fn NativeClientEffectSourceWork::require_preparation_start(
+  self : NativeClientEffectSourceWork,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  match self.require_current() {
+    Ok(_) =>
+      self.first_start.require_current(
+        self.journal,
+        self.request,
+        self.current_authorization,
+      )
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|

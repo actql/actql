@@ -114,6 +114,27 @@ fn claim_native_client_retained_work_start(
   request : @host.ClientRequestIdentity,
   current_authorization : () -> Bool,
 ) -> Result[Unit, NativeClientSourceWorkIssue] {
+  claim_native_client_retained_work_first_start(
+    journal, request, current_authorization,
+  ).map(_ => ())
+}
+
+///|
+// Operational evidence retained only by the original Work. It is not a public
+// body/CID, lease generation, resume claim or permission to send a request.
+priv struct NativeClientWorkFirstStart {
+  journal : NativeClientRunJournal
+  request : @host.ClientRequestIdentity
+  definition_cid : String
+  observed_revision : Int64
+}
+
+///|
+fn claim_native_client_retained_work_first_start(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current_authorization : () -> Bool,
+) -> Result[NativeClientWorkFirstStart, NativeClientSourceWorkIssue] {
   // Recheck after callbacks and each durable boundary. A reservation alone
   // cannot authorize acquisition, and a false claim never opens another owner.
   if !current_authorization() {
@@ -138,7 +159,46 @@ fn claim_native_client_retained_work_start(
   // retained start/fence facts after that callback, before opening acquisition.
   match journal.lookup(request, true) {
     Ok(Retained(record)) if record.physical_start_claimed &&
-      !record.cancellation_requested => Ok(())
+      !record.cancellation_requested &&
+      record.checkpoint is None =>
+      Ok({
+        journal,
+        request,
+        definition_cid: @publication.publication_contract_identity(
+          record.definition,
+        ),
+        observed_revision: record.revision,
+      })
+    Ok(_) => Err(NeedsOriginalReconciliation)
+    Err(issue) => Err(Journal(issue))
+  }
+}
+
+///|
+// This observes the same original start responsibility; it never mints a
+// replacement token from retained flags. A later Checkpoint owns continuation.
+fn NativeClientWorkFirstStart::require_current(
+  self : NativeClientWorkFirstStart,
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  current : () -> Bool,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  if !physical_equal(self.journal, journal) ||
+    !(@host.client_request_identity_relation(self.request, request)
+    is @host.SameRequest) {
+    return Err(Journal(ForeignRun))
+  }
+  match require_native_client_work_current(journal, request, current) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match journal.lookup(request, true) {
+    Ok(Retained(record)) if record.physical_start_claimed &&
+      !record.cancellation_requested &&
+      record.checkpoint is None &&
+      record.revision >= self.observed_revision &&
+      @publication.publication_contract_identity(record.definition) ==
+      self.definition_cid => Ok(())
     Ok(_) => Err(NeedsOriginalReconciliation)
     Err(issue) => Err(Journal(issue))
   }
