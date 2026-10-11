@@ -27,7 +27,7 @@ pub(all) struct NativeResidentEffectPreview {
   authoring : @publication.RunEvidenceValue
   source : @publication.PublicationContract
   preview : @strategy.CapturedEffectPreviewInputs
-  proof : @strategy.CapturedEffectPlanProof
+  proof : @strategy.CapturedEffectPlanProof?
   identity : @host.ClientEffectLocalIdentity
   keys : Array[@effect.EffectDispatchKey]
   capability : @catalog.WriteCapabilityEvidence
@@ -82,7 +82,9 @@ fn preview_wire(
 ///|
 /// Join real target observations with the original retained Result through
 /// existing semantic Preview, request-scope, local-identity and plan Owners.
-/// This finite initial route has one update member; unsupported shapes fail
+/// Updates retain their observed target guards. Mapped create uses proposals
+/// from the actual retained Result and the existing content/occurrence Owner.
+/// This connection supports one member; unsupported shapes fail
 /// without rereading Source, computing again or replacing an input identity.
 pub fn prepare_native_resident_effect_preview(
   consumer : @resident.ResidentSourceCompute,
@@ -111,12 +113,13 @@ pub fn prepare_native_resident_effect_preview(
   limits : @host.ClientCapturedEffectPreviewLimits,
   export_limits : @host.PublicationOutputExportLimits,
   key_limits : NativeEffectDispatchKeyLimits,
+  created_targets? : NativeResidentEffectCreatedTargets? = None,
 ) -> Result[NativeResidentEffectPreview, NativeResidentEffectPreviewIssue] {
   if limits.max_wire_bytes < 1 ||
     limits.max_nodes < 1 ||
     limits.max_depth < 1 ||
     limits.max_work < 1 ||
-    targets.is_empty() ||
+    (targets.is_empty() && created_targets is None) ||
     targets.length() > export_limits.max_rows {
     return Err(InvalidLimits)
   }
@@ -128,11 +131,25 @@ pub fn prepare_native_resident_effect_preview(
     )
     is Ok(descriptor) &&
     descriptor.0 == 0 &&
-    descriptor.2 == "update" &&
+    (descriptor.2 == "update" || descriptor.2 == "create") &&
     descriptor.4 == mapping.mapping_ref &&
     descriptor.5 == mapping.mapping_cid &&
     descriptor.6 is Some(result_name) &&
     @strategy.captured_effect_inputs_count(inputs) == 1 else {
+    return Err(ForeignEvidence)
+  }
+  if descriptor.2 == "create" {
+    guard created_targets is Some(created) &&
+      targets.is_empty() &&
+      mapping.operation is @catalog.WriteCreate &&
+      created.matches(
+        consumer, materials, inputs, stage, effect_id, local_result,
+      ) &&
+      !created.requests.is_empty() &&
+      created.requests.length() <= export_limits.max_rows else {
+      return Err(ForeignEvidence)
+    }
+  } else if created_targets is Some(_) {
     return Err(ForeignEvidence)
   }
   let scope = match
@@ -171,8 +188,38 @@ pub fn prepare_native_resident_effect_preview(
     Ok(value) => value
     Err(issue) => return Err(Identity(issue))
   }
-  let requests = targets.map(value => value.0)
-  let rows : Array[@catalog.TargetPreviewRow] = []
+  let requests : Array[@catalog.SingleWriteRequest] = []
+  // Guard and before are absent only for the existing mapped-create law.
+  // These tuples are adapter projections, never physical target observations.
+  let rows : Array[(String, String?, String?, String, String)] = []
+  if created_targets is Some(created) {
+    let after_wires = created.requests.map(request => {
+      "{\"state\":\"present\",\"value\":" +
+      @catalog.single_write_request_value(request) +
+      "}"
+    })
+    let inventory = match
+      @publication.derive_effect_create_row_inventory(
+        after_wires,
+        export_limits.max_rows,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Preview(issue))
+    }
+    for (source_index, correlation) in inventory {
+      let request = created.requests[source_index]
+      match @catalog.check_execution_single_write(mapping, request) {
+        Ok(_) => ()
+        Err(issue) => return Err(Mapping(issue))
+      }
+      requests.push(request)
+      let value = @catalog.single_write_request_value(request)
+      rows.push((correlation, None, None, value, value))
+    }
+  }
   for (checked_request, _, observed, supplied) in targets {
     match @catalog.check_execution_single_write(mapping, checked_request) {
       Ok(_) => ()
@@ -197,7 +244,16 @@ pub fn prepare_native_resident_effect_preview(
       @catalog.target_preview_row_after_wire(supplied) {
       return Err(ForeignEvidence)
     }
-    rows.push(row)
+    requests.push(checked_request)
+    rows.push(
+      (
+        @catalog.target_preview_row_target_wire(row),
+        Some(@catalog.target_preview_row_guard_cid(row)),
+        Some(@catalog.target_preview_row_before_wire(row)),
+        @catalog.target_preview_row_after_wire(row),
+        @catalog.target_preview_row_changes_wire(row),
+      ),
+    )
   }
   let capability = match
     @catalog.prepare_write_capability_evidence(
@@ -234,19 +290,36 @@ pub fn prepare_native_resident_effect_preview(
   let effects = @checked.effect_program_static_effects(
     @host.prepared_client_effect_computation_candidate(materials.prepared),
   )
-  guard @results.effect_mapping_shape_count(
-      @results.effect_mapping_rules_shapes(
-        @results.effect_static_candidate_mapping_rules(effects),
-      ),
-    ) ==
-    1 &&
+  let rules = @results.effect_static_candidate_mapping_rules(effects)
+  if @results.effect_mapping_shape_count(
+      @results.effect_mapping_rules_shapes(rules),
+    ) !=
+    1 {
+    return Err(ForeignEvidence)
+  }
+  let terminal = match
     @results.effect_plan_terminal_for_member(
-      @results.effect_static_candidate_mapping_rules(effects),
+      rules,
       0,
       limits.plan.max_fields,
       limits.plan.max_work,
-    )
-    is Ok(Some(terminal)) else {
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignEvidence)
+  }
+  if descriptor.2 == "create" {
+    guard terminal is None &&
+      @results.effect_create_row_terminal_for_member(
+        rules,
+        0,
+        limits.plan.max_fields,
+        limits.plan.max_work,
+      )
+      is Ok(Some(create)) &&
+      @results.effect_create_row_terminal_source_result(create) == result_name else {
+      return Err(ForeignEvidence)
+    }
+  } else if terminal is None {
     return Err(ForeignEvidence)
   }
   let definition = @host.prepared_client_effect_computation_definition_cid(
@@ -346,15 +419,6 @@ pub fn prepare_native_resident_effect_preview(
         ),
         ("source_result", result_name),
         (
-          "effect_plan_logical_cid",
-          @results.effect_plan_pipeline_cid(
-            terminal,
-            limits.max_wire_bytes,
-            limits.max_nodes,
-            limits.max_depth,
-          ),
-        ),
-        (
           "result_artifact_cid",
           @host.client_effect_local_result_artifact_cid(artifact),
         ),
@@ -372,6 +436,18 @@ pub fn prepare_native_resident_effect_preview(
         ("on_item_failure", descriptor.7),
       ] {
       preview_text(writer, key, value)
+    }
+    if terminal is Some(terminal) {
+      preview_text(
+        writer,
+        "effect_plan_logical_cid",
+        @results.effect_plan_pipeline_cid(
+          terminal,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ),
+      )
     }
     // The installed Mapping is already checked against this member. Its
     // required permission values are copied exactly, not inferred from Source.
@@ -425,22 +501,29 @@ pub fn prepare_native_resident_effect_preview(
     for row in rows {
       @encode.begin_object(writer)
       @encode.key(writer, "target_row_identity")
-      preview_wire(writer, @catalog.target_preview_row_target_wire(row), limits)
+      preview_wire(writer, row.0, limits)
       @encode.key(writer, "target_guard")
       @encode.begin_object(writer)
-      preview_text(writer, "state", "version")
-      preview_text(
-        writer,
-        "version_cid",
-        @catalog.target_preview_row_guard_cid(row),
-      )
+      match row.1 {
+        Some(version) => {
+          preview_text(writer, "state", "version")
+          preview_text(writer, "version_cid", version)
+        }
+        None => preview_text(writer, "state", "not_applicable")
+      }
       @encode.end_object(writer)
-      for
-        (key, value) in [
-          ("before", @catalog.target_preview_row_before_wire(row)),
-          ("after", @catalog.target_preview_row_after_wire(row)),
-          ("intended_changes", @catalog.target_preview_row_changes_wire(row)),
-        ] {
+      @encode.key(writer, "before")
+      @encode.begin_object(writer)
+      match row.2 {
+        Some(before) => {
+          preview_text(writer, "state", "present")
+          @encode.key(writer, "value")
+          preview_wire(writer, before, limits)
+        }
+        None => preview_text(writer, "state", "absent")
+      }
+      @encode.end_object(writer)
+      for (key, value) in [("after", row.3), ("intended_changes", row.4)] {
         @encode.key(writer, key)
         @encode.begin_object(writer)
         preview_text(writer, "state", "present")
@@ -553,21 +636,33 @@ pub fn prepare_native_resident_effect_preview(
     Ok(value) => value
     Err(issue) => return Err(Binding(issue))
   }
-  let proof = match
-    consumer.verify_effect_preview_plan(
-      inputs,
-      preview,
-      0,
-      local_result,
-      export_limits,
-      limits.plan.max_fields,
-      limits.plan.max_work,
-      limits.max_wire_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Plan(issue))
+  let proof = if descriptor.2 == "create" {
+    // Mapped create has no correlated row-plan terminal. Its checked proposal
+    // export above sealed the same actual Result; do not mint an update proof.
+    guard created_targets is Some(created) &&
+      created.matches(
+        consumer, materials, inputs, stage, effect_id, local_result,
+      ) else {
+      return Err(ForeignEvidence)
+    }
+    None
+  } else {
+    match
+      consumer.verify_effect_preview_plan(
+        inputs,
+        preview,
+        0,
+        local_result,
+        export_limits,
+        limits.plan.max_fields,
+        limits.plan.max_work,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(Plan(issue))
+    }
   }
   Ok({ wire, authoring, source, preview, proof, identity, keys, capability, })
 }
