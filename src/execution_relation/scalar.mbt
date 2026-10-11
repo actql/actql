@@ -56,8 +56,15 @@ pub fn unary(
 ) -> Result[Value, ScalarIssue] {
   match op {
     // Constructed text is evaluated only by the bounded expression continuation.
-    Upper | Lower | Trim | LTrim | RTrim | ByteLength | Unicode | Chr =>
-      Err(InvalidOperand)
+    Upper
+    | Lower
+    | Trim
+    | LTrim
+    | RTrim
+    | ByteLength
+    | Unicode
+    | Chr
+    | Reverse => Err(InvalidOperand)
     Length =>
       match value {
         Null => Ok(Null)
@@ -546,6 +553,7 @@ pub fn boolean_pair(
     | Concat
     | ConcatStrict
     | Replace
+    | Repeat
     | Split
     | Substring
     | LeftString

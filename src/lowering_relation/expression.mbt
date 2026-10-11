@@ -50,6 +50,7 @@ pub(all) enum UnaryOperator {
   ByteLength
   Unicode
   Chr
+  Reverse
   Upper
   Lower
   Trim
@@ -110,6 +111,7 @@ pub(all) enum ManyOperator {
   Concat
   ConcatStrict
   Replace
+  Repeat
   Split
   Substring
   LeftString
@@ -285,6 +287,8 @@ fn expression_tag(
     | "byte_length"
     | "unicode"
     | "chr"
+    | "reverse"
+    | "repeat"
     | "replace"
     | "split"
     | "substring"
@@ -368,7 +372,7 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
-    "len" | "byte_length" | "unicode" | "chr" => [body]
+    "len" | "byte_length" | "unicode" | "chr" | "reverse" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -981,6 +985,7 @@ fn lower_typed_expression_measured(
         "byte_length" => Unary(ByteLength, args[0])
         "unicode" => Unary(Unicode, args[0])
         "chr" => Unary(Chr, args[0])
+        "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
@@ -1033,6 +1038,7 @@ fn lower_typed_expression_measured(
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "repeat" => Many(Repeat, args)
         "split" => Many(Split, args)
         "substring" => Many(Substring, args)
         "left" => Many(LeftString, args)

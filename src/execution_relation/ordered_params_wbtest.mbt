@@ -26,7 +26,7 @@ test "ordered contract admission validates the body not an asserted digest" {
   let registered = admit_ordered_contract(selected, body, limits).unwrap()
   assert_eq(
     registered.cid,
-    "sha256:585cf6092aa53f64fa516838840fc8775da24c8aab42172f5b7fb4031c7d3386",
+    "sha256:cc896dedd1b1a0efe805064e87fd1f65305717db3bc5f8e6d6196e9e4d89baf3",
   )
   assert_true(physical_equal(registered.relation, selected))
   assert_true(
@@ -57,7 +57,7 @@ test "ordered params join bindings references and pin from one retained kernel" 
   emit_ordered_params(params, writer)
   assert_eq(
     @encode.finish(writer),
-    "{\"bindings\":[{\"expr\":{\"body\":\"a\",\"op\":\"field\"},\"name\":\"old\"},{\"expr\":{\"body\":[{\"body\":\"old\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"a\"}],\"references\":[{\"at\":\"/bindings/0/expr\",\"target\":{\"input_field\":\"a\"}},{\"at\":\"/bindings/1/expr/body/0\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:585cf6092aa53f64fa516838840fc8775da24c8aab42172f5b7fb4031c7d3386\"}",
+    "{\"bindings\":[{\"expr\":{\"body\":\"a\",\"op\":\"field\"},\"name\":\"old\"},{\"expr\":{\"body\":[{\"body\":\"old\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"a\"}],\"references\":[{\"at\":\"/bindings/0/expr\",\"target\":{\"input_field\":\"a\"}},{\"at\":\"/bindings/1/expr/body/0\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:cc896dedd1b1a0efe805064e87fd1f65305717db3bc5f8e6d6196e9e4d89baf3\"}",
   )
   assert_true(
     physical_equal(ordered_params_registry(params), params.contract.relation),

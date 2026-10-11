@@ -194,6 +194,8 @@ fn scalar_call(
     "BYTE_LENGTH" | "OCTET_LENGTH" => ("BYTE_LENGTH", "byte_length", 1, 1)
     "UNICODE" => ("UNICODE", "unicode", 1, 1)
     "CHR" => ("CHR", "chr", 1, 1)
+    "REVERSE" => ("REVERSE", "reverse", 1, 1)
+    "REPEAT" => ("REPEAT", "repeat", 2, 2)
     "LENGTH" => ("LENGTH", "len", 1, 1)
     "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("CHAR_LENGTH", "len", 1, 1)
     "SQRT" => ("SQRT", "sqrt", 1, 1)

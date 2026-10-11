@@ -103,7 +103,7 @@ against the materialized Results instead.
 
 ### Managed retained execution profile
 
-<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:8ba19e27e0cd769b11e9563ee2f5233bdae98436d20e5ff2abb14515d4fd56ae -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:d0537ad25e7d911339268604e0692e3a71430a3cde1672cbecc473c9e194a88d -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/identity_status sha256:6e7214696a897447a4e6210f97dfc60530ba98353fc7915082fb3a02c1a23352 -->
 <!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/physical_manifest sha256:335f62ce6abd4d68cc79130d3e2ca3af800d03ffc40d359f5af1d856e34fd850 -->
 
@@ -664,7 +664,7 @@ two transfers are not hidden or conflated with logical output rows.
 
 ### Fixed-input filter/select Compute capacity
 
-<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:baba4f8b5c7b8ba91809bd11899440283c290dcd942f3882f0bf1cd258304b7f -->
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:86605b406ec1e53896ca4ff45fb477f74eb1495a96e87713d939e87fc0638840 -->
 The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
 applies to filter followed by select over one completed, retained ProducerRead.
 It clarifies the application of the existing consumer capacity law, and fixes
