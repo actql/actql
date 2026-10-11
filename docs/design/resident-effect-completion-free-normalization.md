@@ -230,3 +230,9 @@ start claims, cancellation and cleanup remain with their existing Owners. A
 journal lookup or normalization restoration alone does not establish any of
 those facts. Missing original journal custody is refused; it does not create a
 replacement request or repeat Source acquisition.
+
+The legacy direct executor has no independent producer context and refuses
+normalization-bearing materials, including a finite-profile candidate with an
+absent request. Its shared material decoder can compare an independently trusted
+absent expected identity, but the direct executor cannot select that expectation
+from the candidate. Ordinary absent-journal materials retain their existing path.

@@ -19,6 +19,7 @@ struct EffectConsumerContextFixture {
   consumer : @remote.DispatchRequest
   wire : String
   changed : String
+  without_request : String
 }
 
 ///|
@@ -104,6 +105,11 @@ fn effect_consumer_context_fixture(
     request=Some(second),
     normalization=Some(normalization),
   ).unwrap()
+  let without_request = @host.issue_prepared_client_effect_run_materials(
+    allowed,
+    definition,
+    normalization=Some(normalization),
+  ).unwrap()
   let binding = @host.prepare_client_effect_source_input_binding(
     compilation,
     request=Some(caller),
@@ -174,6 +180,7 @@ fn effect_consumer_context_fixture(
     consumer,
     wire,
     changed,
+    without_request,
   }
 }
 
@@ -242,4 +249,63 @@ test "candidate consumer materials cannot replace the original journal request" 
   )
   assert_eq(f.journal.dispatch_envelope(attempt).unwrap(), before)
   assert_true(f.journal.close())
+}
+
+///|
+test "direct consumer refuses a finite-profile candidate with an absent request" {
+  let f = effect_consumer_context_fixture("consumer-context-absent-request")
+  let attempt = @remote.dispatch_request_attempt_identity(f.producer).unwrap()
+  let before = f.journal.dispatch_envelope(attempt).unwrap()
+  // The shared Owner permits an independently selected absent identity. The
+  // direct executor has no such context and must not borrow that trust boundary.
+  let absent = @host.admit_client_effect_run_materials(
+    f.without_request,
+    @remote.dispatch_request_task_scope(f.consumer).0,
+    f.admission.expressions,
+    f.admission.operations,
+    f.admission.manifests,
+    f.admission.limits,
+    f.limits,
+  ).unwrap()
+  assert_eq(absent.request, None)
+  assert_true(absent.normalization is Some(_))
+  assert_true(
+    retained_effect_direct_materials(
+      f.without_request,
+      f.consumer,
+      f.admission,
+      f.limits,
+    )
+    is Err(EffectMaterials(Normalization(UnverifiedOriginalMaterials))),
+  )
+  assert_true(
+    retained_effect_consumer_materials(
+      f.journal,
+      f.producer,
+      f.consumer,
+      f.without_request,
+      f.admission,
+      f.limits,
+    )
+    is Err(EffectMaterials(Request(IdentityMismatch))),
+  )
+  assert_eq(f.journal.dispatch_envelope(attempt).unwrap(), before)
+  assert_true(f.journal.close())
+}
+
+///|
+test "direct consumer preserves the legacy absent-journal material path" {
+  let f = effect_source_dispatch_fixture()
+  let materials = retained_effect_direct_materials(
+    f.wire,
+    f.request,
+    f.admission,
+    f.limits,
+  ).unwrap()
+  assert_true(materials.normalization is None)
+  assert_eq(materials.request, None)
+  assert_eq(
+    @publication.publication_contract_identity(materials.run_definition),
+    @remote.dispatch_request_task_scope(f.request).0,
+  )
 }

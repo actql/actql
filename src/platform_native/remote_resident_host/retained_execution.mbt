@@ -203,17 +203,9 @@ pub fn execute_resident_effect_retained_attempt(
               producer_journal, producer, request, wire, admission, effect_limits,
             )
           None =>
-            @host.admit_client_effect_run_materials(
-              wire,
-              @remote.dispatch_request_task_scope(request).0,
-              admission.expressions,
-              admission.operations,
-              admission.manifests,
-              admission.limits,
-              effect_limits,
-            ).map_err(issue => {
-              ResidentRetainedExecutionIssue::EffectMaterials(issue)
-            })
+            retained_effect_direct_materials(
+              wire, request, admission, effect_limits,
+            )
         }) {
         Ok(value) => value
         Err(issue) => return Err(retained_execution_failed(issue))
@@ -301,6 +293,34 @@ pub fn execute_resident_effect_retained_attempt(
       })
     },
   )
+}
+
+///|
+// The legacy direct path has no independent original producer context. A
+// candidate's absent request cannot select a trusted absent expected request.
+fn retained_effect_direct_materials(
+  body : String,
+  consumer : @remote.DispatchRequest,
+  admission : ResidentRunAdmission,
+  limits : @host.ClientEffectComputationLimits,
+) -> Result[@host.ClientEffectRunMaterials, ResidentRetainedExecutionIssue] {
+  let materials = match
+    @host.admit_client_effect_run_materials(
+      body,
+      @remote.dispatch_request_task_scope(consumer).0,
+      admission.expressions,
+      admission.operations,
+      admission.manifests,
+      admission.limits,
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(EffectMaterials(issue))
+  }
+  if materials.normalization is Some(_) {
+    return Err(EffectMaterials(Normalization(UnverifiedOriginalMaterials)))
+  }
+  Ok(materials)
 }
 
 ///|
