@@ -101,10 +101,12 @@ export function createModelRawTransportPersistence({store, moon, registration,
   let originalRaw;
   let port;
   let custodyRetained = false;
+  let retired = false;
   const wake = () => {
     try { notify(); } catch { /* Cleanup wake is not a terminal Run fact. */ }
   };
   const persist = async (call, raw) => {
+    if (retired) throw new TypeError('OriginalRawPersistenceRetired');
     if (originalCall !== undefined &&
         (originalCall !== call || originalRaw !== raw)) {
       throw new TypeError('ForeignOriginalRawPersistence');
@@ -147,7 +149,16 @@ export function createModelRawTransportPersistence({store, moon, registration,
   // authority to send. Never adopt a caller's substituted error/cleanup handle.
   persist.cleanup = call => {
     if (originalCall !== undefined && originalCall !== call) return false;
-    if (port === undefined) return true; // No holding was constructed.
+    if (retired) return true;
+    const retireView = () => {
+      // Drop this port's transport-backing alias only. Escaped parent holding,
+      // Save/receipt and raw views retain their independent original custody.
+      originalRaw = undefined;
+      port = undefined;
+      retired = true;
+      return true;
+    };
+    if (port === undefined) return retireView(); // No holding was constructed.
     const status = port.holding.status();
     if (status.operationPending || status.preparedPending) {
       if (!status.operationPending) {
@@ -155,10 +166,10 @@ export function createModelRawTransportPersistence({store, moon, registration,
       }
       return false;
     }
-    if (status.abandoned) return true;
+    if (status.abandoned) return retireView();
     // Durable raw custody stays with the parent. This releases no Store data
     // and does not claim that escaped Save/receipt/parent aliases have retired.
-    if (status.committed) return custodyRetained;
+    if (status.committed) return custodyRetained ? retireView() : false;
     void port.holding.abort().then(wake, wake);
     return false;
   };

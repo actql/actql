@@ -51,6 +51,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   };
   const cancel = () => cancelSdkPreparation(preparation);
   const cleanup = () => {
+    if (retired) return true;
     if (saving !== undefined) return false;
     // A failed raw save can retain commit/cleanup responsibility. Do not drop
     // it or return its capacity before the original Store owner reconciles it.

@@ -178,6 +178,9 @@ test('raw caller cleanup retries original failed writer release without replacem
   assert.equal(f.state.writes, 1);
   assert.equal(f.state.commits, 1);
   assert.equal(f.state.acknowledgements, 0);
+  assert.equal(persist.cleanup(call), true);
+  assert.equal(persist.cleanup({}), false);
+  await assert.rejects(persist(call, raw), {message: 'OriginalRawPersistenceRetired'});
 });
 
 test('raw persistence retry reuses the original Save and holding and refuses a substituted call or raw view', async t => {
@@ -212,6 +215,7 @@ test('raw persistence retry reuses the original Save and holding and refuses a s
   assert.equal(f.state.commits, 2);
   assert.equal(f.state.acknowledgements, 1);
   assert.equal(persist.cleanup(call), true);
+  await assert.rejects(persist(call, raw), {message: 'OriginalRawPersistenceRetired'});
   assert.notEqual(await f.store.inspectPhysicalHolding(f.binding.holdingCid), undefined);
   await f.store.retirePhysicalHolding(f.binding.holdingCid);
 });

@@ -163,6 +163,7 @@ test('same original raw cleanup completion retires the SDK without adopting an u
   assert.equal(f.port.rawFailure(), failure);
   rawReleased = true;
   await release(f);
+  assert.equal(f.port.preflight.cleanup(), true);
   assert.equal(f.port.rawFailure(), failure);
   assert.equal(plan.start(f.entry), undefined);
   assert.equal(f.state.calls, 1);
