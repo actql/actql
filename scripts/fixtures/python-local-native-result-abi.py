@@ -21,8 +21,10 @@ module_path, library_path, library_digest = sys.argv[1:4]
 cleanup_only = sys.argv[4:] == ['--native-cleanup-only']
 inventory_root = '--bounded-inventory-root' in sys.argv[4:]
 source_publication = '--source-publication' in sys.argv[4:]
+explicit_view = '--explicit-view' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
-                       ['--bounded-inventory-root', '--source-publication'])
+                       ['--bounded-inventory-root', '--source-publication'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view'])
 source_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
@@ -143,7 +145,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 17
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 18
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -167,8 +169,9 @@ try:
     environment = call('program', 'install_source_environment', copy({
         'environment': environment_wire, 'publication': encode(publication).decode()}))
     assert environment > 0
-    program = {'version': 'actql/0.1', 'id': 'python-native-result', 'stages': [
-        {'id': 'acquire', 'inputs': {'remote': {'connector': 'crm/main', 'resource': 'r'}},
+    program = {'version': 'actql/0.1', 'id': 'python-native-explicit-publication' if explicit_view else 'python-native-result', 'stages': [
+        {'id': 'acquire', 'inputs': {'remote': {'connector': 'crm/main', 'resource': 'r',
+                                             **({'view': 'v'} if explicit_view else {})}},
          'steps': [{'filter': 'id > 2', 'as': 'filtered'}, {'select': ['id'], 'as': 'selected'}],
          'results': {'out': {'from': 'selected', 'fields': ['id']}}},
         {'id': 'compute', 'inputs': {'r': {'result': {'stage': 'acquire', 'result': 'out'}}},
@@ -185,6 +188,29 @@ try:
     assert configuration > 0
     run = call('run', 'reserve', configuration, preparation, copy(REQUEST))
     assert run > 0 and call('run', 'prepare', run) == 0 and call('run', 'prepared', run) == 0
+    if source_publication:
+        # These are distinct authored Programs, before checking or capture.
+        # Never rewrite the original sole-view input to claim its audit passed.
+        ticket += 1
+        refused_journal = call('material', 'reserve', run, 5, ticket, 2_097_200)
+        assert refused_journal > 0
+        fixture.inputs[ticket] = b''
+        if explicit_view:
+            assert call('material', 'produce', refused_journal) == 0
+            length = call('material', 'length', refused_journal)
+            assert 0 < length <= 1_048_576
+            wire = bytes(fixture.call('byte', refused_journal, index) for index in range(length))
+            frozen = json.loads((root / 'spec/contracts/actql-effect-free-local-completion-free-fixture.json').read_text())
+            expected_journal = json.loads(frozen['journal_preimage'])
+            expected_journal['journal_cid'] = frozen['journal_cid']
+            assert wire == json.dumps(expected_journal, sort_keys=True, separators=(',', ':')).encode()
+            assert call('material', 'produce', refused_journal) == 0
+        else:
+            assert call('material', 'produce', refused_journal) == -34
+            assert call('material', 'length', refused_journal) == -33
+            assert call('material', 'produce', refused_journal) == -33
+        assert call('material', 'close', refused_journal) == 0
+        assert fixture.queries == 0, 'Normalization audit cannot fetch Source'
     request = projection('material', 'reserve', 'produce', 'length', 'close', run, 2).decode()
     definition = projection('material', 'reserve', 'produce', 'length', 'close', run, 3).decode()
     start = call('run', 'reserve_physical_start', run, configuration, copy({
@@ -245,6 +271,8 @@ try:
             def source_loan(max_work=1000000, **changes):
                 global ticket
                 request_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
+                                      'capture_started_at': '2026-10-10T00:00:00.000Z',
+                                      'capture_completed_at': '2026-10-10T00:00:01.000Z',
                                       'max_work': max_work, 'max_workspace_slots': 1000000, **changes})
                 ticket += 1
                 output_ticket = ticket
@@ -255,6 +283,8 @@ try:
                 return handle
 
             collision_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
+                                      'capture_started_at': '2026-10-10T00:00:00.000Z',
+                                      'capture_completed_at': '2026-10-10T00:00:01.000Z',
                                     'max_work': 1000000, 'max_workspace_slots': 1000000})
             assert call('source_publication', 'reserve', compute, collision_input,
                         collision_ticket, 131200) == -3
@@ -264,6 +294,12 @@ try:
             assert call('source_publication', 'prepare', malformed, configuration) == -31
             assert call('source_publication', 'close', malformed) == 0
             source_cases.append('source_request_null_is_not_absent')
+            for field in ('capture_started_at', 'capture_completed_at'):
+                malformed = source_loan(**{field: None})
+                assert call('source_publication', 'prepare', malformed, configuration) == -31
+                assert call('source_publication', 'length', malformed) == -33
+                assert call('source_publication', 'close', malformed) == 0
+                source_cases.append(field + '_null_refused_before_issuance')
             abandoned = source_loan()
             assert call('source_publication', 'prepare', abandoned, configuration) == 0
             assert call('source_publication', 'finish', abandoned, configuration) == -7
@@ -321,8 +357,19 @@ try:
                 assert 0 < length <= 65536
                 wire = bytes(fixture.call('byte', source_output, index) for index in range(length))
                 body = json.loads(wire)
-                assert set(body) == {'logical', 'evidence'}
+                assert set(body) == {'logical', 'evidence', 'observation', 'invocation'}
                 logical, evidence = json.loads(body['logical']), json.loads(body['evidence'])
+                observation = json.loads(body['observation'])
+                invocation = json.loads(body['invocation'])
+                assert observation['version'] == 'actql-observation-set/0.1'
+                assert observation['source_evidence_cids'] == [evidence['source_evidence_cid']]
+                assert observation['captured_input_artifact_cids'] == []
+                assert observation['capture_started_at'] == '2026-10-10T00:00:00.000Z'
+                assert observation['capture_completed_at'] == '2026-10-10T00:00:01.000Z'
+                assert observation['data_policy_cid'] == evidence['effective_data_policy_cid']
+                assert invocation['version'] == 'actql-run-invocation/0.1'
+                assert invocation['observation_set_cid'] == observation['observation_set_cid']
+                assert invocation['invocation_template_cid'] == observation['invocation_template_cid']
                 assert logical['version'] == 'actql-source-input-logical/0.1'
                 # Independent registered preimage for the checked acquire stage:
                 # {"sort":"relation","value":[{"id":3}]} (filter, then select).
@@ -487,6 +534,8 @@ finally:
     fixture.close()
 print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'library_sha256': library_digest, 'success': True,
+                  'explicit_authored_view': explicit_view,
+                  'normalization_completion_free': explicit_view,
                   'scope': ('private_unmetered_native_cleanup_boundary' if cleanup_only
                             else 'private_unmetered_native_compute_result_boundary'),
                   'execution_bytes': 536_870_912,

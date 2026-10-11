@@ -112,23 +112,91 @@ custody reference makes those per-Run bytes reclaimable by the runtime. Repeated
 issuance can return another valid proof; wire equality does not acquire proof.
 This adds neither a Run count limit nor a new resource reservation Owner.
 
-Effect material admission requires this original projection when the wire
-contains a normalization journal. It verifies exact original bytes and Run CID
-before execution preparation. An appended fixed journal, a changed material,
-or a journal-bearing wire without original issuance proof is refused as
-`UnverifiedOriginalMaterials`. The ordinary absent-journal path is unchanged.
+For a Run compiled without the finite profile described below, journal-bearing
+Effect material admission requires this original projection. It verifies exact
+original bytes and Run CID before execution preparation. An appended fixed
+journal, a changed material, or a journal-bearing wire without original issuance
+proof is refused as `UnverifiedOriginalMaterials`. The ordinary absent-journal
+path is unchanged.
 The admitted custody retains the original issuance projection as well as the
 restored execution Owner. Restoration verifies both before admitting saved
 journal bytes; it does not issue, prepare or compile a replacement.
 
-This projection is process-local. No cross-process trusted original-material
-binding is installed by this API, and the existing poll envelope does not sign
-arbitrary appended material bytes. A digest or self-described receipt cannot
-replace that missing provenance. Native admission of journal-bearing materials
-without the original projection therefore fails closed; public remote Effect
-restoration remains unconnected pending a verified existing Owner binding.
-The existing initial execution-material admission still prepares/compiles its
-saved execution input once; this change does not establish a compiler snapshot.
+The nominal issuance projection is process-local. It cannot be serialized as a
+transport credential. The existing poll envelope does not sign arbitrary
+material bytes; a digest or self-described receipt cannot replace provenance.
+
+## Original Run-bound finite profile
+
+For a completion-free Run that must restore across processes, explicitly pass
+the original normalization projection to `issue_prepared_client_effect_compilation`
+before issuing the allowed Run. The compiler verifies the exact original
+preparation and inventory, then includes the existing frozen catalog under
+`actql-resident-effect-completion-free/0.1` in the Bound Invocation Template and
+compiled plan's `required_profile_contracts`. The saved invocation and Run
+identity transitively bind that selection. The runtime package exposes this
+selection as `compileEffect(prepared, {normalizationProfile: 'completion-free'})`.
+It does not infer the profile from Program shape or silently retry another one.
+
+At execution-material admission, a journal-bearing wire without a local issuance
+projection selects this profile only provisionally. The actual checked inventory,
+saved invocation, saved authorization and independently selected original Run CID
+must match. A fixed empty journal appended to a Run compiled without that profile
+fails: it cannot change that original Run identity. The canonical fixed journal
+is admitted without issuing another journal. Profile-bearing issuance refuses
+if the original journal is omitted.
+
+The Run CID does not bind a logical caller request. Wire-only profile restoration
+also compares the admitted request with `expected_request`, selected independently
+from the original durable Host/journal context. Absence is compared as well; a
+candidate cannot add, omit or substitute another request from the same Program.
+The runtime package accepts that existing typed request as the fifth argument of
+`admitEffectRunMaterials`. Choosing either expected identity from candidate wire
+would violate this API's trusted caller boundary. These identities are not
+current authorization, Site delegation, an approval or a mutation permit.
+
+After those checks, the existing bounded projection codec verifies the entire
+canonical material wire. The admitted custody retains the verified compilation,
+original Run/request, journal bytes and a correlation digest. No issuance cache,
+new trust root, signature scheme or cleanup ledger is introduced. Restoring the
+journal from that custody performs no preparation, compilation or issuance.
+The existing initial execution-material admission still reconstructs execution
+ownership once; this is not a serializable compiler snapshot or a claim of
+no-repreparation for the whole execution path.
+
+The production Native/Cloud caller must connect the independently retained Run
+and request context before using this wire-only entry. This common/runtime
+connection alone does not prove that trusted transport, physical Native review,
+approval, Provider execution or public Cloud Effect is installed. Previously
+issued Runs do not acquire the new profile or a new identity during recovery.
+
+### Original request in the Source dispatch binding
+
+For an explicitly selected completion-free Run, the existing Effect Source
+binding issuer receives the original typed request before dispatch. It wraps
+the existing checked Source binding and that request's existing bounded record
+wire in a canonical `actql-effect-source-input-binding/0.1` object with exactly
+`original_request_json`, `source_binding_json` and `version`. The 8192-byte input
+binding limit remains in force. The Source path and Provider credentials stay
+in trusted Site configuration. A different caller request changes the input
+binding CID and therefore the dispatch CID even for the same Run and Program.
+
+Native Source admission first checks current Site delegation and the binding's
+exact match to the trusted dispatch. It re-admits the request from that separate
+binding through the existing request Owner and supplies it as `expected_request`
+to material admission. Finally, the reconstructed original compilation must
+produce exactly the same complete Source binding before acquisition. Reading
+the request from candidate materials would not satisfy this boundary.
+
+The binding CID is not a transport signature. The caller must still establish
+the original dispatch through the authenticated Cloud/Site entry, retain its
+exact envelope in the existing journal and recheck current authority before
+protected operations. Source permission does not approve an Effect. Legacy Runs
+compiled without the profile retain their original Source binding; recovery
+does not upgrade either binding or Run identity. Consumer routing/restoration
+must use the retained original producer context, not infer a caller request from
+another consumer material body. This producer admission adapter alone does not
+establish the complete consumer, approval or release path.
 
 `prepare_native_resident_effect_review_from_original_materials` obtains this
 journal from the actual holder context's material Owner before calling the
@@ -139,3 +207,32 @@ context close/retry Owner retains any pending pins; Source, Transfer and holding
 custody remain separate. The existing trusted-context API remains available for
 other explicitly installed normalization profiles. No profile fallback or
 Native CLI installation is implied by this adapter.
+
+## Consumer reconstruction from the original producer
+
+An Effect consumer selects its original producer only as a bounded journal
+lookup address from the retained-input binding. This projection is not checked
+edge admission or completion evidence and does not grant a borrow, reservation,
+start claim or current authority. The existing full retained-task route admission
+still verifies the checked edge, producer evidence and Transfer receipt.
+
+Before consumer material admission, the Native Host reads the exact producer
+envelope from its existing journal. Its dispatch identity must match the lookup,
+and its Source binding must match the original checked Source issuer. The
+request admitted from that separate original binding supplies the expected
+request for both the saved producer materials and candidate consumer materials.
+Candidate materials cannot select or replace this original request. Run,
+authority and the installed same-Site execution scope must agree.
+
+The retained consumer uses the same journal context at preparation, acceptance
+and execution. Receiver custody, current authorization and lifetime, exclusive
+start claims, cancellation and cleanup remain with their existing Owners. A
+journal lookup or normalization restoration alone does not establish any of
+those facts. Missing original journal custody is refused; it does not create a
+replacement request or repeat Source acquisition.
+
+The legacy direct executor has no independent producer context and refuses
+normalization-bearing materials, including a finite-profile candidate with an
+absent request. Its shared material decoder can compare an independently trusted
+absent expected identity, but the direct executor cannot select that expectation
+from the candidate. Ordinary absent-journal materials retain their existing path.

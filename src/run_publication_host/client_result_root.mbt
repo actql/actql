@@ -182,16 +182,10 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(RequiresResultTransformation)
   }
   let prepared = @lower.bound_preparation(owner)
-  guard client_task_output_step(
-      graph,
-      task,
-      @pipeline.step_count(@lower.pipeline(prepared)),
-    )
-    is Some(output_step) &&
-    @lower.node_at(prepared, output_step) is Some(node) else {
+  guard client_task_output_target(graph, task) is Some(output_target) &&
+    @lower.preparation_schema_at(prepared, output_target) is Some(task_schema) else {
     return Err(RequiresResultTransformation)
   }
-  let task_schema = @lower.node_output_schema(node)
   let names = @results.fields(@results.port_result(port))
   if names.length() != @schema.field_count(task_schema) ||
     names.length() != @results.port_projection_count(port) {

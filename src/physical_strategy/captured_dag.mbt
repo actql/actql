@@ -509,11 +509,19 @@ fn open_checked_dag(
     }
   }
   for index in first_task..<count {
-    let pipeline = @lower.pipeline(
-      @lower.bound_preparation(graph.owners[index]),
-    )
+    let prepared = @lower.bound_preparation(graph.owners[index])
+    let pipeline = @lower.pipeline(prepared)
     if @pipeline.step_count(pipeline) == 0 {
-      return Err(UnsupportedGraph)
+      // An input-only Relation task uses the existing bounded copy provider.
+      // Keep its exact checked port; other empty-task Carrier shapes are not
+      // admitted by this execution profile.
+      let target = @pipeline.Input(0)
+      guard @pipeline.input_count(pipeline) == 1 &&
+        graph.targets[index] == Some(target) &&
+        @lower.preparation_output_target(prepared) == Some(target) &&
+        @lower.preparation_schema_at(prepared, target) is Some(_) else {
+        return Err(UnsupportedGraph)
+      }
     }
     // Accept owned tasks, not operation-name templates. Implementations reject
     // unsupported execution obligations before offering work.

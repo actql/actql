@@ -190,9 +190,15 @@ export function prepareEffect(document, format, environment, parametersWire) {
   'RunHostEffectPreparationRejected'), 'prepared-effect-program');
 }
 
-export function compileEffect(prepared) {
+export function compileEffect(prepared, options = {}) {
+  if (options === null || typeof options !== 'object' ||
+      options.normalizationProfile !== undefined &&
+      options.normalizationProfile !== 'completion-free') {
+    throw new TypeError('InvalidRunHostEffectCompilationProfile');
+  }
   const value = checked(owner.clientValuesHostCompileEffect(
-    requireHandle(effectPreparations, prepared)), 'RunHostEffectCompilationRejected');
+    requireHandle(effectPreparations, prepared),
+    options.normalizationProfile === 'completion-free'), 'RunHostEffectCompilationRejected');
   return handle(effectCompilations, {value, prepared}, 'effect-compilation');
 }
 
@@ -344,7 +350,7 @@ export function restoreEffectRunNormalization(materials) {
 }
 
 /** Saved evidence is re-admitted, not reissued with a fresh policy or lifetime. */
-export function admitEffectRunMaterials(wire, definitionCid, profiles, original) {
+export function admitEffectRunMaterials(wire, definitionCid, profiles, original, expectedRequest) {
   if (typeof wire !== 'string' || typeof definitionCid !== 'string') {
     throw new TypeError('InvalidRunHostRunMaterialsInput');
   }
@@ -352,7 +358,8 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles, original)
   const restored = checked(owner.clientValuesHostAdmitEffectRunMaterials(wire,
     definitionCid, selected.textTime, selected.veca, selected.rela, selected.sga,
     selected.tea, selected.calendar, selected.textRank,
-    original === undefined ? undefined : requireHandle(issuedEffectMaterials, original)), 'RunHostEffectRestorationRejected');
+    original === undefined ? undefined : requireHandle(issuedEffectMaterials, original),
+    expectedRequest === undefined ? undefined : requireHandle(requests, expectedRequest)), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
   if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
@@ -416,9 +423,10 @@ export function prepareEffectRequest(prepared, compilation, authorityScopeCid, r
 }
 
 /** Logical Source binding from the original checked Effect graph, no I/O. */
-export function effectSourceInputBinding(compilation) {
+export function effectSourceInputBinding(compilation, request) {
   const {value} = requireHandle(effectCompilations, compilation);
-  return checked(owner.clientValuesHostEffectSourceInputBinding(value),
+  return checked(owner.clientValuesHostEffectSourceInputBinding(value,
+    request === undefined ? undefined : requireHandle(requests, request)),
     'RunHostEffectSourceBindingRejected');
 }
 

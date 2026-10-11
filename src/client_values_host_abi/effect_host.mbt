@@ -62,6 +62,7 @@ fn client_values_host_effect_manifests() -> Result[
 #export_name("clientValuesHostCompileEffect")
 pub fn client_values_host_compile_effect(
   prepared : @host.PreparedClientEffectComputation,
+  normalization_profile : Bool,
 ) -> Result[
   @host.ClientEffectCompilation,
   ClientValuesHostEffectCompilationIssue,
@@ -69,6 +70,14 @@ pub fn client_values_host_compile_effect(
   let manifests = match client_values_host_effect_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
+  }
+  let normalization = if normalization_profile {
+    match @host.issue_prepared_client_effect_normalization(prepared) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(Compilation(Normalization(issue)))
+    }
+  } else {
+    None
   }
   @host.issue_prepared_client_effect_compilation(
     prepared,
@@ -79,6 +88,7 @@ pub fn client_values_host_compile_effect(
     1000000,
     100000,
     100,
+    normalization~,
   ).map_err(issue => Compilation(issue))
 }
 
@@ -261,6 +271,7 @@ pub fn client_values_host_admit_effect_run_materials(
   calendar : Bool,
   text_rank : Bool,
   original : @host.ClientEffectIssuedNormalizationMaterials?,
+  expected_request : @host.ClientRequestIdentity?,
 ) -> Result[
   @host.ClientEffectRunMaterials,
   ClientValuesHostEffectRestorationIssue,
@@ -286,6 +297,7 @@ pub fn client_values_host_admit_effect_run_materials(
     },
     client_values_host_effect_limits(),
     original_materials=original,
+    expected_request~,
   ).map_err(issue => Materials(issue))
 }
 
