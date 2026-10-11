@@ -71,6 +71,17 @@ restart reads the original Result in fresh processes without new dispatch or
 Compute. Unrelated Planner, Effect, INFER, Graph and String campaigns are not
 part of this selection.
 
+The first clean-source packed run (`8c3ed5b2ec4659216f893e74f4d8b98c0aee3b87`,
+`run-3sNaUH`) failed in both transports at the Unicode fixture's column
+assertion. Five preceding successes completed per transport; this is not a
+completed inventory or fresh-process reread. The expected Text column omitted
+its independently derived `max_utf8_bytes: 9` (decomposed `e` = 3 bytes,
+CR/LF = 2, astral character = 4). The existing literal/item contract retains
+that bound. The fixture now checks it explicitly without weakening equality.
+Both workers exited with failure and zero live children; the normal guard
+verified its owned group stopped and released both locks. The failed receipt
+and five-package artifacts remain retained.
+
 Public acceptance is not established by the editing tests above. The handoff
 must identify its clean source SHA, all five package digests, actual completion
 inventories, process-stop receipts and released locks. CI, Preview and full-Core

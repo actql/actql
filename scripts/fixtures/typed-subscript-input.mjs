@@ -12,12 +12,12 @@ export function typedSubscriptProgram(expression) {
   ], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 }
 const nullArray = {if: [literal(false), array(7), literal(null)]};
-const success = (name, expression, value, type = 'number') => ({
+const success = (name, expression, value, contract = {type: 'number', nullable: true}) => ({
   name: `typed-subscript-${name}`, format: 'json',
   text: JSON.stringify(typedSubscriptProgram(expression)),
   sourceReadCount: 0, sourceReadSessionCount: 0,
   results: {answer: {rows: [{v: value}], columns: [
-    {name: 'v', contract: {type, nullable: true}},
+    {name: 'v', contract},
   ]}},
 });
 export const typedSubscriptSuccesses = [
@@ -26,7 +26,10 @@ export const typedSubscriptSuccesses = [
   success('safe-out-of-range', subscript(array(7), literal(9007199254740991)), null),
   success('null-receiver', subscript(nullArray, literal(0)), null),
   success('nullable-item', subscript(array(7, null), literal(1)), null),
-  success('unicode', subscript(array('e\u0301\r\n😀'), literal(0)), 'e\u0301\r\n😀', 'string'),
+  // The authored literal has 3 + 2 + 4 UTF-8 bytes. Subscript retains its
+  // item contract, including the finite Text bound, and makes it nullable.
+  success('unicode', subscript(array('e\u0301\r\n😀'), literal(0)), 'e\u0301\r\n😀',
+    {type: 'string', nullable: true, max_utf8_bytes: 9}),
 ];
 export const typedSubscriptExecutionFailures = [
   ['negative-index', subscript(array(7), literal(-1))],

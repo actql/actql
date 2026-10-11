@@ -15,6 +15,11 @@ test('typed subscript controls retain independent complete Program and nullable 
   assert.equal(typedSubscriptSuccesses.length, 6);
   assert.equal(typedSubscriptExecutionFailures.length, 2);
   assert.equal(typedSubscriptRefusals.length, 2);
+  assert.deepEqual(typedSubscriptSuccesses[5].results.answer, {
+    rows: [{v: 'e\u0301\r\n😀'}],
+    columns: [{name: 'v', contract: {type: 'string', nullable: true, max_utf8_bytes: 9}}],
+  });
+  assert.equal(Buffer.byteLength('e\u0301\r\n😀', 'utf8'), 9);
   for (const item of [...typedSubscriptSuccesses, ...typedSubscriptExecutionFailures,
     ...typedSubscriptRefusals]) {
     const program = JSON.parse(item.text);
