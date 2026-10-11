@@ -24,5 +24,5 @@
       "initial allocation prediction excluded literal seed4 from reserved names; restore the original independent SGA5/6 names"
     ]
   },
-  "typed_refusals": "pipeline_typing.check closed body/required with and field => InvalidBody; read_name field1 => Decode WrongType; graph_typing.delta => Graph UnknownDeltaField missing. Original malformed sources unchanged."
+  "typed_refusals": "pipeline_typing.check closed body/required with and field => InvalidBody; pipeline_typing.types read_name converts failed decode.text for field1 to InvalidBody; graph_typing.delta => Graph UnknownDeltaField missing. Original malformed sources unchanged."
 }
