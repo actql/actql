@@ -148,6 +148,7 @@ pub(all) struct NativeLocalPreparationCredentialInstallation {
 }
 
 type NativeLocalPreparationRawLookup
+pub fn NativeLocalPreparationRawLookup::authorize_return(Self, String) -> Result[Unit, NativeCredentialResourceIssue]
 pub fn NativeLocalPreparationRawLookup::lookup(Self, String) -> Result[NativeLocalPreparationRawRecovery, NativeCredentialResourceIssue]
 
 pub struct NativeLocalPreparationRawRecovery {

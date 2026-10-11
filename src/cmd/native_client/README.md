@@ -132,6 +132,24 @@ fixtures include discarded stdout after a real exited command; that case is
 not a pre/post-commit fault injection. These fixtures are defined and checked
 for syntax separately from runtime acceptance.
 
+Local `lookup-preparation-raw` observes one retained Preparation credential use.
+It requires `--submission-ref-file`, `--ref-file`, `--grant-ref-file`,
+`--operation-cid` and `--use-id`. The grant reference must match the original
+admitted request, and current Account permissions must independently allow the
+original Run and saved target resource to be read. The existing Host reader
+verifies original grant/target/use and Store custody. It needs neither a live
+Work nor an HTTP client, secret or the original issuer's issue permission.
+
+The bounded JSON reply reports the original use outcome/status and the retained
+raw response status, byte count and digest. It does not include the raw body,
+request or credential configuration; Result stdout settings do not authorize
+raw-body export. A claimed/unknown use remains claimed/unknown when retained
+response bytes exist. Missing or invalid originals, unavailable raw bytes,
+expired/revoked permission and cleanup failure refuse; none cause another GET,
+grant use or new execution. Store and Host close precede successful stdout.
+This command is source-connected; fresh-artifact exited-process CLI acceptance
+is still required and is not established by compiler-only fixtures.
+
 Local `delivery-attempt` observes only the original saved read attempt. Supply
 `--submission-ref-file`, `--ref-file`, `--result-name`, `--purpose` and
 `--attempt-id`. The trusted account must explicitly permit both the current

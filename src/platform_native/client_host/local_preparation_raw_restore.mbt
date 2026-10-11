@@ -278,3 +278,41 @@ pub fn NativeLocalPreparationRawReader::lookup(
   }
   self.binding.require_current().map(_ => result)
 }
+
+///|
+/// Authorize only this original metadata reference before opening a Store or
+/// after caller cleanup. Matching reference bytes do not grant read authority.
+pub fn NativeLocalHostConnection::authorize_preparation_raw_reference(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeLocalPreparationGrantReference,
+) -> Result[Unit, NativeLocalPreparationRawReadIssue] {
+  self.preparation_raw_read_transaction(() => {
+    self
+    .original_preparation_raw_target_locked(
+      crypto, principal, connection, reference,
+    )
+    .map(_ => ())
+  })
+}
+
+///|
+/// Recheck the existing credential read-return fence after caller cleanup,
+/// without restoring raw bytes or opening another Store payload. This neither
+/// changes the original outcome nor permits another send or grant use.
+pub fn NativeLocalPreparationRawReader::authorize_return(
+  self : NativeLocalPreparationRawReader,
+  use_id : String,
+) -> Result[Unit, NativeLocalPreparationRawReadIssue] {
+  match self.binding.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.lookup.authorize_return(use_id) {
+    Ok(_) => ()
+    Err(issue) => return Err(Resource(issue))
+  }
+  self.binding.require_current()
+}

@@ -189,3 +189,32 @@ pub fn NativeLocalPreparationRawLookup::lookup(
   .require_current_read("raw-return", Some(original))
   .map(_ => { original_use: status, observation, })
 }
+
+///|
+/// Recheck only the original read-return fence before delayed metadata
+/// disclosure. This reads no raw body/Store slot, claims no use and cannot
+/// install a transport. Original identity, expiry, current policy and durable
+/// revocation stay with the same credential Owner after caller cleanup.
+pub fn NativeLocalPreparationRawLookup::authorize_return(
+  self : NativeLocalPreparationRawLookup,
+  use_id : String,
+) -> Result[Unit, NativeCredentialResourceIssue] {
+  if use_id.is_empty() || use_id.length() > 256 {
+    return Err(Credential(@credential.CredentialGrantInactive))
+  }
+  match self.require_current_read("query", None) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let original = match
+    read_owned_credential_use_record(
+      self.database,
+      PreparationGrant(self.grant),
+      use_id,
+    ) {
+    Ok(PreparationUse(value)) => value
+    Ok(_) => return Err(Credential(@credential.CredentialUseCollision))
+    Err(issue) => return Err(issue)
+  }
+  self.require_current_read("raw-return", Some(original))
+}
