@@ -3,71 +3,71 @@
 ///|
 test "process evidence preimage 0" {
   let input = @json.parse(
-    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":23,\"received_fields\":[\"id\"],\"received_rows\":2,\"scope_cid\":\"sha256:11179e4d690fc60d3ce0d5483c504e37e7b407387368c4062bdd5438d40a31a0\"},\"attempt\":\"1\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:02c09ecf5b2d8da09b3e7c86ee1df4a129edd71615edab8fe86a75c9d5a044c0\",\"role\":\"source_validation\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
+    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":23,\"received_fields\":[\"id\"],\"received_rows\":2,\"scope_cid\":\"sha256:f732ed55b0db3b97c31cde6fbd245fb94ec5eef019993135d8b98ae09c288fa4\"},\"attempt\":\"1\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:24eaf9a9e18dc34dafd89bd9dd073d5fcf4b310ea862a975a54d12b2d91e50c8\",\"role\":\"source_validation\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
   )
   let value = @canonical_json.from_json(input, 10000, 100, 100000)
   assert_eq(
     @canonical_json.cid_value(value, 100000, 10000, 100),
-    "sha256:26a7d014bf650cf8325ca28a35dec5b36726dbca28cd7027bf6f766893a1caa3",
+    "sha256:e416570e0787d46d40492ea57a2e4ef76cc69194492f2fcf5f944830e94cb9c7",
   )
 }
 
 ///|
 test "process evidence preimage 1" {
   let input = @json.parse(
-    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":23,\"received_fields\":[\"id\"],\"received_rows\":2,\"scope_cid\":\"sha256:11179e4d690fc60d3ce0d5483c504e37e7b407387368c4062bdd5438d40a31a0\"},\"attempt\":\"1\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:02c09ecf5b2d8da09b3e7c86ee1df4a129edd71615edab8fe86a75c9d5a044c0\",\"role\":\"filter\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
+    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":23,\"received_fields\":[\"id\"],\"received_rows\":2,\"scope_cid\":\"sha256:f732ed55b0db3b97c31cde6fbd245fb94ec5eef019993135d8b98ae09c288fa4\"},\"attempt\":\"1\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:24eaf9a9e18dc34dafd89bd9dd073d5fcf4b310ea862a975a54d12b2d91e50c8\",\"role\":\"filter\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
   )
   let value = @canonical_json.from_json(input, 10000, 100, 100000)
   assert_eq(
     @canonical_json.cid_value(value, 100000, 10000, 100),
-    "sha256:334fa85e0945f97e822a68af513658ee49a0b9c95f740078b33b6476a8338a99",
+    "sha256:29729b035ee4ef2acadd3d5a9ea4337e3f98e426c81df13f6124f97303b02acd",
   )
 }
 
 ///|
 test "process evidence preimage 2" {
   let input = @json.parse(
-    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":23,\"received_fields\":[\"id\"],\"received_rows\":2,\"scope_cid\":\"sha256:11179e4d690fc60d3ce0d5483c504e37e7b407387368c4062bdd5438d40a31a0\"},\"attempt\":\"1\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:02c09ecf5b2d8da09b3e7c86ee1df4a129edd71615edab8fe86a75c9d5a044c0\",\"role\":\"select\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
+    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":23,\"received_fields\":[\"id\"],\"received_rows\":2,\"scope_cid\":\"sha256:f732ed55b0db3b97c31cde6fbd245fb94ec5eef019993135d8b98ae09c288fa4\"},\"attempt\":\"1\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:24eaf9a9e18dc34dafd89bd9dd073d5fcf4b310ea862a975a54d12b2d91e50c8\",\"role\":\"select\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
   )
   let value = @canonical_json.from_json(input, 10000, 100, 100000)
   assert_eq(
     @canonical_json.cid_value(value, 100000, 10000, 100),
-    "sha256:39db3cc4f1e5ba8e4146ed093cdef4b35189fe036dbbad52a6cead62df26ac09",
+    "sha256:775fc9e023caf35560e00a574141c2bceb21dcc9d57595a28aa8d856797fdec6",
   )
 }
 
 ///|
 test "process evidence preimage 3" {
   let input = @json.parse(
-    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":120,\"received_fields\":[\"amount\",\"id\",\"status\"],\"received_rows\":3,\"scope_cid\":\"sha256:a984caa85906c029dca91a2cebcd75344ce7bfb45ec091d728baaec1ea77cc33\"},\"attempt\":\"2\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:02c09ecf5b2d8da09b3e7c86ee1df4a129edd71615edab8fe86a75c9d5a044c0\",\"role\":\"source_validation\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
+    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":120,\"received_fields\":[\"amount\",\"id\",\"status\"],\"received_rows\":3,\"scope_cid\":\"sha256:ee5ff22a5d35f244b367daaeacfb47c27097ec90632f42879a6309dfc6e4062d\"},\"attempt\":\"2\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:24eaf9a9e18dc34dafd89bd9dd073d5fcf4b310ea862a975a54d12b2d91e50c8\",\"role\":\"source_validation\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
   )
   let value = @canonical_json.from_json(input, 10000, 100, 100000)
   assert_eq(
     @canonical_json.cid_value(value, 100000, 10000, 100),
-    "sha256:7765c94297f030c73949c8e8c0a30e8e6767d943dcfb9ed44265a0fea9d68ca1",
+    "sha256:acf4fca6f6044d0d2a13171ca8ac27f0df8990d16929757587be0b4881c29a0b",
   )
 }
 
 ///|
 test "process evidence preimage 4" {
   let input = @json.parse(
-    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":120,\"received_fields\":[\"amount\",\"id\",\"status\"],\"received_rows\":3,\"scope_cid\":\"sha256:a984caa85906c029dca91a2cebcd75344ce7bfb45ec091d728baaec1ea77cc33\"},\"attempt\":\"2\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:02c09ecf5b2d8da09b3e7c86ee1df4a129edd71615edab8fe86a75c9d5a044c0\",\"role\":\"filter\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
+    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":120,\"received_fields\":[\"amount\",\"id\",\"status\"],\"received_rows\":3,\"scope_cid\":\"sha256:ee5ff22a5d35f244b367daaeacfb47c27097ec90632f42879a6309dfc6e4062d\"},\"attempt\":\"2\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:24eaf9a9e18dc34dafd89bd9dd073d5fcf4b310ea862a975a54d12b2d91e50c8\",\"role\":\"filter\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
   )
   let value = @canonical_json.from_json(input, 10000, 100, 100000)
   assert_eq(
     @canonical_json.cid_value(value, 100000, 10000, 100),
-    "sha256:7e73571e2a423bab5ec12181f43fa9509d0c13ed2083edc20d65c086715557bc",
+    "sha256:4e3c0f12795b612b80c18170f88dcd524f3a31d2d7343c696bb5998b445f79bb",
   )
 }
 
 ///|
 test "process evidence preimage 5" {
   let input = @json.parse(
-    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":120,\"received_fields\":[\"amount\",\"id\",\"status\"],\"received_rows\":3,\"scope_cid\":\"sha256:a984caa85906c029dca91a2cebcd75344ce7bfb45ec091d728baaec1ea77cc33\"},\"attempt\":\"2\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:02c09ecf5b2d8da09b3e7c86ee1df4a129edd71615edab8fe86a75c9d5a044c0\",\"role\":\"select\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
+    "{\"actual_access\":{\"provider_scope_cid\":null,\"received_bytes\":120,\"received_fields\":[\"amount\",\"id\",\"status\"],\"received_rows\":3,\"scope_cid\":\"sha256:ee5ff22a5d35f244b367daaeacfb47c27097ec90632f42879a6309dfc6e4062d\"},\"attempt\":\"2\",\"issuer\":\"fixture-process\",\"output\":{\"contract_cid\":\"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b\",\"row_count\":2,\"rows_cid\":\"sha256:30cbdf39c841b57751c60906376659a274455e096bdfcc059fb333db6e91578a\"},\"requirement_cid\":\"sha256:24eaf9a9e18dc34dafd89bd9dd073d5fcf4b310ea862a975a54d12b2d91e50c8\",\"role\":\"select\",\"scan_scope_cid\":\"sha256:3ce846b6366a1485c90cd8583a0f5693771ae24a55f63c5b0a1feee33f69f573\",\"snapshot\":null,\"version\":\"actql-query-process-evidence/0.1\"}",
   )
   let value = @canonical_json.from_json(input, 10000, 100, 100000)
   assert_eq(
     @canonical_json.cid_value(value, 100000, 10000, 100),
-    "sha256:ec98984beda729bd3e7e8304f4dd57aeaaad2cffce1722aa9e00c68878958839",
+    "sha256:c1ca08e188e3d11a5d637b74a730c717385587159080d747b78f1611bcee8aab",
   )
 }

@@ -33,6 +33,7 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
 source_cases = []
 publication_cases = []
 binding_cases = []
+preflight_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -161,7 +162,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 21
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 22
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -285,21 +286,21 @@ try:
         compute = call('compute', 'reserve', fixture.attempt, copy({**read_account, **bodies}))
         assert compute > 0 and call('compute', 'configure', compute) == 0
         assert call('compute', 'configured', compute) == 0
-        if source_publication:
-            def source_loan(max_work=1000000, **changes):
-                global ticket
-                request_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
-                                      'capture_started_at': '2026-10-10T00:00:00.000Z',
-                                      'capture_completed_at': '2026-10-10T00:00:01.000Z',
-                                      'max_work': max_work, 'max_workspace_slots': 1000000, **changes})
-                ticket += 1
-                output_ticket = ticket
-                fixture.inputs[output_ticket] = b''
-                handle = call('source_publication', 'reserve', compute, request_input,
-                              output_ticket, 131200)
-                assert handle > 0
-                return handle
+        def source_loan(max_work=1000000, **changes):
+            global ticket
+            request_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
+                                  'capture_started_at': '2026-10-10T00:00:00.000Z',
+                                  'capture_completed_at': '2026-10-10T00:00:01.000Z',
+                                  'max_work': max_work, 'max_workspace_slots': 1000000, **changes})
+            ticket += 1
+            output_ticket = ticket
+            fixture.inputs[output_ticket] = b''
+            handle = call('source_publication', 'reserve', compute, request_input,
+                          output_ticket, 131200)
+            assert handle > 0
+            return handle
 
+        if source_publication:
             collision_input = copy({'observed_at': '2026-10-10T00:00:01.000Z',
                                       'capture_started_at': '2026-10-10T00:00:00.000Z',
                                       'capture_completed_at': '2026-10-10T00:00:01.000Z',
@@ -410,17 +411,79 @@ try:
                 assert call('source_publication', 'close', source_output) == 0
                 assert fixture.queries == 3, 'Identity issuance must not reacquire Source'
                 source_cases.append('source_quantum_' + str(quantum) + '_identity_and_cleanup')
-            source_pin = source_loan()
-            assert call('source_publication', 'prepare', source_pin, configuration) == 0
-            assert call('source_publication', 'advance', source_pin, 1) == 0
-            if final_publication:
-                for _ in range(10000):
-                    assert call('source_publication', 'advance', source_pin, 100) == 0
-                    if call('source_publication', 'progress', source_pin, 0) == 1:
-                        break
-                else:
-                    raise AssertionError('Retained Source invocation did not complete')
-                assert call('source_publication', 'finish', source_pin, configuration) == 0
+        source_pin = source_loan()
+        assert call('source_publication', 'prepare', source_pin, configuration) == 0
+        assert call('source_publication', 'advance', source_pin, 1) == 0
+        for _ in range(10000):
+            assert call('source_publication', 'advance', source_pin, 100) == 0
+            if call('source_publication', 'progress', source_pin, 0) == 1:
+                break
+        else:
+            raise AssertionError('Original Source invocation did not complete')
+        assert call('source_publication', 'finish', source_pin, configuration) == 0
+        intent_facts = json.loads((root / 'scripts/fixtures/python-local-publication-intent.json').read_text())
+        _, retention_wire = publication_policy()
+
+        def preflight_loan(**changes):
+            global ticket
+            input_handle = copy({**intent_facts, 'retentions': [retention_wire], **changes})
+            ticket += 1
+            fixture.inputs[ticket] = b''
+            handle = call('publication_preflight', 'reserve', source_pin, input_handle, ticket, 2097200)
+            assert handle > 0
+            return handle
+
+        # Task reservation alone invokes no operation; the original preflight
+        # is required before the existing activation Owner can be called.
+        premature = call('task', 'reserve', compute, configuration)
+        assert premature > 0
+        assert_status('task', 'start', -36, premature)
+        assert_status('task', 'started', -33, premature)
+        assert_status('task', 'close', 0, premature)
+        preflight_cases.append('task_activation_requires_original_preflight')
+        for changes, status in (({'retentions': None}, -31), ({'retentions': []}, -31),
+                                ({'external_idempotency_key': None}, -31),
+                                ({'retentions': [retention_wire, retention_wire]}, -32)):
+            malformed = preflight_loan(**changes)
+            assert_status('publication_preflight', 'prepare', status, malformed, configuration)
+            assert_status('publication_preflight', 'length', -33, malformed)
+            assert_status('publication_preflight', 'close', 0, malformed)
+        foreign_retention = json.loads(publication_policy()[0]['retention_preimage'])
+        foreign_retention['effective_data_policy_cid'] = 'sha256:' + '8' * 64
+        foreign_retention['effective_retention_policy_cid'] = 'sha256:' + hashlib.sha256(encode(foreign_retention)).hexdigest()
+        malformed = preflight_loan(retentions=[encode(foreign_retention).decode()])
+        assert_status('publication_preflight', 'prepare', -32, malformed, configuration)
+        assert_status('publication_preflight', 'close', 0, malformed)
+        preflight_cases.append('closed_original_policy_and_complete_inventory')
+        denied_account = json.loads(account)
+        denied_account['entries'][0]['outcome'] = 'deny'
+        denied_preflight_configuration = call('run', 'install_configuration', copy({
+            **CONFIGURATION, 'account': encode(denied_account).decode()}))
+        denied = preflight_loan()
+        assert_status('publication_preflight', 'prepare', -32, denied, denied_preflight_configuration)
+        assert_status('publication_preflight', 'prepare', -33, denied, configuration)
+        assert_status('publication_preflight', 'close', 0, denied)
+        preflight = preflight_loan()
+        assert_status('publication_preflight', 'prepare', 0, preflight, configuration)
+        assert_status('publication_preflight', 'prepare', -32, preflight, denied_preflight_configuration)
+        assert_status('publication_preflight', 'prepare', 0, preflight, configuration)
+        preflight_size = call('publication_preflight', 'length', preflight)
+        assert 0 < preflight_size <= 1048576
+        preflight_body = json.loads(bytes(fixture.call('byte', preflight, i) for i in range(preflight_size)))
+        assert set(preflight_body) == {'request', 'attempt'}
+        original_request = json.loads(preflight_body['request'])
+        original_attempt = json.loads(preflight_body['attempt'])
+        assert original_request['namespace_id'] == intent_facts['namespace_id']
+        assert original_request['publication_policy_cid'] == intent_facts['publication_policy_cid']
+        assert original_request['publication_target_cid'] == intent_facts['publication_target_cid']
+        assert original_request['authority_scope_cid'] == CONFIGURATION['authority_scope_cid']
+        assert [r['result_name'] for r in original_request['inventory']] == ['answer']
+        assert original_attempt['fence_cid'] == intent_facts['fence_cid']
+        assert original_attempt['attempt_id'] == intent_facts['attempt_id']
+        assert 'external_idempotency_key' not in original_attempt
+        assert call('run', 'close_configuration', denied_preflight_configuration) == 0
+        assert fixture.queries == 3
+        preflight_cases.append('original_intent_current_access_and_no_source_reexecution')
         tasks = []
         for _ in range(2):
             task = call('task', 'reserve', compute, configuration)
@@ -500,7 +563,7 @@ try:
         assert call('result', 'finish_preparation', result) == 0
         if final_publication:
             _, retention_wire = publication_policy()
-            pending_input = copy({'results': [result], 'retention': retention_wire,
+            pending_input = copy({'results': [result],
                                   'max_work': 1000000, 'max_workspace_slots': 100000})
             ticket += 1
             fixture.inputs[ticket] = b''
@@ -536,7 +599,7 @@ try:
 
             def publication_loan(**overrides):
                 global ticket
-                request = copy({'results': [result], 'retention': retention_wire,
+                request = copy({'results': [result],
                                 'max_work': 1000000, 'max_workspace_slots': 100000,
                                 **overrides})
                 ticket += 1
@@ -551,7 +614,7 @@ try:
                 assert_status('publication', 'length', -33, value)
                 assert_status('publication', 'close', 0, value)
             publication_cases.append('null_empty_duplicate_foreign_result_inventory_refused')
-            missing = copy({'retention': retention_wire, 'max_work': 100,
+            missing = copy({'max_work': 100,
                             'max_workspace_slots': 100000})
             ticket += 1
             fixture.inputs[ticket] = b''
@@ -570,13 +633,13 @@ try:
             assert_status('publication', 'length', -33, exhausted)
             assert_status('publication', 'close', 0, exhausted)
             assert call('compute', 'configured', compute) == 0
-            # An issued projection belongs to its original retention body.
-            # A new child may borrow it, but cannot substitute another policy.
+            # Retention was checked before activation. A later child may
+            # borrow the original projection, but cannot supply any policy.
             foreign_retention = json.loads(expected['retention_preimage'])
             foreign_retention['clock_contract_cid'] = 'sha256:' + '8' * 64
             foreign_retention['effective_retention_policy_cid'] = 'sha256:' + hashlib.sha256(encode(foreign_retention)).hexdigest()
             foreign = publication_loan(retention=encode(foreign_retention).decode())
-            assert_status('publication', 'prepare', -32, foreign, configuration)
+            assert_status('publication', 'prepare', -31, foreign, configuration)
             assert_status('publication', 'length', -33, foreign)
             assert_status('publication', 'close', 0, foreign)
             publication_cases.append('unfinished_budget_refusal_retains_work_and_original_compute')
@@ -742,9 +805,21 @@ try:
         assert call('result', 'close', result) == 0
         for task in reversed(tasks):
             assert call('task', 'close', task) == 0
+        assert call('compute', 'close', compute) == -9
+        fixture.cleanup_ready = False
+        reserved = fixture.call('reserved')
+        assert_status('publication_preflight', 'close', -9, preflight)
+        assert fixture.call('reserved') == reserved
+        assert_status('source_publication', 'close', -9, source_pin)
+        fixture.cleanup_ready = True
+        fixture.stop_ready = False
+        assert_status('publication_preflight', 'close', -9, preflight)
+        fixture.stop_ready = True
+        assert_status('publication_preflight', 'close', 0, preflight)
+        assert_status('source_publication', 'close', 0, source_pin)
+        assert fixture.queries == 3
+        preflight_cases.append('original_source_pin_and_same_borrow_cleanup_retry')
         if source_publication:
-            assert call('compute', 'close', compute) == -9
-            assert call('source_publication', 'close', source_pin) == 0
             source_cases.append('source_child_pins_parent_until_explicit_close')
         assert call('compute', 'close', compute) == 0
     root_before_cleanup = fixture.exports['actql_workspace_root_reserved'](fixture.store, fixture.nonce)
@@ -793,6 +868,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'source_publication_cases': source_cases,
                   'result_publication_cases': publication_cases,
                   'result_binding_cases': binding_cases,
+                  'publication_preflight_cases': preflight_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

@@ -263,6 +263,29 @@ pub fn issue_local_preflight_result_publication(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[LocalResultPublication, LocalPublicationIntentIssue] {
+  match validate_local_preflight_result(preflight, result, output, account) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  issue_local_result_publication(
+    preflight.invocation.source.host,
+    preflight.invocation,
+    output,
+    preflight.retentions[result],
+    account,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  ).map_err(issue => ResultPublication(issue))
+}
+
+///|
+fn validate_local_preflight_result(
+  preflight : LocalPublicationPreflight,
+  result : Int,
+  output : @host.PublicationOutputExport,
+  account : @authorization.AdmittedAccountConfiguration,
+) -> Result[Unit, LocalPublicationIntentIssue] {
   match validate_local_publication_preflight_current(preflight, account) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -279,14 +302,44 @@ pub fn issue_local_preflight_result_publication(
     @publication.publication_contract_identity(intent.definitions[result]) {
     return Err(PreflightMismatch)
   }
-  issue_local_result_publication(
+  Ok(())
+}
+
+///|
+/// Reuse the original nominal Result after child cancellation. Checking a
+/// retained preflight must not reissue its Receipt or replace its artifact.
+pub fn reuse_local_preflight_result_publication(
+  preflight : LocalPublicationPreflight,
+  result : Int,
+  original : LocalResultPublication,
+  output : @host.PublicationOutputExport,
+  account : @authorization.AdmittedAccountConfiguration,
+) -> Result[LocalResultPublication, LocalPublicationIntentIssue] {
+  match validate_local_preflight_result(preflight, result, output, account) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  reuse_local_result_publication(
+    original,
     preflight.invocation.source.host,
     preflight.invocation,
     output,
     preflight.retentions[result],
     account,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
   ).map_err(issue => ResultPublication(issue))
+}
+
+///|
+pub fn local_publication_preflight_count(
+  preflight : LocalPublicationPreflight,
+) -> Int {
+  preflight.intent.definitions.length()
+}
+
+///|
+/// Project sealed intent; this is not current physical publisher authority.
+pub fn local_publication_preflight_contracts(
+  preflight : LocalPublicationPreflight,
+) -> (@publication.PublicationContract, @publication.PublicationContract) {
+  local_publication_intent_contracts(preflight.intent)
 }

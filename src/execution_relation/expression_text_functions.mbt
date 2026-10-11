@@ -15,7 +15,12 @@ priv enum TextFunctionKind {
   TextLength
   TextStrpos
   TextReplace
+  TextSplit
   TextSubstring
+  TextLeft
+  TextRight
+  TextLPad
+  TextRPad
   TextUpper
   TextLower
   TextTrim
@@ -26,6 +31,19 @@ priv enum TextFunctionKind {
 ///|
 fn is_trim_text_function(kind : TextFunctionKind) -> Bool {
   kind == TextTrim || kind == TextLTrim || kind == TextRTrim
+}
+
+///|
+fn is_slice_text_function(kind : TextFunctionKind) -> Bool {
+  kind == TextSubstring ||
+  kind == TextLeft ||
+  kind == TextRight ||
+  is_pad_text_function(kind)
+}
+
+///|
+fn is_pad_text_function(kind : TextFunctionKind) -> Bool {
+  kind == TextLPad || kind == TextRPad
 }
 
 ///|
@@ -57,6 +75,9 @@ priv struct TextFunctionState {
   mut substring_phase : Int
   mut substring_start : Int64
   mut substring_end : Int64
+  mut padding : Int64
+  mut padding_remaining : Int64
+  mut padding_position : Int
   mut trim_scanning : Bool
   mut trim_start : Int
   mut trim_end : Int
@@ -75,8 +96,11 @@ fn start_text_function(
   for i, value in values {
     match value {
       Null => null_result = true
-      Text(_) if kind != TextSubstring || i == 0 => ()
-      Number(_) if kind == TextSubstring && i > 0 => ()
+      Text(_) if !is_slice_text_function(kind) ||
+        i == 0 ||
+        (is_pad_text_function(kind) && i == 2) => ()
+      Number(_) if (kind == TextSubstring && i > 0) ||
+        (is_slice_text_function(kind) && i == 1) => ()
       _ => return Err({ kind: Scalar(InvalidOperand), expression, })
     }
   }
@@ -95,6 +119,18 @@ fn start_text_function(
         return Err({ kind: Scalar(InvalidOperand), expression, })
       }
       substring_end = length
+    }
+  }
+  if is_slice_text_function(kind) && kind != TextSubstring && !null_result {
+    guard values[1] is Number(number) &&
+      @scalar.read_safe_integer(number) is Some(length) &&
+      length >= 0L else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    substring_start = if kind == TextRight { -length } else { 1L }
+    substring_end = length
+    if is_pad_text_function(kind) && values.get(2) is Some(Text("")) {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
     }
   }
   if !reserve_slots(workspace, 2) {
@@ -147,7 +183,13 @@ fn start_text_function(
     kind,
     null_result,
     input,
-    search: if kind == TextReplace ||
+    search: if is_pad_text_function(kind) {
+      if values.get(2) is Some(pattern) {
+        text(pattern)
+      } else {
+        " "
+      }
+    } else if kind == TextReplace ||
       kind == TextStrpos ||
       (is_trim_text_function(kind) && values.length() == 2) {
       text(values[1])
@@ -160,7 +202,7 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if kind == TextReplace || kind == TextSubstring {
+    reserved: if kind == TextReplace || is_slice_text_function(kind) {
       values.length() * 3 + 3
     } else {
       2
@@ -180,13 +222,16 @@ fn start_text_function(
     probing_sigma: false,
     probe_position: 0,
     trim_explicit: is_trim_text_function(kind) && values.length() == 2,
-    substring_phase: if kind == TextSubstring {
+    substring_phase: if is_slice_text_function(kind) {
       1
     } else {
       0
     },
     substring_start,
     substring_end,
+    padding: 0L,
+    padding_remaining: 0L,
+    padding_position: 0,
     trim_scanning: is_trim_text_function(kind),
     trim_start: if kind == TextRTrim {
       0
@@ -295,6 +340,10 @@ fn advance_text_function(
   if state.substring_phase == 1 {
     if state.position == state.input.length() {
       let count = state.count.to_int64()
+      if is_pad_text_function(state.kind) {
+        state.padding = (state.substring_end - count).max(0L)
+        state.padding_remaining = state.padding
+      }
       let position = state.substring_start
       let start = if position > 0L {
         (position - 1L).min(count)
@@ -335,6 +384,22 @@ fn advance_text_function(
     }
     state.position = next
     state.count += 1
+    return Ok(None)
+  }
+  // Repeat only one pattern scalar per charged poll. Both the exact sizing
+  // pass and construction pass use this cursor; no repeated string is ever
+  // allocated before its logical bytes and workspace have been admitted.
+  if state.padding_remaining > 0L &&
+    (state.kind == TextLPad || state.position == state.trim_end) {
+    state.padding_position = match
+      append_text_function_scalar(state, state.search, state.padding_position) {
+      Ok(next) => next
+      Err(issue) => return Err(issue)
+    }
+    state.padding_remaining -= 1L
+    if state.padding_position == state.search.length() {
+      state.padding_position = 0
+    }
     return Ok(None)
   }
   if state.trim_scanning {
@@ -453,7 +518,8 @@ fn advance_text_function(
     state.emission = 0
     return Ok(None)
   }
-  let end = if is_trim_text_function(state.kind) || state.kind == TextSubstring {
+  let end = if is_trim_text_function(state.kind) ||
+    is_slice_text_function(state.kind) {
     state.trim_end
   } else {
     state.input.length()
@@ -484,12 +550,14 @@ fn advance_text_function(
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
     state.position = if is_trim_text_function(state.kind) ||
-      state.kind == TextSubstring {
+      is_slice_text_function(state.kind) {
       state.trim_start
     } else {
       0
     }
     state.matched = 0
+    state.padding_remaining = state.padding
+    state.padding_position = 0
     state.preceding_cased = false
     state.probing_sigma = false
     state.probe_position = 0
@@ -536,7 +604,7 @@ fn advance_text_function(
     }
     return Ok(None)
   }
-  if is_trim_text_function(state.kind) || state.kind == TextSubstring {
+  if is_trim_text_function(state.kind) || is_slice_text_function(state.kind) {
     state.position = match
       append_text_function_scalar(state, state.input, state.position) {
       Ok(next) => next

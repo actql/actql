@@ -42,6 +42,7 @@ priv struct Instance {
   native_commands : Map[Int, StoredNativeCommand]
   computes : Map[Int, StoredNativeCompute]
   source_publications : Map[Int, StoredSourcePublication]
+  publication_preflights : Map[Int, StoredPublicationPreflight]
   publications : Map[Int, StoredPublication]
   result_bindings : Map[Int, StoredResultBinding]
   tasks : Map[Int, StoredManagedTask]
@@ -152,6 +153,7 @@ pub fn open(
         native_commands: {},
         computes: {},
         source_publications: {},
+        publication_preflights: {},
         publications: {},
         result_bindings: {},
         tasks: {},
@@ -316,6 +318,7 @@ pub fn close_pool(nonce : Int64) -> Int {
   if !value.native_attempts.is_empty() ||
     !value.computes.is_empty() ||
     !value.source_publications.is_empty() ||
+    !value.publication_preflights.is_empty() ||
     !value.publications.is_empty() ||
     !value.result_bindings.is_empty() ||
     !value.tasks.is_empty() ||
@@ -352,6 +355,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.native_commands.clear()
     value.computes.clear()
     value.source_publications.clear()
+    value.publication_preflights.clear()
     value.publications.clear()
     value.result_bindings.clear()
     value.tasks.clear()

@@ -114,11 +114,16 @@ fn expression_role(
     | "safe_subtract"
     | "safe_multiply"
     | "replace"
+    | "left"
+    | "right"
+    | "lpad"
+    | "rpad"
     | "concat"
     | "date_trunc"
     | "date_add"
     | "date_diff"
     | "array"
+    | "split"
     | "vector_concat" => Arguments(tag)
     "to_decimal"
     | "typed_literal"
@@ -156,6 +161,8 @@ fn arity(
 ) -> Unit raise Stop {
   let valid = match tag {
     "array" => true
+    "split" => size == 1 || size == 2
+    "lpad" | "rpad" => size == 2 || size == 3
     "and"
     | "or"
     | "concat_strict"

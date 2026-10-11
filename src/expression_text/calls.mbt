@@ -72,7 +72,9 @@ fn Parser::call(
     | "nfkc"
     | "case_fold" => (1, 1)
     "trim" | "ltrim" | "rtrim" | "round" | "trunc" | "log" => (1, 2)
-    "contains"
+    "left"
+    | "right"
+    | "contains"
     | "pow"
     | "power"
     | "strpos"
@@ -97,7 +99,8 @@ fn Parser::call(
     | "try_decimal"
     | "split_part"
     | "vector_score" => if name == "date_trunc" { (2, 2) } else { (3, 3) }
-    "substring" => (2, 3)
+    "split" => (1, 2)
+    "substring" | "lpad" | "rpad" => (2, 3)
     "quantize" => (4, 4)
     "decimal_divide" => (5, 5)
     "regex_match" => (2, 3)

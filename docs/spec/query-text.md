@@ -136,6 +136,34 @@ The common expression finite-domain, NULL and arithmetic-failure rules apply.
 No distinct INT64/NUMERIC/BIGNUMERIC or non-finite overload is added. `MOD` is
 not admitted as a GoogleSQL FLOAT64 function; internal `%` remains unchanged.
 
+`LEFT(value, length)`, `RIGHT(value, length)`, `LPAD(value, length[, pattern])`
+and `RPAD(value, length[, pattern])` select the common String scalar operations
+with the same ordered argument arrays. Side slices select at most the requested
+number of Unicode scalars. Padding truncates to an original prefix or repeats
+the omitted U+0020/explicit nonempty pattern at the corresponding side, retaining
+only the needed final pattern prefix. Zero, NULL, failure, finite safe-integer
+length validation and cooperative resource rules belong to the common owner.
+Every supplied child remains present exactly once; quoted and case variants
+retain function identity. BYTES, explicit collation and the full INT64 length
+domain remain coverage gaps. No frontend evaluator or expansion that repeats
+the length child is introduced. Unquoted `LEFT` and `RIGHT` select function
+calls only when immediately followed by the opening-parenthesis token. They
+remain reserved as bare identifiers; `LEFT JOIN` and `RIGHT JOIN` retain their
+query syntax and are not reclassified as scalar calls.
+
+`SPLIT(value[, delimiter])` selects the common `split` expression, following the
+[GoogleSQL STRING rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#split).
+The optional delimiter is an ordinary STRING expression; literal matching
+excludes regular expressions but does not require a literal-valued argument.
+Omission selects comma and remains a one-element ordered argument array.
+Empty input produces one empty String; an empty delimiter on nonempty input
+selects Unicode scalars. The nullable Array result has non-null String elements
+and the common conservative input-derived bounds. Every supplied child remains
+once-only and ordered before strict NULL propagation; child errors, lazy demand,
+resource admission and cancellation remain with the common expression owner.
+BYTES and collation remain coverage gaps. No `split_part` profile or frontend
+split evaluator is introduced.
+
 `SIGN(expr)` takes exactly one finite binary64 `number` operand and lowers to
 the common `sign` node. Following the selected [GoogleSQL SIGN rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/mathematical_functions#sign),
 it returns the number -1, positive zero or 1 for a negative, zero or positive
