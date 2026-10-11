@@ -18,7 +18,7 @@ pub fn client_values_host_admit_captured_result_snapshot(@run_publication.Public
 
 pub fn client_values_host_admit_completed_source_observation(String, String, String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.SourceInputObservationIssue]
 
-pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
+pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
 
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
@@ -186,6 +186,8 @@ pub fn client_values_host_issue_effect_run_materials(@run_publication_host.Clien
 
 pub fn client_values_host_issue_manifest_read_grant(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise ClientValuesHostDeliveryIssue
 
+pub fn client_values_host_issue_prepared_effect_run_materials(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity?) -> Result[@run_publication_host.ClientEffectIssuedNormalizationMaterials, @run_publication_host.ClientEffectRunMaterialsIssue]
+
 pub fn client_values_host_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
 
 pub fn client_values_host_issue_publication_attempt(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String?, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
@@ -227,6 +229,8 @@ pub fn client_values_host_issue_task_succeeded_run_state_wire(@run_publication.P
 pub fn client_values_host_issue_task_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, String, Bool, Bool, Bool, Bool) -> String?
 
 pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool, Bool, Bool) -> String?
+
+pub fn client_values_host_issued_effect_run_materials_wire(@run_publication_host.ClientEffectIssuedNormalizationMaterials) -> String
 
 pub fn client_values_host_manifest_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
 
@@ -351,6 +355,8 @@ pub fn client_values_host_request_program_cid(@run_publication_host.ClientReques
 pub fn client_values_host_request_relation(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity) -> Int
 
 pub fn client_values_host_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_restore_effect_run_normalization(@run_publication_host.ClientEffectRunMaterials) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEffectNormalizationIssue]
 
 pub fn client_values_host_restored_effect_allowed(@run_publication_host.ClientEffectRunMaterials) -> @run_publication_host.ClientEffectAllowedRun
 

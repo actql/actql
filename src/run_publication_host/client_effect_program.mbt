@@ -26,6 +26,7 @@ pub(all) enum ClientEffectComputationIssue {
 /// share one Program owner. This is not an executable Effect Run or permit.
 struct PreparedClientEffectComputation {
   mut normalization : ClientEffectNormalization?
+  mut normalization_custody : ClientEffectNormalizationMaterialCustody?
   source : @syntax.Program
   supplied : @decode.Cursor?
   candidate : @checked.EffectProgramStaticCandidate
@@ -132,6 +133,7 @@ pub fn prepare_parsed_client_effect_computation(
   }
   Ok({
     normalization: None,
+    normalization_custody: None,
     source: parsed,
     supplied,
     candidate,
