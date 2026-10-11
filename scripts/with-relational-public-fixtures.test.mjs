@@ -19,11 +19,12 @@ for (const [name, previous] of Object.entries(retained.snapshots)) {
   test('WITH Relation retains complete independent ' + name + ' inventory', async () => {
     const current = JSON.parse(JSON.stringify(await import(new URL('./fixtures/' + name + '-source-input.mjs', import.meta.url))));
     const expected = structuredClone(previous);
-    for (const value of Object.values(expected)) {
-      if (Array.isArray(value)) for (const item of value) {
-        if (typeof item?.text === 'string' && item.format !== 'json') item.text = expectedWrapper(item.text);
-      }
+    function visit(value) {
+      if (value === null || typeof value !== 'object') return;
+      if (typeof value.text === 'string' && value.format !== 'json') value.text = expectedWrapper(value.text);
+      for (const child of Object.values(value)) visit(child);
     }
+    visit(expected);
     // Full comparison includes rows, ordered schema, refusal codes, parameter
     // declarations/values, limits, read counts and byte-identical JSON controls.
     assert.deepEqual(current, expected);
