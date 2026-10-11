@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/platform_native/sqlite"
 
+import {
+  "actql/actql/platform_native/filesystem",
+}
+
 // Values
 pub fn load_library(String) -> Result[Library, NativeSqliteIssue]
 
@@ -27,6 +31,7 @@ pub fn Database::scan_after(Self, String, String) -> Result[NativeJournalEntry, 
 pub fn Database::transaction_fenced(Self) -> Bool
 
 type Library
+pub fn Library::initialize_owned_database(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_existing_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_inspection_database(Self, String, Int64) -> Database

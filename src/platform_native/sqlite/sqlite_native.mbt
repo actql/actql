@@ -40,6 +40,17 @@ extern "C" fn open_existing_database_ffi(
 
 ///|
 #borrow(library, path)
+extern "C" fn initialize_owned_database_ffi(
+  library : Library,
+  path : Bytes,
+  length : Int,
+  device : UInt64,
+  inode : UInt64,
+  max_body_bytes : Int64,
+) -> Database = "actql_native_sqlite_initialize_owned_database"
+
+///|
+#borrow(library, path)
 extern "C" fn open_inspection_database_ffi(
   library : Library,
   path : Bytes,
@@ -279,6 +290,36 @@ pub fn Library::open_existing_database(
     self,
     encoded,
     encoded.length(),
+    max_body_bytes,
+  )
+  if database_ready_ffi(database) {
+    Ok(database)
+  } else {
+    Err(DatabaseOpen(decode_message(database_error_ffi(database))))
+  }
+}
+
+///|
+/// Initialize only the exact exclusively created empty file. This never opens
+/// with CREATE and never repairs a previously initialized database. Ownership
+/// alone is not authorization; a trusted Host must bind its original durable
+/// initialization intent before calling this physical boundary.
+pub fn Library::initialize_owned_database(
+  self : Library,
+  path : String,
+  ownership : @filesystem.NativeFileOwnership,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteIssue] {
+  if max_body_bytes < 0L {
+    return Err(InvalidLimit)
+  }
+  let encoded = @utf8.encode(path)
+  let database = initialize_owned_database_ffi(
+    self,
+    encoded,
+    encoded.length(),
+    ownership.device,
+    ownership.inode,
     max_body_bytes,
   )
   if database_ready_ffi(database) {
