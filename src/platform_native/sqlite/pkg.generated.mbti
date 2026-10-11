@@ -26,6 +26,7 @@ pub fn Database::scan_after(Self, String, String) -> Result[NativeJournalEntry, 
 
 type Library
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
+pub fn Library::open_existing_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_inspection_database(Self, String, Int64) -> Database
 pub fn Library::version(Self) -> String
 
