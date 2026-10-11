@@ -10,8 +10,27 @@ const selected = process.argv.includes('--vectors-events-only')
     'src/query_program/graph_member_test.mbt',
     'src/query_program/quoted_graph_macro_test.mbt',
     'src/query_program/grouped_graph_macro_test.mbt'];
-process.exitCode = await runLocalCheck({root:process.cwd(),heavy:false,
-  timeoutSeconds:60,graceSeconds:5,steps:[{
+const steps = process.argv.includes('--info') ? [{
+  name:'Generate actual WITH Carrier syntax and lowering interfaces',
+  command:'moon',args:['info','--target','js','src/query_syntax','src/query_program'],
+}] : process.argv.includes('--format') ? [{
+  name:'Format only WITH Carrier frontend and independent controls',
+  command:'moon',args:['fmt',
+    'src/query_syntax/sga_call.mbt',
+    'src/query_program/query_binding_check.mbt',
+    'src/query_program/member_program_prefix.mbt',
+    'src/query_program/member_resolution.mbt',
+    'src/query_program/query_script_carriers.mbt',
+    'src/query_program/query_script_inputs.mbt',
+    'src/query_program/query_script_program.mbt',
+    'src/query_program/query_binding_program.mbt',
+    'src/query_program/traversal_nodes_program.mbt',
+    'src/query_program/with_vectors_events_test.mbt',
+    'src/query_program/graph_projection_property_test.mbt',
+    'src/query_program/source_member_test.mbt'],
+}] : [{
     name:'WITH actual prefixes and strict common Source/type/order callers',
     command:'node',args:['--input-type=module','-e',runner,'--','--target','js',...selected],
-  }]});
+  }];
+process.exitCode = await runLocalCheck({root:process.cwd(),heavy:false,
+  timeoutSeconds:60,graceSeconds:5,steps});
