@@ -35,9 +35,9 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/string",
   "moonbitlang/core/debug",
+  "moonbitlang/core/env",
 }
 
 import {
-  "moonbitlang/core/env",
   "actql/actql/check_environment" @environment,
 } for "wbtest"

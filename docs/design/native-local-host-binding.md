@@ -110,6 +110,45 @@ execution-account Owner evaluates each current access tuple.
 
 ## Direct Local credential grant/use scope
 
+### Explicit post-adoption issuer acquisition
+
+The initial adoption identity remains immutable. The complete grant is issued
+and appended only by an explicit authorized operation after the original Run
+and its post-approval resume intent, claimant and generation exist. It is not
+embedded in the initial configuration, automatically issued by submit/approve/
+resume, or replaced after an unknown acknowledgement.
+
+An issuer selection is a finite file explicitly included in the original Local
+installation selection, using the existing `actql-config/0.1` format:
+
+```json
+{"version":"actql-config/0.1","native":{"credential_issuer":{"enabled":true,"issuer_authority":"credential-authority-a","principal":"operator","connection":"cli","max_uses":2,"expires_at":"2099-01-01T00:00:00.000Z"}}}
+```
+
+`NativeLocalHostConnection.acquire_credential_issuer` obtains an opaque binding
+through the existing Account Owner's `bind_dispatch_authorization`. The exact
+tuple is the selected principal and connection, resource
+`credential/<issuer_authority>`, operation `issue`; its subject is the original
+issuance/adoption intent CID and its context is the real Host authority scope.
+No permission is inferred from the issuer name, parsing this file, explicit CLI
+invocation, submit, Source read or Effect approval. A principal need not be human.
+
+The binding rechecks the original Host, exact file generation/content, current
+Account decision, subject, scope and expiry. A replacement file with identical
+bytes is refused. It is an issuer decision, not a grant or send permit. The
+grant append must separately verify the original checked Effect, exact Provider
+request and credential installation, the real opaque current resume claim and
+lease, and the original use/Effect Ledger state in the existing journal
+transaction. Missing or unknown originals cannot be repaired by acquiring
+another binding. Cancellation retains observation and cleanup responsibility
+while preventing new protected use.
+
+The common credential Owner produces the exact Local grant. Its immutable
+operation identity and grant bytes/CID belong in bounded appended custody of
+the same private Native journal/capacity Owner. Lookup addresses that original
+operation under current authorization, without issuance, expiry extension or
+use-limit renewal. Initial secret installation remains independently owned.
+
 Add a distinct typed Direct Local scope to the existing common credential
 grant/use Owner and its Native physical adapter. Do not encode Direct Local
 work as a Remote Site, runtime bundle or DispatchRequest. A Client request or
