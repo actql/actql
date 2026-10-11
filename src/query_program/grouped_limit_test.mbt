@@ -59,6 +59,7 @@ test "grouped literal LIMIT keeps count offset and complete output contracts" {
   for
     text in [
       "SELECT id, amount FROM orders ORDER BY id LIMIT ((1)) OFFSET (1)", "FROM orders |> SELECT id, amount |> ORDER BY id |> LIMIT (1) OFFSET ((1))",
+      "SELECT id, amount FROM orders ORDER BY id LIMIT +((0x1)) OFFSET ++(0X1)",
       "SELECT id, amount FROM orders ORDER BY id LIMIT +1 OFFSET +(1)", "FROM orders |> SELECT id, amount |> ORDER BY id |> LIMIT (+1) OFFSET ++((1))",
     ] {
     let actual = compile(

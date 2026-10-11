@@ -216,8 +216,8 @@ array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64" | "DOUBLE"
 (* ARRAY annotations and compatible item types use the common checker.
    JSON constructors/default INT64 remain common-contract coverage gaps. *)
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
-integer       = ? decimal integer within the adopted exact range ? ;
-numeric_token = ? existing query numeric token; exact admission is separate ? ;
+integer       = ? unsigned decimal or 0x/0X hexadecimal integer within the adopted exact range; context-specific positivity and role checks apply ? ;
+numeric_token = ? decimal numeric token or 0x/0X hexadecimal integer token; raw spelling is retained and exact admission is separate ? ;
 parameter_token = ? existing query named parameter token ? ;
 query_string  = ? one or more whitespace/comment-separated single-, double- or triple-quoted Unicode scalar string chunks, with per-chunk optional r/R raw prefix and the selected GoogleSQL decoding rules in query-text.md; decoded octal escapes use exactly three digits with first digit 0..3 (maximum \377) ? ;
 json_text     = ? double-quoted string using the separate LABELS annotation escape profile in query-text.md ? ;

@@ -113,6 +113,12 @@ fn upper(value : String) -> String {
 
 ///|
 fn number(text : String) -> Double raise Abort {
+  if text.has_prefix("0x") || text.has_prefix("0X") {
+    guard @query.exact_integer_literal(text) is Some(value) else {
+      raise Abort(InvalidNumber)
+    }
+    return value.to_double()
+  }
   let mut integer = true
   for unit in text {
     if unit == '.' || unit == 'e' || unit == 'E' {

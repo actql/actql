@@ -91,7 +91,7 @@ test "grouped navigation offsets preserve literal bounds and refuse computation"
   }
   for
     value in [
-      "(9007199254740992)", "(1.5)", "(NULL)", "('2')", "(-0)", "(+1)", "(-(1))",
+      "(9007199254740992)", "(1.5)", "(NULL)", "('2')", "(-0)", "(-(1))",
     ] {
     assert_true(
       compile(

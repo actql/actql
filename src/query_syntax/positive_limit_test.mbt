@@ -3,6 +3,7 @@ test "positive LIMIT and OFFSET keep exact integer or whole parameter slots" {
   for
     (text, expected_count, expected_offset) in [
       ("LIMIT +2 OFFSET +0", 2L, 0L),
+      ("LIMIT +((0x2)) OFFSET ++(0X1)", 2L, 1L),
       ("LIMIT (+((2))) OFFSET (++1)", 2L, 1L),
       ("LIMIT +9007199254740991", 9007199254740991L, 0L),
     ] {
