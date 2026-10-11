@@ -2652,7 +2652,7 @@ fn serve_holder_output(
   effect_review_publication? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectReviewPublication? = _ => {
     None
   },
-  effect_resume_configuration? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectResumeConfiguration? = _ => {
+  effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
     None
   },
 ) -> Unit {
@@ -2666,6 +2666,9 @@ fn serve_holder_output(
   let coordinator_authority = resources.coordinator_authority
   let site_key = resources.site_key
   let site_generation = resources.site_generation
+  let resume_current_url = holder_effect_resume_current_url(observation_url)
+  let reviewer_current_url = holder_effect_reviewer_current_url(observation_url)
+  let mut resume_query_sequence = 0L
   let identity = @remote.dispatch_request_identity(request)
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
@@ -2779,18 +2782,45 @@ fn serve_holder_output(
                 holder_effect_current_task(tasks, selected) is Some(task) &&
                 !task.release_requested &&
                 task.effect_review is Some(_) &&
-                effect_resume_configuration(task.request) is Some(installed) else {
+                effect_resume_installation(task.request) is Some(installed) &&
+                installed.scope.site_key == resources.site_key &&
+                installed.scope.site_generation ==
+                resources.site_generation.to_int64() &&
+                installed.scope.authority_scope_cid ==
+                resources.coordinator_authority &&
+                resume_current_url is Some(current_url) &&
+                reviewer_current_url is Some(reviewer_url) else {
                 report("effect-resume-pending", [
                   ("request_cid", @remote.dispatch_request_identity(selected)),
                   ("reason", "review-owner-unavailable"),
                 ])
                 continue
               }
+              let next_query_id = () => {
+                if resume_query_sequence >= 9007199254740991L {
+                  return ""
+                }
+                resume_query_sequence += 1L
+                holder_effect_resume_query_id(
+                  @remote.dispatch_request_identity(task.request),
+                  @env.now().reinterpret_as_int64(),
+                  resume_query_sequence,
+                ).unwrap_or("")
+              }
+              let claim_control : @effect_review.NativeEffectCloudCurrentRead = {
+                client: control,
+                url: current_url,
+                current_site,
+                next_query_id,
+                now_ms: () => @env.now().reinterpret_as_int64(),
+              }
               ignore(
                 execute_holder_effect_resume(
                   task,
                   @remote.remote_poll_effect_resume_delivery_json(delivery),
                   installed,
+                  claim_control,
+                  { ..claim_control, url: reviewer_url, },
                   current_site,
                 ),
               )
@@ -3429,7 +3459,7 @@ fn serve_holder_output(
               guard tasks.get(output_identity) is Some(output_task) &&
                 !output_task.released &&
                 !output_task.release_requested &&
-                holder_result_output(output_task, effect_resume_configuration, () => {
+                holder_result_output(output_task, effect_resume_installation, () => {
                   exclusive_current() &&
                   effect_evidence_read(output_task.request) &&
                   @resident.check_resident_dispatch_delegation(
@@ -3497,7 +3527,7 @@ fn serve_holder_output(
               guard tasks.get(output_identity) is Some(output_task) &&
                 !output_task.released &&
                 !output_task.release_requested &&
-                holder_result_output(output_task, effect_resume_configuration, () => {
+                holder_result_output(output_task, effect_resume_installation, () => {
                   exclusive_current() &&
                   effect_evidence_read(output_task.request) &&
                   @resident.check_resident_dispatch_delegation(
@@ -4043,6 +4073,18 @@ fn run_holder(
       stop("holder setup failed before claim")
     }
   }
+  let effect_resume = open_holder_effect_resume_installation(
+    matches,
+    environment.sqlite_library,
+    resources,
+  ) catch {
+    CommandStop(primary) => {
+      close_holder_output_resources(resources)
+      close_site_environment(environment)
+      ignore(slot.close())
+      stop(primary)
+    }
+  }
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
   let saved_completion = match environment.journal.dispatch_envelope(attempt) {
@@ -4139,6 +4181,12 @@ fn run_holder(
         observer,
         () => slot.verify_current_hold() == Ok(()),
         effect_producer=effect_producer.val,
+        effect_resume_installation=request => {
+          match effect_resume {
+            Some(owner) => owner.for_dispatch(request)
+            None => None
+          }
+        },
       )
       0
     }
@@ -4187,6 +4235,14 @@ fn run_holder(
         | Effect(Host(Runtime(@runtime.StartCancelled))) => 2
         _ => 1
       }
+    }
+  }
+  if effect_resume is Some(owner) {
+    let mut wait_ms = 50
+    while !owner.close() {
+      report("cleanup-pending", [("step", "effect-resume-installation")])
+      @slot.native_wait_milliseconds(wait_ms)
+      wait_ms = holder_effect_installation_backoff(wait_ms)
     }
   }
   close_site_environment(environment)
@@ -4665,6 +4721,7 @@ fn command() -> @argparse.Command {
       global("budget-retained-bytes"),
       global("budget-execution-bytes"),
       global("engine-root"),
+      global("effect-resume-root"),
       global("duckdb-library"),
       global("source-ref"),
       global("source-contract-cid"),

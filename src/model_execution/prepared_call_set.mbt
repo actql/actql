@@ -15,6 +15,9 @@ pub struct ModelCallEntry {
   slot : Int
   trace : ModelAttemptTrace
   admission : @publication_host.ClientInferDispatchAdmission
+  mut acknowledgement : ModelCallEntryAcknowledgement?
+  mut gate_issued : Bool
+  mut send_started : Bool
 }
 
 ///|
