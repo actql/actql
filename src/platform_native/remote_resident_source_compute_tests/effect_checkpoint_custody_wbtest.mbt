@@ -90,6 +90,15 @@ fn retained_effect_checkpoint_store(
     is Err(Store(Database(@sqlite.NotFound))),
   )
   assert_true(custody.report(limits) is Err(Store(Database(@sqlite.NotFound))))
+  assert_true(
+    store.restore_confirmed_effect_checkpoint_custody(
+      review.checkpoint,
+      authority,
+      crypto,
+      key,
+    )
+    is Err(Database(@sqlite.NotFound)),
+  )
   assert_eq(consumer.usage().reserved_retention_bytes, baseline + reservation)
   let partial_bytes = store.capacity_usage().unwrap().reserved_bytes
   assert_true(partial_bytes > physical_baseline)
@@ -154,6 +163,42 @@ fn retained_effect_checkpoint_store(
   let (confirmed, continuation) = custody.confirm().unwrap()
   assert_eq(confirmed.artifact.checkpoint_cid, holding)
   assert_eq(continuation, review.continuation_wire)
+  let capacity_before_restore = store.capacity_usage().unwrap()
+  let original_pair = store
+    .restore_confirmed_effect_checkpoint_custody(
+      review.checkpoint,
+      authority,
+      crypto,
+      key,
+    )
+    .unwrap()
+  assert_eq(original_pair.confirm().unwrap().1, review.continuation_wire)
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    capacity_before_restore.reserved_bytes,
+  )
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_objects,
+    capacity_before_restore.reserved_objects,
+  )
+  assert_true(
+    store.restore_confirmed_effect_checkpoint_custody(
+      review.checkpoint,
+      retained_compute_cid("f"),
+      crypto,
+      key,
+    )
+    is Err(StateCollision),
+  )
+  assert_true(
+    store.restore_confirmed_effect_checkpoint_custody(
+      review.checkpoint,
+      authority,
+      crypto,
+      Bytes::make(32, 0),
+    )
+    is Err(PrivateEvidence(CipherRejected)),
+  )
   let report = custody.report(limits).unwrap()
   let report_wire = @remote.remote_effect_checkpoint_report_json(report)
   assert_eq(
@@ -220,6 +265,15 @@ fn retained_effect_checkpoint_store(
   assert_true(custody.retry_cleanup().unwrap())
   assert_false(custody.retry_cleanup().unwrap())
   assert_true(custody.confirm() is Err(Unavailable))
+  assert_true(
+    store.restore_confirmed_effect_checkpoint_custody(
+      review.checkpoint,
+      authority,
+      crypto,
+      key,
+    )
+    is Err(RecoveryRequired),
+  )
   assert_true(custody.report(limits) is Err(Unavailable))
   assert_eq(consumer.usage().reserved_retention_bytes, baseline)
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, physical_baseline)
