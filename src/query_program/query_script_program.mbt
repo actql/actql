@@ -185,7 +185,9 @@ fn lower_script_relation_term(
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
     let graph = require_script_graph_input(
-      script_graph_input(query, graphs), query, known,
+      script_graph_input(query, graphs),
+      query,
+      known,
     )
     return lower_script_graph_rows(
       construction,
@@ -436,7 +438,9 @@ pub fn compile_query_script(
         !graph_row_set &&
         !script_has_carrier_calls(current) {
         let graph = require_script_graph_input(
-          current_script_graph(primary_graph, current, graphs), current, stage_known,
+          current_script_graph(primary_graph, current, graphs),
+          current,
+          stage_known,
         )
         lower_script_graph_rows(
           construction,

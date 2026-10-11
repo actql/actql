@@ -31,12 +31,13 @@ test "Graph argument selector and Carrier violations are distinct from support g
 
 ///|
 test "Graph projection keeps unresolved producer support refusal distinct" {
-  for tail in [
-    "FROM missing |> node_rows() |> SELECT id",
-    ", rows AS (FROM missing |> node_rows()) FROM rows |> SELECT id",
-  ] {
+  for
+    tail in [
+      "FROM missing |> node_rows() |> SELECT id", ", rows AS (FROM missing |> node_rows()) FROM rows |> SELECT id",
+    ] {
     assert_true(
-      classified_graph_source(graph_rows_prefix() + tail) is Err(UnsupportedGraph),
+      classified_graph_source(graph_rows_prefix() + tail)
+      is Err(UnsupportedGraph),
       msg=tail,
     )
   }
