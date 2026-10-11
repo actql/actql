@@ -11,7 +11,7 @@ fn classified_graph_source(text : String) -> Result[@program.Program, Issue] {
 test "Graph argument selector and Carrier violations are distinct from support gaps" {
   for
     tail in [
-      "FROM n |> node_rows() |> SELECT node_key", "DATA rows = FROM n |> node_rows(); FROM rows |> SELECT node_key",
+      "FROM n |> node_rows() |> SELECT node_key", ", rows AS (FROM n |> node_rows()) FROM rows |> SELECT node_key",
       "FROM g |> node_rows(definition: 'missing') |> SELECT id", "FROM g |> node_rows(definition: 'E') |> SELECT id",
       "FROM g |> node_rows(label: 'missing') |> SELECT id", "FROM g |> node_rows(definition: 'N', label: 'Node') |> SELECT id",
       "FROM g |> node_rows(label: 1) |> SELECT id", "FROM g |> graphs_equal() |> SELECT equal",
@@ -31,10 +31,10 @@ test "Graph argument selector and Carrier violations are distinct from support g
 ///|
 test "Shortest retains two explicit Relation selectors through public source compilation" {
   let prefix = graph_rows_prefix() +
-    "DATA seeds = FROM g |> node_rows() |> SELECT id; "
+    ", seeds AS (FROM g |> node_rows() |> SELECT id) "
   for
     tail in [
-      "DATA paths = FROM g |> shortest_path(source: {from: seeds, id: 'id'}, target: {from: seeds, id: 'id'}, selection: 'each_pair', direction: 'out', max_hops: 1); FROM paths |> SELECT hop_count",
+      ", paths AS (FROM g |> shortest_path(source: {from: seeds, id: 'id'}, target: {from: seeds, id: 'id'}, selection: 'each_pair', direction: 'out', max_hops: 1)) FROM paths |> SELECT hop_count",
     ] {
     assert_true(classified_graph_source(prefix + tail) is Ok(_), msg=tail)
   }
@@ -42,8 +42,8 @@ test "Shortest retains two explicit Relation selectors through public source com
 
 ///|
 test "mean required arguments are invalid while the explicit complete generator lowers" {
-  let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
-  let suffix = "; FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id"
+  let prefix = "WITH n AS (SELECT 1 AS id, 'Company' AS entity_type), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type)))) "
+  let suffix = ") FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id"
   let complete = "with: [g, g], weights: [1, 1], support: {nodes: 1, edges: 1}, properties: {nodes: {id: 'exact_equal', entity_type: 'exact_equal'}, edges: {}}"
   for
     body in [
@@ -55,7 +55,7 @@ test "mean required arguments are invalid while the explicit complete generator 
     ] {
     assert_true(
       classified_graph_source(
-        prefix + "DATA combined = mean_graphs(" + body + ")" + suffix,
+        prefix + ", combined AS (mean_graphs(" + body + ")" + suffix,
       )
       is Err(InvalidQuery),
       msg=body,
@@ -63,7 +63,7 @@ test "mean required arguments are invalid while the explicit complete generator 
   }
   assert_true(
     classified_graph_source(
-      prefix + "DATA combined = mean_graphs(" + complete + ")" + suffix,
+      prefix + ", combined AS (mean_graphs(" + complete + ")" + suffix,
     )
     is Ok(_),
   )
@@ -71,7 +71,7 @@ test "mean required arguments are invalid while the explicit complete generator 
   assert_true(
     @query.parse_query_script(
       prefix +
-      "DATA combined = mean_graphs(" +
+      ", combined AS (mean_graphs(" +
       complete +
       ", weights: [1, 1])" +
       suffix,
@@ -83,7 +83,7 @@ test "mean required arguments are invalid while the explicit complete generator 
 
 ///|
 test "heterogeneous direct Graph projection checks every candidate without admitting the shared schema" {
-  let data = "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c = SELECT 1 AS id, 'Firmxx' AS tag; DATA d = SELECT 1 AS id, 'Thirdx' AS tag, 1 AS extra; "
+  let relations = "WITH p AS (SELECT 1 AS id, 'Person' AS tag), c AS (SELECT 1 AS id, 'Firmxx' AS tag), d AS (SELECT 1 AS id, 'Thirdx' AS tag, 1 AS extra) "
   let person = "p AS P KEY (id) LABEL Node PROPERTIES (id, tag)"
   let company = "c AS C KEY (id) LABEL Company PROPERTIES (id)"
   let third = "d AS D KEY (id) LABEL Other PROPERTIES (id, tag, extra)"
@@ -93,10 +93,10 @@ test "heterogeneous direct Graph projection checks every candidate without admit
       company + ", " + person,
       person + ", " + third + ", " + company,
     ] {
-    let prefix = data +
-      "DATA g = PROPERTY GRAPH (NODE TABLES (" +
+    let prefix = relations +
+      ", g AS (GRAPH (NODE TABLES (" +
       definitions +
-      ")); FROM GRAPH g |> MATCH WALK (a)"
+      "))) FROM GRAPH g |> MATCH WALK (a)"
     for projection in ["a.tag", "`a`.`TAG`"] {
       assert_true(
         classified_graph_source(prefix + " |> SELECT " + projection)
@@ -120,7 +120,7 @@ test "heterogeneous direct Graph projection checks every candidate without admit
 
 ///|
 test "Graph star implicit exports named edges and endpoint predicates retain their support limits" {
-  let node = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); "
+  let node = "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id)))) "
   for
     tail in [
       "FROM GRAPH g |> MATCH WALK (a)", "FROM GRAPH g |> MATCH WALK (a) |> SELECT *",
@@ -129,7 +129,7 @@ test "Graph star implicit exports named edges and endpoint predicates retain the
       classified_graph_source(node + tail) is Err(UnsupportedProjection),
     )
   }
-  let prefix = "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst, 20 AS weight; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id)) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (weight))); "
+  let prefix = "WITH n AS (SELECT 1 AS id), e AS (SELECT 10 AS key, 1 AS src, 1 AS dst, 20 AS weight), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id)) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (weight)))) "
   for
     pattern in [
       "(:Node)-[edge:R WHERE edge.weight > 10]->(:Node)", "(:Node)-[:R]->{2,2}(:Node WHERE id > 0)",
