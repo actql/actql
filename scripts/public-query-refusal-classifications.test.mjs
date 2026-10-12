@@ -18,9 +18,9 @@ const declarations = {
 };
 const parameters = {a: {score: 10}, b: {score: 20}, c: null,
   oa: {score: 30}, ob: {score: 5}, oc: {score: 15}};
-const objects = 'DATA objects = SELECT 2 AS id, @a AS payload, @oa AS other '
+const objects = 'WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other '
   + 'UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other '
-  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other; ';
+  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other) ';
 const limits = [
   {name: 'right-join-refuse-2', format: 'sql',
     text: 'SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10',

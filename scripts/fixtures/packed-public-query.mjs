@@ -1,3 +1,4 @@
+import {eventDedupeSourceSuccesses, eventDedupeSourceRefusals, eventDedupeSourceExecutionFailures} from './event-dedupe-source-input.mjs';
 import {distinctOrderReceiverSuccesses, distinctOrderReceiverRefusals} from './distinct-order-receiver-source-input.mjs';
 import {groupedRowsBoundarySuccesses, groupedRowsBoundaryRefusals} from './grouped-rows-boundary-source-input.mjs';
 import {positiveLimitSuccesses, positiveLimitRefusals} from './positive-limit-source-input.mjs';
@@ -176,12 +177,9 @@ import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
 import {matchWithProducerSuccesses, matchWithProducerRefusals}
   from './match-with-producer-source-input.mjs';
-import {graphMatchSourceSuccesses as originalGraphMatchSourceSuccesses,
-  graphMatchSourceRefusals as originalGraphMatchSourceRefusals}
+import {graphMatchSourceSuccesses, graphMatchSourceRefusals}
   from './graph-match-source-input.mjs';
 import {sgaOutputNameSuccesses, sgaOutputNameRefusals} from './sga-output-name-source.mjs';
-const graphMatchSourceSuccesses = [...originalGraphMatchSourceSuccesses, ...sgaOutputNameSuccesses];
-const graphMatchSourceRefusals = [...originalGraphMatchSourceRefusals, ...sgaOutputNameRefusals];
 import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './graph-row-source-input.mjs';
 import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
@@ -266,6 +264,7 @@ const concatReuseOnly = process.env.ACTQL_TEST_CONCAT_REUSE_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
 const graphRemainingOperationsOnly = process.env.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY === '1';
+const eventDedupeOnly = process.env.ACTQL_TEST_EVENT_DEDUPE_ONLY === '1';
 const graphMeanOnly = process.env.ACTQL_TEST_GRAPH_MEAN_ONLY === '1';
 const graphReachOnly = process.env.ACTQL_TEST_GRAPH_REACH_ONLY === '1';
 const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1' || graphReachOnly || graphMeanOnly || graphRemainingOperationsOnly;
@@ -349,7 +348,7 @@ const countifDistinctOnly = process.env.ACTQL_TEST_COUNTIF_DISTINCT_ONLY === '1'
 const analyticDistinctFrameOnly = process.env.ACTQL_TEST_ANALYTIC_DISTINCT_FRAME_ONLY === '1';
 const distinctAggregateOrderOnly = process.env.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY === '1';
 const distinctOrderReceiverOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_RECEIVER_ONLY === '1';
-const scopeOnly = aggregateFilterOnly || distinctOrderReceiverOnly || groupOrderRangeAliasOnly || groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchWithProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
+const scopeOnly = eventDedupeOnly || aggregateFilterOnly || distinctOrderReceiverOnly || groupOrderRangeAliasOnly || groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchWithProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -480,6 +479,7 @@ const scopeInputs = distinctOrderReceiverOnly ? {successes: distinctOrderReceive
   : distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
+  : eventDedupeOnly ? {successes: eventDedupeSourceSuccesses, refusals: eventDedupeSourceRefusals, executionFailures: eventDedupeSourceExecutionFailures}
   : graphMeanOnly ? {successes: graphMeanSourceOracles, refusals: graphMeanSourceRefusals}
   : process.env.ACTQL_TEST_GRAPH_SHORTEST_ONLY === '1'
     ? {successes: graphShortestSourceSuccesses, refusals: graphShortestSourceRefusals}
@@ -487,7 +487,7 @@ const scopeInputs = distinctOrderReceiverOnly ? {successes: distinctOrderReceive
     ? {successes: graphReachSourceSuccesses, refusals: graphReachSourceRefusals}
     : {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals})
   : matchWithProducerOnly ? {successes: matchWithProducerSuccesses, refusals: matchWithProducerRefusals}
-  : graphMatchOnly ? {successes: graphMatchSourceSuccesses, refusals: graphMatchSourceRefusals}
+  : graphMatchOnly ? {successes: [...graphMatchSourceSuccesses, ...sgaOutputNameSuccesses], refusals: [...graphMatchSourceRefusals, ...sgaOutputNameRefusals]}
   : graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
   : graphDifferenceOnly ? {successes: graphDifferenceSourceSuccesses, refusals: graphDifferenceSourceRefusals}
   : graphEqualityOnly ? {successes: graphEqualitySourceSuccesses, refusals: graphEqualitySourceRefusals}
@@ -643,6 +643,9 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...graphReachSourceRefusals);
   scopeInputs.successes.push(...graphShortestSourceSuccesses);
   scopeInputs.refusals.push(...graphShortestSourceRefusals);
+  scopeInputs.successes.push(...eventDedupeSourceSuccesses);
+  scopeInputs.refusals.push(...eventDedupeSourceRefusals);
+  scopeInputs.executionFailures.push(...eventDedupeSourceExecutionFailures);
   scopeInputs.successes.push(...graphMeanSourceOracles);
   scopeInputs.refusals.push(...graphMeanSourceRefusals);
   scopeInputs.successes.push(...statisticalAggregateSuccesses);
@@ -755,6 +758,8 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...matchWithProducerSuccesses);
   scopeInputs.refusals.push(...matchWithProducerRefusals);
   scopeInputs.successes.push(...graphMatchSourceSuccesses);
+  scopeInputs.successes.push(...sgaOutputNameSuccesses);
+  scopeInputs.refusals.push(...sgaOutputNameRefusals);
   scopeInputs.refusals.push(...graphMatchSourceRefusals);
   scopeInputs.successes.push(...graphDiagnosticSourceSuccesses);
   scopeInputs.refusals.push(...graphDiagnosticSourceRefusals);

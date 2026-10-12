@@ -754,6 +754,7 @@ fn command() -> @argparse.Command {
       @argparse.OptionArg("mode", default_values=["remote"], global=true),
       @argparse.OptionArg("config-root", default_values=["."], global=true),
       @argparse.OptionArg("config-file", global=true),
+      @argparse.OptionArg("input-root", global=true),
       @argparse.OptionArg("endpoint", global=true),
       @argparse.OptionArg("connection-root", global=true),
       @argparse.OptionArg("connection-file", global=true),
@@ -883,6 +884,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         stop("operation requires an explicit Local configuration")
       }
     _ => stop("unsupported Client mode")
+  }
+  if optional(matches, "input-root") is Some(_) {
+    stop("Local document root is unavailable in Remote mode")
   }
   if matches.subcommand is Some((operation, child)) &&
     (

@@ -168,6 +168,7 @@ fn execute_native_local_adoption(
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
+  let input_root = local_document_root(matches, root)
   // Refuse an untrusted discovery root before loading configuration-selected
   // physical libraries. The adoption Owner rechecks all original generations.
   let selected_root = @local_filesystem.open_private_root(root).unwrap_or_else(() => {
@@ -336,26 +337,33 @@ fn execute_native_local_adoption(
   let reply = try {
     if operation == "start" || operation == "aql" {
       local_submission_start(
-        host, settings, crypto, sqlite, check_environment, root, operation, child,
+        host, settings, crypto, sqlite, check_environment, input_root, operation,
+        child,
       )
     } else if operation == "lookup-submission" {
-      local_submission_lookup(host, settings, crypto, root, child)
+      local_submission_lookup(host, settings, crypto, input_root, child)
     } else if operation == "checkpoint-state" {
-      local_checkpoint_metadata_lookup(host, settings, crypto, root, child)
+      local_checkpoint_metadata_lookup(
+        host, settings, crypto, input_root, child,
+      )
     } else if operation == "lookup-preparation-grant" {
-      local_preparation_grant_lookup(host, settings, crypto, root, child)
+      local_preparation_grant_lookup(host, settings, crypto, input_root, child)
     } else if operation == "lookup-preparation-raw" {
-      local_preparation_raw_lookup(host, settings, crypto, sqlite, root, child)
+      local_preparation_raw_lookup(
+        host, settings, crypto, sqlite, input_root, child,
+      )
     } else if operation == "lookup-cancellation" {
-      local_cancellation_lookup(host, settings, crypto, root, child)
+      local_cancellation_lookup(host, settings, crypto, input_root, child)
     } else if operation == "cancel" {
       local_cancellation_operation(
-        host, settings, crypto, sqlite, root, child, cancellation_recovery,
+        host, settings, crypto, sqlite, input_root, child, cancellation_recovery,
       )
     } else if operation == "delivery-attempt" {
-      local_delivery_attempt_lookup(host, settings, crypto, sqlite, root, child)
+      local_delivery_attempt_lookup(
+        host, settings, crypto, sqlite, input_root, child,
+      )
     } else if operation == "read" {
-      local_result_stream(host, settings, crypto, sqlite, root, child)
+      local_result_stream(host, settings, crypto, sqlite, input_root, child)
     } else if operation == "new-submission" {
       guard host.authorize({
           principal: settings.principal,
