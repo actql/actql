@@ -4,7 +4,7 @@
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
-import {selectedInferOriginalMetadataLimits} from './infer-original-installation.mjs';
+import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits} from './infer-original-installation.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -21,6 +21,14 @@ export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestC
   if (original === undefined) metadataUnavailable();
   original.current(ownerId, requestCid);
   return original.selection;
+}
+
+// Reuse the SAME nominal handle and current/covers closure, not another issuer
+// or a capacity inferred from physical clamps. Missing separate role refuses.
+export function selectOriginalInferStoreBootstrapAcquisition(handle, ownerId, requestCid) {
+  const original = originalMetadataSources.get(handle)?.deref();
+  if (original === undefined) metadataUnavailable();
+  return original.current(ownerId, requestCid, 'store-bootstrap');
 }
 
 // Validate the Node-to-Int boundary before entering the existing codec. These
@@ -604,7 +612,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         return originalMetadata.handle;
       }
       const selection = selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation);
-      const current = (ownerId, requestCid) => {
+      const current = (ownerId, requestCid, role) => {
         if (reclaimed || closing || signal?.aborted || originalScope === undefined ||
             typeof moon.clientProgramInferOriginalModelResourceParkCurrent !== 'function' ||
             typeof moon.clientProgramInferOriginalParkedReadCapacityAvailable !== 'function' ||
@@ -615,6 +623,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         if (ownerId !== undefined && (typeof metadataControl?.runDefinitionRunId !== 'function' ||
             ownerId !== `model-${metadataControl.runDefinitionRunId(metadataDefinition)}`) ||
             requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
+        if (role === 'store-bootstrap') {
+          return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+        }
       };
       // Inspect the same token BEFORE allocating the retained record/handle or
       // permitting physical metadata I/O. No grant/reset/refund follows.
