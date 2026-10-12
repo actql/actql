@@ -1182,6 +1182,8 @@ pub fn restore_prepared_client_local_normalization(PreparedClientProgram, Client
 
 pub fn settle_client_model_read(ClientModelReadPreparation, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn settle_client_model_read_checked(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
+
 pub fn settle_client_model_read_consumer(ClientModelReadConsumer, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn source_free_caller_input_intent_cid() -> String

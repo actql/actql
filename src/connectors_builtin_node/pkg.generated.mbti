@@ -1403,6 +1403,8 @@ pub fn client_program_semantics_cid(@run_publication_host.PreparedClientProgram)
 
 pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
+pub fn client_program_settle_infer_original_read_preparation(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
+
 pub fn client_program_source_capture_cleanup_pending(@client_local_host.ClientAccountedSourceCapture) -> Bool
 
 pub fn client_program_source_capture_export_binding(@client_local_host.ClientSourceCaptureExport) -> String

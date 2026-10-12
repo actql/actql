@@ -41,12 +41,13 @@ function original() {
     step, canonicalText({...executionBody, self_cid: executionCid}), executionCid));
   const graph = checked(moon.clientProgramInferPlanGraph(prepared, step,
     execution, `sha256:${'b'.repeat(64)}`, `sha256:${'c'.repeat(64)}`));
-  const calls = {begin: [], read: [], finish: []};
+  const calls = {begin: [], read: [], finish: [], settle: []};
   const consumingMoon = {...moon};
   for (const [name, kind] of [
     ['clientProgramBeginInferOriginalReadScope', 'begin'],
     ['clientProgramPrepareInferNodeReadLayout', 'read'],
     ['clientProgramFinishInferOriginalReadScope', 'finish'],
+    ['clientProgramSettleInferOriginalReadPreparation', 'settle'],
   ]) consumingMoon[name] = (...args) => {
     calls[kind].push(args);
     return moon[name](...args);
@@ -64,7 +65,7 @@ function original() {
   const define = (owner, run, runId) => owner.defineCheckedClientCompiledRun(run,
     {namespaceId: 'scope', runId, createdAt: '2026-10-02T00:00:00.000Z',
       validUntil: policy.expiresAt});
-  return {control, compiled, definition: define(control, compiled, 'original'),
+  return {control, compiled, prepared, definition: define(control, compiled, 'original'),
     foreignCompiled, foreignDefinition: define(foreign, foreignCompiled, 'foreign'),
     graph, calls, root};
 }
@@ -110,7 +111,7 @@ test('original read scope control rejects foreign owners before the Common bridg
     assert.throws(() => f.control.finishCheckedClientInferOriginalReadScope(
       compiled, definition, f.graph, undefined, true), TypeError);
   }
-  assert.deepEqual(f.calls, {begin: [], read: [], finish: []});
+  assert.deepEqual(f.calls, {begin: [], read: [], finish: [], settle: []});
 });
 
 test('original read scope control refuses absent cleanup without changing original custody', () => {
@@ -167,4 +168,101 @@ test('original read scope rejects invalid installed quantities before bootstrap'
     /InvalidInstalledInferQuantityCapacity/u);
   }
   assert.equal(f.calls.begin.length, 0);
+});
+
+function admittedOriginalRead(f) {
+  // Existing independently sealed input vector, not a numerical Node profile
+  // or an expected output derived from the implementation under test.
+  const source = readFileSync(new URL(
+    '../src/run_publication_host/client_model_preparation_layout_wbtest.mbt',
+    import.meta.url), 'utf8');
+  const profileWire = source.match(/let wire =\n\s+#\|([^\n]+)/u)[1];
+  const profileBody = JSON.parse(profileWire);
+  const profile = f.control.readInstalledModelResponseProfile(profileWire,
+    profileBody.self_cid, {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 30,
+      maxMembers: 1000, maxWork: 100000});
+  const installation = {builder_id: 'fixture/http-builder', builder_revision: '1',
+    codec_id: 'fixture/chat-one', codec_revision: '1',
+    build_artifact_cid: 'sha256:12b1a34ce23743c38303cc50fb4eb040689c50f37c1a594b1382d754a4c578a2',
+    sdk: undefined, endpoint: 'https://fixture.invalid/v1/chat/completions',
+    http_method: 'POST', streaming: false, validator_id: 'fixture/chat-envelope',
+    validator_revision: '1',
+    validator_artifact_cid: 'sha256:9dde7d7e6c108739d709824371c425f8d26afd8451d470d7477ef2ac8ecffacd',
+    completion_basis: 'generation_finish'};
+  const graph = JSON.parse(moon.clientProgramInferPlanGraphWire(f.graph));
+  const barrier = graph.nodes.find(node => node.barrier !== undefined).barrier;
+  const request = moon.clientProgramRequestIdentity(f.prepared, f.root,
+    'read-retirement', f.root);
+  const layout = {response_profile: profile, runtime_artifact_cid: f.root,
+    layout_artifact_cid: f.root,
+    program_definition_cid: moon.clientRequestProgramCid(request),
+    parameter_values_cid: moon.clientRequestParametersCid(request),
+    barrier_cid: barrier.barrier_cid, prepared_rows: 2n,
+    retained_bytes: 7000n, execution_bytes: 3000n};
+  const selected = {layout, installation, runtimeArtifactCid: f.root,
+    layoutArtifactCid: f.root, probability: undefined};
+  const scope = f.control.beginCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, bootstrap);
+  const read = f.control.prepareCheckedClientInferNodeReadLayout(
+    f.compiled, f.definition, f.graph, scope, selected);
+  return {scope, read, selected};
+}
+
+test('original read retirement keeps failed cleanup separate from original Run finalization', () => {
+  const f = original();
+  const {scope, read, selected} = admittedOriginalRead(f);
+  // The actual one-shot read consumer is stopped, not a recreated input owner.
+  f.control.claimCheckedClientInferNodePreparationLayout(
+    f.compiled, f.definition, f.graph, read, selected);
+  assert.throws(() => f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, read, false), ownerRefusal);
+  assert.throws(() => f.control.claimCheckedClientInferNodePreparationLayout(
+    f.compiled, f.definition, f.graph, read, selected), ownerRefusal);
+  f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, read, true);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, false), false);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+  assert.equal(f.calls.begin.length, 1);
+  assert.equal(f.calls.read.length, 1);
+  assert.equal(f.calls.settle.length, 2);
+});
+
+test('original read retirement rejects foreign and same-Program different Run originals', () => {
+  const f = original();
+  const {scope, read} = admittedOriginalRead(f);
+  assert.throws(() => f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.foreignCompiled, f.definition, f.graph, read, true), TypeError);
+  assert.throws(() => f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.foreignDefinition, f.graph, read, true), TypeError);
+  assert.equal(f.calls.settle.length, 0);
+  const otherRun = f.control.defineCheckedClientCompiledRun(f.compiled,
+    {namespaceId: 'scope', runId: 'other', createdAt: '2026-10-02T00:00:00.000Z',
+      validUntil: '2099-01-01T00:00:00.000Z'});
+  for (const complete of [false, true]) {
+    assert.throws(() => f.control.settleCheckedClientInferOriginalReadPreparation(
+      f.compiled, otherRun, f.graph, read, complete), ownerRefusal);
+  }
+  f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, read, true);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+});
+
+test('original read retirement requires explicit physical cleanup and refuses duplicate settlement', () => {
+  const f = original();
+  const {scope, read} = admittedOriginalRead(f);
+  for (const missing of [undefined, null, 0, 'true', {}]) {
+    assert.throws(() => f.control.settleCheckedClientInferOriginalReadPreparation(
+      f.compiled, f.definition, f.graph, read, missing),
+    /Invalid original read cleanup observation/u);
+  }
+  assert.equal(f.calls.settle.length, 0);
+  f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, read, true);
+  assert.throws(() => f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, read, true), ownerRefusal);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
 });
