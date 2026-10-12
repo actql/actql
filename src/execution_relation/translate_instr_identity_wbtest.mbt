@@ -1,25 +1,26 @@
 ///|
-// Fixed complete-fragment preimages were independently assembled with Python
-// canonical JSON and hashlib before product execution. See the matching corpus.
+// Retain the authored corpus requests, limits and nodes; independently rebind
+// only the declared expression-contract pin to the current normative body.
+// Python canonical JSON/hashlib fixes these complete preimages before execution.
 test "INSTR authored optional defaults and STRPOS control retain exact fragment identities" {
   for
     (source, expected, bytes) in [
       (
-        "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:576b4802d1c57547c061b8559873a6df14789545fa578e9f00dd4cd3914ec165",
+        "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:d7f23b1835813ef68dea421887c2b47be6697a3fd7fd5aad12326cf234537f58",
         3024,
       ),
       (
         "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1}]}",
-        "sha256:e7cabe28686dac621c33bde5274a16453437a49f949e7a735f7784f5dabf0375",
+        "sha256:02db8f2f53a4fe5b846a86b2abc57940cef8ce05cdde79a0aea166513bb86018",
         3133,
       ),
       (
         "{\"instr\":[{\"literal\":\"banana\"},{\"literal\":\"an\"},{\"literal\":1},{\"literal\":1}]}",
-        "sha256:7e5e6e381992969e1e2fb69c14d5fb1dc0019fe228439f909a7f7879aecf5908",
+        "sha256:ff8013462f36c2b0aeae20675c6e60a092370731de9d5c7a95476cc118d1785d",
         3242,
       ),
       (
-        "{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:8bdcec19bae24a9dd04e08d6686357a6fa3af2b8e1f712b2e3c114be15710323",
+        "{\"strpos\":[{\"literal\":\"banana\"},{\"literal\":\"an\"}]}", "sha256:ea5b1c39140d9f2edf5322fd3f250e142420f772fa2cc32c83f0ff5cd80b5cac",
         3030,
       ),
     ] {
