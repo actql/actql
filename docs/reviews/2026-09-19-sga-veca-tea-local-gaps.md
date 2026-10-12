@@ -855,9 +855,9 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 68 |
-| Executable production routes | 64 |
-| Typed pre-execution refusals (not execution success) | 4 |
-| Operation-specific boundary records | 64 |
+| Executable production routes | 68 |
+| Typed pre-execution refusals (not execution success) | 0 |
+| Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 64 |
 | Full route work/workspace assurance | 64 |
 | Path-scoped work/workspace assurance | 116 |
