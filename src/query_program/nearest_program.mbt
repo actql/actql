@@ -291,50 +291,58 @@ fn lower_nearest_steps(
       )
   }
   let steps : Array[Array[(String, @builder.Node)]] = []
-  let query_prefix = initial.copy()
-  if query_typed is Some(_) {
-    steps.push(query_prefix + [("vectors", construction.add(Bool(true)))])
-    query_prefix.clear()
-  }
-  if !query_derived.is_empty() {
-    query_prefix.push(("derive", construction.object(query_derived)))
-    // Retain the evaluated vector before reusing this scratch projection.
-    steps.push(query_prefix.copy())
-    query_prefix.clear()
-  }
-  query_prefix.push(
-    (
-      "select",
-      construction.array(query_reserved.map(field => construction.text(field))),
-    ),
-  )
-  query_prefix.push(("as", construction.text(queries)))
-  steps.push(query_prefix)
-  let candidate_prefix = [("from", construction.text(candidate.name))]
-  if candidate_typed is Some(_) {
-    steps.push(candidate_prefix + [("vectors", construction.add(Bool(true)))])
-    candidate_prefix.clear()
-  }
-  if !candidate_derived.is_empty() {
-    candidate_prefix.push(("derive", construction.object(candidate_derived)))
-  }
-  candidate_prefix.push(("as", construction.text(candidates)))
-  if candidate_derived.is_empty() {
-    candidate_prefix.insert(
-      if candidate_typed is Some(_) {
-        0
-      } else {
-        1
-      },
+  // A typed input already feeds native NEAREST. Bridge records only when
+  // KEEP demands that side; do not reserve unused row projections.
+  if query_typed is None || retained.any(entry => !entry.1) {
+    let query_prefix = initial.copy()
+    if query_typed is Some(_) {
+      steps.push(query_prefix + [("vectors", construction.add(Bool(true)))])
+      query_prefix.clear()
+    }
+    if !query_derived.is_empty() {
+      query_prefix.push(("derive", construction.object(query_derived)))
+      // Retain the evaluated vector before reusing this scratch projection.
+      steps.push(query_prefix.copy())
+      query_prefix.clear()
+    }
+    query_prefix.push(
       (
         "select",
         construction.array(
-          candidate_columns.map(field => construction.text(field)),
+          query_reserved.map(field => construction.text(field)),
         ),
       ),
     )
+    query_prefix.push(("as", construction.text(queries)))
+    steps.push(query_prefix)
   }
-  steps.push(candidate_prefix)
+  if candidate_typed is None || retained.any(entry => entry.1) {
+    let candidate_prefix = [("from", construction.text(candidate.name))]
+    if candidate_typed is Some(_) {
+      steps.push(candidate_prefix + [("vectors", construction.add(Bool(true)))])
+      candidate_prefix.clear()
+    }
+    if !candidate_derived.is_empty() {
+      candidate_prefix.push(("derive", construction.object(candidate_derived)))
+    }
+    candidate_prefix.push(("as", construction.text(candidates)))
+    if candidate_derived.is_empty() {
+      candidate_prefix.insert(
+        if candidate_typed is Some(_) {
+          0
+        } else {
+          1
+        },
+        (
+          "select",
+          construction.array(
+            candidate_columns.map(field => construction.text(field)),
+          ),
+        ),
+      )
+    }
+    steps.push(candidate_prefix)
+  }
   for
     (source, target, keys, vector, typed) in [
       (queries, query_vectors, query_keys, query_vector, query_typed is Some(_)),
