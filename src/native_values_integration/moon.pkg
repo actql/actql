@@ -41,6 +41,7 @@ import {
   "actql/actql/platform_native/sqlite" @native_sqlite,
   "actql/actql/remote_transfer" @transfer,
   "moonbitlang/core/env",
+  "actql/actql/source_frontend" @frontend,
 } for "wbtest"
 
 options(

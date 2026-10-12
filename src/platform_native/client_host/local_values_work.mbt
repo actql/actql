@@ -60,7 +60,11 @@ fn local_values_work_failure(
 }
 
 ///|
-fn native_local_values_profile(prepared : @host.PreparedClientProgram) -> Bool {
+/// Inspect only the existing supported shape before accepting a new Run.
+/// Physical start and current authority remain with the original work Owner.
+pub fn native_client_local_values_profile_supported(
+  prepared : @host.PreparedClientProgram,
+) -> Bool {
   let graph = @host.prepared_client_graph(prepared)
   @host.prepared_client_acquisition_count(prepared) == 0 &&
   !@host.prepared_client_uses_graph_carrier(prepared) &&
@@ -95,7 +99,7 @@ fn open_native_client_local_values_work(
   if !current() {
     return Err(local_values_work_failure(AuthorizationDenied))
   }
-  if !native_local_values_profile(prepared) ||
+  if !native_client_local_values_profile_supported(prepared) ||
     finalization_quantum <= 0 ||
     max_finalization_rounds <= 0 {
     return Err(local_values_work_failure(UnsupportedProfile))
