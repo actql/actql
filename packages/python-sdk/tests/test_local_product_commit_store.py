@@ -50,6 +50,7 @@ class ProductCommitStoreTests(unittest.TestCase):
         host._observation_attempts, host._commit_requests = set(), {}
         host._publication_write_attempts, host._pending_publication_write = set(), None
         host._uncertain_ticket = None
+        host._response_streams = set()
         return host, store, binding, projection, facts, publisher, originals, frames, scope
 
     def test_original_fields_and_publisher_enter_same_write_frame_but_do_not_ack_run(self):

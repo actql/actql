@@ -18,6 +18,8 @@ import stat
 import time
 from typing import Any, Literal, TypeVar
 
+import httpx
+
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, load_local_module
@@ -30,8 +32,9 @@ from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
 from ._local_observation_transfer import OriginalObservationTransfer
 from ._local_store_reconciliation import OriginalStoreReconciliation
+from ._local_response import OriginalLocalResponseStream
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
-from ._values import wire_bytes
+from ._values import content_cid, wire_bytes
 
 _T = TypeVar('_T')
 _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
@@ -149,6 +152,7 @@ class InstalledLocalHost:
         self._payload_capacity_attempts: set[int] = set()
         self._payload_transition_attempts: set[int] = set()
         self._inputs: list[_Input] = []
+        self._response_streams: set[OriginalLocalResponseStream] = set()
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
         self._uncertain_ticket: int | None = None
@@ -198,6 +202,55 @@ class InstalledLocalHost:
     def _nominal(self) -> None:
         if self._original is not self:
             raise ValueError('Copied installed Local Host')
+
+    async def open(self, operation: str, payload: bytes) -> httpx.Response:
+        """Use the existing SDK's closed operation wire without HTTP or a token.
+
+        This initial port connects profile and original fresh admission only.
+        Other operations need their own existing Owner observations; no outcome
+        is fabricated from a physical write, exception, or unsupported request.
+        The public installed factory remains gated on Result/recovery assembly.
+        """
+        self._active()
+        body = _object(payload, 1048576)
+        if (type(operation) is not str or not wire.valid_body(operation, body)  # type: ignore[no-untyped-call]
+                or body['connection'] != _LOCAL_SELECTION):
+            raise ValueError('Invalid original Local Client operation')
+        with self._core._lock:
+            if operation == 'connect':
+                raw = wire_bytes(self.profile())  # type: ignore[no-untyped-call]
+            elif operation == 'submit-intent':
+                intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
+                identity = content_cid({'version': 'actql-submitted-intent/0.1',
+                    'intent': intent}, data_keys=True)  # type: ignore[no-untyped-call]
+                if body['intentCid'] != identity:
+                    raise ValueError('Invalid original Local submitted intent identity')
+                _, admission = self._accept_original(body['submissionRef'],
+                    wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
+                saved = _object(admission, 4096)
+                if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                        or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
+                    raise ValueError('Invalid original saved Local admission wire')
+                # The invocation envelope correlates this call with the saved
+                # Owner admission, as in the existing Host transport. It does
+                # not manufacture a Run terminal, dispatch or Result response.
+                value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': {
+                    'kind': 'ready', 'submissionRef': body['submissionRef'],
+                    'intentCid': identity, 'admission': saved}}
+                if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
+                    raise ValueError('Invalid original Local Submission response')
+                raw = wire_bytes(value)  # type: ignore[no-untyped-call]
+            else:
+                raise ValueError('Original Local operation supplier is unavailable')
+            stream = OriginalLocalResponseStream(self, raw)
+            response = httpx.Response(200, headers={'content-type': 'application/json',
+                'content-encoding': 'identity'}, stream=stream)
+            stream._attached = True
+            return response
+
+    async def aclose(self) -> None:
+        if not self.close():
+            raise LocalProductCleanupPending(self)
 
     def _active(self) -> OriginalLocalInstallation:
         self._nominal()
@@ -1839,6 +1892,9 @@ class InstalledLocalHost:
         self._nominal()
         with self._core._lock:
             self._closing = True
+            for stream in tuple(self._response_streams):
+                if stream._attached or not stream._close():
+                    return False
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
             for projection in tuple(reversed(self._commit_projections)):
