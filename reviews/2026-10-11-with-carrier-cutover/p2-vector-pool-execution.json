@@ -1833,5 +1833,36 @@
     "remaining P2 VecA/TEA signatures and full four-Carrier public acceptance",
     "Native/Wasm execution and hosted CI"
   ],
-  "goal_complete": false
+  "goal_complete": false,
+  "submission_only_checks": [
+    {
+      "source": "41d31022c02eabdb027663a3e10422da6ccadc83",
+      "run": "run-8OmBhk",
+      "command": [
+        "node",
+        "/private/tmp/actql-b-pool-format-check.mjs"
+      ],
+      "script_retained_path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-format-check.mjs",
+      "script_sha256": "c6f820623319c7d125cc2072c3b79e88e898519c62d3c368e865579a1a5e5b69",
+      "exit_code": 0,
+      "complete": true,
+      "owner_pid": 33896,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "authored_moon_files": 6,
+      "immutable_raw_review_whitespace_excluded": true,
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-8OmBhk/summary.json",
+          "bytes": 1397,
+          "sha256": "c3d039b7fc07a3fd81d66d6cb00375ceb142da780d688bc2dc3d04659c1e4fa6"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-8OmBhk/output.log",
+          "bytes": 118,
+          "sha256": "dfc5d8be472d7a9f0628a47c5b392730c994db9ab799ddda189eeac1ebe4c4fe"
+        }
+      ]
+    }
+  ]
 }
