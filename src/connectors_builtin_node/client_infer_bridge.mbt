@@ -791,6 +791,21 @@ pub fn client_program_settle_infer_original_read_preparation(
 }
 
 ///|
+/// Stop the same scope's read without observing physical cleanup or settling.
+#export_name("clientProgramStopInferOriginalReadPreparation")
+pub fn client_program_stop_infer_original_read_preparation(
+  scope : @publication_host.ClientModelReadScope,
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[Unit, @publication_host.ClientModelReadPreparationIssue] {
+  @publication_host.stop_client_model_read_checked(
+    scope, read, compiled, definition, graph,
+  )
+}
+
+///|
 /// Claim the original funded read once before Node IO/control allocation.
 #export_name("clientProgramClaimInferOriginalPreparation")
 pub fn client_program_claim_infer_original_preparation(
