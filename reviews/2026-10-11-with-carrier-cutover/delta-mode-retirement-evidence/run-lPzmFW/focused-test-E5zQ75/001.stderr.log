@@ -1,0 +1,14 @@
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_delta_source_test.mbt:100:9 ]
+     │
+ 100 │         @pipeline.Decode(WrongType)
+     │         ────────┬───────  
+     │                 ╰───────── Value Decode not found in package `pipeline`.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_delta_source_test.mbt:100:26 ]
+     │
+ 100 │         @pipeline.Decode(WrongType)
+     │                          ────┬────  
+     │                              ╰────── The value identifier WrongType is unbound.
+─────╯

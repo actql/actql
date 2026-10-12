@@ -1,0 +1,119 @@
+{
+  "status": "static preparation, not implemented",
+  "source": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "rows": [
+    {
+      "path": "src/query_syntax/query_script.mbt",
+      "symbols": "parse_query_script; DataExpression; data_declaration_count/at",
+      "current_observation": "Accepted prefix and count routing.",
+      "p1_change": "Remove accepted prefix/count APIs; one producer binding AST with original Tokens.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "symbols": "Query; CtePart; query; resolve_cte",
+      "current_observation": "Authored CTE and internal continuation share CtePart.",
+      "p1_change": "Separate authored WithBinding from relational carry_ranges continuation; sequential nearest binding identity across four Carriers.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "symbols": "source_name; pipe",
+      "current_observation": "Private rename synthesizes row alias; FROM GRAPH bypasses resolve_cte.",
+      "p1_change": "Preserve authored range intent independently; marked/unmarked sources resolve nearest binding before Carrier checking.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_syntax/graph_constructor.mbt",
+      "symbols": "graph; graph_element_name",
+      "current_observation": "Constructor consumes PROPERTY GRAPH; original start/end stored.",
+      "p1_change": "GRAPH only in producer position; producer references share scope resolver, REFERENCES stays constructor-local.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "symbols": "query; parenthesized; pipe_tail",
+      "current_observation": "Placement booleans and CTAS first-parenthesis test.",
+      "p1_change": "Pure/Compute/Statement; bounded token whole-wrapper W; preserve set/Pipe continuation and RESULT obligations.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_syntax/sga_call.mbt",
+      "symbols": "sga_producer_argument; SgaArgument",
+      "current_observation": "Closed Producer roles distinguish refs from ID/data strings.",
+      "p1_change": "Reuse resolved roles for demand. P1 has one installed SGA convention; P2 changes only declared FieldRef/OutputName leaves.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_program/query_script_program.mbt",
+      "symbols": "compile_query_script; lower_script_relation",
+      "current_observation": "Eager DATA Graph/Relation and separate CTE Relation paths.",
+      "p1_change": "One producer lowerer; reuse constructor/keyed MATCH/rows/relation/set/JOIN/retained-result owners.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_program/query_cte_scope.mbt",
+      "symbols": "validate_cte_scope",
+      "current_observation": "Unused CTE rejects until check-without-acquisition exists.",
+      "p1_change": "Check every binding through supplied common contracts; emit final/RESULT/Effect demand only. Retain explicit operations in demanded bodies.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_program/query_script_inputs.mbt",
+      "symbols": "bind_script_input; ScriptSources; unshared_script_sources",
+      "current_observation": "Existing bound cache and capture boundary; conservative raw counts.",
+      "p1_change": "Resolved-role dependencies before narrowing acquisition; keep original complete sharing, no extra Source/ledger.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/query_program/compile.mbt",
+      "symbols": "Input; InputSource; Context",
+      "current_observation": "Admitted Source catalog and ModelTasks; Relation schemas and Graph cache.",
+      "p1_change": "Retain common-issued provenance in four ResolvedProducer variants; never attach a fake Carrier or schema-only Graph.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/pipeline_typing/check.mbt",
+      "symbols": "check_with_evidence; check_carriers",
+      "current_observation": "ProducedInput/SourceViewInput/key/ranking contracts.",
+      "p1_change": "Use evidence where required, structural checking only where sufficient. Temporary checking issues no extra Program/Plan/Run or physical reservation.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/pipeline_typing/property_construction.mbt",
+      "symbols": "graph_element_definition_constructor; graph_element_definition_target",
+      "current_observation": "Constructor coordinates become ordered input occurrences; nested semantics retained.",
+      "p1_change": "Preserve owner domain algorithm and independent binder/wrapper/true-definition controls; no frontend replacement.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "src/source_frontend/lower.mbt",
+      "symbols": "lower; parse_query",
+      "current_observation": "Text declaration-count routing versus separate sql compile.",
+      "p1_change": "One typed lowerer after existing selector validation; preserve JSON/YAML and SQL head selection.",
+      "runtime": "unverified"
+    },
+    {
+      "path": "spec/grammar/actql-query-0.1.ebnf",
+      "symbols": "document/query/constructor productions",
+      "current_observation": "Grammar and manifest bytes are identity-bearing.",
+      "p1_change": "Existing generators update pins; author independent new preimages and retain original bytes/CIDs.",
+      "runtime": "unverified"
+    }
+  ],
+  "preserve": [
+    "Source/Result/Effect ownership",
+    "original source document and constructor start",
+    "limits and authorization",
+    "admitted domain and operand occurrences",
+    "machine Program JSON/YAML",
+    "predicate/parameters/keys/bounds"
+  ],
+  "out_of_scope": [
+    "new scheduler/evaluator/ledger",
+    "compat parser/migrator",
+    "Owner runtime refactor",
+    "INFER/Debug takeover",
+    "unrelated standards discovery"
+  ]
+}

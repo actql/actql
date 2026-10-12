@@ -1,0 +1,34 @@
+{
+  "id": "001",
+  "command": "moon",
+  "args": [
+    "test",
+    "--target",
+    "js",
+    "src/query_program/graph_delta_source_test.mbt",
+    "src/query_program/graph_delta_json_source_test.mbt",
+    "src/query_program/bounded_graph_modes_test.mbt"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "86c373c6f9d0ebe09822c2317fae76d3ac4d26ca",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-11T21:47:29.150Z",
+  "endedAt": "2026-10-11T21:47:30.917Z",
+  "elapsedMs": 1764.2013749999999,
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "complete": true,
+  "verificationStatus": 1,
+  "outputComplete": true,
+  "outputLimitBytes": 67108864,
+  "counts": null
+}

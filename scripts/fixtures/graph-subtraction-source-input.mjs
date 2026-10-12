@@ -19,13 +19,13 @@ graphSubtractionProgram.id = 'fixture.graph_subtraction';
 graphSubtractionProgram.stages[0].steps[3] = {from: 'g',
   subtract_graphs: {with: 'g', merge}, as: 'combined'};
 
-const prefix = 'DATA n = SELECT 7 AS part, 1 AS node_key, 7 AS p; ' +
-  'DATA e = SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
-  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
+const prefix = 'WITH n AS (SELECT 7 AS part, 1 AS node_key, 7 AS p) ' +
+  ', e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
+  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w) ' +
+  ', g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
   'EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N ' +
-  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w))); ';
-const nullablePrefix = prefix.replace('7 AS p;', 'CAST(NULL AS FLOAT64) AS p;');
+  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))) ';
+const nullablePrefix = prefix.replace('7 AS p)', 'CAST(NULL AS FLOAT64) AS p)');
 const output = kind => kind === 'nodes'
   ? ' |> node_rows() |> SELECT p, part, node_key, labels |> ORDER BY node_key |> RESULT nodes'
   : ' |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges';
@@ -36,12 +36,12 @@ const textCase = (name, call, kind, rows, extra = {}) => ({
 
 // Node 1 is removed, node 2 and its self-loop remain; the 1->2 edge must be
 // removed by endpoint closure even though it was absent in the peer subgraph.
-const subsetPrefix = prefix.replace('1 AS node_key, 7 AS p;',
-  '1 AS node_key, 7 AS p UNION ALL SELECT 7 AS part, 2 AS node_key, 9 AS p;')
+const subsetPrefix = prefix.replace('1 AS node_key, 7 AS p)',
+  '1 AS node_key, 7 AS p UNION ALL SELECT 7 AS part, 2 AS node_key, 9 AS p)')
   .replace('1 AS dst_key, 5 AS w', '2 AS dst_key, 5 AS w')
   .replace('1 AS src_key, 1 AS dst_key, 2 AS w', '2 AS src_key, 2 AS dst_key, 2 AS w');
-const peerSelection = 'DATA selected = FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id; ' +
-  'DATA peer = FROM g |> subgraph(nodes: {from: selected, id: "id"}); ';
+const peerSelection = ', selected AS (FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id) ' +
+  ', peer AS (FROM g |> subgraph(nodes: {from: selected, id: "id"})) ';
 export const graphSubtractionSubsetProgram = structuredClone(graphSubtractionProgram);
 graphSubtractionSubsetProgram.id = 'fixture.graph_subtraction_subset';
 const subsetSteps = graphSubtractionSubsetProgram.stages[0].steps;
@@ -75,12 +75,12 @@ export const graphSubtractionSourceSuccesses = [
   textCase('edge-policy-cannot-resurrect-nodes', "subtract_graphs(with: g, merge: {edge_properties: {w: 'exact_equal'}})", 'edges', []),
   ...['nodes', 'edges'].map(kind => textCase('quoted-data-numeric-policy', '', kind,
     kind === 'nodes' ? [node(14)] : edges(4, 10), {
-      text: prefix + 'DATA `peer graph` = FROM g; DATA remaining = FROM g |> ' +
-        "subtract_graphs(with: `peer graph`, merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}}); FROM remaining" + output(kind)})),
+      text: prefix + ', `peer graph` AS (FROM g) , remaining AS (FROM g |> ' +
+        "subtract_graphs(with: `peer graph`, merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}})) FROM remaining" + output(kind)})),
   ...['nodes', 'edges'].map(kind => textCase('nonempty-subset-and-endpoint-closure', '', kind, subsetRows[kind], {
     text: subsetPrefix + peerSelection + 'FROM g |> subtract_graphs(with: peer)' + output(kind)})),
   textCase('zero-is-retained-value', '', 'nodes', [node(0)], {
-    text: prefix.replace('7 AS p;', '0 AS p;') + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes')}),
+    text: prefix.replace('7 AS p)', '0 AS p)') + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes')}),
   textCase('nullable-empty-contract', '', 'nodes', [], {
     text: nullablePrefix + 'FROM g |> subtract_graphs(with: g)' + output('nodes'), results: result('nodes', [], true)}),
 ];
@@ -97,7 +97,7 @@ export const graphSubtractionSourceRefusals = [
 ].map(([name, call, expectedCode]) => ({name: 'graph-subtraction-' + name, format: 'aql-text',
   text: prefix + 'FROM g |> ' + call + output('nodes'), expectedCode})).concat([
   {name: 'graph-subtraction-forward-peer', format: 'aql-text', expectedCode: 'ClientProgramRejected',
-    text: prefix + 'DATA remaining = FROM g |> subtract_graphs(with: later); DATA later = FROM g; FROM remaining' + output('nodes')},
+    text: prefix + ', remaining AS (FROM g |> subtract_graphs(with: later)) , later AS (FROM g) FROM remaining' + output('nodes')},
   {name: 'graph-subtraction-unknown-policy', format: 'aql-text',
     text: prefix + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'unknown'}})" + output('nodes')},
 ]);
@@ -113,6 +113,6 @@ export const graphSubtractionSourceExecutionFailures = [
     "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes'),
     resultNames: ['nodes'], sourceReadCount: 0},
   {name: 'graph-subtraction-conflict-needs-policy', format: 'aql-text', text: prefix +
-    "DATA doubled = FROM g |> union_graphs(with: g, merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}}); FROM doubled |> subtract_graphs(with: g)" + output('edges'),
+    ", doubled AS (FROM g |> union_graphs(with: g, merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}})) FROM doubled |> subtract_graphs(with: g)" + output('edges'),
     resultNames: ['edges'], sourceReadCount: 0},
 ];

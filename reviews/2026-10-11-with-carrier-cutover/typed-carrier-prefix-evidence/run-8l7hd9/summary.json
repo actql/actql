@@ -1,0 +1,46 @@
+{
+  "startedAt": "2026-10-11T20:25:48.095Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Generate actual WITH Carrier syntax and lowering interfaces",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/query_syntax",
+        "src/query_program"
+      ],
+      "startedAt": "2026-10-11T20:25:48.181Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:25:50.360Z",
+      "endedAt": "2026-10-11T20:25:50.361Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "c6d9eefd-a765-45d6-8a12-b618224de9a3",
+    "pid": 30333,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T20:25:48.171Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-8l7hd9"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T20:25:50.428Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

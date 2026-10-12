@@ -167,7 +167,7 @@ test "SQL ORDER property paths preserve output scope and common type checks" {
 }
 
 ///|
-test "SQL ORDER property paths retain DATA parameter declarations and values" {
+test "SQL ORDER property paths retain WITH parameter declarations and values" {
   let declaration_source = @wire.admit(
     @source.parse_json(
       (
@@ -193,7 +193,7 @@ test "SQL ORDER property paths retain DATA parameter declarations and values" {
     construction_limits().source.tree,
   ).unwrap()
   let script = @query.parse_query_script(
-    "DATA objects = SELECT 2 AS id, @a AS payload UNION ALL SELECT 1 AS id, @b AS payload; SELECT id FROM objects ORDER BY payload.score NULLS LAST",
+    "WITH objects AS (SELECT 2 AS id, @a AS payload UNION ALL SELECT 1 AS id, @b AS payload) SELECT id FROM objects ORDER BY payload.score NULLS LAST",
     syntax_limits(),
   ).unwrap()
   let program = compile_query_script(

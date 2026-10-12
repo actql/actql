@@ -1,0 +1,14 @@
+[actql/actql] test query_program/with_join_test.mbt:93 ("WITH JOIN refuses invalid names and output limits without fallback") failed: Error
+    at $panic (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:23:9)
+    at @moonbitlang/core/abort.abort (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/abort/abort.mbt:29:3)
+    at Result::unwrap (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/builtin/result.mbt:263:15)
+    at f (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_join_test.mbt:103:9)
+    at moonbit_test_driver_internal_js_catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:399:11)
+    at _M0FP35actql5actql30query__program__blackbox__test42moonbit__test__driver__internal__js__catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:32187:6)
+    at moonbit_test_driver_internal_catch_error (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:396:3)
+    at MoonBit_Test_Driver::run_test (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2666:5)
+    at moonbit_test_driver_internal_do_execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2839:10)
+    at _M0FP35actql5actql30query__program__blackbox__test40moonbit__test__driver__internal__execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2740:5)
+Total tests: 11, passed: 10, failed: 1.
+["moon","test","--target","js","src/query_program/with_result_owners_test.mbt","src/query_program/with_acquisition_test.mbt","src/query_program/with_join_test.mbt"]: process failed (2); counts={"tests":11,"passed":10,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-OCEvIe

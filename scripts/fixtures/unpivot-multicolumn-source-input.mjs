@@ -16,7 +16,7 @@ const control = {"version":"actql/0.1","id":"fixture.multi_column_unpivot","stag
 const includedControl = structuredClone(control);
 includedControl.stages[0].steps.splice(5, 1);
 const select = 'SELECT item.id AS id,item.jan_amount AS jan_amount,item.jan_note AS jan_note,item.feb_amount AS feb_amount,item.feb_note AS feb_note FROM UNNEST(@rows) item';
-const data = `DATA wide = ${select};`;
+const binding = `WITH wide AS (${select})`;
 const tuple = "((amount,note) FOR month IN ((jan_amount,jan_note) AS 'Jan',(feb_amount,feb_note) AS 'Feb'))";
 const defaults = '((amount,note) FOR month IN ((jan_amount,jan_note),(feb_amount,feb_note)))';
 const defaultRows = exclude.map(row => ({...row,
@@ -35,11 +35,11 @@ export const unpivotMulticolumnSuccesses = [
     {format: 'json', parameterDeclarations: undefined, parameters: undefined}),
   success('json-include-control', JSON.stringify(includedControl), include,
     {format: 'json', parameterDeclarations: undefined, parameters: undefined}),
-  success('data-from-exclude', `${data} SELECT id,amount,note,month FROM wide UNPIVOT ${tuple} ORDER BY id,month`, exclude),
+  success('data-from-exclude', `${binding} SELECT id,amount,note,month FROM wide UNPIVOT ${tuple} ORDER BY id,month`, exclude),
   success('pipe-include-fresh-range', `FROM (${select}) original |> UNPIVOT INCLUDE NULLS ${tuple} |> AS shaped |> SELECT shaped.id,shaped.amount,shaped.note,shaped.month |> ORDER BY id,month`, include),
   success('default-labels', `FROM (${select}) |> UNPIVOT ${defaults} |> ORDER BY id,month`, defaultRows, {columns: labelColumns(19)}),
   success('renamed-default-labels', `FROM (${select}) |> RENAME jan_note AS first_note |> UNPIVOT ((amount,note) FOR month IN ((jan_amount,first_note),(feb_amount,feb_note))) |> ORDER BY id,month`, renamedRows, {columns: labelColumns(21)}),
-  success('typed-empty', `${data} SELECT id,amount,note,month FROM wide UNPIVOT ${tuple} ORDER BY id,month`, [], {parameters: {rows: []}}),
+  success('typed-empty', `${binding} SELECT id,amount,note,month FROM wide UNPIVOT ${tuple} ORDER BY id,month`, [], {parameters: {rows: []}}),
 ];
 const nullableDeclarations = structuredClone(declarations);
 nullableDeclarations.rows.items.fields.jan_amount.nullable = false;

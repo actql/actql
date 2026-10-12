@@ -390,8 +390,10 @@ fn set_operand_retains_result(query : @query.Query) -> Bool {
       return true
     }
   }
-  for index in 0..<@query.cte_count(query) {
-    if set_operand_retains_result(@query.cte_at(query, index).unwrap().query) {
+  for index in 0..<@query.query_binding_count(query) {
+    if set_operand_retains_result(
+        @query.query_binding_at(query, index).unwrap().query,
+      ) {
       return true
     }
   }

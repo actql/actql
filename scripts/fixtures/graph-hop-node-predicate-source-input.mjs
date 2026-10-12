@@ -16,13 +16,13 @@ const declarations = {
 const parameters = {nodes, edges};
 // Existing typed UNNEST constructs the same rows without unrelated UNION
 // branches exhausting the standard 32-task limit. No ceiling is raised.
-const data = 'DATA objects = SELECT item.id AS id, item.payload AS payload '
-  + 'FROM UNNEST(@nodes) AS item; DATA links = SELECT link.key AS key, '
-  + 'link.src AS src, link.dst AS dst FROM UNNEST(@edges) AS link; ';
-const mapping = 'DATA g = PROPERTY GRAPH (NODE TABLES '
+const data = 'WITH objects AS (SELECT item.id AS id, item.payload AS payload '
+  + 'FROM UNNEST(@nodes) AS item) , links AS (SELECT link.key AS key, '
+  + 'link.src AS src, link.dst AS dst FROM UNNEST(@edges) AS link) ';
+const mapping = ', g AS (GRAPH (NODE TABLES '
   + '(objects AS N KEY (id) LABEL Node PROPERTIES ALL COLUMNS) EDGE TABLES '
   + '(links AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) '
-  + 'REFERENCES N LABEL R NO PROPERTIES)); ';
+  + 'REFERENCES N LABEL R NO PROPERTIES))) ';
 const tail = pattern => `FROM GRAPH g |> MATCH p = WALK ${pattern}`
   + ' |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT matched';
 const columns = [{name: 'depth', contract: number}];
@@ -50,15 +50,15 @@ const program = hops => ({version: 'actql/0.1', id: 'fixture.graph_hop_node', st
     {from: 'depths', sort: [{field: 'depth', dir: 'asc', nulls: 'first'}], as: 'ordered'},
   ], results: {rows: {from: 'ordered', fields: ['depth']}}}],
   results: {matched: {from: {stage: 'main', result: 'rows'}}}});
-const definitionData = 'DATA n = SELECT 1 AS id, 20 AS score; '
-  + 'DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; ';
-const definitionMapping = extra => 'DATA g = PROPERTY GRAPH (NODE TABLES '
+const definitionData = 'WITH n AS (SELECT 1 AS id, 20 AS score) '
+  + ', e AS (SELECT 10 AS key, 1 AS src, 1 AS dst) ';
+const definitionMapping = extra => ', g AS (GRAPH (NODE TABLES '
   + '(n AS S KEY (id) LABEL Start NO PROPERTIES, n AS T KEY (id) LABEL Target PROPERTIES (score)'
   + (extra ? ', n AS U KEY (id) LABEL Other NO PROPERTIES' : '')
   + ') EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES S '
   + 'DESTINATION KEY (dst) REFERENCES T LABEL R NO PROPERTIES'
   + (extra ? ', e AS F KEY (key) SOURCE KEY (src) REFERENCES S DESTINATION KEY (dst) REFERENCES U LABEL R NO PROPERTIES' : '')
-  + ')); ';
+  + '))) ';
 export const graphHopNodePredicateSuccesses = [
   {name: 'graph-hop-node-json-single', format: 'json', text: JSON.stringify(program([first])),
     results: result(one), sourceReadCount: 0},

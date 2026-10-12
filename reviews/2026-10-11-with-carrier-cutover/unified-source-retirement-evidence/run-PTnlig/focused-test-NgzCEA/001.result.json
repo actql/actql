@@ -1,0 +1,39 @@
+{
+  "id": "001",
+  "command": "moon",
+  "args": [
+    "test",
+    "--target",
+    "js",
+    "src/source_frontend/unified_dependency_test.mbt"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "bb400e67f24425b7771d2a74ede42519e1baa86c",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-11T20:57:49.649Z",
+  "endedAt": "2026-10-11T20:57:53.513Z",
+  "elapsedMs": 3860.894125,
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "complete": true,
+  "verificationStatus": 0,
+  "outputComplete": true,
+  "outputLimitBytes": 67108864,
+  "counts": {
+    "tests": 8,
+    "passed": 8,
+    "failed": 0,
+    "cancelled": null,
+    "skipped": null,
+    "todo": null
+  }
+}

@@ -90,7 +90,7 @@ export const correlatedUnnestStarSuccesses = [
       {name: 'e', contract: number}, {name: 'position', contract: number}],
     expected: [1, 2, 3, 4].map(id => ({id, items: [9], e: 9, position: 0})),
   }),
-  object('data', 'DATA expanded = ' + objectPipe + '; FROM expanded |> RESULT answer',
+  object('data', 'WITH expanded AS (' + objectPipe + ') FROM expanded |> RESULT answer',
     {format: 'aql-text'}),
   object('filter-limit', objectSql.replace('ORDER BY', 'WHERE e.code IS NOT NULL ORDER BY') + ' LIMIT 2',
     {expected: [{id: 1, code: 10, label: 'a', position: 0}, {id: 2, code: 20, label: null, position: 0}]}),

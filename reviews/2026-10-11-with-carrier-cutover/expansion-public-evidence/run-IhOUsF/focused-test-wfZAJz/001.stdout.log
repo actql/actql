@@ -1,0 +1,2 @@
+[actql/actql] test query_program/with_expansion_public_fixture_test.mbt:414 ("WITH captured expansion preserves missing publication order refusal") failed: src/query_program/with_expansion_public_fixture_test.mbt:456:5-456:71@actql/actql FAILED: admitted Catalog without capture order must remain refused
+Total tests: 16, passed: 15, failed: 1.

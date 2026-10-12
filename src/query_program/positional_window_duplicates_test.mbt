@@ -2,7 +2,7 @@
 test "terminal positional repeated window aliases preserve opposing order keys" {
   // x=1 yields (1,2), x=2 yields (2,1); reusing the first result would
   // incorrectly make both outputs equal. The left operand names a/b.
-  let source = "DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r ORDER BY a, b"
+  let source = "WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r ORDER BY a, b"
   let actual = match
     compile_query_script(
       @query.parse_query_script(source, syntax_limits()).unwrap(),
@@ -32,9 +32,9 @@ test "terminal positional repeated window aliases preserve opposing order keys" 
 test "terminal positional windows retain function identity and empty input" {
   for
     source in [
-      "DATA r = SELECT 1 AS x UNION ALL SELECT 1 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, RANK() OVER (ORDER BY x) AS n FROM r ORDER BY a, b",
-      "DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT SUM(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n, COUNT(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n FROM r ORDER BY a, b",
-      "DATA r = SELECT 1 AS x WHERE FALSE; SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r ORDER BY a, b",
+      "WITH r AS (SELECT 1 AS x UNION ALL SELECT 1 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, RANK() OVER (ORDER BY x) AS n FROM r ORDER BY a, b",
+      "WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT SUM(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n, COUNT(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n FROM r ORDER BY a, b",
+      "WITH r AS (SELECT 1 AS x WHERE FALSE) SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r ORDER BY a, b",
     ] {
     let actual = compile_query_script(
       @query.parse_query_script(source, syntax_limits()).unwrap(),
@@ -81,7 +81,7 @@ test "terminal positional windows retain function identity and empty input" {
 
 ///|
 test "positional window slots do not authorize ambiguous or private receivers" {
-  let head = "DATA r = SELECT 1 AS x; SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r QUALIFY "
+  let head = "WITH r AS (SELECT 1 AS x) SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r QUALIFY "
   for predicate in ["n > 0", "`N` > 0", "n.member = 1"] {
     assert_true(
       compile_query_script(
@@ -108,8 +108,8 @@ test "positional window slots do not authorize ambiguous or private receivers" {
   }
   for
     source in [
-      "DATA r = SELECT 1 AS x; SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r",
-      "DATA r = SELECT 1 AS x; SELECT 0 AS n UNION ALL BY NAME SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r",
+      "WITH r AS (SELECT 1 AS x) SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r",
+      "WITH r AS (SELECT 1 AS x) SELECT 0 AS n UNION ALL BY NAME SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r",
     ] {
     assert_true(
       compile_query_script(
@@ -143,16 +143,16 @@ test "independent ordinary Program preserves both positional window outputs" {
 }
 
 ///|
-test "positional window lowering matches the independent complete DATA Program" {
+test "positional window lowering matches the independent complete WITH Program" {
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"x":"aql_query_expr_0"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":2}}},{"select":[{"x":"aql_query_expr_0"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","append":{"with":"aql_data_set_term_3"},"as":"aql_data_0"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_8"},{"from":"aql_script_seed_8","derive":{"aql_query_expr_0":{"literal":0},"aql_query_expr_1":{"literal":0}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_7"},{"from":"aql_data_0","analytic":{"partition_by":[],"order_by":[{"field":"x","dir":"asc","nulls":"first"}],"functions":{"aql_analytic_output_2":{"fn":"row_number"}}}},{"analytic":{"partition_by":[],"order_by":[{"field":"x","dir":"desc","nulls":"last"}],"functions":{"aql_analytic_output_3":{"fn":"row_number"}}}},{"select":[{"a":"aql_analytic_output_2"},{"b":"aql_analytic_output_3"}],"as":"aql_data_set_term_9"},{"from":"aql_data_set_term_7","append":{"with":"aql_data_set_term_9"},"as":"aql_data_6"},{"from":"aql_data_6","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"x":"aql_query_expr_0"}],"as":"aql_data_set_term_1"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_4"},{"from":"aql_script_seed_4","derive":{"aql_query_expr_0":{"literal":2}}},{"select":[{"x":"aql_query_expr_0"}],"as":"aql_data_set_term_3"},{"from":"aql_data_set_term_1","append":{"with":"aql_data_set_term_3"},"as":"aql_script_cte_0"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_8"},{"from":"aql_script_seed_8","derive":{"aql_query_expr_0":{"literal":0},"aql_query_expr_1":{"literal":0}}},{"select":[{"a":"aql_query_expr_0"},{"b":"aql_query_expr_1"}],"as":"aql_data_set_term_7"},{"from":"aql_script_cte_0","analytic":{"partition_by":[],"order_by":[{"field":"x","dir":"asc","nulls":"first"}],"functions":{"aql_analytic_output_2":{"fn":"row_number"}}}},{"analytic":{"partition_by":[],"order_by":[{"field":"x","dir":"desc","nulls":"last"}],"functions":{"aql_analytic_output_3":{"fn":"row_number"}}}},{"select":[{"a":"aql_analytic_output_2"},{"b":"aql_analytic_output_3"}],"as":"aql_data_set_term_9"},{"from":"aql_data_set_term_7","append":{"with":"aql_data_set_term_9"},"as":"aql_script_cte_6"},{"from":"aql_script_cte_6","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = compile_data_set(
-    "DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; DATA e = SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r; FROM e |> SELECT a, b",
+  let actual = compile_with_set(
+    "WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x), e AS (SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS `N` FROM r) FROM e |> SELECT a, b",
   )
   assert_eq(semantic(actual), semantic(expected))
   for program in [expected, actual] {

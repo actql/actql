@@ -1,0 +1,6 @@
+[actql/actql] test query_program/keyed_graph_program_wbtest.mbt:129 ("keyed source refuses internal Graph star and unadapted identity binding") failed: src/query_program/keyed_graph_program_wbtest.mbt:156:3-156:34@actql/actql FAILED: `141 != 146`
+diff:
+-141 +146
+Total tests: 16, passed: 15, failed: 1.
+["moon","test","--target","js","src/query_program/graph_program_wbtest.mbt","src/query_program/keyed_graph_program_wbtest.mbt","src/query_program/graph_definition_scope_wbtest.mbt"]: process failed (2); counts={"tests":16,"passed":15,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-nK764J

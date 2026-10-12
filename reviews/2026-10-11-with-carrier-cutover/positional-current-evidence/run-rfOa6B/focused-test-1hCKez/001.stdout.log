@@ -1,0 +1,13 @@
+[actql/actql] test query_program/positional_duplicate_columns_test.mbt:50 ("public Text routing retains scoped and empty positional WITH controls") failed: src/query_program/positional_duplicate_columns_test.mbt:70:5-72:6@actql/actql FAILED: `false` is not true
+[actql/actql] test query_program/parenthesized_positional_output_test.mbt:112 ("positional permission never grants authored CTE or BY NAME exports") failed: Error
+    at $panic (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:23:9)
+    at @moonbitlang/core/abort.abort (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/abort/abort.mbt:29:3)
+    at Result::unwrap (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/builtin/result.mbt:263:15)
+    at f (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/parenthesized_positional_output_test.mbt:122:9)
+    at moonbit_test_driver_internal_js_catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:399:11)
+    at _M0FP35actql5actql30query__program__blackbox__test42moonbit__test__driver__internal__js__catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:32195:6)
+    at moonbit_test_driver_internal_catch_error (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:396:3)
+    at MoonBit_Test_Driver::run_test (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2667:5)
+    at moonbit_test_driver_internal_do_execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2840:10)
+    at _M0FP35actql5actql30query__program__blackbox__test40moonbit__test__driver__internal__execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2741:5)
+Total tests: 33, passed: 31, failed: 2.

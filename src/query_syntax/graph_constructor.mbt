@@ -149,7 +149,9 @@ fn QueryParser::graph_element_name(
   } else {
     producer.last().unwrap()
   }
-  (producer, name)
+  // Definition names use the authored path, while the Relation operand uses
+  // the nearest lexical producer. REFERENCES remains constructor-local.
+  (self.resolve_producer(producer), name)
 }
 
 ///|
@@ -175,7 +177,6 @@ fn QueryParser::property_endpoint(
 fn QueryParser::graph(self : QueryParser) -> GraphConstructor raise QueryAbort {
   self.node()
   let start = self.peek().start
-  self.keyword("PROPERTY")
   self.keyword("GRAPH")
   self.symbol(40)
   self.keyword("NODE")
@@ -247,7 +248,7 @@ pub fn parse_graph(
     syntax_nodes: 0,
     source_depth: 0,
     synthetic_sources: 0,
-    cte_scopes: [],
+    binding_scopes: [],
   }
   try {
     let graph = parser.graph()

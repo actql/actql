@@ -1,0 +1,44 @@
+{
+  "startedAt": "2026-10-11T20:52:56.064Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format only positional and composition WITH callers",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/with_positional_set_test.mbt",
+        "src/query_syntax/composition_controls_test.mbt"
+      ],
+      "startedAt": "2026-10-11T20:52:56.127Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:52:56.237Z",
+      "endedAt": "2026-10-11T20:52:56.238Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "5cd9d18e-2eb3-4747-bd1c-cf55ed6bca8f",
+    "pid": 51656,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T20:52:56.122Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-V4slD3"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T20:52:56.296Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

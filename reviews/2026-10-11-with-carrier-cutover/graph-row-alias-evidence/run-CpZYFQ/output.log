@@ -1,0 +1,4 @@
+[actql/actql] test query_program/with_graph_range_alias_test.mbt:7 ("Graph row aliases fail with one static reason before or after MATCH") failed: src/query_program/with_graph_range_alias_test.mbt:24:5-24:69@actql/actql FAILED: FROM g |> AS row_alias |> node_rows() |> SELECT p
+Total tests: 10, passed: 9, failed: 1.
+["moon","test","--target","js","src/query_syntax/with_graph_alias_test.mbt","src/query_program/with_graph_range_alias_test.mbt","src/query_program/graph_rows_test.mbt","src/query_program/graph_rows_positional_set_test.mbt"]: process failed (2); counts={"tests":10,"passed":9,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-nqf4P0

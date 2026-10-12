@@ -1,0 +1,67 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-AUnBSJ",
+  "revision": "54665a96136a6db0528083ebbd55b3ecc3a5b830",
+  "source": {
+    "revision": "54665a96136a6db0528083ebbd55b3ecc3a5b830",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T21:03:24.301Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "moon",
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "src/query_program/with_cte_composition_test.mbt",
+        "src/query_program/with_binding_preparation_test.mbt",
+        "src/query_program/with_binding_static_order_gap_test.mbt",
+        "src/query_program/with_binding_demand_test.mbt"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "54665a96136a6db0528083ebbd55b3ecc3a5b830",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-11T21:03:24.474Z",
+      "endedAt": "2026-10-11T21:03:35.057Z",
+      "elapsedMs": 10580.699416,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 0,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 16,
+        "passed": 16,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

@@ -38,8 +38,8 @@ export const unnestFullJoinProgram = {version: 'actql/0.1', id: 'fixture.unnest_
     {from: 'joined', sort: [{field: 'position', dir: 'asc', nulls: 'last'},
       {field: 'key', dir: 'asc', nulls: 'first'}]}, scalarSteps[6],
   ], results: {rows: {from: 'selected', fields: ['element', 'position', 'key']}}}], results};
-const fullText = 'DATA keys = FROM (SELECT 2 AS key UNION ALL SELECT 3 AS key) keys_input '
-  + '|> ASSERT UNIQUE BY (key); FROM UNNEST(@items) element WITH OFFSET position '
+const fullText = 'WITH keys AS (FROM (SELECT 2 AS key UNION ALL SELECT 3 AS key) keys_input '
+  + '|> ASSERT UNIQUE BY (key)) FROM UNNEST(@items) element WITH OFFSET position '
   + '|> ASSERT UNIQUE BY (position) |> FULL JOIN keys k ON element = k.key MAX_OUTPUT_ROWS 10 '
   + '|> SELECT element, position, k.key |> ORDER BY position NULLS LAST, k.key';
 const sql = 'SELECT element, position, k.key FROM UNNEST(@items) element WITH OFFSET position '
@@ -104,7 +104,7 @@ export const unnestJoinSuccesses = [
   }),
   success('object-sql', objectSql, {...objectCase, format: 'sql'}),
   success('object-pipe', objectPipe, objectCase),
-  success('data', 'DATA joined = ' + objectPipe + '; FROM joined |> RESULT answer', objectCase),
+  success('data', 'WITH joined AS (' + objectPipe + ') FROM joined |> RESULT answer', objectCase),
   success('whole-object', objectPipe.replace('SELECT e.*,', 'SELECT e AS original, e.*,'), {
     ...objectCase, columns: [{name: 'original',
       contract: {...object, additional_properties: false}}, ...objectColumns],

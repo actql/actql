@@ -1,0 +1,83 @@
+{
+  "source": "a16dd23f057fc10f2d02a1b4ce9f4542bbb9e1ce",
+  "tree": "8a0fdce76804ccf9438a3baf45ccb90030d054a2",
+  "runtime": {
+    "run": "run-JRWv4V",
+    "focused": "focused-test-9Tpfe0",
+    "command": "moon",
+    "args": [
+      "test",
+      "--target",
+      "js",
+      "src/query_program/with_graph_binding_test.mbt",
+      "src/source_frontend/with_graph_binding_test.mbt"
+    ],
+    "tests": 4,
+    "passed": 4,
+    "failed": 0,
+    "exit_code": 0,
+    "source_dirty": false
+  },
+  "format": {
+    "run": "run-EGdO6Z",
+    "mode": "Read-only pinned moon fmt --check with changed file arguments; compiler reported 533 formatting tasks. No runtime tests in this command.",
+    "exit_code": 0
+  },
+  "limits": {
+    "timeout_seconds": 60,
+    "grace_seconds": 5,
+    "heavy": false
+  },
+  "actual_coverage": [
+    "SQL and AQL-text WITH/GRAPH shared source routes independently compared with full machine Program",
+    "Original GRAPH span bindings.sql bytes48..117 retained through source builder",
+    "Retired DATA head rejected with WrongQueryForm for both selectors",
+    "Retired pure PROPERTY GRAPH rejected in WITH body",
+    "Nearer Relation shadows outer Graph and is refused with UnsupportedGraph",
+    "Existing Graph MATCH lowering and actual common checker for inline control"
+  ],
+  "termination": [
+    {
+      "run": "run-JRWv4V",
+      "owner": 20546,
+      "direct_owner_and_group_absent": true,
+      "own_lock_absent": true
+    },
+    {
+      "run": "run-EGdO6Z",
+      "owner": 21302,
+      "direct_owner_and_group_absent": true,
+      "own_lock_absent": true
+    }
+  ],
+  "receipts": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-JRWv4V/summary.json",
+      "sha256": "6b9d4492d1b3448ae83ff7a70fd7f5f565518712a5d5aa6a7f5534db3620e3d9"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-JRWv4V/output.log",
+      "sha256": "236df3557ef1c1d1d2223d2806449b9dea1fe1c9f76fbc31d88d4400bd8e71ad"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-9Tpfe0/summary.json",
+      "sha256": "682a7996987f217e79139cbb0304249a00376e56f73d75262dbd6a96218b2119"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-EGdO6Z/summary.json",
+      "sha256": "1cd7626c2c35fc40de521bdd440c3992e317ec121a67a631c80f86ac4833e49e"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-EGdO6Z/output.log",
+      "sha256": "cd8e6ae63b2cc88c0e729629c4992c53ba6e99c7a4ae4c4fa460b46548728c8f"
+    }
+  ],
+  "not_claimed": [
+    "Packed Local/HTTPS values/schema/Run/admission/I/O",
+    "All four Carrier and P2 profile coverage",
+    "Full current fixture/docs/grammar/pin replacement",
+    "Demanded-only emission and common all-binding check-only boundary",
+    "Whole Core, Wasm/Native, Proof or CI"
+  ],
+  "evidence_boundary": "The earlier 22/22 is fixed96ed source evidence, not a rerun at this source. Older failures remain in their original receipt paths."
+}

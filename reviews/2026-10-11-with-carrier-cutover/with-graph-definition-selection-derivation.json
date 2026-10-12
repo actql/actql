@@ -1,0 +1,17 @@
+{
+  "source": "7fe8980ca033dfc428dfbd6deadb183715dc640e",
+  "independent_allocation": "Source-free Relation n reserves cte0/seed1; Graph primary reserves with_graph2; root node_rows reserves SGA3. Original complete Program changes these two producer names only.",
+  "preserved": [
+    "definition/label text including lowercase selectors",
+    "nullable property remains guaranteed within its definition",
+    "conditional q across N/M is not presence evidence and remains refused",
+    "missing vs nullable distinction",
+    "typed identity and original key names",
+    "node/edge/labels projections",
+    "seven Graph Relation operations with unchanged complete common JSON controls",
+    "CROSS JOIN max10 and value/tag output order",
+    "ordered singleton equality control"
+  ],
+  "refusal_derivation": "relation_typing.check expression and SELECT inspect Conditional presence. Pipeline graph_projection_keys_test independently fixes Operation(PresenceRequired); the original q sources now reach that exact obligation during WITH static admission. No Graph/property schema rules are reproduced in the frontend.",
+  "public_execution": "not performed"
+}

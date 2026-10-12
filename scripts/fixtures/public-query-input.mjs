@@ -16,21 +16,21 @@ const relationNumber = (name, nullable = false) => ({name,
 // amount before id. Plain FROM retains that order, independently of the
 // insertion order of keys in the sourceRows objects above.
 const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
-// The ordered DATA repro has two roots, append, one hidden sort slot and LIMIT.
+// The ordered WITH repro has two roots, append, one hidden sort slot and LIMIT.
 // The packed harness reuses main's independently authored JSON control.
 export const relationDataSuccesses = [
   {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
-    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
+    text: 'WITH n AS (SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1) FROM n |> SELECT id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
   {name: 'data-quoted-set-order', format: 'aql-text',
-    text: 'DATA `n` = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id; FROM `n` |> SELECT id |> RESULT nodes',
+    text: 'WITH `n` AS (SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id) FROM `n` |> SELECT id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}, {id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
   {name: 'data-retained-results', format: 'aql-text',
-    text: 'DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
+    text: 'WITH n AS (SELECT 2 AS id) FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
     results: {original: {rows: [{id: 2}], columns: [relationNumber('id')]},
       active: {rows: [{id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
   {name: 'data-anonymous-set-duplicate-order-limit', format: 'aql-text',
-    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 + 0 UNION ALL SELECT 1; FROM n |> ORDER BY id |> LIMIT 2 |> RESULT nodes',
+    text: 'WITH n AS (SELECT 2 AS id UNION ALL SELECT 1 + 0 UNION ALL SELECT 1) FROM n |> ORDER BY id |> LIMIT 2 |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}, {id: 1}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
   {name: 'data-anonymous-set-null-json-control', format: 'json',
     text: JSON.stringify({version: 'actql/0.1', id: 'fixture.data_anonymous_null',
@@ -41,18 +41,18 @@ export const relationDataSuccesses = [
       results: {nodes: {from: {stage: 'main', result: 'nodes'}}}}),
     results: {nodes: {rows: [{id: null}, {id: 2}], columns: [relationNumber('id', true)]}}, sourceReadCount: 0},
   {name: 'data-anonymous-set-null-source', format: 'aql-text',
-    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64); FROM n |> ORDER BY id NULLS FIRST |> RESULT nodes',
+    text: 'WITH n AS (SELECT 2 AS id UNION ALL SELECT CAST(NULL AS FLOAT64)) FROM n |> ORDER BY id NULLS FIRST |> RESULT nodes',
     results: {nodes: {rows: [{id: null}, {id: 2}], columns: [relationNumber('id', true)]}}, sourceReadCount: 0},
   {name: 'data-anonymous-set-cte-source', format: 'aql-text',
-    text: 'DATA n = WITH seed AS (SELECT 2 AS id) SELECT id FROM seed UNION ALL SELECT id - 1 FROM seed; FROM n |> ORDER BY id |> RESULT nodes',
+    text: 'WITH n AS (WITH seed AS (SELECT 2 AS id) SELECT id FROM seed UNION ALL SELECT id - 1 FROM seed) FROM n |> ORDER BY id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}, {id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
 ];
 export const relationDataRefusals = [
-  {name: 'data-forward-reference', format: 'aql-text', text: 'DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id'},
-  {name: 'data-duplicate', format: 'aql-text', text: 'DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; FROM n |> SELECT id'},
+  {name: 'data-forward-reference', format: 'aql-text', text: 'WITH n AS (FROM later |> SELECT id), later AS (SELECT 1 AS id) FROM n |> SELECT id'},
+  {name: 'data-duplicate', format: 'aql-text', text: 'WITH n AS (SELECT 1 AS id), `N` AS (SELECT 2 AS id) FROM n |> SELECT id'},
   {name: 'data-sql-format', format: 'sql', text: 'DATA n = SELECT 1 AS id; FROM n |> SELECT id'},
-  {name: 'data-anonymous-set-by-name', format: 'aql-text', expectedCode: 'ClientProgramImplementationLimit', text: 'DATA n = SELECT 1 AS id UNION ALL BY NAME SELECT 2; FROM n |> SELECT id'},
-  {name: 'data-anonymous-set-private-field', format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text: 'DATA n = SELECT 1 AS id UNION ALL SELECT 2; FROM n |> WHERE aql_set_anonymous_0 > 0 |> SELECT id'},
+  {name: 'data-anonymous-set-by-name', format: 'aql-text', expectedCode: 'ClientProgramImplementationLimit', text: 'WITH n AS (SELECT 1 AS id UNION ALL BY NAME SELECT 2) FROM n |> SELECT id'},
+  {name: 'data-anonymous-set-private-field', format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', text: 'WITH n AS (SELECT 1 AS id UNION ALL SELECT 2) FROM n |> WHERE aql_set_anonymous_0 > 0 |> SELECT id'},
 ];
 export const pipeResultSuccesses = [
   {name: 'result-exact-string-prefix', format: 'sql',
@@ -487,7 +487,7 @@ queryCompositionSuccesses.push(
   {left_row:{amount:20,id:2},right_row:{id:2,marker:20}},
   {left_row:{amount:null,id:null},right_row:{id:4,marker:40}},
  ],[joinedNullableLeft,joinedNonNullRight]),
- joinedCase('full-using','DATA lefts = FROM (SELECT 1 AS id UNION ALL SELECT 2) |> ASSERT UNIQUE BY (id); DATA rights = FROM '+joinedRight+' |> ASSERT UNIQUE BY (id); SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id',[
+ joinedCase('full-using','WITH lefts AS (FROM (SELECT 1 AS id UNION ALL SELECT 2) |> ASSERT UNIQUE BY (id)), rights AS (FROM '+joinedRight+' |> ASSERT UNIQUE BY (id)) SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id',[
   {left_row:{id:1},right_row:{id:null,marker:null}},
   {left_row:{id:2},right_row:{id:2,marker:20}},
   {left_row:{id:null},right_row:{id:4,marker:40}},

@@ -1,0 +1,20 @@
+{
+  "adoptedSource": "542f99f7b318ef19d784b796c9eb200377719148",
+  "method": "Normal fast-forward merge from the existing Root branch; no cherry-pick, rebase or history replacement.",
+  "handoffOriginal": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/with-current-public-callers-handoff.json",
+  "handoffSha256": "bc9aff6e4b2a99facc24e50dceaaa6de8b4824813097c256ad9c793f82bc0aa0",
+  "rootChecks": {
+    "js": 48,
+    "node": 25,
+    "guard": "run-f1yfQ3"
+  },
+  "bRerun": false,
+  "hostWheelProviderAcceptance": false,
+  "remaining": [
+    "Acquired Graph three current source wrappers",
+    "Other current public source-input wrappers",
+    "P1 current caller/docs coherence",
+    "Actual Local/HTTPS acceptance"
+  ],
+  "p2SeparateBranch": "feat/frontend-sga-argument-role-cutover"
+}

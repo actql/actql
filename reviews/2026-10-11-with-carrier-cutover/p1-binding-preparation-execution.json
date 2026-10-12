@@ -1,0 +1,138 @@
+{
+  "source": "7f69a80feec4f3e841e930d88680871f01eea251",
+  "tree": "87c31aeec66ff2b8c1f9fef9344a07960bb08ee3",
+  "status": "Actual bounded JS execution; intermediate WITH P1 connection, not complete cutover or public execution",
+  "runtime": {
+    "run": "run-ueZ9fq",
+    "focused": "focused-test-0nasIz",
+    "command": "moon",
+    "args": [
+      "test",
+      "--target",
+      "js",
+      "src/query_program/with_binding_preparation_test.mbt",
+      "src/query_program/with_graph_binding_test.mbt",
+      "src/source_frontend/with_graph_binding_test.mbt"
+    ],
+    "counts": {
+      "tests": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    "exit_code": 0,
+    "source_dirty": false
+  },
+  "compile_generation": [
+    {
+      "source": "48818e8271b63e0064c90c5993fb16000b59a00f",
+      "run": "run-C8D09K",
+      "exit_code": 0,
+      "tests_executed": 0,
+      "mode": "Pinned moon info for query_program/source_frontend followed by selected moon fmt; generated interface committed subsequently"
+    },
+    {
+      "source": "e14d8256c3a56b852cfcf49dc90760c6ba2f250e",
+      "run": "run-B367nY",
+      "exit_code": 0,
+      "tests_executed": 0,
+      "mode": "Pinned moon info for Source declaration issue API and caller compile; selected formatter"
+    }
+  ],
+  "read_only_format": {
+    "source": "7f69a80feec4f3e841e930d88680871f01eea251",
+    "run": "run-bjZX9v",
+    "exit_code": 0,
+    "selected_changed_paths": 4,
+    "compiler_reported_tasks": 409,
+    "runtime_tests": 0
+  },
+  "limits": {
+    "timeout_seconds": 60,
+    "grace_seconds": 5,
+    "heavy": false
+  },
+  "actual_coverage": [
+    "Unused binding arithmetic type error is rejected by the common pipeline owner, with its typed cause retained",
+    "Actual Catalog-backed Source registration permits metadata-only pipeline preparation",
+    "The identical Source schema without its Catalog is refused with a retained common declaration, including stage/name/connector/resource/view",
+    "An unused missing field is rejected by the original expression name resolver",
+    "Duplicate inline Graph keys remain a conditional dynamic validation obligation; successful metadata preparation does not assert uniqueness",
+    "Existing WITH/GRAPH complete independent Program comparison, shared Text/SQL route, original source span and retired entry controls remain valid"
+  ],
+  "original_failures": [
+    "p1-binding-preparation-compile-failure.json",
+    "p1-binding-preparation-registration-failure.json"
+  ],
+  "termination": [
+    {
+      "run": "run-C8D09K",
+      "owner": 30703,
+      "direct_owner_and_group_absent": true,
+      "own_lock_absent": true
+    },
+    {
+      "run": "run-B367nY",
+      "owner": 33209,
+      "direct_owner_and_group_absent": true,
+      "own_lock_absent": true
+    },
+    {
+      "run": "run-ueZ9fq",
+      "owner": 33590,
+      "direct_owner_and_group_absent": true,
+      "own_lock_absent": true
+    },
+    {
+      "run": "run-bjZX9v",
+      "owner": 34227,
+      "direct_owner_and_group_absent": true,
+      "own_lock_absent": true
+    }
+  ],
+  "unverified": [
+    "Whole static/profile closure and four-Carrier admission",
+    "Demanded-only emission; current prepared Program still contains unused binding steps",
+    "Dynamic values, actual permission/capacity/Model validation",
+    "P1/P2 grammar, pins and current example retirement",
+    "Pristine five-package generation and packed Local/HTTPS Named Result acceptance",
+    "Wasm/Native runtime and Hosted CI"
+  ],
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-C8D09K/summary.json",
+      "sha256": "fda7a7a170e4d136a240d3a9ad67d693deef460eae3800f12143e33780832bd3"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-C8D09K/output.log",
+      "sha256": "8236176c2e52ac1f134fc81797500525888cbfed5bec20416355dd09dc5fb997"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-B367nY/summary.json",
+      "sha256": "50693ef919975dfe4d216b85c554ec7062fe2e8faa28f62449574707d382acd7"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-B367nY/output.log",
+      "sha256": "1462826f2b3df073c6b4d41f6d3ff66b027f673ec4b4b082f2d610bcca12ed8b"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-ueZ9fq/summary.json",
+      "sha256": "de543f25889892725854b27e7e77090e79ef0e98d2d1fcbb7080e63dcbaf79bf"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-ueZ9fq/output.log",
+      "sha256": "671b378db7ae38e64c6841d3fe07000ba1acdc741857d929a11292fe2227c55b"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-bjZX9v/summary.json",
+      "sha256": "c95918c8360a561c7382c92c158ee595465f787cbc4c96b779704620648a3c16"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-bjZX9v/output.log",
+      "sha256": "bf06d12d683491355351433910ff73baa3efe8712d3455d734ba779d75073654"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0nasIz/summary.json",
+      "sha256": "1dd85e50c203a9298fc200afa6a477f92999971346167f42cd91c83c81bbffee"
+    }
+  ]
+}

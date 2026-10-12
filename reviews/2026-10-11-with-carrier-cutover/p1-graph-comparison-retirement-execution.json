@@ -1,0 +1,199 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Retire existing positive Graph equality/difference DATA callers into authored WITH/GRAPH; independently retain complete common Programs, argument roles, graph aliases, ORDER/LIMIT, typed checker and exact authored refusals. No product Graph semantics change.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-graph-comparison-original-callers.json",
+  "coordinate_correction": "with-graph-comparison-coordinate-correction.json",
+  "unexecuted": [
+    "Host Local/HTTPS Named Result execution",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm runtime",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-udbVO6",
+      "source": "92e6585f0684f4c389f054d02101903534f31447",
+      "tree": "3e7ae5ec7c023a3933ce8fb798c71bf561ea8571",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 69240,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_equality_test.mbt",
+          "src/query_program/graph_difference_rows_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "focused-test-RaWygf/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/0001.summary.json",
+          "sha256": "b40fe4e8a5d201f26fdea37e61e2f3b582dd28b62a830c1c16ae429cfdd346ce"
+        },
+        "focused-test-RaWygf/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/0002.summary.json",
+          "sha256": "fe4edd8569cf8626455f6b6883623863b1a894c2896487fd6e627bcccce6c3bf"
+        },
+        "focused-test-RaWygf/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/0003.summary.json",
+          "sha256": "050b4dc9090e026be99ea552560479a23de8b8527c48e6e681b71a687e3eeca2"
+        },
+        "focused-test-RaWygf/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/0004.summary.json",
+          "sha256": "de7fe536ae6f50cb3240239e556f3f39439e7af4806d6da1e59bc991fa306034"
+        },
+        "focused-test-RaWygf/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/001.result.json",
+          "sha256": "fd8038d2f9ab2c281077e036e78288d733167676a7e7606cd3b705ee62f9f58b"
+        },
+        "focused-test-RaWygf/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/001.started.json",
+          "sha256": "a84f9ae4b2c3400da55d6a5c5807b661d93e80621895e1b55fd47a96b4a3a930"
+        },
+        "focused-test-RaWygf/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-RaWygf/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/001.stdout.log",
+          "sha256": "1c619af294403bddb4c63771f289f263cfd92338a02732b73f9e73072b1535fb"
+        },
+        "focused-test-RaWygf/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/focused-test-RaWygf/summary.json",
+          "sha256": "de7fe536ae6f50cb3240239e556f3f39439e7af4806d6da1e59bc991fa306034"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/output.log",
+          "sha256": "96538d84a1d72fcdc6aefc740d19df028a472a359bd38674f28a624da8b794df"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-udbVO6/summary.json",
+          "sha256": "86837d7160422cb213820551ee8379a5b2921b24c07c60cda35d212c436c07e1"
+        }
+      },
+      "actual_js": {
+        "tests": 13,
+        "passed": 11,
+        "failed": 2
+      },
+      "failure": "Both typed UnknownReference refusals were correct; two coordinates still counted the old DATA prefix. Independently counted the authored WITH literal prefix instead; no predicate/row/type/refusal weakening."
+    },
+    {
+      "run": "run-OF4LhW",
+      "source": "5b5a93e8cc7f65bb7a46931dd72f009958201160",
+      "tree": "389dd9342517c680881e57284cd627b5c3be04cf",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 69680,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_equality_test.mbt",
+          "src/query_program/graph_difference_rows_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-OF4LhW/output.log",
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-OF4LhW/summary.json",
+          "sha256": "ddf4341ce82ed0c9d1ab51cd5e28e7166f0164701d278a242f5e7ae9a87e6cf9"
+        }
+      },
+      "formatter": "Completed, no changes."
+    },
+    {
+      "run": "run-KFEoVW",
+      "source": "5b5a93e8cc7f65bb7a46931dd72f009958201160",
+      "tree": "389dd9342517c680881e57284cd627b5c3be04cf",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 69808,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_equality_test.mbt",
+          "src/query_program/graph_difference_rows_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "focused-test-Mi3qtA/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/0001.summary.json",
+          "sha256": "1d29df25f7a70ee86b81de5303b48da23ddbfcc6751fb3aed7cc7a8997260113"
+        },
+        "focused-test-Mi3qtA/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/0002.summary.json",
+          "sha256": "768fdd0fcbaa151162fc1ab77ccb022d469a0bd3d5ba89ca39862db7ca2e623f"
+        },
+        "focused-test-Mi3qtA/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/0003.summary.json",
+          "sha256": "0a1da9bb8edd7ef8b875cdef3601de8be383bcd804fa1d376f7134fa011bba60"
+        },
+        "focused-test-Mi3qtA/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/0004.summary.json",
+          "sha256": "15f62739382a99e818ccf0fc293c238d7c0467f32abe2dcc67ec31cba4b1d504"
+        },
+        "focused-test-Mi3qtA/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/001.result.json",
+          "sha256": "b9e5db2e2721e701928b73517d664a08e59a93616036057075b4ec65cbcb4c1b"
+        },
+        "focused-test-Mi3qtA/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/001.started.json",
+          "sha256": "cfaf93051fc241753b1229c638ae05a3d3cafb29ebc39193cabd8f4b6e69edc4"
+        },
+        "focused-test-Mi3qtA/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-Mi3qtA/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/001.stdout.log",
+          "sha256": "8a4e7a01c3f5026ef0c27a47b536bea8872fe1fab2d6d673da8ccd9aea407092"
+        },
+        "focused-test-Mi3qtA/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/focused-test-Mi3qtA/summary.json",
+          "sha256": "15f62739382a99e818ccf0fc293c238d7c0467f32abe2dcc67ec31cba4b1d504"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/output.log",
+          "sha256": "ac9f2d0dea17f7174a319abf31a9478180b4a4d55efe7d96cbe7652d7ce04545"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-comparison-retirement-evidence/run-KFEoVW/summary.json",
+          "sha256": "6991e72bf59a8efa15682af028fecf1fdf03acd3dc1b273bc2df3d89d80675a9"
+        }
+      },
+      "actual_js": {
+        "tests": 13,
+        "passed": 13,
+        "failed": 0
+      }
+    }
+  ]
+}

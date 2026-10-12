@@ -7,7 +7,7 @@ const parameterDeclarations = {low: object, high: object, nil: object};
 const parameters = {low: {score: 30}, high: {score: 5}, nil: null};
 const sourceRows = [{id: 1, amount: 10}, {id: 2, amount: 20},
   {id: 1, amount: 10}, {id: 3, amount: null}, {id: 0, amount: 99}];
-const data = 'DATA objects = SELECT amount AS score FROM records WHERE id > 0; ';
+const data = 'WITH objects AS (SELECT amount AS score FROM records WHERE id > 0) ';
 const projection = 'SELECT score AS bucket, CASE WHEN score IS NULL THEN @nil '
   + 'WHEN score = 10 THEN @low ELSE @high END AS payload, COUNT(*) AS n ';
 const from = 'FROM objects AS payload GROUP BY score ORDER BY ';
