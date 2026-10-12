@@ -56,10 +56,10 @@ Each argument position obtains its role from the existing operation contract:
 - `with: target` is a producer reference; graph lists retain their authored
   order and repeated references.
 - `start: "A"` in reach is a typed ID value, never a guessed producer name.
-  `start: {from: seeds, id: "id"}` instead names a Relation producer in the
+  `start: {from: seeds, id: id}` instead names a Relation producer in the
   selector's `from` field; its `id` field designates a column.
-- `field: "delta"` is a column designation, not a value or producer reference.
-- `nodes: {from: reached, id: "node_id"}` contains a producer reference and a
+- `field: delta` is a column designation, not a value or producer reference.
+- `nodes: {from: reached, id: node_id}` contains a producer reference and a
   column designation at their respective existing selector positions.
 
 Never infer these roles from string contents. Reference positions admit the
@@ -68,7 +68,11 @@ existing literal/expression contract. Column positions retain exact admitted
 column names, including names requiring quoting. SQL expressions continue to
 use their established identifier and alias rules. Do not rewrite a literal
 merely because it equals a WITH name. Detailed lexical admission and diagnostics
-must be tested when the productions are added.
+must be tested when the productions are added. The signature adapter also
+distinguishes authored MATCH output names from operand columns, and existing
+expression field/property paths from opaque literal objects. A qualified
+selector field resolves to its declared operand's lexical binding; it does not
+borrow another producer's column. Strings at reference positions are rejected.
 
 Within a Stage, reuse the input/step/port producer namespace and nearest lexical WITH
 visibility. Reject duplicate producer definitions, forward references and
@@ -203,7 +207,7 @@ The first operation changes the current Carrier to Relation.
 WITH reached AS (FROM g
   |> reach(start: "A", direction: "out", max_depth: 2)),
      neighborhood AS (FROM g
-  |> subgraph(nodes: {from: reached, id: "node_id"})),
+  |> subgraph(nodes: {from: reached, id: node_id})),
      rows AS (FROM neighborhood |> node_rows() |> SELECT id)
 FROM rows |> SELECT id |> RESULT nodes
 ```
@@ -217,7 +221,7 @@ is no direct Relation-to-subgraph coercion.
 ```text
 WITH changes AS (FROM base |> graph_diff(with: target)),
      restored AS (FROM base
-  |> apply_graph_delta(with: changes, field: "delta")),
+  |> apply_graph_delta(with: changes, field: delta)),
      rows AS (FROM restored |> node_rows() |> SELECT id)
 FROM rows |> SELECT id |> RESULT nodes
 ```

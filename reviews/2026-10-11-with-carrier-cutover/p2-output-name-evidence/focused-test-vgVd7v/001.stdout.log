@@ -1,0 +1,2 @@
+[actql/actql] test query_syntax/sga_output_name_test.mbt:2 ("P2 authored SGA output names require quoted reserved words") failed: src/query_syntax/sga_output_name_test.mbt:6:7-10:8@actql/actql FAILED: match_edges(bindings: {identity: SELECT})
+Total tests: 6, passed: 5, failed: 1.

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {sgaRoleFixtureFamilies, sgaRoleSourceOracle} from './sga-source-role-oracle.mjs';
 const previous = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/with-final-current-callers-original.json', import.meta.url)));
 // Frozen authored examples only, not a product compatibility parser.
 function wrapper(text) {
@@ -19,11 +20,14 @@ for (const [name, original] of Object.entries(previous.snapshots)) {
     const expected = structuredClone(original);
     function visit(value) {
       if (!value || typeof value !== 'object') return;
-      if (typeof value.text === 'string' && value.format !== 'json') value.text = wrapper(value.text);
+      if (typeof value.text === 'string' && value.format !== 'json') {
+        value.text = wrapper(value.text);
+        if (sgaRoleFixtureFamilies.has(name)) value.text = sgaRoleSourceOracle(value.text);
+      }
       for (const child of Object.values(value)) visit(child);
     }
     visit(expected);
-    if (name === 'graph-delta-json-source') expected.graphDeltaJsonSource = wrapper(expected.graphDeltaJsonSource);
+    if (name === 'graph-delta-json-source') expected.graphDeltaJsonSource = sgaRoleSourceOracle(wrapper(expected.graphDeltaJsonSource));
     const module = await import('./fixtures/' + name + '.mjs');
     const actual = name === 'nearest-public-input'
       ? await module.nearestPublicInputFixtures('spec/frontend/fixtures/nearest-keep')

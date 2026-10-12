@@ -152,10 +152,15 @@ sga_operation = "reach" | "traverse" | "shortest_path" | "components"
               | "node_rows" | "edge_rows"
               | "to_vectors" | "normalize_vectors" | "score_vectors" | "vectors"
               | "to_events" | "session" | "events" ;
+(* Closed argument keys accept Word or backtick names, including reserved keys.
+   Values are selected by the operation signature: ProducerRef, FieldRef,
+   OutputName, Expression, Enum/Literal, ClosedRecord/List or WholeParameter.
+   A literal subtree has no reference roles. Lists inherit their leaf role.
+   String values cannot replace a producer, field reference or output name. *)
 sga_argument  = identifier, ":", sga_value ;
-sga_value     = query_string | [ "-" ], numeric_token | "TRUE" | "FALSE"
+sga_value     = query_string | [ "+" | "-" ], numeric_token | "TRUE" | "FALSE"
               | "NULL" | parameter_token
-              | path (* only an operation-defined producer or field-reference position *)
+              | path (* only a signature-defined producer, field-reference or output-name position *)
               | "{", [ sga_argument, { ",", sga_argument } ], "}"
               | "[", [ sga_value, { ",", sga_value } ], "]" ;
 result_operator = "RESULT", identifier ;

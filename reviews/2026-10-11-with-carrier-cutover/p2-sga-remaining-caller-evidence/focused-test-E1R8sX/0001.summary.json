@@ -1,0 +1,24 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-E1R8sX",
+  "revision": "dd0e9a3249d333a451d3279e7f145f22eeedb404",
+  "source": {
+    "revision": "dd0e9a3249d333a451d3279e7f145f22eeedb404",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T00:17:42.243Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

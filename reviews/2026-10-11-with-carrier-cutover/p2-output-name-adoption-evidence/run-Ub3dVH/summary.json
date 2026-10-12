@@ -1,0 +1,157 @@
+{
+  "startedAt": "2026-10-12T00:55:56.621Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Adopted OutputName counterexamples and existing finite P2 common controls",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/sga_output_name_test.mbt",
+        "src/query_syntax/graph_match_binding_vocabulary_test.mbt",
+        "src/query_program/sga_output_name_lowering_test.mbt",
+        "src/query_syntax/sga_role_contract_test.mbt",
+        "src/query_syntax/producer_scope_wbtest.mbt",
+        "src/query_program/sga_role_lowering_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-12T00:55:56.675Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:56:14.324Z",
+      "endedAt": "2026-10-12T00:56:14.326Z"
+    },
+    {
+      "name": "Changed grammar canonical consumer only",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/canonical_json/identity_vectors.generated_test.mbt",
+        "--filter",
+        "contract spec/manifests/actql-grammar-0.1.json#"
+      ],
+      "startedAt": "2026-10-12T00:56:14.386Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:56:16.034Z",
+      "endedAt": "2026-10-12T00:56:16.036Z"
+    },
+    {
+      "name": "Existing finite independent normative controls and prepared public fixture preservation",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/sga-signature-role-identity.test.mjs",
+        "scripts/sga-query-call-contract.test.mjs",
+        "scripts/compilation-manifests.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs",
+        "scripts/frontend-profile.test.mjs",
+        "scripts/sga-output-name-source.test.mjs",
+        "scripts/sga-public-role-preservation.test.mjs",
+        "scripts/graph-match-binding-vocabulary.test.mjs"
+      ],
+      "startedAt": "2026-10-12T00:56:16.093Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:56:22.416Z",
+      "endedAt": "2026-10-12T00:56:22.418Z"
+    },
+    {
+      "name": "Read-only compilation-manifests",
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs"
+      ],
+      "startedAt": "2026-10-12T00:56:22.485Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:56:22.638Z",
+      "endedAt": "2026-10-12T00:56:22.640Z"
+    },
+    {
+      "name": "Read-only update-document-metadata",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs"
+      ],
+      "startedAt": "2026-10-12T00:56:22.709Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:56:24.067Z",
+      "endedAt": "2026-10-12T00:56:24.069Z"
+    },
+    {
+      "name": "Read-only check-actql-spec-family",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs"
+      ],
+      "startedAt": "2026-10-12T00:56:24.126Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:56:25.769Z",
+      "endedAt": "2026-10-12T00:56:25.773Z"
+    },
+    {
+      "name": "Read-only check-canonical-json",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs"
+      ],
+      "startedAt": "2026-10-12T00:56:25.876Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:56:30.018Z",
+      "endedAt": "2026-10-12T00:56:30.022Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "c6ce88cd-8fde-4a1c-9691-83654f25f46f",
+    "pid": 57155,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:55:56.671Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Ub3dVH"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:56:30.117Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

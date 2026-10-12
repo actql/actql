@@ -1,6 +1,6 @@
 ///|
 fn traversal_paths_source() -> String {
-  "WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))), seeds AS (FROM g |> node_rows() |> SELECT id AS element) FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'paths', max_output_rows: 10) |> SELECT start_id, end_id, hop_count, node_ids, edge_ids"
+  "WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))), seeds AS (FROM g |> node_rows() |> SELECT id AS element) FROM g |> traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'paths', max_output_rows: 10) |> SELECT start_id, end_id, hop_count, node_ids, edge_ids"
 }
 
 ///|
@@ -132,17 +132,24 @@ test "Graph traversal path emission remains explicit and static" {
 test "Graph traversal path preserves precise common static refusals" {
   for
     (before, after) in [
-      ("id: 'element'", "id: 'missing'"),
+      ("id: `element`", "id: `missing`"),
       ("max_hops: 1", "max_hops: 0"),
       ("path_mode: 'trail'", "path_mode: 'invented'"),
       ("max_output_rows: 10", "max_output_rows: 10, extra: true"),
     ] {
+    if before == "id: `element`" {
+      assert_true(
+        classified_graph_source(
+          traversal_paths_source().replace(old=before, new=after),
+        )
+        is Err(UnknownColumn),
+      )
+      continue
+    }
     expect_with_graph_static_refusal(
       traversal_paths_source().replace(old=before, new=after),
       expected=Some(
-        if before == "id: 'element'" {
-          @pipeline.GraphMatch(Structure(UnknownMatchField("missing")))
-        } else if before == "max_hops: 1" {
+        if before == "max_hops: 1" {
           @pipeline.GraphMatch(Structure(InvalidCount))
         } else if before == "path_mode: 'trail'" {
           @pipeline.GraphMatch(Structure(InvalidBody))

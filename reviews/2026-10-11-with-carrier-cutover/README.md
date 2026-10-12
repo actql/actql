@@ -1,6 +1,108 @@
 # WITH Carrier cutover: current implementation and evidence
 
-## Current finite source
+## P1 integrated; independent P2-A continues
+
+P1 #1506 is integrated in main `f763c7c30054cc0fbcb46bb822d29012923e87d2`.
+Root's subsequent ModelTask context registration is separate. The P1 branch is
+stable; private P2 changes are not part of that integration.
+
+[P2 caller and Delta operand evidence](p2-sga-caller-execution.json) records the
+ordinary adoption of main `ccded6fa15c799bd574ac71c6daf238de8e2c96b` and exact
+JS11/11 at `757916505098c8954b8dcb37dc19d7a0eeae4bbe`. Current MATCH, traversal
+and JSON Delta Core callers use declared FieldRef/OutputName roles. All original
+complete JSON Program bodies remain byte-identical. A case/qualified Delta
+column counterexample failed before the minimal operand-resolution repair and
+then passed; another operand or missing column still rejects `UnknownColumn`.
+Original migration failures and two incorrectly authored test compilation
+failures are preserved, not relabeled as product failures or successes.
+
+This is source lowering and actual common checking, not public Host/Named Result
+execution. At that earlier fixed source, remaining SGA callers and normative
+coherence were unfinished; the finite closures are recorded below. The rest of
+P2 and Local/HTTPS acceptance remain incomplete. No Heavy, producer or hosted CI ran.
+
+## P2-A remaining caller coherence
+
+[Remaining caller evidence](p2-sga-remaining-caller-execution.json) records
+JS38/38 at `036733ffa02dac4ae7cda6279d0abc83a3dfadf1`, public fixture
+Node29/29 at `ea3748366`, and syntax/public Source parser JS41/41 at `dd0e9a324`.
+These are distinct fixed sources. Complete independent JSON Program bodies and
+all eight public fixture families' values, ordered contracts, parameters,
+resource ceilings, refusal obligations and acquisition counts are unchanged.
+Literal/ID/enum strings remain data; only declared field/output roles use names.
+The original JS32/37 migration failure is retained. Missing columns now require
+exact operand `UnknownColumn`, and numeric Delta fields require the existing
+identifier syntax refusal. Shared common type/domain checks remain strict.
+
+Actual Owner/group/ownlock absence was observed for all six attempts. No Host,
+Provider, producer or Heavy ran. The source parser evidence does not establish
+public Local/HTTPS results. The subsequent section records normative closure;
+remaining adapter obligations and the full P2/public matrix remain unfinished.
+
+## P2-A lexical operand scope and normative identity
+
+[Exact scope and normative evidence](p2-sga-scope-normative-execution.json)
+retains the nested WITH qualifier counterexample at `1d7bf7c53`: producer
+`rows` became `inner_rows`, but `ROWS.element` did not. The minimal parser
+adapter resolves only declared operand selector qualifiers, preserving ordinary
+property receivers and rejecting a different operand. Fixed `96eb57880`
+passed JS8/8, including unchanged independent complete Program/common-check
+controls. The full predecessor grammar and Values preimages are immutable.
+
+Authored grammar/spec/profile/design now distinguish producer, field, output,
+expression and literal roles. Existing generators wrote the compiler grammar
+pins and registered metadata; a separate independent oracle rehashed complete
+Values preimages from the two authored query inputs. The actual grammar-bound
+Values consumer passed JS2/2, independent Node83/83 passed, and two read-only
+freshness commands passed at `94204b746`. Original failed selections remain:
+Node86/89 is not relabeled as Node89 success.
+
+That earlier source was blocked by the then-unowned
+`spec/contracts/actql-run-publication.json#/schemas/compiled_plan`; family and
+canonical generation stopped. The original receipts remain failed. Root fixed
+registration in #1575 without changing schema/generator bodies or versions.
+
+[Main-registration adoption evidence](p2-main-registration-execution.json)
+records normal adoption of main `1133df9ae78831b95bd2163eb43481be30374fe4`
+through merge `ac631909e`, preserving submitted `b99590438`. The existing
+manifest, independent oracle, metadata, family and canonical generators
+completed. Generated family imports and the grammar canonical consumer were
+updated from the combined authored inputs; historical preimages are unchanged.
+Clean verification source `c906508d4354088ef0aaff27eb57149df21a0030`
+passed JS16/16 plus the changed canonical JS1/1, Node89/89 and four read-only
+freshness commands. These results are separate from prior Node86/89 and
+Node83/83 evidence. All actual Owners/groups/ownlocks were absent after exit. No public Local/HTTPS, new package producer, Provider, Heavy,
+Native/Wasm execution or hosted CI ran. Complete name-admission/VecA/TEA adapter
+coverage and the full P2 public matrix remain separate unfinished boundaries.
+All eight exact guards ended and actual Owner/group/ownlock absence was checked.
+
+## P2-A OutputName admission in the original PR
+
+The private repair was normally adopted into #1572, preserving submitted
+`b99590438`, updated `1d4077105` and the genuine `943cd338d` fix ancestry.
+Only signature-defined SGA OutputName uses the existing selected reserved-word
+set. Bare SELECT/NULL reject with their exact syntax reason and authored source
+position; backtick-quoted SELECT/NULL remain identifiers. Closed schema keys,
+literal data and ProducerRef/FieldRef are not globally tightened. Ordinary
+omitted-alias behavior uses the same unchanged keyword set.
+
+[Same-source adoption evidence](p2-output-name-adoption-execution.json)
+records clean `6417df544f5ad68725c1fe5fb2bb50fd6ad84dae`: JS24/24 (the
+original seven OutputName controls, one full prepared public Source/common-check
+control and sixteen existing P2 controls), the changed canonical JS1/1,
+Node104/104 and four read-only freshness checks. Existing generators completed
+without further changes. The previous private JS7/7 and JS8/8 remain distinct
+source evidence; the pre-fix JS5/6 failure is preserved. All actual Owners,
+groups and ownlocks were absent after completion.
+
+Two normal and two refusal public cases are prepared in the existing cohort;
+the original eight public fixture modules remain byte-identical. Named Result
+values/ordered schema, pre-admission I/O counters, resend and cleanup through
+Local/HTTPS are still unexecuted. No new producer, Host, Provider, Heavy,
+Native/Wasm execution or CI was added.
+
+## Earlier finite source
+
 
 The current private #1506 source normally adopts main
 `2e8fa9308f13de328a6e1eae43b9c16090f4c982`, including Root's #1522
