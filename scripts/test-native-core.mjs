@@ -10,6 +10,7 @@ import {nativeCompletedRestorationBundle} from './native-completed-restoration-f
 import {classifyMoon} from './local-checks-policy.mjs';
 import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.mjs';
 import {nativePrivateHostFixture} from './native-private-host-fixture.mjs';
+import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -30,6 +31,10 @@ const privateHost = full || args.some(arg => arg.includes('platform_native/files
   ? nativePrivateHostFixture(scratch.path) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
   ? nativeClientCheckpointFixture(root) : {};
+// Only the final Native test child receives the injection environment. The
+// existing checkpoint producers and other preparation commands do not.
+const readerCustody = full || args.some(arg => arg.includes('platform_native/client_host'))
+  ? nativeRuntimeReaderCustodyFixture(root, scratch.path) : {};
 // The WAL inspection fixture must use exec, not SQLite in a forked child.
 // macOS system SQLite calls platform services that are unsafe before exec.
 let walFixture;
@@ -51,6 +56,7 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,
+  ...readerCustody,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
   ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(scratch.path, 'standard'),
   ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(scratch.path, 'bundles'),
