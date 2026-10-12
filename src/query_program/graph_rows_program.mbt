@@ -123,6 +123,8 @@ fn lower_script_graph_rows(
   retained? : Array[RetainedResult]? = None,
   positional_set_output? : Bool = false,
   set_head? : Bool = false,
+  continuation? : (Context, ScriptSources)? = None,
+  allow_nonrelation? : Bool = false,
 ) -> Input raise Abort {
   check_graph_range_alias(query)
   if @query.query_binding_count(query) > 0 ||
@@ -135,16 +137,18 @@ fn lower_script_graph_rows(
   }
   let mut current = graph.producer
   let mut row_input : Input? = None
+  let mut consumed = 0
   for index in 0..<@query.operation_count(query) {
+    if row_input is Some(_) {
+      // Dispatch the untouched tail using the already established Relation.
+      break
+    }
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
+    consumed = index + 1
     // Mean cannot inherit this Graph input before a Relation projection.
     if call.operation == "mean_graphs" {
-      raise Abort(InvalidQuery)
-    }
-    if row_input is Some(_) {
-      // The preceding operation already established an ordinary Relation.
       raise Abort(InvalidQuery)
     }
     if call.operation == "union_graphs" ||
@@ -246,7 +250,37 @@ fn lower_script_graph_rows(
     }
   }
   guard row_input is Some(input) else { raise Abort(UnsupportedGraph) }
-  let relation_query = @query.after_graph_calls(query)
+  let relation_query = @query.after_graph_row_calls(query, consumed).unwrap()
+  if continuation is Some((context, sources)) {
+    let mut replaced = false
+    let visible = known.map(peer => {
+      if input_relation_matches(@query.relation(relation_query), peer) {
+        replaced = true
+        { ..input, relation: peer.relation, }
+      } else {
+        peer
+      }
+    })
+    if !replaced {
+      visible.push({ ..input, relation: @query.relation(relation_query), })
+    }
+    return lower_script_relation(
+      construction,
+      relation_query,
+      visible,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      output,
+      retained~,
+      graphs~,
+      positional_set_output~,
+      allow_nonrelation~,
+      set_head~,
+    )
+  }
   let fields = query_columns(relation_query, input)
   let (body, output_fields) = compile_steps(
     construction,

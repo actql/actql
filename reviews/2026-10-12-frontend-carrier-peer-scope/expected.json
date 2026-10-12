@@ -1,0 +1,1 @@
+{"rows":[{"neighbor":{"query_key":{"request_id":"q1"},"candidate_key":{"item_id":"a"},"score":1,"rank":1}}],"field_order":["neighbor"],"runtime_verified":false}
