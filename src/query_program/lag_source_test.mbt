@@ -40,7 +40,16 @@ test "P2 Lag text preserves scoped fields output order and optional offset" {
     let actual = with_carrier_program(lag_source_text(
       "lag(partition_by: [], order_by: [{field: r.AMOUNT, dir: 'desc', nulls: 'last'}], field: r.amount, output: previous" + suffix + ")",
     ), { ..pair_context(), inputs: [], })
-    let actual = match actual { Ok(p) => p; Err(issue) => raise issue }
+    let actual = match actual {
+      Ok(p) => p
+      Err(BindingPreparation(LocalProgram(Pipeline(stage, issue)))) => fail("Lag pipeline stage \{stage}: " + @debug.to_string(issue.kind))
+      Err(BindingPreparation(LocalProgram(Order(stage, PipelineOrder(issue))))) => fail("Lag order stage \{stage}: " + @debug.to_string(issue.kind))
+      Err(UnknownColumn) => fail("Lag column resolution")
+      Err(UnsupportedGraph) => fail("Lag Carrier routing")
+      Err(UnsupportedProjection) => fail("Lag projection routing")
+      Err(InvalidQuery) => fail("Lag signature lowering")
+      Err(_) => fail("Lag unexpected preparation boundary")
+    }
     let control = lag_source_control(
       "{\"partition_by\":[],\"order_by\":[{\"field\":\"amount\",\"dir\":\"desc\",\"nulls\":\"last\"}],\"field\":\"amount\",\"output\":\"previous\"" + expected + "}",
     )
@@ -55,7 +64,16 @@ test "P2 Lag text preserves shorthand order duplicates and whole offset Paramete
   let actual = with_carrier_program(lag_source_text(
     "lag(partition_by: [r.ID, id], order_by: [{r.amount: 'desc'}], field: amount, output: previous, offset: @p)",
   ), { ..pair_context(), inputs: [], parameter_declarations: Some(number_parameter_declarations()), })
-  let actual = match actual { Ok(p) => p; Err(issue) => raise issue }
+  let actual = match actual {
+      Ok(p) => p
+      Err(BindingPreparation(LocalProgram(Pipeline(stage, issue)))) => fail("Lag pipeline stage \{stage}: " + @debug.to_string(issue.kind))
+      Err(BindingPreparation(LocalProgram(Order(stage, PipelineOrder(issue))))) => fail("Lag order stage \{stage}: " + @debug.to_string(issue.kind))
+      Err(UnknownColumn) => fail("Lag column resolution")
+      Err(UnsupportedGraph) => fail("Lag Carrier routing")
+      Err(UnsupportedProjection) => fail("Lag projection routing")
+      Err(InvalidQuery) => fail("Lag signature lowering")
+      Err(_) => fail("Lag unexpected preparation boundary")
+    }
   let control = lag_source_control(
     "{\"partition_by\":[\"id\",\"id\"],\"order_by\":[{\"amount\":\"desc\"}],\"field\":\"amount\",\"output\":\"previous\",\"offset\":{\"$param\":\"p\"}}",
     parameters=true,
