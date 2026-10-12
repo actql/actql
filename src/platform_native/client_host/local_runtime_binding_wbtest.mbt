@@ -61,6 +61,7 @@ test "Native runtime package refuses missing observations and closes an empty pr
     roots: [],
     witnesses: [],
     reader: None,
+    reader_open_failure: None,
     sqlite: "",
     crypto: "",
     ready: false,
@@ -91,4 +92,68 @@ test "Native runtime context rejects noncanonical paths before filesystem open" 
       is Err(Refused(InvalidInput)),
     )
   }
+}
+
+///|
+// The diagnostic adapter supplies private roots and syscall injection. These
+// are real Owner calls with injected errors, not observed kernel EIO faults.
+fn runtime_binding_constructor_fixture(name : String) -> String {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT").unwrap()
+  let path = parent + "/" + name
+  let root = @filesystem.open_root(path).unwrap()
+  let writer = root.create_writer("manifest.stage", 2L).unwrap()
+  writer.append(b"{}").unwrap()
+  writer.seal("local-runtime.json").unwrap() |> ignore
+  root.close().unwrap()
+  path
+}
+
+///|
+test "Native runtime constructor retains rejected Reader cleanup and the original issue" {
+  let path = runtime_binding_constructor_fixture("runtime-constructor-pending")
+  let opened = open_native_local_packaged_runtime(
+    path,
+    "a".repeat(40),
+    "darwin-arm64",
+    "b".repeat(64),
+  )
+  guard opened is Err(Pending(runtime, Physical(Read(original)))) else {
+    fail("rejected Reader cleanup was discarded or acknowledged")
+  }
+  assert_true(original.has_prefix("inspect committed file"))
+  let failure = runtime.reader_open_failure.unwrap()
+  assert_true(failure.issue() is Read(message) && message == original)
+  assert_true(runtime.reader is None)
+  assert_eq(runtime.roots.length(), 1)
+  assert_true(runtime.check_current() is Err(Changed))
+  assert_true(runtime.assets() is Err(Changed))
+  assert_true(runtime.close() is Err(CleanupPending))
+  assert_true(physical_equal(runtime.reader_open_failure.unwrap(), failure))
+  assert_false(runtime.closed)
+  // The injected close retired the descriptor before reporting EIO. Reusing
+  // a descriptor for a new Writer must not let repeated cleanup close it.
+  let writer = runtime.roots[0].create_writer("reuse.stage", 3L).unwrap()
+  assert_true(runtime.close() is Err(CleanupPending))
+  assert_true(physical_equal(runtime.reader_open_failure.unwrap(), failure))
+  writer.append(b"abc").unwrap()
+  writer.seal("reuse.object").unwrap() |> ignore
+  writer.cancel().unwrap()
+  assert_true(failure.issue() is Read(message) && message == original)
+  assert_eq(runtime.roots.length(), 1)
+  assert_false(runtime.closed)
+}
+
+///|
+test "Native runtime constructor acknowledges successful rejected Reader cleanup" {
+  let path = runtime_binding_constructor_fixture("runtime-constructor-acked")
+  let opened = open_native_local_packaged_runtime(
+    path,
+    "a".repeat(40),
+    "darwin-arm64",
+    "b".repeat(64),
+  )
+  guard opened is Err(Refused(Physical(Read(original)))) else {
+    fail("successful cleanup did not preserve the original constructor refusal")
+  }
+  assert_true(original.has_prefix("inspect committed file"))
 }
