@@ -10287,9 +10287,52 @@
           ],
           "path": "src/query_integration/graph_shortest_wbtest.mbt",
           "fixture": "Shortest validates unvisited weights and preserves hop-capped cost selection and atomic overrange"
+        },
+        {
+          "role": "shortest_direct_exact_work_workspace_private_cancel",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_shortest_wbtest.mbt",
+          "fixture": "Shortest direct entrypoint retains exact work workspace and private cancellation"
         }
       ],
-      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
+      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Independent exact/one-short work and workspace controls and private stop/cleanup fixtures are registered for each named path. Historical installed Local/HTTPS positive-work cancellation runs at source 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a support the unchanged operation barrier; they are not new-main package acceptance. Public cancellation is registered only for the selected retained-input task. A direct/fused Host cancellation case is not evidenced and its path lifecycle assurance remains absent. The direct resource controls remain executable boundary records, but full direct resource assurance also awaits that lifecycle case.",
+      "environment_tests": [
+        {
+          "role": "shortest_public_in_flight_cancel_cleanup",
+          "suite": "node:graph_public_host",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/graph-public-host.test.mjs",
+          "case": "assertOperationCancellation",
+          "fixture": "Graph Shortest preserves selected paths through Store reload and public local"
+        }
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "shortest_exact_work_workspace_selection_cancel",
+          "one_short_limit": "shortest_exact_work_workspace_selection_cancel",
+          "in_flight_cancel": "shortest_public_in_flight_cancel_cleanup",
+          "cleanup": "shortest_exact_work_workspace_selection_cancel"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "shortest_exact_work_workspace_selection_cancel",
+            "one_short_limit": "shortest_exact_work_workspace_selection_cancel"
+          },
+          "workspace": {
+            "exact_limit": "shortest_exact_work_workspace_selection_cancel",
+            "one_short_limit": "shortest_exact_work_workspace_selection_cancel"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -10508,9 +10551,52 @@
           ],
           "path": "src/query_integration/graph_reach_wbtest.mbt",
           "fixture": "Reach independently counts exact work workspace and every pending handoff cancellation"
+        },
+        {
+          "role": "reach_direct_exact_work_workspace_private_cancel",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_reach_wbtest.mbt",
+          "fixture": "Reach direct entrypoint retains exact work workspace and private cancellation"
         }
       ],
-      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
+      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Independent exact/one-short work and workspace controls and private stop/cleanup fixtures are registered for each named path. Historical installed Local/HTTPS positive-work cancellation runs at source 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a support the unchanged operation barrier; they are not new-main package acceptance. Public cancellation is registered only for the selected retained-input task. A direct/fused Host cancellation case is not evidenced and its path lifecycle assurance remains absent. The direct resource controls remain executable boundary records, but full direct resource assurance also awaits that lifecycle case.",
+      "environment_tests": [
+        {
+          "role": "reach_public_in_flight_cancel_cleanup",
+          "suite": "node:graph_public_host",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/graph-public-host.test.mjs",
+          "case": "assertOperationCancellation",
+          "fixture": "Graph Reach preserves typed selectors and depth through Store reload and public local"
+        }
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "reach_exact_work_workspace_handoff_cancel",
+          "one_short_limit": "reach_exact_work_workspace_handoff_cancel",
+          "in_flight_cancel": "reach_public_in_flight_cancel_cleanup",
+          "cleanup": "reach_exact_work_workspace_handoff_cancel"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "reach_exact_work_workspace_handoff_cancel",
+            "one_short_limit": "reach_exact_work_workspace_handoff_cancel"
+          },
+          "workspace": {
+            "exact_limit": "reach_exact_work_workspace_handoff_cancel",
+            "one_short_limit": "reach_exact_work_workspace_handoff_cancel"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -10950,7 +11036,39 @@
           "fixture": "Graph graft provider observes cancellation before output handoff and preserves input custody"
         }
       ],
-      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
+      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Independent exact/one-short work and workspace controls and private stop/cleanup fixtures are registered for each named path. Historical installed Local/HTTPS positive-work cancellation runs at source 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a support the unchanged operation barrier; they are not new-main package acceptance.",
+      "environment_tests": [
+        {
+          "role": "graft_public_in_flight_cancel_cleanup",
+          "suite": "node:graph_public_host",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/graph-public-host.test.mjs",
+          "case": "assertOperationCancellation",
+          "fixture": "Graph graft preserves complete records through Store reload and public local"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graft_exact_work_workspace_one_short",
+          "one_short_limit": "graft_exact_work_workspace_one_short",
+          "in_flight_cancel": "graft_public_in_flight_cancel_cleanup",
+          "cleanup": "graft_cancel_input_custody"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "graft_exact_work_workspace_one_short",
+            "one_short_limit": "graft_exact_work_workspace_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graft_exact_work_workspace_one_short",
+            "one_short_limit": "graft_exact_work_workspace_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -11581,7 +11699,39 @@
           "fixture": "Mean managed empty fold has independent work workspace and exact-operation boundaries"
         }
       ],
-      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
+      "notes": "Current keyed bounded Owner resource boundaries only; operation classification remains partial. Independent exact/one-short work and workspace controls and private stop/cleanup fixtures are registered for each named path. Historical installed Local/HTTPS positive-work cancellation runs at source 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a support the unchanged operation barrier; they are not new-main package acceptance.",
+      "environment_tests": [
+        {
+          "role": "mean_public_in_flight_cancel_cleanup",
+          "suite": "node:graph_public_host",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/graph-public-host.test.mjs",
+          "case": "assertOperationCancellation",
+          "fixture": "Graph Mean preserves explicit samples through Store reload and public local (asymmetric)"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "mean_exact_work_workspace_operation_boundaries",
+          "one_short_limit": "mean_exact_work_workspace_operation_boundaries",
+          "in_flight_cancel": "mean_public_in_flight_cancel_cleanup",
+          "cleanup": "mean_positive_work_cancel_handoff"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "mean_exact_work_workspace_operation_boundaries",
+            "one_short_limit": "mean_exact_work_workspace_operation_boundaries"
+          },
+          "workspace": {
+            "exact_limit": "mean_exact_work_workspace_operation_boundaries",
+            "one_short_limit": "mean_exact_work_workspace_operation_boundaries"
+          }
+        }
+      }
     },
     {
       "inventory": "families",

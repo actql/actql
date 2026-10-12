@@ -326,6 +326,11 @@ export function interactiveRunControlSchemas() {
       'resume', 'cancel', 'resolve', 'lookup_control_operation')),
     uniqueItems: true}, capabilities: ref('run_control_capabilities'),
   });
+  // Original Run binding is a read-only envelope, not a new identity domain.
+  schemas.run_plan_view = envelope('run_plan_view', {
+    run_ref: {$ref: 'actql-client-host.json#/schemas/run_ref'},
+    plan_view: ref('plan_view'),
+  });
   return schemas;
 }
 

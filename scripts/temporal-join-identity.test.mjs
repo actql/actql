@@ -9,9 +9,11 @@ test('temporal query surface changes grammar-bound Runs without changing machine
   assert.equal(before.source_revision,'cc456bfad7e8e6aec15b92ea32a3b460360f0db4');
   assert.equal(before.run_preimages.run.run_definition_cid,'sha256:24f11dc7e2b779a04eba93a7318e112eb5716b4de15e2f5074e216a82b9f074b');
   assert.deepEqual(currentValuesPreimages(before.grammar,before.source_revision),before);
-  const expected=temporalJoinIdentityOracle();
+  const expected=temporalJoinIdentityOracle({
+    grammarPath:'reviews/2026-10-12-frontend-temporal-join-calls/preimages/submitted-query-grammar.ebnf',
+    rulesPath:'reviews/2026-10-12-frontend-temporal-join-calls/preimages/submitted-query-rules.md',
+  });
   assert.deepEqual(expected,read('scripts/fixtures/submitted-temporal-join-values-identities.json'));
-  assert.deepEqual(expected.grammar,read('spec/manifests/actql-grammar-0.1.json'));
   assert.deepEqual(expected.values_dependencies,before.values_dependencies);
   assert.deepEqual(expected.program_identity,before.program_identity);
   assert.deepEqual(expected.run_preimages.executable.resolved_limits,before.run_preimages.executable.resolved_limits);

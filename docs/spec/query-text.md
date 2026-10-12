@@ -1592,6 +1592,20 @@ it is named. Demand uses the original checked producer/import/projection edges;
 it does not waive input-required order, type, Catalog or profile obligations.
 Normal Host preparation and Result publication remain strict.
 
+The NONE-input `time_series(start: value, end: value, step: value)` primary
+produces a Relation through the existing common TEA generator. Use it in
+`WITH grid AS (time_series(...)) SELECT time FROM grid ORDER BY time`, or as
+an AQL-text primary followed by ordinary Pipe operators. SQL retains its
+WITH/SELECT query-head selection. The closed arguments are exactly start,
+end and step, using the endpoint and positive-step forms of the common
+`time_series` contract. A generator cannot consume a current Pipe input.
+The common checker determines the timestamp field, key, ascending generation
+order, range/arithmetic validity and resolved bounds; the frontend does not
+sample rows or substitute Parameter defaults. Unused bodies remain statically
+checked and only demanded generators remain in execution. Relation primaries
+are not Graph values or implicit Source reads. Installed public execution
+and the optional Calendar profile remain separate acceptance obligations.
+
 WITH can retain Relation, Graph, Vectors or Events according to the admitted
 common contract. The installed constructor and Graph consumer connections
 are described below. Typed Pipe calls also connect `to_vectors(id: field,

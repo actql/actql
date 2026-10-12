@@ -41,6 +41,7 @@ fn sga_operation(name : String) -> Bool {
     | "lag"
     | "asof_join"
     | "interval_join"
+    | "time_series"
     | "dedupe_events"
     | "session"
     | "events"

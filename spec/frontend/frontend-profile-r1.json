@@ -865,7 +865,8 @@
         "|> lag(partition_by: [fields], order_by: [OrderKeys], field: field, output: name, offset: value?)",
         "|> events()",
         "|> asof_join(with: producer, kind: string, by: [pairs], left_id: field?, left_time: field, right_time: field, direction: string, tolerance: value, select: {outputs}, right_tie_break: [fields]?)",
-        "|> interval_join(with: producer, kind: string, mode: string, on: [pairs], left: {temporal fields}, right: {temporal fields}, select: {outputs}?, max_output_rows: value?)"
+        "|> interval_join(with: producer, kind: string, mode: string, on: [pairs], left: {temporal fields}, right: {temporal fields}, select: {outputs}?, max_output_rows: value?)",
+        "WITH grid AS (time_series(start: value, end: value, step: value)) query"
       ],
       "canonical_lowering": "common checked producer topology, followed by demanded emission",
       "preconditions": [
@@ -874,7 +875,8 @@
         "table/set operands and authored row aliases require Relation",
         "typed field roles resolve through ordinary scope; Carrier/schema remain common-checker evidence",
         "Vectors/Events require an explicit common bridge before Relation operations",
-        "temporal correlations preserve operand-specific FieldRefs, lexical peers, repeated pairs and authored guards; the common checker owns Carrier and temporal obligations"
+        "temporal correlations preserve operand-specific FieldRefs, lexical peers, repeated pairs and authored guards; the common checker owns Carrier and temporal obligations",
+        "NONE-input Relation generator schema, range and bounds remain common-checker evidence"
       ],
       "spec_section": "7.8",
       "execution_evidence_ids": [],

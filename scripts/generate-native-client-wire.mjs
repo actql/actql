@@ -131,6 +131,9 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       else if (schema.pattern === '^ACTQL_E_[A-Z0-9_]+$') lines.push(
         'if text.length() < 9 || !text.has_prefix("ACTQL_E_") { return false }',
         'for character in text[8:] { if !((character >= \'A\' && character <= \'Z\') || (character >= \'0\' && character <= \'9\') || character == \'_\') { return false } }');
+      else if (schema.pattern === '^(0|[1-9][0-9]*)$(?![\\s\\S])') lines.push(
+        'if text.is_empty() || (text.length() > 1 && text[0] == \'0\') { return false }',
+        'for character in text { if character < \'0\' || character > \'9\' { return false } }');
       else if (schema.pattern !== undefined) throw new Error(`UnsupportedNativeWirePattern:${schema.pattern}`);
     } else if (schema.type === 'boolean') {
       lines.push('if !(value is True || value is False) { return false }');
@@ -172,7 +175,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     'lookup_found','lookup_not_found','lookup_unknown','held',
     'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt']) emit(schemas[name], `wire_${name}_shape`);
   const observationStart = functions.length;
-  for (const name of ['owner_ref', 'owner_cursor', 'owner_observations']) {
+  for (const name of ['owner_ref', 'owner_cursor', 'owner_observations', 'run_plan_view']) {
     emit(schemas[name], `wire_${name}_shape`);
   }
   const observationFunctions = functions.slice(observationStart);

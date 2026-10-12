@@ -9,6 +9,13 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 const activeOperations = new WeakMap();
 
+// Validate the Node-to-Int boundary before entering the existing codec. These
+// bounds are not physical funding or permission to acquire additional data.
+const codecInt = (value, positive = false) => Number.isSafeInteger(value) &&
+  value >= (positive ? 1 : 0) && value <= 2147483647;
+const codecLimits = (value, keys) => value !== null && typeof value === 'object' &&
+  Object.keys(value).sort().join(',') === keys && Object.values(value).every(item => codecInt(item));
+
 // Publication metadata is issued by the same bounded common owner only after
 // every original Model component has completed. This does not advance calls.
 export function startCompleteInferObservation({moon, operations, ledger, maxSlots, maxWireBytes, maxWork,
@@ -449,6 +456,87 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return checked(moon.clientProgramParkInferOriginalModelResources(
         active, originalScope));
     },
+    parkOriginalResourcesForStateWrite() {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramParkInferOriginalModelResourcesForStateWrite !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      return checked(moon.clientProgramParkInferOriginalModelResourcesForStateWrite(active, originalScope));
+    },
+    prepareOriginalCurrentStateWriter(park, limits) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramPrepareInferOriginalCurrentStateWriter !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      if (limits === null || typeof limits !== 'object' ||
+          Object.keys(limits).sort().join(',') !== 'maxDepth,maxNodes,maxWireBytes' ||
+          Object.values(limits).some(value => !Number.isSafeInteger(value) || value < 0 || value > 2147483647) ||
+          limits.maxNodes === 0) throw new TypeError('InvalidInferOriginalCurrentWriterLimits');
+      return checked(moon.clientProgramPrepareInferOriginalCurrentStateWriter(active, originalScope, park,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    advanceOriginalCurrentStateWriter(park, writer, quantum) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramAdvanceInferOriginalCurrentStateWriter !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647) {
+        throw new TypeError('InvalidInferOriginalCurrentWriterQuantum');
+      }
+      const poll = moon.clientProgramInferNodeReadStatePoll(
+        moon.clientProgramAdvanceInferOriginalCurrentStateWriter(active, originalScope, park, writer, quantum));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+    },
+    finishOriginalCurrentStateWriter(park, writer) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramFinishInferOriginalCurrentStateWriter !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      return checked(moon.clientProgramFinishInferOriginalCurrentStateWriter(active, originalScope, park, writer));
+    },
+    cancelOriginalCurrentStateWriter(writer) {
+      // Codec retirement remains legal during close; it neither frees the
+      // Resource park nor substitutes for the original Model/read cleanup.
+      moon.clientProgramCancelInferOriginalCurrentStateWriter(writer);
+    },
+    startOriginalCurrentStateDecode(park, wire, limits) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramStartInferOriginalCurrentStateDecode !== 'function') {
+        throw new Error('InferOriginalCurrentDecodeUnavailable');
+      }
+      if (limits === null || typeof limits !== 'object' ||
+          Object.keys(limits).sort().join(',') !== 'maxWork,parse,tree' ||
+          !codecLimits(limits.parse, 'max_depth,max_input_bytes,max_nodes') ||
+          !codecLimits(limits.tree, 'max_depth,max_nodes,max_string_bytes,max_total_string_bytes') ||
+          !codecInt(limits.maxWork, true) || typeof wire !== 'string') {
+        throw new TypeError('InvalidInferOriginalCurrentDecodeLimits');
+      }
+      const {parse, tree, maxWork} = limits;
+      return checked(moon.clientProgramStartInferOriginalCurrentStateDecode(active, originalScope,
+        park, wire, parse, tree, maxWork));
+    },
+    advanceOriginalCurrentStateDecode(park, decoder, quantum) {
+      if (closing || reclaimed || originalScope === undefined) throw new Error('InferOriginalCurrentDecodeUnavailable');
+      if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentDecodeQuantum');
+      const poll = moon.clientProgramInferOriginalCurrentStateDecodePoll(
+        moon.clientProgramAdvanceInferOriginalCurrentStateDecode(active, originalScope, park, decoder, quantum));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2, document: poll._3});
+    },
+    cancelOriginalCurrentStateDecode: decoder => moon.clientProgramCancelInferOriginalCurrentStateDecode(decoder),
+    retireOriginalCurrentStateDocument: document => moon.clientProgramRetireInferOriginalCurrentStateDocument(document),
+    startOriginalCurrentStateComparison(park, document, maxWork) {
+      if (closing || reclaimed || originalScope === undefined) throw new Error('InferOriginalCurrentDecodeUnavailable');
+      if (!codecInt(maxWork, true)) throw new TypeError('InvalidInferOriginalCurrentComparisonWork');
+      return checked(moon.clientProgramStartInferOriginalCurrentStateComparison(active, originalScope, park, document, maxWork));
+    },
+    advanceOriginalCurrentStateComparison(park, comparison, quantum) {
+      if (closing || reclaimed || originalScope === undefined) throw new Error('InferOriginalCurrentDecodeUnavailable');
+      if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentComparisonQuantum');
+      const poll = moon.clientProgramInferOriginalCurrentStateComparisonPoll(checked(
+        moon.clientProgramAdvanceInferOriginalCurrentStateComparison(active, originalScope, park, comparison, quantum)));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+    },
+    cancelOriginalCurrentStateComparison: comparison => moon.clientProgramCancelInferOriginalCurrentStateComparison(comparison),
     originalResourceParkCurrent(park) {
       // A pending close is not a physical stop or invalidation. Preserve the
       // original observation while Core still owns this same parked scope.

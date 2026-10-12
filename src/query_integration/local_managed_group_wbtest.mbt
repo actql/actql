@@ -115,6 +115,7 @@ fn start_local_managed_test_task_operations(
           @resources.ClosedReservation => "closed reservation"
           @resources.ClosedHolding => "closed holding"
           @resources.InvalidCharge => "invalid charge"
+          @resources.ResourceParked => "resource parked"
         }),
       )
     Err(Execution(ActivationNotAuthorized)) =>
