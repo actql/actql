@@ -213,16 +213,44 @@ fn settle_holder_caller_reservation(operation : @site.SiteOperation?) -> Unit {
 ///|
 /// Called only after run_holder returned, so its installed/scope/output aliases
 /// and the entire receiver frame have ended. Matching consumes the private
-/// handoff; the next command/terminal path cannot run before this Owner ACK.
+/// handoff. Normal completion waits for settlement; a failed diagnostic keeps
+/// that responsibility through the existing terminal consumer instead.
 /// This is a lifetime boundary, never a promise of GC or RSS reclamation.
 #owned(closed)
-fn finish_holder_command(closed : HolderCommandClose) -> Unit raise CommandStop {
+fn finish_holder_command(
+  closed : HolderCommandClose,
+) -> HolderTerminalFailure? raise CommandStop {
   match closed {
     HolderCommandClosed(operation) =>
       settle_holder_caller_reservation(operation)
-    HolderCommandFailed(operation, failure) => {
-      settle_holder_caller_reservation(operation)
-      stop(failure)
-    }
+    HolderCommandFailed(operation, failure) =>
+      match operation {
+        Some(original) => return Some({ operation: original, failure, })
+        None => stop(failure)
+      }
   }
+  None
+}
+
+///|
+/// The same nominal operation and diagnostic cross only the private command
+/// caller boundary. This is not a persisted Run outcome or a cleanup Owner.
+priv struct HolderTerminalFailure {
+  operation : @site.SiteOperation
+  failure : String
+}
+
+///|
+/// The existing terminal abort does not return. Preserve the original funded
+/// operation through its diagnostic consumption; no settlement ACK is inferred
+/// from returning the private command handoff or from process termination.
+fn consume_holder_terminal_failure(
+  operation : @site.SiteOperation,
+  failure : String,
+) -> Unit {
+  retain_holder_terminal_reservation(
+    operation,
+    () => abort("actql-native-remote-resident-site: " + failure),
+    original => settle_holder_caller_reservation(Some(original)),
+  )
 }
