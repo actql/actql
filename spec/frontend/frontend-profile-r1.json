@@ -1117,6 +1117,8 @@
     {
       "feature_id": "vector.scalar",
       "surface_forms": [
+        "vector_score(left, right, metric STRING literal)",
+        "vector_concat(first, second, ...)",
         "VECTOR_COSINE_SIMILARITY",
         "VECTOR_INNER_PRODUCT",
         "VECTOR_L2_DISTANCE",
@@ -1124,12 +1126,13 @@
       ],
       "canonical_lowering": "vector_score/vector_concat/negate",
       "preconditions": [
-        "existing dimensions and numerical law"
+        "existing dimensions and numerical law",
+        "vector_score metric is an exact STRING literal: cosine/dot/l2"
       ],
       "spec_section": "10.1",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-6",
       "acceptance_case_ids": [
         "VEC-02",
