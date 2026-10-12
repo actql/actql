@@ -139,6 +139,11 @@ fn restore_local_run_from_materials(
     DifferentRequest => return Err(Start(@host.DifferentRequest))
     ChangedIntent => return Err(Start(@host.ChangedIntent))
   }
+  let compiled = match
+    @host.client_task_run_materials_compiled_original(restored) {
+    Ok(value) => value
+    Err(issue) => return Err(Admission(issue))
+  }
   // Retain the codec's exact Owner/compilation/admission/definition together.
   // No fresh invocation, lifetime, start claim or task state is issued here.
   Ok({
@@ -146,6 +151,7 @@ fn restore_local_run_from_materials(
     prepared: restored.prepared,
     request: retained_request,
     compilation: restored.compilation,
+    compiled,
     admission: restored.admission,
     definition: restored.run_definition,
     account_id: current.account_id(),

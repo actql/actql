@@ -23,6 +23,7 @@ priv struct StoredRun {
   mut restoration : Int?
   mut physical_start_reserved : Bool
   mut native_source_reserved : Bool
+  mut source_free_compute_reserved : Bool
   mut normalization : @local_run.LocalRunNormalization?
   mut outcome : Result[@local_run.LocalRunPlan, @local_run.LocalRunIssue]?
 }
@@ -125,6 +126,7 @@ pub fn reserve_run(
     restoration: None,
     physical_start_reserved: false,
     native_source_reserved: false,
+    source_free_compute_reserved: false,
     normalization: None,
     outcome: None,
   }
@@ -317,7 +319,10 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     value.run_configurations.get(handle) is Some(record) else {
     return -2
   }
-  if value.submissions.values().any(record => record.configuration == handle) ||
+  if value.computes
+    .values()
+    .any(compute => compute.current_configuration == Some(handle)) ||
+    value.submissions.values().any(record => record.configuration == handle) ||
     value.tasks.values().any(task => task.current_configuration == handle) ||
     value.runs.values().any(run => run.configuration == handle) ||
     value.physical_starts

@@ -4,7 +4,7 @@ test "Native Local Values profile accepts source-free original preparation" {
   let (_, prepared, _, _) = journal_test_run(
     "values-profile", "values-profile-run",
   )
-  assert_true(native_local_values_profile(prepared))
+  assert_true(native_client_local_values_profile_supported(prepared))
   assert_false(@resident.resident_source_compute_shape_supported(prepared))
 }
 

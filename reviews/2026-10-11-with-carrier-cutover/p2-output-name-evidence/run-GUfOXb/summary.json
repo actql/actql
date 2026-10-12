@@ -1,0 +1,48 @@
+{
+  "startedAt": "2026-10-12T00:52:44.728Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Prepared OutputName public fixtures and unchanged prior SGA obligations",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/sga-output-name-source.test.mjs",
+        "scripts/sga-public-role-preservation.test.mjs",
+        "scripts/graph-match-binding-vocabulary.test.mjs"
+      ],
+      "startedAt": "2026-10-12T00:52:44.804Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:52:45.413Z",
+      "endedAt": "2026-10-12T00:52:45.415Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "e136dbb3-ca47-419b-b0aa-72c16363a187",
+    "pid": 53212,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:52:44.796Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-GUfOXb"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:52:45.469Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

@@ -1,0 +1,73 @@
+{
+  "startedAt": "2026-10-12T00:48:55.530Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Merged source SGA signature roles and independent complete Programs",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/sga_role_contract_test.mbt",
+        "src/query_syntax/producer_scope_wbtest.mbt",
+        "src/query_program/sga_role_lowering_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-12T00:48:55.631Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:49:16.064Z",
+      "endedAt": "2026-10-12T00:49:16.066Z"
+    },
+    {
+      "name": "Regenerated changed grammar manifest canonical consumer only",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/canonical_json/identity_vectors.generated_test.mbt",
+        "--filter",
+        "contract spec/manifests/actql-grammar-0.1.json#"
+      ],
+      "startedAt": "2026-10-12T00:49:16.128Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:49:17.973Z",
+      "endedAt": "2026-10-12T00:49:17.975Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "856f8f39-6e7a-46ac-a998-6f633b699553",
+    "pid": 50241,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:48:55.619Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-cs1SA1"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:49:18.039Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

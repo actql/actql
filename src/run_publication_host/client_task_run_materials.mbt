@@ -141,3 +141,29 @@ fn admit_client_task_run_materials_input(
     Err(issue) => Err(Binding(issue))
   }
 }
+
+///|
+/// Rewrap only the exact codec-admitted task compilation and its original
+/// admission evidence. This issues no authorization, Run or replacement CID.
+/// Result policy originals still require their separate Host journal custody.
+pub fn client_task_run_materials_compiled_original(
+  materials : ClientTaskRunMaterials,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  let value : ClientCompiledRun = {
+    owner: materials.prepared,
+    compilation: Tasks(materials.compilation),
+    template: client_task_compilation_template(materials.compilation),
+    plan: client_task_compilation_compiled_plan(materials.compilation),
+    prepared: @publication.run_publication_prepared(materials.admission),
+    authorization: @publication.run_publication_authorization(
+      materials.admission,
+    ),
+    admission: materials.admission,
+    source_free_result_policy: None,
+  }
+  check_client_compiled_run_definition(value, materials.run_definition).map(fn(
+    _,
+  ) {
+    value
+  })
+}

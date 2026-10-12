@@ -191,7 +191,9 @@ pub fn close_native_attempt(nonce : Int64, handle : Int) -> Int {
   }
   record.closing = true
   if value.native_commands.values().any(command => command.attempt == handle) ||
-    value.computes.values().any(compute => compute.attempt == handle) {
+    value.computes
+    .values()
+    .any(compute => compute.origin is Captured(attempt) && attempt == handle) {
     return -9
   }
   if physical_native_stopped(handle) != 0 {

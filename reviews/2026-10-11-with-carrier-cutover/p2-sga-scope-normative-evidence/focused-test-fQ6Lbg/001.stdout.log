@@ -1,0 +1,2 @@
+[actql/actql] test query_syntax/producer_scope_wbtest.mbt:127 ("P2 qualified selector fields retain the declared lexical operand identity") failed: src/query_syntax/producer_scope_wbtest.mbt:146:5-149:18@actql/actql FAILED: reach(start: {from: rows, id: ROWS.element})
+Total tests: 8, passed: 7, failed: 1.
