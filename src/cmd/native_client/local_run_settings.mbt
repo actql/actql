@@ -162,3 +162,23 @@ fn local_values_installation(
     result_policy_wire: wire,
   }
 }
+
+///|
+// Called only after the Host's original unaccepted intent, saved runtime
+// correspondence and typed scalar profile have passed their existing Owners.
+// This retains the selected Result Policy rather than renewing or replacing it.
+fn local_current_values_installation(
+  original : LocalValuesInstallation,
+  assets : @run_host.ClientLocalProductAssets,
+) -> LocalValuesInstallation raise ClientStop {
+  if assets.result_policy != original.result_policy_wire {
+    stop("LocalValuesResultPolicyOriginalChanged")
+  }
+  {
+    ..original,
+    registry_body: assets.registry,
+    values_body: assets.values,
+    fragment_body: Some(assets.fragment),
+    ordered_body: assets.ordered,
+  }
+}

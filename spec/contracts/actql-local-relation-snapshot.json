@@ -4,7 +4,7 @@
     "checked_type": {
       "path": "spec/contracts/actql-protocol-schemas.json",
       "pointer": "/schemas/canonical_value_contract",
-      "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+      "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     },
     "source_reference": {
       "path": "spec/contracts/actql-local-source-reference.json",
