@@ -108,6 +108,42 @@ fn nearest_vector_slot(
 }
 
 ///|
+// Exact role restatement is checked against the admitted Carrier, never inferred
+// from a field's spelling or replaced by a constructed identity.
+fn nearest_vector_roles(
+  pair : @query.NearestRolePair?,
+  vectors : @carrier.Vectors,
+  visible : Array[(String, String)],
+  ranges : Array[(@query.NamePart, Array[(String, String)])],
+) -> (Array[(String, String)], String) raise Abort {
+  let keys = @carrier.vector_identities(vectors).map(field => {
+    let name = @schema.reference_name(field.name)
+    (name, name)
+  })
+  let component = @schema.reference_name(
+    @carrier.vector_components(vectors).name,
+  )
+  if pair is Some(pair) {
+    let supplied = nearest_key_slots(pair.keys, visible, ranges)
+    if supplied.map(key => key.1) != keys.map(key => key.1) {
+      raise Abort(InvalidQuery)
+    }
+    let mut node = @query.expression_node(
+      pair.vector,
+      @query.expression_root(pair.vector),
+    ).unwrap()
+    while node.kind is Parenthesized(child) {
+      node = @query.expression_node(pair.vector, child).unwrap()
+    }
+    guard node.kind is Reference(path) &&
+      pipe_slot(path, visible, ranges) == Some(component) else {
+      raise Abort(InvalidQuery)
+    }
+  }
+  (keys, component)
+}
+
+///|
 fn lower_nearest_steps(
   construction : Construction,
   clause : @query.NearestClause,
@@ -119,6 +155,8 @@ fn lower_nearest_steps(
   index : Int,
   input_names : Array[String],
   max_work : Int,
+  query_typed? : (@carrier.Vectors, String)? = None,
+  candidate_typed? : @carrier.Vectors? = None,
 ) -> (Array[Array[(String, @builder.Node)]], Array[String]) raise Abort {
   if ranges.any(range => same_name(range.0, clause.candidate_alias)) {
     raise Abort(AmbiguousRelation)
@@ -126,15 +164,31 @@ fn lower_nearest_steps(
   let candidate_columns = columns(candidate)
   let candidate_visible = candidate_columns.map(field => (field, field))
   let candidate_ranges = [(clause.candidate_alias, candidate_visible)]
-  let query_keys = nearest_key_slots(clause.query_keys, visible, ranges)
-  let candidate_keys = nearest_key_slots(
-    clause.candidate_keys,
-    candidate_visible,
-    candidate_ranges,
-  )
-  // The common JSON rows-to-Vectors bridge currently accepts one ID field.
-  // Do not emit an invalid array or replace a typed tuple with a synthetic ID.
-  if query_keys.length() != 1 || candidate_keys.length() != 1 {
+  let query_keys = match query_typed {
+    Some((vectors, _)) =>
+      nearest_vector_roles(clause.query_roles, vectors, visible, ranges).0
+    None => {
+      guard clause.query_roles is Some(roles) else { raise Abort(InvalidQuery) }
+      nearest_key_slots(roles.keys, visible, ranges)
+    }
+  }
+  let candidate_keys = match candidate_typed {
+    Some(vectors) =>
+      nearest_vector_roles(
+        clause.candidate_roles,
+        vectors,
+        candidate_visible,
+        candidate_ranges,
+      ).0
+    None => {
+      guard clause.candidate_roles is Some(roles) else {
+        raise Abort(InvalidQuery)
+      }
+      nearest_key_slots(roles.keys, candidate_visible, candidate_ranges)
+    }
+  }
+  if (query_typed is None && query_keys.length() != 1) ||
+    (candidate_typed is None && candidate_keys.length() != 1) {
     raise Abort(UnsupportedNearest)
   }
   // KEEP uses the two scopes simultaneously; an unqualified collision is not
@@ -208,26 +262,40 @@ fn lower_nearest_steps(
   let candidate_reserved = candidate_columns.copy()
   let query_derived : Array[(String, @builder.Node)] = []
   let candidate_derived : Array[(String, @builder.Node)] = []
-  let query_vector = nearest_vector_slot(
-    construction,
-    clause.query_vector,
-    visible,
-    ranges,
-    query_reserved,
-    query_derived,
-    max_work,
-  )
-  let candidate_vector = nearest_vector_slot(
-    construction,
-    clause.candidate_vector,
-    candidate_visible,
-    candidate_ranges,
-    candidate_reserved,
-    candidate_derived,
-    max_work,
-  )
+  let query_vector = match query_typed {
+    Some((vectors, _)) =>
+      @schema.reference_name(@carrier.vector_components(vectors).name)
+    None =>
+      nearest_vector_slot(
+        construction,
+        clause.query_roles.unwrap().vector,
+        visible,
+        ranges,
+        query_reserved,
+        query_derived,
+        max_work,
+      )
+  }
+  let candidate_vector = match candidate_typed {
+    Some(vectors) =>
+      @schema.reference_name(@carrier.vector_components(vectors).name)
+    None =>
+      nearest_vector_slot(
+        construction,
+        clause.candidate_roles.unwrap().vector,
+        candidate_visible,
+        candidate_ranges,
+        candidate_reserved,
+        candidate_derived,
+        max_work,
+      )
+  }
   let steps : Array[Array[(String, @builder.Node)]] = []
   let query_prefix = initial.copy()
+  if query_typed is Some(_) {
+    steps.push(query_prefix + [("vectors", construction.add(Bool(true)))])
+    query_prefix.clear()
+  }
   if !query_derived.is_empty() {
     query_prefix.push(("derive", construction.object(query_derived)))
     // Retain the evaluated vector before reusing this scratch projection.
@@ -243,13 +311,21 @@ fn lower_nearest_steps(
   query_prefix.push(("as", construction.text(queries)))
   steps.push(query_prefix)
   let candidate_prefix = [("from", construction.text(candidate.name))]
+  if candidate_typed is Some(_) {
+    steps.push(candidate_prefix + [("vectors", construction.add(Bool(true)))])
+    candidate_prefix.clear()
+  }
   if !candidate_derived.is_empty() {
     candidate_prefix.push(("derive", construction.object(candidate_derived)))
   }
   candidate_prefix.push(("as", construction.text(candidates)))
   if candidate_derived.is_empty() {
     candidate_prefix.insert(
-      1,
+      if candidate_typed is Some(_) {
+        0
+      } else {
+        1
+      },
       (
         "select",
         construction.array(
@@ -260,10 +336,19 @@ fn lower_nearest_steps(
   }
   steps.push(candidate_prefix)
   for
-    (source, target, keys, vector) in [
-      (queries, query_vectors, query_keys, query_vector),
-      (candidates, candidate_vectors, candidate_keys, candidate_vector),
+    (source, target, keys, vector, typed) in [
+      (queries, query_vectors, query_keys, query_vector, query_typed is Some(_)),
+      (
+        candidates,
+        candidate_vectors,
+        candidate_keys,
+        candidate_vector,
+        candidate_typed is Some(_),
+      ),
     ] {
+    if typed {
+      continue
+    }
     steps.push([
       ("from", construction.text(source)),
       (
@@ -277,11 +362,25 @@ fn lower_nearest_steps(
     ])
   }
   steps.push([
-    ("from", construction.text(candidate_vectors)),
+    (
+      "from",
+      construction.text(
+        if candidate_typed is Some(_) {
+          candidate.name
+        } else {
+          candidate_vectors
+        },
+      ),
+    ),
     (
       "nearest",
       construction.object([
-        ("queries", construction.text(query_vectors)),
+        (
+          "queries",
+          construction.text(
+            query_typed.map(value => value.1).unwrap_or(query_vectors),
+          ),
+        ),
         ("metric", construction.text(clause.metric)),
         ("k", construction.add(Number(clause.k.to_double()))),
       ]),
@@ -301,7 +400,20 @@ fn lower_nearest_steps(
     for i in 0..<keys.length() {
       let slot = pipe_physical_name(reserved, "aql_nearest_key_")
       reserved.push(slot)
-      extracted.push((slot, infer_field(construction, role)))
+      let value = if keys.length() == 1 {
+        infer_field(construction, role)
+      } else {
+        construction.object([
+          (
+            "property",
+            construction.object([
+              ("value", infer_field(construction, role)),
+              ("name", construction.text(i.to_string())),
+            ]),
+          ),
+        ])
+      }
+      extracted.push((slot, value))
       slots.push((keys[i].0, slot))
     }
   }

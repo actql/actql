@@ -73,7 +73,7 @@ export function prepareProgram(document: string, format: 'json' | 'yaml',
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
-/** Explicit finite normalization profile, selected before original Run issuance.
+/** Explicit finite normalization selected by the original checked create/update kind.
  * Actual semantic completions refuse; current authority/approval stay separate. */
 export function compileEffect(prepared: PreparedEffectProgram,
   options?: Readonly<{normalizationProfile?: 'completion-free'}>): EffectCompilation;

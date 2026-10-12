@@ -236,6 +236,8 @@ pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClie
 
 pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> @run_publication.CapturedEffectDependencyBody?
 
+pub fn client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
+
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
@@ -958,6 +960,8 @@ pub fn issue_prepared_client_effect_normalization_materials(ClientEffectAllowedR
 
 pub fn issue_prepared_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, request? : ClientRequestIdentity?, normalization? : ClientEffectNormalization?) -> Result[String, ClientEffectRunMaterialsIssue]
 
+pub fn issue_prepared_client_effect_selected_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
+
 pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
@@ -1482,6 +1486,12 @@ pub(all) enum ClientCompiledRunIssue {
   TaskBinding(ClientTaskRunBindingIssue)
   EffectBinding(ClientEffectCompiledRunIssue)
 }
+
+pub(all) enum ClientCompiledRunPlanIssue {
+  ForeignCompilation
+  UnsupportedCompilation
+  Projection(ClientInteractivePlanIssue)
+} derive(Eq, @debug.Debug)
 
 pub struct ClientDirectResultRoot {
   wire : String
