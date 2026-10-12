@@ -14,7 +14,6 @@ const authority = digest('raw Store authority');
 // doubles cannot establish canonical admission, original funding or a Run.
 export async function rawCaptureStoreFixture(t, options = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-original-raw-port-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   const storeOptions = {directory,
     storeAuthorityCid: authority, capacityBytes: 1024 * 1024,
     maxObjectBytes: 4096, maxObjects: 40, maxContractNodes: 128,
@@ -25,7 +24,12 @@ export async function rawCaptureStoreFixture(t, options = {}) {
   const store = await openLocalPublicationStore({...storeOptions,
     privateEvidenceKey: Buffer.from(storeOptions.privateEvidenceKey)},
     createPublicationContractControlFixture());
-  t.after(() => store.close());
+  t.after(async () => {
+    // Keep the original Store and directory until the same close confirms
+    // release; removing owner.json first cannot authorize successful cleanup.
+    assert.equal(await store.close(), true);
+    await rm(directory, {recursive: true, force: true});
+  });
   const originals = ['retention_contract', 'metadata_retention_policy',
     'clock_contract', 'data_policy'].map(kind => {
     const wire = JSON.stringify({independent: kind});

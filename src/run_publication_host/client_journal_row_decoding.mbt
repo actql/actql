@@ -40,6 +40,32 @@ pub fn client_journal_issuance_count(
 pub fn decode_client_run_journal_row(
   body : Bytes,
 ) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue] {
+  decode_client_run_journal_row_originals(body, false).map(value => value.0)
+}
+
+///|
+/// Additive raw-original projection for the existing acceptance transaction.
+/// Nested finite-policy metadata, retained Run binding, current authority and
+/// physical custody must still be validated by their existing Owners.
+pub fn decode_client_run_journal_row_with_local_policy(
+  body : Bytes,
+) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue] {
+  decode_client_run_journal_row_originals(body, true)
+}
+
+///|
+fn decode_client_run_journal_row_originals(
+  body : Bytes,
+  allow_local_policy : Bool,
+) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue] {
+  let keys = [
+    "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
+    "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
+    "effect_material_originals",
+  ]
+  if allow_local_policy {
+    keys.push("local_run_policy_originals")
+  }
   let source = @source.parse_json_bytes_preserving(body, {
     max_input_bytes: 131072,
     max_nodes: 32,
@@ -53,12 +79,7 @@ pub fn decode_client_run_journal_row(
       max_total_string_bytes: 131072,
     })
     is Ok(cursor) &&
-    @decode.closed_object(cursor, [
-      "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
-      "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
-      "effect_material_originals",
-    ])
-    is Ok(object) else {
+    @decode.closed_object(cursor, keys) is Ok(object) else {
     return Err(CustodyLost)
   }
   let text = key => {
@@ -126,6 +147,15 @@ pub fn decode_client_run_journal_row(
       }
     None => return Err(CustodyLost)
   }
+  let local_run_policy_originals = match
+    @decode.lookup(object, "local_run_policy_originals") {
+    None => None
+    Some(value) =>
+      match @decode.text(value) {
+        Ok(wire) if @utf8.encode(wire).length() <= 8192 => Some(wire)
+        _ => return Err(CustodyLost)
+      }
+  }
   let record : ClientRunJournalEncoding = {
     request,
     definition,
@@ -137,8 +167,8 @@ pub fn decode_client_run_journal_row(
     effect_material_originals,
     checkpoint,
   }
-  match client_run_journal_row_body(record) {
-    Ok(original) if original == body => Ok(record)
+  match client_run_journal_row_body(record, local_run_policy_originals~) {
+    Ok(original) if original == body => Ok((record, local_run_policy_originals))
     _ => Err(CustodyLost)
   }
 }

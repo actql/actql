@@ -22,7 +22,11 @@ import {createHash, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, open as openFile, readFile, readdir, rename, stat} from
   'node:fs/promises';
 import {dirname, join} from 'node:path';
-import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {openLocalPublicationStore, readBoundedLocalMetadata} from '../store-local/publication-store.mjs';
+import {selectOriginalInferMetadataAcquisition,
+  selectOriginalInferStoreBootstrapAcquisition} from './infer-operation.mjs';
+import {readContinuationLedgerBounded} from './bounded-continuation-metadata.mjs';
+import {listContinuationLedgerNamesBounded} from './bounded-continuation-directory.mjs';
 
 export const PRIVATE_EVIDENCE_KEY_FILE = 'private-evidence.key';
 const LEDGER_VERSION = 'actql-local-continuation-retention/0.1';
@@ -79,9 +83,18 @@ export async function loadPrivateEvidenceKey(stateDirectory) {
     if (!info.isFile() || (info.mode & 0o077) !== 0) {
       fail('PrivateEvidenceKeyExposed');
     }
-    key = await readFile(path);
+    // The installation key already has a fixed 32-byte contract. Enforce it
+    // on the original FD before allocation/read, not after an unbounded
+    // readFile. This clamp is not the original bootstrap's complete funding.
+    key = await readBoundedLocalMetadata(path, 32, undefined, undefined, true);
   } catch (error) {
+    // A failed original close still belongs to installed initialization;
+    // preserve its retry handle rather than replacing it with a shape error.
+    if (error?.cleanupHandle !== undefined) throw error;
     if (error?.code === 'ENOENT') fail('PrivateEvidenceKeyUnavailable');
+    if (error?.code === 'InvalidPublicationStoreObject') {
+      fail('InvalidPrivateEvidenceKey', error);
+    }
     throw error;
   }
   if (key.byteLength !== 32) {
@@ -133,12 +146,14 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
   // after which the next owner recovers the durable deletion record).
   let retained;
   let queue = Promise.resolve();
-  async function openStore() {
+  async function openStore(acquisition, ownerId, requestCid) {
     const deadline = Date.now() + busyTimeoutMs;
     for (;;) {
       try {
+        const bootstrap = acquisition === undefined ? undefined
+          : selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
         return await openLocalPublicationStore({...configuration,
-          privateEvidenceKey: Buffer.from(key)}, contractControl);
+          privateEvidenceKey: Buffer.from(key)}, contractControl, undefined, bootstrap);
       } catch (error) {
         if (error?.code !== 'PublicationStoreBusy' || Date.now() > deadline) {
           throw error;
@@ -147,15 +162,30 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       }
     }
   }
-  function withStore(work) {
-    const operation = queue.then(async () => {
-      const store = retained ?? await openStore();
+  function withStore(work, acquisition, ownerId, requestCid) {
+    if (acquisition !== undefined) {
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+    }
+    const operation = queue.then(async pending => {
+      if (pending?.cleanupHandle?.status().pending) throw pending;
+      if (acquisition !== undefined) {
+        selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      }
+      const store = retained ?? await openStore(acquisition, ownerId, requestCid);
       retained = undefined;
       const cleanups = [];
       let workFailure;
       let workFailed = false;
       try {
+        // Keep the acquired Store in this existing cleanup scope even if the
+        // same original operation changed during opening. No fallback open.
+        if (acquisition !== undefined) {
+          selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+        }
         cleanups.push(...await store.recoverPhysicalHoldingDeletions());
+        if (acquisition !== undefined) {
+          selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+        }
         return await work(store, cleanup => cleanups.push(cleanup));
       } catch (error) {
         workFailed = true;
@@ -164,7 +194,9 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       } finally {
         if (cleanups.some(item => item.status().pending)) retained = store;
         else {
-          try { await store.close(); }
+          try {
+            if (await store.close() === false) fail('ContinuationStoreCleanupPending');
+          }
           catch (closeFailure) {
             // Pending original metadata/FD custody keeps this exact Store.
             // Neither a failed close nor its Error is successful cleanup.
@@ -174,11 +206,29 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
         }
       }
     });
-    queue = operation.catch(() => {});
+    queue = operation.catch(error => error?.cleanupHandle?.status().pending ? error : undefined);
     return operation;
   }
 
-  async function readLedger(id) {
+  async function readLedger(id, acquisition) {
+    if (acquisition !== undefined) {
+      // A's actual operation/installation issuer owns this nominal selection.
+      // Validate before constructing queued I/O, then again after its wait.
+      selectOriginalInferMetadataAcquisition(acquisition, id);
+      const operation = queue.then(async pending => {
+        if (pending?.cleanupHandle?.status().pending) throw pending;
+        const selected = selectOriginalInferMetadataAcquisition(acquisition, id);
+        const ledger = await readContinuationLedgerBounded(ledgerPath(id), id, selected.metadata);
+        selectOriginalInferMetadataAcquisition(acquisition, id, ledger.request_cid);
+        return ledger;
+      });
+      // The existing queue retains the same failed physical handle, without
+      // another Owner/map/reservation. Subsequent I/O waits for confirmed close.
+      queue = operation.catch(error => error?.cleanupHandle?.status().pending ? error : undefined);
+      return operation;
+    }
+    // Existing non-Model Evidence path. This is not a fallback from a refused
+    // original acquisition and is not claimed as bounded/funded by this unit.
     let text;
     try { text = await readFile(ledgerPath(id), 'utf8'); }
     catch (error) {
@@ -253,7 +303,19 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     return verify();
   }
 
-  async function listLedgers() {
+  async function listLedgers(acquisition) {
+    if (acquisition !== undefined) {
+      selectOriginalInferMetadataAcquisition(acquisition);
+      const operation = queue.then(async pending => {
+        if (pending?.cleanupHandle?.status().pending) throw pending;
+        const selected = selectOriginalInferMetadataAcquisition(acquisition);
+        const names = await listContinuationLedgerNamesBounded(ledgers, selected.directory);
+        selectOriginalInferMetadataAcquisition(acquisition);
+        return names;
+      });
+      queue = operation.catch(error => error?.cleanupHandle?.status().pending ? error : undefined);
+      return operation;
+    }
     let names;
     try { names = await readdir(ledgers); }
     catch (error) {
@@ -308,6 +370,76 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     });
   }
 
+  // Reuse the same Evidence Owner for both ordinary existing reads and the
+  // selected original Model read. The latter never falls back on refusal.
+  async function openEvidence(prepareAttemptId, acquisition) {
+      const ledger = await readLedger(prepareAttemptId, acquisition);
+      if (ledger === undefined) fail('ContinuationEvidenceNotFound');
+      sameKey(ledger);
+      // `maxBytes` bounds the read before any stored byte is loaded: a
+      // holding whose physical envelope could exceed it is refused from its
+      // recorded size, and the decrypted bytes are checked again.
+      const bytes = async (name, semanticCid, {maxBytes} = {}) => {
+        if (maxBytes !== undefined &&
+            (!Number.isSafeInteger(maxBytes) || maxBytes < 1)) {
+          fail('InvalidEvidenceReadLimit');
+        }
+        const current = await readLedger(prepareAttemptId, acquisition);
+        if (current === undefined) fail('ContinuationEvidenceNotHeld');
+        sameKey(current);
+        if (current.request_cid !== ledger.request_cid) {
+          fail('ContinuationRequestMismatch');
+        }
+        const entry = current?.holdings.find(item => item.name === name &&
+          item.semantic_cid === semanticCid);
+        if (entry === undefined) fail('ContinuationEvidenceNotHeld');
+        sameKey(entry);
+        // Same payload bytes do not merge two continuations' custody. Reuse
+        // the original holding derivation before opening the physical Store;
+        // the semantic CID and a mutable metadata entry are not its authority.
+        if (!NAMES.includes(name) ||
+            !/^sha256:[0-9a-f]{64}$/u.test(semanticCid) ||
+            entry.holding_cid !== holdingCidOf(prepareAttemptId, name, semanticCid)) {
+          fail('ContinuationEvidenceNotHeld');
+        }
+        if (entry.state !== 'held') fail('ContinuationEvidenceRetired');
+        if (acquisition !== undefined) selectOriginalInferStoreBootstrapAcquisition(acquisition, prepareAttemptId, ledger.request_cid);
+        const stored = await withStore(async store => {
+          if (acquisition !== undefined) selectOriginalInferMetadataAcquisition(acquisition, prepareAttemptId, ledger.request_cid);
+          if (maxBytes !== undefined) {
+            const holding = await store.inspectPhysicalHolding(
+              entry.holding_cid);
+            const physical = holding?.objects?.[0]?.byte_count;
+            if (!Number.isSafeInteger(physical)) {
+              fail('ContinuationEvidenceNotHeld');
+            }
+            if (physical > envelopeBound(maxBytes)) {
+              fail('EvidenceReadLimitExceeded');
+            }
+          }
+          return store.readPrivateEvidence(name, semanticCid,
+            entry.holding_cid);
+        }, acquisition, prepareAttemptId, ledger.request_cid);
+        if (acquisition !== undefined) selectOriginalInferMetadataAcquisition(acquisition, prepareAttemptId, ledger.request_cid);
+        if (maxBytes !== undefined && stored.byteLength > maxBytes) {
+          fail('EvidenceReadLimitExceeded');
+        }
+        if (cidOf(stored) !== semanticCid) fail('ArtifactIntegrityFailed');
+        return stored;
+      };
+      return Object.freeze({
+        requestCid: ledger.request_cid,
+        // Semantic CIDs of the held items named `name` (the ledger is the
+        // exact reference list; nothing is inferred from Store contents).
+        held: name => Object.freeze(ledger.holdings
+          .filter(item => item.name === name && item.state === 'held')
+          .map(item => item.semantic_cid)),
+        bytes,
+        record: async (name, cid) => JSON.parse(
+          (await bytes(name, cid)).toString('utf8')),
+      });
+  }
+
   return Object.freeze({
     keyId,
     observeOriginalModelStorageBinding: observeOriginalModelBinding,
@@ -350,71 +482,17 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       return entries.map(entry => entry.semantic_cid);
     },
 
-    // The exact references of one continuation. Reads check the recorded key
-    // id first and verify the decrypted bytes against their semantic CID.
-    async open(prepareAttemptId) {
-      const ledger = await readLedger(prepareAttemptId);
-      if (ledger === undefined) fail('ContinuationEvidenceNotFound');
-      sameKey(ledger);
-      // `maxBytes` bounds the read before any stored byte is loaded: a
-      // holding whose physical envelope could exceed it is refused from its
-      // recorded size, and the decrypted bytes are checked again.
-      const bytes = async (name, semanticCid, {maxBytes} = {}) => {
-        if (maxBytes !== undefined &&
-            (!Number.isSafeInteger(maxBytes) || maxBytes < 1)) {
-          fail('InvalidEvidenceReadLimit');
-        }
-        const current = await readLedger(prepareAttemptId);
-        if (current === undefined) fail('ContinuationEvidenceNotHeld');
-        sameKey(current);
-        if (current.request_cid !== ledger.request_cid) {
-          fail('ContinuationRequestMismatch');
-        }
-        const entry = current?.holdings.find(item => item.name === name &&
-          item.semantic_cid === semanticCid);
-        if (entry === undefined) fail('ContinuationEvidenceNotHeld');
-        sameKey(entry);
-        // Same payload bytes do not merge two continuations' custody. Reuse
-        // the original holding derivation before opening the physical Store;
-        // the semantic CID and a mutable metadata entry are not its authority.
-        if (!NAMES.includes(name) ||
-            !/^sha256:[0-9a-f]{64}$/u.test(semanticCid) ||
-            entry.holding_cid !== holdingCidOf(prepareAttemptId, name, semanticCid)) {
-          fail('ContinuationEvidenceNotHeld');
-        }
-        if (entry.state !== 'held') fail('ContinuationEvidenceRetired');
-        const stored = await withStore(async store => {
-          if (maxBytes !== undefined) {
-            const holding = await store.inspectPhysicalHolding(
-              entry.holding_cid);
-            const physical = holding?.objects?.[0]?.byte_count;
-            if (!Number.isSafeInteger(physical)) {
-              fail('ContinuationEvidenceNotHeld');
-            }
-            if (physical > envelopeBound(maxBytes)) {
-              fail('EvidenceReadLimitExceeded');
-            }
-          }
-          return store.readPrivateEvidence(name, semanticCid,
-            entry.holding_cid);
-        });
-        if (maxBytes !== undefined && stored.byteLength > maxBytes) {
-          fail('EvidenceReadLimitExceeded');
-        }
-        if (cidOf(stored) !== semanticCid) fail('ArtifactIntegrityFailed');
-        return stored;
-      };
-      return Object.freeze({
-        requestCid: ledger.request_cid,
-        // Semantic CIDs of the held items named `name` (the ledger is the
-        // exact reference list; nothing is inferred from Store contents).
-        held: name => Object.freeze(ledger.holdings
-          .filter(item => item.name === name && item.state === 'held')
-          .map(item => item.semantic_cid)),
-        bytes,
-        record: async (name, cid) => JSON.parse(
-          (await bytes(name, cid)).toString('utf8')),
-      });
+    // Existing ordinary Evidence API is not relabelled as funded original I/O.
+    open: prepareAttemptId => openEvidence(prepareAttemptId),
+    async openOriginalModelState(prepareAttemptId, acquisition) {
+      // The separate trusted Store role is mandatory before even the first
+      // selected metadata read. Ordinary Source/prime paths remain unchanged.
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, prepareAttemptId);
+      return openEvidence(prepareAttemptId, acquisition);
+    },
+    async listOriginalModelMetadata(acquisition) {
+      selectOriginalInferMetadataAcquisition(acquisition);
+      return listLedgers(acquisition);
     },
 
     // A continuation whose Checkpoint was never committed has no remaining
@@ -470,10 +548,19 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     // Release this process's Store owner if one is still retained. Waiting
     // evidence is never deleted here.
     async close() {
-      await queue;
+      const closing = queue;
+      const pending = await closing;
+      if (pending?.cleanupHandle?.status().pending) {
+        try { await pending.cleanupHandle.retry(); }
+        catch { throw pending; }
+        if (pending.cleanupHandle.status().pending) throw pending;
+      }
+      // Do not overwrite a newer queued operation across the close await.
+      // Confirmed close can retire this old error/handle, not its successor.
+      if (queue === closing) queue = Promise.resolve();
       const store = retained;
       if (store !== undefined) {
-        await store.close();
+        if (await store.close() === false) fail('ContinuationStoreCleanupPending');
         retained = undefined;
       }
     },

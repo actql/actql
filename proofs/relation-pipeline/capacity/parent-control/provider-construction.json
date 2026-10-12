@@ -4,7 +4,7 @@
     {
       "name": "selected_relation_provider",
       "path": "src/connectors/local/selected_relation_provider.mbt",
-      "sourceDigest": "22c90febf2d0ea00ff2bba1cc5483a396c82bcdf6cc3bee7f8b4882a8a45e59f",
+      "sourceDigest": "9c5251e962f4114801bc99c8deb3dc836a16773bd0eebef5aa2c4dcdefe17409",
       "binding": "managed_provider_with_numeric"
     },
     {

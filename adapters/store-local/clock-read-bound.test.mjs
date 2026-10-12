@@ -15,7 +15,7 @@ function section(from, to) {
   assert(start >= 0 && end > start);
   return source.slice(start, end);
 }
-const bounded = section('async function readBounded(path, maximum, closed) {',
+const bounded = section('async function readBounded(path, maximum, closed, signal, ownerOnly = false) {',
   '\nasync function processIsAlive(');
 const keys = section('const exactKeys =', '\nasync function syncDirectoryPath(');
 const current = section('  let lastClockObservation;', '\n  const observeTrustedClock =');
@@ -26,7 +26,7 @@ const fail = code => { throw Object.assign(new Error(code), {code}); };
 const invalid = error => error?.code === 'InvalidPublicationStoreObject';
 function load(body, overrides) {
   return runInNewContext(`(() => {${keys}\n${bounded}\n${body}\nreturn readClockObservation;})()`, {
-    constants, Buffer, fail,
+    constants, Buffer, fail, AbortSignal,
     quantity: value => Number.isSafeInteger(value) && value >= 0,
     configuration: {maxObjectBytes: 512},
     clockObservationPath: () => 'original-clock',

@@ -1,0 +1,598 @@
+{
+  "originalSource": "ee7cae5a7494305775ec9cb7dacf2b5531eb089e",
+  "originalInventorySHA256": "5cfa28ecf3eb35c944a1e1ffc77a1e5a3f8844665ba721da6ec53258804f498a",
+  "adoptedMain": "afd58cbe3abc06686473702e734a271dd8bb4378",
+  "assigned": 98,
+  "closedByThisUnit": 24,
+  "notClosed": 74,
+  "cases": [
+    {
+      "file": "src/query_planning/evidence_contracts_wbtest.mbt",
+      "originalLine": 80,
+      "name": "verifier rejects altered acquisition dependency and schema-only evidence",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/with_expansion_public_fixture_test.mbt",
+      "originalLine": 91,
+      "name": "WITH public expansion unnest-join-full",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/with_expansion_public_fixture_test.mbt",
+      "originalLine": 231,
+      "name": "WITH public expansion joined-unnest-star-sql",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/with_expansion_public_fixture_test.mbt",
+      "originalLine": 259,
+      "name": "WITH public expansion joined-unnest-star-pipe",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/with_expansion_public_fixture_test.mbt",
+      "originalLine": 287,
+      "name": "WITH public expansion joined-unnest-star-quoted-parenthesized",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/with_expansion_public_fixture_test.mbt",
+      "originalLine": 315,
+      "name": "WITH public expansion joined-unnest-star-original-range",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/with_expansion_public_fixture_test.mbt",
+      "originalLine": 343,
+      "name": "WITH public expansion joined-unnest-star-current-column",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/with_expansion_public_fixture_test.mbt",
+      "originalLine": 414,
+      "name": "WITH captured expansion reuses resolved common Result input order",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/values_join_ceiling_test.mbt",
+      "originalLine": 17,
+      "name": "standalone Values JOIN retains every explicit author ceiling",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/values_join_ceiling_test.mbt",
+      "originalLine": 54,
+      "name": "declared low JOIN ceiling is not replaced by a cartesian reservation",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/values_join_ceiling_test.mbt",
+      "originalLine": 67,
+      "name": "omitted Values JOIN ceiling retains the existing computed fallback",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/unnest_scalar_receiver_precedence_test.mbt",
+      "originalLine": 85,
+      "name": "scalar receiver slots survive JOIN remapping and pre-JOIN predicates",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/unnest_join_continuation_test.mbt",
+      "originalLine": 13,
+      "name": "UNNEST JOIN retains nullable object receivers ranges and explicit bounds",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/unnest_join_continuation_test.mbt",
+      "originalLine": 75,
+      "name": "UNNEST JOIN continuation preserves sequential SQL and Pipe admission",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/unnest_join_continuation_test.mbt",
+      "originalLine": 108,
+      "name": "UNNEST FULL JOIN retains the common identity premises",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/subgraph_source_test.mbt",
+      "originalLine": 190,
+      "name": "Subgraph source keeps producer references and Carrier transitions scoped",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/single_join_group_test.mbt",
+      "originalLine": 2,
+      "name": "single JOIN GROUP agrees with an independent complete Program",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/single_join_group_test.mbt",
+      "originalLine": 30,
+      "name": "single JOIN GROUP preserves script and CTE binding paths",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/right_join_test.mbt",
+      "originalLine": 2,
+      "name": "RIGHT JOIN commutes into a bounded common LEFT JOIN with SQL range slots",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/pipe_set_target_scope_test.mbt",
+      "originalLine": 29,
+      "name": "Pipe SET preserves one current target and its immutable JOIN range",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/pipe_result_test.mbt",
+      "originalLine": 78,
+      "name": "top level RESULT consumes evaluated CTE and JOIN output through the shared lowerer",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/pipe_rename_target_scope_test.mbt",
+      "originalLine": 29,
+      "name": "Pipe RENAME preserves unrelated duplicate JOIN names until projection",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/order_ordinal_test.mbt",
+      "originalLine": 61,
+      "name": "ORDER ordinal uses current Pipe columns and computed slots once",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/order_input_classification_test.mbt",
+      "originalLine": 29,
+      "name": "registered DISTINCT ORDER inputs cannot restore private JOIN or aggregate slots",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_star_test.mbt",
+      "originalLine": 66,
+      "name": "LEFT USING star keeps its key first and both qualified input meanings",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_select_window_test.mbt",
+      "originalLine": 98,
+      "name": "JOIN SELECT window matches independent complete lowering",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_range_property_test.mbt",
+      "originalLine": 41,
+      "name": "JOIN SELECT binds parenthesized range properties through the existing row scope",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_property_paths_test.mbt",
+      "originalLine": 65,
+      "name": "JOIN property SQL matches the complete independent Program",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_property_paths_test.mbt",
+      "originalLine": 79,
+      "name": "JOIN property Pipe matches the complete independent Program",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_property_paths_test.mbt",
+      "originalLine": 224,
+      "name": "JOIN property CTE inputs and pre-JOIN Pipe filters use ordinary expressions",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_prefilter_range_property_test.mbt",
+      "originalLine": 2,
+      "name": "CTE JOIN prefilter retains ordinary dotted property control",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/join_prefilter_range_property_test.mbt",
+      "originalLine": 21,
+      "name": "CTE JOIN prefilter connects parenthesized range properties",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/join_prefilter_range_property_test.mbt",
+      "originalLine": 60,
+      "name": "prefilter quoted range parameter and authored JOIN ceiling are retained",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/join_prefilter_range_property_test.mbt",
+      "originalLine": 89,
+      "name": "prefilter value receiver wins its same-named range without inventing a peer",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/join_pipe_limit_tail_test.mbt",
+      "originalLine": 29,
+      "name": "JOIN Pipe consecutive LIMIT preserves each independent take",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_pipe_limit_tail_test.mbt",
+      "originalLine": 59,
+      "name": "JOIN Pipe WHERE and projection consume the already limited output",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_pipe_edits_test.mbt",
+      "originalLine": 50,
+      "name": "post-JOIN SET keeps the original range value and edits the current column",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_pipe_edits_test.mbt",
+      "originalLine": 62,
+      "name": "post-JOIN DROP removes current columns while retaining surviving range slots",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_pipe_edits_test.mbt",
+      "originalLine": 74,
+      "name": "post-JOIN EXTEND derives a new current slot without extending the old range",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_pipe_distinct_test.mbt",
+      "originalLine": 15,
+      "name": "post-JOIN Pipe DISTINCT uses the complete independently checked current row",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_parenthesized_key_test.mbt",
+      "originalLine": 14,
+      "name": "parenthesized JOIN keys match a complete independent specialized Program",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_order_test.mbt",
+      "originalLine": 53,
+      "name": "JOIN ORDER references output aliases inside expressions",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_order_test.mbt",
+      "originalLine": 94,
+      "name": "JOIN ORDER qualified input bypasses the output alias",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_order_test.mbt",
+      "originalLine": 104,
+      "name": "CTE JOIN shares alias expression and selected slot resolution",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_implicit_property_test.mbt",
+      "originalLine": 43,
+      "name": "JOIN implicit property alias matches an independent checked Program",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_implicit_property_test.mbt",
+      "originalLine": 95,
+      "name": "JOIN implicit property alias reaches CTE and computed receiver checking",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_distinct_order_test.mbt",
+      "originalLine": 2,
+      "name": "JOIN DISTINCT ORDER uses expressions over evaluated output aliases",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/join_current_row_prefix_test.mbt",
+      "originalLine": 53,
+      "name": "JOIN current-row ORDER and LIMIT precede projection",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_current_row_prefix_test.mbt",
+      "originalLine": 65,
+      "name": "JOIN current-row WHERE after LIMIT cannot move before the take",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_current_row_prefix_test.mbt",
+      "originalLine": 77,
+      "name": "JOIN current-row consecutive WHERE retains each predicate",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_current_row_prefix_test.mbt",
+      "originalLine": 89,
+      "name": "JOIN current-row AS binds the full evaluated visible row",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/join_current_row_prefix_test.mbt",
+      "originalLine": 101,
+      "name": "JOIN current-row query without SELECT retains all visible columns",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/inner_correlated_unnest_test.mbt",
+      "originalLine": 45,
+      "name": "INNER correlation retains ordinary continuations and immutable ranges",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/graph_union_source_test.mbt",
+      "originalLine": 60,
+      "name": "Graph union rejects value names forward references and lost Graph scopes",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/graph_subtraction_source_test.mbt",
+      "originalLine": 39,
+      "name": "Graph subtraction enforces binary peers and retained Graph scope",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/graph_refusal_classification_test.mbt",
+      "originalLine": 11,
+      "name": "Graph argument selector and Carrier violations are distinct from support gaps",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/graph_profile_test.mbt",
+      "originalLine": 2,
+      "name": "a static label does not supply the missing admitted Graph producer",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/graph_delta_source_test.mbt",
+      "originalLine": 111,
+      "name": "Graph Delta source rejects foreign names and a second Carrier transition",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/full_using_scope_test.mbt",
+      "originalLine": 2,
+      "name": "FULL USING scope agrees with a complete independent coalesced Program",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/full_using_scope_test.mbt",
+      "originalLine": 57,
+      "name": "FULL USING keeps authored composite order and original qualified keys",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/full_select_scope_test.mbt",
+      "originalLine": 2,
+      "name": "FULL explicit CTE projection matches an independent complete Program",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/from_unpivot_test.mbt",
+      "originalLine": 95,
+      "name": "FROM UNPIVOT preserves aliases derived tables CTEs and both JOIN ports",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/from_unpivot_public_source_test.mbt",
+      "originalLine": 10,
+      "name": "submitted FROM UNPIVOT sources reach normal parameter checking without fixture repair",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/from_pivot_test.mbt",
+      "originalLine": 86,
+      "name": "FROM PIVOT supports aliases derived tables Pipe heads and both JOIN sides",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 42,
+      "name": "query-only context refuses Graph lowering without a current definition",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 958,
+      "name": "JOIN computes SELECT expressions once after matching rows",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1073,
+      "name": "LEFT JOIN WHERE filters null-extended rows after matching",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1101,
+      "name": "JOIN output ordering and LIMIT use selected aliases",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1122,
+      "name": "JOIN orders by hidden input without exposing it or weakening DISTINCT",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1151,
+      "name": "Pipe WHERE before JOIN filters the left seed before null extension",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1178,
+      "name": "Pipe WHERE before JOIN filters a subquery stage",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1224,
+      "name": "CTE JOIN DISTINCT publishes the deduplicated Stage Result",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1243,
+      "name": "CTE JOIN uses the same hidden ORDER and visible Result projection",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1288,
+      "name": "one CTE lowers to a shared checked Stage Result",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1398,
+      "name": "CTE branches share one checked producer and reject unchecked declarations",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1535,
+      "name": "named JOIN subquery reuses an earlier checked CTE result",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_program/compile_test.mbt",
+      "originalLine": 1607,
+      "name": "FULL CTE join retains keyed input identity for common closure",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/standard_subset_wbtest.mbt",
+      "originalLine": 2,
+      "name": "standard configured Host runs Local alone reference alone and both without concrete task orchestration",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/python_local_native_authorization_wbtest.mbt",
+      "originalLine": 185,
+      "name": "Local Native acquisition requires separate current subject-bound read authorization",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/python_local_native_authorization_wbtest.mbt",
+      "originalLine": 320,
+      "name": "Local single Source plans its retained suffix before physical acquisition",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/python_local_native_authorization_wbtest.mbt",
+      "originalLine": 365,
+      "name": "Local Native Source configuration cannot substitute caller operation or original Run start",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/physical_search_wbtest.mbt",
+      "originalLine": 397,
+      "name": "placement policy provenance rejects empty metadata before commit",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/graph_plan_wbtest.mbt",
+      "originalLine": 2,
+      "name": "formal Graph Plan retains typed graph ports and keyed parallel-edge constructor without legacy conversion",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/graph_plan_wbtest.mbt",
+      "originalLine": 153,
+      "name": "retained external Relation selector splits only its Carrier consumer",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/duckdb_native_completion_wbtest.mbt",
+      "originalLine": 15,
+      "name": "native Host completion owns sequencing without replacing the live verifier",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/duckdb_native_capture_wbtest.mbt",
+      "originalLine": 338,
+      "name": "native Host-local two-receipt issuance and capture match an independent observation oracle",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/dag_result_work_wbtest.mbt",
+      "originalLine": 32,
+      "name": "original DAG spends obligation inventory without relying on expansion",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/carrier_work_wbtest.mbt",
+      "originalLine": 32,
+      "name": "Carrier work bounds no-expansion classification and predecessor scans",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/carrier_analytic_shape_wbtest.mbt",
+      "originalLine": 129,
+      "name": "later analytic classification sees a Values root after the analytic",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/carrier_analytic_shape_wbtest.mbt",
+      "originalLine": 139,
+      "name": "later analytic classification sees a binary consumer after the analytic",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/carrier_analytic_shape_wbtest.mbt",
+      "originalLine": 149,
+      "name": "later analytic classification charges the complete shape only once",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/carrier_analytic_shape_wbtest.mbt",
+      "originalLine": 159,
+      "name": "later analytic classification sees a Carrier output after the analytic",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/query_integration/acquired_relation_branch_wbtest.mbt",
+      "originalLine": 38,
+      "name": "bounded binary Relation branch remains one checked physical task",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/source_frontend/single_join_group_test.mbt",
+      "originalLine": 23,
+      "name": "single JOIN GROUP public input preserves raw source with derived right input",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/source_frontend/registered_source_context_test.mbt",
+      "originalLine": 38,
+      "name": "derived JOIN input requires original Source Catalog metadata",
+      "status": "original failing case passes with scope-dispatch fix"
+    },
+    {
+      "file": "src/source_frontend/lower_test.mbt",
+      "originalLine": 307,
+      "name": "public Graph input distinguishes missing producer from retired annotation",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/source_frontend/join_set_compaction_test.mbt",
+      "originalLine": 2,
+      "name": "public SQL and text routes preserve compact evaluated set JOIN inputs",
+      "status": "not closed by this unit"
+    },
+    {
+      "file": "src/source_frontend/cte_value_table_scope_test.mbt",
+      "originalLine": 2,
+      "name": "public SQL and text entries preserve CTE scalar value-table receivers",
+      "status": "original failing case passes with scope-dispatch fix"
+    }
+  ]
+}

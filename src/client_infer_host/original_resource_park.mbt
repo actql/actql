@@ -97,6 +97,33 @@ pub fn original_model_resource_park_current(
 }
 
 ///|
+// Non-consuming observation of the exact original read reservation. The
+// original operation supplies its own Run/plan; a true result does not attest
+// the installation's complete physical envelope or authorize acquisition.
+pub fn original_model_parked_read_capacity_available(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  guard original_model_resource_park_current(active, scope, park) is Some(_) &&
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
+    return false
+  }
+  @publication_host.client_model_parked_read_capacity_available(
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
+    retained_bytes,
+    execution_bytes,
+  )
+}
+
+///|
 // The original Execution supplies its checked Run/plan; this does not accept
 // replacement origin data or require dispatch admission during approval wait.
 pub fn begin_original_model_resource_invalidation(

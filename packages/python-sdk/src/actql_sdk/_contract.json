@@ -158,6 +158,13 @@
       "cursors",
       "maxEntries",
       "maxWireBytes"
+    ],
+    "run-plan": [
+      "connection",
+      "ref",
+      "maxWireBytes",
+      "maxNodes",
+      "maxDepth"
     ]
   },
   "schemas": {
