@@ -223,11 +223,20 @@ test "CTE current-range property ORDER retains ordinary Relation scope" {
     ..join_property_context(),
     parameter_declarations: Some(declarations),
   }
-  // The first packed diagnostic also declared an unused peer CTE. Its
-  // existing scope refusal is independent of current-range ORDER binding.
-  assert_true(
-    compile(query, context, construction_limits()) is Err(UnsupportedCte),
-  )
+  // Static-check the unused peer but keep it out of execution demand. Its
+  // object parameters must not leak into the evaluated current-range ORDER.
+  let with_unused = compile(query, context, construction_limits()).unwrap()
+  let body = semantic(with_unused)
+  assert_true(body.contains("\"fields\":[\"id\",\"score\"]"))
+  for parameter in ["oa", "ob", "oc", "od"] {
+    assert_false(body.contains("\"parameter\":\"" + parameter + "\""))
+  }
+  match
+    @check.check_parsed(with_unused, check_environment(), None, check_limits()) {
+    NeedsInputs(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    _ => fail("the original object parameters remain required")
+  }
   let used = @query.parse_query(
     "WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed) FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score",
     syntax_limits(),
