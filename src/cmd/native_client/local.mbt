@@ -99,6 +99,12 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
   guard matches.subcommand is Some((operation, child)) else {
     stop("LocalOperationUnavailable")
   }
+  if optional(matches, "config-file") is None {
+    if !local_product_operation(operation) {
+      stop("LocalOperationUnavailable")
+    }
+    return execute_native_local_product(matches, operation)
+  }
   if operation == "adopt" ||
     operation == "connect" ||
     operation == "new-submission" ||
