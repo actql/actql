@@ -25,6 +25,11 @@ class StoredBytes:
     payload: bytes
 
 
+_NamespaceConsumer = Callable[[tuple[str, StoredBytes] | None], object]
+_NamespaceReader = Callable[[str, str, _NamespaceConsumer], None]
+_InventoryInspection = Callable[[_NamespaceReader], object]
+
+
 @dataclass(frozen=True)
 class ByteWrite:
     # These are physical keys/generations and opaque Core-issued bytes.
@@ -480,6 +485,48 @@ class LocalByteStore:
         self._validate_fences(fences, writes)
         return self._read_exchange_many(writes, fences=fences, current=current)
 
+    def compare_exchange_many_inspected(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection,
+            current: Callable[[], object]) -> tuple[int, ...] | None:
+        """Forward original namespace rows to Core before CAS in one transaction.
+
+        Installed Host assembly holds Core before Store and reserves retained
+        inputs and SQLite workspace. Core supplies original namespaces/cursors,
+        consumes raw rows or the observed physical end, and validates every
+        required inventory/custody relationship. Count syntax, a partial scan,
+        or returning None from this callback is not an admission proof. Python
+        does not choose scope, completeness, accepted state or retry permission.
+
+        One row is copied at a time under the existing count and cumulative
+        byte bounds. The original epoch/configuration/count fences and typed
+        current port stay checked in the same BEGIN IMMEDIATE transaction.
+        Query, consumer and cleanup failures prevent exposure of a success;
+        attempted-COMMIT uncertainty retains the same Store without replay.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local inventory inspection callback')
+        self._validate_fences(fences, writes)
+        return self._compare_exchange_many(writes, capacity=None, fences=fences,
+                                           current=current, inspect=inspect)
+
+    def read_exchange_many_inspected(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection,
+            current: Callable[[], object]) -> tuple[StoredBytes, ...] | None:
+        """Observe original successors and inventories without repeating writes.
+
+        Exact successor rows and unchanged metadata are inspected in this same
+        read snapshot. The existing Core Owners must readmit the actual saved
+        rows and their relationships, not the earlier candidate bytes. No
+        accepted Run, nonexecution or resend permission is inferred here.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local inventory inspection callback')
+        self._validate_fences(fences, writes)
+        return self._read_exchange_many(writes, fences=fences, current=current,
+                                        inspect=inspect)
+
     def read_exchange_many_attached(
             self, writes: tuple[ByteWrite, ...],
             originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> tuple[StoredBytes, ...] | None:
@@ -499,7 +546,8 @@ class LocalByteStore:
             self, writes: tuple[ByteWrite, ...], *,
             originals: tuple[tuple[ByteFence, CapacityReservation], ...] = (),
             fences: tuple[ByteFence, ...] = (),
-            current: Callable[[], object] | None = None) -> tuple[StoredBytes, ...] | None:
+            current: Callable[[], object] | None = None,
+            inspect: _InventoryInspection | None = None) -> tuple[StoredBytes, ...] | None:
         keys = self._exchange_write_keys(writes)
         if originals:
             self._validate_originals(originals, keys)
@@ -523,6 +571,9 @@ class LocalByteStore:
                         observed.append(row)
                     if len(observed) == len(writes):
                         result = tuple(observed)
+                if result is not None and inspect is not None:
+                    self._inspect_namespace_locked(inspect, fences, current,
+                                                   successors=writes)
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, writes):
                     result = None
@@ -534,6 +585,94 @@ class LocalByteStore:
                 # Do not publish observations or repeat cleanup if this fails.
                 database.execute('ROLLBACK')
                 return result
+
+    def _inspect_namespace_locked(
+            self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
+            current: Callable[[], object] | None, *,
+            successors: tuple[ByteWrite, ...] = ()) -> None:
+        # This callback borrows the enclosing physical transaction. It cannot
+        # commit, acknowledge Core adoption, repair metadata or survive cleanup.
+        active = True
+        reading = False
+        thread = get_ident()
+        reads = copied = 0
+        failure: BaseException | None = None
+
+        def fence() -> None:
+            if not self._fences_match_locked(fences, successors):
+                raise LocalStorageError('Original Local inventory metadata changed')
+            self._fenced_current(current)
+            if not self._fences_match_locked(fences, successors):
+                raise LocalStorageError('Original Local inventory metadata changed')
+
+        def read(namespace: str, after: str, consume: _NamespaceConsumer) -> None:
+            nonlocal reading, reads, copied, failure
+            entered = False
+            try:
+                if (not active or reading or get_ident() != thread
+                        or failure is not None):
+                    raise ValueError('Local inventory reader is not active')
+                self._capacity_name(namespace)
+                if type(after) is not str or not callable(consume):
+                    raise ValueError('Invalid Local inventory cursor or consumer')
+                # Use the same injective namespace/key encoding as physical
+                # writes. Empty cursor means start, not an empty logical key.
+                prefix = f'namespace:{len(namespace.encode("utf-8"))}:{namespace}:'
+                lower = self.namespaced_key(namespace, after) if after else prefix
+                upper = prefix[:-1] + ';'
+                if reads >= self._max_records:
+                    raise LocalStorageError('Local inventory inspection capacity exceeded')
+                reading = entered = True
+                fence()
+                # A malformed empty logical key must be observed and refused,
+                # not silently excluded from the original namespace inventory.
+                relation = '>' if after else '>='
+                row = self._connection.execute(f'''SELECT
+                    CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
+                    generation,
+                    CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
+                    typeof(payload), length(payload)
+                    FROM core_bytes WHERE key {relation} ? AND key < ?
+                    ORDER BY key COLLATE BINARY LIMIT 1''',
+                    (min(self._max_record_bytes, self._max_payload_bytes - copied),
+                     lower, upper)).fetchone()
+                reads += 1
+                observation: tuple[str, StoredBytes] | None = None
+                if row is not None:
+                    key, generation, payload, kind, length = row
+                    if (type(key) is not str or not key.startswith(prefix)
+                            or type(generation) is not int or generation < 0
+                            or type(payload) is not bytes or kind != 'blob'
+                            or type(length) is not int or length != len(payload)):
+                        raise LocalStorageError('Invalid retained Local inventory row')
+                    logical = key[len(prefix):]
+                    self._key(logical)
+                    copied += len(payload)
+                    observation = (logical, StoredBytes(generation, payload))
+                fence()
+                # The Host completes transfer into its reserved Core input and
+                # returns the same input/output loan before requesting a row.
+                if consume(observation) is not None:
+                    raise ValueError('Invalid Local inventory consumer result')
+                del observation, row
+                fence()
+            except BaseException as error:
+                failure = error
+                raise
+            finally:
+                if entered:
+                    reading = False
+
+        try:
+            fence()
+            result = inspect(read)
+            if failure is not None:
+                raise failure
+            if result is not None or reads == 0:
+                raise ValueError('Incomplete Local physical inventory inspection')
+            fence()
+        finally:
+            active = False
 
     def inspect_publication_projected_attached(
             self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
@@ -913,7 +1052,8 @@ class LocalByteStore:
                                capacity: CapacityReservation | None,
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...] = (),
                                fences: tuple[ByteFence, ...] = (),
-                               current: Callable[[], object] | None = None) -> tuple[int, ...] | None:
+                               current: Callable[[], object] | None = None,
+                               inspect: _InventoryInspection | None = None) -> tuple[int, ...] | None:
         keys = self._exchange_write_keys(writes)
         if capacity is not None:
             if type(capacity) is not CapacityReservation:
@@ -946,6 +1086,8 @@ class LocalByteStore:
                         or not self._fences_match_locked(fences)):
                     database.execute('ROLLBACK')
                     return None
+                if inspect is not None:
+                    self._inspect_namespace_locked(inspect, fences, current)
                 generations: list[int] = []
                 inserted = replaced = 0
                 for write in writes:
