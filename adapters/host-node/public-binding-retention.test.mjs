@@ -172,6 +172,8 @@ for (const task of [5, 6]) {
       assert.ok(BigInt(first.detail.work) > 0n);
       assert.ok(BigInt(first.detail.progress) > 0n);
       assert.equal(computed, 0);
+      // This is an admitted Run. Cancel its durable Run control, not a legacy
+      // bare request ID that cannot identify the epoch-bound submission.
       await run.cancel();
       release();
       const state = await run.wait({signal: AbortSignal.timeout(30_000)});

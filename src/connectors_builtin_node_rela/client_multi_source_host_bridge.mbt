@@ -45,6 +45,14 @@ pub fn client_program_installed_row_capture_capacity(
 }
 
 ///|
+#export_name("clientProgramInstalledPendingDuckDBCaptureCapacity")
+pub fn client_program_installed_pending_duckdb_capture_capacity(
+  pending : @client_local_host.ClientDuckDBCaptureCapacity,
+) -> @client_local_host.ClientInstalledCaptureCapacity {
+  @client_local_host.installed_pending_duckdb_capture_capacity(pending)
+}
+
+///|
 #export_name("clientProgramPrepareMultiCapturedLocalInstalledLedger")
 pub fn client_program_prepare_multi_captured_local_installed_ledger(
   prepared : @publication_host.PreparedClientProgram,
@@ -59,6 +67,27 @@ pub fn client_program_prepare_multi_captured_local_installed_ledger(
   @client_local_host.prepare_multi_captured_local_installed_ledger(
     prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
     values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareSerializationCapturedLedger")
+pub fn client_program_prepare_serialization_captured_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  capacity : @client_local_host.ClientInstalledCaptureCapacity,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  prefix_retained_bytes : Int64,
+  prefix_execution_bytes : Int64,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_serialization_captured_ledger(
+    prepared, task, capacity, transport_bytes, transport_execution_bytes, prefix_retained_bytes,
+    prefix_execution_bytes, registry_body, values_body, fragment_body, ordered_body,
   )
 }
 

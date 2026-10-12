@@ -6,6 +6,7 @@ pub enum PublicationClosureIssue {
   MissingStage(Int)
   RowTarget(Int, Int, @step_bounds.TargetRowsIssue)
   RowMembership(Int, Int, @capacity.TargetMembershipIssue)
+  SourceInput(Int, Int, @step_bounds.SourceInputRowsIssue)
 }
 
 ///|
@@ -118,6 +119,8 @@ pub fn close_program_publications(
       Err(CandidateBudget) => return Err(BudgetExceeded)
       Err(CandidateTarget(e)) =>
         return Err(RowTarget(publication.stage, publication.result_index, e))
+      Err(CandidateSourceInput(e)) =>
+        return Err(SourceInput(publication.stage, publication.result_index, e))
       Err(CandidateMembership(e)) =>
         return Err(
           RowMembership(publication.stage, publication.result_index, e),

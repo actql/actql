@@ -67,6 +67,7 @@ priv struct CompletedResultRowsPreparation {
   mut merging : Bool
   mut done : Bool
   mut closed : Bool
+  mut poll_work : Int
 }
 
 ///|
@@ -113,13 +114,9 @@ impl IndexedRows for CompletedExportRows with fn read_cell(self, row, column) {
 fn completed_output_export_rows(
   source : CompletedOutput,
 ) -> CompletedExportRows {
-  let owner = @lower.sequence_owner(source.completion.sequence)
   {
     table: source.table.unwrap(),
-    schema: @lower.preparation_schema_at(
-      @lower.bound_preparation(owner),
-      source.target,
-    ).unwrap(),
+    schema: completed_output_relation_schema(source),
     names: RelationRows::field_names(source.table.unwrap()).copy(),
     columns: None,
     rows: None,
@@ -365,6 +362,7 @@ fn start_completed_result_rows(
     merging: false,
     done: false,
     closed: false,
+    poll_work: 0,
   })
 }
 
@@ -397,6 +395,7 @@ fn advance_completed_result_rows(
   if value.closed {
     return Err(Unavailable)
   }
+  value.poll_work = 0
   value.advancing = true
   let result = (fn() -> Result[(Bool, Int), CompletedResultViewIssue] {
     if !completed_output_available(value.source) || value.closed {
@@ -426,22 +425,26 @@ fn advance_completed_result_rows_impl(
       return Err(Unavailable)
     }
     if value.projection < @schema.field_count(value.schema) {
+      spent += 1
+      value.poll_work = spent
       match advance_result_column_mapping(value, true) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      spent += 1
       continue
     }
     if value.order_term < @results.port_order_term_count(value.port) {
+      spent += 1
+      value.poll_work = spent
       match advance_result_column_mapping(value, false) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      spent += 1
       continue
     }
     if value.initializing < count {
+      spent += 1
+      value.poll_work = spent
       if IndexedRows::row_width(value.table, value.initializing) !=
         IndexedRows::column_count(value.table) {
         return Err(InvalidProjection)
@@ -453,7 +456,6 @@ fn advance_completed_result_rows_impl(
       }
       value.rows.push(value.initializing)
       value.initializing += 1
-      spent += 1
       continue
     }
     if count < 2 || value.terms.is_empty() {
@@ -461,6 +463,8 @@ fn advance_completed_result_rows_impl(
       continue
     }
     if value.scratch_initializing < count {
+      spent += 1
+      value.poll_work = spent
       if value.rows.length() + value.scratch.length() + value.terms.length() >=
         value.limits.max_workspace_entries ||
         !spend_control(value.order_work, 1) {
@@ -468,7 +472,6 @@ fn advance_completed_result_rows_impl(
       }
       value.scratch.push(0)
       value.scratch_initializing += 1
-      spent += 1
       continue
     }
     if !value.merging {
@@ -491,13 +494,16 @@ fn advance_completed_result_rows_impl(
       value.merging = true
     }
     if !value.merge_charged {
+      spent += 1
+      value.poll_work = spent
       if !spend_control(value.order_work, 1) {
         return Err(Limit)
       }
       value.merge_charged = true
-      spent += 1
       continue
     }
+    spent += 1
+    value.poll_work = spent
     let choose_left = if value.left == value.middle {
       false
     } else if value.right == value.end {
@@ -517,10 +523,7 @@ fn advance_completed_result_rows_impl(
       }
       match compared {
         Ok(Some(comparison)) => comparison <= 0
-        Ok(None) => {
-          spent += 1
-          continue
-        }
+        Ok(None) => continue
         Err(InvalidInput) => return Err(InvalidProjection)
         Err(Limit) => return Err(Limit)
         Err(Scalar(issue)) => return Err(Comparison(issue))
@@ -539,7 +542,6 @@ fn advance_completed_result_rows_impl(
       value.start = value.end
       value.merging = false
     }
-    spent += 1
   }
   Ok((value.done, spent))
 }

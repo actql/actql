@@ -27,6 +27,13 @@ const accounting = {version: 'actql-model-attempt-accounting/0.1',
 const outcome = {version: 'actql-model-attempt-outcome/0.1',
   attempt_cid: machineCid(attempt), slot_cid: pin('9'),
   category: 'provider_failure', failure: 'timeout'};
+const attachment = {version: 'actql-model-attachment-admission/0.1',
+  slot_cid: pin('9'), model_task_cid: pin('5'), fixed_request_cid: pin('6'),
+  authority_evidence_cid: machineCid(authority), attachments: [{role: 'document', item: -1,
+    content_ref_cid: pin('a'), content_cid: pin('b'), media_input_cid: pin('c'),
+    policy_cid: pin('d'), media_type: 'application/pdf', size_bytes: 3,
+    classification: 'internal', region: 'fixture-region', egress_scope_cid: pin('e'),
+    pages: 1, frames: null, complete: true, transfer_method: 'inline_bytes'}]};
 const bodies = [['model_dispatch_authority', authority],
   ['model_call_attempt', attempt], ['model_attempt_accounting', accounting],
   ['model_attempt_outcome', outcome],
@@ -37,7 +44,7 @@ const bodies = [['model_dispatch_authority', authority],
   ['model_attempt_accounting', {...accounting, input_tokens: 1, output_tokens: 2,
     reservation: {tokens: 33, cost_units: 7, duration_ms: 19}}],
   ['model_attempt_outcome', {...outcome, category: 'contract_violation',
-    failure: 'budget_exceeded'}]];
+    failure: 'budget_exceeded'}], ['model_attachment_admission', attachment]];
 const corpus = {version: 'actql-model-attempt-evidence-vectors/0.1',
   cases: bodies.map(([kind, body]) => ({kind, body,
     expected_canonical_bytes: canonicalText(body), expected_cid: machineCid(body)}))};
@@ -60,7 +67,12 @@ for (const [kind, body] of [['model_attempt_accounting', {...accounting, input_t
   ['model_attempt_accounting', {...accounting,
     reservation: {tokens: -1, cost_units: 7, duration_ms: 19}}],
   ['model_attempt_accounting', {...accounting,
-    reservation: {tokens: 33, cost_units: 7}}]]) {
+    reservation: {tokens: 33, cost_units: 7}}],
+  ['model_attachment_admission', {...attachment, attachments: []}],
+  ...[{item: -2}, {size_bytes: -1}, {complete: false}, {pages: 0},
+    {transfer_method: 'uri'}, {unknown: true}].map(change =>
+    ['model_attachment_admission', {...attachment,
+      attachments: [{...attachment.attachments[0], ...change}]}])]) {
   moon += `\n///|\ntest ${JSON.stringify('invalid model attempt evidence ' + kind + ' ' + machineCid(body).slice(7, 15))} {\n` +
     `  assert_true(seal_run_evidence_value(${JSON.stringify(kind)},\n` +
     `    ${JSON.stringify(canonicalText(body))}, 16384, 256, 8) is Err(RunEvidenceInvalidShape))\n}\n`;

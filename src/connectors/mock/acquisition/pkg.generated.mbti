@@ -29,9 +29,9 @@ pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @e
 
 pub fn issue_mock_query_records(MockQueryAttempt, @query_planning.QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
 
-pub fn mock_acquisition_candidate(@connector_sdk.CapabilityRegistration, @query_planning.QueryRequirement, QueryOffer) -> Result[@query_planning.PreparedAcquisition[QueryOffer], @query_planning.QueryPlanningIssue]
+pub fn mock_acquisition_candidate(@connector_sdk.CapabilityRegistration, @query_planning.QueryRequirement, QueryOffer) -> Result[@query_planning.PreparedAcquisition[@query_planning.QueryRequirement, QueryOffer], @query_planning.QueryPlanningIssue]
 
-pub fn mock_acquisition_strategy(@query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[QueryOffer]) -> QueryStrategy?
+pub fn mock_acquisition_strategy(@query_planning.AcquisitionChoice[@query_planning.QueryRequirement], @query_planning.PreparedAcquisition[@query_planning.QueryRequirement, QueryOffer]) -> QueryStrategy?
 
 pub fn mock_captured_source(MockQueryIssuer, MockQueryAttempt, MockQueryObservation) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 

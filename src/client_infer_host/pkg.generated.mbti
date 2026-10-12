@@ -12,6 +12,7 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -29,6 +30,8 @@ pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, I
 pub fn advance_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], Int) -> @physical_resources.OriginalStateWritePoll
 
 pub fn advance_result_publication(ResultPublication, Int) -> Result[(Bool, Int), ResultPublicationIssue]
+
+pub fn advance_root(Execution, Int) -> Result[Poll, Issue]
 
 pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
 
@@ -80,7 +83,7 @@ pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
 
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
-pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool) -> @local.ManagedProvider
+pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, boundary_only? : Bool) -> @local.ManagedProvider
 
 pub fn consume_original_model_resource_invalidation(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, Issue]
 
@@ -106,7 +109,11 @@ pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.Compl
 
 pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
+pub fn issued_attachment_admission(Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
+
 pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
+
+pub fn keyed_root_capacity(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?, Limits) -> @execution_relation.ExecutionCapacity?
 
 pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool) -> Result[@local.ManagedProviderExecution, Issue]
 
@@ -164,11 +171,21 @@ pub fn standard_limits() -> Limits
 
 pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
-pub fn start_complete_observation_issuance(Array[Execution], @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
+pub fn start_complete_observation_issuance(Array[Execution], @physical_resources.Ledger, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
-pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
+pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?) -> Result[Execution, Issue]
 
-pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
+pub fn start_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
+
+pub fn start_generated_inputs(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
+
+pub fn start_keyed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, Limits, @run_publication_host.ClientInferComposedSources, @execution_relation.GeneratedSequence?, @physical_resources.Ledger) -> Result[Execution, Issue]
+
+pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
+
+pub fn start_original_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[Execution, Issue]
+
+pub fn start_original_generated_inputs(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[Execution, Issue]
 
 pub fn start_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
@@ -176,15 +193,21 @@ pub fn start_original_model_preparation(@run_publication_host.PreparedClientProg
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
-pub fn start_restored_composed_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, String, Array[String], () -> Bool, Limits, sources? : @run_publication_host.ClientInferComposedSources?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?) -> Result[Execution, Issue]
+pub fn start_restored_composed_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, String, Array[String], () -> Bool, Limits, sources? : @run_publication_host.ClientInferComposedSources?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?, reference_issuer? : @value_admission.ReferenceIssuer, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?) -> Result[Execution, Issue]
 
-pub fn start_restored_input(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, @run_publication_host.ClientInferPlanGraph, String, String, String, Array[String], () -> Bool, Limits, acquired_input? : @run_publication_host.ClientInferCapturedInput?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
+pub fn start_restored_generated_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String, String, Array[String], () -> Bool, Limits, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
+
+pub fn start_restored_generated_inputs(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, String, String, () -> Bool, Limits) -> Result[Execution, Issue]
+
+pub fn start_restored_input(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, @run_publication_host.ClientInferPlanGraph, String, String, String, Array[String], () -> Bool, Limits, acquired_input? : @run_publication_host.ClientInferCapturedInput?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?, fragment_body? : String?, ordered_body? : String?, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[Execution, Issue]
 
 pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResultPublication, ResultPublicationIssue]
+
+pub fn start_serialized(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
 
 pub fn stopped_attempt_count(Execution) -> Int?
 
@@ -233,6 +256,8 @@ pub struct Execution {
   mut final_quantity_usage : @physical_resources.QuantityUsage?
   mut acquired_input : @run_publication_host.ClientInferCapturedInput?
   composed_sources : @run_publication_host.ClientInferComposedSources?
+  mut serialized_output : @execution_relation.CompletedOutput?
+  mut serialized_generation : @run_publication_host.ClientSerializationGeneration?
 }
 
 type ExecutionRunBinding

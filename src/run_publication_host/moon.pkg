@@ -54,5 +54,8 @@ import {
 
 import {
   "actql/actql/capacity_law",
+  "moonbitlang/core/debug",
+  "actql/actql/bounded_execution" @bounded,
+  "actql/actql/connectors/local",
   "actql/actql/physical_manifest" @cleanup_manifest,
 } for "wbtest"

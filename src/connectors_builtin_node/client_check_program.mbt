@@ -342,10 +342,32 @@ fn check_program_findings(
       }
       Report
     }
-    Bound(Rejected(diagnostic)) | TemplateDiagnostic(diagnostic) =>
+    Bound(Rejected(diagnostic)) | TemplateDiagnostic(diagnostic) => {
+      // The pure checker deliberately rejects Effects. As for authored text,
+      // observe the exact admitted Program through the existing static Effect
+      // closure, only after audience-visible Source obligations are resolved.
+      // No Run, approval, physical grant or dispatch is issued by this check.
+      if scope == BoundInput &&
+        @program_check.diagnostic_cause(diagnostic)
+        is Source(UnsupportedEffects(_)) {
+        match
+          @publication_host.prepare_parsed_client_effect_computation(
+            program,
+            environment,
+            supplied,
+            [],
+            client_program_effect_limits(),
+          ) {
+          Ok(_) => return Report
+          // Keep the limitation on any failed static closure. It must never
+          // turn an unclosed Command or Mapping into a verified report.
+          Err(_) => ()
+        }
+      }
       check_program_diagnostic(
         findings, diagnostic, document, supplied, parameters, locate,
       )
+    }
   }
 }
 

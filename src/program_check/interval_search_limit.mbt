@@ -136,7 +136,7 @@ fn assemble_interval_search_limit(
       }
       let proof = reidentify_step_graph(
         units,
-        @step_bounds.target_rows_bound(rows),
+        require_step_target_rows(rows),
         remaining,
         conversion~,
       )

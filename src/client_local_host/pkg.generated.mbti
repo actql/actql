@@ -16,7 +16,9 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
+  "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/value_admission",
   "moonbitlang/core/ref",
 }
 
@@ -27,13 +29,27 @@ pub fn accounted_client_source_capture_source(ClientAccountedSourceCapture) -> @
 
 pub fn accounted_client_source_capture_usage(ClientAccountedSourceCapture) -> @physical_resources.LedgerUsage
 
+pub fn accounted_client_source_original_read(ClientAccountedSourceCapture) -> @execution_relation.SuppliedRelationRead?
+
+pub fn acknowledge_client_local_content_piece(ClientLocalContentStep, Int) -> Bool
+
+pub fn add_client_serialization_workspace_capacity(@execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
+
 pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[ClientInferInputPoll, ClientInferInputIssue]
 
+pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
+
 pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
+
+pub fn cancel_client_serialization_prefix(ClientSerializationPrefix) -> Bool
 
 pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
 
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
+
+pub fn cleanup_client_serialization_prefix(ClientSerializationPrefix) -> Result[Bool, ClientSerializationPrefixIssue]
+
+pub fn client_acquired_serialization_prefix_capacity(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedProviderExecution
 
@@ -51,6 +67,10 @@ pub fn client_duckdb_selection_document(ClientDuckDBAcquisitionSelection) -> Str
 
 pub fn client_duckdb_selection_native(ClientDuckDBAcquisitionSelection) -> @host.NativeHostConfiguration?
 
+pub fn client_effect_content_local_provider(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, ClientSerializationWorkspaceLimits, ClientLocalContentPhysicalPort, (ClientLocalContentStep) -> Bool, recovery? : ClientRetainedContentOutput?) -> @local.ManagedProvider?
+
+pub fn client_effect_family_ledger_limits(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Array[@local.ManagedProvider]) -> @physical_resources.LedgerLimits?
+
 pub fn client_effect_local_ledger_limits(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?) -> @physical_resources.LedgerLimits?
 
 pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
@@ -65,6 +85,16 @@ pub fn client_infer_retained_input_export_matches(ClientInferRetainedInputExport
 
 pub fn client_infer_retained_input_export_rows(ClientInferRetainedInputExport) -> Array[String]
 
+pub fn client_keyed_local_join_capacity(ClientKeyedJoinPreparation) -> @execution_relation.ExecutionCapacity
+
+pub fn client_local_content_byte_completion(ClientLocalContentStep) -> @run_publication.ContentByteCompletion?
+
+pub fn client_local_content_generation_input(ClientLocalContentStep) -> (@run_publication_host.ClientSerializationInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.ContentByteEncoder)?
+
+pub fn client_local_content_pending_piece(ClientLocalContentStep) -> (Int, String)?
+
+pub fn client_local_content_step_generation(ClientLocalContentStep) -> @run_publication_host.ClientSerializationGeneration?
+
 pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
 
 pub fn client_local_values_publication_limits(@run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
@@ -72,6 +102,12 @@ pub fn client_local_values_publication_limits(@run_publication_host.PreparedClie
 pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedProviderExecution
 
 pub fn client_query_residual_output(ClientQueryResidual, @execution_query.QuerySequence, @execution_query.QueryReceipt, Int, Int) -> @execution_relation.CompletedOutput?
+
+pub fn client_serialization_prefix_capacity(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_serialization_prefix_work(ClientSerializationPrefix) -> Result[Int64, @local.ManagedProviderWorkIssue]
+
+pub fn client_serialization_workspace_capacity(ClientSerializationWorkspaceLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_source_capture_export_binding(ClientSourceCaptureExport) -> String
 
@@ -83,7 +119,7 @@ pub fn client_source_capture_export_rows(ClientSourceCaptureExport) -> Array[Str
 
 pub fn client_source_capture_source(ClientSourceCapture) -> @execution_query.CapturedInputSource?
 
-pub fn close_accounted_client_source_capture(ClientAccountedSourceCapture) -> Bool
+pub fn close_accounted_client_source_capture(ClientAccountedSourceCapture, quantum? : Int) -> Bool
 
 pub fn close_client_source_capture(ClientSourceCapture) -> Bool
 
@@ -91,15 +127,23 @@ pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.Du
 
 pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisition.DuckDBBroadObservation, @host.BroadHostIssue]
 
+pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
+
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn execute_source_free_values_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, () -> Bool) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+
+pub fn export_client_content_generation_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
 
 pub fn export_client_infer_retained_input(@execution_relation.CompletedOutput, String) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
 
 pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue]
 
+pub fn installed_capture_capacity_values(ClientInstalledCaptureCapacity) -> Array[Int64]
+
 pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
+
+pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) -> ClientInstalledCaptureCapacity
 
 pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> ClientInstalledCaptureCapacity?
 
@@ -113,6 +157,8 @@ pub fn open_captured_local_retained_host(@run_publication_host.PreparedClientPro
 
 pub fn open_captured_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn open_client_keyed_local_host(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedLookupInput, @physical_resources.Ledger, String, String, String?, String?, retained_output? : Bool, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
 pub fn open_multi_captured_local_host(@run_publication_host.PreparedClientProgram, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, String, String, String?, String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn open_multi_captured_local_retained_host(@run_publication_host.PreparedClientProgram, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, String, String, String?, String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
@@ -122,6 +168,8 @@ pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, 
 pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+pub fn prepare_client_acquired_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_broad_residual(@host.BroadHostRun, Int) -> Result[ClientBroadResidual, ClientQueryResidualIssue]
 
@@ -135,21 +183,35 @@ pub fn prepare_client_duckdb_broad_acquisition(@query_planning.QueryRequirement,
 
 pub fn prepare_client_duckdb_capture_capacity(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[ClientDuckDBCaptureCapacity, ClientDuckDBAcquisitionIssue]
 
+pub fn prepare_client_effect_family_capture_ledger(@run_publication_host.PreparedClientEffectComputation, ClientInstalledCaptureCapacity, Int64, Int64, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Array[@local.ManagedProvider]) -> @physical_resources.Ledger?
+
 pub fn prepare_client_effect_infer_prefix(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_effect_infer_suffix(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
+pub fn prepare_client_effect_keyed_local_join(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientKeyedLookupInput, String, String, String?, String?) -> ClientKeyedJoinPreparation?
+
 pub fn prepare_client_effect_local_sequences(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
+
+pub fn prepare_client_effect_serialization_prefix(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_infer_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_infer_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
+pub fn prepare_client_keyed_local_join(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedLookupInput, String, String, String?, String?) -> ClientKeyedJoinPreparation?
+
 pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgram, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
 pub fn prepare_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[ClientQueryResidual, ClientQueryResidualIssue]
 
+pub fn prepare_client_retained_content_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, Array[String], () -> Bool) -> Result[ClientRetainedContentOutput, ClientInferRetainedInputIssue]
+
+pub fn prepare_client_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> @execution_relation.GeneratedSequence?
+
 pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
+
+pub fn prepare_keyed_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, serialization? : (Int, Int, Int64, Int64)?, infer? : (Int, Int, Int64, Int64)?, captured_content? : Bool) -> @physical_resources.Ledger?
 
 pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
@@ -167,13 +229,15 @@ pub fn prepare_multi_captured_local_installed_ledger(@run_publication_host.Prepa
 
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
 
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
 
-pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger, ClientDuckDBCaptureCapacity, () -> Bool) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue]
+pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger, ClientInstalledCaptureCapacity, () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer, original_input? : (String, String, Array[String])?) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue]
 
-pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], () -> Bool) -> Result[ClientSourceCapture, ClientSourceCaptureIssue]
+pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientSourceCapture, ClientSourceCaptureIssue]
 
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
@@ -185,17 +249,29 @@ pub fn single_captured_local_ledger_limits(@run_publication_host.PreparedClientP
 
 pub fn start_client_acquired_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
-pub fn start_client_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+pub fn start_client_acquired_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @physical_resources.Ledger, workspace? : @execution_relation.ExecutionCapacity?, keyed? : @run_publication_host.ClientKeyedLookupInput?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
+
+pub fn start_client_completed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.CompletedOutput, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_client_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, keyed? : @run_publication_host.ClientKeyedLookupInput?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_infer_suffix(@execution_relation.GeneratedSequence, Array[@execution_relation.CompletedOutput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[@local.ManagedProviderExecution, ClientInferInputIssue]
 
+pub fn start_client_keyed_local_join(ClientKeyedJoinPreparation, run? : @physical_strategy.CapturedDAG?) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
+
 pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
 
-pub fn start_client_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+pub fn start_client_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
-pub fn start_client_restored_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+pub fn start_client_restored_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_client_restored_serialized_infer_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferOccurrence, @run_publication.BoundContentGeneration, String, String, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_client_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @physical_resources.Ledger, workspace? : @execution_relation.ExecutionCapacity?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
+
+pub fn start_client_serialized_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Int, @execution_relation.CompletedOutput, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 // Errors
 
@@ -231,6 +307,7 @@ pub(all) enum ClientInferInputIssue {
   Local(@connector_sdk.FixedComputeIssue)
   Mapping(@execution_relation.InferPreparationIssue)
   ProducerRead(@execution_relation.ProducerReadIssue)
+  ProducerBinding(@execution_relation.ProducerBindingIssue)
   Capture(@execution_query.CapturedSourceIssue)
   RetainedInput(ClientInferRetainedInputIssue)
 }
@@ -263,6 +340,16 @@ pub(all) enum ClientInferRetainedInputIssue {
 
 type ClientInstalledCaptureCapacity
 
+type ClientKeyedJoinPreparation
+
+pub(all) struct ClientLocalContentPhysicalPort {
+  cancel : () -> Bool
+  stopped : () -> Bool
+  cleanup : () -> Result[Bool, @connector_sdk.FixedComputeIssue]
+}
+
+type ClientLocalContentStep
+
 pub(all) enum ClientLocalQueryIssue {
   Sequences
   MissingStage
@@ -282,6 +369,42 @@ pub(all) enum ClientQueryResidualIssue {
   Acquisition(@host.BroadHostIssue)
 }
 
+pub struct ClientRetainedContentOutput {
+  generation : @run_publication_host.ClientSerializationGeneration
+  run : @run_publication_host.ClientCompiledRun
+  definition : @run_publication.PublicationContract
+  store_cid : String
+  binding : String
+  descriptor_wire : String
+  rows : Array[String]
+  available : () -> Bool
+}
+
+type ClientSerializationPrefix
+
+pub(all) enum ClientSerializationPrefixIssue {
+  Unavailable
+  Physical(@physical_resources.LedgerIssue)
+  Provider(@connector_sdk.FixedComputeIssue)
+  Capture(@execution_query.CapturedSourceIssue)
+  ProducerRead(@execution_relation.ProducerReadIssue)
+}
+
+pub(all) struct ClientSerializationWorkspaceLimits {
+  generation_bytes : Int
+  generation_nodes : Int
+  generation_depth : Int
+  generation_frames : Int
+  identity_slots : Int
+  reference_bytes : Int
+  reference_nodes : Int
+  reference_depth : Int
+  contract_bytes : Int
+  contract_nodes : Int
+  contract_depth : Int
+  export_limits : @run_publication_host.PublicationOutputExportLimits
+}
+
 type ClientSourceCapture
 
 type ClientSourceCaptureExport
@@ -297,6 +420,7 @@ pub(all) enum ClientSourceCaptureIssue {
   Readmission(@execution_relation.TrustedOutputIssue)
   Import(@execution_relation.CompletedImportIssue)
   Physical(@physical_resources.LedgerIssue)
+  Original(@client_row_source_host.RowOriginalCaptureIssue)
 }
 
 pub struct LocalValuesExecution {

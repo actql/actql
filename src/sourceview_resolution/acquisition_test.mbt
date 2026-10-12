@@ -238,6 +238,18 @@ fn check_acquisition_fixture(
           )
           if is_keyed {
             let linked = keyed_join_at(joined, 0).unwrap()
+            check_captured_keyed_request(
+              stage,
+              parameters,
+              linked,
+              arity,
+              variant,
+              if capacity_kind >= 1 {
+                Some(keyed_facts_at(facts_result.unwrap(), 0).unwrap())
+              } else {
+                None
+              },
+            )
             assert_eq(keyed_join_input(linked), 1)
             assert_eq(keyed_join_step(linked), 0)
             assert_eq(keyed_join_left(linked), @pipeline.Input(2))
@@ -323,4 +335,363 @@ fn check_acquisition_fixture(
       is Err(ForeignRequests),
     )
   }
+}
+
+///|
+fn keyed_input_row_cursor(text : String) -> @decode.Cursor {
+  @decode.admit(
+    @source.parse_json(text, {
+      max_input_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+    }).unwrap(),
+    {
+      max_nodes: 100,
+      max_depth: 10,
+      max_string_bytes: 1000,
+      max_total_string_bytes: 1000,
+    },
+  ).unwrap()
+}
+
+///|
+/// Read real immutable rows at the checked input port, including reordered and
+/// repeated JOIN pairs. Bounds and expected values are authored independently
+/// of the request implementation, not measured from a successful dry run.
+fn check_captured_keyed_request(
+  stage : @stages.CollectedStage,
+  parameters : RequestParameters,
+  joined : KeyedJoin,
+  arity : Int,
+  variant : Int,
+  facts : KeyedSourceFacts?,
+) -> Unit raise {
+  let pipeline = @collection.pipeline(@stages.collection(stage))
+  let prepared = @lower.prepare(pipeline, {
+    max_nodes: 100,
+    max_references: 100,
+    max_work: 100000,
+    max_identifier_bytes: 10000,
+  }).unwrap()
+  let values = request_parameter_values(parameters)
+  let owner = @lower.bind_parameters(
+    prepared,
+    Some(values),
+    max_parameters=100,
+    max_name_bytes=10000,
+  ).unwrap()
+  let rows = [
+    keyed_input_row_cursor(
+      if arity == 2 {
+        "{\"extra\":2,\"id\":1,\"other\":3}"
+      } else {
+        "{\"extra\":2,\"id\":1}"
+      },
+    ),
+    keyed_input_row_cursor(
+      if arity == 2 {
+        "{\"extra\":9,\"id\":7,\"other\":11}"
+      } else {
+        "{\"extra\":9,\"id\":7}"
+      },
+    ),
+  ]
+  let admission : @execution.ValueLimits = {
+    max_nodes: 100,
+    max_depth: 10,
+    max_work: 10000,
+    max_text_bytes: 10000,
+  }
+  // The fixture deliberately registers c,b,a in that order. The checked left
+  // `a` is input 2; input 0 has equal schema but is a different occurrence.
+  assert_eq(keyed_join_left(joined), @pipeline.Input(2))
+  let captured = @execution.capture_input(owner, 2, rows, max_rows=2, admission).unwrap()
+  let extraction_work = if arity == 2 {
+    if variant == 9 {
+      44
+    } else {
+      46
+    }
+  } else if variant == 9 {
+    13
+  } else {
+    15
+  }
+  let request_work = if arity == 2 { 24 } else { 15 }
+  let total_work = extraction_work + request_work
+  let exact : RequestLimits = {
+    max_work: total_work,
+    max_pairs: arity + 1,
+    values: { max_nodes: arity, max_depth: 1, max_text_bytes: 0, },
+  }
+  let (cursor, actual_extraction) = @query.start_captured_keyed_request(
+    owner, joined, captured, 1, exact,
+  ).unwrap()
+  assert_eq(actual_extraction, extraction_work)
+  let mut complete = None
+  for _ in 0..<(3 * arity + 1) {
+    match advance_keyed_row_request(cursor) {
+      KeyedRowRequestContinue => ()
+      KeyedRowRequestComplete(row) => complete = Some(row)
+      KeyedRowRequestFailed(_) => fail("checked capture request failed")
+    }
+  }
+  let request = complete.unwrap()
+  let (work, nodes, text) = keyed_row_request_usage(request)
+  assert_eq((actual_extraction + work, nodes, text), (total_work, arity, 0))
+  let expected_id = if variant == 9 { "9" } else { "7" }
+  let expected = "{\"id\":" +
+    expected_id +
+    (if arity == 2 { ",\"other\":11" } else { "" }) +
+    ",\"tenant\":null}"
+  assert_eq(
+    @json.parse(keyed_row_request_wire(request, 1000, 100, 10).unwrap()),
+    @json.parse(expected),
+  )
+  if facts is Some(facts) {
+    check_captured_keyed_response(owner, facts, request, expected_id, arity)
+  }
+  let (short, _) = @query.start_captured_keyed_request(
+    owner,
+    joined,
+    captured,
+    1,
+    { ..exact, max_work: total_work - 1, },
+  ).unwrap()
+  for _ in 0..<(3 * arity) {
+    assert_true(advance_keyed_row_request(short) is KeyedRowRequestContinue)
+  }
+  assert_true(
+    advance_keyed_row_request(short) is KeyedRowRequestFailed(WorkLimit),
+  )
+  assert_true(
+    @query.start_captured_keyed_request(owner, joined, captured, 2, exact)
+    is Err(@query.InvalidRow),
+  )
+  let wrong_port = @execution.capture_input(
+    owner,
+    0,
+    rows,
+    max_rows=2,
+    admission,
+  ).unwrap()
+  assert_true(
+    @query.start_captured_keyed_request(owner, joined, wrong_port, 1, exact)
+    is Err(@query.ForeignInput),
+  )
+  let foreign_owner = @lower.bind_parameters(
+    prepared,
+    Some(values),
+    max_parameters=100,
+    max_name_bytes=10000,
+  ).unwrap()
+  assert_true(
+    @query.start_captured_keyed_request(
+      foreign_owner, joined, captured, 1, exact,
+    )
+    is Err(@query.ForeignInput),
+  )
+  let (cancelled, _) = @query.start_captured_keyed_request(
+    owner, joined, captured, 1, exact,
+  ).unwrap()
+  assert_true(advance_keyed_row_request(cancelled) is KeyedRowRequestContinue)
+  cancel_keyed_row_request(cancelled)
+  assert_true(
+    advance_keyed_row_request(cancelled) is KeyedRowRequestFailed(Closed),
+  )
+  // Request cancellation never reclaims or mutates the borrowed source rows.
+  assert_eq(@execution.captured_row_count(captured), 2)
+  assert_true(
+    @execution.captured_cell(captured, 1, 1) is Some(@value.Number(7.0)),
+  )
+}
+
+///|
+fn check_captured_keyed_response(
+  owner : @lower.BoundPrepared,
+  facts : KeyedSourceFacts,
+  request : KeyedRowRequest,
+  expected_id : String,
+  arity : Int,
+) -> Unit raise {
+  let joined = keyed_source_join(facts)
+  let input = keyed_request_input(
+    parameterized_keyed_request(keyed_join_request(joined)),
+  )
+  let schema = @query.keyed_response_input_schema(owner, joined, request).unwrap()
+  let columns = []
+  for i in 0..<@row.field_count(schema) {
+    columns.push(@row.field_reference_name(@row.field_at(schema, i).unwrap()))
+  }
+  assert_eq(
+    columns,
+    if arity == 2 {
+      ["extra", "id", "other"]
+    } else {
+      ["extra", "id"]
+    },
+  )
+  let source_facts = @planning.keyed_source_evidence_facts(facts).unwrap()
+  let view = @rowhost.declared_row_view(
+    "r",
+    source_facts.source_ref,
+    selected_cid(input),
+    columns,
+    source_facts.carrier_schema_contract_cid,
+    source_facts.source_data_policy_cid,
+  )
+  let page_limits : @rowhost.RowPageLimits = {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 10,
+    max_rows: 2,
+  }
+  let retention : @execution.ValueLimits = {
+    max_nodes: 100,
+    max_depth: 10,
+    max_work: 1000,
+    max_text_bytes: 4096,
+  }
+  // Named-column metadata: 22 (one role) or 58 (two), plus one visit per
+  // extracted response cell. Response comparison:
+  // 9 (one role), or copy/start 3 + 2*6 role work + completion 1 = 16.
+  // The resumable row owner additionally charges admission, append and page
+  // completion once each. Quantum and repeated completion add no row work.
+  let total = if arity == 2 { 79 } else { 35 }
+  let limits : RequestLimits = {
+    max_work: total,
+    max_pairs: arity,
+    values: { max_nodes: 100, max_depth: 10, max_text_bytes: 4096, },
+  }
+  let wire = "[{\"extra\":100,\"id\":" +
+    expected_id +
+    (if arity == 2 { ",\"other\":11" } else { "" }) +
+    "}]"
+  let begin = fn(work : Int) {
+    @rowhost.begin_declared_keyed_row_read(
+      owner,
+      facts,
+      request,
+      "crm/main",
+      view,
+      page_limits,
+      2,
+      retention,
+      { ..limits, max_work: work, },
+    )
+  }
+  let read = begin(total).unwrap()
+  assert_eq(
+    @rowhost.accept_keyed_row_page(read, @utf8.encode(wire)).unwrap(),
+    1,
+  )
+  assert_eq(
+    @rowhost.keyed_row_read_usage(read),
+    (total, 1L, @utf8.encode(wire).length().to_int64()),
+  )
+  let captured = @rowhost.complete_keyed_row_read(read).unwrap()
+  assert_true(physical_equal(@execution.captured_owner(captured), owner))
+  assert_eq(@execution.captured_origin(captured), @execution.SuppliedInput(1))
+  assert_eq(@execution.captured_row_count(captured), 1)
+  assert_false(@rowhost.cancel_keyed_row_read(read))
+  assert_eq(@execution.captured_row_count(captured), 1)
+  let short = begin(total - 1).unwrap()
+  assert_true(
+    @rowhost.accept_keyed_row_page(short, @utf8.encode(wire))
+    is Err(@rowhost.KeyedLimit("work")),
+  )
+  assert_true(@rowhost.complete_keyed_row_read(short) is Err(@rowhost.Closed))
+  assert_eq(@rowhost.keyed_row_read_usage(short).0, total - 1)
+  for quantum in [1, 2, 64] {
+    let resumed = begin(total).unwrap()
+    let initial = @rowhost.keyed_row_read_usage(resumed).0
+    @rowhost.begin_keyed_row_page(resumed, @utf8.encode(wire)).unwrap()
+    // A decoded response and correct shape are not complete correlation or
+    // permission to expose even the first captured row.
+    assert_true(
+      @rowhost.complete_keyed_row_read(resumed) is Err(@rowhost.KeyedIncomplete),
+    )
+    assert_true(
+      @rowhost.begin_keyed_row_page(resumed, @utf8.encode(wire))
+      is Err(@rowhost.KeyedIncomplete),
+    )
+    let mut sum = 0
+    let mut complete = false
+    for _ in 0..<1000 {
+      match @rowhost.advance_keyed_row_page(resumed, quantum).unwrap() {
+        KeyedPageContinue(work~) => sum += work
+        KeyedPageComplete(rows~, work~) => {
+          assert_eq(rows, 1)
+          sum += work
+          complete = true
+          break
+        }
+      }
+    }
+    assert_true(complete)
+    assert_eq(initial + sum, total)
+    assert_eq(
+      @rowhost.keyed_row_read_usage(resumed),
+      (total, 1L, @utf8.encode(wire).length().to_int64()),
+    )
+    assert_true(
+      @rowhost.advance_keyed_row_page(resumed, quantum)
+      is Err(@rowhost.KeyedIncomplete),
+    )
+    assert_eq(@rowhost.keyed_row_read_usage(resumed).0, total)
+    assert_eq(
+      @execution.captured_row_count(
+        @rowhost.complete_keyed_row_read(resumed).unwrap(),
+      ),
+      1,
+    )
+  }
+  let interrupted = begin(total).unwrap()
+  @rowhost.begin_keyed_row_page(interrupted, @utf8.encode(wire)).unwrap()
+  for _ in 0..<5 {
+    assert_true(
+      @rowhost.advance_keyed_row_page(interrupted, 1)
+      is Ok(KeyedPageContinue(..)),
+    )
+  }
+  let interrupted_usage = @rowhost.keyed_row_read_usage(interrupted)
+  assert_true(interrupted_usage.0 > (if arity == 2 { 58 } else { 22 }))
+  assert_true(@rowhost.cancel_keyed_row_read(interrupted))
+  assert_false(@rowhost.cancel_keyed_row_read(interrupted))
+  assert_eq(@rowhost.keyed_row_read_usage(interrupted), interrupted_usage)
+  assert_true(
+    @rowhost.advance_keyed_row_page(interrupted, 1) is Err(@rowhost.Closed),
+  )
+  assert_true(
+    @rowhost.complete_keyed_row_read(interrupted) is Err(@rowhost.Closed),
+  )
+  let foreign = begin(total).unwrap()
+  let wrong = "[{\"extra\":100,\"id\":99" +
+    (if arity == 2 { ",\"other\":11" } else { "" }) +
+    "}]"
+  assert_true(
+    @rowhost.accept_keyed_row_page(foreign, @utf8.encode(wrong))
+    is Err(@rowhost.KeyedResponse(CorrelationMismatch(0))),
+  )
+  assert_true(@rowhost.complete_keyed_row_read(foreign) is Err(@rowhost.Closed))
+  let cancelled = begin(total).unwrap()
+  assert_true(@rowhost.cancel_keyed_row_read(cancelled))
+  assert_false(@rowhost.cancel_keyed_row_read(cancelled))
+  assert_true(
+    @rowhost.accept_keyed_row_page(cancelled, @utf8.encode(wire))
+    is Err(@rowhost.Closed),
+  )
+  let pages = begin(total).unwrap()
+  for _ in 0..<3 {
+    assert_eq(
+      @rowhost.accept_keyed_row_page(pages, @utf8.encode("[]")).unwrap(),
+      0,
+    )
+  }
+  assert_true(
+    @rowhost.accept_keyed_row_page(pages, @utf8.encode("[]"))
+    is Err(@rowhost.KeyedLimit("pages")),
+  )
+  assert_eq(@rowhost.keyed_row_read_usage(pages).1, 3L)
+  assert_true(@rowhost.complete_keyed_row_read(pages) is Err(@rowhost.Closed))
 }

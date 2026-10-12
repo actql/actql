@@ -5,6 +5,9 @@ pub(all) struct RowRelationViewSpec {
   resource_kind : String
   schema_wire : String
   schema_cid : String
+  request_schema_wire : String?
+  facts_wire : String?
+  acquisition_wire : String?
 }
 
 ///|
@@ -14,6 +17,7 @@ pub fn generate_relation_row_declaration(
   connector_version : String,
   views : Array[RowRelationViewSpec],
   limits : RowDeclarationLimits,
+  classifications? : Array[@environment.DataClassification]? = None,
 ) -> Result[RowDeclaration, RowHostIssue] {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
@@ -24,6 +28,7 @@ pub fn generate_relation_row_declaration(
   }
   let specs = []
   let bodies = []
+  let requests = []
   let mut bytes = limits.max_bytes
   let mut nodes = limits.max_nodes
   let mut work = limits.max_nodes
@@ -91,6 +96,103 @@ pub fn generate_relation_row_declaration(
     nodes -= usage.nodes
     work -= used_work
     bytes -= measured
+    let request_bodies = []
+    for
+      index, wire in [
+        view.request_schema_wire,
+        view.facts_wire,
+        view.acquisition_wire,
+      ] {
+      if index == 2 && wire is None {
+        // An absent acquisition declaration does not consume a synthetic input.
+        request_bodies.push(Json::null())
+        continue
+      }
+      let wire = match wire {
+        Some(wire) => wire
+        None if index == 0 =>
+          "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{}}"
+        None => "{}"
+      }
+      let source = match
+        @source.parse_json(wire, {
+          max_input_bytes: bytes,
+          max_nodes: nodes,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(source) => source
+        Err(_) => return Err(InvalidSpecification)
+      }
+      let cursor = match
+        @decode.admit(source, {
+          max_nodes: nodes,
+          max_depth: limits.max_depth,
+          max_string_bytes: bytes,
+          max_total_string_bytes: bytes,
+        }) {
+        Ok(cursor) => cursor
+        Err(_) => return Err(InvalidSpecification)
+      }
+      if @decode.object_length(cursor) is None {
+        return Err(InvalidContracts)
+      }
+      if index == 0 {
+        guard @contract.read_checked(cursor, {
+            max_nodes: nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: bytes,
+          })
+          is Ok(contract) &&
+          !contract.nullable &&
+          contract.shape is @contract.Object(fields) &&
+          @contract.field_count(fields) <= limits.max_fields else {
+          return Err(InvalidContracts)
+        }
+      }
+      let body = @json.parse(wire) catch {
+        _ => return Err(InvalidSpecification)
+      }
+      let canonical = @identity.from_json(body, nodes, limits.max_depth, bytes) catch {
+        _ => return Err(InvalidSpecification)
+      }
+      let measured = @identity.measure_value(
+        canonical,
+        bytes,
+        nodes,
+        limits.max_depth,
+      ) catch {
+        _ => return Err(InvalidSpecification)
+      }
+      // Preserve cumulative budgets across all views and their declarations.
+      nodes -= @decode.admission_usage(cursor).nodes
+      bytes -= measured
+      // The shared declaration emitter expects nested contract objects in
+      // canonical key order too. Source specification JSON order is not an
+      // identity input; preserve values while using the admitted canonical body.
+      let canonical_wire = @identity.stringify_value(
+        canonical,
+        measured,
+        limits.max_nodes,
+        limits.max_depth,
+      ) catch {
+        _ => return Err(InvalidSpecification)
+      }
+      let canonical_body = @json.parse(canonical_wire) catch {
+        _ => return Err(InvalidSpecification)
+      }
+      request_bodies.push(canonical_body)
+    }
+    requests.push(
+      (
+        request_bodies[0],
+        request_bodies[1],
+        if view.acquisition_wire is Some(_) {
+          Some(request_bodies[2])
+        } else {
+          None
+        },
+      ),
+    )
     let fields = @schema.fields(schema).map(field => {
       name: @schema.field_reference_name(field),
       // These descriptors supply names only to shared declaration generation.
@@ -116,6 +218,8 @@ pub fn generate_relation_row_declaration(
     connector_version,
     specs,
     Some(bodies),
+    Some(requests),
+    classifications,
     limits,
   ).map_err(issue => Declaration(issue))
 }
@@ -162,20 +266,60 @@ pub fn restore_relation_row_declaration(
     return Err(InvalidSpecification)
   }
   let specs = []
+  let classifications : Array[@environment.DataClassification] = []
   for view in views {
     guard view is Object(entries) &&
-      entries.length() == 4 &&
+      entries.length() >= 4 &&
+      entries.length() <= 8 &&
       spec_text(view, "resource") is Some(resource) &&
       spec_text(view, "resource_kind") is Some(resource_kind) &&
       spec_text(view, "schema_wire") is Some(schema_wire) &&
       spec_text(view, "schema_cid") is Some(schema_cid) else {
       return Err(InvalidSpecification)
     }
-    specs.push({ resource, resource_kind, schema_wire, schema_cid, })
+    for name in entries.keys() {
+      if ![
+          "resource", "resource_kind", "schema_wire", "schema_cid", "request_schema_wire",
+          "facts_wire", "acquisition_wire", "data_classification",
+        ].contains(name) {
+        return Err(InvalidSpecification)
+      }
+    }
+    let classification = match entries.get("data_classification") {
+      None | Some(String("unknown")) => @environment.Unknown
+      Some(String("public")) => @environment.Public
+      Some(String("internal")) => @environment.Internal
+      Some(String("confidential")) => @environment.Confidential
+      Some(String("restricted")) => @environment.Restricted
+      _ => return Err(InvalidSpecification)
+    }
+    classifications.push(classification)
+    let optional = []
+    for name in ["request_schema_wire", "facts_wire", "acquisition_wire"] {
+      match entries.get(name) {
+        None => optional.push(None)
+        Some(String(wire)) => optional.push(Some(wire))
+        _ => return Err(InvalidSpecification)
+      }
+    }
+    specs.push({
+      resource,
+      resource_kind,
+      schema_wire,
+      schema_cid,
+      request_schema_wire: optional[0],
+      facts_wire: optional[1],
+      acquisition_wire: optional[2],
+    })
   }
   let declaration = match
     generate_relation_row_declaration(
-      connector_id, connector_registration, connector_version, specs, limits,
+      connector_id,
+      connector_registration,
+      connector_version,
+      specs,
+      limits,
+      classifications=Some(classifications),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

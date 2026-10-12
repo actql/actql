@@ -181,7 +181,7 @@ test "checked fixed members required and explicit optional nulls rejected" {
         "{\"type\":\"string\",\"nullable\":false,\"max_codepoints\":null}", "WrongType",
       ),
       (
-        "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":null}", "WrongType",
+        "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":null}", "WrongType",
       ),
       ("{\"type\":\"alien\",\"nullable\":false}", "UnknownType"),
     ] {
@@ -266,7 +266,7 @@ test "field names and reference restrictions preserve non-identifier strings" {
     )
   }
   for key in ["resource_kind", "media_type"] {
-    let kind = if key == "media_type" { "artifact_ref" } else { "resource_ref" }
+    let kind = if key == "media_type" { "content_ref" } else { "resource_ref" }
     ignore(
       author(
         "{\"type\":\"" +

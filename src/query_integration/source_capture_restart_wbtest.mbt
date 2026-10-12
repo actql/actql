@@ -15,6 +15,7 @@ fn[T] source_restart_ok(
           Content(MetadataLimit) => "source content metadata limit"
           Content(_) => "source content admission failure"
           Capture(_) => "source capture port failure"
+          Original(_) => "source original capture failure"
           Readmission(_) => "source retained readmission failure"
           Import(_) => "source representation import failure"
           Export(_) => "source export failure"
@@ -325,7 +326,7 @@ test "durable source bridge keeps original observation binding and charged DAG c
       @client_local_host.client_source_capture_export_descriptor(exported),
       @client_local_host.client_source_capture_export_rows(exported),
       ledger,
-      capacity,
+      @client_local_host.installed_pending_duckdb_capture_capacity(capacity),
       fn() { true },
     ),
   )

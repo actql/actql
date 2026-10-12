@@ -16,6 +16,7 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
+  "actql/actql/sha256" @sha,
 }
 
 import {

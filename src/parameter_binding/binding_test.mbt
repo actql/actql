@@ -395,7 +395,7 @@ test "empty declarations and unsupported parameter domains fail closed" {
   }
   for
     spec in [
-      "{\"type\":\"json\"}", "{\"type\":\"vector\",\"dimensions\":1}", "{\"type\":\"artifact_ref\"}",
+      "{\"type\":\"json\"}", "{\"type\":\"vector\",\"dimensions\":1}", "{\"type\":\"content_ref\"}",
       "{\"type\":\"resource_ref\",\"resource_kind\":\"x\"}", "{\"type\":\"number\",\"nullable\":null}",
       "{\"type\":\"string\",\"integer\":true}", "{\"type\":\"array\",\"items\":{\"type\":\"number\"},\"length\":0}",
     ] {

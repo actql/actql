@@ -62,7 +62,110 @@ fallback. To reuse distributions locally, first commit all source changes, run
 it. `client` itself is CI-only aggregation. Hosted CI verifies the final submitted
 revision, actual artifact handoff and complete foundation Git history.
 
+## Focused packed Content recovery acceptance
+
+After committing a coherent Content implementation, use the normal five-package
+producer above and run `node scripts/test-packed-files-content.mjs` with
+`ACTQL_PACKED_CLIENT_PACKAGES` pointing to that verified package directory.
+The consumer refuses dirty source and audits the actual installed package graph.
+Without the variable it uses each package's normal `npm pack`/`prepack`; it does
+not replace packing with checkout imports.
+
+Only authored test fixtures are bundled. Product imports resolve to the fresh
+consumer's installed distributions; undeclared imports, linked product files
+and checkout fallback are refused. Normative fixture inputs are copied exactly,
+with their original digests recorded separately from the fixture bundle digest.
+Children run without a MoonBit toolchain on PATH.
+
+This focused acceptance covers generated Content, intermediate SERIALIZE Result
+recovery, separate Model and COMMAND approval, process restart and unknown
+COMMAND non-resend on Local/HTTPS. It is not the complete files/keyed-capture or
+real GCS campaign. The separate staging and observation-detector tests establish
+only harness behavior, never execution of a public Run.
+
+Command receipts, five tarball digests and phase observations remain in the
+reported `packed-files-content-evidence-*` directory. Its `custody/` directory
+also retains the fixture's Store/journal and private synthetic keys, including
+unknown writes. Do not upload or delete that custody as ordinary diagnostics.
+The successful disposable npm installation is removed only after all children
+finish; custody is never inside that disposable installation.
+
+## Explicit real GCS Content diagnostic
+
+`node scripts/test-gcs-files-content.mjs /absolute/authorized-environment.json`
+uses the standard installed GCS Source through public Local and HTTPS Clients.
+It requires an explicit manifest accepted by
+`scripts/gcs-files-content-environment.mjs`: project, bucket, exact prefix,
+impersonated service account, logged-in account, absolute gcloud executable,
+read-only permissions, finite campaign limits, cost allowance and independently
+authored expected object digests/sizes. Merely having credentials is not
+authorization to choose another bucket or enable writes.
+
+The gcloud CLI must have a supported Python interpreter; the operator can name
+it with the CLI's existing `CLOUDSDK_PYTHON` environment variable. The harness
+does not install Python, create secret keys, mutate IAM or log token output.
+Short-lived tokens stay in memory behind the existing scoped credential port.
+The same campaign shares a pre-send request/response reservation and deadline
+across both public entrances; failures do not automatically remint or retry.
+Response reservations bound maximum allowed bytes, not measured received bytes.
+The dollar allowance is not an automatic billing hard cap.
+
+The authored Program explicitly uses the installed query Owner's current
+scan/filter/select capture boundary, retaining every listing column before
+resource/version keyed JOIN. A one-item page ceiling exercises real pagination.
+The test compares ContentRef byte digests and sizes with independent expected
+objects, rereads the same Named Result by reattach, and verifies an empty
+selection sends nothing. It then closes the original Host and opens each public
+entrance in a fresh process, comparing the same Run Ref, complete description
+and rows while its credential resolver rejects every call. It performs no
+object writes, deletes or version-change
+injection; those require separate explicit authority and evidence.
+
+Evidence and original Run/credential journals remain in the reported
+`gcs-real-content-*` directory, including failures. Synthetic Host signing keys
+are private custody, not uploadable diagnostics. This runner records the actual
+checkout state and compiled runtime digest. Its source-built result must not be
+described as pristine packed acceptance, restart of unfinished capture, paid Model
+acceptance or complete INFER/COMMAND composition.
+
+`node scripts/test-gcs-content-retained-restart.mjs /absolute/original-acceptance.json`
+checks the same separate-process Result recovery against an explicitly named
+successful real-service record without reacquiring its objects. It retains the
+original record's digest, original source revision and fresh-process observations
+separately. This tests retained Result recovery, not restart of an unfinished
+capture or pending Model/COMMAND operation. Runtime artifact provenance remains
+the same explicit source-built limitation above.
+
 ## Assessing the result
+
+### Packed real GCS Content campaign
+
+With a clean source revision and its normal five-package producer, run
+`node scripts/test-packed-gcs-content.mjs /absolute/authorized-environment.json`.
+Set `ACTQL_PACKED_CLIENT_PACKAGES` to that exact verified producer directory
+to reuse the packages. Stale source, changed tarballs and dirty build inputs
+remain refusals; no prepack or artifact checks are bypassed.
+
+The external application uses installed public Local/HTTPS Client, runtime and
+SDK entrances. Trusted installation bootstrap also loads the actual installed
+GCS declaration asset, recording its digest and generating aliases through its
+existing owner. It does not invent Catalog CIDs. Only four authored fixture/helper
+modules are bundled. Copied product source, compiled checkout runtime, source
+overlays and undisclosed imports are forbidden. Fixture digests and the bundle digest are recorded
+separately from all five actual tarball digests.
+
+Both entrances execute the independently expected version-fixed capture and
+empty-selection Programs. A fresh process then attaches the original Runs with
+all credential resolution forbidden, comparing full rows and descriptions.
+The two capture children split the authorized request/response reservation
+ceilings and share one absolute campaign deadline. No GCS write, delete or
+version mutation is included. This is not unfinished capture or Model/COMMAND
+recovery, full Core or Hosted CI evidence.
+
+Original Run/credential journals, expected rows and private synthetic Host keys
+remain outside the disposable npm installation under the reported evidence
+directory. The successful installation is reclaimed only after every child
+and Host has ended. Failed campaigns and their custody are retained.
 
 Report both elapsed wall span (first Client dependency start to aggregate finish)
 and summed runner duration across all five Client jobs, including setup, packing,

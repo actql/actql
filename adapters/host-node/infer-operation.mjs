@@ -11,12 +11,17 @@ const activeOperations = new WeakMap();
 
 // Publication metadata is issued by the same bounded common owner only after
 // every original Model component has completed. This does not advance calls.
-export function startCompleteInferObservation({moon, operations, ledger, maxSlots, maxWireBytes, maxWork}) {
+export function startCompleteInferObservation({moon, operations, ledger, maxSlots, maxWireBytes, maxWork,
+  content}) {
   const active = operations.map(operation => {
     const value = activeOperations.get(operation);
     if (value === undefined) throw new TypeError('ForeignInferOperation');
     return value;
   });
+  if (content !== undefined) {
+    return content.control.startCheckedClientContentInferObservation(content.compiled,
+      active, content.generations, ledger, {maxSlots, maxWireBytes, maxWork});
+  }
   return checked(moon.clientProgramStartCompleteInferObservationIssuance(active,
     ledger, maxSlots, maxWireBytes, maxWork));
 }
@@ -26,9 +31,9 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
-  physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
+  physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput, keyedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
-  ioNotification, originalPreparation, rawCaptureBinder}) {
+  ioNotification, originalPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer}) {
   if (rawCaptureBinder !== undefined && typeof rawCaptureBinder !== 'function') {
     throw new TypeError('InvalidInferRawCaptureBinder');
   }
@@ -39,7 +44,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalConsumer;
   let originalScope = originalPreparation?.scope;
   if (originalPreparation !== undefined) {
-    if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined ||
+    if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
         originalPreparation === null || typeof originalPreparation !== 'object' ||
         typeof originalPreparation.readRetainedBytes !== 'bigint' ||
@@ -115,16 +120,70 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       savedCapture !== undefined)) {
     throw new TypeError('InvalidComposedInferOperation');
   }
+  if (keyedInput !== undefined && (provider === undefined || acquiredInput !== undefined ||
+      composedInput !== undefined || savedSlots !== undefined || savedCapture !== undefined ||
+      serializedInput !== undefined || keyedInput.occurrence === undefined ||
+      keyedInput.prefix === undefined || keyedInput.ledger === undefined ||
+      restoredInput === undefined && keyedInput.sources === undefined ||
+      typeof moon.clientProgramAdvanceInferRoot !== 'function')) {
+    throw new TypeError('InvalidKeyedInferOperation');
+  }
   if (restoredInput !== undefined && (provider === undefined || acquiredInput !== undefined ||
       savedCapture !== undefined || savedSlots !== undefined)) {
     throw new TypeError('InvalidRestoredInferInput');
+  }
+  // This is a Host-owned issuer confirmed against the original Store holding,
+  // not authority reconstructed from the saved reference envelope itself.
+  if (restoredReferenceIssuer !== undefined &&
+      (restoredInput === undefined || serializedInput !== undefined)) {
+    throw new TypeError('InvalidRestoredInferReferenceIssuer');
+  }
+  if (serializedInput !== undefined && (provider === undefined ||
+      acquiredInput !== undefined || composedInput !== undefined ||
+      savedCapture !== undefined || savedSlots !== undefined ||
+      serializedInput.inputs !== undefined && !Array.isArray(serializedInput.inputs) ||
+      typeof serializedInput?.control?.[serializedInput.inputs !== undefined
+        ? restoredInput === undefined ? 'startCheckedClientGeneratedInferInputs'
+          : 'startCheckedClientRestoredGeneratedInferInputs' : restoredInput === undefined
+        ? 'startCheckedClientGeneratedInferExecution'
+        : 'startCheckedClientRestoredGeneratedInferExecution'] !== 'function')) {
+    throw new TypeError('InvalidSerializedInferInput');
   }
   if (ioNotification !== undefined && (provider === undefined || composedInput !== undefined)) {
     throw new TypeError('InvalidInferIoNotificationProfile');
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
   let active;
-  try { active = originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
+  try { active = serializedInput !== undefined
+    ? serializedInput.inputs !== undefined
+      ? restoredInput !== undefined
+        ? serializedInput.control.startCheckedClientRestoredGeneratedInferInputs(
+          serializedInput.compiled, serializedInput.definition, serializedInput.generation,
+          graph, serializedInput.inputs, provider, restoredInput.snapshot,
+          () => restoredInput.token.available)
+        : originalPreparation === undefined
+          ? serializedInput.control.startCheckedClientGeneratedInferInputs(
+            serializedInput.compiled, serializedInput.generation, graph, serializedInput.inputs, provider)
+          : serializedInput.control.startCheckedClientOriginalGeneratedInferInputs(
+            serializedInput.compiled, serializedInput.generation, graph, serializedInput.inputs, provider,
+            originalPreparation.runDefinition, originalConsumer,
+            originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
+            originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes)
+      : restoredInput !== undefined
+      ? serializedInput.control.startCheckedClientRestoredGeneratedInferExecution(
+        serializedInput.compiled, serializedInput.definition, serializedInput.generation,
+        preparedProgram, graph, provider, {registry, values, fragment, ordered},
+        restoredInput.snapshot, () => restoredInput.token.available)
+      : originalPreparation === undefined
+        ? serializedInput.control.startCheckedClientGeneratedInferExecution(
+          serializedInput.compiled, serializedInput.generation, preparedProgram, graph, provider)
+        : serializedInput.control.startCheckedClientOriginalGeneratedInferExecution(
+          serializedInput.compiled, serializedInput.generation, preparedProgram, graph, provider,
+          originalPreparation.runDefinition, originalConsumer,
+          originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
+          originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes)
+
+    : originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
     ? originalPreparation.control.startCheckedClientInferOriginalPreparation(
       originalPreparation.compiled, originalPreparation.runDefinition,
       preparedProgram, step, graph, registry, values, provider, originalConsumer,
@@ -136,16 +195,20 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       originalConsumer, originalPreparation.readRetainedBytes,
       originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
       originalPreparation.modelExecutionBytes, fragment, ordered)
-    : restoredInput !== undefined && composedInput !== undefined
-    ? moon.clientProgramStartRestoredComposedInferInput(composedInput.occurrence, graph,
-      composedInput.prefix, provider, restoredInput.snapshot.binding,
+    : restoredInput !== undefined && (composedInput !== undefined || keyedInput !== undefined)
+    ? moon.clientProgramStartRestoredComposedInferInput((composedInput ?? keyedInput).occurrence, graph,
+      (composedInput ?? keyedInput).prefix, provider, restoredInput.snapshot.binding,
       restoredInput.snapshot.descriptorWire, restoredInput.snapshot.rows,
-      () => restoredInput.token.available, restoredInput.savedScope)
+      () => restoredInput.token.available, restoredInput.savedScope, restoredReferenceIssuer,
+      keyedInput?.ledger, computeSuffix)
     : restoredInput !== undefined
     ? moon.clientProgramStartRestoredInferInput(preparedProgram, step, graph, registry,
       values, provider, restoredInput.snapshot.binding, restoredInput.snapshot.descriptorWire,
       restoredInput.snapshot.rows, () => restoredInput.token.available, restoredInput.savedScope,
-      fragment, ordered)
+      fragment, ordered, restoredReferenceIssuer)
+    : keyedInput !== undefined
+    ? moon.clientProgramStartKeyedInferExecution(keyedInput.occurrence, graph,
+      keyedInput.prefix, provider, keyedInput.sources, computeSuffix, keyedInput.ledger)
     : composedInput !== undefined
     ? moon.clientProgramStartComposedInferExecution(composedInput.occurrence,
       graph, composedInput.prefix, composedInput.inputs, provider,
@@ -204,7 +267,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       const ticket = io?.arm();
       let poll, kind;
       try {
-        poll = checked(moon.clientProgramAdvanceInferExecution(active, quantum));
+        poll = checked((keyedInput === undefined ? moon.clientProgramAdvanceInferExecution
+          : moon.clientProgramAdvanceInferRoot)(active, quantum));
         kind = moon.clientProgramInferExecutionPollKind(poll);
         if (kind === 'await_io') {
           if (ticket === undefined) throw new Error('InferIoNotificationUnavailable');
@@ -243,7 +307,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   function run() {
-    if (composedInput !== undefined) {
+    if (composedInput !== undefined || serializedInput?.inputs !== undefined) {
       return Promise.reject(new Error('InferComponentDrivenByLocal'));
     }
     if (closing || reclaimed) {
@@ -318,6 +382,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     rawCaptureBinder = callback;
   };
   const operation = Object.freeze({run, stop, close, cleanup,
+    contentGenerationCount: serializedInput === undefined ? 0 : 1,
+    // Publication borrows the same opaque generation used by execution and
+    // the joint observation issuer, never a JSON reconstruction of its proof.
+    contentGenerations: () => serializedInput === undefined ? undefined
+      : Object.freeze([serializedInput.generation]),
+    contentRecovery: () => serializedInput?.recovery,
+    capturedContentRecovery: () => serializedInput?.capturedRecovery ?? keyedInput?.capturedRecovery,
+    capturedContentBinding: () => serializedInput?.capturedBinding ?? keyedInput?.capturedBinding,
     installSettlementCleanup(callback) {
       if (cleanupSettlement !== undefined || typeof callback !== 'function') {
         throw new TypeError('InvalidInferSettlementCleanup');
@@ -514,13 +586,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     },
     attemptEvidence: slot => checked(moon.clientProgramInferAttemptEvidence(
       active, slot)),
+    issuedAttachmentAdmission: slot => checked(moon.clientProgramIssueInferAttachmentAdmission(active, slot)),
     issuedSlotCapture: slot => checked(moon.clientProgramIssueInferSlotCapture(
       active, slot)),
     bindInvocation: (control, {compiled, runDefinition, verification,
       invocation, dataPolicyCid}) => control.bindCheckedClientInferInvocation(
       compiled, active, runDefinition, verification, invocation, dataPolicyCid),
-    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => checked(
-      moon.clientProgramStartInferObservationIssuance(active, ledger,
+    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => serializedInput !== undefined
+      ? serializedInput.control.startCheckedClientContentInferObservation(
+        serializedInput.compiled, [active], [serializedInput.generation], ledger,
+        {maxSlots, maxWireBytes, maxWork})
+      : checked(moon.clientProgramStartInferObservationIssuance(active, ledger,
         maxSlots, maxWireBytes, maxWork)),
     bindIssuedInvocation: (control, {compiled, runDefinition, issued}) =>
       control.bindIssuedClientInferInvocation(compiled, active, runDefinition,
@@ -545,7 +621,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         limits.tokens, limits.costUnits, limits.durationMs,
         perAttempt.tokens, perAttempt.costUnits, perAttempt.durationMs));
     }
-    if (computeSuffix !== undefined) checked(moon.clientProgramBindInferComputeSuffix(active, computeSuffix));
+    if (computeSuffix !== undefined && keyedInput === undefined) checked(moon.clientProgramBindInferComputeSuffix(active, computeSuffix));
     if (physicalPreflight !== undefined) {
       // Reuse this operation's nominal wake endpoint for SDK preparation and
       // physical I/O. It carries no ACK, outcome, authority or send permission.
@@ -580,21 +656,27 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 // installing Run retains physical custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
-  durableCalls = false, restoredInput}) {
+  durableCalls = false, restoredInput, generatedInput}) {
   if (selected?.occurrence === undefined ||
       typeof retainOperation !== 'function') {
     throw new TypeError('InvalidComposedInferProvider');
   }
   let operation;
   let failure;
-  const provider = moon.clientProgramComposedInferLocalProvider(
+  const selectProvider = generatedInput === undefined
+    ? moon.clientProgramComposedInferLocalProvider : moon.clientProgramGeneratedInferLocalProvider;
+  const provider = selectProvider(
     selected.occurrence, inputs => {
       try {
         if (operation !== undefined) throw new Error('ComposedInferAlreadyOpened');
         operation = openNodeInferOperation({moon, graph: selected.graph,
-          composedInput: {occurrence: selected.occurrence,
+          composedInput: generatedInput !== undefined ? undefined : {occurrence: selected.occurrence,
             prefix: selected.computePrefix, inputs, sources},
-          computeSuffix: selected.computeSuffix, provider: selected.provider,
+          serializedInput: generatedInput === undefined ? undefined : {
+            control, compiled: plan.compiled, definition: plan.runDefinition,
+            generation: generatedInput.generation(), inputs,
+            recovery: generatedInput.recovery?.()},
+          computeSuffix: generatedInput === undefined ? selected.computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,

@@ -13,7 +13,7 @@ test "window proof encoding preserves converted input identity and exact multipl
   ).unwrap()
   let bound = @step_bounds.target_rows_bound(
     @capacity.target_membership_rows(candidate.membership),
-  )
+  ).unwrap()
   let synthetic = { ..units[0], definition_cid: "sha256:" + "0".repeat(64), }
   let input = reidentify_step_graph([synthetic], bound, budget)
   let input_cid = @wire.cid(@wire.program_proof_witness(input.proof))

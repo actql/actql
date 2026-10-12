@@ -9,6 +9,9 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
   "moonbitlang/core/encoding/utf8",
 }
 

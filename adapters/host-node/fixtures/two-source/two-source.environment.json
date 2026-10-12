@@ -3,23 +3,23 @@
   "connector_capabilities": [
     {
       "capability_contract_cids": [
-        "sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89",
-        "sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8"
-      ],
-      "read_mode": "snapshot",
-      "source_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
-      "source_ref": "connector://crm/right/r#v",
-      "source_view_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246"
-    },
-    {
-      "capability_contract_cids": [
-        "sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89",
-        "sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8"
+        "sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916",
+        "sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7"
       ],
       "read_mode": "snapshot",
       "source_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
       "source_ref": "connector://crm/main/r#v",
       "source_view_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3"
+    },
+    {
+      "capability_contract_cids": [
+        "sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916",
+        "sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7"
+      ],
+      "read_mode": "snapshot",
+      "source_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
+      "source_ref": "connector://crm/right/r#v",
+      "source_view_contract_cid": "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246"
     }
   ],
   "connector_catalogs": [
@@ -357,7 +357,7 @@
       "version": "fixture"
     }
   ],
-  "evidence_bundle_cid": "sha256:4cfc3a08514b254c76ac810df9153072a3f0edbf0f211c18b85298aa0c51a92e",
+  "evidence_bundle_cid": "sha256:a52fbd0dedb61150c97610060e5c82dba72dc97a76b6e24624262983a352ca75",
   "host_policy_profile": {
     "capacity": {
       "max_aggregate_array_items": 1000,

@@ -34,7 +34,7 @@ pub enum KernelBody {
   Unpivot(Array[@schema.FieldName], Array[@schema.FieldName], String, String)
   DistinctRows
   DedupeRows
-  StableSort(@pipeline.SortOrder?)
+  StableSort(@pipeline.SortStrategy?)
   Lag(Int64, @pipeline.SortCompletion)
   Watermark(
     @schema.FieldName,
@@ -307,7 +307,7 @@ fn prepare_kernel_measured(
     return Err(MissingKernelNode)
   }
   let checked = match node.payload {
-    Infer(_) => return Err(MissingKernelNode)
+    Infer(_) | Serialize(_) => return Err(MissingKernelNode)
     Derive(op)
     | Where(op)
     | Select(op)
@@ -502,10 +502,10 @@ fn prepare_kernel_measured(
           is Some(order) else {
           return Err(PendingSortOrder)
         }
-        Some(order)
+        Some(@pipeline.sort_order_strategy(order))
       }
       let completion = resolution.bind(order => {
-        match @pipeline.sort_order_strategy(order) {
+        match order {
           CandidateKey(key) => Some(key)
           ExistingTotal(_) => None
         }
@@ -1065,7 +1065,7 @@ fn prepare_kernel_measured(
       @relation.sort_term_count(checked) +
       resolution
       .map(order => {
-        match @pipeline.sort_order_strategy(order) {
+        match order {
           CandidateKey(key) => @pipeline.sort_completion_count(key)
           ExistingTotal(_) => 0
         }

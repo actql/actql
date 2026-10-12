@@ -11,9 +11,9 @@ pub(all) struct ClientDuckDBAcquisitionEstimate {
 /// A diagnostic name or canonical requirement CID cannot recreate this owner.
 struct ClientDuckDBAcquisitionSelection {
   requirement : @planning.QueryRequirement
-  candidates : Array[@planning.AcquisitionCandidate]
+  candidates : Array[@planning.AcquisitionCandidate[@planning.QueryRequirement]]
   names : Array[String]
-  outcome : @planning.AcquisitionSelection
+  outcome : @planning.AcquisitionSelection[@planning.QueryRequirement]
   native : @duckdb_host.NativeHostConfiguration?
   broad : @duckdb_host.BroadHostConfiguration?
   native_supported : Bool

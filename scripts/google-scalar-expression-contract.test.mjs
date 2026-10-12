@@ -382,6 +382,11 @@ test('TRIM preserves exact predecessor bodies and existing unary schema shapes',
   assert.deepEqual(expression, expectedCurrent);
   assert.deepEqual(program, earlier.program_schema);
   assert.equal(cid(program), expected.program_schema);
+  // Validate the combined current embeddings separately from frozen history.
+  const currentExpression = read('spec/contracts/actql-expressions.json');
+  updateGoogleScalarContracts(currentExpression,
+    read('spec/contracts/actql-protocol-schemas.json'),
+    readFileSync(currentExpression.grammar, 'utf8'));
   assert.notEqual(cid(expression), expected.expression_contract);
   const scalar = adopted.scalar_law_manifest;
   assert.notEqual(cid(scalar), expected.scalar_law_manifest);
@@ -443,6 +448,7 @@ test('LTRIM/RTRIM preserve exact predecessor bodies and admit only closed unary 
   // Freeze this earlier unary transition against the captured pre-set bodies.
   const following = read('portability/corpus/historical/pre-trim-set-contract-identities.json');
   const adopted = Object.fromEntries(following.contracts.map(item => [item.id, item.body]));
+  const adoptedPins = Object.fromEntries(following.contracts.map(item => [item.id, item.cid]));
   const expression = adopted.expression_contract;
   const program = adopted.program_schema;
   assert.equal(earlier.expression_contract.laws.ltrim, undefined);
@@ -482,6 +488,7 @@ test('LTRIM/RTRIM preserve exact predecessor bodies and admit only closed unary 
   const expectedScalar = structuredClone(earlier.scalar_law_manifest);
   Object.assign(expectedScalar.unicode, {ltrim: 'unicode-white-space-leading', rtrim: 'unicode-white-space-trailing'});
   assert.deepEqual(scalar, expectedScalar);
+  assert.equal(cid(scalar), adoptedPins.scalar_law_manifest);
   assert.notEqual(cid(scalar), expected.scalar_law_manifest);
   const aoa = adopted.aoa_contract;
   assert.equal(aoa.expression_contract_cid, cid(expression));

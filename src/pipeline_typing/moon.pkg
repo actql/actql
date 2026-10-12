@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/run_publication" @content,
   "actql/actql/encode_core" @encode,
   "actql/actql/check_environment" @model_environment,
   "actql/actql/stage_syntax" @stage,
@@ -44,6 +45,7 @@ import {
   "actql/actql/expression_syntax" @expression,
   "actql/actql/parameter_references" @parameter_refs,
   "moonbitlang/core/debug",
+  "actql/actql/run_publication" @content,
 } for "test"
 
 formatter(

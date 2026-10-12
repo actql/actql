@@ -103,7 +103,7 @@ test "repeated array calls share one bound while keeping distinct limits" {
               0,
             ).unwrap(),
           ),
-        )
+        ).unwrap()
       })
       assert_true(physical_equal(bounds[0], bounds[1]))
     }

@@ -17,7 +17,7 @@ test "formal keyed acquisition uses producer-only evidence across Result import"
   let membership = binding.producer
   let (visit, claim, producer) = @capacity.target_membership_coordinates(
     membership,
-  )
+  ).unwrap()
   assert_true(visit != @capacity.target_membership_consumer_visit(membership))
   assert_eq(claim, 0)
   assert_eq(producer, visit)
@@ -37,7 +37,7 @@ test "formal keyed acquisition uses producer-only evidence across Result import"
     ),
   )
   let join_source = keyed_input_proof_source(retained)
-  let converted = keyed_input_proof_bound(retained)
+  let converted = keyed_input_proof_bound(retained).unwrap()
   let producer_source = proof_source(converted)
   assert_eq(join_source.source_ordinal, 0)
   assert_eq(producer_source.source_ordinal, 0)

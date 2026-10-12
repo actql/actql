@@ -294,18 +294,46 @@ fn issue_client_infer_prefix_fragment_for_owner(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
-  guard infer_step > 0 &&
-    @lower.node_at(@lower.bound_preparation(owner), infer_step - 1)
-    is Some(output) else {
+  if infer_step <= 0 {
+    return Err(MissingOutput)
+  }
+  issue_client_compute_prefix_fragment_for_owner(
+    owner,
+    infer_step - 1,
+    infer_step - 1,
+    "task_" + task.to_string() + "_before_infer_" + infer_step.to_string(),
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Seal an exact checked pure output without interpreting the acquisition that
+/// consumes it. Existing Infer fragment identities and bytes stay unchanged.
+fn issue_client_compute_prefix_fragment_for_owner(
+  owner : @lower.BoundPrepared,
+  prefix_end : Int,
+  output_step : Int,
+  node_id : String,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
+  guard output_step >= 0 &&
+    output_step <= prefix_end &&
+    @lower.node_at(@lower.bound_preparation(owner), output_step) is Some(output) else {
     return Err(MissingOutput)
   }
   let pipeline_wire = match
     emit_client_task_pipeline_prefix(
       owner,
-      infer_step - 1,
+      prefix_end,
       @lower.node_id(output),
       None,
-      Some(infer_step - 1),
+      Some(prefix_end),
       true,
       sequence_limits,
       max_wire_bytes,
@@ -317,9 +345,9 @@ fn issue_client_infer_prefix_fragment_for_owner(
   }
   issue_client_task_fragment_body(
     owner,
-    @pipeline.Step(infer_step - 1),
+    @pipeline.Step(output_step),
     None,
-    "task_" + task.to_string() + "_before_infer_" + infer_step.to_string(),
+    node_id,
     pipeline_wire,
     max_wire_bytes,
     max_nodes,
@@ -337,6 +365,7 @@ fn issue_client_infer_compute_fragment(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  serialization_boundary? : Int? = None,
 ) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
   guard step > infer_step &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(output) else {
@@ -355,6 +384,7 @@ fn issue_client_infer_compute_fragment(
       max_nodes,
       max_depth,
       infer_boundary=Some(infer_step),
+      serialization_boundary~,
     ) {
     Ok(wire) => wire
     Err(issue) => return Err(Pipeline(issue))
@@ -372,6 +402,82 @@ fn issue_client_infer_compute_fragment(
 }
 
 ///|
+/// Issue a pure suffix fragment with an explicit input port for its authentic
+/// Content producer. The producer's byte generation is not in the AoA body.
+fn issue_client_serialized_infer_compute_fragment(
+  component : ClientSerializationPlanGraph,
+  infer_step : Int,
+  step : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
+  if step >= infer_step {
+    return Err(MissingOutput)
+  }
+  issue_client_serialized_compute_fragment(
+    component,
+    infer_step - 1,
+    step,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// The same pure consumer fragment serves ordinary Relation and Model inputs.
+/// Its producer remains the checked Content barrier, never an AoA evaluator.
+fn issue_client_serialized_compute_fragment(
+  component : ClientSerializationPlanGraph,
+  terminal : Int,
+  step : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
+  let owner = @lower.serialization_owner(component.barrier)
+  guard component.step < step &&
+    step <= terminal &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(output) else {
+    return Err(MissingOutput)
+  }
+  let wire = match
+    emit_client_task_pipeline_prefix(
+      owner,
+      step,
+      @lower.node_id(output),
+      Some(step),
+      None,
+      false,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      completed_serialization=Some((component.step, terminal)),
+    ) {
+    Ok(wire) => wire
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  issue_client_task_fragment_body(
+    owner,
+    @pipeline.Step(step),
+    Some(step),
+    "task_" +
+    component.task.to_string() +
+    "_after_serialize_" +
+    step.to_string(),
+    wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 fn issue_client_task_fragment_body(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
@@ -381,6 +487,7 @@ fn issue_client_task_fragment_body(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  serialization_input? : @lower.PreparedSerialization? = None,
 ) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
   guard parse_plan_identity_value(
       pipeline_wire, max_wire_bytes, max_nodes, max_depth,
@@ -404,8 +511,26 @@ fn issue_client_task_fragment_body(
     actual_output == output_port else {
     return Err(Encoding)
   }
+  let carrier = match serialization_input {
+    Some(barrier) => {
+      if !physical_equal(@lower.serialization_owner(barrier), owner) ||
+        target != @pipeline.Step(@lower.serialization_step(barrier)) ||
+        @pipeline.serialization_sort(@lower.serialization_checked(barrier))
+        is None {
+        return Err(MissingOutput)
+      }
+      @carrier.relation(
+        @carrier.typed_rows(
+          @pipeline.serialization_input_schema(
+            @lower.serialization_checked(barrier),
+          ),
+        ),
+      )
+    }
+    None => output
+  }
   let (output_carrier, output_contract_cid) = match
-    client_task_carrier_contract(output, max_wire_bytes, max_nodes, max_depth) {
+    client_task_carrier_contract(carrier, max_wire_bytes, max_nodes, max_depth) {
     Some(contract) => contract
     None => return Err(UnrepresentableContract)
   }

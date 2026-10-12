@@ -11,5 +11,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/encode_core" @encode,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_admission" @value,
   "moonbitlang/core/encoding/utf8",
 }

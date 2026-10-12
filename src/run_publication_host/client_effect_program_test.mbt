@@ -164,6 +164,53 @@ test "Effect-only compilation retains checked tasks without a public Result root
 }
 
 ///|
+test "Effect serialization task enumeration and boundary retain the original checked owner" {
+  let (_, environment, limits) = client_effect_fixture()
+  let document =
+    #|{"version":"actql/0.1","id":"effect-generation-boundary","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":1}]},"as":"selected"},{"serialize":{"format":"jsonl","fields":["value"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":1,"max_bytes":32}},"as":"attachment"},{"derive":{"value":"row_count"}},{"select":["value"],"as":"statistics"}],"results":{"out":{"from":"statistics","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"published":{"from":{"stage":"source","result":"out"}}}}
+  let prepared = match
+    prepare_client_effect_computation(
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      limits,
+    ) {
+    Ok(value) => value
+    Err(Candidate(Computation(issue))) => raise issue
+    Err(Syntax(_)) => fail("Unexpected fixture syntax failure")
+    Err(_) => fail("Unexpected checked Effect preparation failure")
+  }
+  assert_eq(prepared_client_effect_serialization_occurrences(prepared), [(0, 1)])
+  let graph = @strategy.checked_effect_computation_graph(
+    prepared_client_effect_computation_graph(prepared),
+  )
+  let original = @strategy.graph_task_owner(graph, 0).unwrap()
+  let sequence = @lower.prepare_sequence_with_serialization_boundary(
+    original,
+    1,
+    client_standard_values_sequence_limits(),
+  ).unwrap()
+  assert_true(physical_equal(@lower.sequence_owner(sequence), original))
+  assert_true(
+    @lower.sequence_step(sequence, 1) is Some(@lower.SerializationBoundary(1)),
+  )
+  assert_true(@lower.sequence_step(sequence, 0) is Some(@lower.ValuesStep(_)))
+  assert_true(@lower.sequence_step(sequence, 2) is Some(@lower.RowStep(_)))
+  let (plain, environment, limits) = client_effect_fixture()
+  let plain = prepare_client_effect_computation(
+    plain,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_eq(prepared_client_effect_serialization_occurrences(plain), [])
+}
+
+///|
 test "Effect compilation shares the checked Values Fragment issuer" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = prepare_client_effect_computation(
