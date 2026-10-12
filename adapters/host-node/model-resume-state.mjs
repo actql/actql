@@ -167,6 +167,9 @@ export function createModelResumeState(database, {
   // resource phase/epoch or a serialization of Resource/Store receipts.
   const originalCutOperations = new WeakMap();
   const originalCutInvalidations = new WeakMap();
+  // Private installation handles belong to this exact journal. They retain
+  // admitted original scope data, not a user callback or a COMMIT permission.
+  const originalJournalPorts = new WeakMap();
   const q = {
     scope: database.prepare('SELECT * FROM resume_model_scopes WHERE checkpoint_cid = ?'),
     scopeByCid: database.prepare('SELECT * FROM resume_model_scopes WHERE scope_cid = ?'),
@@ -591,6 +594,31 @@ export function createModelResumeState(database, {
     originalJournalObservations.set(token, facts);
     return token;
   }
+  function originalJournalPortCurrent(port) {
+    alive();
+    const original = originalJournalPorts.get(port);
+    if (original === undefined) fail('ForeignModelOriginalJournalPort');
+    const row = transaction.run(() => {
+      checked(original.identity);
+      return q.scopeByCid.get(original.identity.scopeCid);
+    });
+    if (row.inventory_json !== original.inventoryWire ||
+        row.originals_json !== original.originalsWire) {
+      fail('ModelOriginalJournalPortBindingChanged');
+    }
+    return port;
+  }
+  function originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest) {
+    const operation = cutOperation(reference);
+    const original = originalCutInvalidations.get(receipt);
+    if (original === undefined || original.operation !== reference ||
+        original.parkReceipt !== parkReceipt || operation.state !== 'invalidated') {
+      fail('ForeignModelOriginalCutInvalidation');
+    }
+    if (original.invalidationRequest !== invalidationRequest) fail('ForeignModelOriginalCutInvalidationRequest');
+    transaction.run(() => requireCurrentCutFacts(operation, original.after));
+    return receipt;
+  }
   function originalCutMutationFence() {
     for (const row of q.linkedScopes.all()) {
       let link;
@@ -711,6 +739,36 @@ export function createModelResumeState(database, {
       originalModelJournalObservationFacts(observation) {
         return originalJournalObservation(observation);
       },
+      installOriginalModelJournalPort(observation) {
+        const facts = originalJournalObservation(observation);
+        transaction.run(() => {
+          if (!same(facts, originalJournalFacts(facts.identity))) {
+            fail('ModelOriginalJournalObservationChanged');
+          }
+        });
+        // The issuer accepts only its own admitted opaque observation. The
+        // selected strings are borrowed; no complete response/history copy
+        // or caller-supplied J/Bool/CID can stand in for this installation.
+        const identity = facts.identity;
+        const row = facts.scopes.find(value => value.scope_cid === identity.scopeCid);
+        // An escaped handle carries no callback/backreference to this journal.
+        // Its installation retains this actual journal separately until its
+        // original cleanup; copied tags cannot recover nominal membership.
+        const port = Object.freeze({kind: 'original-model-journal-port'});
+        originalJournalPorts.set(port, {identity,
+          inventoryWire: row.inventory_json, originalsWire: row.originals_json});
+        return port;
+      },
+      originalModelJournalPortCurrent(port) {
+        return originalJournalPortCurrent(port);
+      },
+      originalModelJournalPortInvalidationCurrent(port, receipt, reference, parkReceipt, invalidationRequest) {
+        originalJournalPortCurrent(port);
+        if (!same(cutOperation(reference).identity, originalJournalPorts.get(port).identity)) {
+          fail('ModelOriginalJournalPortBindingMismatch');
+        }
+        return originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest);
+      },
       prepareOriginalModelCurrentCut(observation, {parkReceipt, savedReceipt} = {}) {
         const facts = originalJournalObservation(observation);
         const resource = verifier?.originalResourceCut;
@@ -820,15 +878,7 @@ export function createModelResumeState(database, {
         }
       },
       originalModelCurrentCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest) {
-        const operation = cutOperation(reference);
-        const original = originalCutInvalidations.get(receipt);
-        if (original === undefined || original.operation !== reference ||
-            original.parkReceipt !== parkReceipt || operation.state !== 'invalidated') {
-          fail('ForeignModelOriginalCutInvalidation');
-        }
-        if (original.invalidationRequest !== invalidationRequest) fail('ForeignModelOriginalCutInvalidationRequest');
-        transaction.run(() => requireCurrentCutFacts(operation, original.after));
-        return receipt;
+        return originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest);
       },
       originalModelCurrentCutOperationStatus(reference) {
         return Object.freeze({state: cutOperation(reference).state});

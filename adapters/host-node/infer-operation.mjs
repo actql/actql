@@ -37,7 +37,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
-  const originalScope = originalPreparation?.scope;
+  let originalScope = originalPreparation?.scope;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
@@ -188,6 +188,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (reclaimed) {
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
+      originalScope = undefined;
       rawCaptureBinder = undefined;
       io?.close();
       io = undefined;
@@ -386,6 +387,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return moon.clientProgramInferOriginalModelResourceParkCurrent(
         active, originalScope, park);
     },
+    // Borrow the opaque scope captured by this actual operation, not a new
+    // selection supplied to a later continuation. Successful cleanup retires
+    // the alias; its presence alone is not a park, grant or send permission.
+    originalResourceScope: () => reclaimed ? undefined : originalScope,
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),

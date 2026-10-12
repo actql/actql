@@ -49,6 +49,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   // rows, submitted programs or responses, and cannot authorize a fresh send.
   const inventories = new Map();
   const diagnostic = diagnosticObserver(observeDiagnostic);
+  let checkpointInstallation;
   let retainedInputs = 0, retainedInputBytes = 0;
   const usage = () => Object.freeze({retainedInputScopes: custody.size,
     retainedInputs, retainedInputBytes, retainedInventoryScopes: inventories.size});
@@ -105,8 +106,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   const checkpoints = () => {
     const value = getCheckpoints();
     if (value === undefined) fail('InstalledModelJournalRequired');
+    if (checkpointInstallation !== undefined &&
+        (checkpointInstallation.checkpoints !== value || checkpointInstallation.journal !== value.journal)) {
+      fail('InstalledModelJournalChanged');
+    }
     return value;
   };
+  function installOriginalJournal() {
+    const value = checkpoints();
+    if (value.journal === undefined) fail('InstalledModelJournalRequired');
+    checkpointInstallation ??= {checkpoints: value, journal: value.journal};
+    return value;
+  }
   function admittedInventory(originals, immediate, token) {
     const retained = token ?? custody.get(originals.fixedInputReceiptWire)?.values().next().value;
     const prior = inventories.get(originals.fixedInputReceiptWire);
@@ -252,11 +263,21 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   }
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
     declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort,
-    sourceContinuation, retainEvidenceCopy}, ownership) {
+    sourceContinuation, retainEvidenceCopy, originalPreparation}, ownership) {
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
     const rawBinding = rawSelection === undefined ? undefined :
       {attempted: false, complete: false, issue: undefined};
-    const cp = checkpoints();
+    // The Host's Checkpoint installation is created after this controller.
+    // Fix its actual physical identity only when the original scope is being
+    // installed, never from an initial undefined value or future replacement.
+    if (originalPreparation !== undefined &&
+        (operation.originalResourceScope?.() !== originalPreparation.scope ||
+          originalPreparation.scope === undefined || originalPreparation.control !== control ||
+          originalPreparation.compiled !== plan.compiled ||
+          originalPreparation.runDefinition !== plan.runDefinition)) {
+      fail('InstalledModelOriginalScopeMismatch');
+    }
+    const cp = originalPreparation === undefined ? checkpoints() : installOriginalJournal();
     const facts = operation.preparedFacts(preparedCallSet);
     const run = JSON.parse(plan.runDefinition.wire);
     let token;
@@ -334,6 +355,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
           return cp.retainModelInput({runId: run.run_id,
             runDefinitionCid: plan.runDefinition.identity, bodyWire});
         }});
+      checkpoints();
       if (!exported.current()) fail('ModelInputOwnerChangedDuringCommit');
       const receiptWire = canonicalJson(receipt);
       originals = {...originals, fixedInputReceiptWire: receiptWire};
@@ -346,6 +368,21 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     const owner = {operation, preparedCallSet, available: true, pending: undefined, decision: undefined,
       currentProvider: () => selected.currentProvider?.() !== false && binding.identity === inventory.providerBindingCid,
       entries: new Map()};
+    let installedJournalPort;
+    function originalJournalInstallation() {
+      if (originalPreparation === undefined ||
+          live.get(preparedCallSet) !== owner ||
+          operation.originalResourceScope?.() !== originalPreparation.scope ||
+          checkpoints() !== cp || cp.journal !== checkpointInstallation?.journal) {
+        fail('ModelOriginalJournalInstallationUnavailable');
+      }
+      if (installedJournalPort === undefined) {
+        const observation = cp.journal.observeOriginalModelJournal(inventory);
+        installedJournalPort = cp.journal.installOriginalModelJournalPort(observation);
+      }
+      cp.journal.originalModelJournalPortCurrent(installedJournalPort);
+      return installedJournalPort;
+    }
     live.set(preparedCallSet, owner);
     ownership.owner = owner;
     const persistence = selected.entryPersistence !== 'async' ? undefined :
@@ -426,6 +463,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       if (gate !== undefined && !gateReleased || operation.cleanupPending()) return false;
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
       rawSelection = undefined;
+      installedJournalPort = undefined;
+      originalPreparation = undefined;
       release(token);
       return true;
     };
@@ -441,6 +480,20 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       attachImmediate: view?.checkpointCid === null,
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
+      originalJournalInstallation,
+      originalJournalInvalidationCurrent(receipt, reference, park, request) {
+        const port = originalJournalInstallation();
+        const observed = cp.journal.originalModelJournalPortInvalidationCurrent(
+          port, receipt, reference, park, request);
+        if (observed !== receipt || operation.originalResourceParkCurrent(park) !== park ||
+            checkpoints() !== cp) {
+          fail('ModelOriginalJournalInstallationChanged');
+        }
+        // C's same request/origin/lifecycle must still be checked synchronously
+        // before its once-only consume. This saved observation does not add an
+        // INFER Allow prerequisite to cleanup/unpark or permit Model sending.
+        return observed;
+      },
       hasResponseReconciliation: unreconciled.size > 0,
       evaluationInventory() {
         if (!owner.available || !token.available) fail('ModelContinuationClosed');
@@ -470,6 +523,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       entry: slot => owner.entries.get(slot), observe,
       async authorize() {
         if (!owner.available) fail('ModelContinuationClosed');
+        checkpoints();
         signal?.throwIfAborted();
         if (!owner.currentProvider()) fail('ModelProviderBindingChanged');
         if (selected.egressAdmission === undefined) throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');
@@ -484,11 +538,13 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             .finally(() => { gateOpening = undefined; });
           await gateOpening;
         }
+        checkpoints();
         if (!owner.available) { cleanup(); fail('ModelContinuationClosed'); }
         signal?.throwIfAborted();
         const decision = claim === undefined
           ? await gate.authorize({signal})
           : await gate.resume({signal, resumption: {claim: {checkpointCid: existing.checkpointCid, claim}}});
+        checkpoints();
         if (decision.action === 'waiting') return {status: 'waiting_checkpoint', checkpoint: decision.checkpoint};
         if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
         if (!owner.available) fail('ModelContinuationClosed');
@@ -509,6 +565,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   attemptWire: original.attemptWire, authorityWire: original.authorityWire};
                 owner.pending = original;
                 try {
+                  checkpoints();
                   const receipt = claim === undefined
                     ? cp.journal.enterImmediateModelCall(reference, {decision, preparedCallSet, parentResume})
                     : cp.journal.enterResumedCall(claim, {...reference, checkpointCid: existing.checkpointCid,
@@ -530,6 +587,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
           } else {
             admittedDispatch = operation.bindModelEntryPersistence(control, plan, preparedCallSet, bound,
               {...dispatch, beginEntry(original) {
+                try { checkpoints(); }
+                catch (error) {owner.entryFailure = error; return undefined;}
                 if (!owner.available || !owner.currentProvider() ||
                     original.callWire !== originals.slotWires[original.slot] ||
                     !operation.entryCurrent(original.entry, preparedCallSet)) return undefined;

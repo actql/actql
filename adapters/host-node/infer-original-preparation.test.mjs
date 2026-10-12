@@ -89,6 +89,7 @@ function fundedFixture(available = true, startIssue) {
 test('funded start claims original envelope before Core allocation and keeps distinct Model grant', async () => {
   const f = fundedFixture();
   const operation = openNodeInferOperation(f.options);
+  assert.strictEqual(operation.originalResourceScope(), f.originalPreparation.scope);
   assert.deepEqual(f.calls[0], ['claim', f.originalPreparation.read,
     f.originalPreparation.compiled, f.originalPreparation.runDefinition, f.graph, 7n, 5n]);
   assert.deepEqual(f.calls[1], ['start', f.options.preparedProgram, 2, f.graph,
@@ -235,6 +236,7 @@ test('original Model park adapter delegates the same active and scope without ad
   assert.equal(f.calls.some(call => call[0] === 'advance'), false);
   await operation.close();
   assert.equal(operation.originalResourceParkCurrent(park), undefined);
+  assert.equal(operation.originalResourceScope(), undefined);
   assert.throws(() => operation.parkOriginalResources(), /InferOriginalModelParkUnavailable/u);
 });
 
