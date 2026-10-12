@@ -31,6 +31,8 @@ typedef struct {
   int32_t test_sync_failures;
   int32_t result_directory_acquired;
   int32_t test_directory_inspect_failures;
+  int32_t close_result;
+  char *close_error;
 } actql_native_filesystem_root;
 
 typedef struct {
@@ -75,6 +77,7 @@ typedef struct {
   // 0: not attempted, 1: acknowledged, -1: sticky diagnostic/unconfirmed.
   // A consumed descriptor number is never a retirement acknowledgement.
   int32_t close_result;
+  char *close_error;
 } actql_native_filesystem_reader;
 
 struct actql_native_private_file_projection {
@@ -254,9 +257,30 @@ static void actql_native_filesystem_root_finalize(void *value) {
     root->fd = -1;
   }
   free(root->error);
+  free(root->close_error);
   root->error = NULL;
+  root->close_error = NULL;
   free(root->custody_path);
   root->custody_path = NULL;
+}
+
+// Closes this directory descriptor only. Readers/writers have their own
+// retirement responsibility; this acknowledgement does not claim their stop.
+int32_t actql_native_filesystem_root_close(
+  actql_native_filesystem_root *root
+) {
+  if (root == NULL) return -1;
+  if (root->close_result != 0) return root->close_result == 1 ? 0 : -1;
+  if (root->fd < 0) return -1;
+  int descriptor = root->fd;
+  root->fd = -1;
+  root->close_result = -1;
+  if (close(descriptor) != 0) {
+    actql_replace_errno_error(&root->close_error, "close Store root", errno);
+    return -1;
+  }
+  root->close_result = 1;
+  return 0;
 }
 
 static void actql_native_filesystem_lock_finalize(void *value) {
@@ -326,8 +350,10 @@ static void actql_native_filesystem_reader_finalize(void *value) {
     reader->fd = -1;
   }
   free(reader->error);
+  free(reader->close_error);
   free(reader->chunk);
   reader->error = NULL;
+  reader->close_error = NULL;
   reader->chunk = NULL;
   if (reader->root != NULL) {
     moonbit_decref(reader->root);
@@ -839,7 +865,8 @@ int32_t actql_native_filesystem_test_private_mode(
 moonbit_bytes_t actql_native_filesystem_root_error(
   actql_native_filesystem_root *root
 ) {
-  return actql_copy_bytes(root == NULL ? "invalid Store root" : root->error);
+  return actql_copy_bytes(root == NULL ? "invalid Store root" :
+    root->close_result < 0 ? root->close_error : root->error);
 }
 
 void *actql_native_filesystem_acquire_lock(
@@ -1504,6 +1531,10 @@ int32_t actql_native_filesystem_root_result_directory_acquired(
   return root == NULL ? 0 : root->result_directory_acquired;
 }
 
+static int32_t actql_native_filesystem_reader_close_once(
+  actql_native_filesystem_reader *reader
+);
+
 void *actql_native_filesystem_open_reader(
   actql_native_filesystem_root *root,
   moonbit_bytes_t name,
@@ -1547,15 +1578,13 @@ void *actql_native_filesystem_open_reader(
   struct stat status;
   if (fstat(reader->fd, &status) != 0) {
     int stat_error = errno;
-    close(reader->fd);
-    reader->fd = -1;
+    actql_native_filesystem_reader_close_once(reader);
     actql_replace_errno_error(&reader->error, "inspect committed file", stat_error);
     return reader;
   }
   if (!S_ISREG(status.st_mode) ||
       !actql_exact_generation(&status, device, inode, size)) {
-    close(reader->fd);
-    reader->fd = -1;
+    actql_native_filesystem_reader_close_once(reader);
     actql_replace_error(&reader->error, "generation mismatch");
     return reader;
   }
@@ -1570,6 +1599,14 @@ int32_t actql_native_filesystem_reader_ready(
 }
 
 moonbit_bytes_t actql_native_filesystem_reader_error(
+  actql_native_filesystem_reader *reader
+) {
+  return actql_copy_bytes(reader == NULL ? "invalid reader" :
+    reader->close_result < 0 ? reader->close_error : reader->error);
+}
+
+// Opening refusal and its cleanup outcome are separate original facts.
+moonbit_bytes_t actql_native_filesystem_reader_open_error(
   actql_native_filesystem_reader *reader
 ) {
   return actql_copy_bytes(reader == NULL ? "invalid reader" : reader->error);
@@ -1653,7 +1690,7 @@ static int32_t actql_native_filesystem_reader_close_once(
   reader->fd = -1;
   reader->close_result = -1;
   if (close(descriptor) != 0) {
-    actql_replace_errno_error(&reader->error, "close reader", errno);
+    actql_replace_errno_error(&reader->close_error, "close reader", errno);
     return -1;
   }
   reader->close_result = 1;

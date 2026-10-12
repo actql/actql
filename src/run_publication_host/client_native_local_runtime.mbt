@@ -310,13 +310,14 @@ pub fn client_native_local_runtime_original(
 ///|
 /// Keep the exact runtime manifest among the existing selected originals.
 /// This is still first-adoption input, not a restoration or permission issuer.
-pub fn client_native_local_product_originals(
+fn assemble_client_native_local_product_originals(
   configuration_root : String,
   sqlite_library : String,
   signature_library : String,
   observed_at : String,
   assets : ClientLocalProductAssets,
   runtime : ClientNativeLocalRuntime,
+  finite_run_profile? : Bool = false,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   try {
     // Packaged asset bytes must match this exact original manifest, not merely
@@ -345,9 +346,15 @@ pub fn client_native_local_product_originals(
       return Err(UnsupportedAsset)
     }
     let originals = product_require(
-      client_local_product_originals(
-        configuration_root, sqlite_library, signature_library, observed_at, assets,
-      ),
+      if finite_run_profile {
+        client_local_product_finite_originals(
+          configuration_root, sqlite_library, signature_library, observed_at, assets,
+        )
+      } else {
+        client_local_product_originals(
+          configuration_root, sqlite_library, signature_library, observed_at, assets,
+        )
+      },
     )
     for index, (name, bytes) in originals {
       if name == "config.json" {
@@ -362,9 +369,13 @@ pub fn client_native_local_product_originals(
           native.get("local") is Some(Object(settings)) else {
           return Err(ConfigurationLimit)
         }
-        settings["installation_files"] = product_texts([
+        let selected = [
           "read.json", "run.json", "retention.json", "store.json", "runtime.json",
-        ])
+        ]
+        if finite_run_profile {
+          selected.push("profile.json")
+        }
+        settings["installation_files"] = product_texts(selected)
         originals[index] = (
           name,
           @utf8.encode(product_require(product_wire(config))),
@@ -376,4 +387,43 @@ pub fn client_native_local_product_originals(
   } catch {
     ProductConfigurationFailure(issue) => Err(issue)
   }
+}
+
+///|
+/// Existing absolute first-adoption profile. Restored installations retain
+/// these bytes and are never silently converted to finite Run issuance.
+pub fn client_native_local_product_originals(
+  configuration_root : String,
+  sqlite_library : String,
+  signature_library : String,
+  observed_at : String,
+  assets : ClientLocalProductAssets,
+  runtime : ClientNativeLocalRuntime,
+) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
+  assemble_client_native_local_product_originals(
+    configuration_root, sqlite_library, signature_library, observed_at, assets, runtime,
+  )
+}
+
+///|
+/// Explicit first-adoption finite metadata using the same verified runtime
+/// cohort. Physical adoption/current authority and per-Run acceptance remain
+/// required. The original library/asset manifest and selected limits persist.
+pub fn client_native_local_finite_product_originals(
+  configuration_root : String,
+  sqlite_library : String,
+  signature_library : String,
+  observed_at : String,
+  assets : ClientLocalProductAssets,
+  runtime : ClientNativeLocalRuntime,
+) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
+  assemble_client_native_local_product_originals(
+    configuration_root,
+    sqlite_library,
+    signature_library,
+    observed_at,
+    assets,
+    runtime,
+    finite_run_profile=true,
+  )
 }

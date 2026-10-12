@@ -16,6 +16,7 @@ pub fn read_bounded_text_file_with_custody(String, String, Int64, trim_newline? 
 type NativeBoundedTextFailure
 pub fn NativeBoundedTextFailure::issue(Self) -> NativeBoundedTextIssue
 pub fn NativeBoundedTextFailure::retry_cleanup(Self) -> Result[Unit, @filesystem.NativeFilesystemIssue]
+pub fn NativeBoundedTextFailure::root_cleanup_issue(Self) -> @filesystem.NativeFilesystemIssue?
 
 pub(all) enum NativeBoundedTextIssue {
   InvalidLimit
