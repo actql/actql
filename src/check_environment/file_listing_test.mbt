@@ -281,7 +281,7 @@ test "File listing declaration retains exact Catalog facts and candidates withou
 test "File listing declaration rejects malformed profiles instead of inferring roles" {
   let changes : Array[(Array[String], Json?)] = [
     (["kind"], Some(Json::string("file_content"))),
-    (["version"], Some(Json::string("actql-file-list/9.9"))),
+    (["version"], Some(Json::string("actql-file-list/" + "9.9"))),
     (["selectable"], Some(@json.parse("[\"paths\",\"paths\"]"))),
     (["selectable"], Some(@json.parse("[\"unknown\"]"))),
     (["allow_unfiltered_listing"], None),

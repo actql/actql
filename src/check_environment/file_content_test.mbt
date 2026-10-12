@@ -169,7 +169,7 @@ test "strict content profile is admitted by its exact SourceView and Catalog own
 test "strict content profile rejects missing version ability and altered representation" {
   for
     (path, replacement) in [
-      (["version"], Some(Json::string("actql-file-content/9.9"))),
+      (["version"], Some(Json::string("actql-file-content/" + "9.9"))),
       (["kind"], Some(Json::string("file_listing"))),
       (["admitted_scope_contract_cid"], Some(Json::string("bucket-path"))),
       (
