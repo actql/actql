@@ -4774,6 +4774,15 @@ function publicationControl(moon) {
     },
     // The Common reader checks the exact canonical document and embedded
     // resource CID. This private handle carries data, never restored custody.
+    encodeModelOriginalResourceDocument(originWire, stateWire, cutWire, phase, limits) {
+      if (![originWire, stateWire, cutWire, phase].every(value => typeof value === 'string')) {
+        throw new TypeError('Invalid original Model document inputs');
+      }
+      issuanceLimits(limits, 'Original Model document');
+      const {maxWireBytes, maxNodes, maxDepth} = limits;
+      return checked(moon.clientProgramEncodeModelOriginalResourceDocument(
+        originWire, stateWire, cutWire, phase, maxWireBytes, maxNodes, maxDepth));
+    },
     readModelOriginalResourceDocument(wire, limits) {
       if (typeof wire !== 'string') throw new TypeError('Invalid original Model document');
       issuanceLimits(limits, 'Original Model document');
