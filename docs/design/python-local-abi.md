@@ -1956,3 +1956,15 @@ initial batch. Setup encoding, raw-byte/descriptor and SQLite workspace loans
 remain held until their original cleanup succeeds. This assembly does not own
 the Core instance, start Source/Compute/Model/Effect, cancel a Run, or constitute
 the installed public Client/wheel acceptance gate.
+
+The Client's private `_connect_local` route consumes the installed Host's
+in-process operation/response port without constructing an HTTP endpoint,
+token or network client. It fixes `mode=local`, `owner=local` and durable
+connection selection; negotiation and every operation continue through the
+existing closed wire validation and the same async/sync Execution/Result models.
+Response collection, reader cleanup and failed-close retry share the existing
+transport custody. An in-process exception after an operation begins remains
+Unknown and never triggers replay. This route supplies no scope, Allow, status
+decision or execution implementation. Installed factory/public `open`, original
+Owner wire projections and the actual public runtime/wheel scenario still have
+to connect before this is a delivered Local Client.
