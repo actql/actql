@@ -1,0 +1,6 @@
+{
+  "profile_cid": "sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243",
+  "data_policy_cid": "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+  "body": "{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"formats\":[\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"python-local-read\",\"result_names\":[\"answer\"],\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"sdk-rows\",\"version\":\"actql-local-sdk-result-read-selection/0.1\"}",
+  "cid": "sha256:13906dcd43b46a467520bf3ea87a8889fd9d04701106b814e85142703e751f27"
+}

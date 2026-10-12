@@ -115,6 +115,8 @@ pub fn local_run_prepared(LocalRunPlan) -> @run_publication_host.PreparedClientP
 
 pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
 
+pub fn local_saved_submission_admission_wire(LocalSavedSubmissionObservation, LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[String, @run_publication_host.ClientSavedSubmissionViewIssue]
+
 pub fn local_saved_submission_revisions(LocalSavedSubmissionObservation, LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[(Int64, Int64, Int64), LocalSubmittedRunRowsIssue]
 
 pub fn local_source_publication_evidence(LocalSourcePublication) -> @run_publication.RunEvidenceValue
@@ -139,7 +141,7 @@ pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequest
 
 pub fn prepare_local_source_publication(LocalNativeSourceConfiguration, LocalComputeHost, @host.NativeHostSourceCapture, @execution_authorization.AdmittedAccountConfiguration, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[LocalSourcePublicationPreparation, LocalSourcePublicationIssue]
 
-pub fn prepare_local_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
+pub fn prepare_local_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double, local_policy_original? : @run_publication_host.ClientLocalRunPolicyOriginal?) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
 
 pub fn prepare_source_free_local_publication_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String, (String, String)) -> Result[LocalRunPlan, LocalRunIssue]
 
@@ -404,6 +406,7 @@ pub struct LocalSubmittedRunRows {
   preparing : Bytes
   run : Bytes
   submitted : Bytes
+  local_policy_original : String?
 }
 
 pub(all) enum LocalSubmittedRunRowsIssue {

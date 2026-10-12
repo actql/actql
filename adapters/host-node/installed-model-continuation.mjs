@@ -14,6 +14,9 @@ import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
 import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
+import {setImmediate as yieldEventLoop} from 'node:timers/promises';
+import {selectedInferOriginalCurrentStateCodec,
+  snapshotInferOriginalCurrentStateCodec as originalCurrentCodecLimits} from './infer-original-installation.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -353,12 +356,14 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
     const rawBinding = rawSelection === undefined ? undefined :
       {attempted: false, complete: false, issue: undefined,
-        persistence: undefined, holding: undefined};
+        persistence: undefined, holding: undefined, originalsFlight: undefined,
+        originalsPending: false, readCleanup: undefined, readCleanupFlight: undefined};
     // Reject a known missing installation before Approval/Entry, not after
     // consuming an attempt. Method checks are availability only: the actual
     // Store remains this controller's selected original, never caller data.
     if (rawBinding !== undefined &&
         (typeof operation.ioNotification?.notify !== 'function' ||
+          typeof control.installedModelRawSelectionOriginals !== 'function' ||
           ['confirmModelRawCaptureOriginals', 'confirmModelRawEvidence',
             'prepareModelRawEvidence', 'commitPhysicalHolding'].some(name =>
             typeof store?.[name] !== 'function'))) {
@@ -477,6 +482,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     let installedJournalPort;
     let originalInvalidation;
     let originalCut;
+    let originalSave;
+    let originalDispatchCut;
     function originalResourceReadCurrent(park, acquisition) {
       const originalScope = operation.originalResourceScope?.();
       if (!owner.available || originalPreparation === undefined ||
@@ -595,9 +602,58 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     }), limits);
     let gate, gateOpening;
     let gateCloseAttempted = false, gateReleased = false;
+    function rawOriginalsCurrent() {
+      checkpoints();
+      if (!owner.available || !token.available || !owner.currentProvider() ||
+          rawSelection?.selectionAvailable() !== true ||
+          originalPreparation !== undefined &&
+            operation.originalResourceScope?.() !== originalPreparation.scope) {
+        fail('InstalledModelRawOriginalsUnavailable');
+      }
+      signal?.throwIfAborted();
+    }
+    function confirmRawOriginals() {
+      if (rawBinding === undefined) return;
+      rawOriginalsCurrent();
+      if (rawBinding.originalsFlight !== undefined) return rawBinding.originalsFlight;
+      // The finite Common projection is captured before the first Store await.
+      // No copied packet/CID or this availability result issues a raw grant.
+      const originals = control.installedModelRawSelectionOriginals(rawSelection);
+      rawBinding.originalsPending = true;
+      rawBinding.originalsFlight = (async () => {
+        try {
+          await store.confirmModelRawCaptureOriginals(originals, storeAuthorityCid);
+          rawOriginalsCurrent();
+        } catch (error) {
+          const handle = error?.cleanupHandle;
+          // Only this actual selected Store's failed physical read supplies
+          // retry custody. Never lose its FD merely because approval failed.
+          if (typeof handle?.status === 'function' &&
+              typeof handle?.retry === 'function' && handle.status().pending === true) {
+            rawBinding.readCleanup = handle;
+          }
+          throw error;
+        } finally { rawBinding.originalsPending = false; }
+      })();
+      return rawBinding.originalsFlight;
+    }
     const cleanup = () => {
       owner.available = false;
-      if (gateOpening !== undefined) return false;
+      if (gateOpening !== undefined || originalSave?.pending === true || originalDispatchCut?.pending === true ||
+          rawBinding?.originalsPending === true || rawBinding?.readCleanupFlight !== undefined) return false;
+      if (rawBinding?.readCleanup !== undefined) {
+        if (rawBinding.readCleanup.status().pending === true) {
+          const handle = rawBinding.readCleanup;
+          rawBinding.readCleanupFlight = Promise.resolve().then(() => handle.retry())
+            .catch(() => { /* Retain the same original FD for cleanup retry. */ })
+            .finally(() => {
+              rawBinding.readCleanupFlight = undefined;
+              try { operation.ioNotification.notify(); } catch { /* Wake is not cleanup proof. */ }
+            });
+          return false;
+        }
+        rawBinding.readCleanup = undefined;
+      }
       if (gate !== undefined && !gateReleased) {
         const recover = gateCloseAttempted;
         gateCloseAttempted = true;
@@ -619,9 +675,12 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // escaped saved receipts. A failed cleanup above retains both fields.
         rawBinding.persistence = undefined;
         rawBinding.holding = undefined;
+        rawBinding.originalsFlight = undefined;
       }
       installedJournalPort = undefined;
       originalInvalidation = undefined;
+      originalSave = undefined;
+      originalDispatchCut = undefined;
       originalPreparation = undefined;
       release(token);
       return true;
@@ -637,8 +696,109 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       beforeDefer: async () => { if (!token.available) fail('ModelFixedInputCustodyUnavailable'); },
       attachImmediate: view?.checkpointCid === null,
       ...(journalPort === undefined ? {} : {journalPort})};
-    return Object.freeze({originals, inventory, token, scope, preparedCallSet,
+    const continuationView = Object.freeze({originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
+      prepareOriginalResourcesForDispatch() {
+        if (!owner.available || checkpoints()!==cp) fail('ModelOriginalCurrentCutUnavailable');
+        if (originalDispatchCut!==undefined) return originalDispatchCut.flight;
+        const codec=selectedInferOriginalCurrentStateCodec(originalPreparation?.metadataInstallation,
+          originalPreparation?.nodeInstallation);
+        // This same installed operation already owns all initialization and
+        // Store/codec overlap. There is no request-supplied serializer/amount.
+        const original=originalDispatchCut={park:undefined,flight:undefined,pending:true};
+        original.flight=(async()=>{
+          try {
+            const storageBinding=await cp.observeModelOriginalStorageBinding();
+            if (!owner.available || checkpoints()!==cp) fail('ModelOriginalCurrentCutUnavailable');
+            const origin=await continuationView.originalResourceOrigin(storageBinding);
+            if (!owner.available || checkpoints()!==cp) fail('ModelOriginalCurrentCutUnavailable');
+            // Capture immutable origin DATA before park, and retain the actual
+            // returned park immediately before any further fallible operation.
+            const originWire=canonicalJson(origin);
+            original.park=operation.parkOriginalResourcesForStateWrite();
+            const saved=await continuationView.retainOriginalResourceCurrentCut(original.park,
+              storageBinding,originWire,codec);
+            originalResourceReadCurrent(original.park);
+            cp.journal.commitOriginalModelCurrentCut(saved.reference);
+            continuationView.beginOriginalResourceInvalidation(saved.reference,original.park);
+            continuationView.completeOriginalResourceInvalidation();
+            // Unit only: journal ACK/fence consumption never issues InferAllow
+            // or bypasses the original final Entry/current send gate.
+          } finally {original.pending=false;}
+        })();
+        return original.flight;
+      },
+      retainOriginalResourceCurrentCut(park, storageBinding, originWire, codec) {
+        if (originalSave !== undefined) {
+          if (originalSave.park !== park || originalSave.storageBinding !== storageBinding || originalSave.originWire !== originWire ||
+              originalSave.codec.deref() !== codec) fail('ModelOriginalCurrentCutBindingMismatch');
+          originalResourceReadCurrent(originalSave.park);
+          return originalSave.promise;
+        }
+        // This method is internal to the original opened operation. Origin DATA
+        // was selected before park by its existing checked getter; matching
+        // strings never replace the checks against the actual parked Owner.
+        if (!owner.available || checkpoints() !== cp ||
+            originalPreparation?.scope !== operation.originalResourceScope?.() ||
+            typeof originWire !== 'string' ||
+            typeof control.encodeModelOriginalResourceDocument !== 'function' ||
+            typeof cp.retainOriginalModelState !== 'function') fail('ModelOriginalCurrentCutUnavailable');
+        // The original caller already retains this actual park. Refusing a
+        // codec/envelope must not lose a freshly issued fence in a local only.
+        originalResourceReadCurrent(park);
+        // The original complete simultaneous envelope precedes this record,
+        // codec snapshots, Writer, trees, Promise and physical Store I/O.
+        const acquisition = operation.originalMetadataAcquisition(park);
+        const limits = originalCurrentCodecLimits(codec);
+        const original = originalSave = {storageBinding, originWire, codec: new WeakRef(codec),
+          park, promise: undefined, receipt: undefined, reference: undefined, pending: true};
+        original.promise = (async () => {
+          let writer;
+          try {
+            const observation = cp.journal.observeOriginalModelJournal(inventory);
+            const facts = cp.journal.originalModelJournalObservationFacts(observation);
+            const cutWire = canonicalJson(verifier.projectOriginalCurrentCut({facts}));
+            const envelope = {maxWireBytes: limits.decode.parse.max_input_bytes,
+              maxNodes: limits.decode.parse.max_nodes, maxDepth: limits.decode.parse.max_depth};
+            originalResourceReadCurrent(park, acquisition);
+            writer = operation.prepareOriginalCurrentStateWriter(park, envelope);
+            for (;;) {
+              originalResourceReadCurrent(park, acquisition);
+              const poll = operation.advanceOriginalCurrentStateWriter(park, writer, limits.quantum);
+              if (poll.kind === 'complete') break;
+              if (poll.kind !== 'continue' || poll.work < 1) fail('ModelOriginalCurrentStateWriteFailed');
+              await yieldEventLoop();
+            }
+            let stateWire = operation.finishOriginalCurrentStateWriter(park, writer);
+            operation.cancelOriginalCurrentStateWriter(writer);
+            writer = undefined;
+            const bodyWire = control.encodeModelOriginalResourceDocument(originWire,
+              stateWire, cutWire, 'parked', envelope);
+            stateWire = undefined;
+            const document = control.readModelOriginalResourceDocument(bodyWire, envelope);
+            const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+            originalResourceReadCurrent(park, acquisition);
+            control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
+              plan.runDefinition, selected.graph, originalPreparation.scope, park,
+              document, originalPreparation.nodeInstallation, storage);
+            cp.journal.reconfirmOriginalModelJournal(observation);
+            original.receipt = await cp.retainOriginalModelState({runDefinition: plan.runDefinition,
+              storageBinding, bodyWire});
+            // A late stop or lost Store response keeps the same park/custody;
+            // it cannot be reclassified as unsaved or start another attempt.
+            originalResourceReadCurrent(park, acquisition);
+            cp.journal.reconfirmOriginalModelJournal(observation);
+            original.reference = await continuationView.prepareOriginalResourceCurrentCut(
+              park, storageBinding, original.receipt, limits);
+            originalResourceReadCurrent(park, acquisition);
+            return Object.freeze({park, receipt: original.receipt, reference: original.reference});
+          } finally {
+            if (writer !== undefined) operation.cancelOriginalCurrentStateWriter(writer);
+            original.pending = false;
+          }
+        })();
+        return original.promise;
+      },
       prepareOriginalResourceCurrentCut(park, storageBinding, receipt, codec) {
         originalResourceReadCurrent(park);
         // Validate the installed runtime before Store I/O and use the original
@@ -660,27 +820,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // This is one private installation caller, not a second Resource or
         // journal state machine. Fund this record, Promise/frames and BOTH
         // Common trees through the original installation before using it.
-        if (codec === null || typeof codec !== 'object' ||
-            Object.keys(codec).sort().join(',') !== 'comparisonWork,decode,quantum' ||
-            !Number.isSafeInteger(codec.quantum) || codec.quantum < 1 || codec.quantum > 2147483647 ||
-            !Number.isSafeInteger(codec.comparisonWork) || codec.comparisonWork < 1 ||
-            codec.comparisonWork > 2147483647) fail('ModelOriginalCurrentCodecUnavailable');
-        // Check the same original envelope BEFORE this caller's first retained
-        // allocation. Copy only finite DATA limits, never authority or custody.
-        const decode = codec.decode;
-        const bounded = (value, fields) => value !== null && typeof value === 'object' &&
-          Object.keys(value).sort().join(',') === fields && Object.values(value).every(
-            n => Number.isSafeInteger(n) && n >= 0 && n <= 2147483647);
-        if (decode === null || typeof decode !== 'object' ||
-            Object.keys(decode).sort().join(',') !== 'maxWork,parse,tree' ||
-            !Number.isSafeInteger(decode.maxWork) || decode.maxWork < 1 || decode.maxWork > 2147483647 ||
-            !bounded(decode.parse, 'max_depth,max_input_bytes,max_nodes') ||
-            !bounded(decode.tree, 'max_depth,max_nodes,max_string_bytes,max_total_string_bytes')) {
-          fail('ModelOriginalCurrentCodecUnavailable');
-        }
-        const limits = Object.freeze({quantum: codec.quantum, comparisonWork: codec.comparisonWork,
-          decode: Object.freeze({maxWork: decode.maxWork, parse: Object.freeze({...decode.parse}),
-            tree: Object.freeze({...decode.tree})})});
+        const limits = originalCurrentCodecLimits(codec);
         const original = originalCut = {park, storageBinding, receipt, codec: new WeakRef(codec),
           promise: undefined, document: undefined, matched: undefined, facts: undefined,
           current() {
@@ -893,6 +1033,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         if (rawBinding?.attempted) {
           if (!rawBinding.complete) throw rawBinding.issue;
         }
+        // A known missing policy original must refuse before Approval/Entry.
+        // Persistence rechecks again after transport; an early observation is
+        // neither permanent Store custody nor permission for the final send.
+        if (rawBinding !== undefined) {
+          await confirmRawOriginals();
+          rawOriginalsCurrent();
+        }
+        if (!owner.available) fail('ModelContinuationClosed');
+        signal?.throwIfAborted();
         if (gate === undefined) {
           gateOpening ??= cp.modelAuthorization(gateOptions).then(value => { gate = value; })
             .finally(() => { gateOpening = undefined; });
@@ -1037,6 +1186,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       // this continuation's responsibility until the same gate settles.
       close: cleanup, cleanup, cleanupPending,
     });
+    return continuationView;
   }
   async function open(options) {
     const ownership = {};

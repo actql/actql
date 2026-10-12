@@ -25,6 +25,7 @@ _FILES = {
     'result_policy': 'result-policy.json', 'environment': 'environment.json',
     'compute': 'compute.json',
 }
+_SDK_FILES = {'run_policy_profile': 'run-policy-profile.json', 'sdk_read': 'sdk-read.json'}
 
 
 class LocalInstallationCleanupPending(RuntimeError):
@@ -66,8 +67,10 @@ class OriginalLocalInstallation:
     """
 
     def __init__(self, core: LocalCore, parent: Path, *, observed_at: str,
-                 now: Callable[[], int], project_epoch: Callable[[int, bytes], bytes]) -> None:
-        if type(core) is not LocalCore or not callable(now) or not callable(project_epoch):
+                 now: Callable[[], int], project_epoch: Callable[[int, bytes], bytes],
+                 sdk_finite: bool = False) -> None:
+        if (type(core) is not LocalCore or not callable(now) or not callable(project_epoch)
+                or type(sdk_finite) is not bool):
             raise ValueError('Invalid original Local installation supplier')
         self._original = self
         self._core = core
@@ -88,6 +91,8 @@ class OriginalLocalInstallation:
         self._source: LocalFileRoot | None = None
         self._state: LocalFileRoot | None = None
         self._results: LocalFileRoot | None = None
+        files = _FILES | _SDK_FILES if sdk_finite else _FILES
+        file_limit: Callable[[str], int] = lambda key: 8192 if key in _SDK_FILES else 65536
         try:
             with core._lock:
                 parent_root = self._root(self._path)
@@ -99,26 +104,37 @@ class OriginalLocalInstallation:
                 # allocation. Exact source byte holding is separately reserved.
                 self._workspaces.append(self._reserve(lambda: core.reserve_workspace(
                     655360, stopped=lambda: True, cleanup=lambda: True)))
+                if sdk_finite:
+                    # Two additional original file/decoded-body holdings, each
+                    # bounded at 8 KiB, precharged before producer/acquisition.
+                    # The existing bounded output/copy reservation is separate.
+                    self._workspaces.append(self._reserve(lambda: core.reserve_workspace(
+                        8 * 2 * 8192, stopped=lambda: True, cleanup=lambda: True)))
                 if fresh:
                     packet_input = self._copy({'configuration_root': str(self._path / 'source'),
                                                'observed_at': observed_at})
-                    bootstrap = self._reserve(lambda: core.reserve_bootstrap(packet_input, cleanup=lambda: True))
-                    self._outputs.append(('bootstrap', bootstrap))
-                    core.produce_bootstrap(bootstrap)
-                    raw = core.read_bootstrap(bootstrap)
+                    bootstrap = self._reserve(lambda: (core.reserve_sdk_bootstrap(packet_input, cleanup=lambda: True)
+                        if sdk_finite else core.reserve_bootstrap(packet_input, cleanup=lambda: True)))
+                    self._outputs.append(('bootstrap_sdk' if sdk_finite else 'bootstrap', bootstrap))
+                    if sdk_finite:
+                        core.produce_sdk_bootstrap(bootstrap)
+                        raw = core.read_sdk_bootstrap(bootstrap)
+                    else:
+                        core.produce_bootstrap(bootstrap)
+                        raw = core.read_bootstrap(bootstrap)
                     self._workspaces.append(self._reserve(lambda: core.reserve_workspace(
                         8 * len(raw) + 8 * 65536, stopped=lambda: True, cleanup=lambda: True)))
                     packet = _object(raw, 1048576)
-                    if set(packet) != set(_FILES) or any(type(value) is not str for value in packet.values()):
+                    if set(packet) != set(files) or any(type(value) is not str for value in packet.values()):
                         raise ValueError('Invalid original Core bootstrap material')
                     for name in ('source', 'state'):
                         os.mkdir(name, 0o700, dir_fd=parent_root._open())
                     os.fsync(parent_root._open())
                     source = self._root(self._path / 'source')
                     state = self._root(self._path / 'state')
-                    for key, name in _FILES.items():
+                    for key, name in files.items():
                         body = packet[key].encode('utf-8')
-                        if len(body) > 65536:
+                        if len(body) > file_limit(key):
                             raise ValueError('Original Local product material exceeds its bound')
                         self._write(source, name, body)
                     os.mkdir('results', 0o700, dir_fd=source._open())
@@ -136,8 +152,10 @@ class OriginalLocalInstallation:
                 if not fresh:
                     self._workspaces.append(self._reserve(lambda: core.reserve_workspace(
                         8 * 7 * 65536, stopped=lambda: True, cleanup=lambda: True)))
-                raw_files = {key: self._read(source, name, 65536) for key, name in _FILES.items()}
-                selected = sorted((name, raw_files[key]) for key, name in _FILES.items() if key != 'account')
+                raw_files = {key: self._read(source, name, file_limit(key)) for key, name in files.items()}
+                selected = sorted((name, raw_files[key]) for key, name in files.items() if key != 'account')
+                if len(selected) > 8:
+                    raise ValueError('Original Local selected file bound exceeded')
                 setting_fields = []
                 for name, body in selected:
                     info = os.stat(name, dir_fd=source._open(), follow_symlinks=False)
@@ -202,10 +220,11 @@ class OriginalLocalInstallation:
                 # A failed COMMIT stays unknown; reopened assembly only inspects.
                 self._epoch = LocalSubmissionAuthority(store, project_epoch, now=now,
                                                        _initial_rows=initial_rows)
-                source_pins = self._pin(source, store, 7)
+                source_pins = self._pin(source, store, len(files))
                 state_pins = self._pin(state, store, 4)
                 account = source_pins.read_original('account.json', max_bytes=65536)
-                selected_pins = tuple(source_pins.read_original(name, max_bytes=65536) for name, _ in selected)
+                limits_by_name = {name: file_limit(key) for key, name in files.items()}
+                selected_pins = tuple(source_pins.read_original(name, max_bytes=limits_by_name[name]) for name, _ in selected)
                 staged = state_pins.read_original('account.json', max_bytes=65536)
                 original = tuple(state_pins.read_original(name, max_bytes=8192) for name in (
                     'initialization.json', 'configuration-custody.json', 'journal-custody.json'))
@@ -353,7 +372,8 @@ class OriginalLocalInstallation:
                 self._writers.remove((root, writer))
             for family, output in tuple(reversed(self._outputs)):
                 if not self._core._closed:
-                    closed = (self._core.close_bootstrap(output) if family == 'bootstrap'
+                    closed = (self._core.close_sdk_bootstrap(output) if family == 'bootstrap_sdk'
+                              else self._core.close_bootstrap(output) if family == 'bootstrap'
                               else self._core.close_original_metadata(output))
                     if not closed:
                         return False
