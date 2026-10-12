@@ -41,6 +41,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/lag-source-input.mjs', 'lag-source-input.mjs'],
   ['scripts/fixtures/row-watermark-source-input.mjs', 'row-watermark-source-input.mjs'],
   ['scripts/fixtures/event-dedupe-source-input.mjs', 'event-dedupe-source-input.mjs'],
   ['scripts/fixtures/pipe-pivot-source-input.mjs', 'pipe-pivot-source-input.mjs'],
@@ -414,6 +415,9 @@ if (process.argv.includes('--graph-shortest-only')) {
   // Reuse the existing narrow Graph transport profile and retained rereads.
   runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_ONLY = '1';
 }
+if (process.argv.includes('--lag-only')) {
+  runtimeEnvironment.ACTQL_TEST_LAG_ONLY = '1';
+}
 if (process.argv.includes('--row-watermark-only')) {
   runtimeEnvironment.ACTQL_TEST_ROW_WATERMARK_ONLY = '1';
 }
@@ -743,7 +747,7 @@ if (process.argv.includes('--cancellation-only')) {
 await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--event-dedupe-only', '--row-watermark-only', '--aggregate-filter-only', '--grouped-rows-boundary-only', '--positive-limit-only', '--hex-integer-only', '--unpivot-multicolumn-only', '--unpivot-row-label-only', '--from-unpivot-only', '--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-graft-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--lag-only', '--event-dedupe-only', '--row-watermark-only', '--aggregate-filter-only', '--grouped-rows-boundary-only', '--positive-limit-only', '--hex-integer-only', '--unpivot-multicolumn-only', '--unpivot-row-label-only', '--from-unpivot-only', '--pipe-pivot-only', '--pipe-unpivot-only', '--graph-relation-join-only', '--traversal-join-only', '--graph-rows-join-only', '--between-only', '--ifnull-coalesce-reuse-only', '--negated-predicate-reuse-only', '--abs-only', '--distinct-aggregate-order-only', '--analytic-distinct-frame-only', '--countif-distinct-only', '--min-max-distinct-only', '--pipe-distinct-only', '--set-corresponding-only', '--set-inner-by-name-only', '--set-by-name-list-only', '--lower-only', '--short-rows-only', '--order-window-only', '--upper-only', '--window-scalar-only', '--analytic-string-agg-only', '--sqrt-only', '--unnest-checked-array-only', '--correlated-unnest-only', '--in-unnest-literal-array-only', '--membership-expression-reuse-only', '--array-literal-only', '--unnest-source-only', '--unnest-parameter-path-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-graft-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
   '--full-join-scope-only',
@@ -888,6 +892,7 @@ if (process.argv.includes('--graph-graft-only') || process.argv.includes('--grap
   }
   return;
 }
+if (process.argv.includes('--lag-only')) return;
 if (process.argv.includes('--row-watermark-only')) return;
 if (process.argv.includes('--event-dedupe-only')) return;
 if (process.argv.includes('--grouped-rows-boundary-only')) return;
