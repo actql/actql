@@ -26,7 +26,15 @@ class StoredBytes:
 
 
 _NamespaceConsumer = Callable[[tuple[str, StoredBytes] | None], object]
-_NamespaceReader = Callable[[str, str, _NamespaceConsumer], None]
+
+
+@dataclass(frozen=True, slots=True)
+class _NamespaceReader:
+    # One physical transaction loan, not completeness or admission proof.
+    scan_after: Callable[[str, str, _NamespaceConsumer], None]
+    read: Callable[[str, str, _NamespaceConsumer], None]
+
+
 _InventoryInspection = Callable[[_NamespaceReader], object]
 
 
@@ -498,6 +506,8 @@ class LocalByteStore:
         or returning None from this callback is not an admission proof. Python
         does not choose scope, completeness, accepted state or retry permission.
 
+        scan_after and exact read share the same borrowed transaction and copy
+        budget. An exact miss does not select a neighboring row or end a scan.
         One row is copied at a time under the existing count and cumulative
         byte bounds. The original epoch/configuration/count fences and typed
         current port stay checked in the same BEGIN IMMEDIATE transaction.
@@ -605,7 +615,8 @@ class LocalByteStore:
             if not self._fences_match_locked(fences, successors):
                 raise LocalStorageError('Original Local inventory metadata changed')
 
-        def read(namespace: str, after: str, consume: _NamespaceConsumer) -> None:
+        def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
+                    scan: bool) -> None:
             nonlocal reading, reads, copied, failure
             entered = False
             try:
@@ -618,7 +629,8 @@ class LocalByteStore:
                 # Use the same injective namespace/key encoding as physical
                 # writes. Empty cursor means start, not an empty logical key.
                 prefix = f'namespace:{len(namespace.encode("utf-8"))}:{namespace}:'
-                lower = self.namespaced_key(namespace, after) if after else prefix
+                lower = (self.namespaced_key(namespace, after)
+                         if after or not scan else prefix)
                 upper = prefix[:-1] + ';'
                 if reads >= self._max_records:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
@@ -626,7 +638,7 @@ class LocalByteStore:
                 fence()
                 # A malformed empty logical key must be observed and refused,
                 # not silently excluded from the original namespace inventory.
-                relation = '>' if after else '>='
+                relation = ('>' if after else '>=') if scan else '='
                 row = self._connection.execute(f'''SELECT
                     CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
                     generation,
@@ -665,7 +677,11 @@ class LocalByteStore:
 
         try:
             fence()
-            result = inspect(read)
+            result = inspect(_NamespaceReader(
+                scan_after=lambda namespace, after, consume:
+                    observe(namespace, after, consume, scan=True),
+                read=lambda namespace, key, consume:
+                    observe(namespace, key, consume, scan=False)))
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:

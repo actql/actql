@@ -95,14 +95,22 @@ async function writeExclusive(path, bytes) {
   }
 }
 
-async function readBounded(path, maximum) {
+async function readBounded(path, maximum, closed) {
   if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
   }
   // Pin the original allocation before allocating its bounded output. A
   // nonblocking open also refuses a raced-in FIFO without waiting for a writer.
-  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
-    constants.O_NONBLOCK);
+  let handle;
+  try {
+    handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+      constants.O_NONBLOCK);
+  } catch (error) {
+    closed?.(); // No original FD was acquired.
+    throw error;
+  }
+  let readFailure;
+  let readFailed = false;
   try {
     const before = await handle.stat({bigint: true});
     if (!before.isFile() || before.size < 0n ||
@@ -136,10 +144,47 @@ async function readBounded(path, maximum) {
       fail('InvalidPublicationStoreObject');
     }
     return bytes;
+  } catch (error) {
+    readFailed = true;
+    readFailure = error;
+    throw error;
   } finally {
-    // Preserve the existing awaited close boundary. A close rejection is not
-    // successful read completion or proof that cleanup responsibility ended.
-    await handle.close();
+    try {
+      await handle.close();
+    } catch (closeFailure) {
+      // Retain exactly this failed FD, not a pathname reopen or another read.
+      // As for the existing object reader, the original caller's reservation
+      // and custody stay live until confirmed close. This control/frame and
+      // any escaped error are part of the original funded read inventory.
+      let original = handle;
+      let retire = closed;
+      let flight;
+      const status = () => Object.freeze({pending: original !== undefined});
+      const cleanup = Object.freeze({
+        status,
+        retry() {
+          if (flight !== undefined) return flight;
+          if (original === undefined) return Promise.resolve(status());
+          flight = Promise.resolve().then(() => original.close()).then(() => {
+            original = undefined;
+            const acknowledge = retire;
+            retire = undefined;
+            acknowledge?.();
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        },
+      });
+      const primary = readFailed ? readFailure : closeFailure;
+      const failure = primary !== null && typeof primary === 'object' &&
+        Object.isExtensible(primary) && primary.cleanupHandle === undefined
+        ? primary : new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
+      failure.cleanupHandle = cleanup;
+      failure.cleanupPending = true;
+      failure.cleanupError = closeFailure;
+      throw failure;
+    }
+    closed?.();
   }
 }
 
@@ -5314,9 +5359,20 @@ export async function openLocalPublicationStore(
   // One bounded semantic view per actual Store admission. The escaped handle
   // carries no key/path and must be presented to this same live Store owner.
   let originalModelStorageBinding;
+  // This existing Store's original binding readers stay owned during read and
+  // failed-close cleanup. Count/callback/error/control holding is not a new
+  // physical byte allowance, and must be included in the installed envelope.
+  let originalModelStorageBindingReaders = 0;
   const observeOriginalModelStorageBinding = async () => {
     active();
-    const current = JSON.parse(await readBounded(storeContractPath, 256));
+    if (originalModelStorageBindingReaders !== 0) {
+      fail('PublicationStoreCleanupPending');
+    }
+    originalModelStorageBindingReaders++;
+    const bytes = await readBounded(storeContractPath, 256, () => {
+      originalModelStorageBindingReaders--;
+    });
+    const current = JSON.parse(bytes);
     active();
     if (!exactKeys(current, ['version', 'isolation', 'store_authority_cid']) ||
         !Buffer.from(JSON.stringify(current), 'utf8').equals(storeContractBytes)) {
@@ -5454,7 +5510,8 @@ export async function openLocalPublicationStore(
           pendingUncommittedMetadataCleanups.size !== 0 ||
           pendingPhysicalHoldingDeletions.size !== 0 ||
           activeResultReaders.size !== 0 ||
-          activePhysicalHoldingReaders.size !== 0) {
+          activePhysicalHoldingReaders.size !== 0 ||
+          originalModelStorageBindingReaders !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
         ));

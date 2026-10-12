@@ -6,6 +6,14 @@ The normal SDK and CLI do not acquire Explorer/React/Flow/Hono dependencies.
 `@actql/explorer-ui` remains the shared Cloud library with React/React DOM peers
 and built CSS exports. No private Cloud package is needed.
 
+This is the normal installation interface for a supplied Explorer release
+cohort. Checked-in `private: true` / `0.0.0-development` manifests serve repository
+development; the [optional release recipe](../../release/explorer-cohort.json)
+stages exact versions and registry-resolvable dependency/peer metadata. Fixed RC
+installation evidence applies to that RC's source and archive digests, rather
+than every later main revision. Formal registry publication requires a separate
+GO; a missing unpublished version is not proof of an installation defect.
+
 ```sh
 npx actql-explorer --local --state-dir .actql
 ```
