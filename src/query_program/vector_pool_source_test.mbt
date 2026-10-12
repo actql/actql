@@ -81,7 +81,8 @@ fn vector_pool_issue(text : String) -> @pipeline.IssueKind raise {
   match with_carrier_program(text, nearest_context()) {
     Err(BindingPreparation(LocalProgram(Pipeline(0, diagnostic)))) =>
       diagnostic.kind
-    Err(issue) => fail("Unexpected refusal boundary: " + @debug.to_string(issue))
+    Err(issue) =>
+      fail("Unexpected refusal boundary: " + @debug.to_string(issue))
     Ok(_) => fail("Invalid pool must not be admitted")
   }
 }
@@ -89,25 +90,46 @@ fn vector_pool_issue(text : String) -> @pipeline.IssueKind raise {
 ///|
 test "P2 pooling keeps common member key role and collision refusals" {
   assert_eq(
-    vector_pool_issue("FROM candidates |> pool_vectors(vector: embedding, by: [label], method: 'sum') |> vectors() |> SELECT label"),
+    vector_pool_issue(
+      "FROM candidates |> pool_vectors(vector: embedding, by: [label], method: 'sum') |> vectors() |> SELECT label",
+    ),
     MissingKeyEvidence,
   )
   let prefix = "WITH members AS (FROM candidates |> to_vectors(id: item_id, vector: embedding)) FROM members |> "
   let tail = " |> vectors() |> SELECT label"
   let cases : Array[(String, @pipeline.IssueKind)] = [
-    ("pool_vectors(by: [label, LABEL], method: 'sum')", Vector(DuplicatePoolField(Unqualified("label")))),
+    (
+      "pool_vectors(by: [label, LABEL], method: 'sum')",
+      Vector(DuplicatePoolField(Unqualified("label"))),
+    ),
     ("pool_vectors(by: [], method: 'sum')", Vector(InvalidBody)),
     ("pool_vectors(by: [label], method: 'SUM')", Vector(InvalidBody)),
-    ("pool_vectors(by: [label], method: 'sum', output_id: embedding)", Vector(OutputCollision("embedding"))),
-    ("pool_vectors(by: [label], method: 'sum', vector: label)", Vector(InvalidRole(InvalidRole(Unqualified("label"))))),
+    (
+      "pool_vectors(by: [label], method: 'sum', output_id: embedding)",
+      Vector(OutputCollision("embedding")),
+    ),
+    (
+      "pool_vectors(by: [label], method: 'sum', vector: label)",
+      Vector(InvalidRole(InvalidRole(Unqualified("label")))),
+    ),
   ]
   for (call, expected) in cases {
     assert_eq(vector_pool_issue(prefix + call + tail), expected)
   }
   assert_true(
-    with_carrier_program(prefix + "pool_vectors(by: [missing], method: 'sum')" + tail, nearest_context()) is Err(UnknownColumn),
+    with_carrier_program(
+      prefix + "pool_vectors(by: [missing], method: 'sum')" + tail,
+      nearest_context(),
+    )
+    is Err(UnknownColumn),
   )
-  for call in ["pool_vectors(by: [label])", "pool_vectors(by: [label], method: 'sum', id: 'override')"] {
-    assert_true(with_carrier_program(prefix + call + tail, nearest_context()) is Err(InvalidQuery))
+  for
+    call in [
+      "pool_vectors(by: [label])", "pool_vectors(by: [label], method: 'sum', id: 'override')",
+    ] {
+    assert_true(
+      with_carrier_program(prefix + call + tail, nearest_context())
+      is Err(InvalidQuery),
+    )
   }
 }
