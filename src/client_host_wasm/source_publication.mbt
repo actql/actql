@@ -101,7 +101,13 @@ pub fn prepare_source_publication(
     value.source_publications.get(handle) is Some(record) &&
     value.computes.get(record.compute)
     is Some(
-      { host: Some(host), capture: Some(capture), attempt, closing: false, .. }
+      {
+        host: Some(host),
+        capture: Some(capture),
+        origin: Captured(attempt),
+        closing: false,
+        ..
+      }
     ) &&
     value.native_attempts.get(attempt) is Some(original) &&
     !original.closing &&
