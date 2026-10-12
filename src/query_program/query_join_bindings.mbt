@@ -56,10 +56,9 @@ fn lower_script_join_relation(
   preserved_scope? : Array[JoinChainScope]? = None,
   positional_set_output? : Bool = false,
 ) -> Input raise Abort {
-  // Keep right Source declarations at their actual JOIN occurrence. A
-  // correlated Source cannot be captured independently before left keys
-  // exist. Direct right Sources are still admitted by the common acquisition
-  // owner; this changes neither their Request nor the JOIN's expression scope.
+  // Bind independent right inputs through their original Source owner and
+  // requested capture boundary. Correlated UNNEST stays in the JOIN-chain
+  // operations; its current-row dependency is not a Source capture.
   if @query.join_part_count(query) < 1 {
     raise Abort(UnsupportedJoin)
   }
@@ -107,7 +106,6 @@ fn lower_script_join_relation(
         sources,
         steps,
         reserved,
-        capture=false,
       )
       inputs.push((selected, bound.name))
     }
