@@ -689,6 +689,16 @@ pub fn client_native_local_runtime_members(ClientNativeLocalRuntime) -> Array[Cl
 
 pub fn client_native_local_runtime_original(ClientNativeLocalRuntime) -> String
 
+pub fn client_native_local_scalar_values_profile_expression_at(ClientNativeLocalScalarValuesProfile, Int) -> String?
+
+pub fn client_native_local_scalar_values_profile_expression_count(ClientNativeLocalScalarValuesProfile) -> Int
+
+pub fn client_native_local_scalar_values_profile_inspected_entries(ClientNativeLocalScalarValuesProfile) -> Int
+
+pub fn client_native_local_scalar_values_profile_operation_at(ClientNativeLocalScalarValuesProfile, Int) -> String?
+
+pub fn client_native_local_scalar_values_profile_operation_count(ClientNativeLocalScalarValuesProfile) -> Int
+
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
@@ -2638,12 +2648,7 @@ pub(all) struct ClientNativeLocalRuntimeMember {
   sha256 : String
 }
 
-pub struct ClientNativeLocalScalarValuesProfile {
-  preparation : PreparedClientProgram
-  operations : Array[String]
-  expressions : Array[String]
-  inspected : Int
-}
+type ClientNativeLocalScalarValuesProfile
 
 pub(all) enum ClientNativeLocalScalarValuesProfileIssue {
   InvalidLimit

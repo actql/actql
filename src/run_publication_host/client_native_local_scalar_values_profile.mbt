@@ -2,11 +2,51 @@
 /// Read-only reachability evidence over the original checked preparation.
 /// This is not contract compatibility, authorization or a runnable replacement
 /// for that preparation. Retained original contracts remain separate inputs.
-pub struct ClientNativeLocalScalarValuesProfile {
+struct ClientNativeLocalScalarValuesProfile {
   preparation : PreparedClientProgram
   operations : Array[String]
   expressions : Array[String]
   inspected : Int
+}
+
+///|
+/// Indexed views retain the original profile without exposing mutable arrays
+/// or copying its complete inventory for each observation.
+pub fn client_native_local_scalar_values_profile_operation_count(
+  profile : ClientNativeLocalScalarValuesProfile,
+) -> Int {
+  profile.operations.length()
+}
+
+///|
+pub fn client_native_local_scalar_values_profile_operation_at(
+  profile : ClientNativeLocalScalarValuesProfile,
+  index : Int,
+) -> String? {
+  profile.operations.get(index)
+}
+
+///|
+pub fn client_native_local_scalar_values_profile_expression_count(
+  profile : ClientNativeLocalScalarValuesProfile,
+) -> Int {
+  profile.expressions.length()
+}
+
+///|
+pub fn client_native_local_scalar_values_profile_expression_at(
+  profile : ClientNativeLocalScalarValuesProfile,
+  index : Int,
+) -> String? {
+  profile.expressions.get(index)
+}
+
+///|
+/// Inspected metadata entries, not runtime work or a numeric profile claim.
+pub fn client_native_local_scalar_values_profile_inspected_entries(
+  profile : ClientNativeLocalScalarValuesProfile,
+) -> Int {
+  profile.inspected
 }
 
 ///|
@@ -241,16 +281,27 @@ pub fn inspect_client_native_local_scalar_values_profile(
       Ok(_) => ()
     }
     let name = match @lower.sequence_step(sequence, i) {
-      Some(@lower.ValuesStep(_)) => "REL.values"
-      Some(@lower.RowStep(kernel)) =>
+      Some(@lower.ValuesStep(_)) => {
+        guard @lower.node_at(preparation, i) is Some(node) else {
+          return Err(UnsupportedProfile)
+        }
+        @lower.operation(node)
+      }
+      Some(@lower.RowStep(kernel)) => {
         match @relation.operation(@lower.kernel_checked(kernel)) {
-          @relation.Derive => "REL.derive"
-          @relation.Filter => "REL.filter"
-          @relation.Select => "REL.select"
-          @relation.Rename => "REL.rename"
-          @relation.Drop => "REL.drop"
+          @relation.Derive
+          | @relation.Filter
+          | @relation.Select
+          | @relation.Rename
+          | @relation.Drop => ()
           _ => return Err(UnsupportedProfile)
         }
+        guard @lower.node_at(preparation, @lower.kernel_step(kernel))
+          is Some(node) else {
+          return Err(UnsupportedProfile)
+        }
+        @lower.operation(node)
+      }
       _ => return Err(UnsupportedProfile)
     }
     operations.push(name)
