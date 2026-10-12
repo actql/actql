@@ -32,16 +32,12 @@ pub fn start_client_original_captured_serialization_prefix(
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
   }
+  // The Row Owner checks its exact query and then current custody/phase after
+  // every liveness callback. Do not run another callback behind that fence.
   guard @row_source_host.row_capture_original_prefix_requirement(
       capture, ledger,
     )
-    is Some(requirement) &&
-    @query.captured_source_matches_query(
-      source,
-      @planning.query_material_owner(
-        @planning.query_requirement_material(requirement),
-      ),
-    ) else {
+    is Some(_) else {
     return Err(
       Original(@publication_host.Resource(@resources.ChangedOriginalState)),
     )
