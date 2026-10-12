@@ -5,6 +5,7 @@ import test from 'node:test';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {graphSourceRefusals} from './fixtures/graph-source-input.mjs';
 import {subgraphSourceRefusals} from './fixtures/subgraph-source-input.mjs';
+import {subgraphSourceRefusals as historicalSubgraphRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-subgraph-source-input.mjs';
 import {graphAnyDirectionRefusals} from './fixtures/graph-any-direction-source-input.mjs';
 import {graphAbbreviatedRefusals} from './fixtures/graph-abbreviated-edge-source-input.mjs';
 import {graphQuantifierFormsRefusals} from './fixtures/graph-quantifier-forms-source-input.mjs';
@@ -51,7 +52,8 @@ const historicalRows = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-wi
 const historicalOperations = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-operation-source-input.json', import.meta.url), 'utf8'));
 const cases = new Map([
   ...historicalCore.graph.refusals,
-  ...subgraphSourceRefusals,
+  ...historicalSubgraphRefusals.map(item => ({...item,
+    ...(item.name === 'subgraph-common-where-selector-gap' ? {expectedCode:'ClientProgramImplementationLimit'} : {})})),
   ...graphAnyDirectionRefusals,
   ...graphAbbreviatedRefusals,
   ...graphQuantifierFormsRefusals,
@@ -115,5 +117,21 @@ test('WITH diagnostic refusals retain complete input policy', () => {
     assert.deepEqual(policy, oldPolicy);
     assert.notEqual(text, oldText);
     assert.ok(text.startsWith('WITH '));
+  }
+});
+
+// A historical digest never becomes a digest of the migrated current caller.
+// The input grammar changes; the independent refusal policy does not.
+test('current subgraph callers retain the independently pinned refusal policy',()=>{
+  for(const name of ['subgraph-common-where-selector-gap','subgraph-after-relation-transition']){
+    const current=subgraphSourceRefusals.find(item=>item.name===name);
+    const old=historicalSubgraphRefusals.find(item=>item.name===name);
+    assert.ok(current&&old,name);
+    assert.notEqual(current.text,old.text);
+    assert.ok(current.text.startsWith('WITH '));
+    assert.equal(current.expectedCode,name==='subgraph-common-where-selector-gap'?'ClientProgramImplementationLimit':undefined);
+    const {text:currentText,expectedCode:currentCode,...currentInput}=current;
+    const {text:oldText,expectedCode:oldCode,...oldInput}=old;
+    assert.deepEqual(currentInput,oldInput);
   }
 });

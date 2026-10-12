@@ -42,5 +42,8 @@ test('prepared dedupe cases use the ordinary packed registration and selector',(
   for(const symbol of ['eventDedupeSourceSuccesses','eventDedupeSourceRefusals','eventDedupeSourceExecutionFailures'])assert.ok(packed.includes('...'+symbol));
   assert.ok(installer.includes("['scripts/fixtures/event-dedupe-source-input.mjs', 'event-dedupe-source-input.mjs']"));
   assert.ok(packed.includes("process.env.ACTQL_TEST_EVENT_DEDUPE_ONLY"));
+  assert.ok(packed.includes('const scopeOnly = eventDedupeOnly ||'));
+  assert.ok(installer.includes("const narrowPublicQuery = process.argv.some(flag => ['--event-dedupe-only'"));
+  assert.ok(installer.includes("if (process.argv.includes('--event-dedupe-only')) return;"));
   assert.ok(installer.includes("runtimeEnvironment.ACTQL_TEST_EVENT_DEDUPE_ONLY = '1'"));
 });
