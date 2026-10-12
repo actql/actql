@@ -3,6 +3,7 @@ package "actql/actql/model_execution"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
@@ -18,6 +19,8 @@ pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> Mod
 pub fn acknowledge_model_call_settlement(ModelCallSettlement) -> Bool
 
 pub fn acknowledge_saved_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?
+
+pub fn acknowledge_saved_model_raw_capture(ModelRawCaptureSave) -> Result[ModelSavedRawReceipt, ModelRawCaptureSaveIssue]
 
 pub fn acquire_model_outcomes(ModelExecution) -> ModelOutcomeRead?
 
@@ -37,7 +40,11 @@ pub fn advance_model_observation_verification(ModelObservationVerification, Int)
 
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
 
+pub fn advance_model_reconciled_raw_usage(ModelPhysicalCall, ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
+
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
+
+pub fn bind_prepared_model_entry_persistence(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> ModelCallEntryPersistence?) -> Result[Unit, ModelExecutionIssue]
 
 pub fn bind_prepared_model_observation(ModelPreparedCallSet, (ModelPhysicalObservation) -> Unit) -> Bool
 
@@ -59,9 +66,13 @@ pub fn cleanup_model_observation_verification(ModelObservationVerification) -> R
 
 pub fn cleanup_model_output_preparation(ModelOutputPreparation) -> Result[Bool, ModelExecutionIssue]
 
+pub fn cleanup_original_model_startup(OriginalModelStartup) -> Result[Bool, ModelExecutionIssue]
+
 pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, ModelExecutionIssue]
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
+
+pub fn model_async_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn model_attempt_accounting(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
 
@@ -76,6 +87,8 @@ pub fn model_call_entry_acknowledgement_current(ModelCallEntryAcknowledgement, M
 pub fn model_call_entry_current(ModelCallEntry, ModelPreparedCallSet) -> Bool
 
 pub fn model_call_entry_originals(ModelCallEntry) -> (Int, String, String, String)?
+
+pub fn model_call_entry_persistence(ModelCallEntry, ModelPreparedCallSet, () -> ModelEntryPersistenceObservation) -> ModelCallEntryPersistence?
 
 pub fn model_call_settlement(ModelExecution) -> ModelCallSettlement?
 
@@ -127,13 +140,37 @@ pub fn model_outcomes_invocation_evidence(ModelOutcomeRead, Int) -> @run_publica
 
 pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
 
+pub fn model_physical_call(ModelCallEntry, ModelPreparedCallSet, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
+
+pub fn model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
+
 pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, String, String, String)
 
 pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
+pub fn model_raw_capture_save_binding(ModelRawCaptureSave) -> @run_publication.BoundModelRawResponse
+
+pub fn model_raw_capture_save_current(ModelRawCaptureSave) -> Result[Unit, ModelRawCaptureSaveIssue]
+
+pub fn model_raw_capture_save_originals(ModelRawCaptureSave) -> Array[@run_publication.CapturedEffectDependencyBody]
+
+pub fn model_saved_raw_chat_response(ModelSavedRawReceipt, String, @canonical_json.CanonicalValue?) -> Result[ModelPhysicalChatResponse, ModelRawCaptureSaveIssue]
+
+pub fn model_saved_raw_receipt_matches(ModelSavedRawReceipt, ModelPhysicalCall, @run_publication.RunEvidenceValue) -> Bool
+
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
+pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
+
+pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
+
+pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
+
 pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
+
+pub fn prepare_original_model_consumer_startup(@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
+
+pub fn prepare_original_model_startup(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
 
 pub fn prepared_model_call_at(ModelPreparedCallSet, Int) -> @run_publication.RunEvidenceValue?
 
@@ -193,6 +230,8 @@ pub fn start_model_observation_verification(VerifiedModelCapture, @run_publicati
 
 pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
 
+pub fn start_original_model_execution(OriginalModelStartup, @execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, @run_publication_host.ClientInferCallScope, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?, durable_calls? : Bool, send_mask? : Array[Bool]?) -> Result[ModelExecution, ModelExecutionIssue]
+
 pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, @run_publication.ModelCaptureBundleRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_restored_model_slot_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, ModelSlotReplayRead, String, ModelExecutionLimits, compiled_run? : @run_publication_host.ClientCompiledRun?) -> Result[ModelExecution, ModelExecutionIssue]
@@ -244,12 +283,21 @@ pub struct ModelCallEntry {
   trace : ModelAttemptTrace
   admission : @run_publication_host.ClientInferDispatchAdmission
   mut acknowledgement : ModelCallEntryAcknowledgement?
+  mut persistence : ModelCallEntryPersistence?
   mut gate_issued : Bool
   mut send_started : Bool
 }
 
 pub struct ModelCallEntryAcknowledgement {
   entry : ModelCallEntry
+}
+
+pub struct ModelCallEntryPersistence {
+  mut entry : ModelCallEntry?
+  mut poll : (() -> ModelEntryPersistenceObservation)?
+  mut terminal : Result[ModelEntryPersistenceObservation, ModelExecutionIssue]?
+  mut polling : Bool
+  mut refused : Bool
 }
 
 pub struct ModelCallSettlement {
@@ -280,6 +328,13 @@ pub(all) struct ModelCaptureExportLimits {
   max_work : Int
 }
 
+pub(all) enum ModelEntryPersistenceObservation {
+  Pending
+  NotRecorded
+  Unknown
+  Saved(ModelCallEntryAcknowledgement)
+}
+
 pub struct ModelExecution {
   session : @bounded_execution.Session[ModelState, ModelCaptureBundle, ModelExecutionIssue]
   mut token : @bounded_execution.Token
@@ -287,6 +342,7 @@ pub struct ModelExecution {
   state : ModelState
   mut progress : Int64
   mut work : Int64
+  mut advancing : Bool
 }
 
 pub(all) enum ModelExecutionIssue {
@@ -321,6 +377,7 @@ pub(all) struct ModelExecutionLimits {
 
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
+  AwaitIo(Int64, Int64)
   Waiting(Int64, Int64)
   Settling(Int, Int64, Int64)
   Completed(ModelCaptureBundle, Int64, Int64)
@@ -352,12 +409,51 @@ pub struct ModelOutcomeRead {
 
 type ModelOutputPreparation
 
+pub struct ModelPhysicalCall {
+  mut entry : ModelCallEntry?
+  mut poll : (() -> ModelPhysicalCallPoll)?
+  mut cancel : (() -> Unit)?
+  mut cleanup : ((Bool) -> Bool)?
+  mut terminal : ModelPhysicalCallPoll?
+  mut polling : Bool
+  mut cancel_requested : Bool
+  mut retired : Bool
+  mut settlement_acknowledged : Bool
+  mut usage_result : Result[Unit, ModelExecutionIssue]?
+  mut decoded_response : ModelPhysicalResponse?
+  mut raw_capture : ModelRawCaptureSave?
+}
+
+pub(all) enum ModelPhysicalCallPoll {
+  PhysicalPending
+  PhysicalResponse(ModelPhysicalResponse)
+  PhysicalEncodedResponse(ModelPhysicalEncodedResponse)
+  PhysicalChatResponse(ModelPhysicalChatResponse)
+  PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
+  PhysicalUnknown(ModelPhysicalUsage)
+}
+
+pub struct ModelPhysicalChatResponse {
+  // private fields
+}
+
+pub(all) struct ModelPhysicalEncodedResponse {
+  body : String
+  observation : @run_publication.ModelCaptureObservation
+  transport_eof : Bool
+  endpoint_complete : Bool
+  answer_complete : Bool
+}
+
 pub enum ModelPhysicalEvent {
+  BeforeInvoke
   InvokeStarted
   InvokeReturned
   InvokeFailed
   InvokeCancelled
 }
+
+type ModelPhysicalInvocation
 
 pub struct ModelPhysicalObservation {
   slot : Int
@@ -374,8 +470,22 @@ pub struct ModelPhysicalRequestPlan {
   request : ModelRequest
   wire_bytes : Int64
   quantities : @physical_resources.QuantityAmounts
-  invoke : () -> Result[ModelResponse, ModelProviderFailure]
+  invocation : ModelPhysicalInvocation
+  response_profile : @check_environment.ModelResponseProfile?
   evidence : ModelPhysicalRequestEvidence?
+}
+
+pub(all) struct ModelPhysicalResponse {
+  value : @value_admission.Value
+  observation : @run_publication.ModelCaptureObservation
+  transport_eof : Bool
+  endpoint_complete : Bool
+  answer_complete : Bool
+}
+
+pub(all) struct ModelPhysicalUsage {
+  input_tokens : Int64?
+  output_tokens : Int64?
 }
 
 pub struct ModelPreparedCallSet {
@@ -410,6 +520,18 @@ pub(all) struct ModelQuantityCapacity {
   per_attempt : @physical_resources.QuantityAmounts
 }
 
+pub struct ModelRawCaptureSave {
+  // private fields
+}
+
+pub(all) enum ModelRawCaptureSaveIssue {
+  ForeignCall
+  Stopped
+  Capture(@run_publication_host.ClientModelRawCaptureIssue)
+  ResponseLimit
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
 pub(all) struct ModelRequest {
   task : @check_environment.ModelTaskContract
   slot : Int
@@ -441,17 +563,21 @@ pub struct ModelResponseReconciliation {
   mut adopted : Bool
 }
 
+pub struct ModelSavedRawReceipt {
+  // private fields
+}
+
 pub(all) struct ModelSlotCapture {
   slot : Int
   slot_cid : String
   input_key_cid : String
   fixed_request_cid : String
   provider_id : String
-  provider_model : String
-  provider_request_id : String
+  provider_model : String?
+  provider_request_id : String?
   value : @value_admission.CheckedValue
-  input_tokens : Int64
-  output_tokens : Int64
+  input_tokens : Int64?
+  output_tokens : Int64?
   observed_at : String
 }
 
@@ -463,6 +589,8 @@ pub struct ModelSlotReplayRead {
 type ModelSlotReplayStorage
 
 type ModelState
+
+type OriginalModelStartup
 
 pub struct VerifiedModelCapture {
   owner : ModelExecution

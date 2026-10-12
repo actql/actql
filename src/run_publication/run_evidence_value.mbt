@@ -41,6 +41,8 @@ fn run_evidence_identity_field(name : String) -> String? {
     "model_invocation_scope"
     | "model_provider_binding"
     | "model_response_profile"
+    | "model_raw_capture_policy"
+    | "model_raw_response"
     | "model_dispatch_authority"
     | "model_call_attempt"
     | "model_attempt_accounting"
@@ -172,7 +174,9 @@ pub fn admit_run_evidence_value(
     return Err(RunEvidenceInvalidShape)
   }
   if generated_interactive_protocol_schema(name) ||
-    name == "model_response_profile" {
+    ["model_response_profile", "model_raw_capture_policy", "model_raw_response"].contains(
+      name,
+    ) {
     let canonical = @json.stringify_value(
       complete, max_wire_bytes, max_nodes, max_depth,
     ) catch {

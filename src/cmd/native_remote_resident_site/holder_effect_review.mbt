@@ -33,6 +33,7 @@ priv struct HolderEffectReviewPublication {
   created_at : String
   expires_at : String
   limits : @checkpoint.WireLimits
+  computation_capacity : @resident_host.ResidentEffectComputationCapacity?
   current : () -> Bool
   access : (Int, @effect_catalog.SingleWriteRequest) -> Result[
     @effect_review.NativeSalesforceTargetAccess,
@@ -102,6 +103,7 @@ fn publish_holder_effect_review(
         configuration.created_at,
         configuration.expires_at,
         configuration.limits,
+        computation_capacity=configuration.computation_capacity,
       ) {
       Ok(original) => original
       Err(_) => return None

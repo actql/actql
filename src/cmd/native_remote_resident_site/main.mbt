@@ -2667,6 +2667,12 @@ fn serve_holder_output(
   let reviewer_current_url = holder_effect_reviewer_current_url(observation_url)
   let mut resume_query_sequence = 0L
   let identity = @remote.dispatch_request_identity(request)
+  // Explicit Host funding is independent of Account/Reviewer permissions. No
+  // candidate dispatch, request body or grant supplies this private profile.
+  let effect_preparation = match effect_host_operator {
+    Some(installed) => installed.preparation
+    None => None
+  }
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
   let order : Array[String] = [identity]
@@ -3017,6 +3023,18 @@ fn serve_holder_output(
                 report("consumer-refused", [("reason", "retained-input")])
                 continue
               }
+              let initial_catalog_use = match (family, effect_preparation) {
+                (EffectComputation, Some(prepared)) => {
+                  guard producer.effect_producer is Some(original) else {
+                    report("consumer-accept-pending", [
+                      ("reason", "producer-custody"),
+                    ])
+                    continue
+                  }
+                  Some((original, prepared.catalog))
+                }
+                _ => None
+              }
               match
                 owner.accept(
                   environment.journal,
@@ -3027,6 +3045,7 @@ fn serve_holder_output(
                   admission,
                   dispatch,
                   current_time(),
+                  initial_catalog_use~,
                 ) {
                 Ok(Accepted(_, _)) => {
                   let active = match
@@ -4231,6 +4250,10 @@ fn run_holder(
             resources,
             execution.limits.output.output_export,
             original,
+            preparation=match effect_host_operator {
+              Some(installed) => installed.preparation
+              None => None
+            },
           ) catch {
             CommandStop(_) => {
               report("effect-review-pending", [

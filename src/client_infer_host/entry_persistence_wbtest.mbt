@@ -108,3 +108,146 @@ test "saved entry acknowledgement refuses a same-value foreign prepared owner" {
   assert_true(cleanup(foreign).unwrap())
   assert_eq(foreign_calls.val, 0)
 }
+
+///|
+test "entry persistence carrier preserves pending absent unknown and saved" {
+  for variant in ["absent", "unknown", "saved"] {
+    let calls = Ref(0)
+    let current = Ref(evidence_account(@authorization.Allow))
+    let now = Ref("2026-10-02T00:00:00.000Z")
+    let egress = Ref(Some(egress_fixture_observation()))
+    let (active, prepared, admission, prefix_work) = entry_gate_fixture(
+      calls, current, now, egress,
+    )
+    let checks : Array[Bool] = []
+    let polls = Ref(0)
+    let pending = Ref(true)
+    let operations : Array[@model.ModelCallEntryPersistence] = []
+    let entries : Array[@model.ModelCallEntry] = []
+    bind_model_dispatch(active, prepared, admission, entry => {
+      entries.push(entry)
+      let operation = @model.model_call_entry_persistence(entry, prepared, () => {
+        polls.val += 1
+        if pending.val {
+          return @model.Pending
+        }
+        match variant {
+          "absent" => @model.NotRecorded
+          "unknown" => @model.Unknown
+          _ =>
+            @model.Saved(
+              @model.acknowledge_saved_model_call_entry(entry, prepared).unwrap(),
+            )
+        }
+      }).unwrap()
+      operations.push(operation)
+      checks.push(
+        physical_equal(
+          operation,
+          @model.model_call_entry_persistence(entry, prepared, () => {
+            // Re-opening cannot install or retain a second poll closure.
+            polls.val += 1000
+            @model.Unknown
+          }).unwrap(),
+        ),
+      )
+      for _ in 0..<2 {
+        checks.push(
+          @model.poll_model_call_entry_persistence(operation, entry, prepared)
+          is Ok(@model.Pending),
+        )
+      }
+      pending.val = false
+      // A late physical save is not made invalid by current revocation.
+      current.val = evidence_account(@authorization.Deny)
+      let result = @model.poll_model_call_entry_persistence(
+        operation, entry, prepared,
+      )
+      checks.push(
+        match variant {
+          "absent" => result is Ok(@model.NotRecorded)
+          "unknown" => result is Ok(@model.Unknown)
+          _ => result is Ok(@model.Saved(_))
+        },
+      )
+      pending.val = true
+      checks.push(
+        match
+          @model.poll_model_call_entry_persistence(operation, entry, prepared) {
+          Ok(@model.NotRecorded) => variant == "absent"
+          Ok(@model.Unknown) => variant == "unknown"
+          Ok(@model.Saved(_)) => variant == "saved"
+          _ => false
+        },
+      )
+      // Carrier tests do not replace the old Bool entry contract with a new
+      // async dispatcher. The old adapter still explicitly refuses here.
+      false
+    }).unwrap()
+    assert_true(
+      fixture_finish(active, initial_work=prefix_work)
+      is Failed(Model(@model.CallEntryRefused), ..),
+    )
+    assert_eq(polls.val, 3)
+    assert_eq(checks.length(), 5)
+    for check in checks {
+      assert_true(check)
+    }
+    assert_eq(calls.val, 0)
+    assert_true(
+      @model.poll_model_call_entry_persistence(
+        operations[0],
+        entries[0],
+        prepared,
+      )
+      is Err(@model.CallEntryRefused),
+    )
+    assert_true(cleanup(active).unwrap())
+    assert_eq(calls.val, 0)
+  }
+}
+
+///|
+test "entry persistence carrier rejects a foreign acknowledgement" {
+  let calls = Ref(0)
+  let current = Ref(evidence_account(@authorization.Allow))
+  let now = Ref("2026-10-02T00:00:00.000Z")
+  let egress = Ref(Some(egress_fixture_observation()))
+  let (active, prepared, admission, prefix_work) = entry_gate_fixture(
+    calls, current, now, egress,
+  )
+  let (foreign, other, foreign_admission, other_work) = entry_gate_fixture(
+    calls, current, now, egress,
+  )
+  let checks : Array[Bool] = []
+  let acknowledgements : Array[@model.ModelCallEntryAcknowledgement] = []
+  bind_model_dispatch(active, prepared, admission, entry => {
+    acknowledgements.push(
+      @model.acknowledge_saved_model_call_entry(entry, prepared).unwrap(),
+    )
+    false
+  }).unwrap()
+  assert_true(
+    fixture_finish(active, initial_work=prefix_work)
+    is Failed(Model(@model.CallEntryRefused), ..),
+  )
+  bind_model_dispatch(foreign, other, foreign_admission, entry => {
+    let operation = @model.model_call_entry_persistence(entry, other, () => {
+      @model.Saved(acknowledgements[0])
+    }).unwrap()
+    checks.push(
+      @model.poll_model_call_entry_persistence(operation, entry, other)
+      is Err(@model.CallEntryRefused),
+    )
+    false
+  }).unwrap()
+  assert_true(
+    fixture_finish(foreign, initial_work=other_work)
+    is Failed(Model(@model.CallEntryRefused), ..),
+  )
+  assert_eq(checks.length(), 1)
+  assert_true(checks[0])
+  assert_eq(calls.val, 0)
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(foreign).unwrap())
+}

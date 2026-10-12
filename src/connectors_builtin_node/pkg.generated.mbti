@@ -69,6 +69,8 @@ pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCa
 
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
 
+pub fn client_program_acknowledge_saved_infer_raw_capture(@model_execution.ModelRawCaptureSave) -> Result[@model_execution.ModelSavedRawReceipt, @model_execution.ModelRawCaptureSaveIssue]
+
 pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?
 
 pub fn client_program_acquire_infer_outcomes(@client_infer_host.Execution) -> @model_execution.ModelOutcomeRead?
@@ -185,9 +187,13 @@ pub fn client_program_bind_infer_invocation(@client_infer_host.Execution, @run_p
 
 pub fn client_program_bind_infer_model_dispatch(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> Bool) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_infer_model_entry_persistence(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> @model_execution.ModelCallEntryPersistence?) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
+
 pub fn client_program_bind_infer_model_observation(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, (@model_execution.ModelPhysicalObservation) -> Unit) -> Bool
 
 pub fn client_program_bind_infer_model_scope(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @client_infer_host.InvocationBindingIssue]
+
+pub fn client_program_bind_infer_original_preparation(@client_infer_host.Execution, @run_publication_host.ClientModelReadPreparation, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_bind_infer_physical_preflight(@client_infer_host.Execution, (@model_execution.ModelRequest) -> @model_execution.ModelRequestPreflight?) -> Result[Unit, @client_infer_host.Issue]
 
@@ -198,6 +204,8 @@ pub fn client_program_bind_infer_run(@client_infer_host.Execution, @run_publicat
 pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @client_infer_host.ObservationIssuance) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
+
+pub fn client_program_bind_model_raw_capture_policy(@run_publication.RunEvidenceValue, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_bind_recovered_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientTablePreview, @run_publication_host.ClientTableInputIssue]
 
@@ -297,6 +305,10 @@ pub fn client_program_check_unavailable(String) -> String
 
 pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) -> String
 
+pub fn client_program_claim_infer_node_preparation_layout(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientModelPreparationLayoutIssue]
+
+pub fn client_program_claim_infer_original_preparation(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Result[@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientModelReadPreparationIssue]
+
 pub fn client_program_cleanup_infer_capture_export(@model_execution.ModelCaptureExport) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_cleanup_infer_execution(@client_infer_host.Execution) -> Result[Bool, @client_infer_host.Issue]
@@ -360,6 +372,8 @@ pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparat
 pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
 
 pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedClientProgram) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
+
+pub fn client_program_create_infer_call_entry_persistence(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet, () -> @model_execution.ModelEntryPersistenceObservation) -> @model_execution.ModelCallEntryPersistence?
 
 pub fn client_program_current_run_view(@run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, Int, Int, Int) -> Result[String, @run_publication.RunControlReadIssue]
 
@@ -649,6 +663,12 @@ pub fn client_program_infer_call_entry_current(@model_execution.ModelCallEntry, 
 
 pub fn client_program_infer_call_entry_originals(@model_execution.ModelCallEntry) -> (Int, String, String, String)?
 
+pub fn client_program_infer_call_entry_persistence_pending() -> @model_execution.ModelEntryPersistenceObservation
+
+pub fn client_program_infer_call_entry_persistence_saved(@model_execution.ModelCallEntryAcknowledgement) -> @model_execution.ModelEntryPersistenceObservation
+
+pub fn client_program_infer_call_entry_persistence_unknown() -> @model_execution.ModelEntryPersistenceObservation
+
 pub fn client_program_infer_call_scope_snapshot(@client_infer_host.Execution) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_infer_call_scope_unit_id(@client_infer_host.Execution) -> String?
@@ -723,6 +743,8 @@ pub fn client_program_infer_occurrence_model_task_cid(@run_publication_host.Clie
 
 pub fn client_program_infer_occurrence_target_name(@run_publication_host.ClientInferOccurrence) -> String?
 
+pub fn client_program_infer_original_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
+
 pub fn client_program_infer_outcomes_accepted(@model_execution.ModelOutcomeRead) -> Bool
 
 pub fn client_program_infer_outcomes_call(@model_execution.ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
@@ -789,6 +811,12 @@ pub fn client_program_infer_publication_usage(@physical_resources.Ledger) -> (In
 
 pub fn client_program_infer_quantity_usage(@client_infer_host.Execution) -> @physical_resources.QuantityUsage?
 
+pub fn client_program_infer_raw_capture_save_binding(@model_execution.ModelRawCaptureSave) -> (String, String, String, String, Int)
+
+pub fn client_program_infer_raw_capture_save_current(@model_execution.ModelRawCaptureSave) -> Result[Unit, @model_execution.ModelRawCaptureSaveIssue]
+
+pub fn client_program_infer_raw_capture_save_originals(@model_execution.ModelRawCaptureSave) -> Array[(String, String, String)]
+
 pub fn client_program_infer_request_preflight_pending(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_infer_result_definition(@run_publication_host.ClientResultTransformation) -> @run_publication.PublicationContract
@@ -808,6 +836,10 @@ pub fn client_program_infer_result_export_seal(@run_publication_host.Publication
 pub fn client_program_infer_result_name(@run_publication_host.ClientResultTransformation) -> String
 
 pub fn client_program_infer_result_task(@run_publication_host.ClientResultTransformation) -> Int
+
+pub fn client_program_infer_saved_raw_chat_response(@model_execution.ModelSavedRawReceipt, String, @canonical_json.CanonicalValue?) -> Result[@model_execution.ModelPhysicalChatResponse, @model_execution.ModelRawCaptureSaveIssue]
+
+pub fn client_program_infer_saved_raw_receipt_matches(@model_execution.ModelSavedRawReceipt, @model_execution.ModelPhysicalCall, @run_publication.RunEvidenceValue) -> Bool
 
 pub fn client_program_infer_stopped_attempt_count(@client_infer_host.Execution) -> Int?
 
@@ -888,6 +920,8 @@ pub fn client_program_issue_imported_effect_local_result_artifact(@run_publicati
 pub fn client_program_issue_imported_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[@run_publication_host.ClientEffectResultImportObservation], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
 pub fn client_program_issue_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]
+
+pub fn client_program_issue_infer_raw_capture_policy(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, String, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, String, String, String, String, String) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication_host.ClientModelRawCaptureIssue]
 
 pub fn client_program_issue_infer_slot_capture(@client_infer_host.Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
 
@@ -1011,13 +1045,25 @@ pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientV
 
 pub fn client_program_local_values_unit_source_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesUnitSourceIssue]
 
+pub fn client_program_model_async_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model_execution.ModelCaptureBundle?
 
 pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) -> String?
 
+pub fn client_program_model_physical_call(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet, () -> @model_execution.ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> @model_execution.ModelPhysicalCall?
+
+pub fn client_program_model_physical_call_for_request(@model_execution.ModelCallEntry, @model_execution.ModelRequest, () -> @model_execution.ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> @model_execution.ModelPhysicalCall?
+
 pub fn client_program_model_physical_evidence_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, String, String, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_model_physical_pending() -> @model_execution.ModelPhysicalCallPoll
+
 pub fn client_program_model_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_model_physical_saved_chat(@model_execution.ModelPhysicalChatResponse) -> @model_execution.ModelPhysicalCallPoll
+
+pub fn client_program_model_physical_unknown() -> @model_execution.ModelPhysicalCallPoll
 
 pub fn client_program_model_private_holding_cid(@run_publication.PublicationContract, String, String, Int) -> String?
 
@@ -1038,6 +1084,8 @@ pub fn client_program_model_response(@model_execution.ModelRequest, String, Stri
 pub fn client_program_model_scoped_private_holding_cid(@run_publication.PublicationContract, String, String, String, String, Int, String, String) -> String?
 
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
+
+pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[@model_execution.ModelRawCaptureSave, @model_execution.ModelRawCaptureSaveIssue]
 
 pub fn client_program_open_captured_composed_infer_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, String?, String?, Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
@@ -1169,6 +1217,10 @@ pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedC
 
 pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_read_model_response_profile(String, String, Int, Int, Int, Int, Int) -> Result[@check_environment.ModelResponseProfile, @check_environment.ModelTaskIssue]
+
+pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
+
 pub fn client_program_read_saved_composed_infer_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_read_saved_infer_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
@@ -1194,6 +1246,8 @@ pub fn client_program_recovered_table_preview_operation_json(@run_publication_ho
 pub fn client_program_recovered_table_preview_subject_cid(@run_publication_host.RecoveredClientTablePreview) -> String
 
 pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> Bool
+
+pub fn client_program_register_infer_raw_capture(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, AuthorizationAccount, String, String, () -> Bool, () -> AuthorizationAccount, () -> String, AuthorizationDecision?) -> Result[@run_publication_host.ClientModelRawCaptureRegistration, @run_publication_host.ClientModelRawCaptureIssue]
 
 pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInput) -> Bool
 
@@ -1394,6 +1448,8 @@ pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientPro
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_start_original_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

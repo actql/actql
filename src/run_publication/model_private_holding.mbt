@@ -65,10 +65,11 @@ pub fn model_scoped_private_holding_cid(
       valid_contract_cid,
     ) ||
     (phase != "entered" && phase != "settled") ||
+    (role == "model_raw_response" && phase != "entered") ||
     ![
       "model_capture_bundle", "model_slot_capture", "model_invocation_evidence",
       "model_call_attempt", "model_attempt_accounting", "model_attempt_outcome",
-      "model_dispatch_authority",
+      "model_dispatch_authority", "model_raw_response",
     ].contains(role) {
     return None
   }
