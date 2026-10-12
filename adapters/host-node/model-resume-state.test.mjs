@@ -63,6 +63,100 @@ test('original resource cut cannot use unchanged Run revision as Slot or cancell
   // It establishes the separate fence domains, not a restorable current cut.
 });
 
+test('original journal observation preserves ordered facts without new entry or mutation', t => {
+  const f = fixture(t); startImmediate(f);
+  const before = storedResume(f.journal.path);
+  const observation = f.journal.observeOriginalModelJournal(immediateIdentity);
+  const facts = f.journal.originalModelJournalObservationFacts(observation);
+  assert.deepEqual(storedResume(f.journal.path), before);
+  assert.deepEqual(facts.identity, immediateIdentity);
+  assert.equal(facts.run.run_id, immediateIdentity.runId);
+  assert.deepEqual(facts.slots.map(slot => [slot.ordinal, slot.state, slot.attempt_index]),
+    [[0, 'Unsent', 0], [1, 'Unsent', 0], [2, 'Unsent', 0]]);
+  assert.deepEqual(facts.attempts, []);
+  assert.deepEqual(facts.intents, []);
+  assert.deepEqual(facts.admissions, []);
+  assert.deepEqual(facts.checkpoints, []);
+  assert.deepEqual(facts.resolutions, []);
+  assert.equal(facts.cancellation, null);
+  assert.equal(facts.scopes[0].originals_json, before.resume_model_scopes[0].originals_json);
+  assert.ok(Object.isFrozen(observation) && Object.isFrozen(facts) && Object.isFrozen(facts.slots[0]));
+  assert.strictEqual(f.journal.originalModelJournalObservationFacts(observation), facts);
+  assert.strictEqual(f.journal.reconfirmOriginalModelJournal(observation), observation);
+  assert.deepEqual(storedResume(f.journal.path), before);
+});
+
+test('original journal observation refuses copied, foreign and closed journal references', t => {
+  const f = fixture(t); startImmediate(f);
+  const observation = f.journal.observeOriginalModelJournal(immediateIdentity);
+  const foreign = open(f.root); t.after(() => foreign.journal.close());
+  for (const journal of [f.journal, foreign.journal]) {
+    throwsCode(() => journal.originalModelJournalObservationFacts({...observation}), 'ForeignModelOriginalJournalObservation');
+    throwsCode(() => journal.reconfirmOriginalModelJournal({...observation}), 'ForeignModelOriginalJournalObservation');
+  }
+  throwsCode(() => foreign.journal.reconfirmOriginalModelJournal(observation), 'ForeignModelOriginalJournalObservation');
+  f.journal.close();
+  throwsCode(() => f.journal.originalModelJournalObservationFacts(observation), 'CheckpointJournalClosed');
+  throwsCode(() => f.journal.reconfirmOriginalModelJournal(observation), 'CheckpointJournalClosed');
+  const fresh = foreign.journal.observeOriginalModelJournal(immediateIdentity);
+  assert.notStrictEqual(fresh, observation);
+  assert.strictEqual(foreign.journal.reconfirmOriginalModelJournal(fresh), fresh);
+});
+
+test('original journal observation detects Slot, settlement and cancellation without Run revision change', async t => {
+  const f = fixture(t); startImmediate(f);
+  const unsent = f.journal.observeOriginalModelJournal(immediateIdentity);
+  const version = f.journal.originalModelJournalObservationFacts(unsent).run.version;
+  const ref = immediateReference(0);
+  const entry = f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  throwsCode(() => f.journal.reconfirmOriginalModelJournal(unsent), 'ModelOriginalJournalObservationChanged');
+  const entered = f.journal.observeOriginalModelJournal(immediateIdentity);
+  f.settlements.set(entry.attemptCid, saved(entry));
+  await f.journal.observeImmediateModelCall(entry);
+  throwsCode(() => f.journal.reconfirmOriginalModelJournal(entered), 'ModelOriginalJournalObservationChanged');
+  const settled = f.journal.observeOriginalModelJournal(immediateIdentity);
+  assert.equal(f.journal.originalModelJournalObservationFacts(settled).attempts[0].state, 'SavedSuccess');
+  f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire});
+  assert.equal(f.journal.getRunState(immediateIdentity.runId).version, version);
+  throwsCode(() => f.journal.reconfirmOriginalModelJournal(settled), 'ModelOriginalJournalObservationChanged');
+  // Historical facts remain immutable data, not an Unsent/restore grant.
+  assert.equal(f.journal.originalModelJournalObservationFacts(unsent).slots[0].state, 'Unsent');
+});
+
+test('original journal observation detects actual continuation claim changes', t => {
+  const f = fixture(t); f.start();
+  const observation = f.journal.observeOriginalModelJournal(identity);
+  const facts = f.journal.originalModelJournalObservationFacts(observation);
+  assert.equal(facts.intents.length, 1);
+  assert.equal(facts.intents[0].generation, 1);
+  assert.equal(facts.checkpoints[0].checkpoint_cid, identity.checkpointCid);
+  assert.equal(facts.resolutions[0].resolution_cid, C('resolution'));
+  replaceClaim(f.journal.path, 2);
+  assert.equal(f.journal.getRunState(identity.runId).version, facts.run.version);
+  throwsCode(() => f.journal.reconfirmOriginalModelJournal(observation), 'ModelOriginalJournalObservationChanged');
+});
+
+test('original journal observation reselects cancellation across a real settlement await', async t => {
+  let release, announced;
+  const ready = new Promise(resolve => {announced = resolve;});
+  const f = fixture(t, {verifySettlement: ({entry}) => new Promise(resolve => {
+    release = () => resolve(saved(entry)); announced();
+  })});
+  startImmediate(f);
+  const ref = immediateReference(0);
+  const entry = f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  const observation = f.journal.observeOriginalModelJournal(immediateIdentity);
+  const pending = f.journal.observeImmediateModelCall(entry);
+  await ready;
+  f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire});
+  throwsCode(() => f.journal.reconfirmOriginalModelJournal(observation), 'ModelOriginalJournalObservationChanged');
+  release();
+  const settled = await pending;
+  assert.equal(settled.state, 'SavedSuccess');
+  assert.equal(f.journal.modelCancellationFenced(immediateIdentity.runId, immediateIdentity.runDefinitionCid), true);
+  throwsCode(() => f.journal.reconfirmOriginalModelJournal(observation), 'ModelOriginalJournalObservationChanged');
+});
+
 test('Model cancellation fence readback binds the original Run across restart', t => {
   const f = fixture(t);
   const owner = f.registration.modelCallSet;
