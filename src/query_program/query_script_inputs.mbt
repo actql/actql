@@ -99,6 +99,10 @@ fn script_call_sources(call : @query.SgaCall) -> Array[Array[@query.NamePart]] {
         for (_, value) in fields {
           pending.push(value)
         }
+      FieldMapValue(fields) =>
+        for (_, value) in fields {
+          pending.push(value)
+        }
       ListValue(values) =>
         for value in values {
           pending.push(value)
