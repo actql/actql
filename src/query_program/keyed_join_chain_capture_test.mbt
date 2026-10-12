@@ -119,7 +119,7 @@ fn check_keyed_chain_right(query : String) -> Unit raise {
         construction_limits(),
       ) {
       Ok(program) => program
-      Err(issue) => fail(@debug.to_string(issue))
+      Err(issue) => with_demand_program(Err(issue))
     }
     // A keyed template omits id deliberately; Direct Select/Result use is
     // forbidden by the existing Common request/consumer classification.
@@ -143,7 +143,7 @@ fn check_direct_chain_right(query : String) -> Unit raise {
         construction_limits(),
       ) {
       Ok(program) => program
-      Err(issue) => fail(@debug.to_string(issue))
+      Err(issue) => with_demand_program(Err(issue))
     }
     assert_eq(
       @program.stage_count(program),
