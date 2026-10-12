@@ -103,3 +103,28 @@ test "valid unused WITH is checked and pruned while theta JOIN stays unsupported
     is Err(UnsupportedJoin),
   )
 }
+
+///|
+test "unused WITH installed Values input is absent without another consumer" {
+  for
+    source in [
+      "WITH unused AS (SELECT x FROM t WHERE y = 20) SELECT 1 AS answer", "WITH outer_value AS (WITH unused AS (SELECT x FROM t WHERE y = 20) SELECT 1 AS answer) SELECT answer FROM outer_value",
+    ] {
+    let actual = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ).unwrap()
+    let body = semantic(actual)
+    assert_false(body.contains("\"literal\":20"), msg=source)
+    assert_false(body.contains("\"y\":10"), msg=source)
+    assert_true(body.contains("\"literal\":1"), msg=source)
+    assert_eq(@program.stage_count(actual), 1)
+    match
+      @check.check_parsed(actual, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+      _ => fail("unused installed Values input must not be required")
+    }
+  }
+}

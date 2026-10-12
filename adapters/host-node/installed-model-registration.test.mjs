@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installModelProviders} from './installed-model.mjs';
+import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 
 function fixture() {
   let installations = 0, sends = 0, lookups = 0;
   const reconcileResponse = () => {lookups++; return undefined;};
-  return {moon: {clientProgramInstallModelProvider() {installations++; return {}; }},
+  return {moon: {
+    clientProgramInstallModelProvider() {installations++; return {mode: 'sync'};},
+    clientProgramInstallAsyncModelProvider() {installations++; return {mode: 'async'};},
+  },
     entry: {providerId: 'models/fixture', invoke() {sends++;},
       validatePrompt: () => true, reconcileResponse},
     counts: () => ({installations, sends, lookups})};
@@ -26,12 +30,20 @@ const rawSelection = () => ({profile: {}, probability: undefined,
   selectedAt: 'original', availableUntil: 'availability', deleteBy: 'deletion',
   extensionCeilingAt: 'ceiling', metadataDeleteBy: 'metadata', selectionAvailable: () => true});
 
+const asyncEntry = entry => {
+  const {invoke: _fixtureInvoke, ...original} = entry;
+  return {...original, entryPersistence: 'async', physicalPreflight: () => assert.fail('not invoked'),
+    bindingOriginals: providerBindingOriginals(entry.providerId), rawCaptureSelection: rawSelection(),
+    quantityCapacity: {limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
+      perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}}};
+};
+
 test('trusted raw selection is snapshotted before provider installation without authority or I/O', () => {
   const {moon, entry, counts} = fixture();
   const raw = rawSelection();
-  entry.entryPersistence = 'async'; entry.physicalPreflight = () => assert.fail('not invoked');
-  entry.rawCaptureSelection = raw;
-  const physical = installModelProviders(moon, () => [entry]).get(entry.providerId);
+  const physical = installModelProviders(moon, () =>
+    [{...asyncEntry(entry), rawCaptureSelection: raw}]).get(entry.providerId);
+  assert.equal(physical.provider.mode, 'async');
   raw.installation.endpoint = 'changed'; raw.deleteBy = 'extended';
   assert.equal(physical.rawCaptureSelection.installation.endpoint, 'original');
   assert.equal(physical.rawCaptureSelection.installation.sdk, null);
@@ -39,18 +51,43 @@ test('trusted raw selection is snapshotted before provider installation without 
   assert.equal(physical.rawCaptureSelection.data, raw.data);
   assert.equal(physical.rawCaptureSelection.profile, raw.profile);
   assert.equal(physical.originalReadInstallation, undefined);
-  assert.equal(physical.quantityCapacity, undefined);
+  assert.deepEqual(physical.quantityCapacity, {limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
+    perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}});
   assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
 });
 
 test('raw installation refuses missing durable physical caller before provider installation', () => {
   for (const hooks of [{}, {entryPersistence: 'async'}, {physicalPreflight() {}}]) {
     const {moon, entry, counts} = fixture();
+    if (hooks.entryPersistence === 'async') delete entry.invoke;
     assert.throws(() => installModelProviders(moon, () =>
       [{...entry, ...hooks, rawCaptureSelection: rawSelection()}]),
     /InstalledInferRawCaptureRequiresAsyncPhysicalPreflight/u);
     assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
   }
+});
+
+test('async registration has no sync fallback and refuses every missing installed original before I/O', () => {
+  for (const field of ['physicalPreflight', 'quantityCapacity', 'bindingOriginals', 'rawCaptureSelection']) {
+    const {moon, entry, counts} = fixture(); const async = asyncEntry(entry);
+    delete async[field];
+    assert.throws(() => installModelProviders(moon, () => [async]),
+      /InvalidInstalledModelAsyncProviderRegistration|InstalledInferRawCaptureRequiresAsyncPhysicalPreflight/u);
+    assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
+  }
+  for (const invoke of [undefined, () => assert.fail('dummy callback must be refused')]) {
+    const {moon, entry, counts} = fixture();
+    assert.throws(() => installModelProviders(moon, () => [{...asyncEntry(entry), invoke}]),
+      /InvalidInstalledModelProviderRegistration/u);
+    assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
+  }
+});
+
+test('async registration refuses unavailable runtime rather than installing sync fallback', () => {
+  const {moon, entry, counts} = fixture(); delete moon.clientProgramInstallAsyncModelProvider;
+  assert.throws(() => installModelProviders(moon, () => [asyncEntry(entry)]),
+    /InstalledModelAsyncProviderRuntimeUnavailable/u);
+  assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
 });
 
 test('raw selection omission and malformed input do not opt in or invoke providers', () => {

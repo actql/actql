@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {dirname, join} from 'node:path';
+import {createHash} from 'node:crypto';
+import {build} from 'esbuild';
 import {sgaOutputNameSuccesses, sgaOutputNameRefusals} from './fixtures/sga-output-name-source.mjs';
 
 test('quoted OutputName source and independent JSON preserve ordinary identity projection', () => {
@@ -32,4 +36,56 @@ test('supplemental OutputName controls are registered in the existing Graph MATC
   assert.ok(source.includes("from './sga-output-name-source.mjs'"));
   assert.ok(source.includes('...sgaOutputNameSuccesses'));
   assert.ok(source.includes('...sgaOutputNameRefusals'));
+});
+
+test('standalone acceptance installs every directly imported root fixture', () => {
+  const acceptance = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
+  const installer = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const installed = new Set([...installer.matchAll(
+    /\['scripts\/fixtures\/[^']+',\s*'([^']+)'\]/gu,
+  )].map(match => match[1]));
+  const imports = [...acceptance.matchAll(
+    /(?:from\s*|import\s*)['"]\.\/([^'"]+)['"]/gu,
+  )].map(match => match[1]).filter(path => !path.includes('/'));
+  assert.ok(imports.length > 0);
+  assert.ok(imports.includes('sga-output-name-source.mjs'));
+  assert.deepEqual(imports.filter(path => !installed.has(path)), [],
+    'Copied acceptance must resolve its fixture imports without the checkout');
+});
+
+test('standalone copied acceptance has a closed relative module graph', async () => {
+  const installer = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const copies = [...installer.matchAll(
+    /\['(scripts\/fixtures\/[^']+)',\s*'([^']+)'\]/gu,
+  )].map(match => [match[1], match[2]]);
+  const grouped = installer.match(/for \(const path of \[([\s\S]*?)\]\) \{\n  await writeFile\(join\(root, path\), await readFile\(join\(repository, 'scripts', path\)\)\);\n\}/u);
+  assert.ok(grouped, 'Preserve the existing nested fixture-copy boundary');
+  for (const match of grouped[1].matchAll(/'(fixtures\/[^']+)'/gu)) {
+    copies.push(['scripts/' + match[1], match[1]]);
+  }
+  const root = mkdtempSync(join(tmpdir(), 'actql-fixture-copy-closure-'));
+  try {
+    for (const [source, destination] of copies) {
+      if (!source.endsWith('.mjs')) continue;
+      const path = join(root, destination);
+      mkdirSync(dirname(path), {recursive: true});
+      copyFileSync(source, path);
+    }
+    // Parse and resolve the actual isolated fixture graph without executing
+    // Client/Host calls or borrowing any relative module from the checkout.
+    const result = await build({absWorkingDir: root, entryPoints: ['acceptance.mjs'],
+      bundle: true, platform: 'node', format: 'esm', packages: 'external',
+      write: false, metafile: true, logLevel: 'silent'});
+    assert.ok(Object.keys(result.metafile.inputs).some(path =>
+      path === 'sga-output-name-source.mjs'));
+    const inventory = Object.keys(result.metafile.inputs).sort().map(path => {
+      assert.ok(!path.startsWith('../'), 'Fixture graph must stay in the isolated copy');
+      return [path, createHash('sha256').update(readFileSync(join(root, path))).digest('hex')];
+    });
+    console.log('ACTQL_FIXTURE_COPY_CLOSURE ' + JSON.stringify({
+      complete: true, modules: inventory.length, inventory,
+    }));
+  } finally {
+    rmSync(root, {recursive: true, force: true});
+  }
 });
