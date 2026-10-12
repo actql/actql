@@ -45,7 +45,17 @@ fn bind_script_input(
       }
       let name = pipe_physical_name(reserved, "aql_script_seed_")
       reserved.push(name)
+      let seed_start = steps.length()
       steps.push(import_script_seed(construction, source, name))
+      if installed {
+        // A shared installed input is its own demand leaf, not an operation
+        // owned by the first WITH body that happens to reference it.
+        sources.binding_ranges.push({
+          steps,
+          start: seed_start,
+          end: steps.length(),
+        })
+      }
       let bound = {
         ..input,
         name,

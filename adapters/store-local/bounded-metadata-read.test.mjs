@@ -10,7 +10,7 @@ import {runInNewContext} from 'node:vm';
 // This is a source-backed physical primitive test, not public Run acceptance.
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url),
   'utf8');
-const start = source.indexOf('async function readBounded(path, maximum) {');
+const start = source.indexOf('async function readBounded(path, maximum, closed) {');
 const end = source.indexOf('\nasync function processIsAlive(', start);
 assert(start >= 0 && end > start);
 const body = source.slice(start, end);
