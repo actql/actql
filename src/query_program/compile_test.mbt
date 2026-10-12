@@ -46,10 +46,10 @@ test "query-only context refuses Graph lowering without a current definition" {
       "FROM GRAPH g |> MATCH WALK (a) |> SELECT *",
     ] {
     let query = @query.parse_query(text, syntax_limits()).unwrap()
-    assert_true(
-      compile(query, fixture_context(), construction_limits())
-      is Err(UnknownRelation),
-    )
+    assert_true(exact_unresolved_relation(
+      compile(query, fixture_context(), construction_limits()),
+      [("g", false)],
+    ))
   }
 }
 
