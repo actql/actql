@@ -13,7 +13,8 @@ fn registered_test_context() -> @query.Context raise {
   )
   let wire = match result {
     Ok(wire) => wire
-    Err(issue) => fail("independent Environment admission: " + @debug.to_string(issue))
+    Err(issue) =>
+      fail("independent Environment admission: " + @debug.to_string(issue))
   }
   let environment = @check.checking_environment(
     wire,
@@ -36,8 +37,11 @@ fn registered_test_context() -> @query.Context raise {
 ///|
 test "derived JOIN input requires original Source Catalog metadata" {
   let source = "SELECT COUNT(*) AS n FROM records CROSS JOIN (SELECT 1 AS k) AS s MAX_OUTPUT_ROWS 10 WHERE records.id > 0 HAVING COUNT(*) > 1"
-  guard lower(source, Sql, Some(test_context())) is Err(QueryLowering(@query.BindingPreparation(MissingSourceCatalog(_)))) else {
-    fail("missing Catalog must not acquire an invented schema or Source registration")
+  guard lower(source, Sql, Some(test_context()))
+    is Err(QueryLowering(@query.BindingPreparation(MissingSourceCatalog(_)))) else {
+    fail(
+      "missing Catalog must not acquire an invented schema or Source registration",
+    )
   }
   let context = registered_test_context()
   assert_eq(context.inputs[0].name, "source")
