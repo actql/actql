@@ -2451,6 +2451,9 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
 /// before execution, so no fallible setup remains once the holder owns an
 /// output.
 priv struct HolderOutputResources {
+  // Same initial Site reservation, separate from snapshot retirement.
+  mut effect_host_caller_operation : @site.SiteOperation?
+  mut effect_host_caller_current : (() -> Bool)?
   effect_host_setup : Ref[HolderEffectHostSetupScope?]
   effect_host_installation : Ref[HolderEffectHostOperatorInstallation?]
   effect_host_holding : Ref[@site.SiteHolding?]
@@ -2581,6 +2584,8 @@ fn open_holder_output_resources(
     retained_delegation,
     effect_host_setup: Ref(None),
     effect_host_installation: Ref(None),
+    effect_host_caller_operation: None,
+    effect_host_caller_current: None,
     effect_host_holding: Ref(None),
     effect_host_cleanup: Ref(None),
     retained_root,
@@ -3919,7 +3924,7 @@ fn settle_holder_cleanup(
 fn run_holder(
   matches : @argparse.Matches,
   holder : @argparse.Matches,
-) -> Unit raise CommandStop {
+) -> HolderCommandClose raise CommandStop {
   // Validate the optional retained profile before acquiring Site custody.
   let retained_delegation = retained_input_delegation(matches)
   let retained_engine_bytes = match retained_delegation {
@@ -4140,10 +4145,10 @@ fn run_holder(
   ) catch {
     CommandStop(issue) => {
       if proven_unstarted {
-        let closed = retain_pending_holder_cleanup(
+        let operation = finish_holder_cleanup_lifetime(
           resources, environment, slot, issue,
         )
-        stop(closed.original_failure)
+        return HolderCommandFailed(operation, issue)
       }
       // Deny evidence access while retaining the original journal and passing
       // existing work to its normal restoration/unknown/cleanup Owners. This
@@ -4344,14 +4349,14 @@ fn run_holder(
       wait_ms = holder_effect_installation_backoff(wait_ms)
     }
   }
-  let closed = retain_pending_holder_cleanup(
-    resources,
-    environment,
-    slot,
-    "execute exited with " + code.to_string(),
+  let failure = "execute exited with " + code.to_string()
+  let operation = finish_holder_cleanup_lifetime(
+    resources, environment, slot, failure,
   )
   if code != 0 {
-    stop(closed.original_failure)
+    HolderCommandFailed(operation, failure)
+  } else {
+    HolderCommandClosed(operation)
   }
 }
 
@@ -4916,10 +4921,13 @@ fn command() -> @argparse.Command {
 }
 
 ///|
-fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
+fn run_command(
+  matches : @argparse.Matches,
+) -> HolderTerminalFailure? raise CommandStop {
   match matches.subcommand {
     Some(("run", _)) => run_control(matches)
-    Some(("execute", child)) => run_holder(matches, child)
+    Some(("execute", child)) =>
+      return finish_holder_command(run_holder(matches, child))
     Some(("recover-output", child)) => recover_output_command(matches, child)
     Some(("recover-retained-input", child)) =>
       recover_retained_input_command(matches, child)
@@ -5004,12 +5012,17 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
     _ => stop("missing operation")
   }
+  None
 }
 
 ///|
 fn main {
   let matches = command().parse() catch { error => abort(error.to_string()) }
-  run_command(matches) catch {
+  try {
+    if run_command(matches) is Some(terminal) {
+      consume_holder_terminal_failure(terminal.operation, terminal.failure)
+    }
+  } catch {
     CommandStop(issue) => abort("actql-native-remote-resident-site: " + issue)
   }
 }
