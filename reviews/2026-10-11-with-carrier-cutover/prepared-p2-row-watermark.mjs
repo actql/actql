@@ -13,4 +13,8 @@ const steps=process.argv.includes('--normative-write')
     ...generators.filter(name=>name!=='row-watermark-identity-oracle').map(name=>({name:'Read-only '+name,command:'node',args:['scripts/'+name+'.mjs']})),
     {name:'Exact authored MoonBit formatting',command:'node',args:['--input-type=module','-e',`import assert from'node:assert/strict';import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';for(const path of process.argv.slice(1))assert.equal(execFileSync('moonfmt',[path],{encoding:'utf8',maxBuffer:4194304}),readFileSync(path,'utf8'),path);`,'src/query_program/row_watermark_source_test.mbt','src/query_program/query_script_carriers.mbt','src/query_syntax/sga_call.mbt','src/query_syntax/sga_argument_roles.mbt']},
     {name:'Product and specification whitespace',command:'git',args:['diff','--check','c3045502f','HEAD','--','.',':(exclude)reviews/**']}];
-process.exitCode=await runLocalCheck({root:process.cwd(),heavy:false,timeoutSeconds:60,graceSeconds:5,steps});
+// A timeout preserves completed steps; finish-only never reruns test evidence.
+const selected=process.argv.includes('--finish-only')
+  ? steps.filter(step=>['Read-only check-actql-spec-family','Read-only check-canonical-json','Exact authored MoonBit formatting','Product and specification whitespace'].includes(step.name))
+  : steps;
+process.exitCode=await runLocalCheck({root:process.cwd(),heavy:false,timeoutSeconds:60,graceSeconds:5,steps:selected});
