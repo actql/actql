@@ -11,7 +11,7 @@ from actql_sdk._local_core import LocalCore
 module = Path(sys.argv[1]).read_bytes()
 digest = hashlib.sha256(module).hexdigest()
 core = LocalCore(module, digest=digest)
-assert core._exports['actql_host_abi_version'](core._store) == 52
+assert core._exports['actql_host_abi_version'](core._store) == 53
 source = output = None
 stopped = [False]
 cleanup_ready = [False]
