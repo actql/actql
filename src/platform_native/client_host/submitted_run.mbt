@@ -201,8 +201,26 @@ fn NativeClientRunJournal::accept_original_submitted_run(
   authority_scope_cid : String,
   current_authorization : Bool,
   effect_material_originals? : String? = None,
+  local_run_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
   current_fence? : (() -> Bool)? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  let local_run_policy_originals = match local_run_policy_original {
+    None => None
+    Some(original) => {
+      if current_fence is None {
+        return Err(AuthorizationDenied)
+      }
+      let bytes = @host.client_local_run_policy_original_body(original)
+      if @host.validate_client_local_run_policy_original_run(
+          bytes, request, definition,
+        )
+        is Err(_) {
+        return Err(ForeignRun)
+      }
+      let wire = @utf8.decode(bytes) catch { _ => return Err(Encoding) }
+      Some(wire)
+    }
+  }
   self.transaction(() => {
     if current_fence is Some(current) && !current() {
       return Err(AuthorizationDenied)
@@ -226,6 +244,16 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     if @host.client_submitted_intent_cid(original.intent) != intent_cid {
       return Err(ChangedIntent)
     }
+    if original.run_admission is None && local_run_policy_originals is None {
+      match
+        self.database.read(
+          "client_local_installation_originals", local_policy_upgrade_key,
+        ) {
+        Ok(_) => return Err(CustodyLost)
+        Err(@sqlite.NotFound) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+    }
     let before = if original.run_admission is Some(_) {
       "ready"
     } else {
@@ -236,10 +264,21 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     }
     // An original packet must enter with first admission, not as backfill of
     // an accepted or merely pre-existing Run after custody was lost.
-    if effect_material_originals is Some(_) && original.run_admission is None {
+    if (
+        effect_material_originals is Some(_) ||
+        local_run_policy_originals is Some(_)
+      ) &&
+      original.run_admission is None {
       match self.retained(request) {
         Ok(None) => ()
-        Ok(Some(_)) => return Err(MissingEffectMaterialOriginal)
+        Ok(Some(_)) =>
+          return Err(
+            if local_run_policy_originals is Some(_) {
+              CustodyLost
+            } else {
+              MissingEffectMaterialOriginal
+            },
+          )
         Err(issue) => return Err(issue)
       }
     }
@@ -262,6 +301,10 @@ fn NativeClientRunJournal::accept_original_submitted_run(
           Some(_) => ()
         }
       }
+      if local_run_policy_originals is Some(packet) &&
+        run.local_run_policy_originals != Some(packet) {
+        return Err(CustodyLost)
+      }
       if current_fence is Some(current) && !current() {
         return Err(AuthorizationDenied)
       }
@@ -274,6 +317,18 @@ fn NativeClientRunJournal::accept_original_submitted_run(
           return Err(AuthorizationDenied)
         }
         match self.save({ ..run, effect_material_originals: Some(packet), }) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+      }
+    }
+    let run = match local_run_policy_originals {
+      None => run
+      Some(packet) => {
+        if current_fence is Some(current) && !current() {
+          return Err(AuthorizationDenied)
+        }
+        match self.save({ ..run, local_run_policy_originals: Some(packet), }) {
           Ok(value) => value
           Err(issue) => return Err(issue)
         }

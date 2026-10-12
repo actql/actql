@@ -200,6 +200,10 @@ extern "C" fn reader_error_ffi(reader : Reader) -> Bytes = "actql_native_filesys
 
 ///|
 #borrow(reader)
+extern "C" fn reader_open_error_ffi(reader : Reader) -> Bytes = "actql_native_filesystem_reader_open_error"
+
+///|
+#borrow(reader)
 extern "C" fn reader_next_ffi(reader : Reader, max_bytes : Int) -> Int = "actql_native_filesystem_reader_next"
 
 ///|
@@ -217,6 +221,22 @@ extern "C" fn reader_finish_ffi(reader : Reader) -> Int = "actql_native_filesyst
 ///|
 #borrow(reader)
 extern "C" fn reader_close_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_close"
+
+///|
+#borrow(root)
+extern "C" fn root_close_ffi(root : Root) -> Int = "actql_native_filesystem_root_close"
+
+///|
+/// Acknowledges this directory descriptor's close, not retirement of children.
+/// Callers must retain their original Root on error; repeating the observation
+/// never closes a potentially reused raw descriptor number.
+pub fn Root::close(self : Root) -> Result[Unit, NativeFilesystemIssue] {
+  if root_close_ffi(self) == 0 {
+    Ok(())
+  } else {
+    Err(Cleanup(decode_message(root_error_ffi(self))))
+  }
+}
 
 ///|
 fn decode_message(bytes : Bytes) -> String {
@@ -524,11 +544,25 @@ pub fn Root::open_reader(
   name : String,
   generation : NativeFileGeneration,
 ) -> Result[Reader, NativeFilesystemIssue] {
+  match self.open_reader_with_custody(name, generation) {
+    Ok(reader) => Ok(reader)
+    Err(failure) => Err(failure.issue())
+  }
+}
+
+///|
+/// Uses the same constructor and exact generation checks. A rejected Reader
+/// remains unready; the failure only retains its original cleanup custody.
+pub fn Root::open_reader_with_custody(
+  self : Root,
+  name : String,
+  generation : NativeFileGeneration,
+) -> Result[Reader, NativeReaderOpenFailure] {
   if !valid_object_name(name) {
-    return Err(InvalidName)
+    return Err(reader_open_failure(InvalidName))
   }
   if generation.size < 0L {
-    return Err(GenerationMismatch)
+    return Err(reader_open_failure(GenerationMismatch))
   }
   let encoded = @utf8.encode(name)
   let reader = open_reader_ffi(
@@ -542,12 +576,17 @@ pub fn Root::open_reader(
   if reader_ready_ffi(reader) {
     Ok(reader)
   } else {
-    let message = decode_message(reader_error_ffi(reader))
-    if message == "generation mismatch" {
-      Err(GenerationMismatch)
+    let message = decode_message(reader_open_error_ffi(reader))
+    let issue = if message == "generation mismatch" {
+      GenerationMismatch
     } else {
-      Err(Read(message))
+      Read(message)
     }
+    let retained = match reader.close() {
+      Ok(_) => None
+      Err(_) => Some(reader)
+    }
+    Err({ original_issue: issue, reader: retained, })
   }
 }
 

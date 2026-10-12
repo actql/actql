@@ -86,7 +86,7 @@ export async function loadPrivateEvidenceKey(stateDirectory) {
     // The installation key already has a fixed 32-byte contract. Enforce it
     // on the original FD before allocation/read, not after an unbounded
     // readFile. This clamp is not the original bootstrap's complete funding.
-    key = await readBoundedLocalMetadata(path, 32);
+    key = await readBoundedLocalMetadata(path, 32, undefined, undefined, true);
   } catch (error) {
     // A failed original close still belongs to installed initialization;
     // preserve its retry handle rather than replacing it with a shape error.
