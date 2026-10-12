@@ -32,8 +32,9 @@ pub fn start_client_original_captured_serialization_prefix(
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
   }
-  // The Row Owner checks its exact query and then current custody/phase after
-  // every liveness callback. Do not run another callback behind that fence.
+  // Authenticate the original capture before deriving input bindings. The
+  // existing acquired constructor checks it again after binding callbacks and
+  // immediately before reserving its attempt on this same Ledger.
   guard @row_source_host.row_capture_original_prefix_requirement(
       capture, ledger,
     )
@@ -42,7 +43,7 @@ pub fn start_client_original_captured_serialization_prefix(
       Original(@publication_host.Resource(@resources.ChangedOriginalState)),
     )
   }
-  start_client_acquired_serialization_prefix(
+  start_client_acquired_serialization_prefix_owned(
     prepared,
     task,
     step,
@@ -54,6 +55,8 @@ pub fn start_client_original_captured_serialization_prefix(
     execution,
     measurement,
     ledger,
-    workspace~,
+    workspace,
+    None,
+    Some(capture),
   )
 }

@@ -363,6 +363,44 @@ test "original Row prefix guard rechecks custody after the verifier synchronousl
   )
   assert_eq(@resources.ledger_usage(value.ledger), before)
   original_captured_prefix_close(value)
+
+  let late = original_captured_prefix_fixture()
+  let source = @row_source_host.row_capture_source(late.capture).unwrap()
+  let read : Ref[@publication_host.ClientModelReadPreparation?] = Ref(None)
+  late.verify_hook.val = Some(fn() {
+    // Input binding invokes the existing liveness callback after the wrapper's
+    // initial guard. The snapshot must prevent the later prefix reservation.
+    read.val = Some(
+      @publication_host.prepare_client_model_read(late.scope, 7L, 5L).unwrap(),
+    )
+  })
+  assert_true(
+    start_client_acquired_serialization_prefix_owned(
+      late.prepared,
+      1,
+      1,
+      source,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      late.execution,
+      late.measurement,
+      late.ledger,
+      None,
+      None,
+      Some(late.capture),
+    )
+    is Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState))
+    ),
+  )
+  assert_true(read.val is Some(_))
+  assert_eq(@resources.ledger_usage(late.ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(late.ledger).reserved_retention_bytes, 10L)
+  assert_true(@resources.capacity_reservation_open(late.bootstrap))
+  @publication_host.settle_client_model_read(read.val.unwrap(), true).unwrap()
+  original_captured_prefix_close(late)
 }
 
 ///|
