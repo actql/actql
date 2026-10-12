@@ -12,26 +12,6 @@
       },
       {
         "schema": "actql.contract/0.1",
-        "id": "member-3",
-        "version": "fixture",
-        "kind": "pushdown",
-        "body": {},
-        "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
-      },
-      {
-        "schema": "actql.contract/0.1",
-        "id": "member-4",
-        "version": "fixture",
-        "kind": "data_policy",
-        "body": {
-          "version": "actql-source-data-policy/0.1",
-          "classification": "unknown",
-          "source_ref": "connector://crm/main/records#v"
-        },
-        "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
-      },
-      {
-        "schema": "actql.contract/0.1",
         "id": "member-1",
         "version": "fixture",
         "kind": "carrier_schema",
@@ -60,6 +40,26 @@
           "fields": {}
         },
         "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-3",
+        "version": "fixture",
+        "kind": "pushdown",
+        "body": {},
+        "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-4",
+        "version": "fixture",
+        "kind": "data_policy",
+        "body": {
+          "version": "actql-source-data-policy/0.1",
+          "classification": "unknown",
+          "source_ref": "connector://crm/main/records#v"
+        },
+        "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
       }
     ],
     "connector_catalogs": [
@@ -250,7 +250,7 @@
     "connector_capabilities": [],
     "model_task_contracts": [],
     "host_policy_profile": {},
-    "evidence_bundle_cid": "sha256:f083ea74f7796ba30f06854b0aab8b3cb859a50f000907c71c7d6ba1b5dfd984"
+    "evidence_bundle_cid": "sha256:b1d539c9bc23f85f9a717f5ed953dc2c3aa3803373f723289757eed4462408f4"
   },
   "independentPreimages": {
     "contracts": [
@@ -498,26 +498,6 @@
         },
         {
           "schema": "actql.contract/0.1",
-          "id": "member-3",
-          "version": "fixture",
-          "kind": "pushdown",
-          "body": {},
-          "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
-        },
-        {
-          "schema": "actql.contract/0.1",
-          "id": "member-4",
-          "version": "fixture",
-          "kind": "data_policy",
-          "body": {
-            "version": "actql-source-data-policy/0.1",
-            "classification": "unknown",
-            "source_ref": "connector://crm/main/records#v"
-          },
-          "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
-        },
-        {
-          "schema": "actql.contract/0.1",
           "id": "member-1",
           "version": "fixture",
           "kind": "carrier_schema",
@@ -546,6 +526,26 @@
             "fields": {}
           },
           "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-3",
+          "version": "fixture",
+          "kind": "pushdown",
+          "body": {},
+          "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-4",
+          "version": "fixture",
+          "kind": "data_policy",
+          "body": {
+            "version": "actql-source-data-policy/0.1",
+            "classification": "unknown",
+            "source_ref": "connector://crm/main/records#v"
+          },
+          "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
         }
       ],
       "connector_catalogs": [
