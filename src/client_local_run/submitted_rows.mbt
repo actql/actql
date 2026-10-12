@@ -132,3 +132,70 @@ pub fn local_submitted_run_rows(
     ),
   )
 }
+
+///|
+/// Validate the actual saved row relationship against the original nominal
+/// checked preparation. Inputs are observations from the same trusted Store
+/// snapshot, not SDK flags or the earlier candidate-byte projection. This
+/// pure check supplies no complete inventory, HMAC, COMMIT acknowledgement,
+/// accepted public operation, dispatch or physical-start fact.
+/// Nested Policy/Checkpoint/Effect originals still require their original
+/// Run Owners; decoding their outer strings is not semantic readmission.
+pub fn validate_local_saved_submitted_rows(
+  value : LocalSubmittedRunRows,
+  plan : LocalRunPlan,
+  preparation : @input.LocalSubmittedPreparation,
+  run_key : String,
+  run_revision : Int64,
+  run_body : Bytes,
+  submission_key : String,
+  submission_revision : Int64,
+  submission_body : Bytes,
+) -> Result[Unit, LocalSubmittedRunRowsIssue] {
+  if !physical_equal(value.plan, plan) ||
+    !physical_equal(value.preparation, preparation) {
+    return Err(ForeignPreparation)
+  }
+  if run_key != @host.client_request_scope_cid(plan.request) ||
+    submission_key !=
+    @host.client_submission_reference_record_request_id(value.reference) ||
+    run_revision < 0L ||
+    submission_revision < 0L {
+    return Err(CustodyLost)
+  }
+  let run = match @host.decode_client_run_journal_row(run_body) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let submitted = match
+    @host.decode_client_submitted_journal_row(submission_body) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if @host.client_submission_reference_record_wire(submitted.reference) !=
+    @host.client_submission_reference_record_wire(value.reference) ||
+    @host.client_submitted_intent_cid(submitted.intent) !=
+    @host.client_submitted_intent_cid(
+      @input.local_submitted_preparation_intent(preparation),
+    ) ||
+    @host.client_request_identity_relation(plan.request, run.request) !=
+    @host.SameRequest ||
+    @publication.publication_contract_identity(run.definition) !=
+    local_run_definition_cid(plan) {
+    return Err(CustodyLost)
+  }
+  guard submitted.run_admission is Some(admission) else {
+    return Err(CustodyLost)
+  }
+  match
+    @host.validate_client_submitted_retained_run(
+      submitted.reference,
+      admission,
+      run.request,
+      run.definition,
+      run_revision,
+    ) {
+    Ok(_) => Ok(())
+    Err(_) => Err(CustodyLost)
+  }
+}
