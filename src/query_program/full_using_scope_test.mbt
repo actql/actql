@@ -10,7 +10,12 @@ test "FULL USING scope agrees with a complete independent coalesced Program" {
     format=Json,
   ).unwrap()
   match
-    @check.check_parsed(staged_control, check_environment(), None, check_limits()) {
+    @check.check_parsed(
+      staged_control,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("independent FULL USING Program must preserve checked identity")

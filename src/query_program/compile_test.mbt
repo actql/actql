@@ -1026,10 +1026,10 @@ fn assert_selected_distinct_result(program : @program.Program) -> Unit raise {
         for later in steps {
           let later_view = @wire.open_object(later).unwrap()
           if @wire.lookup(later_view, "from") is Some(from) &&
-            @wire.text(from) == Some(published) &&
+            @wire.text(from) == Ok(published) &&
             @wire.lookup(later_view, "select") is Some(selection) &&
             @wire.array_length(selection) == Some(1) &&
-            @wire.text(@wire.element_at(selection, 0).unwrap()) == Some("a") {
+            @wire.text(@wire.element_at(selection, 0).unwrap()) == Ok("a") {
             published = @wire.text(@wire.required(later_view, "as").unwrap()).unwrap()
           }
         }
@@ -1182,7 +1182,9 @@ test "Pipe WHERE before JOIN filters a subquery stage" {
   ).unwrap()
   let program = compile(query, set_context(), construction_limits()).unwrap()
   let wire = semantic(program)
-  assert_true(wire.contains("\"filter\":{\"gt\":[{\"field\":\"a\"},{\"literal\":1}]}"))
+  assert_true(
+    wire.contains("\"filter\":{\"gt\":[{\"field\":\"a\"},{\"literal\":1}]}"),
+  )
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
     Checked(_) => ()
@@ -1199,8 +1201,16 @@ test "CTE JOIN body shares scalar projection and post-join filter lowering" {
   ).unwrap()
   let program = compile(query, set_context(), construction_limits()).unwrap()
   let wire = semantic(program)
-  assert_true(wire.contains("\"add\":[{\"field\":\"aql_chain_column_2\"},{\"field\":\"aql_chain_column_4\"}]"))
-  assert_true(wire.contains("\"filter\":{\"gt\":[{\"field\":\"aql_chain_column_4\"},{\"literal\":0}]}"))
+  assert_true(
+    wire.contains(
+      "\"add\":[{\"field\":\"aql_chain_column_2\"},{\"field\":\"aql_chain_column_4\"}]",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"filter\":{\"gt\":[{\"field\":\"aql_chain_column_4\"},{\"literal\":0}]}",
+    ),
+  )
   assert_eq(@program.stage_count(program), 1)
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
@@ -1242,7 +1252,9 @@ test "CTE JOIN uses the same hidden ORDER and visible Result projection" {
     let program = compile(query, set_context(), construction_limits()).unwrap()
     let wire = semantic(program)
     if text.contains("r.b DESC") {
-      assert_true(wire.contains("\"field\":\"aql_chain_column_5\",\"nulls\":\"last\""))
+      assert_true(
+        wire.contains("\"field\":\"aql_chain_column_5\",\"nulls\":\"last\""),
+      )
       assert_true(wire.contains("\"select\":[{\"x\":\"aql_chain_column_2\"}]"))
     }
     assert_true(wire.contains("\"fields\":[\"x\"]"))
@@ -1281,7 +1293,9 @@ test "one CTE lowers to a shared checked Stage Result" {
   let program = compile(query, set_context(), construction_limits()).unwrap()
   let wire = semantic(program)
   assert_eq(@program.stage_count(program), 1)
-  assert_true(wire.contains("\"filter\":{\"gt\":[{\"field\":\"a\"},{\"literal\":1}]}"))
+  assert_true(
+    wire.contains("\"filter\":{\"gt\":[{\"field\":\"a\"},{\"literal\":1}]}"),
+  )
   assert_eq(wire.split("\"values\"").length(), 2)
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
@@ -1399,9 +1413,21 @@ test "CTE branches share one checked producer and reject unchecked declarations"
     syntax_limits(),
   ).unwrap()
   let unused_program = compile(unused, set_context(), construction_limits()).unwrap()
-  assert_true(@check.check_parsed(unused_program, check_environment(), None, check_limits()) is Checked(_))
+  assert_true(
+    @check.check_parsed(
+      unused_program,
+      check_environment(),
+      None,
+      check_limits(),
+    )
+    is Checked(_),
+  )
   assert_eq(semantic(unused_program).split("\"values\"").length(), 2)
-  assert_true(semantic(unused_program).contains("\"filter\":{\"gt\":[{\"field\":\"a\"},{\"literal\":1}]}"))
+  assert_true(
+    semantic(unused_program).contains(
+      "\"filter\":{\"gt\":[{\"field\":\"a\"},{\"literal\":1}]}",
+    ),
+  )
   for
     text in [
       "WITH bad AS (SELECT a FROM bad), selected AS (SELECT a FROM left_rows) SELECT a FROM selected",
@@ -1515,7 +1541,11 @@ test "named JOIN subquery reuses an earlier checked CTE result" {
   assert_eq(@program.stage_count(program), 1)
   let wire = semantic(program)
   assert_eq(wire.split("\"values\"").length(), 2)
-  assert_true(wire.contains("\"filter\":{\"eq\":[{\"field\":\"id\"},{\"literal\":\"a\"}]}"))
+  assert_true(
+    wire.contains(
+      "\"filter\":{\"eq\":[{\"field\":\"id\"},{\"literal\":\"a\"}]}",
+    ),
+  )
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
     Checked(_) => ()
@@ -1600,7 +1630,11 @@ test "FULL CTE join retains keyed input identity for common closure" {
   let right_only_wire = semantic(right_only_program)
   assert_true(right_only_wire.contains("\"coalesce\""))
   assert_eq(right_only_wire.split("\"carrier\":\"relation\"").length(), 2)
-  assert_true(right_only_wire.contains("\"filter\":{\"eq\":[{\"field\":\"id\"},{\"literal\":\"one\"}]}"))
+  assert_true(
+    right_only_wire.contains(
+      "\"filter\":{\"eq\":[{\"field\":\"id\"},{\"literal\":\"one\"}]}",
+    ),
+  )
   match
     @check.check_parsed(
       right_only_program,
