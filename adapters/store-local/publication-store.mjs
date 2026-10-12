@@ -460,8 +460,18 @@ export async function openLocalPublicationStore(
       previous = JSON.parse(await readBounded(storeContractPath,
         configuration.maxObjectBytes));
     } catch (cause) {
-      throw Object.assign(new Error('UnknownPublicationStoreFormat',
+      const failure = Object.assign(new Error('UnknownPublicationStoreFormat',
         {cause}), {code: 'UnknownPublicationStoreFormat', target: root});
+      // This reader precedes Store ownership. The same original failed FD
+      // must remain visible to installed initialization cleanup; wrapping a
+      // format refusal must not make that cleanup appear complete.
+      if (cause?.cleanupHandle !== undefined) {
+        failure.cleanupHandle = cause.cleanupHandle;
+        failure.cleanupPending = true;
+        failure.cleanupError = cause.cleanupError;
+        failure.primaryFailure = cause.primaryFailure ?? cause;
+      }
+      throw failure;
     }
     if (previous?.version === storeContract.version &&
         previous?.isolation === undefined &&
