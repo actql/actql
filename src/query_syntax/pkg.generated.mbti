@@ -10,6 +10,8 @@ import {
 // Values
 pub fn after_graph_calls(Query) -> Query
 
+pub fn after_graph_row_calls(Query, Int) -> Query?
+
 pub fn after_producer_primary(Query) -> Query
 
 pub fn after_query_bindings(Query) -> Query
