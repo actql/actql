@@ -484,6 +484,8 @@ pub fn client_model_read_preparation_available(ClientModelReadPreparation, Clien
 
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
 
+pub fn client_model_resource_park_current(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourcePark[ClientModelReadOrigin]?
+
 pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_native_local_runtime_members(ClientNativeLocalRuntime) -> Array[ClientNativeLocalRuntimeMember]
@@ -1026,6 +1028,8 @@ pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @phy
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
+pub fn park_client_model_read_consumer(ClientModelReadScope, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadPreparationIssue]
+
 pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
 
 pub fn plan_fact_manifest_identity_wire(PlanFactManifestIdentity) -> String
@@ -1267,6 +1271,8 @@ pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBindi
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
 pub fn restore_prepared_client_local_normalization(PreparedClientProgram, ClientLocalNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
+
+pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePark[ClientModelReadOrigin]) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn settle_client_model_read(ClientModelReadPreparation, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
 
@@ -2047,6 +2053,8 @@ pub struct ClientModelRawCaptureRegistration {
 }
 
 type ClientModelReadConsumer
+
+type ClientModelReadOrigin
 
 type ClientModelReadPreparation
 
@@ -3037,6 +3045,8 @@ type PublicationResultRetention
 type RecoveredClientTablePreview
 
 // Type aliases
+pub type ClientModelResourcePark = @physical_resources.OriginalResourcePark[ClientModelReadOrigin]
+
 pub using @logical_request_scope {type SubmissionEpoch}
 
 pub using @logical_request_scope {type SubmissionEpochValidity}
