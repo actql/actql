@@ -385,8 +385,8 @@ priv enum HolderEffectHostSetupClose {
 
 ///|
 /// Exactly one close pass. A pending result owns the original resources and
-/// opaque failure; it must be retained by a caller's cleanup boundary. The CLI
-/// has no such receiver yet and therefore selects no funded setup profile.
+/// opaque failure; the holder's cleanup boundary retains that same custody.
+/// This receiver does not install a funded production setup profile.
 fn close_holder_effect_host_setup(
   resources : HolderOutputResources,
 ) -> HolderEffectHostSetupClose {
