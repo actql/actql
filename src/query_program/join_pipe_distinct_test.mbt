@@ -11,7 +11,6 @@ fn staged_join_pipe_distinct_expected() -> @program.Program {
   ).unwrap()
 }
 
-
 ///|
 // Independent current-Unit control: retain the original typed Values and all
 // operator bodies. Only their checked binding coordinates change.
@@ -25,7 +24,6 @@ fn join_pipe_distinct_expected() -> @program.Program raise {
     format=Json,
   ).unwrap()
 }
-
 
 ///|
 test "post-JOIN Pipe DISTINCT uses the complete independently checked current row" {
