@@ -652,6 +652,8 @@ pub fn client_task_run_binding_definition_cid(ClientTaskRunBinding) -> String
 
 pub fn client_task_run_binding_result_names(ClientTaskRunBinding) -> Array[String]
 
+pub fn client_task_run_materials_compiled_original(ClientTaskRunMaterials) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
 pub fn client_task_static_plan_view(PreparedClientProgram, ClientTaskCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
 
 pub fn client_transfer_binding(ClientTransferInput) -> @remote_site_protocol.RemoteInputBinding
