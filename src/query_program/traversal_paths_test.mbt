@@ -139,7 +139,9 @@ test "Graph traversal path preserves precise common static refusals" {
     ] {
     if before == "id: `element`" {
       assert_true(
-        classified_graph_source(traversal_paths_source().replace(old=before, new=after))
+        classified_graph_source(
+          traversal_paths_source().replace(old=before, new=after),
+        )
         is Err(UnknownColumn),
       )
       continue

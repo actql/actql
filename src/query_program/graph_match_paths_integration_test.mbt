@@ -38,10 +38,13 @@ test "named Graph match feeds traversal paths in one checked source Program" {
 ///|
 test "combined match and path source preserves independent refusal boundaries" {
   assert_true(
-    classified_graph_source(matched_traversal_path_source().replace(
-      old="id: `element`",
-      new="id: `missing`",
-    )) is Err(UnknownColumn),
+    classified_graph_source(
+      matched_traversal_path_source().replace(
+        old="id: `element`",
+        new="id: `missing`",
+      ),
+    )
+    is Err(UnknownColumn),
   )
   let node_only_field = matched_traversal_path_source().replace(
     old="SELECT start_id, end_id, hop_count, node_ids, edge_ids",
