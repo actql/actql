@@ -162,6 +162,8 @@ pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[U
 
 pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, ClientCompiledRun) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
+pub fn check_client_model_original_checked_origin(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelOriginalOriginIssue]
+
 pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
 
 pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayout?, ClientInferPlanGraph, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelPreparationLayoutIssue]
@@ -453,6 +455,8 @@ pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScop
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn client_local_completion_free_catalog_cid() -> String
+
+pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
@@ -1921,6 +1925,14 @@ pub(all) struct ClientLocalProductAssets {
   result_policy : String
 }
 
+pub(all) struct ClientLocalProductCommonOriginals {
+  account : Bytes
+  retention_dependencies : Bytes
+  retention_policy : Bytes
+  store : Bytes
+  result_policy : Bytes
+}
+
 pub(all) enum ClientLocalProductConfigurationIssue {
   InvalidLocation
   InvalidObservationTime
@@ -1934,6 +1946,13 @@ pub(all) enum ClientModelInputCapacityIssue {
   ForeignCallScope
   ForeignInput
   Read(ClientModelReadPreparationIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientModelOriginalOriginIssue {
+  Unavailable
+  ForeignRun
+  OriginMismatch(String)
+  Layout(ClientModelPreparationLayoutIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientModelPreparationLayoutIssue {

@@ -78,14 +78,14 @@ test "AS after EXTEND explicitly binds the derived column" {
 
 ///|
 test "existing JOIN range refusals retain exact current invalid-input causes" {
-  for prefix in ["DROP x", "RENAME x AS current", "SET x = x + 10 |> AS fresh"] {
+  for prefix in ["DROP x", "RENAME x AS current"] {
     assert_true(
       compile(
         @query.parse_query(
           "FROM t |> AS l |> " +
           prefix +
           " |> JOIN r AS rr ON " +
-          (if prefix == "SET x = x + 10 |> AS fresh" { "l.x" } else { "x" }) +
+          "x" +
           " = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
           syntax_limits(),
         ).unwrap(),
@@ -96,6 +96,19 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
       msg=prefix,
     )
   }
+  // AS replaces the old lexical range before ON/SELECT resolution.
+  assert_true(
+    compile(
+      @query.parse_query(
+        "FROM t |> AS l |> SET x = x + 10 |> AS fresh |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
+        syntax_limits(),
+      ).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    )
+    is Err(UnknownColumn),
+  )
+  // The WITH body does not export its internal range into the outer JOIN.
   assert_true(
     compile(
       @query.parse_query(
@@ -105,6 +118,6 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
       join_order_context(),
       construction_limits(),
     )
-    is Err(AmbiguousColumn),
+    is Err(UnknownColumn),
   )
 }
