@@ -1246,6 +1246,8 @@ pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProduc
 
 pub fn validate_client_retained_task_input_current(ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
+pub fn validate_client_run_binding(ClientRequestIdentity, PreparedClientProgram, ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientRunBindingIssue]
+
 pub fn verify_client_retained_source_cleanup_observation(ClientRetainedSourceCleanup, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn with_client_infer_result_policy(ClientCompiledRun, String, String, Int, Int, Int) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
@@ -2304,6 +2306,11 @@ pub(all) enum ClientRetainedTaskInputIssue {
 }
 
 type ClientRetainedTaskRoute
+
+pub(all) enum ClientRunBindingIssue {
+  ChangedIntent
+  ForeignRun
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientRunCancellationAction {
   AcceptCancellation

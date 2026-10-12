@@ -11,7 +11,7 @@ import sys
 from threading import RLock
 from typing import Any, Literal
 
-LOCAL_CORE_ABI = 45
+LOCAL_CORE_ABI = 46
 
 
 class LocalCoreError(RuntimeError):

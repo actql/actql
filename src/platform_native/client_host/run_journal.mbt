@@ -614,17 +614,12 @@ fn validate_native_client_run_binding(
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  let identity = @host.prepared_client_identity(prepared)
-  if !@host.client_compiled_run_matches(compiled, prepared) ||
-    @host.client_request_program_cid(request) != identity.program_definition_cid ||
-    @host.client_request_parameters_cid(request) !=
-    identity.parameter_values_cid {
-    return Err(ChangedIntent)
+  match
+    @host.validate_client_run_binding(request, prepared, compiled, definition) {
+    Ok(_) => Ok(())
+    Err(ChangedIntent) => Err(ChangedIntent)
+    Err(ForeignRun) => Err(ForeignRun)
   }
-  if @host.check_client_compiled_run_definition(compiled, definition) is Err(_) {
-    return Err(ForeignRun)
-  }
-  Ok(())
 }
 
 ///|
