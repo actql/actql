@@ -396,3 +396,22 @@ pub fn[T] advance_original_state_write(
     StateWriteContinue(work~)
   }
 }
+
+///|
+// Route the existing Owner's claim to its exact Writer, without issuing a
+// second control or exposing the private origin through another wrapper.
+// A foreign caller cannot cancel or advance the real Writer. The owning
+// caller still funds each census validation and the complete codec overlap.
+pub fn[T] advance_funded_read_state_write(
+  claim : FundedReadClaim[T],
+  origin : T,
+  quantum : Int,
+) -> OriginalStateWritePoll {
+  if !physical_equal(origin, claim.descriptor.origin) {
+    return StateWriteFailed(Original(ForeignOrigin), work=0)
+  }
+  guard claim.phase is Writing(writer) else {
+    return StateWriteFailed(Terminal, work=0)
+  }
+  advance_original_state_write(writer, quantum)
+}
