@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {canonicalText} from './check-canonical-json.mjs';
-import {loadScalarPairBodies, verifyScalarPairBodies, scalarPairEvidence, scalarPairSource} from './native-local-scalar-pair-evidence.mjs';
+import {loadScalarPairBodies, verifyScalarPairBodies, scalarPairEvidence, scalarPairSource, assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
 
 const original = loadScalarPairBodies();
 
@@ -50,4 +50,37 @@ test('missing, relabelled or unknown predecessor material is not repaired from c
 test('generated bounded evidence stays tied to reviewed source inputs without a Git checkout of old109', () => {
   assert.equal(readFileSync('src/run_publication_host/client_native_local_scalar_pair_evidence.generated.mbt', 'utf8'), scalarPairSource());
   assert(Object.keys(original.old).every(role => original.current[role]));
+});
+
+const vector = JSON.parse(readFileSync('reviews/2026-10-12-d-native-local-expiry-1701/scalar-runtime-pair-vector.json'));
+test('independent Python full-body oracle agrees with bounded source evidence identity', async () => {
+  const {machineCid} = await import('./actql-spec-family.mjs');
+  const evidence = scalarPairEvidence();
+  assert.equal(machineCid(evidence), vector.evidence_cid);
+  assert.equal(evidence.exact_difference_cid, vector.exact_difference_cid);
+  assert.equal(Buffer.byteLength(canonicalText(evidence)), vector.evidence_bytes);
+  assertScalarPairEvidenceFresh();
+});
+
+test('closed pair vector preserves distinct complete manifest and source identities', async () => {
+  const {createHash} = await import('node:crypto');
+  const shape = JSON.parse(readFileSync('spec/contracts/actql-native-local-scalar-runtime-pair.schema.json'));
+  const body = JSON.parse(vector.body);
+  const valid = value => typeof value === 'object' && value !== null && !Array.isArray(value)
+    && shape.required.every(k => Object.hasOwn(value, k))
+    && Object.entries(value).every(([k,v]) => Object.hasOwn(shape.properties, k)
+      && (Object.hasOwn(shape.properties[k], 'const') ? v === shape.properties[k].const
+        : typeof v === 'string' && new RegExp(shape.properties[k].pattern).test(v)));
+  assert.equal('sha256:' + createHash('sha256').update(vector.body).digest('hex'),
+    'sha256:00df605c2c1173cdbd982bd7b54107df020de33f57b28d121c58c7daccc67090');
+  assert.equal(vector.cid, 'sha256:00df605c2c1173cdbd982bd7b54107df020de33f57b28d121c58c7daccc67090');
+  assert.equal(valid(body), true);
+  assert.notEqual(body.current_source_sha, body.original_source_sha);
+  assert.notEqual(body.current_manifest_sha256, body.original_manifest_sha256);
+  for (const k of shape.required) {
+    const missing = {...body}; delete missing[k]; assert.equal(valid(missing), false);
+    assert.equal(valid({...body, [k]: null}), false);
+  }
+  for (const change of [{...body, permit: true}, {...body, profile: 'all-values'},
+    {...body, evidence_cid: true}, {...body, platform: 'linux-x64-gnu'}]) assert.equal(valid(change), false);
 });

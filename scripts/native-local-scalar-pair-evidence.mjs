@@ -227,14 +227,16 @@ export function scalarPairEvidence(sourceRoot = repository) {
       original_canonical_body_sha256: sha(canonicalText(bodies.old[row.role])),
       current_canonical_body_sha256: sha(canonicalText(bodies.current[row.role])),
     })),
-    exact_difference_cid: machineCid(Object.keys(identities).map(role => ({
+    exact_difference_cid: machineCid(Object.keys(identities).sort().map(role => ({
       role,
-      references: referenceChanges[role].map(path => ({path, original: 'artifact_ref', current: 'content_ref'})),
-      dependencies: changedEdges[role].map(([path, target, targetPointer]) => ({
-        path,
-        original: machineCid(resolvePointer(bodies.old[target], targetPointer)),
-        current: machineCid(resolvePointer(bodies.current[target], targetPointer)),
-      })),
+      differences: [
+        ...referenceChanges[role].map(path => ({path, original: 'artifact_ref', current: 'content_ref'})),
+        ...changedEdges[role].map(([path, target, targetPointer]) => ({
+          path,
+          original: machineCid(resolvePointer(bodies.old[target], targetPointer)),
+          current: machineCid(resolvePointer(bodies.current[target], targetPointer)),
+        })),
+      ].sort((a,b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
     }))),
     implementation_evidence_cid: machineCid(bodies.implementations),
     asset_pairs: Object.entries(assetIdentities).map(([role, pair]) => ({
@@ -256,16 +258,49 @@ export function scalarPairSource(sourceRoot = repository) {
       '    _ => None\n  }\n}\n').join('');
 }
 
+// Retained inputs for metadata tests, never authenticated installation state.
+export function scalarPairRuntimeFixture(sourceRoot = repository) {
+  const read = name => gunzipSync(readFileSync(resolve(sourceRoot, fixtureDirectory + '/' + name + '.json.gz')));
+  const originalRuntime = read('local-runtime');
+  assert.equal(sha(originalRuntime), '80731853b15f4d600ef391b3778c734bc40bfb6caed246c0c145916b419e49bd');
+  const originalAssets = new Map(Object.keys(assetIdentities).map(role => [role, read(role)]));
+  const currentAssets = nativeLocalDefaultAssets(sourceRoot);
+  for (const [role, pair] of Object.entries(assetIdentities)) {
+    assert.equal(sha(originalAssets.get(role)), pair[0]);
+    assert.equal(sha(currentAssets.get(role)), pair[1]);
+  }
+  const candidate = JSON.parse(originalRuntime);
+  // This source identity is deliberately synthetic. No current physical
+  // package or installed compatibility success is claimed by these tests.
+  candidate.sourceSha = 'b'.repeat(40);
+  for (const asset of candidate.assets) {
+    asset.bytes = currentAssets.get(asset.role).length;
+    asset.sha256 = sha(currentAssets.get(asset.role));
+  }
+  const fields = ['environment', 'registry', 'values', 'fragment'];
+  return '// Generated retained test inputs; not adoption originals or runtime authority.\n' +
+    '\n///|\nfn scalar_pair_test_original_runtime_wire() -> String {\n  ' + JSON.stringify(originalRuntime.toString('utf8')) + '\n}\n' +
+    '\n///|\nfn scalar_pair_test_current_runtime_wire() -> String {\n  ' + JSON.stringify(JSON.stringify(candidate)) + '\n}\n' +
+    '\n///|\nfn scalar_pair_test_original_assets() -> ClientLocalProductAssets {\n  {\n' +
+    fields.map(role => '    ' + role + ': ' + JSON.stringify(originalAssets.get(role).toString('utf8')) + ',\n').join('') +
+    '    ordered: Some(' + JSON.stringify(originalAssets.get('ordered').toString('utf8')) + '),\n' +
+    '    result_policy: ' + JSON.stringify(originalAssets.get('result-policy').toString('utf8')) + ',\n  }\n}\n';
+}
+
 export function assertScalarPairEvidenceFresh(sourceRoot = repository) {
   assert.equal(readFileSync(resolve(sourceRoot,
     'src/run_publication_host/client_native_local_scalar_pair_evidence.generated.mbt'), 'utf8'),
   scalarPairSource(sourceRoot), 'Stale scalar pair evidence');
+  assert.equal(readFileSync(resolve(sourceRoot,
+    'src/run_publication_host/client_native_local_scalar_pair_fixture.generated_wbtest.mbt'), 'utf8'),
+  scalarPairRuntimeFixture(sourceRoot), 'Stale retained scalar pair test inputs');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   assert(process.argv.length === 3 && ['--check', '--write'].includes(process.argv[2]));
-  const output = resolve(repository, 'src/run_publication_host/client_native_local_scalar_pair_evidence.generated.mbt');
-  const expected = scalarPairSource();
-  if (process.argv[2] === '--write') writeFileSync(output, expected);
+  if (process.argv[2] === '--write') {
+    writeFileSync(resolve(repository, 'src/run_publication_host/client_native_local_scalar_pair_evidence.generated.mbt'), scalarPairSource());
+    writeFileSync(resolve(repository, 'src/run_publication_host/client_native_local_scalar_pair_fixture.generated_wbtest.mbt'), scalarPairRuntimeFixture());
+  }
   else assertScalarPairEvidenceFresh();
 }
