@@ -1764,8 +1764,8 @@ export function validateResourceAccounting({
         graph_bounds: 'start_graph_bounds_view',
         degree: 'start_graph_degree_view',
         components: 'start_components_view',
-        reach: 'start_reach_view',
-        shortest_path: 'start_shortest_view',
+        reach: 'start_traverse_view',
+        shortest_path: 'start_traverse_view',
         graphs_equal: 'start_graph_equality_views',
       }[route.operation];
       const provider = productionTexts.get(dispatch.path);
@@ -2437,20 +2437,48 @@ export function validateResourceAccounting({
         fail(`${label}: fused Relation resource assurance is missing`);
       }
     }
-    if (route.family === 'SGA' && route.operation === 'shortest_path') {
-      for (const role of [
-        'shortest_workspace_exact_one_short',
-        'shortest_value_preallocation_rejection',
-        'shortest_kernel_cancel_cleanup',
-        'shortest_long_typed_identity_cancel_cleanup',
-        'shortest_standard_host_consumers',
-      ]) {
-        if (!boundaryRoles.has(role)) {
-          fail(`${label}: reviewed ${role} fixture is missing`);
+    if (route.family === 'SGA') {
+      const currentBoundaries = {
+        shortest_path: ['graph_shortest_wbtest.mbt', [
+          ['shortest_typed_paths_zero_hop', 'Shortest shares bounded simple-path execution with typed parallel edges and zero-hop selection'],
+          ['shortest_exact_work_workspace_selection_cancel', 'Shortest zero-hop execution has independently decomposed total work workspace and mid-selection cancellation'],
+          ['shortest_weights_hop_cap_atomic_overrange', 'Shortest validates unvisited weights and preserves hop-capped cost selection and atomic overrange'],
+        ]],
+        reach: ['graph_reach_wbtest.mbt', [
+          ['reach_typed_selectors_depth_predicate', 'Reach typed selectors preserve depth zero minimum depth and bounded predicate work'],
+          ['reach_relation_starts_nonnull_membership', 'Reach Relation starts recheck nonnull identities and reject NULL or absent membership'],
+          ['reach_exact_work_workspace_handoff_cancel', 'Reach independently counts exact work workspace and every pending handoff cancellation'],
+        ]],
+        graft_graph: ['graph_graft_wbtest.mbt', [
+          ['graft_bound_occurrences_independent_output', 'Graph graft selected provider binds both occurrences and retains output independently'],
+          ['graft_exact_work_workspace_one_short', 'Graph graft empty work and workspace exact one short are independently bounded'],
+          ['graft_cancel_input_custody', 'Graph graft provider observes cancellation before output handoff and preserves input custody'],
+        ]],
+        mean_graphs: ['graph_mean_wbtest.mbt', [
+          ['mean_finite_profile_independent_output', 'Mean provider requires its finite profile and owns an independent completed Graph'],
+          ['mean_positive_work_cancel_handoff', 'Mean observes every positive-work yield cancellation including private output handoff'],
+          ['mean_exact_work_workspace_operation_boundaries', 'Mean managed empty fold has independent work workspace and exact-operation boundaries'],
+        ]],
+      }[route.operation];
+      if (currentBoundaries) {
+        for (const [role, fixture] of currentBoundaries[1]) {
+          const item = boundaryTests.find(item => item.role === role);
+          if (item?.path !== `src/query_integration/${currentBoundaries[0]}` ||
+            item?.fixture !== fixture || item?.suite !== 'moon:query_integration') {
+            fail(`${label}: current ${role} fixture is missing or detached`);
+          }
         }
-      }
-      if (!environmentRoles.has('shortest_host_in_flight_cancel_cleanup')) {
-        fail(`${label}: shortest Host cancellation fixture is missing`);
+        const owner = {
+          shortest_path: ['src/local_sga/traverse.mbt', 'start_traverse'],
+          reach: ['src/local_sga/traverse.mbt', 'start_traverse'],
+          graft_graph: ['src/local_sga/union.mbt', 'start_graph_composition_views'],
+          mean_graphs: ['src/local_sga/mean.mbt', 'start_mean_views'],
+        }[route.operation];
+        if (dispatch.path !== 'src/local_sga_provider/graph_pipeline.mbt' ||
+          dispatch.marker !== `@sga.${owner[1]}(` ||
+          entrypoint.path !== owner[0] || entrypoint.symbol !== owner[1]) {
+          fail(`${label}: current operation must reach its shared bounded Owner`);
+        }
       }
     }
     if (route.family === 'SGA' &&
@@ -2511,42 +2539,32 @@ export function validateResourceAccounting({
         !boundaryRoles.has('components_long_text_typed_order'))) {
       fail(`${label}: components boundary evidence is missing`);
     }
-    if (route.family === 'SGA' && route.operation === 'reach' &&
-      (!boundaryRoles.has('reach_prefix_work_workspace_active_cancel') ||
-        !boundaryRoles.has('reach_long_text_sort_cancel_cleanup') ||
-        !boundaryRoles.has('reach_nonempty_exact_work_workspace') ||
-        !environmentRoles.has('reach_out_host_in_flight_cancel'))) {
-      fail(`${label}: reach control-work evidence is missing`);
-    }
-    if (route.family === 'SGA' && route.operation === 'shortest_path' &&
-      (!boundaryRoles.has('shortest_scalar_control_work_exact_one_short') ||
-        !boundaryRoles.has('shortest_scalar_pipeline_work_exact_one_short'))) {
-      fail(`${label}: scalar shortest control-work evidence is missing`);
-    }
-    if (route.family === 'SGA' && route.operation === 'shortest_path' &&
+    if (route.family === 'SGA' && ['reach', 'shortest_path'].includes(route.operation) &&
       productionTexts.has(dispatch.path)) {
       const provider = productionTexts.get(dispatch.path);
-      const start = provider.indexOf(dispatch.marker);
-      let depth = 0;
-      let end = start;
-      if (start >= 0) {
-        for (let cursor = start + dispatch.marker.length - 1;
-          cursor < provider.length; cursor += 1) {
-          if (provider[cursor] === '(') depth += 1;
-          if (provider[cursor] === ')') depth -= 1;
-          if (depth === 0) {
-            end = cursor + 1;
-            break;
+      for (const symbol of ['start_traverse', 'start_traverse_view']) {
+        const marker = `@sga.${symbol}(`;
+        const start = provider.indexOf(marker);
+        let depth = 0;
+        let end = start;
+        if (start >= 0) {
+          for (let cursor = start + marker.length - 1;
+            cursor < provider.length; cursor += 1) {
+            if (provider[cursor] === '(') depth += 1;
+            if (provider[cursor] === ')') depth -= 1;
+            if (depth === 0) {
+              end = cursor + 1;
+              break;
+            }
           }
         }
-      }
-      const call = provider.slice(start, end);
-      if (!call.includes('control_work_limit=Some(work_limit)') ||
-        !provider.includes('remaining_control_work(value) is Some(work_limit)') ||
-        !provider.includes('value.completed_work += work_delta') ||
-        !provider.includes('let ceiling = value.limits.max_work.to_int64()') ||
-        !provider.includes('ceiling - value.completed_work')) {
-        fail(`${label}: shortest provider loses its cumulative work limit`);
+        const call = provider.slice(start, end);
+        if (!provider.includes('Some(@lower.GraphTraverseStep(traverse))') ||
+          !call.includes('value.control,') ||
+          !call.includes('max_work: value.limits.max_work,') ||
+          !call.includes('value.limits.max_workspace_slots,')) {
+          fail(`${label}: current traversal provider loses its shared work/workspace inputs`);
+        }
       }
     }
     if (route.family === 'SGA' && route.operation === 'traverse' &&
@@ -2560,14 +2578,8 @@ export function validateResourceAccounting({
       !boundaryRoles.has('graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup')) {
       fail(`${label}: Graph diff tail-work evidence is missing`);
     }
-    if (route.family === 'SGA' && route.operation === 'mean_graphs' &&
-      (!boundaryRoles.has('mean_empty_work_exact_one_short_and_cleanup') ||
-        !boundaryRoles.has('mean_long_text_sort_cancel_cleanup'))) {
-      fail(`${label}: Graph mean cumulative-work evidence is missing`);
-    }
     if (route.family === 'SGA') {
       const structuralRole = {
-        graft_graph: 'graft_empty_work_exact_one_short_and_cleanup',
         union_graphs: 'union_empty_work_exact_one_short_active_cancel_cleanup',
         subtract_graphs: 'subtract_empty_work_exact_one_short_and_cleanup',
       }[route.operation];
