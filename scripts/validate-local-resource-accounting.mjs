@@ -2523,8 +2523,9 @@ export function validateResourceAccounting({
         !boundaryRoles.has('shortest_scalar_pipeline_work_exact_one_short'))) {
       fail(`${label}: scalar shortest control-work evidence is missing`);
     }
-    if (route.family === 'SGA' && route.operation === 'shortest_path') {
-      const provider = fs.readFileSync(path.join(root, dispatch.path), 'utf8');
+    if (route.family === 'SGA' && route.operation === 'shortest_path' &&
+      productionTexts.has(dispatch.path)) {
+      const provider = productionTexts.get(dispatch.path);
       const start = provider.indexOf(dispatch.marker);
       let depth = 0;
       let end = start;
