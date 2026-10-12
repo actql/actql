@@ -4,6 +4,7 @@ fn contract_capacity_start(
   attempts : Int,
   wire_bytes : Int64,
   limits? : Limits = standard_limits(),
+  asynchronous? : Bool = false,
 ) -> Execution {
   let source = infer_fixture_program.replace(
     old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
@@ -11,20 +12,24 @@ fn contract_capacity_start(
   )
   let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared, attempts~, wire_bytes~)
-  let provider = @model.install_model_provider("models/fixture", _ => {
-    calls.val += 1
-    Ok({
-      value: @admitted.object_value([
-        ("reason", @admitted.null_value()),
-        ("risk", @admitted.text_value("high", 100).unwrap()),
-      ]).unwrap(),
-      provider_model: "fixture",
-      provider_request_id: "request-" + calls.val.to_string(),
-      input_tokens: 1L,
-      output_tokens: 2L,
-      observed_at: "2026-10-02T00:00:00.000Z",
-    })
-  }).unwrap()
+  let provider = if asynchronous {
+    @model.install_async_model_provider("models/fixture").unwrap()
+  } else {
+    @model.install_model_provider("models/fixture", _ => {
+      calls.val += 1
+      Ok({
+        value: @admitted.object_value([
+          ("reason", @admitted.null_value()),
+          ("risk", @admitted.text_value("high", 100).unwrap()),
+        ]).unwrap(),
+        provider_model: "fixture",
+        provider_request_id: "request-" + calls.val.to_string(),
+        input_tokens: 1L,
+        output_tokens: 2L,
+        observed_at: "2026-10-02T00:00:00.000Z",
+      })
+    }).unwrap()
+  }
   start(
     prepared,
     2,
