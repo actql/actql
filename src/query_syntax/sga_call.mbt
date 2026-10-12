@@ -110,6 +110,7 @@ fn carrier_call_head(token : Token) -> Bool {
 ///|
 fn copy_sga_argument(argument : SgaArgument) -> SgaArgument {
   match argument {
+    FieldReference(path) => FieldReference(path.copy())
     ObjectValue(fields) =>
       ObjectValue(fields.map(field => (field.0, copy_sga_argument(field.1))))
     FieldMapValue(fields) =>
