@@ -20,6 +20,24 @@ This is source lowering and actual common checking, not public Host/Named Result
 execution. Remaining SGA callers, normative grammar/profile/pins, the rest of P2
 and Local/HTTPS acceptance are incomplete. No Heavy, producer or hosted CI ran.
 
+## P2-A remaining caller coherence
+
+[Remaining caller evidence](p2-sga-remaining-caller-execution.json) records
+JS38/38 at `036733ffa02dac4ae7cda6279d0abc83a3dfadf1`, public fixture
+Node29/29 at `ea3748366`, and syntax/public Source parser JS41/41 at `dd0e9a324`.
+These are distinct fixed sources. Complete independent JSON Program bodies and
+all eight public fixture families' values, ordered contracts, parameters,
+resource ceilings, refusal obligations and acquisition counts are unchanged.
+Literal/ID/enum strings remain data; only declared field/output roles use names.
+The original JS32/37 migration failure is retained. Missing columns now require
+exact operand `UnknownColumn`, and numeric Delta fields require the existing
+identifier syntax refusal. Shared common type/domain checks remain strict.
+
+Actual Owner/group/ownlock absence was observed for all six attempts. No Host,
+Provider, producer or Heavy ran. The source parser evidence does not establish
+public Local/HTTPS results. Normative pins, remaining adapter obligations and
+the full P2/public matrix remain unfinished.
+
 ## Earlier finite source
 
 

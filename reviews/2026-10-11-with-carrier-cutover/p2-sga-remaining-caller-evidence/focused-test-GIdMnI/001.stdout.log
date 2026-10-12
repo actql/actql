@@ -1,0 +1,220 @@
+TAP version 13
+# Subtest: independent binding controls observe identities and distinct parallel-edge endpoints
+ok 1 - independent binding controls observe identities and distinct parallel-edge endpoints
+  ---
+  duration_ms: 54.32625
+  type: 'test'
+  ...
+# Subtest: uppercase and quoted binding sources retain their own named fields and empty contracts
+ok 2 - uppercase and quoted binding sources retain their own named fields and empty contracts
+  ---
+  duration_ms: 3.885875
+  type: 'test'
+  ...
+# Subtest: normal public corpus retains binding counterexamples and precise input refusals
+ok 3 - normal public corpus retains binding counterexamples and precise input refusals
+  ---
+  duration_ms: 30.550083
+  type: 'test'
+  ...
+# Subtest: each typed endpoint selector identifies a different original node and deduplicates parallel-edge starts
+ok 4 - each typed endpoint selector identifies a different original node and deduplicates parallel-edge starts
+  ---
+  duration_ms: 2.624584
+  type: 'test'
+  ...
+# Subtest: Reach public oracles retain independent depth zero, two consumers and empty schemas
+ok 5 - Reach public oracles retain independent depth zero, two consumers and empty schemas
+  ---
+  duration_ms: 2.609583
+  type: 'test'
+  ...
+# Subtest: Reach narrow packed selection uses public transports and fresh-process retained reads
+ok 6 - Reach narrow packed selection uses public transports and fresh-process retained reads
+  ---
+  duration_ms: 177.389541
+  type: 'test'
+  ...
+# Subtest: Reach connected expectations distinguish direction, minimum depth and edge multiplicity
+ok 7 - Reach connected expectations distinguish direction, minimum depth and edge multiplicity
+  ---
+  duration_ms: 1.3775
+  type: 'test'
+  ...
+# Subtest: typed hop control retains two filters, path mode and exact output bound
+ok 8 - typed hop control retains two filters, path mode and exact output bound
+  ---
+  duration_ms: 7.200625
+  type: 'test'
+  ...
+# Subtest: nonempty path and node oracles preserve identity multiplicity and minimum eligible depth
+ok 9 - nonempty path and node oracles preserve identity multiplicity and minimum eligible depth
+  ---
+  duration_ms: 1.102792
+  type: 'test'
+  ...
+# Subtest: case-folded vocabulary refuses collisions without folding values or weakening closed modes
+ok 10 - case-folded vocabulary refuses collisions without folding values or weakening closed modes
+  ---
+  duration_ms: 6.595792
+  type: 'test'
+  ...
+# Subtest: normal and narrow packed consumers both include the same unchanged traversal groups
+ok 11 - normal and narrow packed consumers both include the same unchanged traversal groups
+  ---
+  duration_ms: 125.5615
+  type: 'test'
+  ...
+# Subtest: existing unavailable traversal emissions retain their exact lowerer refusal category
+ok 12 - existing unavailable traversal emissions retain their exact lowerer refusal category
+  ---
+  duration_ms: 3.951792
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent graph-match-source-input obligations
+ok 13 - SGA source role cutover retains full independent graph-match-source-input obligations
+  ---
+  duration_ms: 23.561959
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent graph-traverse-path-source-input obligations
+ok 14 - SGA source role cutover retains full independent graph-traverse-path-source-input obligations
+  ---
+  duration_ms: 75.113958
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent graph-traverse-source-input obligations
+ok 15 - SGA source role cutover retains full independent graph-traverse-source-input obligations
+  ---
+  duration_ms: 36.164958
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent graph-reach-source-input obligations
+ok 16 - SGA source role cutover retains full independent graph-reach-source-input obligations
+  ---
+  duration_ms: 14.675042
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent graph-shortest-source-input obligations
+ok 17 - SGA source role cutover retains full independent graph-shortest-source-input obligations
+  ---
+  duration_ms: 27.839083
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent subgraph-source-input obligations
+ok 18 - SGA source role cutover retains full independent subgraph-source-input obligations
+  ---
+  duration_ms: 38.730083
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent graph-delta-source-input obligations
+ok 19 - SGA source role cutover retains full independent graph-delta-source-input obligations
+  ---
+  duration_ms: 4.317583
+  type: 'test'
+  ...
+# Subtest: SGA source role cutover retains full independent graph-delta-json-source obligations
+ok 20 - SGA source role cutover retains full independent graph-delta-json-source obligations
+  ---
+  duration_ms: 7.207583
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent source-graph-member-input contract
+ok 21 - WITH final caller retains complete independent source-graph-member-input contract
+  ---
+  duration_ms: 36.178042
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent graph-delta-json-source contract
+ok 22 - WITH final caller retains complete independent graph-delta-json-source contract
+  ---
+  duration_ms: 18.441334
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent nearest-public-input contract
+ok 23 - WITH final caller retains complete independent nearest-public-input contract
+  ---
+  duration_ms: 76.174792
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent pipe-join-input contract
+ok 24 - WITH final caller retains complete independent pipe-join-input contract
+  ---
+  duration_ms: 3.238375
+  type: 'test'
+  ...
+# Subtest: WITH optional Effect preserves complete original terminal body two-source-without-effect.aql
+ok 25 - WITH optional Effect preserves complete original terminal body two-source-without-effect.aql
+  ---
+  duration_ms: 1.100292
+  type: 'test'
+  ...
+# Subtest: WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template
+ok 26 - WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template
+  ---
+  duration_ms: 0.47925
+  type: 'test'
+  ...
+# Subtest: WITH Python ABI fixture changes only the binding wrapper
+ok 27 - WITH Python ABI fixture changes only the binding wrapper
+  ---
+  duration_ms: 0.536
+  type: 'test'
+  ...
+# Subtest: WITH Graph snapshot keeps original oracle and consumer assertions
+ok 28 - WITH Graph snapshot keeps original oracle and consumer assertions
+  ---
+  duration_ms: 0.714041
+  type: 'test'
+  ...
+# Subtest: WITH Graph operation callers preserve all independent public obligations
+ok 29 - WITH Graph operation callers preserve all independent public obligations
+  ---
+  duration_ms: 31.088333
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1039.177583
+ACTQL_TEST_CASE {"name":"independent binding controls observe identities and distinct parallel-edge endpoints","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-match-binding-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"uppercase and quoted binding sources retain their own named fields and empty contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-match-binding-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal public corpus retains binding counterexamples and precise input refusals","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-match-binding-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"each typed endpoint selector identifies a different original node and deduplicates parallel-edge starts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-match-binding-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Reach public oracles retain independent depth zero, two consumers and empty schemas","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-reach-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Reach narrow packed selection uses public transports and fresh-process retained reads","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-reach-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Reach connected expectations distinguish direction, minimum depth and edge multiplicity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-reach-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"typed hop control retains two filters, path mode and exact output bound","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-traverse-hop-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"nonempty path and node oracles preserve identity multiplicity and minimum eligible depth","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-traverse-hop-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"case-folded vocabulary refuses collisions without folding values or weakening closed modes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-traverse-hop-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal and narrow packed consumers both include the same unchanged traversal groups","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-traverse-hop-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"existing unavailable traversal emissions retain their exact lowerer refusal category","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-traverse-hop-vocabulary.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent graph-match-source-input obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent graph-traverse-path-source-input obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent graph-traverse-source-input obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent graph-reach-source-input obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent graph-shortest-source-input obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent subgraph-source-input obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent graph-delta-source-input obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA source role cutover retains full independent graph-delta-json-source obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent source-graph-member-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent graph-delta-json-source contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent nearest-public-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent pipe-join-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH optional Effect preserves complete original terminal body two-source-without-effect.aql","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Python ABI fixture changes only the binding wrapper","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph snapshot keeps original oracle and consumer assertions","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph operation callers preserve all independent public obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-operation-caller.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":4,"failed":0,"passed":4,"cancelled":0,"skipped":0,"todo":0,"topLevel":4,"suites":0},"duration_ms":201.444666,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-match-binding-vocabulary.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":188.832833,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-reach-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":168.880834,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-traverse-hop-vocabulary.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":8,"failed":0,"passed":8,"cancelled":0,"skipped":0,"todo":0,"topLevel":8,"suites":0},"duration_ms":396.894125,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-public-role-preservation.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":8,"failed":0,"passed":8,"cancelled":0,"skipped":0,"todo":0,"topLevel":8,"suites":0},"duration_ms":150.23975,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":1,"failed":0,"passed":1,"cancelled":0,"skipped":0,"todo":0,"topLevel":1,"suites":0},"duration_ms":73.501959,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-operation-caller.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":29,"failed":0,"passed":29,"cancelled":0,"skipped":0,"todo":0,"topLevel":29,"suites":0},"duration_ms":1039.177583}
