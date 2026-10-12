@@ -18,6 +18,8 @@ pub fn after_producer_primary(Query) -> Query
 
 pub fn after_query_bindings(Query) -> Query
 
+pub fn after_relation_generator(Query, NamePart) -> Query?
+
 pub fn bound_source(Query) -> NamePart?
 
 pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
@@ -435,6 +437,7 @@ pub(all) struct PivotClause {
 pub(all) enum ProducerPrimary {
   GraphValue(GraphConstructor)
   GraphGenerator(SgaCall)
+  RelationGenerator(SgaCall)
 }
 
 pub(all) struct Projection {

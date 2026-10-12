@@ -8,9 +8,11 @@ test('ranking syntax retains the complete current parent and changes grammar-bou
  const before=read('scripts/fixtures/pre-ranking-fusion-values-identities.json');
  assert.equal(before.source_revision,'b3a0cfafffeee515fcceb8a5ae59f1b4f63ca617');
  assert.deepEqual(currentValuesPreimages(before.grammar,before.source_revision),before);
- const after=rankingFusionIdentityOracle();
+ const after=rankingFusionIdentityOracle({
+  grammarPath:'reviews/2026-10-12-frontend-ranking-fusion-calls/preimages/submitted-query-grammar.ebnf',
+  rulesPath:'reviews/2026-10-12-frontend-ranking-fusion-calls/preimages/submitted-query-rules.md',
+ });
  assert.deepEqual(after,read('scripts/fixtures/submitted-ranking-fusion-values-identities.json'));
- assert.deepEqual(after.grammar,read('spec/manifests/actql-grammar-0.1.json'));
  assert.deepEqual(after.values_dependencies,before.values_dependencies);
  assert.deepEqual(after.program_identity,before.program_identity);
  assert.deepEqual(after.run_preimages.executable.resolved_limits,before.run_preimages.executable.resolved_limits);

@@ -129,7 +129,7 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
         def refuse():
             raise original
         reader = _NamespaceReader(lambda *args: self.fail('Unexpected query'),
-                                  lambda *args: self.fail('Unexpected query'), self.store, lambda: None)
+                                  lambda *args: self.fail('Unexpected query'), self.store, lambda: None, check_fences=lambda *_: None)
         callbacks = _JournalCallbacks(refuse, self.store, reader=reader)
         self.assertEqual(query(callbacks, 1, self.namespace, self.key), -41)
         self.assertIs(callbacks.failure, original)
@@ -140,7 +140,7 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
 
     def test_query_transfer_limits_and_order_refuse_without_io(self):
         reader = _NamespaceReader(lambda *args: self.fail('Unexpected query'),
-                                  lambda *args: self.fail('Unexpected query'), self.store, lambda: None)
+                                  lambda *args: self.fail('Unexpected query'), self.store, lambda: None, check_fences=lambda *_: None)
         for mode, left, right in [(2, 1, 1), (1, 1, 0), (0, 4097, 1), (0, 1, 4097), (True, 1, 1)]:
             callbacks = _JournalCallbacks(lambda: None, self.store, reader=reader)
             self.assertEqual(callbacks.begin(mode, left, right), -41)
@@ -171,7 +171,7 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
             def read(namespace, key, callback):
                 reader.read(namespace, key, callback)
                 active[0] = False
-            self.callbacks.reader = _NamespaceReader(reader.scan_after, read, self.store, reader.current)
+            self.callbacks.reader = _NamespaceReader(reader.scan_after, read, self.store, reader.current, check_fences=lambda _, required: reader.check_fences(reader, required))
             self.assertEqual(query(self.callbacks, 1, self.namespace, self.key), -41)
             self.assertIsInstance(self.callbacks.failure, PermissionError)
             self.assertEqual(self.callbacks.row[1].payload, self.raw)
@@ -226,7 +226,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         cleaned = []
         loan = core.reserve_journal_observation(material, 8, store=self.store, current=lambda: None,
                                                cleanup=lambda: cleaned.append('close') or ready[0])
-        reader = _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None)
+        reader = _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None, check_fences=lambda *_: None)
         core.inspect_journal_observation(loan, reader)
         self.assertIsNone(core._journal_callbacks(2).reader)
         self.assertEqual(core.journal_observation_revisions(loan, reader), (0, 9, 2))
@@ -261,7 +261,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         core, material, calls, code = self.bridge()
         loan = core.reserve_journal_observation(material, 8, store=self.store, current=lambda: None, cleanup=lambda: True)
         code[0] = -42
-        reader = _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None)
+        reader = _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None, check_fences=lambda *_: None)
         with self.assertRaises(LocalCoreError) as failed:
             core.inspect_journal_observation(loan, reader)
         self.assertEqual(failed.exception.code, -42)
@@ -278,7 +278,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
             return -41
         core._call = invoke
         with self.assertRaises(OSError) as failed:
-            core.inspect_journal_observation(loan, _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None))
+            core.inspect_journal_observation(loan, _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None, check_fences=lambda *_: None))
         self.assertIs(failed.exception, original)
         self.assertIs(core._loans[2], loan)
         self.assertIsNone(core._journal_callbacks(2).reader)
@@ -293,7 +293,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         foreign = LocalByteStore(Path(temporary.name) / 'foreign.sqlite', max_records=8,
                                  max_record_bytes=512, max_payload_bytes=4096)
         self.addCleanup(foreign.close)
-        reader = _NamespaceReader(lambda *a: None, lambda *a: None, foreign, lambda: None)
+        reader = _NamespaceReader(lambda *a: None, lambda *a: None, foreign, lambda: None, check_fences=lambda *_: None)
         baseline = len(calls)
         with self.assertRaises(ValueError):
             core.inspect_journal_observation(loan, reader)

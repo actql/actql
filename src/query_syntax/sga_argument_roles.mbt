@@ -3,6 +3,22 @@
 // They never infer a reference from the contents of a String value.
 fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
   let direct = match operation {
+    "asof_join" =>
+      ["left_id", "left_time", "right_time", "right_tie_break"].any(name => {
+        path == [name]
+      }) ||
+      path == ["by", "left"] ||
+      path == ["by", "right"] ||
+      (path.length() == 2 && path[0] == "select")
+    "interval_join" =>
+      path == ["on", "left"] ||
+      path == ["on", "right"] ||
+      path == ["left", "time"] ||
+      path == ["left", "start"] ||
+      path == ["left", "end"] ||
+      path == ["right", "start"] ||
+      path == ["right", "end"] ||
+      (path.length() == 2 && path[0] == "select")
     "merge_rankings" =>
       ["by", "candidate", "score", "rank", "tie_break"].any(name => {
         path == [name]

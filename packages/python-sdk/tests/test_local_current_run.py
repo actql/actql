@@ -24,7 +24,7 @@ class CurrentRunConfigurationTests(unittest.TestCase):
                                         journal=_JournalCallbacks(lambda: None, store))}
         current = _Output(core._identity, 6, 50, 1024, 'current')
         core._loans[6] = current
-        reader = _NamespaceReader(lambda *a: None, lambda *a: None, store, lambda: None)
+        reader = _NamespaceReader(lambda *a: None, lambda *a: None, store, lambda: None, check_fences=lambda *_: None)
         return core, custody, inputs[2], current, reader, calls, codes
 
     def test_only_original_frame_and_setup_reach_typed_core_configuration(self):
