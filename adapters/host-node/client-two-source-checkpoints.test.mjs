@@ -213,6 +213,70 @@ test('two source approvals hold the full inventory and survive restart', async t
   assert.equal(second.acquisitionAccess(captured.requestId, bases[0], captured.acquisitions[0]), bases[0]);
 });
 
+for (const directInput of [0, 1]) {
+for (const keyedTask of [0, 1]) {
+  test(`Direct and keyed approvals retain original ports across restart (Direct input ${directInput}, keyed task ${keyedTask})`, async t => {
+    const f = await fixture(t);
+    const captured = submission();
+    captured.version = 'actql-remote-keyed-source-submission/0.1';
+    captured.acquisitions[0].input = directInput;
+    const keyed = captured.acquisitions[1];
+    keyed.stage = 0;
+    keyed.task = keyedTask;
+    keyed.input = 1 - directInput;
+    const {requirementCid: _, ...facts} = keyed.checkedSource;
+    keyed.checkedSource = {...facts, selectionCid: cid('8'),
+      programCid: cid('9'), parametersCid: cid('a'), step: 1};
+    keyed.physicalBinding = {...keyed.physicalBinding, path: 'e\u0301/%2F'};
+    const bases = await Promise.all([source('left'), source('right')].map(baseAccess));
+    t.after(() => bases.forEach(base => base.authorization.close()));
+    const first = await f.open();
+    assert.equal((await submit(first, captured)).kind, 'held');
+    const [listing] = await f.list(first);
+    await f.answer(first, listing);
+    const firstPort = f.port(first);
+    await first.start(firstPort);
+    assert.equal(firstPort.state.starts, 0);
+    assert.equal(first.acquisitionAccess(captured.requestId, bases[1], keyed), bases[1],
+      'listing approval cannot authorize a keyed read of the same tuple');
+    const [content] = await f.list(first);
+    const saved = await f.capturedEvidence(first, content);
+    assert.deepEqual(saved.captured, captured);
+    assert.deepEqual(saved.intent.occurrence,
+      {stage: 0, input: 1 - directInput, task: keyedTask, selection_cid: cid('8')});
+    assert.equal(saved.intent.physical_binding.path, 'e\u0301/%2F');
+    assert.deepEqual(saved.continuation.earlier_approvals, [listing.checkpointCid]);
+    await f.close(first);
+    const second = await f.open({sources: [source('right'), source('left')]});
+    await f.answer(second, content);
+    const physical = f.port(second, {atStart: async () => {
+      for (const [index, occurrence] of captured.acquisitions.entries()) {
+        const access = second.acquisitionAccess(captured.requestId, bases[index], occurrence);
+        const decision = await access.authorization.authorize('acquisition', occurrence.readTuple);
+        assert.equal(decision.basis, 'resumed_approval');
+        assert.deepEqual(checkpointApprovalFacts(decision).checkedSource, occurrence.checkedSource);
+        assert.equal(second.acquisitionAccess(captured.requestId, bases[index],
+          {...occurrence, physicalBinding: {...occurrence.physicalBinding, table: 'foreign'}}), bases[index]);
+      }
+      assert.equal(second.acquisitionAccess(captured.requestId, bases[1],
+        {...keyed, checkedSource: {...keyed.checkedSource, step: 2}}), bases[1]);
+      assert.equal(second.acquisitionAccess(captured.requestId, bases[1],
+        {...keyed, task: 1 - keyedTask}), bases[1],
+      'approval cannot move the lookup into a different checked task');
+      assert.equal(second.acquisitionAccess(captured.requestId, bases[1],
+        {...keyed, physicalBinding: {...keyed.physicalBinding, path: 'é/%2F'}}), bases[1],
+      'value normalization cannot broaden the approved physical binding');
+    }});
+    await second.start(physical);
+    assert.equal(physical.state.starts, 1, JSON.stringify(f.diagnostics));
+    await second.sweep();
+    assert.equal(physical.state.starts, 1);
+    second.releaseAcquisition(captured.requestId);
+    assert.equal(second.acquisitionAccess(captured.requestId, bases[1], keyed), bases[1]);
+  });
+}
+}
+
 test('unused declared view does not take an acquisition approval', async t => {
   const f = await fixture(t, {sources: [source('unused', 'deny'),
     source('right'), source('left')]});

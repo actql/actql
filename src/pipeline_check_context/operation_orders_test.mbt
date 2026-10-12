@@ -37,6 +37,78 @@ fn operation_order_fixture(
 }
 
 ///|
+test "Program contextual serialization reuses its input order and count parameter obligations" {
+  let requirements = operation_order_fixture(
+    (
+      #|[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[]},"as":"seed"},{"serialize":{"format":"jsonl","fields":["id"],"preserve_order":true,"name":"empty.jsonl","bounds":{"max_rows":{"$param":"n"},"max_bytes":{"$param":"n"}}}}]
+    ),
+    parameters="{\"n\":{\"type\":\"number\",\"default\":1}}",
+  )
+  let linked = link_program_operation_orders(requirements, 10000000, 100).unwrap()
+  // The fixture has three producer visits. Every visit keeps both guards,
+  // even though they reference the same declared Parameter.
+  let identity = expression_closure_identity(
+    operation_requirements_expressions(requirements),
+  )
+  let stages = program_reference_stages(
+    program_sources_references(program_identity_sources(identity)),
+  )
+  for (stage, visit) in [(0, 0), (1, 0), (1, 1)] {
+    let collected = parameter_visit_at(
+        stage_context_at(stages, stage).unwrap(),
+        visit,
+      ).unwrap().collected
+    let operands = @parameter_slots.operands(collected)
+    assert_eq(@pipeline.parameter_slot_count(operands), 2)
+    for index in 0..<2 {
+      let slot = @pipeline.parameter_slot_at(operands, index).unwrap()
+      assert_eq((slot.step, slot.name), (1, "n"))
+    }
+  }
+  let mut guards = 0
+  let mut ordering = 0
+  for i in 0..<operation_requirements_count(requirements) {
+    let site = operation_requirements_at(requirements, i).unwrap()
+    if site.step != 1 {
+      continue
+    }
+    match site.requirement {
+      SerializationInputOrder => ordering += 1
+      RelationRequirement(value) => {
+        assert_eq(value.kind, BoundInteger(name="n", minimum=1L))
+        assert_eq(
+          @pipeline.operation_scalar_demand(site.requirement),
+          Some(SafeInteger("n", minimum=1L)),
+        )
+        assert_true(site.group == 1 || site.group == 2)
+        guards += 1
+      }
+      _ => fail("unexpected serialization requirement")
+    }
+  }
+  assert_eq((ordering, guards), (3, 6))
+  assert_eq(operation_orders_count(linked), 3)
+  for i in 0..<operation_orders_count(linked) {
+    let link = operation_order_link_at(linked, i).unwrap()
+    assert_eq(link.site.step, 1)
+    guard link.resolution is Serialization(order) else {
+      fail("serialization input order")
+    }
+    assert_true(
+      physical_equal(
+        @pipeline.serialization_order_pipeline(order),
+        link.site.pipeline,
+      ),
+    )
+    assert_eq(@pipeline.serialization_order_input(order), Step(0))
+    assert_eq(
+      @pipeline.operation_order_demand(link.site.requirement),
+      Some(CompleteOrder),
+    )
+  }
+}
+
+///|
 test "Program contextual order links reuse exact sort and take resolutions across producers" {
   let requirements = operation_order_fixture(
     (

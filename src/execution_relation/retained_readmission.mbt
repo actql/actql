@@ -93,6 +93,7 @@ pub fn[P] readmit_trusted_retained_output(
   let completion : CompletedSequence = {
     result_identity: Ref(()),
     readmitted: true,
+    serialization_output: port.preparation.serialization_output,
     contracts: port.preparation.contracts,
     sequence: port.preparation.sequence,
     store: RetainedStore(expected.input_count, target, material),

@@ -18,7 +18,7 @@ pub enum Shape {
   Object(Fields)
   Vector(dimensions~ : Double)
   ResourceRef(resource_kind~ : String)
-  ArtifactRef(media_type~ : String?)
+  ContentRef(media_type~ : String?)
 }
 
 ///|

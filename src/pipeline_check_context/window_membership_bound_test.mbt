@@ -35,7 +35,7 @@ test "window input proofs retain sparse claim coordinates and exact membership p
         assert_eq(candidate.maximum, factor)
         let (_, claim, _) = @capacity.target_membership_coordinates(
           candidate.input,
-        )
+        ).unwrap()
         assert_eq(claim, if host_first { 1 } else { 0 })
         let rows = @capacity.target_membership_rows(candidate.input)
         assert_eq(@program.target_rows_value(rows), 1L)
@@ -128,8 +128,14 @@ test "event membership bounds keep the Events law and occurrence input" {
     assert_eq(execution.input, @pipeline.Step(2))
     let candidate = window_membership_bound_candidate_at(bounds, 0).unwrap()
     let rows = @capacity.target_membership_rows(candidate.input)
-    assert_eq(@program.checked_step(@program.target_rows_bound(rows)), 0)
-    assert_eq(@capacity.target_membership_coordinates(candidate.input).1, 1)
+    assert_eq(
+      @program.checked_step(@program.target_rows_bound(rows).unwrap()),
+      0,
+    )
+    assert_eq(
+      @capacity.target_membership_coordinates(candidate.input).unwrap().1,
+      1,
+    )
     assert_true(operation_resolution_at(index, i) is Some(Unresolved))
   }
   assert_eq(found, 1)

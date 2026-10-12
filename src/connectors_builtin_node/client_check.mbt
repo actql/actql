@@ -337,6 +337,60 @@ fn check_source_findings(
           findings.push(Limit("analysis_budget_exhausted"))
         QueryLowering(TableWriteBinding(InvalidBinding)) =>
           return Failed("check_context_invalid")
+        QueryLowering(FileListing(MissingCatalog)) =>
+          return Failed("check_context_invalid")
+        QueryLowering(
+          FileListing(
+            InstalledSourceRequired
+            | MissingProfile
+            | UnsupportedSelector
+          )
+        ) => findings.push(Limit("implementation_limit"))
+        QueryLowering(FileListing(InvalidSelector | FixedSelectorConflict)) =>
+          findings.push(Violation("query_invalid"))
+        QueryLowering(FileListing(Resolution({ kind: Unresolved, .. }))) =>
+          findings.push(Unresolved("source_resolution"))
+        QueryLowering(FileListing(Resolution({ kind: Ambiguous(_), .. }))) =>
+          findings.push(Violation("query_invalid"))
+        QueryLowering(FileListing(ParameterDeclarations(Declarations(issue)))) =>
+          match check_binding_fault(issue) {
+            Budget => findings.push(Limit("analysis_budget_exhausted"))
+            _ => return Failed("check_internal")
+          }
+        QueryLowering(
+          FileListing(
+            Source(WorkLimit | OrderLimit)
+            | Resolution({ kind: WorkLimit | InputLimit | ViewLimit, .. })
+            | RequestSlots(WorkLimit | SlotLimit)
+            | Bindings(WorkLimit | BindingLimit)
+            | Request({ kind: WorkLimit | PairLimit, .. })
+            | Request(
+              {
+                kind: Literal(
+                  ValueIssue(BudgetExceeded, ..)
+                  | Decode({ kind: BudgetExceeded, .. })
+                ),
+                ..
+              }
+            )
+            | ParameterDeclarations(Collection(WorkLimit))
+          )
+        ) => findings.push(Limit("analysis_budget_exhausted"))
+        QueryLowering(
+          FileListing(
+            Request({ kind: InvalidLimits | ForeignSource | ForeignInput, .. })
+            | Source(_)
+            | Resolution(_)
+            | RequestSlots(_)
+            | ParameterDeclarations(_)
+            | Bindings(_)
+            | Identity(_)
+          )
+        ) => return Failed("check_internal")
+        // Remaining Request failures are issued by the common Request owner;
+        // generated cursors are not fabricated authored source locations.
+        QueryLowering(FileListing(Request(_))) =>
+          findings.push(Violation("query_invalid"))
         QueryLowering(
           UnsupportedProjection
           | UnsupportedGrouping

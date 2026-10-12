@@ -2,8 +2,9 @@
 priv struct NativeIssuerFixture {
   issuer : @duckdb_query.DuckDBNativeIssuer
   requirement : @planning.QueryRequirement
-  choice : @planning.AcquisitionChoice
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement]
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBNativePreparation,
   ]
   transport : Array[@duckdb_query.DuckDBNativeAttempt]

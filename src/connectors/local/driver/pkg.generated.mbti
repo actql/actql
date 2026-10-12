@@ -214,6 +214,7 @@ pub struct LocalManagedRelationSnapshot {
   begin_reload : () -> Result[Unit, LocalDispatchIssue]
   append_reload : (String) -> Result[Unit, LocalDispatchIssue]
   finish_reload : () -> Result[Unit, LocalDispatchIssue]
+  cleanup_references : (Int) -> Bool
   finish : () -> Result[Unit, LocalDispatchIssue]
 }
 

@@ -1,6 +1,11 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/capacity_witness" @bound_wire,
+  "actql/actql/capacity_host_witness" @bound_host,
+  "actql/actql/capacity_derivation" @listing_arithmetic,
+  "actql/actql/canonical_json" @canonical,
+  "moonbitlang/core/json",
   "actql/actql/calendar_profile" @calendar,
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/source_value" @source,
@@ -17,11 +22,6 @@ import {
   "actql/actql/graph_contract" @graph,
   "moonbitlang/core/encoding/utf8",
 }
-
-import {
-  "moonbitlang/core/json",
-  "actql/actql/canonical_json" @canonical,
-} for "test"
 
 formatter(
   ignore: [

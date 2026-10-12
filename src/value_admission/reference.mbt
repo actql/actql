@@ -18,12 +18,13 @@ struct ReferenceIssuerIdentity {
 enum ReferenceIssuerMode {
   Issue((@contract.Contract, String) -> Bool, (String) -> Bool)
   Reissue((@contract.Contract, String) -> ReferenceValue?)
+  Domains(ReferenceIssuer, ReferenceIssuer)
 }
 
 ///|
 enum ReferenceDomain {
   Resource(String)
-  Artifact(String)
+  Content(String)
 }
 
 ///|
@@ -74,6 +75,18 @@ pub fn bind_reference_reissuer(
   resolve : (@contract.Contract, String) -> ReferenceValue?,
 ) -> ReferenceIssuer {
   { identity: { token: Ref(()), }, mode: Reissue(resolve), }
+}
+
+///|
+/// Select by the checked opaque domain, never by which issuer happens to
+/// accept a wire. Delegation retains the selected issuer's identity and live
+/// authority; a Content holder cannot manufacture Resource authority or vice
+/// versa. Canonical admission still runs once in the existing value owner.
+pub fn bind_reference_domains(
+  resource : ReferenceIssuer,
+  content : ReferenceIssuer,
+) -> ReferenceIssuer {
+  { identity: { token: Ref(()), }, mode: Domains(resource, content), }
 }
 
 ///|
@@ -128,10 +141,10 @@ fn reference_identity(
       }
       Ok((identity, Resource(resource_kind)))
     }
-    @contract.ArtifactRef(media_type~) => {
+    @contract.ContentRef(media_type~) => {
       if count != 5 ||
-        !reference_string_equals(get("$actql_ref"), "artifact") ||
-        !reference_string_equals(get("version"), "actql-artifact-ref/0.1") ||
+        !reference_string_equals(get("$actql_ref"), "content") ||
+        !reference_string_equals(get("version"), "actql-content-ref/0.1") ||
         !(get("media_type") is Some(@identity.String(media)) &&
         !media.is_empty()) ||
         !(get("metadata") is Some(@identity.Object(_))) {
@@ -141,14 +154,14 @@ fn reference_identity(
         !reference_string_equals(get("media_type"), required) {
         return Err(ContractMismatch)
       }
-      guard get("artifact_ref_cid") is Some(@identity.String(identity)) &&
+      guard get("content_ref_cid") is Some(@identity.String(identity)) &&
         valid_reference_cid(identity) else {
         return Err(InvalidIdentity)
       }
       guard get("media_type") is Some(@identity.String(media)) else {
         return Err(ContractMismatch)
       }
-      Ok((identity, Artifact(media)))
+      Ok((identity, Content(media)))
     }
     _ => Err(ContractMismatch)
   }
@@ -194,6 +207,13 @@ fn admit_reference_envelope(
     Err(issue) => return Err(issue)
   }
   match issuer.mode {
+    Domains(resource, content) => {
+      let selected = match domain {
+        Resource(_) => resource
+        Content(_) => content
+      }
+      return admit_reference_envelope(selected, contract, envelope, canonical)
+    }
     Reissue(resolve) => {
       guard resolve(contract, canonical) is Some(source) &&
         source.wire == canonical &&
@@ -281,7 +301,7 @@ pub fn reference_available(value : ReferenceValue) -> Bool {
 }
 
 ///|
-/// Reference equality has one Artifact domain regardless of media restriction;
+/// Reference equality has one Content domain regardless of media restriction;
 /// Resource domains remain separated by ResourceKind.
 pub fn reference_same_domain(
   left : ReferenceValue,
@@ -289,7 +309,7 @@ pub fn reference_same_domain(
 ) -> Bool {
   match (left.domain, right.domain) {
     (Resource(a), Resource(b)) => a == b
-    (Artifact(_), Artifact(_)) => true
+    (Content(_), Content(_)) => true
     _ => false
   }
 }
@@ -304,8 +324,8 @@ pub fn reference_compatible(
   match (value.domain, contract.shape) {
     (Resource(actual), @contract.ResourceRef(resource_kind=required)) =>
       actual == required
-    (Artifact(_), @contract.ArtifactRef(media_type=None)) => true
-    (Artifact(actual), @contract.ArtifactRef(media_type=Some(required))) =>
+    (Content(_), @contract.ContentRef(media_type=None)) => true
+    (Content(actual), @contract.ContentRef(media_type=Some(required))) =>
       actual == required
     _ => false
   }
@@ -314,6 +334,19 @@ pub fn reference_compatible(
 ///|
 pub fn reference_wire(value : ReferenceValue) -> String {
   value.wire
+}
+
+///|
+/// Read the retained immutable metadata of an issued Content occurrence.
+/// This projection cannot issue a Ref or prove physical byte availability.
+pub fn reference_content_metadata(
+  value : ReferenceValue,
+) -> (String, @identity.CanonicalValue)? {
+  guard value.domain is Content(media) &&
+    @identity.object_field(value.envelope, "metadata") is Some(metadata) else {
+    return None
+  }
+  Some((media, metadata))
 }
 
 ///|

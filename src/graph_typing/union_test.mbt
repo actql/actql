@@ -92,13 +92,13 @@ test "union refuses identity bearing definition spelling and key descriptor chan
     )
   }
   let pdf = union_test_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
   )
   let json = union_test_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
   )
   let any_artifact = union_test_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false}",
+    "{\"type\":\"content_ref\",\"nullable\":false}",
   )
   let issue = union_test_contract(
     "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"Issue\"}",
@@ -158,10 +158,10 @@ test "union joins text extents and property domains without changing ordered key
     "{\"type\":\"string\",\"nullable\":false,\"max_utf8_bytes\":8}",
   )
   let pdf = union_test_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
   )
   let json = union_test_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
   )
   let left = union_test_graph([
     union_test_node("N", [("p", pdf)], keys=[tight, text], columns=[
@@ -201,7 +201,7 @@ test "union joins text extents and property domains without changing ordered key
   ).unwrap()
   assert_true(
     field.contract
-    is Some({ shape: ArtifactRef(media_type=None), nullable: true, }),
+    is Some({ shape: ContentRef(media_type=None), nullable: true, }),
   )
   let reversed = union_test_graph([
     union_test_node("N", [("p", pdf)], keys=[text, text], columns=[

@@ -350,9 +350,15 @@ test "static Effect inventory binds exact Command contract" {
     effect_static_candidate_command_targets(candidate),
     0,
   ).unwrap()
-  let resolved = @environment.member_cid(
+  let resolved = @environment.command_target_cid(
+    effect_command_target_contract(binding),
+  )
+  // A complete Environment envelope has a different CID. It is not the
+  // Command Contract self identity that the approved Preview must retain.
+  let envelope_cid = @environment.member_cid(
     @environment.command_target_member(effect_command_target_contract(binding)),
   )
+  assert_true(resolved != envelope_cid)
   let preview = checked_preview_test_identity(
     "command",
     "unused",
@@ -363,6 +369,18 @@ test "static Effect inventory binds exact Command contract" {
   )
   assert_true(
     check_effect_preview_static_inventory(candidate, 0, preview, 20) is Ok(_),
+  )
+  let foreign_envelope = checked_preview_test_identity(
+    "command",
+    "unused",
+    include_second=false,
+    first_kind="command",
+    contract_reference="command:crm.invoke.v1",
+    resolved_contract_cid=Some(envelope_cid),
+  )
+  assert_true(
+    check_effect_preview_static_inventory(candidate, 0, foreign_envelope, 20)
+    is Err(ForeignResolvedContract("command")),
   )
   let foreign = checked_preview_test_identity(
     "command",

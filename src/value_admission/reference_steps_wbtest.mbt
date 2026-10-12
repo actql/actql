@@ -104,13 +104,13 @@ test "resumed reference issuance retains exact envelope usage and original autho
 ///|
 test "resumed reference normalization preserves string data and rejects normalized key collision" {
   let artifact = reference_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
   )
-  let input = artifact_reference_wire().replace(
+  let input = content_reference_wire().replace(
     old="\"issuer_evidence\":{}",
     new="\"issuer_evidence\":{\"e\\u0301\":[null,\"e\\u0301\\r\"],\"z\":1}",
   )
-  let expected = artifact_reference_wire().replace(
+  let expected = content_reference_wire().replace(
     old="\"issuer_evidence\":{}",
     new="\"issuer_evidence\":{\"z\":1,\"é\":[null,\"e\u0301\\r\"]}",
   )
@@ -134,7 +134,7 @@ test "resumed reference normalization preserves string data and rejects normaliz
   guard checked.0.value is Reference(value) else { abort("artifact reference") }
   assert_eq(reference_wire(value), expected)
   assert_eq(calls.val, 1)
-  let collision = artifact_reference_wire().replace(
+  let collision = content_reference_wire().replace(
     old="\"issuer_evidence\":{}",
     new="\"issuer_evidence\":{\"e\\u0301\":1,\"é\":2}",
   )

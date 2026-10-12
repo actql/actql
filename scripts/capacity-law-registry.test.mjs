@@ -373,6 +373,7 @@ test('whole values wire selection is audited against the closed Host policy fiel
     'max_aggregate_array_items','max_aggregate_string_bytes','max_analytic_frame_memberships',
     'max_analytic_input_wire_bytes','max_analytic_output_wire_bytes','max_analytic_partition_wire_bytes',
     'max_artifact_bytes','max_artifact_rows','max_effect_items',
+    'max_file_listing_items',
     'max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes',
     'max_graph_input_edges','max_graph_input_nodes','max_graph_output_rows','max_graph_paths',
     'max_infer_items','max_model_input_tokens_per_item','max_model_request_bytes_per_item',
@@ -381,6 +382,15 @@ test('whole values wire selection is audited against the closed Host policy fiel
   ]);
   // Per-string aggregate output is not the whole REL.values rows wire scope.
   assert.equal(policy.host_witness_laws.max_aggregate_string_bytes.unit, 'bytes');
+  // Listing bounds a complete external Resource selection, not authored
+  // REL.values rows or their encoded bytes. Do not substitute a generic
+  // Relation output ceiling just because both quantities have unit rows.
+  assert.deepEqual(policy.host_witness_laws.max_file_listing_items, {
+    law_id: 'actql.host.file-listing-items', unit: 'rows',
+  });
+  const valuesBound = readFileSync(new URL(
+    '../src/pipeline_check_context/values_wire_bound.mbt', import.meta.url), 'utf8');
+  assert.ok(!valuesBound.includes('max_file_listing_items'));
   assert.deepEqual(Object.keys(valuesSchema().properties).sort(), ['rows','schema']);
   assert.equal(valuesSchema().additionalProperties, false);
 });
@@ -407,7 +417,9 @@ test('independent values count vectors count row occurrences, not cell contents'
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();
-  assert.equal(validateRegistry(body, policy), 'sha256:f8a41d10bb02ce9e3d52e17da0dd4e3f42ed047c7f93dd5007de2f92dba01e9c');
+  // Independent Node SHA-256 of the frozen baseline registry plus exactly
+  // the contract/Host file-listing laws; existing rules are unchanged.
+  assert.equal(validateRegistry(body, policy), 'sha256:ba723766dcfa42dd14880755fb5b679863f8cca2cef84e27928790b6e205ac19');
   assert.ok(body.law_ids.includes('actql.bound.text-rank'));
   for (const name of ['values', 'time-series', 'calendar-series']) {
     assert.ok(body.law_ids.includes(`actql.bound.${name}`));

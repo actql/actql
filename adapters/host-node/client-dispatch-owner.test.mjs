@@ -9,6 +9,7 @@ import {createNodeHostEntry} from './entry.mjs';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {sourceFreeValuesPlan} from './local-values-plan.mjs';
+import {inspect} from 'node:util';
 import * as cancellationMoon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
@@ -24,10 +25,10 @@ const stopFacts = (cancellationRequested = false) => ({
   lookupReconciliationState: () => undefined,
 });
 
-function inferDispatchFixture(runInfer) {
+function inferDispatchFixture(runInfer, kind = 'infer') {
   const ref = {runDefinitionCid: 'infer-dispatch-owner'};
   const preparedProgram = {};
-  const plan = {kind: 'infer', runDefinition: {wire: 'definition'}};
+  const plan = {kind, runDefinition: {wire: 'definition'}};
   const stopped = [];
   let claims = 0, committed = false, cancellationRequested = false;
   const owner = installNodeClientDispatchOwner({
@@ -45,7 +46,8 @@ function inferDispatchFixture(runInfer) {
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true, planFor: () => plan,
     runPublished() { assert.fail('INFER must not use Relation dispatch'); },
-    runInfer, namespaceId: 'namespace-a',
+    ...(kind === 'serialization' ? {runContent: runInfer} : {runInfer}),
+    namespaceId: 'namespace-a',
   });
   const submission = {preparedProgram, principalId: 'owner', connection: {},
     requestId: 'infer-request'};
@@ -59,6 +61,61 @@ function inferDispatchFixture(runInfer) {
     claims: () => claims, commit: () => { committed = true; },
     start: () => owner.start(submission, {}, accepted, {})};
 }
+
+test('Content dispatch consumes the original checked plan and closes through the existing Run owner',
+  async () => {
+    let calls = 0, closes = 0;
+    const physical = {async close() { closes++; }, cleanup: () => true,
+      cleanupPending: () => false};
+    const fixture = inferDispatchFixture(async context => {
+      calls++;
+      assert.equal(context.preparedProgram, fixture.preparedProgram);
+      assert.equal(context.plan, fixture.plan);
+      context.retainExecution(physical);
+      fixture.commit();
+    }, 'serialization');
+    assert.equal(await fixture.start(), 'started');
+    await fixture.owner.drain();
+    assert.equal(calls, 1);
+    assert.equal(closes, 1);
+    assert.equal(fixture.claims(), 1);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, null]]);
+  });
+
+test('Content dispatch keeps a failed cleanup owner and never redispatches its producer',
+  async () => {
+    let calls = 0, released = false;
+    const failure = new Error('ContentStoreFailed');
+    const fixture = inferDispatchFixture(async ({retainExecution}) => {
+      calls++;
+      retainExecution({async close() { throw new Error('ContentCleanupPending'); },
+        cleanup: () => released, cleanupPending: () => !released});
+      throw failure;
+    }, 'serialization');
+    assert.equal(await fixture.start(), 'started');
+    await fixture.owner.operation(fixture.ref);
+    await assert.rejects(fixture.owner.drain(), error =>
+      error.code === 'ClientDispatchCleanupPending' && error.failures[0].primary === failure);
+    assert.deepEqual(fixture.stopped, []);
+    assert.equal(await fixture.start(), 'not_started');
+    released = true;
+    await fixture.owner.drain();
+    assert.equal(calls, 1);
+    assert.equal(fixture.claims(), 1);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'failed']]);
+  });
+
+test('Content dispatch refuses private-only completion without a committed Result index',
+  async () => {
+    const fixture = inferDispatchFixture(async ({retainExecution}) => {
+      retainExecution({async close() {}, cleanup: () => true,
+        cleanupPending: () => false});
+    }, 'serialization');
+    assert.equal(await fixture.start(), 'started');
+    await fixture.owner.drain();
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'failed']]);
+    assert.equal(fixture.claims(), 1);
+  });
 
 test('model dispatch consumes its original plan and shares physical Run custody',
   async () => {
@@ -161,39 +218,52 @@ test('missing model connection refuses before the physical start claim',
     assert.deepEqual(fixture.stopped, [[fixture.ref, 'not_started']]);
   });
 
+test('missing Content connection refuses before the physical start claim without Values fallback',
+  async () => {
+    const fixture = inferDispatchFixture(undefined, 'serialization');
+    assert.equal(await fixture.start(), 'not_started');
+    await fixture.owner.drain();
+    assert.equal(fixture.claims(), 0);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'not_started']]);
+  });
+
 test('model dispatch delivers cancellation and retains custody until physical stop',
   async () => {
-    let entered, stopped, calls = 0, cleanupCalls = 0;
-    const started = new Promise(resolve => { entered = resolve; });
-    const stop = new Promise(resolve => { stopped = resolve; });
-    let physicallyStopped = false, aborted = false;
-    const fixture = inferDispatchFixture(async ({retainExecution, signal}) => {
-      calls++;
-      retainExecution({async close() {
+    // Both typed barriers share this same dispatch stop/cleanup boundary. No
+    // separate Content cancellation projection or cleanup state is introduced.
+    for (const kind of ['infer', 'serialization']) {
+      let entered, stopped, calls = 0, cleanupCalls = 0;
+      const started = new Promise(resolve => { entered = resolve; });
+      const stop = new Promise(resolve => { stopped = resolve; });
+      let physicallyStopped = false, aborted = false;
+      const fixture = inferDispatchFixture(async ({retainExecution, signal}) => {
+        calls++;
+        retainExecution({async close() {
+          await stop;
+          physicallyStopped = true;
+        }, cleanup() {
+          cleanupCalls++;
+          assert.equal(physicallyStopped, true);
+          return true;
+        }, cleanupPending: () => !physicallyStopped});
+        signal.addEventListener('abort', () => { aborted = true; }, {once: true});
+        entered();
         await stop;
-        physicallyStopped = true;
-      }, cleanup() {
-        cleanupCalls++;
-        assert.equal(physicallyStopped, true);
-        return true;
-      }, cleanupPending: () => !physicallyStopped});
-      signal.addEventListener('abort', () => { aborted = true; }, {once: true});
-      entered();
-      await stop;
-      signal.throwIfAborted();
-    });
-    assert.equal(await fixture.start(), 'started');
-    await started;
-    fixture.owner.cancel(fixture.ref);
-    assert.equal(aborted, true);
-    assert.equal(cleanupCalls, 0);
-    assert.deepEqual(fixture.stopped, []);
-    assert.equal(await fixture.start(), 'not_started');
-    stopped();
-    await fixture.owner.drain();
-    assert.equal(calls, 1);
-    assert.equal(cleanupCalls, 1);
-    assert.deepEqual(fixture.stopped, [[fixture.ref, 'cancelled']]);
+        signal.throwIfAborted();
+      }, kind);
+      assert.equal(await fixture.start(), 'started');
+      await started;
+      fixture.owner.cancel(fixture.ref);
+      assert.equal(aborted, true);
+      assert.equal(cleanupCalls, 0);
+      assert.deepEqual(fixture.stopped, []);
+      assert.equal(await fixture.start(), 'not_started');
+      stopped();
+      await fixture.owner.drain();
+      assert.equal(calls, 1);
+      assert.equal(cleanupCalls, 1);
+      assert.deepEqual(fixture.stopped, [[fixture.ref, 'cancelled']]);
+    }
   });
 
 test('diagnostic failure cannot stop Compute or bypass required ownership',
@@ -340,6 +410,8 @@ test('dispatch owner retains failed cleanup and retries without Compute',
       runPublished: async (_setup, _publication, _configuration,
         _signal, _faultInjection, retain) => {
         starts++;
+        // Match the real publication runner's custody transfer before it
+        // returns. A returned mock alone leaves the original setup unowned.
         retain(physical);
         return physical;
       },
@@ -358,7 +430,8 @@ test('dispatch owner retains failed cleanup and retries without Compute',
     for (let retry = 0; retry < 2; retry++) {
       await assert.rejects(owner.drain(), error => {
         assert.equal(error.code, 'ClientDispatchCleanupPending');
-        assert.equal(error.failures[0].close, closeFailure);
+        assert.equal(error.failures[0].close, closeFailure,
+          inspect(error.failures, {depth: 4, maxArrayLength: 5, maxStringLength: 200}));
         return true;
       });
       assert.notEqual(owner.operation(ref), undefined);

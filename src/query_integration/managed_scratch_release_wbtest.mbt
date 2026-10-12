@@ -285,9 +285,9 @@ test "managed reference callbacks cannot release active scratch or resurrect dis
     let checked = @admitted.issue_reference(
       issuer,
       @schema.field_at(schema, 0).unwrap().contract,
-      "{\"$actql_ref\":\"artifact\",\"artifact_ref_cid\":\"sha256:" +
+      "{\"$actql_ref\":\"content\",\"content_ref_cid\":\"sha256:" +
       "a".repeat(64) +
-      "\",\"media_type\":\"text/plain\",\"metadata\":{},\"version\":\"actql-artifact-ref/0.1\"}",
+      "\",\"media_type\":\"text/plain\",\"metadata\":{},\"version\":\"actql-content-ref/0.1\"}",
       { max_bytes: 1000, max_nodes: 100, max_depth: 10, max_text_units: 1000, },
     ).unwrap()
     if during_finish {
@@ -319,7 +319,7 @@ test "managed reference callbacks cannot release active scratch or resurrect dis
 ///|
 fn managed_scratch_reference_owner() -> @lower.BoundPrepared {
   let contract = @value_contract.read_checked(
-    input_cursor("{\"type\":\"artifact_ref\",\"nullable\":false}"),
+    input_cursor("{\"type\":\"content_ref\",\"nullable\":false}"),
     { max_nodes: 10, max_depth: 10, max_text_bytes: 1000, },
   ).unwrap()
   let schema = @schema.from_fields(

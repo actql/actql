@@ -8,11 +8,16 @@
 import {createHash, createPrivateKey, createPublicKey, randomUUID} from
   'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {performance} from 'node:perf_hooks';
+import {setImmediate as yieldEventLoop} from 'node:timers/promises';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
+import {acquisitionFailure, acquisitionOutcome, AcquisitionOpenError} from
+  '../host-common/acquisition-outcome.mjs';
 import {startInstalledRowRun} from './installed-row-run.mjs';
+import {rowListingCallbacks} from './installed-row-listing.mjs';
 import {authorizationDispatchFacts, authorizationRuntimeCode} from
   '../host-common/authorization-gate.mjs';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
@@ -32,6 +37,10 @@ const text = value => typeof value === 'string' && value.length > 0;
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
+// A keyed request includes data values (not configuration identifiers).
+// Keep exact version/target text; NFC must not broaden read approval identity.
+const valueCid = value => `sha256:${createHash('sha256')
+  .update(canonicalValueJson(value, {dataKeys: true})).digest('hex')}`;
 const contractRoot = new URL('../../spec/contracts/', import.meta.url);
 
 const byCid = values => values.map(value => JSON.parse(value))
@@ -267,13 +276,21 @@ export async function openRowSourceCredentialSite({profile, principalId,
 }
 
 // The installed source adapter of one row declaration (see
-// `installed-source.mjs`). `readPages({resource, columns, operation,
-// authorizationFor, chargePage, consumePage, signal})` is the Site driver;
+// `installed-source.mjs`). `readPages({resource, columns, requestWire, operation,
+// authorizationFor, chargePage, consumePage, listing, signal})` is the Site driver.
+// A checked listing uses listing.beginRequest(token) before each actual send
+// and awaits listing.consumePage(fullEnvelope, {charge}) for all observed items.
+// Provider translation charges the original response before decoding; its
+// exact ticket carries physical bytes into the common listing budget.
+// ordinary rows use consumePage. Completion is never the driver's return alone;
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 export async function createInstalledRowSource({moon, declaration,
   declared, environmentWire, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
-  readPages, bindingCid, limits}) {
+  readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent}) {
+  if (captureContent !== undefined && typeof captureContent !== 'function') {
+    fail('InvalidInstalledContentCapture');
+  }
   const [queryContract, evidenceContract] = await Promise.all([
     'actql-query-acquisition.json', 'actql-query-process-evidence.json',
   ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
@@ -284,7 +301,20 @@ export async function createInstalledRowSource({moon, declaration,
     fail('InvalidInstalledRowSourceLimits');
   }
   const maxTransferBytes = BigInt(limits.maxPages) * BigInt(limits.maxPageBytes);
+  // A plural Source can expose separately registered metadata/content reads.
+  // Copy its closed Resource->operation binding once; a Run's selected view
+  // cannot substitute another operation or inherit a missing view's grant.
+  const resources = new Set(declared.views.map(view => view.resource));
+  const operationBindings = typeof readOperation === 'string'
+    ? new Map([...resources].map(resource => [resource, readOperation]))
+    : readOperation !== null && typeof readOperation === 'object' && !Array.isArray(readOperation)
+      ? new Map(Object.entries(readOperation)) : undefined;
+  if (operationBindings === undefined || operationBindings.size !== resources.size ||
+      [...operationBindings].some(([resource, operation]) => !resources.has(resource) || !text(operation))) {
+    fail('InvalidInstalledRowSourceOperations');
+  }
   const preparations = new WeakMap();
+  const keyedPreparations = new WeakMap();
   const sourceAccess = Object.freeze({authorization,
     connection: site.connection,
     ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
@@ -296,17 +326,115 @@ export async function createInstalledRowSource({moon, declaration,
       sourceRef: view.source_ref, resource: view.resource})));
   const decideRead = (prepared, access, signal) =>
     access.authorization.authorize('acquisition', prepared.readTuple, {
-      subjectCid: cid({version: 'actql-row-source-acquisition-read/0.1',
-        requirementCid: prepared.checkedSource.requirementCid,
-        physicalBinding: prepared.physicalBinding}), signal});
+      subjectCid: prepared.readSubjectCid ?? (prepared.checkedSource.selectionCid === undefined
+        ? cid({version: 'actql-row-source-acquisition-read/0.1',
+          requirementCid: prepared.checkedSource.requirementCid, physicalBinding: prepared.physicalBinding})
+        : valueCid({version: 'actql-keyed-source-selection-read/0.1',
+          selectionCid: prepared.checkedSource.selectionCid, physicalBinding: prepared.physicalBinding})), signal});
   const currentRead = async (prepared, access, signal) => {
     const decision = await decideRead(prepared, access, signal);
     if (decision?.action !== 'dispatch') {
       throw Object.assign(new Error('ExecutionAuthorizationDenied'),
         {code: 'ExecutionAuthorizationDenied', decision});
     }
+    if (prepared.checkedSource?.selectionCid !== undefined &&
+        decision.basis === 'resumed_approval') {
+      const facts = checkpointApprovalFacts(decision);
+      if (facts === undefined || facts.checkedSource?.selectionCid !== prepared.checkedSource.selectionCid ||
+          valueCid(facts.checkedSource) !== valueCid(prepared.checkedSource) ||
+          valueCid(facts.physicalBinding) !== valueCid(prepared.physicalBinding) ||
+          valueCid(facts.readTuple) !== valueCid(prepared.readTuple)) {
+        fail('InstalledKeyedReadApprovalMismatch');
+      }
+    }
     return decision;
   };
+
+  // A declared keyed response port is selected before observing any left
+  // rows. It is not a fabricated Direct requirement or an individual GET.
+  async function prepareKeyed({preparedProgram, keyedAcquisition, requestIdentity,
+    sourceAccess: access = sourceAccess}) {
+    if (requestIdentity === undefined ||
+        moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
+        moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true) {
+      fail('InstalledSourceProgramMismatch');
+    }
+    const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
+      declaration, limits.maxPageBytes, limits.maxPageBytes, 1000000));
+    const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+    if (!Array.isArray(facts) || facts.length !== 6 || !sourceRefs.has(facts[0])) {
+      fail('InstalledSourceEvidenceFactsUnavailable');
+    }
+    const selectedCoordinates = moon.clientProgramKeyedAcquisitionInputCoordinates(keyedAcquisition);
+    const coordinates = selectedCoordinates?.$tag === 1 ? selectedCoordinates._0 : undefined;
+    if (coordinates === undefined || coordinates.length !== 4 ||
+        !coordinates.every(value => Number.isSafeInteger(value) && value >= 0)) {
+      fail('InvalidAcquisitionOccurrence');
+    }
+    const [stage, input, task, step] = coordinates;
+    const [resource, ...fields] = checked(
+      moon.clientProgramKeyedRowCapacityTarget(capacity, declaration));
+    const [sourceRef, sourceContractCid, carrierSchemaContractCid,
+      sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
+    const programCid = moon.clientRequestProgramCid(requestIdentity);
+    const parametersCid = moon.clientRequestParametersCid(requestIdentity);
+    if (![programCid, parametersCid].every(value => cidPattern.test(value))) {
+      fail('InstalledKeyedRequestIdentityUnavailable');
+    }
+    const selectionCid = valueCid({version: 'actql-installed-keyed-selection/0.1',
+      programCid, parametersCid, coordinates, sourceFacts: facts});
+    const prepared = Object.freeze({
+      checkedSource: Object.freeze({selectionCid, programCid, parametersCid, step,
+        sourceRef, sourceContractCid, carrierSchemaContractCid, sourceDataPolicyCid,
+        dataClassification, sourceViewContractCid}),
+      readTuple: Object.freeze({connection: site.connection, resource, operation: 'read'}),
+      physicalBinding: physicalTarget(resource, fields),
+    });
+    const decision = await decideRead(prepared, access);
+    if (decision?.action === 'deny') fail(authorizationRuntimeCode(decision), decision);
+    keyedPreparations.set(prepared, {preparedProgram, keyedAcquisition, access,
+      physicalBindingCid: valueCid(prepared.physicalBinding)});
+    return Object.freeze({prepared, occurrence: Object.freeze({stage, input, task})});
+  }
+
+  // Reopening retained bytes needs the same checked keyed selection's current
+  // read authority, not a new RowRun or a grant inferred from saved metadata.
+  // This checks the original preparation and installed target without I/O.
+  async function verifyKeyedRead({preparedProgram, keyedAcquisition, preparedKeyed,
+    sourceAccess: access = sourceAccess, signal}) {
+    const owner = keyedPreparations.get(preparedKeyed);
+    if (owner === undefined || owner.preparedProgram !== preparedProgram ||
+        owner.keyedAcquisition !== keyedAcquisition || owner.access !== access) {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    const recheck = () => {
+      signal?.throwIfAborted();
+      if (moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true) {
+        fail('InstalledSourceProgramMismatch');
+      }
+      const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
+        declaration, limits.maxPageBytes, limits.maxPageBytes, 1000000));
+      const [resource, ...fields] = checked(moon.clientProgramKeyedRowCapacityTarget(capacity, declaration));
+      if (valueCid(preparedKeyed.physicalBinding) !== owner.physicalBindingCid ||
+          valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid) {
+        fail('InstalledSourcePreparationMismatch');
+      }
+    };
+    recheck();
+    const decision = await currentRead(preparedKeyed, access, signal);
+    recheck();
+    return decision;
+  }
+  function keyedRecoveryBinding(prepared) {
+    const owner = keyedPreparations.get(prepared);
+    if (owner === undefined || valueCid(prepared.physicalBinding) !== owner.physicalBindingCid) {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    return Object.freeze({version: 'actql-installed-keyed-read-binding/0.1',
+      selectionCid: prepared.checkedSource.selectionCid,
+      physicalBindingCid: owner.physicalBindingCid,
+      connectorRegistration, connectorRevision, bindingCid, connection: site.connection});
+  }
 
   async function prepare({preparedProgram, preparedEffect, registry, values,
     fragment, ordered, sourceAccess: access = sourceAccess,
@@ -316,7 +444,7 @@ export async function createInstalledRowSource({moon, declaration,
     }
     if (![occurrence.stage, occurrence.input, occurrence.task].every(Number.isSafeInteger) ||
         occurrence.stage < 0 || occurrence.stage > 1 ||
-        occurrence.input !== 0 || occurrence.task !== occurrence.stage) {
+        occurrence.input < 0 || occurrence.task !== occurrence.stage) {
       fail('InvalidAcquisitionOccurrence');
     }
     occurrence = Object.freeze({...occurrence});
@@ -357,9 +485,10 @@ export async function createInstalledRowSource({moon, declaration,
       readTuple: Object.freeze({connection: site.connection, resource,
         operation: 'read'}),
       physicalBinding: physicalTarget(resource, fields),
+      occurrence,
     });
     const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
-      declaration, requirement, queryContract, evidenceContract));
+      declaration, requirement, queryContract, evidenceContract, listingPolicy));
     const decision = await decideRead(prepared, access);
     const refused = decision?.action === 'deny'
       ? authorizationRuntimeCode(decision) : undefined;
@@ -383,10 +512,463 @@ export async function createInstalledRowSource({moon, declaration,
     }
   }
 
+  // A keyed consumer first borrows this original capture prefix. Its enclosing
+  // task is not complete until the checked JOIN's other inputs are acquired.
+  // This exposes no replacement Program, raw rows or fabricated task result.
+  async function openCapture(options) {
+    const state = {started: false, closeFailed: false, recovery: undefined};
+    try {
+      return await acquire(state, options, true);
+    } catch (error) {
+      throw acquisitionFailure(error, state.closeFailed ? 'unknown'
+        : !state.started ? 'not_started' : 'stopped', state.recovery);
+    }
+  }
+
+  // One checked keyed occurrence, not whole-lookup completion. The enclosing
+  // Host keeps the original left capture and all right captures until its
+  // checked JOIN barrier has completed; this method issues no Source evidence.
+  const selectedKeyedContent = value => {
+    if (value === undefined) return undefined;
+    const capture = value?.capture, issuer = value?.referenceIssuer;
+    if (typeof capture !== 'function' || issuer === undefined || captureContent !== undefined) {
+      fail('InvalidInstalledContentCapture');
+    }
+    // Select once before any await. Caller mutation cannot replace the Run's
+    // capture or issuer between current authorization and row admission.
+    return Object.freeze({capture, referenceIssuer: issuer});
+  };
+  async function openKeyed({preparedProgram, preparedEffect, keyedAcquisition,
+    request, ledger, signal, preparedKeyed, chargeVerification, capturedResourcePath,
+    keyedContent,
+    sourceAccess: access = sourceAccess}) {
+    const state = {started: false, closeFailed: false, recovery: undefined};
+    let session;
+    let deadline;
+    const budgetAbort = new AbortController();
+    signal = signal === undefined ? budgetAbort.signal : AbortSignal.any([signal, budgetAbort.signal]);
+    try {
+      // Per-Run capture custody is selected by the original dispatch owner,
+      // never stored on the shared installation. Its issuer admits only the
+      // same held content returned by that owner for this exact lookup.
+      keyedContent = selectedKeyedContent(keyedContent);
+      const captureBytes = keyedContent?.capture ?? captureContent;
+      // Content custody belongs to this Run, but the returned Resource still
+      // belongs to the installed Source. Do not replace either authority or
+      // fall back to the other domain after an issuer refuses a reference.
+      const captureIssuer = keyedContent === undefined ? referenceIssuer
+        : moon.clientProgramRowContentReferenceIssuer(referenceIssuer,
+          keyedContent.referenceIssuer);
+      signal?.throwIfAborted();
+      if ((preparedProgram === undefined) === (preparedEffect === undefined) ||
+          ledger === undefined || (preparedEffect === undefined
+            ? moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition,
+              preparedProgram)
+            : moon.clientProgramKeyedAcquisitionMatchesEffectProgram(keyedAcquisition,
+              preparedEffect)) !== true) {
+        fail('InstalledSourceProgramMismatch');
+      }
+      const facts = checked(
+        moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+      if (!Array.isArray(facts) || facts.length !== 6 ||
+          !facts.every(text) || !sourceRefs.has(facts[0])) {
+        fail('InstalledSourceEvidenceFactsUnavailable');
+      }
+      const acquisition = checked(moon.clientProgramKeyedRowPrepareAcquisition(
+        keyedAcquisition, request, declaration, limits.maxPageBytes,
+        limits.maxPageBytes, 1000000));
+      const [resource, ...columns] = checked(
+        moon.clientProgramKeyedRowTarget(acquisition));
+      const physicalBinding = physicalTarget(resource, columns);
+      const scope = preparedKeyed === undefined ? undefined : keyedPreparations.get(preparedKeyed);
+      if (preparedKeyed !== undefined && (scope === undefined ||
+          scope.preparedProgram !== preparedProgram || scope.keyedAcquisition !== keyedAcquisition ||
+          scope.access !== access || valueCid(physicalBinding) !== valueCid(preparedKeyed.physicalBinding))) {
+        fail('InstalledSourcePreparationMismatch');
+      }
+      const nonce = randomUUID();
+      session = startInstalledRowRun({moon, acquisition, nonce, ledger,
+        keyed: true, capacity: {transferBytes: maxTransferBytes,
+          executionBytes: BigInt(limits.maxPageBytes)}});
+      const {run} = session;
+      // Encode only under the common acquisition's workspace reservation.
+      const requestWire = checked(
+        moon.clientProgramKeyedRequestWire(request, limits.maxPageBytes));
+      const readSubject = Object.freeze({version: 'actql-keyed-row-source-read/0.1',
+        sourceFacts: [...facts],
+        occurrence: [...moon.clientProgramKeyedAcquisitionCoordinates(keyedAcquisition)],
+        request: JSON.parse(requestWire), physicalBinding,
+        connectorRegistration, connectorRevision, bindingCid});
+      const prepared = Object.freeze({...preparedKeyed, readSubjectCid: valueCid(readSubject), physicalBinding,
+        readTuple: Object.freeze({connection: site.connection, resource,
+          operation: 'read'})});
+      const verifyRead = () => currentRead(prepared, access, signal);
+      const decision = await verifyRead();
+      signal?.throwIfAborted();
+      const granted = decision.basis === 'resumed_approval'
+        ? site.admitCheckpointReadApproval(decision) : decision;
+      const runInvocationCid = valueCid({version: 'actql-keyed-row-acquisition/0.1',
+        readSubject, nonce});
+      const dispatchRequestCid = cid({
+        version: 'actql-keyed-row-acquisition-dispatch/0.1', runInvocationCid});
+      checked(moon.clientProgramKeyedRowBegin(run, captureIssuer));
+      const operation = operationBindings.get(resource);
+      const grant = site.issueReadGrant({operation,
+        decision: granted, resource, runInvocationCid, dispatchRequestCid,
+        maxUses: limits.maxPages});
+      const observedMs = () => BigInt(Math.floor(performance.now()));
+      let sendIndex = 0;
+      await readPages({resource, columns, requestWire, operation,
+        signal, verifyRead,
+        capturedResourcePath: capturedResourcePath === undefined ? undefined : async () => {
+          await verifyRead();
+          signal?.throwIfAborted();
+          if (state.started) fail('InstalledFileLocatorAfterSend');
+          return await capturedResourcePath(verifyRead, signal);
+        },
+        chargeVerification: chargeVerification === undefined ? undefined : async bytes => {
+          if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > 4096) {
+            fail('InvalidKeyedVerificationObservation');
+          }
+          await verifyRead();
+          signal?.throwIfAborted();
+          if (!state.started) fail('InstalledContentCaptureBeforeSend');
+          await chargeVerification(bytes);
+        },
+        // Host-selected capture receives original typed request/Source facts,
+        // not a driver-selected request, target or permission. The callback
+        // transfers actual verified bytes to the existing holding owner before
+        // returning an issued envelope for this keyed row's ordinary admission.
+        captureContent: captureBytes === undefined ? undefined : async bytes => {
+          await verifyRead();
+          signal?.throwIfAborted();
+          if (!state.started) fail('InstalledContentCaptureBeforeSend');
+          const content = await captureBytes({...bytes, keyedAcquisition,
+            request, readSubjectCid: prepared.readSubjectCid, verifyRead, signal});
+          await verifyRead();
+          signal?.throwIfAborted();
+          return content;
+        },
+        // The driver supplies the actual serialized request before each send.
+        // Grants and lookup accounting share this boundary; returning from
+        // readPages without an observed send cannot produce a capture.
+        beginRequest: async body => {
+          if (!(body instanceof Uint8Array)) fail('InvalidKeyedRequestObservation');
+          await verifyRead();
+          signal?.throwIfAborted();
+          checked(moon.clientProgramKeyedRequestObserveAttempt(request,
+            BigInt(body.byteLength), observedMs()));
+          if (deadline === undefined) {
+            const remaining = checked(moon.clientProgramKeyedRequestRemainingMs(request, observedMs()));
+            // Schedule beyond the inclusive exact boundary and clamp only the
+            // timer representation. Long policies are rechecked on every
+            // observation; the timer must not overflow to immediate expiry.
+            const expire = () => {
+              try {
+                const left = checked(moon.clientProgramKeyedRequestRemainingMs(request, observedMs()));
+                deadline = setTimeout(expire, Number(left < 2147483646n ? left + 1n : 2147483647n));
+                deadline.unref();
+              } catch (cause) {
+                budgetAbort.abort(Object.assign(new Error('KeyedLookupDurationExceeded', {cause}),
+                  {code: 'KeyedLookupDurationExceeded'}));
+              }
+            };
+            deadline = setTimeout(expire, Number(remaining < 2147483646n ? remaining + 1n : 2147483647n));
+            deadline.unref();
+          }
+          state.started = true;
+          return {...grant, useId: `${nonce}-read-${sendIndex++}`};
+        },
+        chargePage: body => {
+          if (!(body instanceof Uint8Array)) fail('InvalidKeyedResponseObservation');
+          // Preserve the physical Ledger charge even when the lookup ceiling
+          // rejects this received body before decoding or private admission.
+          const charge = checked(moon.clientProgramRowSourceChargePage(run, body));
+          checked(moon.clientProgramKeyedResponseObserve(request,
+            BigInt(body.byteLength), 0n, observedMs()));
+          return charge;
+        },
+        // The Site must await admission before returning protocol completion.
+        consumePage: (rows, {charge} = {}) => {
+          const body = Buffer.from(JSON.stringify(rows), 'utf8');
+          const ticket = charge ?? checked(moon.clientProgramRowSourceChargePage(run, body));
+          checked(moon.clientProgramKeyedResponseObserve(request,
+            charge === undefined ? BigInt(body.byteLength) : 0n,
+            BigInt(body.byteLength), observedMs()));
+          return session.consumeKeyedPage(body,
+            {charge: ticket, currentRead: verifyRead, signal});
+        }});
+      session.confirmTransportStopped();
+      const capture = await session.capture({currentRead: verifyRead, signal});
+      checked(moon.clientProgramKeyedRequestFinishIO(request, observedMs()));
+      return Object.freeze({capture: Object.freeze({read: () => checked(
+        moon.clientProgramKeyedRowCaptureRead(capture)), identity: () => checked(
+        moon.clientProgramKeyedRowCaptureIdentity(capture))}),
+        verifyRead,
+        // Only the actual installed successful capture can enter assembly.
+        acceptLookup: lookup => checked(moon.clientProgramKeyedLookupAcceptCapture(
+          lookup, keyedAcquisition, request, capture)),
+        close: session.close});
+    } catch (error) {
+      if (session !== undefined) {
+        moon.clientProgramKeyedRequestFailIO(request);
+        // Before dispatch there was no physical reader to stop. Once entered,
+        // absence of an explicit transport-end observation remains pending.
+        const end = acquisitionOutcome(error);
+        if (!state.started || end.outcome === 'stopped' || end.outcome === 'not_started') {
+          session.confirmTransportStopped();
+        } else if (end.recovery !== undefined) {
+          // The physical driver's same recovery owner stops its own resources;
+          // it does not settle successful response evidence or the RowRun.
+          try { await end.recovery.close(); } catch { /* Keep pending custody. */ }
+        }
+        session.closeAfterFailure(state, end.recovery);
+      }
+      // Do not let an inner transport outcome bypass this RowRun's pending
+      // retention/cleanup responsibility through acquisitionFailure's reuse.
+      throw new AcquisitionOpenError(error, state.closeFailed ? 'unknown'
+        : !state.started ? 'not_started' : 'stopped', state.recovery);
+    } finally {
+      clearTimeout(deadline);
+    }
+  }
+
+  // Exact-key sharing changes physical reads, not original left multiplicity.
+  // This assembles a right Relation input; it is not Source/task evidence.
+  async function openKeyedLookup({preparedProgram, preparedEffect,
+    keyedAcquisition, left, ledger, signal, preparedKeyed, originalCapture,
+    keyedContent,
+    sourceAccess: access = sourceAccess, maxWork = 1000000, quantum = 64}) {
+    keyedContent = selectedKeyedContent(keyedContent);
+    if (!Number.isSafeInteger(maxWork) || maxWork < 1 || maxWork > 2147483647 ||
+        !Number.isSafeInteger(quantum) || quantum < 1 || quantum > 1024) {
+      fail('InstalledKeyedLookupLimits');
+    }
+    const rows = moon.clientProgramKeyedLeftReadRows(left);
+    if (rows === undefined || ledger === undefined ||
+        moon.clientProgramKeyedLeftMatchesAcquisition(left, keyedAcquisition) !== true ||
+        (preparedProgram === undefined) === (preparedEffect === undefined) ||
+        (preparedEffect === undefined
+          ? moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram)
+          : moon.clientProgramKeyedAcquisitionMatchesEffectProgram(keyedAcquisition, preparedEffect)) !== true) {
+      fail('InstalledSourceProgramMismatch');
+    }
+    signal?.throwIfAborted();
+    const lookup = checked(moon.clientProgramKeyedLookupStart(left, ledger,
+      limits.maxPageBytes, maxWork));
+    const children = [];
+    const released = new Set();
+    let pendingRecovery;
+    let unownedUncertainty = false;
+    let preparation;
+    let ioStarted = false;
+    let closed = false;
+    const stop = () => {
+      moon.clientProgramKeyedLookupStop(lookup);
+      if (preparation !== undefined) {
+        moon.clientProgramKeyedRequestCancel(preparation);
+        preparation = undefined;
+      }
+    };
+    const cleanup = async () => {
+      if (closed) return true;
+      stop();
+      let pending = unownedUncertainty;
+      for (const child of children) {
+        if (released.has(child)) continue;
+        try { await child.close(); released.add(child); }
+        catch { pending = true; }
+      }
+      if (pendingRecovery !== undefined) {
+        try {
+          await pendingRecovery.close();
+          if (await pendingRecovery.cleanup() === false || pendingRecovery.cleanupPending()) pending = true;
+          else pendingRecovery = undefined;
+        } catch { pending = true; }
+      }
+      // Keep assembly custody until all original physical children settle.
+      // Cleanup never obtains a new Request or sends again.
+      if (pending) return false;
+      while (!checked(moon.clientProgramKeyedLookupCleanup(lookup, quantum))) {
+        await yieldEventLoop();
+      }
+      children.length = 0;
+      released.clear();
+      closed = true;
+      return true;
+    };
+    const close = async () => {
+      if (!await cleanup()) fail('InstalledSourceCleanupPending');
+    };
+    const recovery = Object.freeze({close: stop, cleanup, cleanupPending: () => !closed});
+    try {
+      for (let row = 0; row < rows; row++) {
+        signal?.throwIfAborted();
+        preparation = checked(moon.clientProgramKeyedLookupRequestStart(lookup, row));
+        let request;
+        while (request === undefined) {
+          signal?.throwIfAborted();
+          for (let poll = 0; poll < quantum; poll++) {
+            const {_0: status, _2: value, _3: issue} = moon.clientProgramKeyedLookupRequestAdvance(lookup, preparation);
+            if (status === 2) fail('InstalledKeyedRequestFailed', issue);
+            if (status === 1) { request = value; break; }
+          }
+          if (request === undefined) await yieldEventLoop();
+        }
+        preparation = undefined;
+        const index = checked(moon.clientProgramKeyedLookupFind(lookup, request));
+        if (index >= 0) {
+          await children[index].verifyRead();
+          signal?.throwIfAborted();
+          checked(moon.clientProgramKeyedLookupReuse(lookup, request, index));
+          continue;
+        }
+        let acquired;
+        try {
+          acquired = await openKeyed({preparedProgram, preparedEffect,
+            keyedContent,
+            keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
+            capturedResourcePath: async (verifyRead, activeSignal) => {
+              if (typeof originalCapture?.originalRead !== 'function') fail('InstalledFileLocatorUnavailable');
+              const read = originalCapture.originalRead();
+              if (read === undefined) fail('InstalledFileLocatorUnavailable');
+              const locator = checked(moon.clientProgramKeyedFileLocatorStart(lookup, request,
+                originalCapture.source(), read));
+              try {
+                for (;;) {
+                  await verifyRead();
+                  activeSignal?.throwIfAborted();
+                  for (let poll = 0; poll < quantum; poll++) {
+                    const path = checked(moon.clientProgramKeyedFileLocatorAdvance(locator));
+                    if (path !== undefined) return path;
+                  }
+                  await yieldEventLoop();
+                }
+              } finally {
+                moon.clientProgramKeyedFileLocatorCancel(locator);
+              }
+            },
+            chargeVerification: bytes => checked(
+              moon.clientProgramKeyedLookupChargeVerification(lookup, request, bytes))});
+          ioStarted = true;
+        } catch (error) {
+          const end = acquisitionOutcome(error);
+          if (end.outcome !== 'not_started') ioStarted = true;
+          if (end.outcome === 'unknown') {
+            pendingRecovery = end.recovery;
+            unownedUncertainty = end.recovery === undefined;
+          }
+          throw error;
+        }
+        // Preserve the physical close handle before copying can fail.
+        children.push(acquired);
+        acquired.acceptLookup(lookup);
+        while (!checked(moon.clientProgramKeyedLookupAdvance(lookup, quantum))) {
+          signal?.throwIfAborted();
+          await acquired.verifyRead();
+          signal?.throwIfAborted();
+          await yieldEventLoop();
+        }
+      }
+      for (const child of children) {
+        await child.verifyRead();
+        signal?.throwIfAborted();
+      }
+      signal?.throwIfAborted();
+      const read = checked(moon.clientProgramKeyedLookupRead(lookup));
+      return Object.freeze({capture: Object.freeze({
+        read: () => closed ? fail('InstalledSourceClosed')
+          : checked(moon.clientProgramKeyedLookupRead(lookup)),
+        identity: () => {
+          const identity = moon.clientProgramKeyedLookupIdentity(lookup);
+          if (identity === undefined) fail('InstalledSourceClosed');
+          return identity;
+        }}), close, cleanup, cleanupPending: recovery.cleanupPending,
+        work: () => moon.clientProgramKeyedLookupWork(lookup), read,
+        async issueObservation({authorityScopeCid, observedAt}) {
+          if (closed) fail('InstalledSourceClosed');
+          signal?.throwIfAborted();
+          for (const child of children) {
+            await child.verifyRead();
+            signal?.throwIfAborted();
+          }
+          if (closed) fail('InstalledSourceClosed');
+          const observation = checked(moon.clientProgramKeyedLookupIssueObservation(
+            lookup, authorityScopeCid, observedAt));
+          const wires = moon.clientProgramKeyedLookupObservationWires(observation);
+          if (wires === undefined) fail('InstalledSourceClosed');
+          return Object.freeze({observation,
+            inputLogicalWire: wires._0, sourceEvidenceWire: wires._1});
+        },
+        async openDag() {
+          if (closed) fail('InstalledSourceClosed');
+          signal?.throwIfAborted();
+          for (const child of children) {
+            await child.verifyRead();
+            signal?.throwIfAborted();
+          }
+          if (preparedEffect !== undefined) {
+            fail('InstalledKeyedEffectDagRequiresRunOwner');
+          }
+          if (closed) fail('InstalledSourceClosed');
+          return checked(moon.clientProgramKeyedLookupOpenDag(preparedProgram,
+            lookup, ledger));
+        },
+        async openHost({registry, values, fragment, ordered, retainedRelationOutput = false}) {
+          if (closed) fail('InstalledSourceClosed');
+          signal?.throwIfAborted();
+          for (const child of children) {
+            await child.verifyRead();
+            signal?.throwIfAborted();
+          }
+          if (closed) fail('InstalledSourceClosed');
+          if (preparedEffect !== undefined) fail('InstalledKeyedEffectDagRequiresRunOwner');
+          const host = moon.clientProgramKeyedLookupOpenLocalHost(preparedProgram,
+            lookup, ledger, registry, values, fragment, ordered, retainedRelationOutput);
+          if (host === undefined) fail('InstalledKeyedHostPreparation');
+          return host;
+        },
+        // Original Local preparation, not a replacement acquisition Program.
+        // The normal dispatcher must reserve its capacity and own its child.
+        async borrowSerializationInput() {
+          if (closed) fail('InstalledSourceClosed');
+          signal?.throwIfAborted();
+          for (const child of children) {
+            await child.verifyRead();
+            signal?.throwIfAborted();
+          }
+          if (closed) fail('InstalledSourceClosed');
+          // This is the original sealed lookup, not a new task completion or
+          // a transfer of custody. The dependent prefix must stop first.
+          checked(moon.clientProgramKeyedLookupRead(lookup));
+          return lookup;
+        },
+        async prepareJoin({registry, values, fragment, ordered}) {
+          if (closed) fail('InstalledSourceClosed');
+          for (const child of children) {
+            await child.verifyRead();
+            signal?.throwIfAborted();
+          }
+          const prepared = preparedEffect === undefined
+            ? moon.clientProgramKeyedLookupJoinPrepare(preparedProgram, lookup,
+              registry, values, fragment, ordered)
+            : moon.clientProgramEffectKeyedLookupJoinPrepare(preparedEffect, lookup,
+              registry, values, fragment, ordered);
+          if (prepared === undefined) fail('InstalledKeyedJoinPreparation');
+          return prepared;
+        }});
+    } catch (error) {
+      let complete = false;
+      try { complete = await cleanup(); } catch { /* Same recovery retains custody. */ }
+      throw new AcquisitionOpenError(error, complete
+        ? ioStarted ? 'stopped' : 'not_started' : 'unknown', complete ? undefined : recovery);
+    }
+  }
+
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
     preparedSource, retainedRelationOutput = false,
-    occurrence = {stage: 0, input: 0, task: 0}, ledger}) {
+    occurrence = {stage: 0, input: 0, task: 0}, ledger}, captureOnly = false) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
       sourceAccess: access, occurrence});
@@ -414,15 +996,39 @@ export async function createInstalledRowSource({moon, declaration,
       capacity: {transferBytes: maxTransferBytes,
         executionBytes: BigInt(limits.maxPageBytes)}});
     const {run} = session;
+    const complete = async () => {
+      const verifyRead = () => currentRead(prepared, access, signal);
+      // The completed Direct prefix owns its own logical input and Source
+      // observation even when later keyed inputs are still unacquired. Reuse
+      // the existing capture tuple issuer, never label it as JOIN completion.
+      return await session.complete({owner, prepared, registry,
+        values, fragment, ordered, retainedRelationOutput, signal,
+        currentRead: verifyRead, captureOnly});
+    };
     try {
+      // Encode only after the existing RowRun's accounted reservation. The
+      // common owner includes this wire while its completion records overlap.
+      // The driver decodes its declared typed Request (including existing wire
+      // markers for JSON scalars), not a replacement selector.
+      const requestWire = checked(
+        moon.clientProgramRowSourceRequestWire(acquisition));
       checked(moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
-        limits.maxPageRows, limits.maxCaptureRows));
-      const grant = site.issueReadGrant({operation: readOperation,
+        limits.maxPageRows, limits.maxCaptureRows, referenceIssuer));
+      const isListing = moon.clientProgramRowSourceIsListing(acquisition);
+      // paths=[] is already typed and complete. Do not issue a read grant or
+      // enter a Site driver merely to manufacture an empty transport result.
+      if (isListing && moon.clientProgramRowSourceListingComplete(run)) {
+        return await complete();
+      }
+      const operation = operationBindings.get(owner.resource);
+      const grant = site.issueReadGrant({operation,
         decision: granted, resource: owner.resource, runInvocationCid,
         dispatchRequestCid, maxUses: limits.maxPages});
       state.started = true;
-      await readPages({resource: owner.resource, columns,
-        operation: readOperation, signal,
+      await readPages({resource: owner.resource, columns, requestWire,
+        operation, signal,
+        ...(isListing ? {listing: rowListingCallbacks({moon, run, signal,
+          currentRead: () => currentRead(prepared, access, signal)})} : {}),
         // The current read decision is taken again before every request.
         authorizationFor: async index => {
           if (index > 0) await currentRead(prepared, access, signal);
@@ -436,9 +1042,7 @@ export async function createInstalledRowSource({moon, declaration,
             ? moon.clientProgramRowSourceAcceptPage(run, bytes)
             : moon.clientProgramRowSourceAcceptChargedPage(run, charge, bytes));
         }});
-      return session.complete({owner, prepared, registry, values, fragment,
-        ordered, retainedRelationOutput,
-        currentRead: () => currentRead(prepared, access, signal)});
+      return await complete();
     } catch (error) {
       session.closeAfterFailure(state);
       throw error;
@@ -458,6 +1062,13 @@ export async function createInstalledRowSource({moon, declaration,
     sourceAccess,
     sourceReadAccesses,
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
+    retainedCapture(prepared) {
+      const owner = preparations.get(prepared);
+      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      const capacity = moon.clientProgramInstalledRowCaptureCapacity(owner.acquisition);
+      if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
+      return Object.freeze({requirement: owner.requirement, capacity, referenceIssuer});
+    },
     ledgerCapacity(prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');
@@ -470,7 +1081,21 @@ export async function createInstalledRowSource({moon, declaration,
         executionBytes: BigInt(limits.maxPageBytes),
       });
     },
-    prepare, open,
+    keyedLedgerCapacity(keyedAcquisition, {maxWork = 1000000} = {}) {
+      if (!Number.isSafeInteger(maxWork) || maxWork < 1 || maxWork > 2147483647) {
+        fail('InstalledKeyedLookupLimits');
+      }
+      const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+      if (!Array.isArray(facts) || facts.length !== 6 ||
+          !facts.every(text) || !sourceRefs.has(facts[0])) {
+        fail('InstalledSourceEvidenceFactsUnavailable');
+      }
+      const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
+        declaration, limits.maxPageBytes, limits.maxPageBytes, maxWork));
+      return Object.freeze({capacity, transferBytes: maxTransferBytes,
+        executionBytes: BigInt(limits.maxPageBytes), maxBytes: limits.maxPageBytes, maxWork});
+    },
+    prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
     close: () => site.close(),
   });
 }

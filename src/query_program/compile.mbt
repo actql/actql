@@ -90,6 +90,7 @@ pub(all) enum Issue {
   UnsupportedGraph
   UnsupportedInfer
   UnsupportedNearest
+  FileListing(FileListingIssue)
   UnsupportedResult
   UnsupportedEffect
   TableWriteBinding(TableWriteBindingIssue)
@@ -621,7 +622,12 @@ fn selected_input(
     }
     source_free_input(query, limits)
   } else {
-    selected_relation(@query.relation(query), context)
+    let input = selected_relation(@query.relation(query), context)
+    match @query.file_list_selector(query) {
+      None => input
+      Some(selector) =>
+        lower_file_listing_input(query, selector, input, context, limits)
+    }
   }
 }
 
@@ -2854,16 +2860,32 @@ fn compile_steps(
           }
           proposed
         }
-        entries.push(
-          (
-            "select",
-            construction.array(
-              active_fields.map(field => construction.text(field)),
+        // A terminal RESULT names this exact Content output; it does not
+        // introduce another computation after the byte barrier. Do not
+        // overwrite an existing alias or elide a nonterminal retained tap.
+        let names_content_output = terminal_result &&
+          !needs_view &&
+          entries.is_empty() &&
+          !step_entries.is_empty() &&
+          step_entries.last().unwrap().any(entry => entry.0 == "serialize") &&
+          !step_entries.last().unwrap().any(entry => entry.0 == "as")
+        if names_content_output {
+          step_entries
+          .last()
+          .unwrap()
+          .push(("as", construction.text(checkpoint)))
+        } else {
+          entries.push(
+            (
+              "select",
+              construction.array(
+                active_fields.map(field => construction.text(field)),
+              ),
             ),
-          ),
-        )
-        entries.push(("as", construction.text(checkpoint)))
-        step_entries.push(entries)
+          )
+          entries.push(("as", construction.text(checkpoint)))
+          step_entries.push(entries)
+        }
         input_from = checkpoint
         let from = if needs_view {
           let view = if terminal_result {
@@ -2943,6 +2965,36 @@ fn compile_steps(
         pipe_value_columns = []
         pipe_value_table = false
         pipe_visible = active_fields.map(field => (field, field))
+        pipe_columns = pipe_visible.copy()
+        pipe_ranges = []
+        pipe_star_ranges = []
+        scalar_value_table_ranges = []
+        pipe_rebound = true
+        pipe_changed = false
+        grouped = false
+        selected_expressions = []
+        deferred = true
+      }
+      Serialize(clause) => {
+        let (steps, fields) = lower_serialization_steps(
+          construction,
+          clause,
+          pipe_visible,
+          pipe_ranges,
+          active_fields,
+          entries,
+          i,
+          input.name,
+          max_work,
+        )
+        step_entries.append(steps)
+        entries.clear()
+        active_fields = fields.copy()
+        output = fields
+        value_table_receivers = []
+        pipe_value_columns = []
+        pipe_value_table = false
+        pipe_visible = fields.map(field => (field, field))
         pipe_columns = pipe_visible.copy()
         pipe_ranges = []
         pipe_star_ranges = []
@@ -6778,7 +6830,12 @@ pub fn compile(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  if @query.terminal_effect(query) is Some(_) ||
+  let needs_input_binding = join_requires_input_binding(query, context) catch {
+    Abort(issue) => return Err(issue)
+  }
+  if needs_input_binding ||
+    @query.terminal_command_effect_count(query) > 0 ||
+    @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
     has_cte_unnest_input(query) ||
@@ -7066,6 +7123,7 @@ fn compile_join_steps(
   left_from? : String = "l",
   right_from? : String = "r",
   step_bindings? : Map[String, String] = Map([]),
+  capture_left? : Bool = false,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -7120,6 +7178,41 @@ fn compile_join_steps(
       join_from = join_step_binding(step_bindings, "aql_join_prefiltered")
     }
     None => ()
+  }
+  if capture_left {
+    // The common Direct acquisition owns a filter/select capture prefix.
+    // Preserve an authored pre-JOIN predicate above; SQL's post-JOIN WHERE
+    // remains below the JOIN and must never become a content-read filter.
+    if part.pre_join_filter is None {
+      pre_steps.push(
+        construction.object([
+          ("from", construction.text(join_from)),
+          (
+            "filter",
+            construction.object([("literal", construction.add(Bool(true)))]),
+          ),
+          (
+            "as",
+            construction.text(
+              join_step_binding(step_bindings, "aql_join_prefiltered"),
+            ),
+          ),
+        ]),
+      )
+      join_from = join_step_binding(step_bindings, "aql_join_prefiltered")
+    }
+    let capture = join_step_binding(step_bindings, "aql_join_captured")
+    pre_steps.push(
+      construction.object([
+        ("from", construction.text(join_from)),
+        (
+          "select",
+          construction.array(left_fields.map(field => construction.text(field))),
+        ),
+        ("as", construction.text(capture)),
+      ]),
+    )
+    join_from = capture
   }
   let predicate = match @query.operation_at(query, 0) {
     Some(Where(expression)) => Some(expression)
@@ -9047,9 +9140,73 @@ fn compile_join_query(
       raise Abort(UnsupportedJoin)
     }
     let left = selected_input(query, context, limits)
-    let right = selected_relation(part.relation, context)
+    let right = selected_join_input(query, part, context, limits)
     let left_fields = columns(left)
     let right_fields = columns(right)
+    if context.captured_stage is Some(_) {
+      // Installed inputs stay in the original JOIN Stage. In particular a
+      // correlated right Source must not be turned into a Direct capture
+      // Stage before its checked resource/version keys exist. Common Program
+      // checking still resolves and admits both acquisition declarations.
+      guard left.source is Captured(left_declaration) &&
+        right.source is Captured(right_declaration) &&
+        left.name != right.name else {
+        raise Abort(UnsupportedJoin)
+      }
+      let retained : Array[RetainedResult] = []
+      let (steps, output, from) = compile_join_steps(
+        construction,
+        query,
+        @query.relation(query).last().unwrap(),
+        left_fields,
+        part.relation.last().unwrap(),
+        right_fields,
+        limits,
+        retained=Some(retained),
+        left_from=left.name,
+        right_from=right.name,
+        capture_left=true,
+      )
+      let stage = construction.object([
+        ("id", construction.text(context.stage_id)),
+        (
+          "inputs",
+          construction.object([
+            (left.name, import_query_cursor(construction, left_declaration)),
+            (right.name, import_query_cursor(construction, right_declaration)),
+          ]),
+        ),
+        ("steps", construction.array(steps)),
+        (
+          "results",
+          retained_stage_results(
+            construction,
+            context.stage_result,
+            construction.object([
+              ("from", construction.text(from)),
+              (
+                "fields",
+                construction.array(
+                  output.map(field => construction.text(field)),
+                ),
+              ),
+            ]),
+            retained,
+          ),
+        ),
+      ])
+      let root = program_root(
+        construction,
+        context,
+        [stage],
+        result_exports=retained_result_exports(context, retained),
+      )
+      let source = match @builder.finish(builder, root) {
+        Ok(value) => value
+        Err(issue) => raise Abort(Construction(issue))
+      }
+      return admit_query_source(source, document, context, limits)
+    }
     let left_qualifier = @query.relation_alias(query).unwrap_or(
       @query.relation(query).last().unwrap(),
     )

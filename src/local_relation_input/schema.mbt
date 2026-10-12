@@ -63,7 +63,7 @@ fn type_scan(
         }
       }
       @contract.ResourceRef(resource_kind~) => type_text(b, resource_kind)
-      @contract.ArtifactRef(media_type=Some(media)) => type_text(b, media)
+      @contract.ContentRef(media_type=Some(media)) => type_text(b, media)
       _ => ()
     }
   }

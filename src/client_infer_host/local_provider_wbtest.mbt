@@ -119,6 +119,40 @@ test "Local selects the original whole INFER Unit and retains its Model owner" {
   ).unwrap()
   assert_true(!@local.managed_provider_accepts(family, foreign))
   assert_true(@local.managed_provider_capacity(family, foreign) is None)
+  let root_capacity = keyed_root_capacity(
+    occurrence,
+    prefix,
+    Some(suffix),
+    limits,
+  ).unwrap()
+  let prefix_capacity = composed_local_capacity(prefix, limits).unwrap()
+  let suffix_capacity = @relation.generated_sequence_capacity(
+    suffix,
+    limits.input,
+    limits.measurement,
+  ).unwrap()
+  assert_eq(
+    @relation.execution_capacity_retained_bytes(root_capacity),
+    @relation.execution_capacity_retained_bytes(prefix_capacity) +
+    @relation.execution_capacity_retained_bytes(suffix_capacity),
+  )
+  assert_eq(
+    @relation.execution_capacity_execution_bytes(root_capacity),
+    @relation.execution_capacity_execution_bytes(prefix_capacity) +
+    @relation.execution_capacity_execution_bytes(suffix_capacity),
+  )
+  assert_true(keyed_root_capacity(occurrence, prefix, None, limits) is None)
+  assert_true(
+    keyed_root_capacity(occurrence, suffix, Some(suffix), limits) is None,
+  )
+  assert_true(
+    keyed_root_capacity(occurrence, prefix, Some(foreign_suffix), limits)
+    is None,
+  )
+  assert_true(
+    keyed_root_capacity(foreign_occurrence, prefix, Some(suffix), limits)
+    is None,
+  )
   assert_true(
     @local.start_managed_provider_with_inputs_and_execution(
       family,
@@ -151,6 +185,9 @@ test "Local selects the original whole INFER Unit and retains its Model owner" {
       },
     }
     assert_true(composed_local_capacity(sequence, impossible) is None)
+    assert_true(
+      keyed_root_capacity(occurrence, prefix, Some(suffix), impossible) is None,
+    )
   }
   let child = @local.start_managed_provider_with_inputs_and_execution(
     family,

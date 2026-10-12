@@ -130,6 +130,7 @@ fn check_supported_source(
               | "merge_rankings"
               | "text_rank"
               | "infer"
+              | "serialize"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }
@@ -165,6 +166,7 @@ fn check(
   effect_headers? : @syntax.EffectHeaders? = None,
   graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -196,6 +198,7 @@ fn check(
     effect_headers~,
     graph~,
     model_tasks~,
+    request_value_policies~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {

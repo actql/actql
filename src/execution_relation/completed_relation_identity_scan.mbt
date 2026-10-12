@@ -1,6 +1,7 @@
 ///|
 priv enum RelationIdentityPhase {
   BeginRow
+  PrepareReferenceColumns
   BeginColumn
   MeasureName(SteppedValueMeasure)
   MeasureCell(SteppedValueMeasure)
@@ -152,7 +153,7 @@ pub fn cancel_completed_relation_identity_scan(
       cancel_identity_wire(cursor)
     EmitPayloadKey(cursor) | EmitLogicalKey(cursor) =>
       @encode.cancel_ordered_key(cursor)
-    BeginRow | BeginColumn | Done => ()
+    BeginRow | PrepareReferenceColumns | BeginColumn | Done => ()
   }
   cancel_completed_output_export(value.stream)
   release_slots(value.workspace, value.workspace.live)
@@ -184,7 +185,27 @@ fn advance_identity_scan_frame(
           @encode.begin_ordered_object(writer)
         }
         value.column = 0
-        value.phase = BeginColumn
+        if stream.references is Some(references) {
+          if !reserve_slots(references.workspace, 1) {
+            return Err(Admission(CaptureLimit))
+          }
+          references.rows.push([])
+          value.phase = PrepareReferenceColumns
+        } else {
+          value.phase = BeginColumn
+        }
+      }
+      PrepareReferenceColumns => {
+        let references = stream.references.unwrap()
+        let row = references.rows[stream.row]
+        if row.length() == IndexedRows::column_count(stream.rows) {
+          value.phase = BeginColumn
+        } else {
+          if !reserve_slots(references.workspace, 1) {
+            return Err(Admission(CaptureLimit))
+          }
+          row.push([])
+        }
       }
       BeginColumn => {
         if value.column == stream.order.columns.length() {
@@ -244,7 +265,19 @@ fn advance_identity_scan_frame(
             }
           }
         }
-      MeasureWire(cursor, writer) =>
+      MeasureWire(cursor, writer) => {
+        if stream.references is Some(references) &&
+          cursor is CapturedWire(captured) &&
+          @admitted.wire_emit_next_reference(captured) is Some(reference) {
+          if !@admitted.reference_available(reference) ||
+            stream.source is None ||
+            references.revoked ||
+            !reserve_slots(references.workspace, 1) {
+            return Err(Admission(InvalidCheckedRow))
+          }
+          let column = stream.order.columns[value.column].1
+          references.rows[stream.row][column].push(Some(reference))
+        }
         if advance_identity_wire(cursor) {
           let (bytes, nodes, depth) = @encode.finish_measurement_usage(writer)
           let column = value.column
@@ -282,6 +315,7 @@ fn advance_identity_scan_frame(
             value.phase = EmitPayload(identity_scan_emit(cell, stream.writer))
           }
         }
+      }
       EmitPayloadKey(cursor) =>
         if @encode.advance_ordered_key(cursor) {
           release_slots(value.workspace, 1)

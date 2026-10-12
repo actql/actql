@@ -43,6 +43,22 @@ pub fn prepare_admitted_output(
   max_rows : Int,
   limits : ValueLimits,
 ) -> Result[AdmittedOutput, CaptureIssue] {
+  guard admitted_relation_output_target(owner, target) &&
+    @lower.preparation_schema_at(@lower.bound_preparation(owner), target)
+    is Some(schema) else {
+    return Err(NotRelationOutput)
+  }
+  prepare_admitted_output_with_schema(owner, target, schema, max_rows, limits)
+}
+
+///|
+fn prepare_admitted_output_with_schema(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  schema : @schema.Schema,
+  max_rows : Int,
+  limits : ValueLimits,
+) -> Result[AdmittedOutput, CaptureIssue] {
   if max_rows < 0 {
     return Err(InvalidCaptureLimits)
   }
@@ -50,9 +66,7 @@ pub fn prepare_admitted_output(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let prepared = @lower.bound_preparation(owner)
-  guard admitted_relation_output_target(owner, target) &&
-    @lower.preparation_schema_at(prepared, target) is Some(schema) else {
+  guard admitted_relation_output_target(owner, target) else {
     return Err(NotRelationOutput)
   }
   if @schema.has_qualified_fields(schema) {
@@ -89,6 +103,29 @@ fn prepare_bounded_admitted_output(
       Ok(output)
     }
   }
+}
+
+///|
+fn prepare_bounded_sequence_admitted_output(
+  generated : GeneratedSequence,
+  target : @pipeline.Target,
+  max_rows : Int,
+  limits : ValueLimits,
+) -> Result[AdmittedOutput, CaptureIssue] {
+  let preparation = generated_completion_preparation(generated)
+  guard completion_preparation_schema(preparation, target) is Some(schema) else {
+    return Err(NotRelationOutput)
+  }
+  prepare_admitted_output_with_schema(
+    completion_preparation_owner(preparation),
+    target,
+    schema,
+    max_rows,
+    limits,
+  ).map(output => {
+    output.buffer.deferred_reclamation = true
+    output
+  })
 }
 
 ///|

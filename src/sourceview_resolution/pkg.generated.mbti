@@ -6,6 +6,7 @@ import {
   "actql/actql/capacity_program_step",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_join_shape",
@@ -20,6 +21,10 @@ import {
 }
 
 // Values
+pub fn advance_keyed_row_request(KeyedRowRequestCursor) -> KeyedRowRequestPoll
+
+pub fn advance_keyed_row_response(KeyedRowResponseCursor) -> KeyedRowResponsePoll
+
 pub fn at(Resolved, Int) -> ResolvedInput?
 
 pub fn attach_pipeline_inputs(PipelineInputs, @stage_parameters.CollectedStage, Int) -> Result[PipelineAttachment, PipelineIssue]
@@ -31,6 +36,10 @@ pub fn attached_pipeline_stage(PipelineAttachment) -> @stage_parameters.Collecte
 pub fn bind_keyed_request_parameters(RequestParameters, KeyedRequest, Int) -> Result[ParameterizedKeyedRequest, RequestParameterIssue]
 
 pub fn bind_request_parameters(RequestParameters, DirectRequest, Int) -> Result[ParameterizedRequest, RequestParameterIssue]
+
+pub fn cancel_keyed_row_request(KeyedRowRequestCursor) -> Unit
+
+pub fn cancel_keyed_row_response(KeyedRowResponseCursor) -> Unit
 
 pub fn catalog(Resolved) -> @check_environment.SourceRequestContracts
 
@@ -126,6 +135,18 @@ pub fn keyed_request_input(KeyedRequest) -> ResolvedInput
 
 pub fn keyed_request_usage(KeyedRequest) -> (Int, Int, Int, Int)
 
+pub fn keyed_row_request_field(KeyedRowRequest, String) -> @value_admission.CheckedValue?
+
+pub fn keyed_row_request_owner(KeyedRowRequest) -> ParameterizedKeyedRequest
+
+pub fn keyed_row_request_usage(KeyedRowRequest) -> (Int, Int, Int)
+
+pub fn keyed_row_request_wire(KeyedRowRequest, Int, Int, Int) -> Result[String, RequestWireIssue]
+
+pub fn keyed_row_request_work(KeyedRowRequestCursor) -> Int
+
+pub fn keyed_row_response_work(KeyedRowResponseCursor) -> Int
+
 pub fn keyed_rows_at(KeyedRowBounds, Int) -> @capacity_program_step.TargetRows?
 
 pub fn keyed_rows_count(KeyedRowBounds) -> Int
@@ -185,6 +206,8 @@ pub fn parameterized_request_field_count(ParameterizedRequest) -> Int
 pub fn parameterized_request_host_binding_count(ParameterizedRequest) -> Int
 
 pub fn parameterized_request_parameters(ParameterizedRequest) -> RequestParameters
+
+pub fn parameterized_request_wire(ParameterizedRequest, Int, Int, Int) -> Result[String, RequestWireIssue]
 
 pub fn parameterized_request_work(ParameterizedRequest) -> Int
 
@@ -304,6 +327,10 @@ pub fn selected_reference_count(ResolvedInput) -> Int
 
 pub fn selection(ResolvedInput) -> Selection
 
+pub fn start_keyed_row_request(ParameterizedKeyedRequest, Array[@value_admission.Value], RequestLimits) -> Result[KeyedRowRequestCursor, KeyedRowRequestIssue]
+
+pub fn start_keyed_row_response(KeyedRowRequest, Array[@value_admission.Value], RequestLimits) -> Result[KeyedRowResponseCursor, KeyedRowResponseIssue]
+
 pub fn unresolved_selector_declaration(Issue, @sourceview_input.Inputs, @check_environment.SourceRequestContracts) -> @sourceview_input.Declaration?
 
 pub fn work(Resolved) -> Int
@@ -388,6 +415,44 @@ type KeyedMode
 type KeyedRequest
 
 type KeyedRowBounds
+
+type KeyedRowRequest
+
+type KeyedRowRequestCursor
+
+pub(all) enum KeyedRowRequestIssue {
+  InvalidLimits
+  WorkLimit
+  PairLimit
+  CorrelationArity
+  InvalidCorrelation(Int)
+  UnboundHostBinding
+  Closed
+} derive(Eq, @debug.Debug)
+
+pub enum KeyedRowRequestPoll {
+  KeyedRowRequestContinue
+  KeyedRowRequestComplete(KeyedRowRequest)
+  KeyedRowRequestFailed(KeyedRowRequestIssue)
+}
+
+type KeyedRowResponseCursor
+
+pub(all) enum KeyedRowResponseIssue {
+  InvalidLimits
+  CorrelationArity
+  WorkLimit
+  InvalidCorrelation(Int)
+  CorrelationMismatch(Int)
+  Equality(@value_admission.CompleteEqualityIssue)
+  Closed
+} derive(Eq, @debug.Debug)
+
+pub enum KeyedRowResponsePoll {
+  KeyedRowResponseContinue
+  KeyedRowResponseComplete
+  KeyedRowResponseFailed(KeyedRowResponseIssue)
+}
 
 pub(all) enum KeyedRowsIssue {
   InvalidLimits
@@ -540,6 +605,7 @@ pub(all) enum RequestIssueKind {
   CorrelationField(String)
   IncompatibleParameter(String)
   IncompatibleBinding(String)
+  InvalidFileListSelector
   Literal(@value_admission.Issue)
 } derive(Eq, @debug.Debug)
 
@@ -564,6 +630,11 @@ pub enum RequestValue {
   ParameterValue(@parameter_binding.Declaration)
   BindingValue(@binding_declarations.Declaration)
 }
+
+pub(all) enum RequestWireIssue {
+  UnboundHostBinding
+  Encoding(@encode_core.EncodeFailure)
+} derive(@debug.Debug)
 
 type Resolved
 

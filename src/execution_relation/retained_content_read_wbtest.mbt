@@ -28,6 +28,41 @@ fn content_read_limits() -> RetainedRowDecodeLimits {
 }
 
 ///|
+test "retained content read keeps partial cumulative work after failed admission and close" {
+  let expected = content_read_descriptor()
+  let read = prepare_retained_content_read(
+    content_read_preparation(capture_fixture()),
+    { ..expected, values: { ..expected.values, work: 8, }, },
+    2,
+    { ..stream_value_limits(), max_work: 8, },
+    row_wire_limits(),
+    64,
+  ).unwrap()
+  assert_eq(retained_content_read_cumulative_work(read), 0L)
+  append_retained_content_read(
+    read,
+    "{\"n\":1,\"s\":\"é\"}",
+    content_read_limits(),
+  ).unwrap()
+  // row(1), n name(1), number(1), s name(1), text(1), é bytes(2) = 7.
+  assert_eq(retained_content_read_cumulative_work(read), 7L)
+  assert_true(
+    append_retained_content_read(
+      read,
+      "{\"n\":2,\"s\":\"😀\"}",
+      content_read_limits(),
+    )
+    is Err(Encoding(Admission(CaptureLimit))),
+  )
+  // The second row's root uses the final unit before its name is refused.
+  assert_eq(retained_content_read_cumulative_work(read), 8L)
+  assert_true(finish_retained_content_read(read) is Err(Closed))
+  assert_false(cancel_retained_content_read(read))
+  assert_eq(retained_content_read_cumulative_work(read), 8L)
+  assert_eq(retained_content_read_cumulative_work(read), 8L)
+}
+
+///|
 test "retained content read revalidates exact canonical content without retaining rows or completion authority" {
   let owner = capture_fixture()
   let descriptor = content_read_descriptor()

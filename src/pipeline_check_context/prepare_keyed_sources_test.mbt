@@ -293,7 +293,7 @@ test "prepared keyed acquisition retains its actual producer bound" {
     source_producer_at(constructed, 0, 0).unwrap(),
   )
   assert_true(
-    physical_equal(@program.target_rows_bound(constructed_rows), bound),
+    physical_equal(@program.target_rows_bound(constructed_rows).unwrap(), bound),
   )
   assert_true(
     physical_equal(@program.target_rows_pipeline(constructed_rows), pipeline),
@@ -376,7 +376,10 @@ test "prepared keyed acquisition retains its actual producer bound" {
   assert_true(
     physical_equal(@capacity.target_membership_closure(membership), closure),
   )
-  assert_eq(@capacity.target_membership_coordinates(membership), (0, 0, 0))
+  assert_eq(
+    @capacity.target_membership_coordinates(membership).unwrap(),
+    (0, 0, 0),
+  )
   let limits = { ..caps, max_work: source_producer_work(result), }
   assert_true(
     prepare_program_sources(

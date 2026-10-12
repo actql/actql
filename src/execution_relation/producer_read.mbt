@@ -122,6 +122,25 @@ pub fn producer_read_has_cell_access(value : ProducerRead) -> Bool {
 }
 
 ///|
+/// Borrow the live completion at this exact checked Model input. The selected
+/// Local chain keeps producer custody; mapping and Model cleanup cannot close
+/// it. No arbitrary completed output or structurally equal owner is accepted.
+pub fn infer_completed_producer_input(
+  owner : @lower.BoundPrepared,
+  step : Int,
+  read : ProducerRead,
+) -> CompletedOutput? {
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.payload(node) is @lower.Infer(_) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    producer_read_matches_operation_input(read, owner, step, 0) &&
+    completed_output_matches_port(read.bound.output, owner, target) else {
+    return None
+  }
+  Some(read.bound.output)
+}
+
+///|
 /// Compare immutable receiving-port identity after completion. Admission of
 /// new work still requires producer_read_matches_operation_input below.
 fn producer_read_binding_matches_operation_input(

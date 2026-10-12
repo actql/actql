@@ -11,6 +11,7 @@ pub(all) enum OperationObligationScope {
 ///|
 /// Typed requirements remain separate from their resolution or runtime enforcement.
 pub(all) enum OperationObligation {
+  SerializationInputOrder
   RelationRequirement(@relation.PendingValidation)
   JoinRequirement(@join.Obligation)
   AppendRequirement(@append.Obligation)
@@ -48,6 +49,8 @@ pub(all) enum OperationObligation {
 
 ///|
 priv enum ObligationOwner {
+  SerializationOwner(CheckedSerialization)
+  CountOwner(@relation.CheckedCountValue)
   RelationOwner(@relation.CheckedOperation)
   JoinOwner(@join.CheckedJoin)
   AppendOwner(@append.CheckedAppend)
@@ -102,6 +105,8 @@ pub fn operation_obligations_scope(
 /// fold owners. Reading provenance does not resolve or discharge an obligation.
 pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor {
   match v.owner {
+    SerializationOwner(c) => serialization_source(c)
+    CountOwner(c) => @relation.count_value_source(c)
     RelationOwner(c) => @relation.source(c)
     JoinOwner(c) => @join.source(c)
     AppendOwner(c) => @append.source(c)
@@ -297,6 +302,8 @@ pub fn operation_obligations_subgraph(
 /// O(1) reads; callers can charge before visiting or retaining each entry.
 pub fn operation_obligations_count(v : OperationObligations) -> Int {
   match v.owner {
+    SerializationOwner(_) => 1
+    CountOwner(c) => @relation.count_value_pending_count(c)
     RelationOwner(c) => @relation.pending_validation_count(c)
     JoinOwner(c) => @join.pending_validation_count(c)
     AppendOwner(c) => @append.pending_validation_count(c)
@@ -340,6 +347,14 @@ pub fn operation_obligations_at(
   index : Int,
 ) -> OperationObligation? {
   match v.owner {
+    SerializationOwner(_) =>
+      if index == 0 {
+        Some(SerializationInputOrder)
+      } else {
+        None
+      }
+    CountOwner(c) =>
+      @relation.count_value_pending_at(c, index).map(x => RelationRequirement(x))
     RelationOwner(c) =>
       @relation.pending_validation_at(c, index).map(x => RelationRequirement(x))
     JoinOwner(c) =>
@@ -425,6 +440,11 @@ pub fn operation_obligations_at(
 /// Nested selector owners are retained without an unbounded temporary array.
 pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
   match operation {
+    Serialize(c) =>
+      1 +
+      (if c.sort is Some(_) { 1 } else { 0 }) +
+      (if c.max_rows is Some(_) { 1 } else { 0 }) +
+      (if c.max_bytes is Some(_) { 1 } else { 0 })
     // Acquisition closure and call-slot preflight belong to the model owner,
     // not the pure operation obligation inventory.
     Infer(_) | Projection(_) => 0
@@ -472,6 +492,28 @@ pub fn operation_obligation_group_at(
   }
   Some(
     match operation {
+      Serialize(c) => {
+        if index == 0 {
+          return Some({ scope: Body, owner: SerializationOwner(c), })
+        }
+        let mut i = index - 1
+        if c.sort is Some(sort) {
+          if i == 0 {
+            return Some({ scope: Body, owner: RelationOwner(sort), })
+          }
+          i -= 1
+        }
+        if c.max_rows is Some(value) {
+          if i == 0 {
+            return Some({ scope: Body, owner: CountOwner(value), })
+          }
+          i -= 1
+        }
+        if i == 0 && c.max_bytes is Some(value) {
+          return Some({ scope: Body, owner: CountOwner(value), })
+        }
+        return None
+      }
       Infer(_) | Projection(_) => return None
       Unary(c) | WindowGroup(c) => { scope: Body, owner: RelationOwner(c), }
       Join(checked=c, ..) => { scope: Body, owner: JoinOwner(c), }

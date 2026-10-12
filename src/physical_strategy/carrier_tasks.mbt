@@ -363,7 +363,7 @@ fn carrier_segment_prefix_end(
     return None
   }
   if stage < graph.captured_prefix {
-    return None
+    return captured_keyed_segment_prefix_end(graph, stage, work)
   }
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let pipeline = @lower.pipeline(prepared)
@@ -378,6 +378,19 @@ fn carrier_segment_prefix_end(
       is @pipeline.Step(step) &&
       step < count - 1 {
       intermediate_result = true
+    }
+  }
+  // An installed Content child already owns generation inside a fused task.
+  // Split that task only when a checked intermediate Result requires its own
+  // retained completion; selected capability alone is not a reason to change
+  // an existing single-terminal realization or repeat its pure prefix.
+  if !intermediate_result {
+    for step in 0..<count {
+      carrier_work(work)
+      if @lower.node_at(prepared, step) is Some(node) &&
+        @lower.payload(node) is @lower.Serialize(_) {
+        return None
+      }
     }
   }
   if stage == 0 && !graph.source_free_root {
@@ -764,6 +777,110 @@ fn carrier_segment_prefix_end(
 }
 
 ///|
+/// A Direct scan/filter/select capture is not completion of a later keyed
+/// JOIN in the same authored Stage. Derive that boundary from the original
+/// requests, then use the existing selected-task and exact-port expansion.
+/// Other captured profiles retain their current whole-acquisition ownership.
+fn captured_keyed_segment_prefix_end(
+  graph : CheckedDAG,
+  stage : Int,
+  work : Ref[Int],
+) -> Int? raise CarrierWorkStop {
+  if graph.captured_prefix != 1 || stage != 0 {
+    return None
+  }
+  let identity = @checked.source_identity(graph.program)
+  guard @context.program_identity_stage_requests(identity, stage)
+    is Some(requests) else {
+    return None
+  }
+  let prepared = @lower.bound_preparation(graph.owners[stage])
+  let pipeline = @lower.pipeline(prepared)
+  let count = @pipeline.step_count(pipeline)
+  if count < 3 {
+    return None
+  }
+  let mut keyed : @checked.KeyedExecution? = None
+  for index in 0..<@checked.source_execution_count(graph.program) {
+    carrier_work(work)
+    let check = @checked.source_execution_at(graph.program, index).unwrap()
+    let subject = @checked.source_execution_subject(check)
+    if subject.stage == stage &&
+      @checked.source_execution_kind(check) is @checked.KeyedRequest(binding) &&
+      @acquisition.keyed_join_step(binding.join) == 2 &&
+      @acquisition.keyed_join_left(binding.join) == @pipeline.Step(1) {
+      if keyed is Some(_) || !physical_equal(subject.owner, identity) {
+        return None
+      }
+      keyed = Some(binding)
+    }
+  }
+  guard keyed is Some(_) &&
+    @lower.node_at(prepared, 0) is Some(first) &&
+    @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) else {
+    return None
+  }
+  // Reserve the derivation's complete edge/Result scan before calling it.
+  // Its refusal has no work getter, so charge the declared scan envelope on
+  // both success and refusal rather than silently refunding a failed scan.
+  carrier_work(work)
+  let mut derivation_work = 1
+  for step in 0..<count {
+    carrier_work(work)
+    derivation_work += 1
+    let inputs = @pipeline.input_occurrence_count(
+      @pipeline.step_at(pipeline, step).unwrap(),
+    )
+    carrier_work(work, amount=inputs)
+    derivation_work += inputs
+  }
+  guard @results.stage_at(@checked.checked_stage_results(graph.program), stage)
+    is Some(stage_results) else {
+    return None
+  }
+  let results = @ports.count(stage_results)
+  carrier_work(work, amount=results)
+  derivation_work += results
+  guard @acquisition.derive_query_acquisition(requests, source, derivation_work)
+    is Ok(acquisition) &&
+    physical_equal(
+      @acquisition.query_acquisition_pipeline(acquisition),
+      pipeline,
+    ) &&
+    @acquisition.query_acquisition_filter_index(acquisition) == 0 &&
+    @acquisition.query_acquisition_capture(acquisition) == @pipeline.Step(1) else {
+    return None
+  }
+  // Every later task must have an existing selected managed realization.
+  // The two acquisition operations keep their original fused capture owner.
+  for step in 2..<count {
+    carrier_work(work)
+    guard @lower.node_at(prepared, step) is Some(node) &&
+      carrier_node_supports_selected_execution(node, work) else {
+      return None
+    }
+    for port in 0..<@lower.node_input_count(node) {
+      carrier_work(work)
+      guard @lower.node_accepts_managed_relation_view(node, port) &&
+        @lower.node_input_target(node, port) is Some(target) &&
+        @lower.preparation_carrier_at(prepared, target) is Some(carrier) &&
+        @carrier.kind(carrier) == @carrier.RelationKind else {
+        return None
+      }
+      if target is @pipeline.Step(producer) &&
+        (producer < 1 || producer >= step) {
+        return None
+      }
+      if target is @pipeline.Input(input) &&
+        original_supplied_slot(graph, stage, input, work) is None {
+        return None
+      }
+    }
+  }
+  Some(1)
+}
+
+///|
 fn mapped_stage_target(
   tasks : Array[Array[Int]],
   stage : Int,
@@ -808,6 +925,38 @@ fn original_supplied_slot(
     carrier_work(work)
     if slot.consumer == stage && slot.input == input {
       return Some(slot)
+    }
+  }
+  // A keyed Source response becomes a supplied Relation input only after its
+  // original whole-key acquisition. This is a port requirement, not Local
+  // completeness or permission to skip Source evidence/authorization. Keep
+  // Direct acquisition roots out of this receiving-port inventory.
+  // Only the captured root can contain this initial keyed acquisition shape.
+  // Do not scan Source declarations on unrelated Compute ports: their input
+  // inventory and exact existing classification work remain unchanged.
+  if stage >= graph.captured_prefix ||
+    @pipeline.step_count(
+      @lower.pipeline(@lower.bound_preparation(graph.owners[stage])),
+    ) <
+    3 {
+    return None
+  }
+  for index in 0..<@checked.source_execution_count(graph.program) {
+    carrier_work(work)
+    let check = @checked.source_execution_at(graph.program, index).unwrap()
+    let subject = @checked.source_execution_subject(check)
+    if subject.stage == stage &&
+      subject.input == input &&
+      @checked.source_execution_kind(check) is @checked.KeyedRequest(binding) &&
+      binding.stage == stage &&
+      @acquisition.keyed_join_input(binding.join) == input &&
+      physical_equal(subject.owner, @checked.source_identity(graph.program)) {
+      return Some({
+        consumer: stage,
+        input,
+        source_input: input,
+        operation_input: None,
+      })
     }
   }
   None
@@ -964,6 +1113,11 @@ fn expand_internal_carrier_tasks_with_work(
       for slot in graph.supplied_slots {
         carrier_work(work)
         if slot.consumer == stage {
+          if stage < graph.captured_prefix {
+            // The checked keyed slot belongs to its later operation, never
+            // to the Direct capture that completes the prefix.
+            continue
+          }
           supplied_slots.push({ ..slot, consumer: prefix_task, })
         }
       }

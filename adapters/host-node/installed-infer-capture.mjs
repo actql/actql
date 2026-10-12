@@ -18,7 +18,10 @@ export async function readInstalledInferCapture({moon, control, store,
     const semanticCid = holding.manifest_cid;
     const bytes = await store.readPrivateEvidence(name, semanticCid, holdingCid);
     const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-    await store.confirmPrivateEvidence({name, semanticCid, holdingCid, wire});
+    if (await store.confirmPrivateEvidence({name, semanticCid, holdingCid, wire}) === undefined) {
+      throw Object.assign(new Error('InstalledInferCaptureUnavailable'),
+        {code: 'InstalledInferCaptureUnavailable'});
+    }
     signal?.throwIfAborted();
     return {wire, semanticCid};
   };
@@ -50,6 +53,14 @@ export async function readInstalledInferCapture({moon, control, store,
       leaves.push(checked(moon.strategyRunEvidenceAdmit(name, body.wire,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
     }
+    const attachmentCids = JSON.parse(adopted.wire).attachment_admission_cids;
+    let attachment;
+    if (attachmentCids.length !== 0) {
+      const body = await read('model_attachment_admission', slot);
+      attachment = checked(moon.strategyRunEvidenceAdmit('model_attachment_admission',
+        body.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    }
+    checked(moon.clientProgramVerifyInferAttachmentAdmission(records.at(-1), leaves[3], attachment));
     proofs.push(moon.clientProgramInferAttemptRecords(...leaves));
   }
   const captured = await read('model_capture_bundle', -1);

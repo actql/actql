@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -42,6 +42,8 @@ test('row source exposes exact read tuples for every declared view', async () =>
   assert.ok(installedSourceReadAccesses(adapter).every(access =>
     access.authorization === adapter.sourceAccess.authorization &&
     adapter.admitsSource(access.sourceRef)));
+  assert.throws(() => adapter.retainedCapture({}),
+    {code: 'InstalledSourcePreparationMismatch'});
   assert.deepEqual(installedSourceReadBindings(adapter),
     declared.views.map(view => view.source_ref));
   assert.throws(() => installedSourceReadAccesses({sourceReadAccesses: []}),
@@ -54,6 +56,28 @@ test('row source exposes exact read tuples for every declared view', async () =>
     sourceReadAccesses: [{...adapter.sourceReadAccesses[0],
       sourceRef: 'connector://foreign/r#v'}]}),
   {message: 'InvalidInstalledSourceReadAccesses'});
+});
+
+test('plural row operations are closed before any credential grant or page read', async () => {
+  const views = ['files', 'contents'].map(resource => ({resource, resource_kind: 'file',
+    fields: [{name: 'id', type: 'number', nullable: false}]}));
+  const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+    'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views}), undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  let grants = 0, reads = 0;
+  const options = {moon, declaration, declared, environmentWire: '{}', connectorId: 'fixture',
+    connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
+    site: {connection: 'fixture:files', issueReadGrant() { grants++; }, close() {}},
+    authorization: {authorize: async () => ({action: 'dispatch'}),
+      accountConfiguration: '{}', context: {contextCid: 'context'}},
+    physicalTarget: () => ({}), readPages: async () => { reads++; }, bindingCid: `sha256:${'a'.repeat(64)}`,
+    limits: {maxPages: 2, maxPageBytes: 1024, maxPageRows: 10, maxCaptureRows: 10}};
+  for (const readOperation of [undefined, '', [], {files: 'list'},
+    {files: 'list', contents: ''}, {files: 'list', contents: 'read', extra: 'read'}]) {
+    await assert.rejects(createInstalledRowSource({...options, readOperation}),
+      {code: 'InvalidInstalledRowSourceOperations'});
+  }
+  assert.equal(grants, 0); assert.equal(reads, 0);
 });
 
 test('checked row capture admits its exact ceiling and refuses one more',
@@ -96,17 +120,64 @@ test('checked row capture admits its exact ceiling and refuses one more',
       JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
     assert.equal(required.$tag, 1, inspect(required, {depth: 4}));
     const requirement = checked(required);
-    const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
-      declaration, requirement, queryContract, evidenceContract));
+    const acquired = moon.clientProgramRowSourcePrepareAcquisition(
+      declaration, requirement, queryContract, evidenceContract);
+    assert.equal(acquired.$tag, 1, inspect(acquired, {depth: 12}));
+    const acquisition = checked(acquired);
+    assert.equal(checked(moon.clientProgramRowSourceRequestWire(acquisition)),
+      '{}');
     const page = Buffer.from('[{"id":1},{"id":2}]', 'utf8');
     const exact = checked(moon.clientProgramRowSourceStart(
       acquisition, 'exact', () => true));
+    const binding = 'row-capture/original-run/task-0/input-0';
+    let exported;
     try {
       checked(moon.clientProgramRowSourceBegin(exact, 1024, 2, 2));
       assert.equal(checked(moon.clientProgramRowSourceAcceptPage(exact, page)), 2);
       checked(moon.clientProgramRowSourceFinish(exact));
-      assert.ok(checked(moon.clientProgramRowSourceCapture(exact)));
+      const captured = checked(moon.clientProgramRowSourceCapture(exact));
+      const source = checked(moon.clientProgramRowSourceCaptureSource(captured));
+      exported = checked(moon.clientProgramExportSourceCapture(source, requirement, binding));
     } finally { moon.clientProgramRowSourceClose(exact); }
+    // A closed physical RowRun is restored through the common Source owner,
+    // using its checked acquisition capacity, not a DuckDB-shaped substitute.
+    const capacity = moon.clientProgramInstalledRowCaptureCapacity(acquisition);
+    assert.ok(capacity);
+    const saved = [moon.clientProgramSourceCaptureExportRequirement(exported),
+      binding, binding, moon.clientProgramSourceCaptureExportDescriptor(exported),
+      moon.clientProgramSourceCaptureExportRows(exported)];
+    assert.deepEqual(saved[4], ['{"id":1}', '{"id":2}']);
+    assert.throws(() => checked(moon.clientProgramRestoreSourceCapture(requirement,
+      ...saved, undefined, capacity, () => false)), {code: 'MoonBitHostFailure'});
+    const foreignProgram = moon.clientProgramPrepareEffectFree(
+      document.replace('capture-limit', 'foreign-capture'), 'json', checkedEnvironment);
+    assert.ok(foreignProgram);
+    const foreignRequirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+      foreignProgram, 0, 0, registry,
+      JSON.stringify(aoa.execution_contracts['REL.values']),
+      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    assert.notEqual(moon.clientProgramQueryRequirementCid(foreignRequirement),
+      moon.clientProgramQueryRequirementCid(requirement));
+    const foreignAcquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
+      declaration, foreignRequirement, queryContract, evidenceContract));
+    assert.throws(() => checked(moon.clientProgramRestoreSourceCapture(requirement,
+      ...saved, undefined, moon.clientProgramInstalledRowCaptureCapacity(foreignAcquisition),
+      () => true)), {code: 'MoonBitHostFailure'});
+    const restored = checked(moon.clientProgramRestoreSourceCapture(requirement,
+      ...saved, undefined, capacity, () => true));
+    try {
+      const source = moon.clientProgramSourceCaptureSource(restored);
+      assert.ok(source);
+      const again = checked(moon.clientProgramExportSourceCapture(source, requirement, binding));
+      assert.deepEqual(moon.clientProgramSourceCaptureExportRows(again), saved[4]);
+      assert.equal(moon.clientProgramSourceCaptureExportDescriptor(again), saved[3]);
+      assert.ok(moon.clientProgramSourceCaptureUsage(restored).some(value => value > 0n));
+    } finally { assert.equal(moon.clientProgramCloseSourceCapture(restored), true); }
+    assert.equal(moon.clientProgramSourceCaptureCleanupPending(restored), false);
+    assert.deepEqual(moon.clientProgramSourceCaptureUsage(restored), [0n, 0n, 0n]);
+    assert.equal(moon.clientProgramSourceCaptureSource(restored), undefined);
+    assert.equal(moon.clientProgramCloseSourceCapture(restored), true);
     const oneShort = checked(moon.clientProgramRowSourceStart(
       acquisition, 'one-short', () => true));
     try {
@@ -120,6 +191,68 @@ test('checked row capture admits its exact ceiling and refuses one more',
       assert.throws(() => checked(moon.clientProgramRowSourceCapture(oneShort)),
         {code: 'MoonBitHostFailure'});
     } finally { moon.clientProgramRowSourceClose(oneShort); }
+  });
+
+test('row acquisition exposes the actual bound Request without normalizing selectors',
+  async () => {
+    const read = name => readFile(new URL(`../../${name}`, import.meta.url), 'utf8');
+    const schemaWire = '{"id":{"nullable":false,"type":"number"}}';
+    // The expectation is an authored canonical field map, hashed independently
+    // of the product declaration and Request encoder.
+    const schemaCid = `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
+    const requestSchema = {type: 'object', nullable: false,
+      additional_properties: false, fields: {
+        paths: {type: 'array', nullable: true, max_items: 8,
+          items: {type: 'string', nullable: false}},
+        glob: {type: 'string', nullable: true},
+        prefix: {type: 'string', nullable: false},
+      }};
+    const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+      'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views: [{
+        resource: 'files', resource_kind: 'file', schema_wire: schemaWire,
+        schema_cid: schemaCid, request_schema_wire: JSON.stringify(requestSchema),
+        facts_wire: '{}',
+      }]}), undefined));
+    const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+    const environment = rowSourceCheckEnvironment(
+      (await read('spec/local-check-environment.json')).trimEnd(), declared);
+    const checkedEnvironment = moon.clientProgramCheckEnvironment(
+      environment.wire, environment.evidenceCid,
+      false, false, true, false, false, false, false);
+    assert.ok(checkedEnvironment);
+    const [registry, aoa, queryContract, evidenceContract] = await Promise.all([
+      read('spec/dependencies/aoa-pipeline-registry.json'),
+      read('spec/contracts/actql-aoa.json').then(JSON.parse),
+      read('spec/contracts/actql-query-acquisition.json'),
+      read('spec/contracts/actql-query-process-evidence.json'),
+    ]);
+    for (const selector of [
+      {paths: ['é.pdf', 'e\u0301.pdf'], glob: null},
+      {paths: [], glob: null},
+      {paths: null, glob: 'a\\?.pdf'},
+    ]) {
+      const document = JSON.stringify({version: 'actql/0.1', id: 'request-data',
+        params: {prefix: {type: 'string', nullable: false}},
+        stages: [{id: 'scan', inputs: {remote: {
+          connector: 'fixture', resource: 'files',
+          request: {...selector, prefix: {$param: 'prefix'}},
+        }}, steps: [{filter: 'id >= 0', as: 'filtered'},
+          {select: ['id'], as: 'output'}],
+        results: {r: {from: 'output', fields: ['id']}}}],
+        results: {r: {from: {stage: 'scan', result: 'r'}}}});
+      const preparation = moon.clientProgramPrepareEffectFreeWithParameters(
+        document, 'json', checkedEnvironment, JSON.stringify({prefix: 'e\u0301/%2F/'}));
+      const prepared = moon.clientProgramPreparationReady(preparation);
+      assert.ok(prepared, inspect(moon.clientProgramPreparationIssue(preparation), {depth: 12}));
+      const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+        prepared, 0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
+        JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+        JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+      const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
+        declaration, requirement, queryContract, evidenceContract));
+      assert.deepEqual(JSON.parse(checked(moon.clientProgramRowSourceRequestWire(acquisition))),
+        {...selector, prefix: 'e\u0301/%2F/'});
+    }
   });
 
 test('the row source Site refuses an undeclared response header before any credential use',

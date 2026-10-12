@@ -43,6 +43,26 @@ export function modelAttemptEvidenceSchemas() {
   // replay. Every new delegated send semantically requires this exact scope.
   authority.properties.model_invocation_scope_cid = cid;
   return {
+    model_attachment_admission: schema('model_attachment_admission', {
+      slot_cid: cid, model_task_cid: cid, fixed_request_cid: cid,
+      authority_evidence_cid: cid,
+      attachments: {type: 'array', minItems: 1, items: {
+        type: 'object', additionalProperties: false,
+        required: ['role', 'item', 'content_ref_cid', 'content_cid',
+          'media_input_cid', 'policy_cid', 'media_type', 'size_bytes',
+          'classification', 'region', 'egress_scope_cid', 'pages', 'frames',
+          'complete', 'transfer_method'],
+        properties: {
+          role: text, item: {...count, minimum: -1},
+          content_ref_cid: cid, content_cid: cid, media_input_cid: cid,
+          policy_cid: cid, media_type: text, size_bytes: count,
+          classification: text, region: text, egress_scope_cid: cid,
+          pages: {anyOf: [{...count, minimum: 1}, {type: 'null'}]},
+          frames: {anyOf: [{...count, minimum: 1}, {type: 'null'}]},
+          complete: {const: true}, transfer_method: {const: 'inline_bytes'},
+        },
+      }},
+    }),
     model_dispatch_authority: authority,
     model_call_attempt: schema('model_call_attempt', {
       slot_cid: cid, run_definition_cid: cid, model_task_cid: cid,

@@ -17,6 +17,8 @@ pub(all) enum RowHostIssue {
   Consumer(@query.CapturedSourceIssue)
   SourceEvidence(RowSourceEvidenceIssue)
   Physical(@resources.LedgerIssue)
+  Residual(@connector.FixedComputeIssue)
+  ResidualWork(@local.ManagedProviderWorkIssue)
   InvalidState
 }
 
@@ -132,9 +134,13 @@ pub fn row_source_target(
 priv struct RowHostConfiguration {
   contracts : @planning.QueryEvidenceContracts
   requirement : @planning.QueryRequirement
-  choice : @planning.AcquisitionChoice
-  candidate : @planning.PreparedAcquisition[RowSourcePreparation]
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement]
+  candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
+    RowSourcePreparation,
+  ]
   limits : RowCompletionLimits
+  listing_rows : RowListingRows?
 }
 
 ///|
@@ -159,6 +165,7 @@ pub fn prepare_row_acquisition(
   requirement : @planning.QueryRequirement,
   query_contract_body : String,
   evidence_contract_body : String,
+  listing_policy? : @capacity.Policy? = None,
 ) -> Result[RowAcquisition, RowHostIssue] {
   let preparation = match prepare_row_source(requirement, declaration) {
     Ok(value) => value
@@ -169,6 +176,7 @@ pub fn prepare_row_acquisition(
     declaration.connector_registration,
     query_contract_body,
     evidence_contract_body,
+    listing_policy~,
   )
 }
 
@@ -180,7 +188,13 @@ pub fn prepare_declared_row_acquisition(
   connector_registration : String,
   query_contract_body : String,
   evidence_contract_body : String,
+  listing_policy? : @capacity.Policy? = None,
 ) -> Result[RowAcquisition, RowHostIssue] {
+  let listing_rows = match
+    resolve_row_listing_rows(preparation, listing_policy) {
+    Ok(value) => value
+    Err(issue) => return Err(Source(issue))
+  }
   let requirement = preparation.requirement
   guard admit_contract(query_contract_body) is Some(query_contract) &&
     admit_contract(evidence_contract_body) is Some(evidence_contract) &&
@@ -254,6 +268,7 @@ pub fn prepare_declared_row_acquisition(
       requirement,
       choice,
       candidate,
+      listing_rows,
       limits: {
         execution: {
           rows: {
@@ -307,20 +322,48 @@ pub fn row_acquisition_columns(value : RowAcquisition) -> Array[String] {
 }
 
 ///|
+/// The selected Source's actual parameter-bound Request. It is not a separate
+/// selector interpretation, new authority or proof of acquisition completion.
+pub fn row_acquisition_request_wire(
+  value : RowAcquisition,
+) -> Result[String, RowHostIssue] {
+  let limits = value.configuration.limits.records
+  @sourcequery.parameterized_request_wire(
+    value.preparation.request,
+    limits.max_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ).map_err(issue => Source(RequestEncoding(issue)))
+}
+
+///|
 /// The selected capture's canonical row-wire allowance. This is an upper
 /// bound for the simultaneously retained scan and output, not a heap estimate.
 pub fn row_acquisition_retained_capacity(value : RowAcquisition) -> Int64 {
-  value.configuration.limits.retention.retained_wire_bytes.to_int64()
+  let (original, _) = row_original_input_capacity()
+  value.configuration.limits.retention.retained_wire_bytes.to_int64() + original
 }
 
 ///|
 /// The selected capture's bounded parse, residual and evidence allowance.
 pub fn row_acquisition_execution_capacity(value : RowAcquisition) -> Int64 {
   let limits = value.configuration.limits
+  let (_, original) = row_original_input_capacity()
   (limits.retention.received_wire_bytes +
   limits.retention.retained_wire_bytes +
+  // The parameter-bound driver Request stays live through transport and may
+  // overlap the completion/evidence record writer. Reserve both before I/O.
   limits.records.max_bytes +
-  limits.capture.max_bytes).to_int64()
+  limits.records.max_bytes +
+  limits.capture.max_bytes).to_int64() +
+  (if value.configuration.listing_rows is Some(rows) {
+    // The immutable witness/limit records, parsed claims and admission writer
+    // can overlap. Reserve their bounded representations before transport.
+    @environment.file_listing_rows_record_capacity(rows.resolved)
+  } else {
+    0L
+  }) +
+  original
 }
 
 ///|
@@ -331,13 +374,41 @@ pub fn row_acquisition_requirement(
 }
 
 ///|
+/// The selected Catalog declaration, not a driver-supplied listing flag.
+pub fn row_acquisition_is_listing(value : RowAcquisition) -> Bool {
+  value.preparation.file_listing is Some(_)
+}
+
+///|
+/// Includes the typed empty exact-path selection before any Site request.
+pub fn row_run_listing_complete(run : RowRun) -> Bool {
+  !run.closed &&
+  run.attempt.state is Reading(read) &&
+  read.listing is Some(progress) &&
+  progress.complete
+}
+
+///|
 struct RowRun {
-  configuration : RowHostConfiguration
-  issuer : RowIssuer
+  configuration : RowRunConfiguration
+  issuer : RowRunIssuer
   attempt : RowAttempt
   mut closed : Bool
   mut physical : RowPhysical?
   mut page_charge : RowPageCharge?
+  mut residual : RowCaptureResidual?
+}
+
+///|
+priv enum RowRunConfiguration {
+  DirectConfiguration(RowHostConfiguration)
+  KeyedConfiguration(RowKeyedAcquisition)
+}
+
+///|
+priv enum RowRunIssuer {
+  DirectIssuer(RowIssuer)
+  KeyedIssuer(RowKeyedIssuer)
 }
 
 ///|
@@ -345,6 +416,7 @@ struct RowRun {
 /// Admission consumes this ticket once; it carries no parallel resource owner.
 struct RowPageCharge {
   owner : RowAttempt
+  received_bytes : Int64
   mut consumed : Bool
 }
 
@@ -355,6 +427,8 @@ priv struct RowPhysical {
   execution_scratch : Int64
   mut holding : @resources.Holding?
   mut dag : (@strategy.CapturedDAG, Int)?
+  // Keep keyed transport cleanup authority after invalidating issuer access.
+  mut cleanup_confirmed : (() -> Bool)?
 }
 
 ///|
@@ -392,12 +466,17 @@ pub fn start_row_acquisition(
     }
   }
   Ok({
-    configuration,
-    issuer,
-    attempt: { preparation, authority: { issuer, token, }, state: Pending, },
+    configuration: DirectConfiguration(configuration),
+    issuer: DirectIssuer(issuer),
+    attempt: {
+      preparation: DirectPreparation(preparation),
+      authority: DirectAuthority({ issuer, token, }),
+      state: Pending,
+    },
     closed: false,
     physical: None,
     page_charge: None,
+    residual: None,
   })
 }
 
@@ -422,12 +501,41 @@ pub fn start_accounted_row_acquisition(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  attach_row_reservation(
+    run,
+    ledger,
+    transfer_bytes,
+    row_acquisition_retained_capacity(value),
+    row_acquisition_execution_capacity(value),
+    execution_scratch,
+  )
+}
+
+///|
+/// Both checked acquisition profiles attach to this same reservation and
+/// cleanup owner. No profile has a second transfer/retention ledger.
+fn attach_row_reservation(
+  run : RowRun,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  execution_scratch : Int64,
+) -> Result[RowRun, RowHostIssue] {
+  if transfer_bytes < 0L ||
+    retained_bytes < 0L ||
+    execution_bytes < 0L ||
+    execution_scratch < 0L ||
+    execution_scratch > 9223372036854775807L - execution_bytes {
+    close_row_run(run)
+    return Err(Physical(InvalidLimits))
+  }
   let reservation = match
     @resources.reserve_attempt(
       ledger,
       transfer_bytes,
-      row_acquisition_retained_capacity(value),
-      row_acquisition_execution_capacity(value) + execution_scratch,
+      retained_bytes,
+      execution_bytes + execution_scratch,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -441,6 +549,7 @@ pub fn start_accounted_row_acquisition(
     execution_scratch,
     holding: None,
     dag: None,
+    cleanup_confirmed: None,
   })
   Ok(run)
 }
@@ -457,6 +566,7 @@ pub fn begin_row_run(
   max_page_bytes : Int,
   max_page_rows : Int,
   max_capture_rows : Int,
+  reference_issuer? : @admitted.ReferenceIssuer? = None,
 ) -> Result[Unit, RowHostIssue] {
   if run.closed {
     return Err(InvalidState)
@@ -466,10 +576,14 @@ pub fn begin_row_run(
     return Err(Physical(InvalidCharge))
   }
   let attempt = run.attempt
-  guard attempt.state is Pending else { return Err(InvalidState) }
+  guard attempt.state is Pending &&
+    attempt.preparation is DirectPreparation(preparation) &&
+    run.configuration is DirectConfiguration(configuration) else {
+    return Err(InvalidState)
+  }
   match
     begin_row_source_read(
-      attempt.preparation,
+      preparation,
       {
         max_bytes: max_page_bytes,
         max_nodes: 400000,
@@ -483,6 +597,8 @@ pub fn begin_row_run(
         max_depth: 100,
         max_work: 20000000,
       },
+      reference_issuer~,
+      listing_rows=configuration.listing_rows,
     ) {
     Ok(read) => {
       attempt.state = Reading(read)
@@ -528,7 +644,11 @@ pub fn charge_row_run_page(
     abort_row_run(run)
     return Err(Source(InvalidPage))
   }
-  let charge = { owner: run.attempt, consumed: false, }
+  let charge = {
+    owner: run.attempt,
+    received_bytes: body.length().to_int64(),
+    consumed: false,
+  }
   run.page_charge = Some(charge)
   Ok(charge)
 }
@@ -595,6 +715,91 @@ pub fn accept_charged_row_run_page(
 }
 
 ///|
+/// Record an actual listing request before dispatch. A retry is another attempt
+/// on the same read and cannot reset its cumulative counters or cursor.
+pub fn begin_row_run_listing_request(
+  run : RowRun,
+  token : String?,
+  elapsed_ms : Int64,
+) -> Result[Unit, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(read) else {
+    return Err(InvalidState)
+  }
+  match begin_row_listing_request(read, token, elapsed_ms) {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      abort_row_run(run)
+      Err(Source(issue))
+    }
+  }
+}
+
+///|
+/// Receive the listing protocol envelope, charging its actual physical body
+/// once through the existing ledger before bounded decoding and row admission.
+pub fn begin_row_run_listing_page(
+  run : RowRun,
+  body : Bytes,
+  elapsed_ms : Int64,
+) -> Result[Unit, RowHostIssue] {
+  let charge = match charge_row_run_page(run, body) {
+    Ok(charge) => charge
+    Err(issue) => return Err(issue)
+  }
+  begin_charged_row_run_listing_page(run, charge, body, elapsed_ms)
+}
+
+///|
+/// Consume this exact attempt's physical-body ticket once. The envelope is
+/// the full listing envelope, never a connector's successful/selected prefix.
+/// A provider decoder may translate the envelope, but physical accounting uses
+/// the original received byte count owned by this ticket.
+pub fn begin_charged_row_run_listing_page(
+  run : RowRun,
+  charge : RowPageCharge,
+  body : Bytes,
+  elapsed_ms : Int64,
+) -> Result[Unit, RowHostIssue] {
+  match consume_row_page_charge(run, charge) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard run.attempt.state is Reading(read) else { return Err(InvalidState) }
+  match
+    begin_row_source_listing_page(
+      read,
+      body,
+      elapsed_ms,
+      received_bytes=charge.received_bytes,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      abort_row_run(run)
+      Err(Source(issue))
+    }
+  }
+}
+
+///|
+/// Resume common selection and admission without charging the page again.
+pub fn advance_row_run_listing_page(
+  run : RowRun,
+  quantum : Int,
+  elapsed_ms : Int64,
+) -> Result[RowListingPagePoll, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(read) else {
+    return Err(InvalidState)
+  }
+  match advance_row_source_listing_page(read, quantum, elapsed_ms) {
+    Ok(value) => Ok(value)
+    Err(issue) => {
+      abort_row_run(run)
+      Err(Source(issue))
+    }
+  }
+}
+
+///|
 /// The driver read every page the provider stated: close admission. The
 /// attempt then awaits settlement of its physical transport.
 pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
@@ -605,7 +810,12 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
     abort_row_run(run)
     return Err(Physical(InvalidCharge))
   }
-  match finish_row_source_read(read) {
+  let finished = if read.keyed is Some(_) {
+    complete_keyed_row_read(read)
+  } else {
+    finish_row_source_read(read)
+  }
+  match finished {
     Ok(scan) => {
       run.attempt.state = AwaitingCleanup(scan)
       Ok(())
@@ -619,6 +829,12 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
 
 ///|
 pub fn abort_row_run(run : RowRun) -> Unit {
+  if run.residual is Some(residual) {
+    @local.cancel_managed_provider(
+      @local.guarded_relation_execution(residual.execution),
+    )
+    |> ignore
+  }
   if run.page_charge is Some(charge) {
     charge.consumed = true
     run.page_charge = None
@@ -630,7 +846,12 @@ pub fn abort_row_run(run : RowRun) -> Unit {
 pub fn close_row_run(run : RowRun) -> Unit {
   if !run.closed {
     abort_row_run(run)
-    @planning.close_query_evidence_registration(run.issuer.registration)
+    match run.issuer {
+      DirectIssuer(issuer) =>
+        @planning.close_query_evidence_registration(issuer.registration)
+      KeyedIssuer(issuer) =>
+        @planning.close_query_evidence_registration(issuer.registration)
+    }
     run.closed = true
   }
 }
@@ -641,6 +862,30 @@ pub fn close_row_run(run : RowRun) -> Unit {
 pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
   guard run.physical is Some(physical) else { return Err(InvalidState) }
   close_row_run(run)
+  match cleanup_row_capture(run) {
+    Ok(true) => ()
+    Ok(false) => {
+      if @resources.reservation_open(physical.reservation) {
+        match
+          @resources.mark_cleanup_pending(physical.ledger, physical.reservation) {
+          Ok(_) => ()
+          Err(issue) => return Err(Physical(issue))
+        }
+      }
+      return Err(InvalidState)
+    }
+    Err(issue) => return Err(issue)
+  }
+  if physical.cleanup_confirmed is Some(confirm) && !confirm() {
+    if @resources.reservation_open(physical.reservation) {
+      match
+        @resources.mark_cleanup_pending(physical.ledger, physical.reservation) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+    }
+    return Err(Evidence(UnverifiedTransport))
+  }
   if physical.dag is Some((dag, task)) {
     @strategy.close_captured_task_output(dag, task)
     @strategy.refresh_captured_retention(dag)
@@ -670,15 +915,44 @@ struct RowSourceCapture {
 
 ///|
 pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
-  if run.closed {
+  guard !run.closed &&
+    run.issuer is DirectIssuer(issuer) &&
+    run.configuration is DirectConfiguration(configuration) else {
     return Err(InvalidState)
   }
   let observation = match
-    complete_row_capture(run.issuer, run.attempt, run.configuration.limits) {
+    (match run.residual {
+      Some(residual) => {
+        guard row_capture_input_live(run, residual.receipt) &&
+          @local.guarded_relation_completed_output(residual.execution)
+          is Some(output) else {
+          return Err(InvalidState)
+        }
+        let query = @planning.query_material_owner(
+          @planning.query_requirement_material(configuration.requirement),
+        )
+        let scan = @query.query_receipt_rows(residual.receipt)
+        if !(@execution.completed_output_matches_captured_inputs(output, [scan]) ||
+          @execution.completed_acquisition_matches_captured_input(
+            output,
+            @query.query_generated_sequence(query),
+            scan,
+          )) {
+          return Err(InvalidState)
+        }
+        complete_row_capture_output(
+          issuer,
+          run.attempt,
+          output,
+          configuration.limits,
+        )
+      }
+      None => complete_row_capture(issuer, run.attempt, configuration.limits)
+    }) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  let source = match row_captured_source(run.issuer, run.attempt, observation) {
+  let source = match row_captured_source(issuer, run.attempt, observation) {
     Ok(value) => value
     Err(issue) => return Err(Consumer(issue))
   }
@@ -734,6 +1008,33 @@ pub fn row_capture_source(
     return Err(Unavailable)
   }
   Ok(capture.source)
+}
+
+///|
+/// Borrow the original admitted scan, not the acquisition's filtered/projected
+/// output. Both remain in this RowRun's custody until its normal cleanup. This
+/// port cannot issue Source evidence or substitute another captured input.
+pub fn row_capture_original_read(
+  capture : RowSourceCapture,
+) -> @execution.SuppliedRelationRead? {
+  guard row_capture_source(capture) is Ok(_) &&
+    capture.run.residual is Some(residual) &&
+    capture.run.configuration is DirectConfiguration(configuration) else {
+    return None
+  }
+  let query = @planning.query_material_owner(
+    @planning.query_requirement_material(configuration.requirement),
+  )
+  match
+    @execution.prepare_supplied_relation_read(
+      @query.query_sequence_owner(query),
+      @query.query_receipt_input_index(query),
+      @query.query_receipt_rows(residual.receipt),
+      fn() { row_capture_source(capture) is Ok(_) },
+    ) {
+    Ok(read) => Some(read)
+    Err(_) => None
+  }
 }
 
 ///|

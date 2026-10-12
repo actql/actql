@@ -1062,6 +1062,34 @@ pub fn graph_stage_target_task(
 }
 
 ///|
+/// Resolve an operation inside a physical task, not an independently completed
+/// Result target. An unsplit sequence or fused prefix may contain the operation
+/// before its terminal output. This does not authorize borrowing that output.
+pub fn graph_stage_operation_task(
+  graph : CheckedDAG,
+  stage : Int,
+  step : Int,
+) -> Int? {
+  guard @checked.unit_pipeline(graph.program, stage) is Some(pipeline) &&
+    step >= 0 &&
+    step < @pipeline.step_count(pipeline) &&
+    mapped_stage_target(graph.stage_tasks, stage, @pipeline.Step(step))
+    is Some(task) &&
+    graph.owners.get(task) is Some(owner) &&
+    physical_equal(@lower.pipeline(@lower.bound_preparation(owner)), pipeline) else {
+    return None
+  }
+  match graph.selected_steps[task] {
+    Some(selected) => if selected != step { return None }
+    None =>
+      if graph.prefix_ends[task] is Some(last) && step > last {
+        return None
+      }
+  }
+  Some(task)
+}
+
+///|
 /// Number of checked acquisition tasks preceding all Compute tasks.
 /// The two-source profile never expands or interleaves its acquisition Stages.
 pub fn graph_captured_prefix(graph : CheckedDAG) -> Int {
