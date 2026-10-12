@@ -187,6 +187,9 @@ pub fn model_execution_attempt_evidence(
   if execution.state.reclaimed {
     return Err(OutputIdentity)
   }
+  if check_model_original_resources_mutable(execution.state) is Err(issue) {
+    return Err(issue)
+  }
   try {
     let attempt_cid = @publication.run_evidence_value_identity(trace.attempt)
     let slot_cid = @publication.run_evidence_value_identity(trace.call)

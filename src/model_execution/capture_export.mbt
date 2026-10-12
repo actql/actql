@@ -80,6 +80,9 @@ pub fn start_model_call_settlement_export(
   value : ModelCallSettlement,
   limits : ModelCaptureExportLimits,
 ) -> Result[ModelCaptureExport, ModelExecutionIssue] {
+  if check_model_original_resources_mutable(value.owner.state) is Err(issue) {
+    return Err(issue)
+  }
   guard model_call_settlement_slot(value) is Some(slot) &&
     value.owner.state.outcomes.get(slot) is Some(outcome) &&
     value.owner.state.output_uses < 2147483647 else {
@@ -300,6 +303,9 @@ pub fn advance_model_capture_export(
   active : ModelCaptureExport,
   quantum : Int,
 ) -> Result[(Bool, String, Int64), ModelExecutionIssue] {
+  if check_model_original_resources_mutable(active.state.owner.state) is Err(issue) {
+    return Err(issue)
+  }
   match @bounded.advance(active.session, active.token, quantum) {
     Err(issue) => Err(Session(issue))
     Ok(@bounded.ContinueWith(token, work~, ..)) => {
@@ -337,6 +343,9 @@ pub fn model_capture_export_response_pending(
 
 ///|
 pub fn cancel_model_capture_export(active : ModelCaptureExport) -> Bool {
+  if check_model_original_resources_mutable(active.state.owner.state) is Err(_) {
+    return false
+  }
   if active.accepted ||
     active.reclaimed ||
     @bounded.session_stopped(active.session) {
@@ -351,6 +360,9 @@ pub fn cleanup_model_capture_export(
 ) -> Result[Bool, ModelExecutionIssue] {
   if active.reclaimed {
     return Ok(true)
+  }
+  if check_model_original_resources_mutable(active.state.owner.state) is Err(issue) {
+    return Err(issue)
   }
   if !@bounded.session_stopped(active.session) {
     return Ok(false)
