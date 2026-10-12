@@ -24,7 +24,7 @@ test "adopted temporal calls reach existing two-input Owners without argument su
     let actual = @frontend.lower(temporal_join_source(call), Sql, Some({..pair_context(), inputs:[]})).unwrap().program.unwrap()
     event_window_common_checked(actual)
     let actual_body = with_carrier_argument(actual, operation)
-    let physical = actual_body.split("\"with\":\"")[1].split("\"")[0]
+    let physical = actual_body.split("\"with\":\"").collect()[1].split("\"").collect()[0].to_owned()
     assert_eq(actual_body.replace(old=physical,new="r"), with_carrier_argument(control, operation))
   }
 }
