@@ -71,7 +71,7 @@ fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
     "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
-    "session", "events", "watermark_rows",
+    "session", "events", "watermark_rows", "lag",
   ].contains(name)
 }
 
@@ -240,6 +240,7 @@ fn lower_script_carrier_calls(
       "to_events" => ["id", "time"]
       "row_window" | "watermark_rows" => ["time"]
       "dedupe_events" => ["by"]
+      "lag" => ["partition_by", "field"]
       "session" =>
         if carrier is @carrier.Relation(_) {
           ["id", "time", "by"]
@@ -258,6 +259,7 @@ fn lower_script_carrier_calls(
       "watermark_events" => ["watermark_ms", "policy"]
       "watermark_rows" => ["time", "late_policy", "watermark_ms", "max_skew"]
       "dedupe_events" => ["by", "order_by"]
+      "lag" => ["partition_by", "order_by", "field", "output", "offset"]
       _ => []
     }
     // Optional pool roles are preserved as authored. The common pool owner
@@ -269,6 +271,8 @@ fn lower_script_carrier_calls(
       ["kind", "time", "size"]
     } else if call.operation == "window_events" {
       ["kind", "size"]
+    } else if call.operation == "lag" {
+      ["partition_by", "order_by", "field", "output"]
     } else if call.operation == "watermark_rows" {
       // The common watermark owner checks exactly one threshold source.
       // Never choose precedence or synthesize a threshold in the frontend.
@@ -299,7 +303,7 @@ fn lower_script_carrier_calls(
               input,
               sources,
             )
-          } else if call.operation == "dedupe_events" &&
+          } else if ["dedupe_events", "lag"].contains(call.operation) &&
             argument.0 == "order_by" {
             script_carrier_order(
               construction,

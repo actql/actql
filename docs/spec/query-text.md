@@ -1510,6 +1510,7 @@ output_id: name)`, `vectors()`, `to_events(id: field, time: field)`,
 `window_events(kind: string, size: value, step: value?, offset: value?)`,
 `watermark_events(watermark_ms: number, policy: string)`,
 `watermark_rows(time: field, late_policy: string, watermark_ms: value?, max_skew: value?)`,
+`lag(partition_by: [fields], order_by: [OrderKeys], field: field, output: name, offset: value?)`,
 `dedupe_events(by: [fields], order_by: [OrderKeys])`, `session(by:
 [fields], gap: string)` and `events()` to their existing common operations.
 Relation-input session additionally requires its existing `id` and `time`
@@ -1519,6 +1520,21 @@ Vectors/Events retain their Carrier across bindings; only an explicit common
 bridge supplies rows to ordinary Relation operators. Full four-Carrier public
 execution remains a separate acceptance obligation. A typed producer is not an
 invented external Source alias or a row schema inferred by the frontend.
+
+The named `lag` Pipe call uses the existing relational navigation contract;
+it is distinct from scalar `LAG(...) OVER (...)`. `partition_by` and `field`
+resolve current visible FieldRefs. Partition fields retain authored order and
+repetitions, including an empty list. `order_by` accepts the shared shorthand
+or closed field/dir/nulls OrderKeys and must be nonempty. `output` is an
+OutputName: bare reserved words are rejected, quoted names remain available.
+The optional positive safe-integer `offset` or whole Parameter is passed
+unchanged; omission retains the common default of one. The common checker
+requires candidate-key completion of calculation order independently of the
+input or published sequence. It rejects collisions, invalid counts and invalid
+order. Navigation adds a nullable column with the input field's value type;
+missing predecessors and NULL field values remain NULL. No frontend key proof,
+order evidence or execution owner is synthesized. These source connections do
+not by themselves establish public Host execution.
 
 The `watermark_rows` call preserves Relation input and the existing
 [relational watermark contract](language.md#relational-temporal). Its `time`
