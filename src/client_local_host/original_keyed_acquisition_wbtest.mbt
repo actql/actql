@@ -108,7 +108,7 @@ fn original_keyed_declaration_environment() -> (
     "{\"max_network_attempts_per_request\":3,\"max_request_bytes_per_attempt\":4096,\"max_total_decoded_response_bytes\":32768,\"max_total_duration_ms\":30000,\"max_total_request_bytes\":32768,\"max_total_response_bytes\":32768,\"version\":\"actql-lookup-execution-policy/0.1\"}",
   )
   let wire = @identity.stringify_value(
-    @identity.from_json(parsed, 1000000, 100000, 100),
+    @identity.from_json(parsed, 100000, 100, 1000000),
     1000000,
     100000,
     100,
@@ -118,7 +118,7 @@ fn original_keyed_declaration_environment() -> (
   (
     declaration,
     @identity.stringify_value(
-      @identity.from_json(parsed, 1000000, 100000, 100),
+      @identity.from_json(parsed, 100000, 100, 1000000),
       1000000,
       100000,
       100,
