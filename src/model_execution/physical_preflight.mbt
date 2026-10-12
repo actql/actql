@@ -258,6 +258,17 @@ fn advance_model_physical_preflight(
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => @bounded.Continue(1, 1)
     Ok(Some(plan)) => {
+      guard state.source is Provider(provider) else {
+        return @bounded.Failed(InvalidProvider, 1, 1)
+      }
+      match (provider.invocation, plan.invocation) {
+        (SynchronousFixture(_), Synchronous(_)) => ()
+        (AsynchronousPhysical, Asynchronous(_)) =>
+          if !state.durable_calls || plan.response_profile is None {
+            return @bounded.Failed(InvalidProvider, 1, 1)
+          }
+        _ => return @bounded.Failed(InvalidProvider, 1, 1)
+      }
       if !physical_equal(plan.request, request) {
         return @bounded.Failed(RequestIdentity, 1, 1)
       }
