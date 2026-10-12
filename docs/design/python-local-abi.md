@@ -1651,3 +1651,13 @@ admits a Submission, persists a Run, reserves dispatch, starts Compute, cancels
 a Run or commits publication. The Host must still connect the complete original
 issuance/count inventory, authenticated epoch, same-Store transaction and actual
 saved-row readmission before exposing a public accepted operation.
+
+The shared original Run-row decoder validates the closed retained shape,
+request identity, Run Definition and exact canonical row bytes. Its result is
+an encoding record, not a retained Run or admission proof. Native readmission
+continues to validate Policy, Effect and Checkpoint originals with their
+existing Owners, including the original Definition and Effect ledger scope,
+then re-encodes the complete admitted record. The shared issuance-count reader
+preserves the original canonical decimal syntax and finite profile. A valid
+count is not evidence of complete registration: the same Store transaction
+must still scan every original row and validate all custody relationships.
