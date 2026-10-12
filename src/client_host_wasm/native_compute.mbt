@@ -1,9 +1,16 @@
 ///|
-/// Invocation custody around the existing captured Compute Host. Native
-/// completion is not activation, task success or Result publication.
+/// Invocation custody around existing captured and source-free Compute Hosts.
+/// Configuration is not activation, task success or Result publication.
+priv enum ComputeOrigin {
+  Captured(Int)
+  SourceFree(Int, Int)
+}
+
+///|
 priv struct StoredNativeCompute {
-  attempt : Int
+  origin : ComputeOrigin
   borrow : @buffers.BufferBorrow
+  mut current_configuration : Int?
   mut invoked : Bool
   mut pending : Bool
   mut closing : Bool
@@ -41,8 +48,9 @@ pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int 
     Ok(borrow) => borrow
   }
   value.computes[handle] = {
-    attempt,
+    origin: Captured(attempt),
     borrow,
+    current_configuration: None,
     invoked: false,
     pending: false,
     closing: false,
@@ -61,7 +69,8 @@ pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int 
 pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.computes.get(handle) is Some(record) &&
-    value.native_attempts.get(record.attempt) is Some(original) &&
+    record.origin is Captured(attempt) &&
+    value.native_attempts.get(attempt) is Some(original) &&
     original.outcome is Some(Ok(native)) &&
     original.observation is Some(observation) &&
     value.native_sources.get(original.configuration)

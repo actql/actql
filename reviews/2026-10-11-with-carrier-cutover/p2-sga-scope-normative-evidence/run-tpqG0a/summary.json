@@ -1,0 +1,45 @@
+{
+  "startedAt": "2026-10-12T00:23:24.869Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format only SGA operand scope adapter and controls",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_syntax/sga_argument_roles.mbt",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/producer_scope_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-12T00:23:24.927Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:23:25.066Z",
+      "endedAt": "2026-10-12T00:23:25.067Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "3fcbc01d-93a6-473a-9d9f-8da703446cd8",
+    "pid": 28366,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:23:24.922Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-tpqG0a"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:23:25.116Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

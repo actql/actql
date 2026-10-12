@@ -1,0 +1,84 @@
+{
+  "startedAt": "2026-10-12T00:50:13.937Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Read-only compiler manifest freshness",
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs"
+      ],
+      "startedAt": "2026-10-12T00:50:14.042Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:50:14.166Z",
+      "endedAt": "2026-10-12T00:50:14.167Z"
+    },
+    {
+      "name": "Read-only document metadata freshness",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs"
+      ],
+      "startedAt": "2026-10-12T00:50:14.214Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:50:15.423Z",
+      "endedAt": "2026-10-12T00:50:15.426Z"
+    },
+    {
+      "name": "Read-only registered family freshness",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs"
+      ],
+      "startedAt": "2026-10-12T00:50:15.487Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:50:17.045Z",
+      "endedAt": "2026-10-12T00:50:17.047Z"
+    },
+    {
+      "name": "Read-only canonical generated input freshness",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs"
+      ],
+      "startedAt": "2026-10-12T00:50:17.114Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:50:18.822Z",
+      "endedAt": "2026-10-12T00:50:18.824Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "42844a6d-3546-4376-8bba-d5063182c736",
+    "pid": 51222,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:50:14.034Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-5YVShO"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:50:18.888Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

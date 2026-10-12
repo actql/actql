@@ -7,7 +7,7 @@ Submission, persists an acceptance, invokes Compute, or cancels a Run.
 from dataclasses import dataclass
 from typing import Literal
 
-from ._local_core import LocalCore, LocalCoreError, _Input
+from ._local_core import LocalCore, LocalCoreError, _Input, _Compute
 from ._local_preparation import LocalPreparation, _Preparation
 
 
@@ -36,6 +36,14 @@ class _PhysicalStart:
     input: _Input
 
 
+@dataclass(frozen=True, slots=True, eq=False)
+class _SourceFreeCompute:
+    owner: object
+    core: _Compute
+    start: _PhysicalStart
+    input: _Input
+
+
 class LocalRunCustody:
     """Keep exact Core parents and loans reachable across refusal or interruption.
 
@@ -57,6 +65,8 @@ class LocalRunCustody:
         self._configurations: dict[int, _RunConfiguration] = {}
         self._runs: dict[int, _Run] = {}
         self._starts: dict[int, _PhysicalStart] = {}
+        self._computes: dict[int, _SourceFreeCompute] = {}
+        self._compute_currents: dict[int, _RunConfiguration] = {}
 
     def _nominal(self) -> None:
         if self._original is not self:
@@ -200,4 +210,58 @@ class LocalRunCustody:
                 return False
             self._core._check('close_configuration', code)
             del self._configurations[value.handle]
+            return True
+
+
+    def reserve_source_free_compute(self, start: _PhysicalStart,
+                                    input: _Input) -> _SourceFreeCompute:
+        """Borrow the original start/Run and config input; Core checks readiness.
+
+        This creates no Source, activation grant, publication policy or durable
+        admission. An unknown invocation keeps its same handle and parents.
+        """
+        with self._core._lock:
+            self._active()
+            self._start(start)
+            self._core._owned_input(input)
+            handle = self._core._call('compute', 'reserve_source_free',
+                                      start.run.handle, start.handle, input.handle)
+            if handle <= 0:
+                raise LocalCoreError('reserve_source_free_compute', handle)
+            core = _Compute(self._core._identity, handle)
+            self._core._compute_loans[handle] = core
+            value = _SourceFreeCompute(self._identity, core, start, input)
+            self._computes[handle] = value
+            return value
+
+    def _compute(self, value: _SourceFreeCompute) -> None:
+        self._nominal()
+        if (type(value) is not _SourceFreeCompute or value.owner is not self._identity
+                or self._computes.get(value.core.handle) is not value):
+            raise ValueError('Foreign or released source-free Compute loan')
+        self._start(value.start)
+        self._core._owned_compute(value.core)
+
+    def configure_source_free_compute(self, value: _SourceFreeCompute,
+                                      current: _RunConfiguration) -> None:
+        """Configure original task resources; no task execution or Result issuance."""
+        with self._core._lock:
+            self._active()
+            self._compute(value)
+            self._configuration(current)
+            # Retain the first current configuration before Core can trap.
+            # Core refuses a different configuration after invocation begins.
+            self._compute_currents.setdefault(value.core.handle, current)
+            self._core._check('configure_source_free_compute', self._core._call(
+                'compute', 'configure_source_free', value.core.handle, current.handle))
+            self._core._check('source_free_compute_configured', self._core._call(
+                'compute', 'configured', value.core.handle))
+
+    def close_source_free_compute(self, value: _SourceFreeCompute) -> bool:
+        with self._core._lock:
+            self._compute(value)
+            if not self._core.close_native_compute(value.core):
+                return False
+            del self._computes[value.core.handle]
+            self._compute_currents.pop(value.core.handle, None)
             return True

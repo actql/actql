@@ -18,11 +18,26 @@ fn lower_script_graph_delta(
     Err(_) => raise Abort(InvalidContext)
   }
   let construction = { ..construction, generated: origin, }
+  // The Delta column belongs to the declared Relation operand. Reuse the
+  // ordinary selector resolver; the common owner retains JSON/type checks.
+  let operands = call.arguments.filter(argument => argument.0 == "with")
+  let operand = if operands.length() == 1 &&
+    operands[0].1 is @query.Producer(name) {
+    Some((name, resolve_relation_input([name], known)))
+  } else {
+    None
+  }
   let body = construction.object(
     call.arguments.map(argument => {
       (
         argument.0,
-        script_traversal_argument(construction, argument.1, known, limits),
+        if argument.0 == "field" &&
+          argument.1 is @query.FieldReference(path) &&
+          operand is Some((name, input)) {
+          script_sga_selector_field(construction, path, name, input)
+        } else {
+          script_traversal_argument(construction, argument.1, known, limits)
+        },
       )
     }),
   )

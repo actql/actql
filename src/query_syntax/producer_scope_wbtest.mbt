@@ -68,9 +68,9 @@ test "Graph mapping resolves nearest producer without renaming definitions" {
 }
 
 ///|
-test "SGA producer roles resolve scope while ID and field values remain data" {
+test "SGA producer roles resolve scope while operand fields stay outside producer scope" {
   let parser = producer_scope_parser(
-    "reach(start: {from: `ROWS`, id: 'rows'}, direction: 'out', max_depth: 2)",
+    "reach(start: {from: `ROWS`, id: `rows`}, direction: 'out', max_depth: 2)",
   )
   let call = parser.sga_call()
   parser.end()
@@ -79,7 +79,7 @@ test "SGA producer roles resolve scope while ID and field values remain data" {
       "start",
       ObjectValue([
         ("from", Producer({ value: "inner_rows", quoted: false, })),
-        ("id", TextValue("rows")),
+        ("id", FieldReference([{ value: "rows", quoted: true, }])),
       ]),
     ),
     ("direction", TextValue("out")),
@@ -121,4 +121,70 @@ test "FROM GRAPH resolves the nearest binding before any Carrier check" {
   assert_eq(parser.resolve_producer([{ value: "rows", quoted: false, }]), [
     { value: "inner_rows", quoted: false, },
   ])
+}
+
+///|
+test "P2 qualified selector fields retain the declared lexical operand identity" {
+  for
+    text in [
+      "reach(start: {from: rows, id: ROWS.element})", "reach(start: {id: ROWS.element, from: rows})",
+      "apply_graph_delta(field: ROWS.delta, with: rows)",
+    ] {
+    let parser = producer_scope_parser(text)
+    let call = parser.sga_call()
+    parser.end()
+    let fields = if call.operation == "reach" {
+      match call.arguments[0].1 {
+        ObjectValue(fields) => fields
+        _ => fail("Expected selector")
+      }
+    } else {
+      call.arguments
+    }
+    let selected = fields.filter(field => field.0 == "id" || field.0 == "field")
+    let column = if call.operation == "reach" { "element" } else { "delta" }
+    assert_eq(
+      selected[0].1,
+      FieldReference([
+        { value: "inner_rows", quoted: false, },
+        { value: column, quoted: false, },
+      ]),
+      msg=text,
+    )
+  }
+  let other = producer_scope_parser(
+    "reach(start: {from: rows, id: peer.element})",
+  )
+  let call = other.sga_call()
+  other.end()
+  assert_eq(
+    call.arguments[0].1,
+    ObjectValue([
+      ("from", Producer({ value: "inner_rows", quoted: false, })),
+      (
+        "id",
+        FieldReference([
+          { value: "outer_peer", quoted: false, },
+          { value: "element", quoted: false, },
+        ]),
+      ),
+    ]),
+  )
+  let property = producer_scope_parser(
+    "match_nodes(where: {field: rows.element}, fields: [rows])",
+  )
+  let call = property.sga_call()
+  property.end()
+  assert_eq(
+    call.arguments[0].1,
+    ObjectValue([
+      (
+        "field",
+        FieldReference([
+          { value: "rows", quoted: false, },
+          { value: "element", quoted: false, },
+        ]),
+      ),
+    ]),
+  )
 }

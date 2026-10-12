@@ -46,7 +46,7 @@ const program = {version: 'actql/0.1', id: 'fixture.graph_reach',
 const source = 'WITH n AS (SELECT 1 AS node_key) , g AS (GRAPH ' +
   '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
 const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
-const call = "reach(start: {from: seeds, id: 'element'}, direction: 'out', max_depth: 1)";
+const call = "reach(start: {from: seeds, id: `element`}, direction: 'out', max_depth: 1)";
 const tail = ' |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT reached';
 
 // Parallel edges and a self-loop must not duplicate Reach members or replace
@@ -124,7 +124,7 @@ export const graphReachSourceSuccesses = [
 export const graphReachSourceRefusals = [
   ['zero-depth', call.replace('max_depth: 1', 'max_depth: 0')],
   ['unknown-direction', call.replace("'out'", "'invented'")],
-  ['missing-selector-field', call.replace("id: 'element'", "id: 'missing'")],
+  ['missing-selector-field', call.replace("id: `element`", "id: `missing`")],
   ['missing-static-property', "reach(start: {where: 'missing = 1'}, direction: 'out', max_depth: 1)"],
 ].map(([name, operation]) => ({name: 'graph-reach-refuse-' + name,
   format: 'aql-text', text: source + seeds + 'FROM g |> ' + operation + tail}));

@@ -1,0 +1,73 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-Lf5EPJ",
+  "revision": "036733ffa02dac4ae7cda6279d0abc83a3dfadf1",
+  "source": {
+    "revision": "036733ffa02dac4ae7cda6279d0abc83a3dfadf1",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T00:13:07.077Z",
+  "endedAt": "2026-10-12T00:13:21.012Z",
+  "status": "passed",
+  "complete": true,
+  "commands": [
+    {
+      "id": "001",
+      "command": "moon",
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "src/query_program/graph_delta_source_test.mbt",
+        "src/query_program/subgraph_source_test.mbt",
+        "src/query_program/graph_shortest_source_test.mbt",
+        "src/query_program/traverse_hop_vocabulary_test.mbt",
+        "src/query_program/traversal_join_input_test.mbt",
+        "src/query_program/graph_relation_join_input_test.mbt",
+        "src/query_program/traversal_paths_test.mbt",
+        "src/query_program/graph_refusal_classification_test.mbt",
+        "src/query_program/graph_match_paths_integration_test.mbt",
+        "src/query_program/with_source_usage_wbtest.mbt"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "036733ffa02dac4ae7cda6279d0abc83a3dfadf1",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-12T00:13:07.255Z",
+      "endedAt": "2026-10-12T00:13:21.008Z",
+      "elapsedMs": 13749.995958,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 0,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 38,
+        "passed": 38,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

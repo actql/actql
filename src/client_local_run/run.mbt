@@ -6,6 +6,7 @@ pub struct LocalRunPlan {
   prepared : @host.PreparedClientProgram
   request : @host.ClientRequestIdentity
   compilation : @host.ClientTaskCompilation
+  compiled : @host.ClientCompiledRun
   admission : @publication.RunPublicationAdmission
   definition : @publication.PublicationContract
   account_id : String
@@ -130,8 +131,56 @@ pub fn prepare_source_free_local_run(
   valid_until : String,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   prepare_local_run_profile(
-    input, authority_scope_cid, caller_request_id, permit, current, tuple, execution_context_cid,
-    host_policy_cid, run_namespace, run_id, created_at, valid_until, source_free_profile,
+    input,
+    authority_scope_cid,
+    caller_request_id,
+    permit,
+    current,
+    tuple,
+    execution_context_cid,
+    host_policy_cid,
+    run_namespace,
+    run_id,
+    created_at,
+    valid_until,
+    source_free_profile,
+    None,
+  )
+}
+
+///|
+/// The installed Host must select the genuine Result policy original before
+/// definition issuance. The compilation-only constructor grants no publication.
+pub fn prepare_source_free_local_publication_run(
+  input : @input.LocalPreparedInput,
+  authority_scope_cid : String,
+  caller_request_id : String,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  run_namespace : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+  result_policy : (String, String),
+) -> Result[LocalRunPlan, LocalRunIssue] {
+  prepare_local_run_profile(
+    input,
+    authority_scope_cid,
+    caller_request_id,
+    permit,
+    current,
+    tuple,
+    execution_context_cid,
+    host_policy_cid,
+    run_namespace,
+    run_id,
+    created_at,
+    valid_until,
+    source_free_profile,
+    Some(result_policy),
   )
 }
 
@@ -153,8 +202,20 @@ pub fn prepare_captured_source_local_run(
   valid_until : String,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   prepare_local_run_profile(
-    input, authority_scope_cid, caller_request_id, permit, current, tuple, execution_context_cid,
-    host_policy_cid, run_namespace, run_id, created_at, valid_until, captured_source_profile,
+    input,
+    authority_scope_cid,
+    caller_request_id,
+    permit,
+    current,
+    tuple,
+    execution_context_cid,
+    host_policy_cid,
+    run_namespace,
+    run_id,
+    created_at,
+    valid_until,
+    captured_source_profile,
+    None,
   )
 }
 
@@ -173,6 +234,7 @@ fn prepare_local_run_profile(
   created_at : String,
   valid_until : String,
   profile : (@host.PreparedClientProgram) -> Bool,
+  result_policy : (String, String)?,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   let prepared = @input.local_prepared_program(input)
   if !authorized_input(prepared, permit, current, tuple, execution_context_cid) {
@@ -214,6 +276,22 @@ fn prepare_local_run_profile(
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))
   }
+  let compiled = match result_policy {
+    None => compiled
+    Some((cid, wire)) =>
+      match
+        @host.with_client_source_free_result_policy(
+          compiled,
+          cid,
+          wire,
+          limits.max_evidence_bytes,
+          limits.max_evidence_nodes,
+          limits.max_evidence_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Admission(issue))
+      }
+  }
   let definition = match
     @host.issue_client_compiled_run_definition(
       compiled, run_namespace, run_id, created_at, valid_until,
@@ -226,6 +304,7 @@ fn prepare_local_run_profile(
     prepared,
     request,
     compilation,
+    compiled,
     admission: @host.client_compiled_run_admission(compiled),
     definition,
     account_id: current.account_id(),

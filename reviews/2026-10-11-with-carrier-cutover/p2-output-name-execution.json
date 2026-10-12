@@ -1,0 +1,511 @@
+{
+  "status": "output_name_admission_fixed_for_adoption_into_1572",
+  "attempts": [
+    {
+      "source": "e926a4cf58c3aa697b326bffe334aa0386a3bad6",
+      "tree": "e6a325880fcf29ed0fbce83aafa09bbb9b57d7b7",
+      "run": "run-PFeRM0",
+      "focused": "focused-test-vgVd7v",
+      "exit_code": 2,
+      "complete": false,
+      "output_complete": true,
+      "owner_pid": 40462,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/sga_output_name_test.mbt",
+          "src/query_syntax/graph_match_binding_vocabulary_test.mbt",
+          "src/query_program/sga_output_name_lowering_test.mbt"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-PFeRM0/summary.json",
+          "bytes": 1779,
+          "sha256": "b07572b0018d3ab4f3c7cc4926b4fb68f347a54accd8a4e117218d27ba610e47"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-PFeRM0/output.log",
+          "bytes": 720,
+          "sha256": "3e8726235dd50c9e94dd0c87c2ea43bfa4357f1a325461fbf817b7a1bc04b5fd"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/0001.summary.json",
+          "bytes": 630,
+          "sha256": "1de8af8e08450eccd538d6f6dd7076c12dce1b933bcff5093eda996ed778b8d4"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/summary.json",
+          "bytes": 1932,
+          "sha256": "eb88fa0ba55ca8d3c9cb9bdcb28828d4811f62de6587273ce619dedb5e19e838"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/001.stdout.log",
+          "bytes": 281,
+          "sha256": "7ff45285f389688662a7be55ad8ea9257bbbb1d3ccdb3b62c4c613773263ba5f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/001.started.json",
+          "bytes": 924,
+          "sha256": "9b8b9d9478e6f0397ba3b5711f719ff97cf5f750e0ff06b78a9e6bd57a548952"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/001.result.json",
+          "bytes": 1114,
+          "sha256": "4d6454006976a61dd37a47ccbda03736028f3811a980a44ed9f5207fcdafb2ed"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/0002.summary.json",
+          "bytes": 1685,
+          "sha256": "d3966ff67f02f17343001d674f06d203751e47b28355fc5d073a7dc8060d7f8c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/0004.summary.json",
+          "bytes": 1932,
+          "sha256": "eb88fa0ba55ca8d3c9cb9bdcb28828d4811f62de6587273ce619dedb5e19e838"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-vgVd7v/0003.summary.json",
+          "bytes": 1911,
+          "sha256": "0a53ae3138ac6cd54d0be46e7ced095466b6b279aac0845386ba11f683b87c21"
+        }
+      ]
+    },
+    {
+      "source": "a7ab89d78ed2005093012c614812e29c08fead12",
+      "tree": "8c2740d0e81d2c1660c58f2ea3440ed781660a0a",
+      "run": "run-t3kUve",
+      "focused": "focused-test-S2vE6p",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 41744,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/sga_output_name_test.mbt",
+          "src/query_syntax/graph_match_binding_vocabulary_test.mbt",
+          "src/query_program/sga_output_name_lowering_test.mbt"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-t3kUve/summary.json",
+          "bytes": 1778,
+          "sha256": "b9607ee6e536a37ca975f8c8f8c7f834e07b285cdd3ad7fdbd7dc22f82adbaee"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-t3kUve/output.log",
+          "bytes": 467,
+          "sha256": "b3117fcfef28b773bed4eff6b614b3816aec9fd86a227caa79a59604303e6509"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/0001.summary.json",
+          "bytes": 630,
+          "sha256": "f506db8de11ef48cd546be5f5a17242316ba713d1e7087627e3fe729ca2c47c4"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/summary.json",
+          "bytes": 1930,
+          "sha256": "11573d91e346b2cf8f8d840f7571e9216d5612e9e7143ecbe410b0bf5bda5c87"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/001.stdout.log",
+          "bytes": 38,
+          "sha256": "98566e3b0f8ddd392230312d4a93343c59922153eac8fd89fe88ef3a5e9815cd"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/001.started.json",
+          "bytes": 924,
+          "sha256": "3dafe58dfcbb25d1e5f65aa00ea16f1a500aa1243ca2e03961031b8d7007b16c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/001.result.json",
+          "bytes": 1113,
+          "sha256": "75fd916b5f31925f4a315af8b609eb54a59017b6d6dd9a6eedf965099e2dd51c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/0002.summary.json",
+          "bytes": 1685,
+          "sha256": "b65f8141c41be578bef5fc6b27a7733272f3c03e37495c74ff7471f6e28ea6d8"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/0004.summary.json",
+          "bytes": 1930,
+          "sha256": "11573d91e346b2cf8f8d840f7571e9216d5612e9e7143ecbe410b0bf5bda5c87"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-S2vE6p/0003.summary.json",
+          "bytes": 1910,
+          "sha256": "fada0319bf6c39687eec961894de73911623af5986f93fdbc6e4a3b0e2c1bab9"
+        }
+      ]
+    },
+    {
+      "source": "fb31796a5e30faba3424113266aa58e4549b9421",
+      "tree": "aa3e52e46bb35fcb1276d47e30a8cc9aa4ba1567",
+      "run": "run-Z2ctEX",
+      "focused": null,
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 44807,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/query.mbt",
+          "src/query_syntax/query_identifier_roles.mbt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_output_name_test.mbt",
+          "src/query_program/sga_output_name_lowering_test.mbt"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-Z2ctEX/summary.json",
+          "bytes": 1599,
+          "sha256": "5d409546f4c744a7657edc2f9e53e028f58f3c1196c6798e805adddd6e1dd0b4"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-Z2ctEX/output.log",
+          "bytes": 44,
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        }
+      ]
+    },
+    {
+      "source": "1ed8637d9e3881fdcc97287b7104d978fa8ecf37",
+      "tree": "f7f2c8c6467193c56c07bc0c1cf06e11300c5652",
+      "run": "run-GxWdZ0",
+      "focused": "focused-test-DJHeCS",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 46899,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/sga_output_name_test.mbt",
+          "src/query_syntax/graph_match_binding_vocabulary_test.mbt",
+          "src/query_program/sga_output_name_lowering_test.mbt"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-GxWdZ0/summary.json",
+          "bytes": 1778,
+          "sha256": "a416003dff48b635e67176e358f2590422562ff3ac56dae883aa283e1d73c934"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-GxWdZ0/output.log",
+          "bytes": 467,
+          "sha256": "f9fca0dc03ad821072ce385f3befe0a5f0dc7d1d412ac90784d857899401d88d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/0001.summary.json",
+          "bytes": 630,
+          "sha256": "3012779435d71fd6e0cfa842f320833ec0a8060b3e23f631d72957a6d31820c0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/summary.json",
+          "bytes": 1924,
+          "sha256": "ba0e560d76065a342c0072ea54ac2796eff8a44c562d48b020e2a6a087232c0d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/001.stdout.log",
+          "bytes": 38,
+          "sha256": "29250d71d26eddc15e31c1bdd9bba84e69f30e65ab60f24e083ca22ffdaddc4a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/001.started.json",
+          "bytes": 924,
+          "sha256": "37505d810dc2728c8bbee06142c1780478e7f95c2fd7c37151d937954f718b25"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/001.result.json",
+          "bytes": 1107,
+          "sha256": "7380e2f7a310647af7d57bfd50fb3add5d6fc2b90d4ff91ffb1ae53203df3279"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/0002.summary.json",
+          "bytes": 1685,
+          "sha256": "e1fcd0697dbd01bc9c61fdd31d51c89e8d1e750a9dec2fb55d6fc3d427422a78"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/0004.summary.json",
+          "bytes": 1924,
+          "sha256": "ba0e560d76065a342c0072ea54ac2796eff8a44c562d48b020e2a6a087232c0d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-DJHeCS/0003.summary.json",
+          "bytes": 1904,
+          "sha256": "6adc77d9056a38b7a2e9cde8ab9bd1ba5fbea284713c912651bab19ba7919ed7"
+        }
+      ]
+    },
+    {
+      "source": "fe510a350e565bdd3df1317ccdd194a6fe52bcac",
+      "tree": "629219355e33eb01a852922f20407d5f98bcd2b4",
+      "run": "run-GUfOXb",
+      "focused": [
+        "focused-test-G8w8XJ"
+      ],
+      "counts": {
+        "node": 15
+      },
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 53212,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/sga-output-name-source.test.mjs",
+          "scripts/sga-public-role-preservation.test.mjs",
+          "scripts/graph-match-binding-vocabulary.test.mjs"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-GUfOXb/summary.json",
+          "bytes": 1737,
+          "sha256": "c3e51931422b473cfe0c9b8f73ecc626c49bc34214d8e2c078a10bd0c8a10ee7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-GUfOXb/output.log",
+          "bytes": 9744,
+          "sha256": "1baa97c193fa04886724600846b5efa6e14c3689a0983f76fb2f1028a03ab0cb"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/0001.summary.json",
+          "bytes": 630,
+          "sha256": "d355e340c6acbb81d808a9c5250644275cb8ef2e2e6106dffc9590ef6f17c62b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/summary.json",
+          "bytes": 2078,
+          "sha256": "9da488d173208188ed340a78c797bb181a81d184f9bcb773291cf6e31199d264"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/001.stdout.log",
+          "bytes": 9159,
+          "sha256": "a451995daf38d8cb628a049c38a66303536990751e6cb747c660ca1e0e4ecad5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/001.started.json",
+          "bytes": 1082,
+          "sha256": "babc13b98c235646a63dae5849433bb874739ebf66c895692cc1b9ce1fb0ac61"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/001.result.json",
+          "bytes": 1265,
+          "sha256": "8d5b52e0a9f59e4a7ff3c48eb087aeee519776e027702900208c30f82c9e877d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/0002.summary.json",
+          "bytes": 1839,
+          "sha256": "e6cdf3c0701f4dcf717f9d6651bb0374d7643147e0531341e995c8db31e5135c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/0004.summary.json",
+          "bytes": 2078,
+          "sha256": "9da488d173208188ed340a78c797bb181a81d184f9bcb773291cf6e31199d264"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-G8w8XJ/0003.summary.json",
+          "bytes": 2058,
+          "sha256": "b0e8cf991330d7c2d049f2b93647c80d7d16e1c26d2276085b389277c86ba64d"
+        }
+      ]
+    },
+    {
+      "source": "fe510a350e565bdd3df1317ccdd194a6fe52bcac",
+      "tree": "629219355e33eb01a852922f20407d5f98bcd2b4",
+      "run": "run-HEpcFa",
+      "focused": [],
+      "counts": null,
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 53789,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/query.mbt",
+          "src/query_syntax/query_identifier_roles.mbt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_output_name_test.mbt",
+          "src/query_program/sga_output_name_lowering_test.mbt"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-HEpcFa/summary.json",
+          "bytes": 1599,
+          "sha256": "17cca7a80873d59a667ca6a22f3eabdd320dd4e340e54a792b1a88c59b7899c1"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-HEpcFa/output.log",
+          "bytes": 44,
+          "sha256": "2987817259f1ba9f98be0bacda42c847ea21b7cab3f3d161a9b9b2bad4ccb787"
+        }
+      ]
+    },
+    {
+      "source": "fe510a350e565bdd3df1317ccdd194a6fe52bcac",
+      "tree": "629219355e33eb01a852922f20407d5f98bcd2b4",
+      "run": "run-tYxwEX",
+      "focused": [
+        "focused-test-KgXkfk"
+      ],
+      "counts": {
+        "js": 8
+      },
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 54199,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/sga_output_name_test.mbt",
+          "src/query_syntax/graph_match_binding_vocabulary_test.mbt",
+          "src/query_program/sga_output_name_lowering_test.mbt"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-tYxwEX/summary.json",
+          "bytes": 1778,
+          "sha256": "5fdb3fd180b0c08769397be4a642d469385555769f0cf6fb58b26c83ff48a070"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/run-tYxwEX/output.log",
+          "bytes": 467,
+          "sha256": "19022840ba6b7b3328bc6b8e746b8d605374e2f6ace09c72c367836bb2d8ef8d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/0001.summary.json",
+          "bytes": 630,
+          "sha256": "315a3fac3cdde1941dfb892798f8a86395fb2e58bc682b496bea0f90342c7415"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/summary.json",
+          "bytes": 1924,
+          "sha256": "41c6621ab7220325dbd16c0305e4afb61d048e3b25b4fc14ded9d01897a189c7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/001.stdout.log",
+          "bytes": 38,
+          "sha256": "764157e72b2dd2e8e0a0545e7f821c609e694e542766a3c5c6666f28561c5f05"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/001.started.json",
+          "bytes": 924,
+          "sha256": "f51d837726affb02ddc36f468790ac742529dc20a0998640204d5c66d53668b5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/001.result.json",
+          "bytes": 1107,
+          "sha256": "c7e15c37865264303300af34582756f6716cc573dc33fba4c301f902e396839b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/0002.summary.json",
+          "bytes": 1685,
+          "sha256": "b48bc8db4ba19fc52ff4c7e2c693a3eb09e2c780faa47e04a00a67570f75033a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/0004.summary.json",
+          "bytes": 1924,
+          "sha256": "41c6621ab7220325dbd16c0305e4afb61d048e3b25b4fc14ded9d01897a189c7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-output-name-evidence/focused-test-KgXkfk/0003.summary.json",
+          "bytes": 1904,
+          "sha256": "8d15db23de1332143da37a32994c181a896381a73743374b1572537582b20260"
+        }
+      ]
+    }
+  ],
+  "failure_classification": {
+    "run-PFeRM0": "JS5/6. Unquoted SELECT OutputName was accepted. Quoted OutputName complete Program and common-check control passed.",
+    "sandbox-preflight": "Guard could not inspect owned group with ps in the restricted sandbox. No selected test executed. Current authorized 60/5 nonHeavy command executed normally with permitted Owner inspection."
+  },
+  "successes": {
+    "run-GxWdZ0": "JS7/7 at clean 1ed8637. Exact reservation diagnostic/source span, quoted OutputNames, unchanged literal/schema keys and independent complete Program/common checker.",
+    "fe510a350": "JS8/8 (original seven plus complete prepared public Source/common-check control); Node15/15, existing eight fixture bodies unchanged; pinned formatter clean."
+  },
+  "unverified": [
+    "public Local/HTTPS two normal and two refusal controls",
+    "full P2 and remaining name roles"
+  ]
+}
