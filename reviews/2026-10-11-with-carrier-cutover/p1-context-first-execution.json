@@ -1,0 +1,63 @@
+{
+  "source": "3176a9fa45b9d3a74229c3cd3d5ef6c26094c898",
+  "tree": "4175f1b0a16162675517f80992d21a9d3b74bec8",
+  "run": "run-9djtnN",
+  "timeout_seconds": 60,
+  "grace_seconds": 5,
+  "heavy": false,
+  "executed": {
+    "tests": 28,
+    "passed": 26,
+    "failed": 2,
+    "exit": 2
+  },
+  "new_context_tests": {
+    "tests": 5,
+    "failures": 0,
+    "basis": "The single MoonBit invocation reports only the two existing query_test failures; no separate file-only PASS is claimed."
+  },
+  "old_failure_basis": "query-text.md:1032 declares optional table-subquery aliases. query_test.mbt is byte-identical to adopted main; query_source behavior is unchanged by P1. Its two rejection assertions conflict with that contract. This is source comparison, not a baseline runtime execution.",
+  "correction": "Replace only the two outdated parser refusal assertions with independent binding/alias AST controls. Preserve the same text and the old actual failure. No runtime row/ambiguity/public success is inferred.",
+  "release": {
+    "owner": 86282,
+    "owner_check": "ps -p 86282 returned no rows",
+    "group_check": "ps -g 86282 returned no rows",
+    "own_lock_absent": true,
+    "guard_locks_released": true,
+    "guard_output_complete": true
+  },
+  "evidence": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-9djtnN/summary.json",
+      "bytes": 1800,
+      "sha256": "2a8273c3d98d9978273bf761af6129ae1a36144243f8d3ab1091a50429d317b9"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-9djtnN/output.log",
+      "bytes": 893,
+      "sha256": "127856d6618aba08345bc05fa7c501baaf28df4055cf7b443088edd29b7bf014"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-BXaH75/001.result.json",
+      "bytes": 1108,
+      "sha256": "ab5e566e39f5cb7e7b50804fedbcc6207b9e1de4f1a67222b9a4f49d91031b53"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-BXaH75/001.stdout.log",
+      "bytes": 458,
+      "sha256": "e0f77d2fbf29eb2d2111ee1f39a34ab9df89c0ee01f68483f832f16e54c4b017"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-BXaH75/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "unverified": [
+    "Common checker and lowering for these two table subqueries",
+    "WITH four-Carrier cutover",
+    "Packed Local/HTTPS",
+    "Other targets",
+    "Formatting"
+  ]
+}

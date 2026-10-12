@@ -41,7 +41,7 @@ export const groupByAllSuccesses = [
   success('array-covered-by-input-key', 'SELECT [id, records.id + 1] AS coordinates, id FROM records WHERE id > 0 GROUP BY ALL ORDER BY id',
     [{coordinates: [1, 2], id: 1}, {coordinates: [2, 3], id: 2}, {coordinates: [3, 4], id: 3}, {coordinates: [4, 5], id: 4}], ['coordinates', 'id'],
     {columns: [{name: 'coordinates', contract: {type: 'array', nullable: false, max_items: 2, items: number}}, ...columns(['id'])]}),
-  success('nullable-property-prefix', 'DATA objects = SELECT @a AS payload UNION ALL SELECT @b AS payload UNION ALL SELECT @a AS payload; '
+  success('nullable-property-prefix', 'WITH objects AS (SELECT @a AS payload UNION ALL SELECT @b AS payload UNION ALL SELECT @a AS payload) '
     + 'SELECT (objects.payload).score AS score, payload.score + 1 AS next, COUNT(*) AS n FROM objects GROUP BY ALL ORDER BY score',
     [{score: null, next: null, n: 1}, {score: 10, next: 11, n: 2}], ['score', 'next', 'n'],
     {format: 'aql-text', parameterDeclarations: {a: {type: 'object', nullable: true, fields: {score: nullableNumber}}, b: {type: 'object', nullable: true, fields: {score: nullableNumber}}},

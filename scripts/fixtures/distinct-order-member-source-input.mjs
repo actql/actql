@@ -5,9 +5,9 @@ const declarations = {a: object, b: object, c: object, d: object};
 const parameters = {a: {score: 10}, b: {score: 20}, c: null, d: {score: null}};
 const rows = [{id: 2, amount: 20}, {id: 1, amount: 10},
   {id: 4, amount: 10}, {id: 3, amount: 99}, {id: 5, amount: 88}, {id: 0, amount: 777}];
-const data = 'DATA objects = SELECT id, amount AS score, '
+const binding = 'WITH objects AS (SELECT id, amount AS score, '
   + 'CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload, '
-  + 'CASE WHEN id = 2 THEN @b ELSE @a END AS other FROM records WHERE id > 0; ';
+  + 'CASE WHEN id = 2 THEN @b ELSE @a END AS other FROM records WHERE id > 0) ';
 const expected = [{score: 20}, {score: 10}, {score: null}];
 const columns = [{name: 'score', contract: number}];
 export const distinctOrderMemberProgram = {version: 'actql/0.1', id: 'fixture.distinct_order_member',
@@ -33,7 +33,7 @@ export const distinctOrderMemberProgram = {version: 'actql/0.1', id: 'fixture.di
     results: {rows: {from: 'ordered', fields: ['score']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const success = (name, query, extra = {}) => ({name: 'distinct-order-member-' + name,
-  format: 'aql-text', text: data + query, parameterDeclarations: declarations,
+  format: 'aql-text', text: binding + query, parameterDeclarations: declarations,
   parameters, sourceRows: rows, sourceReadSessionCount: 1, expected, columns, ...extra});
 const aliasColumns = [{name: 'original_score', contract: number}, {name: 'payload', contract: object}];
 const aliasRows = [{original_score: 10, payload: {score: 20}},

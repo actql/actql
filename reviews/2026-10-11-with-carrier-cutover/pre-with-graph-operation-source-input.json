@@ -1,0 +1,2004 @@
+{
+  "source": "fe40b047448efe4ed1b70afc9265c0404564bfe4",
+  "groups": {
+    "traverse": {
+      "successes": [
+        {
+          "name": "graph-traverse-nodes-json-control",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.traverse_nodes\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1}]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"node_rows\":true,\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[{\"element\":\"id\"}],\"as\":\"seeds\"},{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"seeds\",\"id\":\"element\"},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":1,\"path_mode\":\"trail\",\"emit\":\"nodes\",\"max_output_rows\":10},\"as\":\"visited\"},{\"from\":\"visited\",\"select\":[\"start_id\",\"node_id\",\"depth\"]},{\"filter\":{\"gte\":[{\"field\":\"depth\"},{\"literal\":0}]}},{\"sort\":[{\"field\":\"depth\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"as\":\"ordered\"}],\"results\":{\"out\":{\"from\":\"ordered\",\"fields\":[\"start_id\",\"node_id\",\"depth\"]}}}],\"results\":{\"nodes\":{\"from\":{\"stage\":\"main\",\"result\":\"out\"}}}}",
+          "results": {
+            "nodes": {
+              "columns": [
+                {
+                  "name": "start_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "depth",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "rows": [
+                {
+                  "start_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "depth": 0
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-traverse-nodes-data-selector",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes",
+          "results": {
+            "nodes": {
+              "columns": [
+                {
+                  "name": "start_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "depth",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "rows": [
+                {
+                  "start_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "depth": 0
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-traverse-nodes-empty-hop-labels",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; DATA visited = FROM g |> traverse(start: {from: seeds, id: 'element'}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'nodes') |> SELECT start_id, node_id, depth; FROM visited |> ORDER BY depth |> RESULT nodes",
+          "results": {
+            "nodes": {
+              "columns": [
+                {
+                  "name": "start_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "depth",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "rows": []
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-traverse-nodes-empty-selector",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> WHERE node_key > 1 |> SELECT id AS element; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes",
+          "results": {
+            "nodes": {
+              "columns": [
+                {
+                  "name": "start_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "depth",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "rows": []
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-traverse-nodes-quoted-data-selector",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA `seed set` = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: `seed set`, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'acyclic', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes",
+          "results": {
+            "nodes": {
+              "columns": [
+                {
+                  "name": "start_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "depth",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ],
+              "rows": [
+                {
+                  "start_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "depth": 0
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        }
+      ],
+      "refusals": [
+        {
+          "name": "graph-traverse-unknown-selector",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: missing, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes"
+        },
+        {
+          "name": "graph-traverse-string-selector-reference",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: 'seeds', id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes"
+        },
+        {
+          "name": "graph-traverse-missing-selector-column",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: seeds, id: 'missing'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes"
+        },
+        {
+          "name": "graph-traverse-unknown-emission",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'invented', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes",
+          "expectedCode": "ClientProgramImplementationLimit"
+        },
+        {
+          "name": "graph-traverse-invalid-hop-bound",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 0, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes"
+        },
+        {
+          "name": "graph-traverse-invalid-path-mode",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'invented', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes"
+        },
+        {
+          "name": "graph-traverse-extra-argument",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10, extra: true) |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes"
+        }
+      ]
+    },
+    "shortest": {
+      "successes": [
+        {
+          "name": "graph-shortest-json-zero-hop-two-consumers",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_shortest\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1}]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"shortest_path\":{\"source\":{\"definition\":\"N\",\"domain\":\"sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"target\":{\"definition\":\"N\",\"domain\":\"sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"direction\":\"both\",\"max_hops\":1},\"as\":\"paths\"},{\"from\":\"paths\",\"select\":[\"source_id\",\"target_id\",\"hop_count\",\"total_cost\",\"node_ids\",\"edge_ids\"],\"as\":\"a\"},{\"from\":\"paths\",\"filter\":\"hop_count = 0\"},{\"select\":[\"source_id\",\"target_id\",\"hop_count\",\"total_cost\",\"node_ids\",\"edge_ids\"],\"as\":\"b\"}],\"results\":{\"a\":{\"from\":\"a\",\"fields\":[\"source_id\",\"target_id\",\"hop_count\",\"total_cost\",\"node_ids\",\"edge_ids\"]},\"b\":{\"from\":\"b\",\"fields\":[\"source_id\",\"target_id\",\"hop_count\",\"total_cost\",\"node_ids\",\"edge_ids\"]}}}],\"results\":{\"a\":{\"from\":{\"stage\":\"main\",\"result\":\"a\"}},\"b\":{\"from\":{\"stage\":\"main\",\"result\":\"b\"}}}}",
+          "results": {
+            "a": {
+              "rows": [
+                {
+                  "source_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "target_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "hop_count": 0,
+                  "total_cost": 0,
+                  "node_ids": [
+                    {
+                      "$json": {
+                        "definition": "N",
+                        "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                        "key": [
+                          1
+                        ],
+                        "key_types": [
+                          {
+                            "kind": "number"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "edge_ids": []
+                }
+              ],
+              "columns": [
+                {
+                  "name": "source_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "target_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                },
+                {
+                  "name": "edge_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                }
+              ]
+            },
+            "b": {
+              "rows": [
+                {
+                  "source_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "target_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "hop_count": 0,
+                  "total_cost": 0,
+                  "node_ids": [
+                    {
+                      "$json": {
+                        "definition": "N",
+                        "domain": "sha256:d7c5c156a4d6a7c56a0cab91a68e832dc6fd5af696a1ca45f3aff2552091fa57",
+                        "key": [
+                          1
+                        ],
+                        "key_types": [
+                          {
+                            "kind": "number"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "edge_ids": []
+                }
+              ],
+              "columns": [
+                {
+                  "name": "source_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "target_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                },
+                {
+                  "name": "edge_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-shortest-aql-repeated-selector-each_pair",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {from: seeds, id: 'element'}, target: {from: seeds, id: 'element'}, selection: 'each_pair', direction: 'out', max_hops: 2) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths",
+          "results": {
+            "paths": {
+              "rows": [
+                {
+                  "source_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "target_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "hop_count": 0,
+                  "total_cost": 0,
+                  "node_ids": [
+                    {
+                      "$json": {
+                        "definition": "N",
+                        "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                        "key": [
+                          1
+                        ],
+                        "key_types": [
+                          {
+                            "kind": "number"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "edge_ids": []
+                }
+              ],
+              "columns": [
+                {
+                  "name": "source_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "target_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                },
+                {
+                  "name": "edge_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-shortest-aql-repeated-selector-nearest_per_source",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {from: seeds, id: 'element'}, target: {from: seeds, id: 'element'}, selection: 'nearest_per_source', direction: 'out', max_hops: 2) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths",
+          "results": {
+            "paths": {
+              "rows": [
+                {
+                  "source_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "target_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "hop_count": 0,
+                  "total_cost": 0,
+                  "node_ids": [
+                    {
+                      "$json": {
+                        "definition": "N",
+                        "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                        "key": [
+                          1
+                        ],
+                        "key_types": [
+                          {
+                            "kind": "number"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "edge_ids": []
+                }
+              ],
+              "columns": [
+                {
+                  "name": "source_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "target_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                },
+                {
+                  "name": "edge_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-shortest-aql-repeated-selector-nearest_pair",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {from: seeds, id: 'element'}, target: {from: seeds, id: 'element'}, selection: 'nearest_pair', direction: 'out', max_hops: 2) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths",
+          "results": {
+            "paths": {
+              "rows": [
+                {
+                  "source_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "target_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "hop_count": 0,
+                  "total_cost": 0,
+                  "node_ids": [
+                    {
+                      "$json": {
+                        "definition": "N",
+                        "domain": "sha256:0c6f441ba91a7a7db5b608e4191230db650f4eea20c83258d6923aaf7bc54485",
+                        "key": [
+                          1
+                        ],
+                        "key_types": [
+                          {
+                            "kind": "number"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "edge_ids": []
+                }
+              ],
+              "columns": [
+                {
+                  "name": "source_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "target_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                },
+                {
+                  "name": "edge_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-shortest-aql-data-empty-target",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA paths = FROM g |> shortest_path(source: {where: 'true'}, target: {where: 'false'}, selection: 'each_pair', direction: 'in', max_hops: 1); FROM paths |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths",
+          "results": {
+            "paths": {
+              "rows": [],
+              "columns": [
+                {
+                  "name": "source_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "target_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                },
+                {
+                  "name": "edge_ids",
+                  "contract": {
+                    "type": "array",
+                    "nullable": false,
+                    "items": {
+                      "type": "json",
+                      "nullable": false
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-shortest-json-weighted-parallel-edges",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_shortest_weighted\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false},\"seed\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":2,\"seed\":2},{\"node_key\":1,\"seed\":1}]},\"as\":\"n\"},{\"values\":{\"schema\":{\"edge_key\":{\"type\":\"number\",\"nullable\":false},\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false},\"w\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"edge_key\":11,\"src\":1,\"dst\":2,\"w\":2},{\"edge_key\":12,\"src\":1,\"dst\":1,\"w\":0},{\"edge_key\":10,\"src\":1,\"dst\":2,\"w\":1}]},\"as\":\"e\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"seed\",\"to\":\"seed\"}]}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"e\",\"key\":[\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"w\",\"to\":\"w\"}]}}]}]},\"as\":\"g\"},{\"from\":\"g\",\"shortest_path\":{\"source\":{\"where\":\"seed = 1\"},\"target\":{\"where\":\"seed = 2\"},\"selection\":\"each_pair\",\"direction\":\"out\",\"max_hops\":2,\"weight\":\"w\"},\"as\":\"paths\"},{\"from\":\"paths\",\"filter\":\"hop_count > 0\"},{\"select\":[\"hop_count\",\"total_cost\"],\"as\":\"out\"}],\"results\":{\"paths\":{\"from\":\"out\",\"fields\":[\"hop_count\",\"total_cost\"]}}}],\"results\":{\"paths\":{\"from\":{\"stage\":\"main\",\"result\":\"paths\"}}}}",
+          "results": {
+            "paths": {
+              "rows": [
+                {
+                  "hop_count": 1,
+                  "total_cost": 1
+                }
+              ],
+              "columns": [
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-shortest-aql-weighted-parallel-edges",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 2 AS node_key, 2 AS seed UNION ALL SELECT 1 AS node_key, 1 AS seed; DATA e = SELECT 11 AS edge_key, 1 AS src, 2 AS dst, 2 AS w UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst, 0 AS w UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst, 1 AS w; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (w))); DATA paths = FROM g |> shortest_path(source: {where: 'seed = 1'}, target: {where: 'seed = 2'}, selection: 'each_pair', direction: 'out', max_hops: 2, weight: 'w'); FROM paths |> WHERE hop_count > 0 |> SELECT hop_count, total_cost |> RESULT paths",
+          "results": {
+            "paths": {
+              "rows": [
+                {
+                  "hop_count": 1,
+                  "total_cost": 1
+                }
+              ],
+              "columns": [
+                {
+                  "name": "hop_count",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "total_cost",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        }
+      ],
+      "refusals": [
+        {
+          "name": "graph-shortest-refuse-zero-hops",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {from: seeds, id: 'element'}, target: {from: seeds, id: 'element'}, selection: 'each_pair', direction: 'out', max_hops: 0) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths"
+        },
+        {
+          "name": "graph-shortest-refuse-missing-selection",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {from: seeds, id: 'element'}, target: {from: seeds, id: 'element'}, direction: 'out', max_hops: 2) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths"
+        },
+        {
+          "name": "graph-shortest-refuse-unknown-direction",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {from: seeds, id: 'element'}, target: {from: seeds, id: 'element'}, selection: 'each_pair', direction: 'invented', max_hops: 2) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths"
+        },
+        {
+          "name": "graph-shortest-refuse-missing-selector-field",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {from: seeds, id: 'missing'}, target: {from: seeds, id: 'element'}, selection: 'each_pair', direction: 'out', max_hops: 2) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths"
+        },
+        {
+          "name": "graph-shortest-refuse-missing-property",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); DATA seeds = FROM g |> node_rows() |> SELECT id AS element; FROM g |> shortest_path(source: {where: 'missing = 1'}, target: {where: 'true'}, selection: 'each_pair', direction: 'out', max_hops: 1) |> SELECT source_id, target_id, hop_count, total_cost, node_ids, edge_ids |> RESULT paths"
+        }
+      ]
+    },
+    "diagnostics": {
+      "successes": [
+        {
+          "name": "graph-diagnostics-json-degree",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_diagnostics\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false},\"edge_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1,\"edge_key\":11}]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]},{\"name\":\"M\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"n\",\"key\":[\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"target\":{\"definition\":\"M\",\"key\":[\"node_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]},{\"name\":\"L\",\"from\":\"n\",\"key\":[\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"target\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]}]},\"as\":\"g\"},{\"from\":\"g\",\"degree\":{\"direction\":\"both\"},\"as\":\"stats\"},{\"from\":\"stats\",\"select\":[\"degree\",\"node\"],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"degree\",\"node\"]}}}],\"results\":{\"diagnostics\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "degree": 1,
+                  "node": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:8f6ef4d9b6a1abecbee9acf7515a3bae3f34f87425a702966b3dd7852741d356",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "degree": 3,
+                  "node": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:8f6ef4d9b6a1abecbee9acf7515a3bae3f34f87425a702966b3dd7852741d356",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "degree",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-json-graph_bounds",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_diagnostics\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false},\"edge_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1,\"edge_key\":11}]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]},{\"name\":\"M\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"n\",\"key\":[\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"target\":{\"definition\":\"M\",\"key\":[\"node_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]},{\"name\":\"L\",\"from\":\"n\",\"key\":[\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"target\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]}]},\"as\":\"g\"},{\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1,\"max_edges\":1,\"max_degree\":2},\"as\":\"stats\"},{\"from\":\"stats\",\"select\":[\"actual\",\"kind\",\"node_id\",\"max\"],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"actual\",\"kind\",\"node_id\",\"max\"]}}}],\"results\":{\"diagnostics\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "actual": 2,
+                  "kind": "nodes",
+                  "node_id": null,
+                  "max": 1
+                },
+                {
+                  "actual": 2,
+                  "kind": "edges",
+                  "node_id": null,
+                  "max": 1
+                },
+                {
+                  "actual": 3,
+                  "kind": "degree",
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:8f6ef4d9b6a1abecbee9acf7515a3bae3f34f87425a702966b3dd7852741d356",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "max": 2
+                }
+              ],
+              "columns": [
+                {
+                  "name": "actual",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "kind",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "max",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-json-components",
+          "format": "json",
+          "text": "{\"version\":\"actql/0.1\",\"id\":\"fixture.graph_diagnostics\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"node_key\":{\"type\":\"number\",\"nullable\":false},\"edge_key\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"node_key\":1,\"edge_key\":11}]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]},{\"name\":\"M\",\"from\":\"n\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"n\",\"key\":[\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"target\":{\"definition\":\"M\",\"key\":[\"node_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]},{\"name\":\"L\",\"from\":\"n\",\"key\":[\"edge_key\"],\"source\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"target\":{\"definition\":\"N\",\"key\":[\"node_key\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}]}]},\"as\":\"g\"},{\"from\":\"g\",\"components\":{\"kind\":\"strong\",\"max_output_rows\":2},\"as\":\"stats\"},{\"from\":\"stats\",\"select\":[\"component_size\",\"node_id\",\"component_id\"],\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"component_size\",\"node_id\",\"component_id\"]}}}],\"results\":{\"diagnostics\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "component_size": 1,
+                  "node_id": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:8f6ef4d9b6a1abecbee9acf7515a3bae3f34f87425a702966b3dd7852741d356",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "component_id": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:8f6ef4d9b6a1abecbee9acf7515a3bae3f34f87425a702966b3dd7852741d356",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "component_size": 1,
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:8f6ef4d9b6a1abecbee9acf7515a3bae3f34f87425a702966b3dd7852741d356",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "component_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:8f6ef4d9b6a1abecbee9acf7515a3bae3f34f87425a702966b3dd7852741d356",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "component_size",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "component_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-degree-in",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree(direction: \"in\") |> SELECT degree, node |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "degree": 1,
+                  "node": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "degree": 1,
+                  "node": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "degree",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-degree-out",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree(direction: \"out\") |> SELECT degree, node |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "degree": 0,
+                  "node": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "degree": 2,
+                  "node": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "degree",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-degree-both",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree(direction: \"both\") |> SELECT degree, node |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "degree": 1,
+                  "node": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "degree": 3,
+                  "node": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "degree",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-components-weak",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> components(kind: \"weak\", max_output_rows: 2) |> SELECT component_size, node_id, component_id |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "component_size": 2,
+                  "node_id": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "component_id": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "component_size": 2,
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "component_id": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "component_size",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "component_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-components-strong",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> components(kind: \"strong\", max_output_rows: 2) |> SELECT component_size, node_id, component_id |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "component_size": 1,
+                  "node_id": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "component_id": {
+                    "$json": {
+                      "definition": "M",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "component_size": 1,
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "component_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "component_size",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "component_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-bounds-violations",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: 1, max_edges: 1, max_degree: 2) |> SELECT actual, kind, node_id, max |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "actual": 2,
+                  "kind": "nodes",
+                  "node_id": null,
+                  "max": 1
+                },
+                {
+                  "actual": 2,
+                  "kind": "edges",
+                  "node_id": null,
+                  "max": 1
+                },
+                {
+                  "actual": 3,
+                  "kind": "degree",
+                  "node_id": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  },
+                  "max": 2
+                }
+              ],
+              "columns": [
+                {
+                  "name": "actual",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "kind",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "max",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-bounds-exact-satisfied",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: 2, max_edges: 2, max_degree: 3) |> SELECT actual, kind, node_id, max |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [],
+              "columns": [
+                {
+                  "name": "actual",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "kind",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "max",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-bounds-parameter-zero",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: @p) |> SELECT actual, kind, node_id, max |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "actual": 2,
+                  "kind": "nodes",
+                  "node_id": null,
+                  "max": 0
+                }
+              ],
+              "columns": [
+                {
+                  "name": "actual",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "kind",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "max",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0,
+          "parameterDeclarations": {
+            "p": {
+              "type": "number"
+            }
+          },
+          "parameters": {
+            "p": 0
+          }
+        },
+        {
+          "name": "graph-diagnostics-quoted-data-normalized-suffix",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); DATA `stats` = FROM g |> normalize_graph() |> degree(direction: \"out\"); FROM `stats` |> WHERE degree > 0 |> SELECT degree, node |> ORDER BY degree DESC |> LIMIT 1 |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [
+                {
+                  "degree": 2,
+                  "node": {
+                    "$json": {
+                      "definition": "N",
+                      "domain": "sha256:1c6f9dfdc62adbdf83f3103c302015969975d2d86b5cf7101581739c86f1090c",
+                      "key": [
+                        1
+                      ],
+                      "key_types": [
+                        {
+                          "kind": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "columns": [
+                {
+                  "name": "degree",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node",
+                  "contract": {
+                    "type": "json",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        },
+        {
+          "name": "graph-diagnostics-empty-typed-graph",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key WHERE FALSE; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: 0, max_edges: 0, max_degree: 0) |> SELECT actual, kind, node_id, max |> RESULT diagnostics",
+          "results": {
+            "diagnostics": {
+              "rows": [],
+              "columns": [
+                {
+                  "name": "actual",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "kind",
+                  "contract": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                {
+                  "name": "node_id",
+                  "contract": {
+                    "type": "json",
+                    "nullable": true
+                  }
+                },
+                {
+                  "name": "max",
+                  "contract": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              ]
+            }
+          },
+          "sourceReadCount": 0
+        }
+      ],
+      "refusals": [
+        {
+          "name": "graph-diagnostics-degree-missing",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree() |> SELECT degree, node |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-degree-invalid",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree(direction: \"invented\") |> SELECT degree, node |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-degree-extra",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree(direction: \"out\", extra: true) |> SELECT degree, node |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-bounds-missing",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds() |> SELECT actual, kind, node_id, max |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-bounds-negative",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: -1) |> SELECT actual, kind, node_id, max |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-bounds-fractional",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_edges: 1.5) |> SELECT actual, kind, node_id, max |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-components-kind",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> components(kind: \"invented\") |> SELECT component_size, node_id, component_id |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-components-zero-guard",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> components(kind: \"weak\", max_output_rows: 0) |> SELECT component_size, node_id, component_id |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-lost-graph-column",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree(direction: \"both\") |> SELECT node_key |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-second-graph-call",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> degree(direction: \"both\") |> edge_rows() |> SELECT id |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-parameter-undeclared",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: @p) |> SELECT actual, kind, node_id, max |> RESULT diagnostics"
+        },
+        {
+          "name": "graph-diagnostics-parameter-missing",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: @p) |> SELECT actual, kind, node_id, max |> RESULT diagnostics",
+          "parameterDeclarations": {
+            "p": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "name": "graph-diagnostics-parameter-wrong-type",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: @p) |> SELECT actual, kind, node_id, max |> RESULT diagnostics",
+          "parameterDeclarations": {
+            "p": {
+              "type": "number"
+            }
+          },
+          "parameters": {
+            "p": "zero"
+          }
+        },
+        {
+          "name": "graph-diagnostics-parameter-negative",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> graph_bounds(max_nodes: @p) |> SELECT actual, kind, node_id, max |> RESULT diagnostics",
+          "parameterDeclarations": {
+            "p": {
+              "type": "number"
+            }
+          },
+          "parameters": {
+            "p": -1
+          }
+        }
+      ],
+      "failures": [
+        {
+          "name": "graph-diagnostics-components-author-guard",
+          "format": "aql-text",
+          "text": "DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES, n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES)); FROM g |> components(kind: \"weak\", max_output_rows: 1) |> SELECT component_size, node_id, component_id |> RESULT diagnostics",
+          "resultNames": [
+            "diagnostics"
+          ],
+          "sourceReadSessionCount": 0
+        }
+      ]
+    }
+  }
+}

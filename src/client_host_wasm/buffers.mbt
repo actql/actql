@@ -43,10 +43,18 @@ priv struct Instance {
   computes : Map[Int, StoredNativeCompute]
   source_publications : Map[Int, StoredSourcePublication]
   publication_preflights : Map[Int, StoredPublicationPreflight]
+  publishers : Map[Int, StoredPublisher]
   publications : Map[Int, StoredPublication]
   result_bindings : Map[Int, StoredResultBinding]
   commit_exports : Map[Int, StoredPublicationCommitExport]
   payload_requests : Map[Int, StoredPayloadRequest]
+  payload_chunks : Map[Int, StoredPayloadChunk]
+  payload_records : Map[Int, StoredPayloadRecord]
+  payload_reservations : Map[Int, StoredPayloadReservation]
+  payload_writings : Map[Int, StoredPayloadWriting]
+  payload_allocations : Map[Int, StoredPayloadAllocation]
+  payload_bindings : Map[Int, StoredPayloadBinding]
+  payload_names : Map[Int, StoredPayloadNames]
   tasks : Map[Int, StoredManagedTask]
   result_exports : Map[Int, StoredResultExport]
   result_chunks : Map[Int, StoredResultChunk]
@@ -156,10 +164,18 @@ pub fn open(
         computes: {},
         source_publications: {},
         publication_preflights: {},
+        publishers: {},
         publications: {},
         result_bindings: {},
         commit_exports: {},
         payload_requests: {},
+        payload_chunks: {},
+        payload_records: {},
+        payload_reservations: {},
+        payload_writings: {},
+        payload_allocations: {},
+        payload_bindings: {},
+        payload_names: {},
         tasks: {},
         result_exports: {},
         result_chunks: {},
@@ -323,10 +339,18 @@ pub fn close_pool(nonce : Int64) -> Int {
     !value.computes.is_empty() ||
     !value.source_publications.is_empty() ||
     !value.publication_preflights.is_empty() ||
+    !value.publishers.is_empty() ||
     !value.publications.is_empty() ||
     !value.result_bindings.is_empty() ||
     !value.commit_exports.is_empty() ||
     !value.payload_requests.is_empty() ||
+    !value.payload_chunks.is_empty() ||
+    !value.payload_records.is_empty() ||
+    !value.payload_reservations.is_empty() ||
+    !value.payload_writings.is_empty() ||
+    !value.payload_allocations.is_empty() ||
+    !value.payload_bindings.is_empty() ||
+    !value.payload_names.is_empty() ||
     !value.tasks.is_empty() ||
     !value.result_exports.is_empty() ||
     !value.result_chunks.is_empty() {
@@ -362,10 +386,18 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.computes.clear()
     value.source_publications.clear()
     value.publication_preflights.clear()
+    value.publishers.clear()
     value.publications.clear()
     value.result_bindings.clear()
     value.commit_exports.clear()
     value.payload_requests.clear()
+    value.payload_chunks.clear()
+    value.payload_records.clear()
+    value.payload_reservations.clear()
+    value.payload_writings.clear()
+    value.payload_allocations.clear()
+    value.payload_bindings.clear()
+    value.payload_names.clear()
     value.tasks.clear()
     value.result_exports.clear()
     value.result_chunks.clear()

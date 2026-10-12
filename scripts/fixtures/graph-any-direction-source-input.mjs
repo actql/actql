@@ -15,13 +15,13 @@ const declarations = {
     items: {type: 'object', nullable: false, fields: {key: number, src: number, dst: number}}},
 };
 const parameters = {nodes, edges};
-const data = 'DATA objects = SELECT item.id AS id, item.payload AS payload '
-  + 'FROM UNNEST(@nodes) AS item; DATA links = SELECT link.key AS key, '
-  + 'link.src AS src, link.dst AS dst FROM UNNEST(@edges) AS link; ';
-const mapping = 'DATA g = PROPERTY GRAPH (NODE TABLES '
+const data = 'WITH objects AS (SELECT item.id AS id, item.payload AS payload '
+  + 'FROM UNNEST(@nodes) AS item) , links AS (SELECT link.key AS key, '
+  + 'link.src AS src, link.dst AS dst FROM UNNEST(@edges) AS link) ';
+const mapping = ', g AS (GRAPH (NODE TABLES '
   + '(objects AS N KEY (id) LABEL Node PROPERTIES ALL COLUMNS) EDGE TABLES '
   + '(links AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) '
-  + 'REFERENCES N LABEL R PROPERTIES (key))); ';
+  + 'REFERENCES N LABEL R PROPERTIES (key)))) ';
 const tail = (pattern, mode = 'WALK') => `FROM GRAPH g |> MATCH p = ${mode} ${pattern}`
   + ' |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT matched';
 const columns = [{name: 'depth', contract: number}];
@@ -49,10 +49,10 @@ const machine = bounded => ({version: 'actql/0.1', id: 'fixture.graph_any_direct
     {from: 'depths', sort: [{field: 'depth', dir: 'asc', nulls: 'first'}], as: 'ordered'},
   ], results: {rows: {from: 'ordered', fields: ['depth']}}}],
   results: {matched: {from: {stage: 'main', result: 'rows'}}}});
-const heterogeneous = 'DATA n = SELECT 1 AS id, 20 AS score; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; '
-  + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS S KEY (id) LABEL Start NO PROPERTIES, '
+const heterogeneous = 'WITH n AS (SELECT 1 AS id, 20 AS score) , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst) '
+  + ', g AS (GRAPH (NODE TABLES (n AS S KEY (id) LABEL Start NO PROPERTIES, '
   + 'n AS T KEY (id) LABEL Target PROPERTIES (score)) EDGE TABLES '
-  + '(e AS E KEY (key) SOURCE KEY (src) REFERENCES S DESTINATION KEY (dst) REFERENCES T LABEL R NO PROPERTIES)); ';
+  + '(e AS E KEY (key) SOURCE KEY (src) REFERENCES S DESTINATION KEY (dst) REFERENCES T LABEL R NO PROPERTIES))) ';
 // The installed Graph provider retains complete path identities under a
 // 10,000-byte text ceiling. Two keyed self-loops distinguish every path mode
 // within that ceiling; self-loops must not be counted twice for direction both.

@@ -1,0 +1,52 @@
+{
+  "startedAt": "2026-10-11T23:33:21.146Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Final independent caller preservation and consuming syntax expectations",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/with-final-current-callers.test.mjs",
+        "scripts/graph-member-source-input.test.mjs",
+        "scripts/graph-mean-source-input.test.mjs",
+        "scripts/graph-subtraction-source-input.test.mjs",
+        "scripts/distinct-aggregate-order-source-input.test.mjs",
+        "scripts/nearest-member-source-input.test.mjs",
+        "scripts/two-source-optional-effect.test.mjs"
+      ],
+      "startedAt": "2026-10-11T23:33:21.226Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-11T23:33:22.139Z",
+      "endedAt": "2026-10-11T23:33:22.143Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "0b7875ce-5489-492e-8290-7e8f6926d1c3",
+    "pid": 82905,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T23:33:21.220Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ytMcTE"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T23:33:22.225Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

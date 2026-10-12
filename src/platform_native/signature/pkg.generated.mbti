@@ -17,6 +17,7 @@ pub fn Library::open_private_evidence(Self, Bytes, String, String, Bytes) -> Res
 pub fn Library::random_bytes(Self, Int) -> Result[Bytes, NativeSignatureIssue]
 pub fn Library::seal_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
 pub fn Library::sha256_hasher(Self) -> Result[Sha256Hasher, NativeSignatureIssue]
+pub fn Library::sign_ed25519(Self, Bytes, Bytes) -> Result[String, NativeSignatureIssue]
 pub fn Library::verify_ed25519(Self, String, Bytes, String) -> Result[Bool, NativeSignatureIssue]
 pub fn Library::verify_hmac_sha256(Self, Bytes, Bytes, Bytes) -> Result[Bool, NativeSignatureIssue]
 
@@ -31,8 +32,10 @@ pub(all) enum NativeSignatureIssue {
   InvalidInput
   LibraryLoad(String)
   InvalidPublicKey(String)
+  InvalidPrivateKey(String)
   UnsupportedKey(String)
   Verification(String)
+  Signing(String)
 } derive(Eq, @debug.Debug)
 
 type Sha256Hasher

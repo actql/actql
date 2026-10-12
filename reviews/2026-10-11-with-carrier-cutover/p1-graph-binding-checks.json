@@ -1,0 +1,24 @@
+{
+  "unit": "P1 WITH Graph binding shared lowering and public SQL/text routing",
+  "parent": "363b14b09ee0dc3fe74bef31e2a11cd94f533d5d",
+  "status": "Product edits; compile and runtime not yet executed",
+  "limits": {
+    "timeout_seconds": 60,
+    "grace_seconds": 5,
+    "heavy": false
+  },
+  "selected_tests": [
+    "src/query_syntax/query_script_test.mbt",
+    "src/query_syntax/graph_constructor_test.mbt",
+    "src/query_syntax/producer_scope_wbtest.mbt",
+    "src/query_syntax/sga_call_test.mbt",
+    "src/query_program/with_graph_binding_test.mbt"
+  ],
+  "remaining": [
+    "All-binding static checking without business I/O and demanded-only emission",
+    "Vectors/Events and P2 role/profile surface",
+    "Current docs/examples/grammar/identity pins and current fixture replacement",
+    "Public SQL/AQL-text/README Local/HTTPS reception"
+  ],
+  "evidence_policy": "Old successes/failures and independent Program controls remain unchanged historical evidence; no public execution is claimed."
+}

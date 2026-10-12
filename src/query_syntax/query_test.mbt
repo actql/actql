@@ -176,30 +176,30 @@ test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
     "SELECT s.id FROM (SELECT id FROM orders WHERE id > 1) AS s",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(sql), 1)
-  assert_eq(relation(sql), [cte_at(sql, 0).unwrap().name])
+  assert_eq(query_binding_count(sql), 1)
+  assert_eq(relation(sql), [query_binding_at(sql, 0).unwrap().name])
   assert_eq(relation_alias(sql), Some({ value: "s", quoted: false, }))
-  assert_eq(relation(cte_at(sql, 0).unwrap().query), [
+  assert_eq(relation(query_binding_at(sql, 0).unwrap().query), [
     { value: "orders", quoted: false, },
   ])
   let ordered = parse_query(
     "SELECT s.id FROM (SELECT id FROM orders ORDER BY id LIMIT 2) AS s",
     query_limits(),
   ).unwrap()
-  assert_eq(operation_count(cte_at(ordered, 0).unwrap().query), 3)
+  assert_eq(operation_count(query_binding_at(ordered, 0).unwrap().query), 3)
   let pipe = parse_query(
     "FROM (SELECT id FROM orders WHERE id > 1) AS s |> SELECT s.id",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(pipe), 1)
+  assert_eq(query_binding_count(pipe), 1)
   assert_eq(relation_alias(pipe), relation_alias(sql))
   let nested = parse_query(
     "SELECT outer_rows.id FROM (SELECT inner_rows.id FROM (SELECT id FROM orders) AS inner_rows) AS outer_rows",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(nested), 2)
-  assert_eq(relation(cte_at(nested, 1).unwrap().query), [
-    cte_at(nested, 0).unwrap().name,
+  assert_eq(query_binding_count(nested), 2)
+  assert_eq(relation(query_binding_at(nested, 1).unwrap().query), [
+    query_binding_at(nested, 0).unwrap().name,
   ])
   assert_true(
     parse_query(
@@ -208,17 +208,29 @@ test "noncorrelated FROM subqueries keep bounded dataflow and source alias" {
     )
     is Err(_),
   )
-  assert_true(
-    parse_query("SELECT id FROM (SELECT id FROM orders)", query_limits())
-    is Err(_),
-  )
+  let unaliased = parse_query(
+    "SELECT id FROM (SELECT id FROM orders)",
+    query_limits(),
+  ).unwrap()
+  assert_eq(query_binding_count(unaliased), 1)
+  assert_eq(relation_alias(unaliased), None)
+  assert_eq(relation(unaliased), [query_binding_at(unaliased, 0).unwrap().name])
+  assert_eq(relation(query_binding_at(unaliased, 0).unwrap().query), [
+    { value: "orders", quoted: false, },
+  ])
   let reserved = parse_query(
     "WITH aql_query_source_0 AS (SELECT id FROM orders) SELECT s.id FROM (SELECT id FROM aql_query_source_0) AS s",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(reserved), 2)
-  assert_eq(cte_at(reserved, 0).unwrap().name.value, "aql_query_source_0")
-  assert_eq(cte_at(reserved, 1).unwrap().name.value, "aql_query_source_1")
+  assert_eq(query_binding_count(reserved), 2)
+  assert_eq(
+    query_binding_at(reserved, 0).unwrap().name.value,
+    "aql_query_source_0",
+  )
+  assert_eq(
+    query_binding_at(reserved, 1).unwrap().name.value,
+    "aql_query_source_1",
+  )
 }
 
 ///|
@@ -414,8 +426,8 @@ test "Pipe WHERE before JOIN remains a pre-join predicate" {
     "FROM left_rows AS l |> SET a = 2 |> JOIN right_rows AS r ON l.a = r.c |> SELECT a",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(rebound), 1)
-  let input = cte_at(rebound, 0).unwrap().query
+  assert_eq(query_binding_count(rebound), 1)
+  let input = query_binding_at(rebound, 0).unwrap().query
   assert_eq(relation(input), [{ value: "left_rows", quoted: false, }])
   assert_true(operation_at(input, 0) is Some(Set(_)))
   assert_eq(join_part_count(rebound), 1)
@@ -428,10 +440,10 @@ test "JOIN subquery is a named source with one synthetic CTE" {
     "WITH base AS (SELECT id FROM orders) SELECT l.id AS left_id, r.id AS right_id FROM base AS l JOIN (SELECT id FROM base WHERE id = 'a') AS r ON l.id = r.id",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(sql), 2)
-  assert_eq(relation(cte_at(sql, 1).unwrap().query)[0].value, "base")
+  assert_eq(query_binding_count(sql), 2)
+  assert_eq(relation(query_binding_at(sql, 1).unwrap().query)[0].value, "base")
   assert_eq(join_part_at(sql, 0).unwrap().relation, [
-    cte_at(sql, 1).unwrap().name,
+    query_binding_at(sql, 1).unwrap().name,
   ])
   assert_eq(
     join_part_at(sql, 0).unwrap().source_alias,
@@ -441,17 +453,23 @@ test "JOIN subquery is a named source with one synthetic CTE" {
     "FROM base AS l |> JOIN (SELECT id FROM base) AS r ON l.id = r.id |> SELECT l.id AS left_id, r.id AS right_id",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(pipe), 1)
+  assert_eq(query_binding_count(pipe), 1)
   assert_eq(join_part_at(pipe, 0).unwrap().relation, [
-    cte_at(pipe, 0).unwrap().name,
+    query_binding_at(pipe, 0).unwrap().name,
   ])
-  assert_true(
-    parse_query(
-      "SELECT l.id FROM base AS l JOIN (SELECT id FROM base) ON l.id = id",
-      query_limits(),
-    )
-    is Err(_),
-  )
+  let unaliased = parse_query(
+    "SELECT l.id FROM base AS l JOIN (SELECT id FROM base) ON l.id = id",
+    query_limits(),
+  ).unwrap()
+  assert_eq(query_binding_count(unaliased), 1)
+  assert_eq(relation_alias(unaliased), Some({ value: "l", quoted: false, }))
+  assert_eq(join_part_at(unaliased, 0).unwrap().source_alias, None)
+  assert_eq(join_part_at(unaliased, 0).unwrap().relation, [
+    query_binding_at(unaliased, 0).unwrap().name,
+  ])
+  assert_eq(relation(query_binding_at(unaliased, 0).unwrap().query), [
+    { value: "base", quoted: false, },
+  ])
   let one_cte = { ..query_limits(), max_cte_count: 1, }
   assert_true(
     parse_query(
@@ -468,9 +486,12 @@ test "nonrecursive CTE names retain declaration order and bounds" {
     "WITH first AS (SELECT a FROM left_rows), second AS (SELECT a FROM first) SELECT a FROM second",
     query_limits(),
   ).unwrap()
-  assert_eq(cte_count(query), 2)
-  assert_eq(cte_at(query, 0).unwrap().name.value, "first")
-  assert_eq(relation(cte_at(query, 1).unwrap().query)[0].value, "first")
+  assert_eq(query_binding_count(query), 2)
+  assert_eq(query_binding_at(query, 0).unwrap().name.value, "first")
+  assert_eq(
+    relation(query_binding_at(query, 1).unwrap().query)[0].value,
+    "first",
+  )
   assert_eq(relation(query)[0].value, "second")
   assert_true(
     parse_query("WITH first AS (SELECT a FROM left_rows) SELECT a FROM first", {
@@ -494,7 +515,7 @@ test "standard SELECT can omit FROM and use ordinary Pipe tail" {
       "SELECT 1 AS x", "SELECT 1 AS x |> WHERE x = 1 |> SELECT x", "WITH seed AS (SELECT 1 AS x) FROM seed |> SELECT x",
     ] {
     let query = parse_query(text, query_limits()).unwrap()
-    if cte_count(query) == 0 {
+    if query_binding_count(query) == 0 {
       assert_true(relation(query).is_empty())
     }
   }

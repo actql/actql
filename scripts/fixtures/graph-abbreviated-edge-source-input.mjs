@@ -16,16 +16,16 @@ const declarations = {nodes: {type: 'array', nullable: false, max_items: 3,
   sEdges: {type: 'array', nullable: false, max_items: 1,
     items: {type: 'object', nullable: false, fields: edgeSchema}}};
 const parameters = {nodes, rEdges, sEdges};
-const data = 'DATA objects = SELECT item.id AS id, item.payload AS payload '
-  + 'FROM UNNEST(@nodes) AS item; DATA links = SELECT link.key AS key, '
-  + 'link.src AS src, link.dst AS dst FROM UNNEST(@rEdges) AS link; '
-  + 'DATA other_links = SELECT link.key AS key, link.src AS src, link.dst AS dst '
-  + 'FROM UNNEST(@sEdges) AS link; ';
-const mapping = 'DATA g = PROPERTY GRAPH (NODE TABLES '
+const data = 'WITH objects AS (SELECT item.id AS id, item.payload AS payload '
+  + 'FROM UNNEST(@nodes) AS item) , links AS (SELECT link.key AS key, '
+  + 'link.src AS src, link.dst AS dst FROM UNNEST(@rEdges) AS link) '
+  + ', other_links AS (SELECT link.key AS key, link.src AS src, link.dst AS dst '
+  + 'FROM UNNEST(@sEdges) AS link) ';
+const mapping = ', g AS (GRAPH (NODE TABLES '
   + '(objects AS N KEY (id) LABEL Node PROPERTIES ALL COLUMNS) EDGE TABLES '
   + '(links AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) '
   + 'REFERENCES N LABEL R NO PROPERTIES, other_links AS F KEY (key) '
-  + 'SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL S NO PROPERTIES)); ';
+  + 'SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL S NO PROPERTIES))) ';
 const tail = (pattern, mode = '') => `FROM GRAPH g |> MATCH p = ${mode} ${pattern}`
   + ' |> SELECT PATH_LENGTH(p) AS depth |> ORDER BY depth |> RESULT matched';
 const result = depths => ({matched: {rows: depths.map(depth => ({depth})),

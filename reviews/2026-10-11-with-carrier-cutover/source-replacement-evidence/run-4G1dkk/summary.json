@@ -1,0 +1,81 @@
+{
+  "startedAt": "2026-10-11T18:11:46.786Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "with-p1-changed-format-read-only",
+      "command": [
+        "moon",
+        "fmt",
+        "--check",
+        "src/query_program/graph_union_source_test.mbt",
+        "src/query_program/graph_subtraction_source_test.mbt",
+        "src/query_program/graph_shortest_source_test.mbt",
+        "src/query_program/graph_mean_source_test.mbt",
+        "src/query_program/graph_graft_source_test.mbt",
+        "src/query_program/graph_reach_source_test.mbt",
+        "src/query_program/graph_match_binding_vocabulary_test.mbt",
+        "src/query_program/graph_merge_vocabulary_test.mbt",
+        "src/query_program/with_source_usage_wbtest.mbt",
+        "src/query_program/query_script_inputs.mbt"
+      ],
+      "startedAt": "2026-10-11T18:11:46.976Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:11:47.494Z",
+      "endedAt": "2026-10-11T18:11:47.498Z"
+    },
+    {
+      "name": "with-p1-graph-and-capture-tests",
+      "command": [
+        "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_union_source_test.mbt",
+        "src/query_program/graph_subtraction_source_test.mbt",
+        "src/query_program/graph_shortest_source_test.mbt",
+        "src/query_program/graph_mean_source_test.mbt",
+        "src/query_program/graph_graft_source_test.mbt",
+        "src/query_program/graph_reach_source_test.mbt",
+        "src/query_program/graph_match_binding_vocabulary_test.mbt",
+        "src/query_program/graph_merge_vocabulary_test.mbt",
+        "src/query_program/with_source_usage_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T18:11:47.634Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:11:57.664Z",
+      "endedAt": "2026-10-11T18:11:57.666Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "311f567d-1bbf-4a91-92e7-cfb2adddc993",
+    "pid": 86915,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:11:46.923Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-4G1dkk"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:11:57.731Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

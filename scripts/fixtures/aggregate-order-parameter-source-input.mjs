@@ -6,9 +6,9 @@ const string = {type: 'string', nullable: true};
 const object = {type: 'object', nullable: true, fields: {rank: nullableNumber}};
 const sourceRows = [{id: 2, amount: 10}, {id: 1, amount: 20},
   {id: 3, amount: null}, {id: 4, amount: 40}, {id: 2, amount: 10}, {id: 0, amount: 99}];
-const data = 'DATA labels = SELECT id, '
+const data = 'WITH labels AS (SELECT id, '
   + "CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name "
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const sql = "SELECT STRING_AGG(name, '|' ORDER BY @key DESC NULLS LAST, id) AS names FROM labels";
 export const aggregateOrderParameterProgram = {version: 'actql/0.1',
   id: 'fixture.aggregate_order_parameter', params: {key: nullableNumber},

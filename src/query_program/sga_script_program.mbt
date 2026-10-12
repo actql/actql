@@ -1,5 +1,5 @@
 ///|
-// Use the existing DATA naming rule and its separate Graph namespace. A
+// Use resolved WITH producer coordinates and the current Graph contract. A
 // Graph is never fabricated as an Input with Relation columns.
 fn script_graph_input(
   query : @query.Query,
@@ -25,6 +25,24 @@ fn script_graph_named_input(
 }
 
 ///|
+// A producer alias is not a row range. Stop at the first explicit Relation
+// bridge/projection so its subsequent AS uses the ordinary Relation scope.
+fn check_graph_range_alias(query : @query.Query) -> Unit raise Abort {
+  if @query.relation_alias(query) is Some(_) {
+    raise Abort(RangeAliasRequiresRelation)
+  }
+  for index in 0..<@query.operation_count(query) {
+    match @query.operation_at(query, index) {
+      Some(Alias(_)) => raise Abort(RangeAliasRequiresRelation)
+      Some(Select(_, _)) => return
+      Some(GraphCall(call)) if @query.has_sga_relation_lowering(call.operation) =>
+        return
+      _ => ()
+    }
+  }
+}
+
+///|
 // Normalize, Subgraph and Delta application retain the admitted definitions,
 // properties, labels and identity domain. A binding is not a copy, source read
 // or materialization.
@@ -40,10 +58,10 @@ fn lower_script_graph_calls(
   known? : Array[Input] = [],
   graphs? : Array[ScriptGraph] = [],
 ) -> ScriptGraph raise Abort {
-  if @query.cte_count(query) > 0 ||
+  check_graph_range_alias(query)
+  if @query.query_binding_count(query) > 0 ||
     @query.set_part_count(query) > 0 ||
-    @query.join_part_count(query) > 0 ||
-    @query.relation_alias(query) is Some(_) {
+    @query.join_part_count(query) > 0 {
     raise Abort(UnsupportedGraph)
   }
   let mut current = input.producer

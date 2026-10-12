@@ -209,7 +209,7 @@ fn mapping_resolved_name(
 ///|
 test "Graph producer references use the shared query name rules" {
   // Values-backed relation inputs use the same path rule as published
-  // Source Views. A quoted path is exact; DATA bindings are aliases instead.
+  // Source Views. A quoted path is exact; WITH bindings are aliases instead.
   let relation = property_mapping_inputs()[0]
   for
     (name, quoted, expected) in [
@@ -223,16 +223,16 @@ test "Graph producer references use the shared query name rules" {
       expected,
     )
   }
-  let data = {
+  let binding = {
     ..relation,
     relation: [{ value: "n", quoted: true, }],
-    name: "aql_data_0",
+    name: "aql_script_cte_0",
     source: StepReference,
   }
   for (name, quoted) in [("n", false), ("N", false), ("n", true), ("N", true)] {
     assert_eq(
-      mapping_resolved_name([{ value: name, quoted, }], [data]),
-      "aql_data_0",
+      mapping_resolved_name([{ value: name, quoted, }], [binding]),
+      "aql_script_cte_0",
     )
   }
   let other = {
@@ -250,13 +250,15 @@ test "Graph producer references use the shared query name rules" {
     mapping_resolved_name([{ value: "nodes", quoted: true, }], [relation, other]),
     "nodes",
   )
-  let repeated_data = {
-    ..data,
+  let repeated_binding = {
+    ..binding,
     relation: [{ value: "N", quoted: false, }],
-    name: "aql_data_1",
+    name: "aql_script_cte_1",
   }
   assert_eq(
-    mapping_resolved_name([{ value: "n", quoted: true, }], [data, repeated_data]),
+    mapping_resolved_name([{ value: "n", quoted: true, }], [
+      binding, repeated_binding,
+    ]),
     "AmbiguousRelation",
   )
   let qualified = {
@@ -284,7 +286,7 @@ test "Graph producer references use the shared query name rules" {
 
 ///|
 test "Graph mapping lowers to an independent keyed Program" {
-  let text = "PROPERTY GRAPH (NODE TABLES (`nodes` AS N KEY (`ID`) LABEL Node PROPERTIES (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES `n` (`id`) DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES ARE ALL COLUMNS EXCEPT (src, dst)))"
+  let text = "GRAPH (NODE TABLES (`nodes` AS N KEY (`ID`) LABEL Node PROPERTIES (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES `n` (`id`) DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES ARE ALL COLUMNS EXCEPT (src, dst)))"
   let program = property_mapping_program(text, property_mapping_inputs()).unwrap()
   // Written from the adopted mapping contract: no domain, Result, sort,
   // acquisition or storage is invented by the constructor lowering.
@@ -300,7 +302,7 @@ test "Graph mapping lowers to an independent keyed Program" {
 
 ///|
 test "Graph references resolve element definitions separately" {
-  let base = "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id) NO PROPERTIES) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES "
+  let base = "GRAPH (NODE TABLES (nodes AS N KEY (id) NO PROPERTIES) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES "
   for
     (name, expected) in [
       ("nodes", "UnknownRelation"),
@@ -328,18 +330,13 @@ test "Graph references resolve element definitions separately" {
 test "Graph rejects unresolved ambiguous and non-key mapping" {
   for
     (text, expected) in [
+      ("GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnresolvedRelation"),
+      ("GRAPH (NODE TABLES (nodes AS N KEY (missing)))", "UnknownColumn"),
       (
-        "PROPERTY GRAPH (NODE TABLES (missing AS N KEY (id)))", "UnresolvedRelation",
+        "GRAPH (NODE TABLES (nodes AS N KEY (id), nodes AS `n` KEY (id)))", "AmbiguousRelation",
       ),
       (
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (missing)))", "UnknownColumn",
-      ),
-      (
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id), nodes AS `n` KEY (id)))",
-        "AmbiguousRelation",
-      ),
-      (
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES N (missing) DESTINATION KEY (dst) REFERENCES N))",
+        "GRAPH (NODE TABLES (nodes AS N KEY (id)) EDGE TABLES (edges AS E KEY (key) SOURCE KEY (src) REFERENCES N (missing) DESTINATION KEY (dst) REFERENCES N))",
         "UnknownColumn",
       ),
     ] {
@@ -353,7 +350,7 @@ test "Graph rejects unresolved ambiguous and non-key mapping" {
   assert_eq(
     mapping_issue(
       property_mapping_program(
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id)))", both,
+        "GRAPH (NODE TABLES (nodes AS N KEY (id)))", both,
       ),
     ),
     "AmbiguousRelation",
@@ -369,7 +366,7 @@ test "Graph rejects unresolved ambiguous and non-key mapping" {
   assert_eq(
     mapping_issue(
       property_mapping_program(
-        "PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id)))", fields,
+        "GRAPH (NODE TABLES (nodes AS N KEY (id)))", fields,
       ),
     ),
     "AmbiguousColumn",
@@ -377,9 +374,9 @@ test "Graph rejects unresolved ambiguous and non-key mapping" {
 }
 
 ///|
-test "DATA Relation binds an existing step without a materialization boundary" {
+test "WITH Relation binds an existing step without a materialization boundary" {
   let script = @query.parse_query_script(
-    "DATA n = SELECT 2 AS id; FROM `N` |> SELECT id",
+    "WITH n AS (SELECT 2 AS id) FROM `N` |> SELECT id",
     mapping_syntax_limits(),
   ).unwrap()
   let program = compile_query_script(
@@ -387,11 +384,11 @@ test "DATA Relation binds an existing step without a materialization boundary" {
     mapping_context(),
     mapping_limits(),
   ).unwrap()
-  // The DATA output reserves the first producer slot before its Values seed.
+  // The WITH output reserves the first producer slot before its Values seed.
   // The existing collision allocator therefore assigns seed slot 1.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":2}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_data_0"},{"from":"aql_data_0","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":2}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_script_cte_0"},{"from":"aql_script_cte_0","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     mapping_limits().program,
     format=Json,
@@ -402,11 +399,11 @@ test "DATA Relation binds an existing step without a materialization boundary" {
 }
 
 ///|
-test "DATA Relation rejects forward references without substituting a source" {
+test "WITH Relation rejects forward references without substituting a source" {
   for
     text in [
-      "DATA n = FROM m |> SELECT id; DATA m = SELECT 1 AS id; FROM n |> SELECT id",
-      "DATA n = FROM n |> SELECT id; FROM n |> SELECT id",
+      "WITH n AS (FROM m |> SELECT id), m AS (SELECT 1 AS id) FROM n |> SELECT id",
+      "WITH n AS (FROM n |> SELECT id) FROM n |> SELECT id",
     ] {
     let script = @query.parse_query_script(text, mapping_syntax_limits()).unwrap()
     assert_eq(
@@ -417,7 +414,7 @@ test "DATA Relation rejects forward references without substituting a source" {
     )
   }
   let script = @query.parse_query_script(
-    "DATA n = SELECT 1 AS id; DATA m = FROM `N` |> SELECT id; FROM m |> SELECT id",
+    "WITH n AS (SELECT 1 AS id), m AS (FROM `N` |> SELECT id) FROM m |> SELECT id",
     mapping_syntax_limits(),
   ).unwrap()
   let program = compile_query_script(

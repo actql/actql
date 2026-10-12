@@ -5,6 +5,7 @@ pub(all) enum PublicationOutputPayloadIssue {
   RequestMismatch
   Payload(@payload.PublicationPayloadIssue)
   Replay(PublicationOutputExportIssue)
+  Binding(PublicationOutputExportIssue)
 }
 
 ///|

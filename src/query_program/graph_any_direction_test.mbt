@@ -45,7 +45,7 @@ test "any-direction MATCH retains its independent complete Program" {
 
 ///|
 test "any-direction fixed hops retain both endpoint definitions for property checking" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_hop_definition_prefix() +
     "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]-(b WHERE b.score > 10) |> SELECT PATH_LENGTH(p) AS depth",
   )

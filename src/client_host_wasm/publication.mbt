@@ -29,10 +29,27 @@ priv struct StoredPublication {
   mut commit_input : Int?
   mut commit_borrow : @buffers.BufferBorrow?
   mut commit : @publication.PublicationCommitPreparation?
+  mut commit_view : @publication.PublicationCommitReadView?
   mut commit_index : @publication.PublicationContract?
   mut commit_progress : (Bool, Int)?
   mut commit_failed : Bool
   mut commit_finished : Bool
+  mut observation_input : Int?
+  mut observation_borrow : @buffers.BufferBorrow?
+  mut observation_publisher : Int?
+  mut observation : PublicationCommitObservation?
+  mut observation_progress : (Bool, Int)?
+  mut observation_index : @publication.PublicationContract?
+  mut observation_failed : Bool
+  mut observation_checked : Bool
+  mut observation_closing : Bool
+  mut lookup_input : Int?
+  mut lookup_borrow : @buffers.BufferBorrow?
+  mut lookup_publisher : Int?
+  mut lookup_index : @publication.PublicationContract?
+  mut lookup_identity : String?
+  mut lookup_failed : Bool
+  mut lookup_closing : Bool
 }
 
 ///|
@@ -111,10 +128,27 @@ pub fn reserve_publication(
     commit_input: None,
     commit_borrow: None,
     commit: None,
+    commit_view: None,
     commit_index: None,
     commit_progress: None,
     commit_failed: false,
     commit_finished: false,
+    observation_input: None,
+    observation_borrow: None,
+    observation_publisher: None,
+    observation: None,
+    observation_progress: None,
+    observation_index: None,
+    observation_failed: false,
+    observation_checked: false,
+    observation_closing: false,
+    lookup_input: None,
+    lookup_borrow: None,
+    lookup_publisher: None,
+    lookup_index: None,
+    lookup_identity: None,
+    lookup_failed: false,
+    lookup_closing: false,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -126,18 +160,24 @@ fn publication_current(
   value : Instance,
   record : StoredPublication,
   account : @authorization.AdmittedAccountConfiguration,
+  pending_confirmation? : Bool = false,
 ) -> Bool {
-  guard value.source_publications.get(record.source)
-    is Some({ closing: false, compute, .. }) &&
-    value.computes.get(compute) is Some({ closing: false, .. }) &&
+  guard value.source_publications.get(record.source) is Some(source) &&
+    value.computes.get(source.compute) is Some(compute) &&
     value.publication_preflights.get(record.preflight) is Some(preflight) &&
     preflight.source == record.source &&
-    stored_preflight_current(value, preflight, account) else {
+    stored_preflight_current(value, preflight, account, pending_confirmation~) else {
+    return false
+  }
+  if !pending_confirmation && (source.closing || compute.closing) {
     return false
   }
   for result in record.results {
-    guard value.result_exports.get(result)
-      is Some({ closing: false, issue: None, .. }) else {
+    guard value.result_exports.get(result) is Some(output) &&
+      output.issue is None else {
+      return false
+    }
+    if !pending_confirmation && output.closing {
       return false
     }
   }
@@ -594,6 +634,20 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
   if record.commit is Some(commit) {
     commit.cancel()
   }
+  if record.observation_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.observation_borrow = None
+  }
+  if record.lookup_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.lookup_borrow = None
+  }
   if record.commit_borrow is Some(borrow) {
     let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
     if result != 0 {
@@ -613,6 +667,17 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     Err(_) => 0
   }
   if result == 0 {
+    // All child output use, the original commit input, the parent output and
+    // the original Source/input borrow have acknowledged cleanup or stop.
+    // A failed physical cleanup above retains this same cancelled view.
+    if record.commit is Some(commit) && record.commit_view is Some(view) {
+      match commit.release_view(view) {
+        Err(_) => return -32
+        Ok(_) => ()
+      }
+      record.commit_view = None
+      record.commit = None
+    }
     value.publications.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }

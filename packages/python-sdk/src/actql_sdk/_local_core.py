@@ -4,11 +4,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 import hashlib
+import json
 from importlib import import_module
 import secrets
 import sys
 from threading import RLock
-from typing import Any
+from typing import Any, Literal
 
 
 class LocalCoreError(RuntimeError):
@@ -108,11 +109,58 @@ class _NativeAttempt:
     handle: int
 
 
+@dataclass(frozen=True, slots=True)
+class _PublisherFact:
+    """Original six Owner facts; not a policy body, grant or Store outcome."""
+
+    stage: str
+    namespace_id: str
+    authority_scope_cid: str
+    run_definition_cid: str
+    publication_request_cid: str
+    public_index_entry_cid: str | None
+
+
+@dataclass(slots=True)
+class _PublisherCallbacks:
+    current: Callable[[], bool]
+    authorize: Callable[[_PublisherFact], bool]
+    buffer: bytearray | None = None
+    received: int = 0
+
+
+_PUBLISHER_LIMIT = 8192
+
+
+def _publisher_fact(payload: bytearray) -> _PublisherFact:
+    def closed_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate publisher fact field')
+            result[key] = value
+        return result
+
+    value = json.loads(payload, object_pairs_hook=closed_pairs)
+    fields = ('stage', 'namespace_id', 'authority_scope_cid', 'run_definition_cid',
+              'publication_request_cid', 'public_index_entry_cid')
+    if (type(value) is not dict or set(value) != set(fields)
+            or any(type(value[key]) is not str or not value[key] for key in fields[:-1])
+            or value['stage'] not in ('request', 'commit', 'return_committed')
+            or (value['public_index_entry_cid'] is not None
+                and (type(value['public_index_entry_cid']) is not str
+                     or not value['public_index_entry_cid']))
+            or ((value['stage'] == 'request') != (value['public_index_entry_cid'] is None))):
+        raise ValueError('Invalid original publisher facts')
+    return _PublisherFact(**value)
+
+
 @dataclass(slots=True)
 class _PhysicalInput:
     payload: bytes
     cleanup: Callable[[], bool]
     stopped: Callable[[int], bool]
+    publisher: _PublisherCallbacks | None = None
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -200,6 +248,13 @@ _PUBLICATION_SIGNATURES = {
     'advance_commit': ('i64 i32 i32 i32', 'i32'),
     'commit_progress': ('i64 i32 i32', 'i64'),
     'finish_commit': ('i64 i32 i32', 'i32'),
+    'prepare_observation': ('i64 i32 i32 i32 i32', 'i32'),
+    'advance_observation': ('i64 i32 i32 i32', 'i32'),
+    'observation_progress': ('i64 i32 i32', 'i64'),
+    'finish_observation': ('i64 i32 i32', 'i32'),
+    'retire_observation': ('i64 i32', 'i32'),
+    'prepare_lookup': ('i64 i32 i32 i32 i32', 'i32'),
+    'retire_lookup': ('i64 i32', 'i32'),
 }
 _PUBLICATION_PREFLIGHT_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
@@ -208,13 +263,26 @@ _PUBLICATION_PREFLIGHT_SIGNATURES = {
     'retire_output': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
+_CommitMaterialField = Literal['wire', 'name', 'identity_field', 'identity']
+_COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity': 3}
+
+
 _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
+    'count': ('i64 i32 i32', 'i32'),
+    'result_count': ('i64 i32 i32', 'i32'),
+    'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
+    'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
+    'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
+    'produce_index_key': ('i64 i32 i32', 'i32'),
+    'produce_schema': ('i64 i32 i32 i32 i32', 'i32'),
+    'validate_payload_binding': ('i64 i32 i32 i32 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
 _PAYLOAD_REQUEST_SIGNATURES = {
+    'start_replay': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
     'produce': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
@@ -223,6 +291,65 @@ _PAYLOAD_REQUEST_SIGNATURES = {
 _RESULT_BINDING_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
     'produce': ('i64 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_PAYLOAD_CHUNK_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'final': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_PAYLOAD_RECORD_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'begin': ('i64 i32 i32', 'i32'),
+    'confirm': ('i64 i32 i32 i32', 'i32'),
+    'validate_snapshot': ('i64 i32 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_PAYLOAD_RESERVATION_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'begin': ('i64 i32 i32', 'i32'),
+    'confirm': ('i64 i32 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_PAYLOAD_WRITING_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'begin': ('i64 i32 i32', 'i32'),
+    'confirm': ('i64 i32 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_PAYLOAD_ALLOCATION_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'begin': ('i64 i32 i32', 'i32'),
+    'confirm': ('i64 i32 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_PAYLOAD_NAMES_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_PAYLOAD_BINDING_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32 i32', 'i32'),
+    'validate': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
@@ -286,6 +413,12 @@ _WORKSPACE_SIGNATURES = {
     'close': ('i64 i32', 'i32'),
     'root_reserved': ('i64', 'i64'),
 }
+_PUBLISHER_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'install': ('i64 i32 i32', 'i32'),
+    'authorize': ('i64 i32 i32 i32 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _IMPORT_SIGNATURES = {
     'input_byte': ('i32 i32', 'i32'),
     'input_cleanup': ('i32', 'i32'),
@@ -293,6 +426,10 @@ _IMPORT_SIGNATURES = {
     'native_settled': ('i32', 'i32'),
     'native_stopped': ('i32', 'i32'),
     'native_cleaned': ('i32', 'i32'),
+    'publisher_current': ('i32', 'i32'),
+    'publisher_begin': ('i32 i32', 'i32'),
+    'publisher_byte': ('i32 i32 i32', 'i32'),
+    'publisher_finish': ('i32', 'i32'),
 }
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
@@ -381,6 +518,20 @@ class LocalCore:
                              for name, value in _PUBLICATION_COMMIT_EXPORT_SIGNATURES.items()})
             expected.update({'actql_payload_request_' + name: value
                              for name, value in _PAYLOAD_REQUEST_SIGNATURES.items()})
+            expected.update({'actql_payload_chunk_' + name: value
+                             for name, value in _PAYLOAD_CHUNK_SIGNATURES.items()})
+            expected.update({'actql_payload_record_' + name: value
+                             for name, value in _PAYLOAD_RECORD_SIGNATURES.items()})
+            expected.update({'actql_payload_reservation_' + name: value
+                             for name, value in _PAYLOAD_RESERVATION_SIGNATURES.items()})
+            expected.update({'actql_payload_writing_' + name: value
+                             for name, value in _PAYLOAD_WRITING_SIGNATURES.items()})
+            expected.update({'actql_payload_allocation_' + name: value
+                             for name, value in _PAYLOAD_ALLOCATION_SIGNATURES.items()})
+            expected.update({'actql_payload_names_' + name: value
+                             for name, value in _PAYLOAD_NAMES_SIGNATURES.items()})
+            expected.update({'actql_payload_binding_' + name: value
+                             for name, value in _PAYLOAD_BINDING_SIGNATURES.items()})
             expected.update({'actql_result_binding_' + name: value
                              for name, value in _RESULT_BINDING_SIGNATURES.items()})
             expected.update({'actql_source_' + name: value
@@ -393,6 +544,8 @@ class LocalCore:
                              for name, value in _TASK_SIGNATURES.items()})
             expected.update({'actql_result_' + name: value
                              for name, value in _RESULT_SIGNATURES.items()})
+            expected.update({'actql_publisher_' + name: value
+                             for name, value in _PUBLISHER_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -413,14 +566,18 @@ class LocalCore:
                                    ('reader_stop', self._stopped),
                                    ('native_settled', self._native_settled),
                                    ('native_stopped', self._native_stopped),
-                                   ('native_cleaned', self._native_cleaned)]:
+                                   ('native_cleaned', self._native_cleaned),
+                                   ('publisher_current', self._publisher_current),
+                                   ('publisher_begin', self._publisher_begin),
+                                   ('publisher_byte', self._publisher_byte),
+                                   ('publisher_finish', self._publisher_finish)]:
                 params = [wasmtime.ValType.i32()
                           for _ in _IMPORT_SIGNATURES[name][0].split()]
                 self._linker.define_func('actql_host', name,
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 26:
+            if self._exports['actql_host_abi_version'](self._store) != 43:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,
@@ -485,6 +642,135 @@ class LocalCore:
             return 0 if observers[fact]() is True else 1
         except BaseException:
             return 1
+
+    def _publisher_callbacks(self, ticket: int) -> _PublisherCallbacks | None:
+        value = self._inputs.get(ticket)
+        return None if value is None else value.publisher
+
+    def _publisher_current(self, ticket: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if callbacks is None:
+            return -2
+        try:
+            value = callbacks.current()
+            return 0 if value is True else (-1 if value is False else -2)
+        except BaseException:
+            return -2
+
+    def _publisher_begin(self, ticket: int, length: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if (callbacks is None or callbacks.buffer is not None or type(length) is not int
+                or not 0 < length <= _PUBLISHER_LIMIT):
+            return -2
+        # Core already holds the collector/decoder allowance in its buffer pool.
+        try:
+            callbacks.buffer = bytearray(length)
+            callbacks.received = 0
+        except BaseException:
+            return -2
+        return 0
+
+    def _publisher_byte(self, ticket: int, index: int, byte: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if (callbacks is None or callbacks.buffer is None or type(index) is not int
+                or index != callbacks.received or not 0 <= index < len(callbacks.buffer)
+                or type(byte) is not int or not 0 <= byte < 256):
+            return -2
+        callbacks.buffer[index] = byte
+        callbacks.received += 1
+        return 0
+
+    def _publisher_finish(self, ticket: int) -> int:
+        callbacks = self._publisher_callbacks(ticket)
+        if callbacks is None or callbacks.buffer is None:
+            return -2
+        try:
+            if callbacks.received != len(callbacks.buffer):
+                return -2
+            fact = _publisher_fact(callbacks.buffer)
+            value = callbacks.authorize(fact)
+            return 0 if value is True else (-1 if value is False else -2)
+        except BaseException:
+            return -2
+        finally:
+            # No successful grant or facts survive for reuse by another stage.
+            callbacks.buffer = None
+            callbacks.received = 0
+
+    def reserve_publisher(self, preflight: _Output, request: _Input, *,
+                          current: Callable[[], bool],
+                          authorize: Callable[[_PublisherFact], bool],
+                          cleanup: Callable[[], bool]) -> _Output:
+        """Private trusted Host port, never a public SDK authorization option.
+
+        The installed Host must supply its independent current publisher Owner
+        bound to original Policy/target/Store. No portable issuer is provided by
+        this transport. Callback-owned resources require their own reservations.
+        """
+        with self._lock:
+            self._owned_output(preflight, 'publication_preflight')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if not all(callable(value) for value in (current, authorize, cleanup)):
+                raise ValueError('Publisher requires trusted Host callbacks')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            callbacks = _PublisherCallbacks(current, authorize)
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True, callbacks)
+            # Collector + UTF-8 decode + six Unicode strings + closed parser
+            # containers, including overlap. This is not a global memory claim.
+            allowance = (128 * _PUBLISHER_LIMIT + 4096 + sys.getsizeof(callbacks)
+                         + sys.getsizeof(self._inputs[ticket]))
+            handle = self._call('publisher', 'reserve', preflight.handle, request.handle,
+                                ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_publisher', handle)
+            value = _Output(self._identity, ticket, handle, _PUBLISHER_LIMIT, 'publisher')
+            self._loans[ticket] = value
+            return value
+
+    def install_publisher(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'publisher')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publisher configuration')
+            self._check('install_publisher', self._call(
+                'publisher', 'install', value.handle, current_configuration))
+
+    def authorize_publisher(self, value: _Output, current_configuration: int, *,
+                            stage: str, publication: _Output | None = None) -> None:
+        """Check original stage permission; neither commit nor acknowledge Store."""
+        with self._lock:
+            self._owned_output(value, 'publisher')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            stages = {'request': 0, 'commit': 1, 'return_committed': 2}
+            if (type(current_configuration) is not int or not 0 < current_configuration < 2**31
+                    or type(stage) is not str or stage not in stages
+                    or ((stage == 'request') != (publication is None))):
+                raise ValueError('Invalid original publisher stage')
+            if publication is not None:
+                self._owned_output(publication, 'publication')
+            self._check('authorize_publisher', self._call(
+                'publisher', 'authorize', value.handle, current_configuration,
+                stages[stage], 0 if publication is None else publication.handle))
+
+    def close_publisher(self, value: _Output) -> bool:
+        with self._lock:
+            self._owned_output(value, 'publisher')
+            code = self._call('publisher', 'close', value.handle)
+            if code == -9:
+                return False
+            self._check('close_publisher', code)
+            self._loans.pop(value.ticket)
+            self._released.discard(value.ticket)
+            return True
 
     def _cleanup(self, ticket: int) -> int:
         if ticket in self._released:
@@ -919,6 +1205,101 @@ class LocalCore:
             self._check('finish_publication_commit', self._call(
                 'publication', 'finish_commit', value.handle, current_configuration))
 
+    def prepare_publication_lookup(self, value: _Output, response: _Input,
+                                   publisher: _Output, current_configuration: int) -> None:
+        """Borrow the same physical index/reference packet for Core lookup.
+
+        The packet transports original bytes, not Python scope, equality or
+        permission. Core admits the index, checks its Store reference and
+        original scope/request, and retains this input through dependent reads.
+        This does not complete chain validation or confirm a Store commit.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._owned_input(response)
+            self._owned_output(publisher, 'publisher')
+            self._check('prepare_publication_lookup', self._call(
+                'publication', 'prepare_lookup', value.handle, response.handle,
+                publisher.handle, current_configuration))
+
+    def retire_publication_lookup(self, value: _Output) -> bool:
+        """Retry the original index borrow stop after dependent loan cleanup.
+
+        The original physical input remains owned separately. No Source/Result
+        parent, Run, publication or unknown operation is closed or replayed.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication')
+            code = self._call('publication', 'retire_lookup', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_publication_lookup', code)
+            return True
+
+    def prepare_publication_observation(self, value: _Output, response: _Input,
+                                        publisher: _Output, current_configuration: int) -> None:
+        """Validate an original trusted Store response, retaining its same loan.
+
+        Host lookup uses the original Core key, File/six-fact fences and current
+        publisher before this call. Response is a closed physical observation,
+        never a Python scope/comparison/accepted/committed decision. Failed parse
+        or validation retains the same input until explicit physical cleanup.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._owned_input(response)
+            self._owned_output(publisher, 'publisher')
+            self._check('prepare_publication_observation', self._call(
+                'publication', 'prepare_observation', value.handle, response.handle,
+                publisher.handle, current_configuration))
+
+    def advance_publication_observation(self, value: _Output, current_configuration: int,
+                                       quantum: int) -> LocalResultProgress:
+        if type(quantum) is not int or not 0 < quantum < 2**31:
+            raise ValueError('Invalid Local publication observation quantum')
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            self._check('advance_publication_observation', self._call(
+                'publication', 'advance_observation', value.handle,
+                current_configuration, quantum))
+            ready = self._call('publication', 'observation_progress', value.handle, 0)
+            work = self._call('publication', 'observation_progress', value.handle, 1)
+            if type(ready) is not int or type(work) is not int or ready not in (0, 1) or not 0 <= work <= quantum:
+                raise LocalCoreError('publication_observation_progress', -33)
+            return LocalResultProgress(ready == 1, work)
+
+    def finish_publication_observation(self, value: _Output, current_configuration: int
+                                      ) -> Literal['append_unknown', 'confirm_uncommitted_failure', 'adopt_committed_index']:
+        """Read a Core action after current authorization/full-chain checks.
+
+        This is an instruction to the original publication flow, not a durable
+        ACK. AppendUnknown needs the existing durable record Owner; confirmed
+        NotFound grants no permission to replay an unknown operation. The Host
+        must recheck original six physical facts before adoption/publication.
+        """
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            action = self._call('publication', 'finish_observation',
+                                value.handle, current_configuration)
+            if type(action) is not int or action not in (1, 3, 4):
+                code = action if type(action) is int and action < 0 else -33
+                raise LocalCoreError('finish_publication_observation', code)
+            if action == 1:
+                return 'append_unknown'
+            if action == 3:
+                return 'confirm_uncommitted_failure'
+            return 'adopt_committed_index'
+
+    def retire_publication_observation(self, value: _Output) -> bool:
+        """Retry the same response borrow's stop; no submit, commit or cancel."""
+        with self._lock:
+            self._owned_output(value, 'publication')
+            code = self._call('publication', 'retire_observation', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_publication_observation', code)
+            return True
+
     def reserve_publication_commit_export(self, publication: _Output, *,
                                           cleanup: Callable[[], bool]) -> _Output:
         """Read the original validated candidate; grants no Store permission."""
@@ -954,6 +1335,152 @@ class LocalCore:
                 raise ValueError('Invalid current publication configuration')
             self._check('produce_publication_commit_export', self._call(
                 'publication_commit_export', 'produce', value.handle, current_configuration))
+
+    def publication_commit_material_count(self, publication: _Output,
+                                          current_configuration: int) -> int:
+        """Count original validated references, not durable Store entries."""
+        with self._lock:
+            self._publication_configuration(publication, current_configuration)
+            count = self._call('publication_commit_export', 'count',
+                               publication.handle, current_configuration)
+            if type(count) is not int or not 8 <= count < 2**31:
+                code = count if type(count) is int and count < 0 else -33
+                raise LocalCoreError('publication_commit_material_count', code)
+            return count
+
+    def publication_commit_result_count(self, publication: _Output,
+                                        current_configuration: int) -> int:
+        """Count original completed Result occurrences, without Store or I/O."""
+        with self._lock:
+            self._publication_configuration(publication, current_configuration)
+            count = self._call('publication_commit_export', 'result_count',
+                               publication.handle, current_configuration)
+            if type(count) is not int or not 0 <= count < 2**31:
+                code = count if type(count) is int and count < 0 else -33
+                raise LocalCoreError('publication_commit_result_count', code)
+            return count
+
+    def produce_publication_commit_material(self, value: _Output,
+                                            current_configuration: int, ordinal: int, *,
+                                            field: _CommitMaterialField = 'wire') -> None:
+        """Project one exact original field into a single accounted child.
+
+        Core fixes the child's ordinal and field at first production. Changing
+        them requires a fresh reservation; this never writes or grants a Store.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(ordinal) is not int or not 0 <= ordinal < 2**31:
+                raise ValueError('Invalid original commit material ordinal')
+            if type(field) is not str or field not in _COMMIT_MATERIAL_FIELDS:
+                raise ValueError('Invalid original commit material field')
+            self._check('produce_publication_commit_material', self._call(
+                'publication_commit_export', 'produce_material', value.handle,
+                current_configuration, ordinal, _COMMIT_MATERIAL_FIELDS[field]))
+
+    def produce_publication_lookup_reference(self, value: _Output,
+                                             current_configuration: int, *,
+                                             field: Literal['request', 'attempt']) -> None:
+        """Project the actual stored index's Core-checked lookup reference.
+
+        Read it using the existing commit-material output loan. It neither
+        chooses a different Store/scope nor grants commit or retry permission.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(field) is not str or field not in ('request', 'attempt'):
+                raise ValueError('Invalid stored publication lookup reference field')
+            self._check('produce_publication_lookup_reference', self._call(
+                'publication_commit_export', 'produce_lookup_reference', value.handle,
+                current_configuration, 0 if field == 'request' else 1))
+
+    def produce_publication_commit_index_key(self, value: _Output,
+                                             current_configuration: int) -> None:
+        """Project the original index's Owner-derived physical Store key.
+
+        Read it with read_publication_commit_material(). Core retains the
+        immutable projection and rechecks current access before reuse. This
+        neither grants publisher authority nor confirms a Store commit.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            self._check('produce_publication_commit_index_key', self._call(
+                'publication_commit_export', 'produce_index_key', value.handle,
+                current_configuration))
+
+    def produce_publication_observed_index(self, value: _Output,
+                                           current_configuration: int, *,
+                                           field: _CommitMaterialField = 'wire') -> None:
+        """Copy the actually stored index after a fresh current publisher check."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(field) is not str or field not in _COMMIT_MATERIAL_FIELDS:
+                raise ValueError('Invalid observed index field')
+            self._check('produce_publication_observed_index', self._call(
+                'publication_commit_export', 'produce_observed_index', value.handle,
+                current_configuration, _COMMIT_MATERIAL_FIELDS[field]))
+
+    def produce_publication_commit_schema(self, value: _Output,
+                                           current_configuration: int, result: int, *,
+                                           field: Literal['identity', 'wire']) -> None:
+        """Project one original receipt field, without schema/CID regeneration.
+
+        Result follows the original preflight inventory, not material ordinals.
+        Core rechecks nominal Result/current access on every call and fixes each
+        output's field. Read with read_publication_commit_material().
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            if type(result) is not int or not 0 <= result < 2**31:
+                raise ValueError('Invalid original schema Result index')
+            if type(field) is not str or field not in ('identity', 'wire'):
+                raise ValueError('Invalid original schema field')
+            self._check('produce_publication_commit_schema', self._call(
+                'publication_commit_export', 'produce_schema', value.handle,
+                current_configuration, result, 0 if field == 'identity' else 1))
+
+    def validate_publication_commit_payload_binding(
+            self, publication: _Output, record: _Output,
+            current_configuration: int, result: int, binding_index: int) -> None:
+        """Match original Core custody; no physical Store lookup or commit ACK.
+
+        Result and binding indexes belong to distinct original inventories.
+        The same physical generation/reservation still needs a Host fence;
+        success here is neither publisher authority nor permission to retry.
+        """
+        with self._lock:
+            self._publication_configuration(publication, current_configuration)
+            self._owned_output(record, 'payload_record')
+            if (type(result) is not int or not 0 <= result < 2**31
+                    or type(binding_index) is not int or not 0 <= binding_index < 2**31):
+                raise ValueError('Invalid original Result or commit binding index')
+            self._check('validate_publication_commit_payload_binding', self._call(
+                'publication_commit_export', 'validate_payload_binding', publication.handle,
+                record.handle, current_configuration, result, binding_index))
+
+    def read_publication_commit_material(self, value: _Output) -> bytes:
+        """Read original raw bytes, without parsing or recreating a contract."""
+        return self._read_output(value, 'publication_commit_export', 'length')
 
     def read_publication_commit_export(self, value: _Output) -> bytes:
         return self._read_output(value, 'publication_commit_export', 'length')
@@ -1004,6 +1531,478 @@ class LocalCore:
 
     def close_payload_request(self, value: _Output) -> bool:
         return self._close_output(value, 'payload_request', 'close')
+
+    def start_payload_replay(self, value: _Output, current_configuration: int) -> None:
+        """Read the original Result through Core; does not start a Store write."""
+        with self._lock:
+            self._owned_output(value, 'payload_request')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('start_payload_replay', self._call(
+                'payload_request', 'start_replay', value.handle, current_configuration))
+
+    def reserve_payload_chunk(self, request: _Output, *,
+                              cleanup: Callable[[], bool]) -> _Output:
+        """Reserve one accounted copy before the original replay Owner advances."""
+        with self._lock:
+            self._owned_output(request, 'payload_request')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_chunk')))
+            handle = self._call('payload_chunk', 'reserve', request.handle,
+                                ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_chunk', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_chunk')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_chunk(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_chunk')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_chunk', self._call(
+                'payload_chunk', 'produce', value.handle, current_configuration))
+
+    def read_payload_chunk(self, value: _Output, current_configuration: int) -> tuple[bytes, bool]:
+        """Recheck current custody even for cached bytes; EOF is not Store commit."""
+        with self._lock:
+            self._owned_output(value, 'payload_chunk')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_chunk', self._call(
+                'payload_chunk', 'validate', value.handle, current_configuration))
+            wire = self._read_output(value, 'payload_chunk', 'length')
+            final = self._call('payload_chunk', 'final', value.handle)
+            if final not in (0, 1):
+                raise LocalCoreError('payload_chunk_final', final)
+            return wire, final == 1
+
+    def close_payload_chunk(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_chunk', 'close')
+
+    def reserve_payload_record(self, request: _Output, *,
+                               cleanup: Callable[[], bool]) -> _Output:
+        """Retain the original Core Intent; does not reserve disk capacity."""
+        with self._lock:
+            self._owned_output(request, 'payload_request')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_record')))
+            handle = self._call('payload_record', 'reserve', request.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_record', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_record')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_record(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_record', self._call(
+                'payload_record', 'produce', value.handle, current_configuration))
+
+    def read_payload_record(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_record', self._call(
+                'payload_record', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_record', 'length')
+
+    def begin_payload_record(self, value: _Output, current_configuration: int) -> None:
+        """Mark this one physical write; a repeated begin is not a resend permit."""
+        with self._lock:
+            self._owned_output(value, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('begin_payload_record', self._call(
+                'payload_record', 'begin', value.handle, current_configuration))
+
+    def confirm_payload_record(self, value: _Output, observation: _Input,
+                               current_configuration: int) -> None:
+        """Resolve the original pending Intent from actual physical Store bytes."""
+        with self._lock:
+            self._owned_output(value, 'payload_record')
+            self._owned_input(observation)
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('confirm_payload_record', self._call(
+                'payload_record', 'confirm', value.handle, observation.handle, current_configuration))
+
+    def close_payload_record(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_record', 'close')
+
+    def validate_payload_snapshot(self, value: _Output, observation: _Input,
+                                  current_configuration: int) -> None:
+        """Compare fresh trusted physical facts with the original Sealed record.
+
+        The Host supplies actual original completed-reader facts under its
+        Core-to-File lock order, retains the reader/reservation, and rechecks
+        before physical commit. Success grants no publisher authority or ACK.
+        This call keeps both original loans and performs no physical I/O.
+        """
+        with self._lock:
+            self._owned_output(value, 'payload_record')
+            self._owned_input(observation)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('validate_payload_snapshot', self._call(
+                'payload_record', 'validate_snapshot', value.handle,
+                observation.handle, current_configuration))
+
+    def reserve_payload_reservation(self, request: _Output, *,
+                               cleanup: Callable[[], bool]) -> _Output:
+        """Project the original Reserved transition; does not reserve disk capacity."""
+        with self._lock:
+            self._owned_output(request, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_reservation')))
+            handle = self._call('payload_reservation', 'reserve', request.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_reservation', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_reservation')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_reservation(self, value: _Output, observation: _Input,
+                                    current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            self._owned_input(observation)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_reservation', self._call(
+                'payload_reservation', 'produce', value.handle, observation.handle, current_configuration))
+
+    def read_payload_reservation(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_reservation', self._call(
+                'payload_reservation', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_reservation', 'length')
+
+    def begin_payload_reservation(self, value: _Output, current_configuration: int) -> None:
+        """Mark this one physical write; a repeated begin is not a resend permit."""
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('begin_payload_reservation', self._call(
+                'payload_reservation', 'begin', value.handle, current_configuration))
+
+    def confirm_payload_reservation(self, value: _Output, observation: _Input,
+                               current_configuration: int) -> None:
+        """Confirm the original Reserved transition from actual physical Store bytes."""
+        with self._lock:
+            self._owned_output(value, 'payload_reservation')
+            self._owned_input(observation)
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('confirm_payload_reservation', self._call(
+                'payload_reservation', 'confirm', value.handle, observation.handle, current_configuration))
+
+    def close_payload_reservation(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_reservation', 'close')
+
+    def reserve_payload_writing(self, request: _Output, kind: int, *,
+                               cleanup: Callable[[], bool]) -> _Output:
+        """Project Writing (1), physical ownership (2) or Sealed (3); Core decides."""
+        with self._lock:
+            self._owned_output(request, 'payload_record')
+            if type(kind) is not int or kind not in (1, 2, 3):
+                raise ValueError('Invalid payload writing transition')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_writing')))
+            handle = self._call('payload_writing', 'reserve', request.handle, kind, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_writing', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_writing')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_writing(self, value: _Output, observation: _Input | None,
+                                    current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_writing')
+            if observation is not None:
+                self._owned_input(observation)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_writing', self._call(
+                'payload_writing', 'produce', value.handle, 0 if observation is None else observation.handle,
+                current_configuration))
+
+    def read_payload_writing(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_writing')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_writing', self._call(
+                'payload_writing', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_writing', 'length')
+
+    def begin_payload_writing(self, value: _Output, current_configuration: int) -> None:
+        """Mark this one physical write; a repeated begin is not a resend permit."""
+        with self._lock:
+            self._owned_output(value, 'payload_writing')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('begin_payload_writing', self._call(
+                'payload_writing', 'begin', value.handle, current_configuration))
+
+    def confirm_payload_writing(self, value: _Output, observation: _Input,
+                               current_configuration: int) -> None:
+        """Confirm the original Writing/Owned transition from actual Store bytes."""
+        with self._lock:
+            self._owned_output(value, 'payload_writing')
+            self._owned_input(observation)
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('confirm_payload_writing', self._call(
+                'payload_writing', 'confirm', value.handle, observation.handle, current_configuration))
+
+    def close_payload_writing(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_writing', 'close')
+
+    def reserve_payload_names(self, record: _Output, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain original Core-selected names; this grants no file or Store I/O."""
+        with self._lock:
+            self._owned_output(record, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1024
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_names')))
+            handle = self._call('payload_names', 'reserve', record.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_names', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_names')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_names(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_names')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_names', self._call(
+                'payload_names', 'produce', value.handle, current_configuration))
+
+    def read_payload_names(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_names')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_names', self._call(
+                'payload_names', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_names', 'length')
+
+    def close_payload_names(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_names', 'close')
+
+    def reserve_payload_binding(self, record: _Output, *, cleanup: Callable[[], bool]) -> _Output:
+        """Bind the original confirmed Sealed record; no Store or publisher grant."""
+        with self._lock:
+            self._owned_output(record, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_binding')))
+            handle = self._call('payload_binding', 'reserve', record.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_binding', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_binding')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_binding(self, value: _Output, current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_binding')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_binding', self._call(
+                'payload_binding', 'produce', value.handle, current_configuration))
+
+    def read_payload_binding(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_binding')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_binding', self._call(
+                'payload_binding', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_binding', 'length')
+
+    def close_payload_binding(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_binding', 'close')
+
+    def reserve_payload_allocation(self, request: _Output, kind: int, *,
+                               cleanup: Callable[[], bool]) -> _Output:
+        """Project original allocation intent (1) or directory ownership (2)."""
+        with self._lock:
+            self._owned_output(request, 'payload_record')
+            if type(kind) is not int or kind not in (1, 2):
+                raise ValueError('Invalid payload allocation write')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65_536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
+                                                      'payload_allocation')))
+            handle = self._call('payload_allocation', 'reserve', request.handle, kind, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_payload_allocation', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'payload_allocation')
+            self._loans[ticket] = value
+            return value
+
+    def produce_payload_allocation(self, value: _Output, observation: _Input,
+                                    current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'payload_allocation')
+            self._owned_input(observation)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('produce_payload_allocation', self._call(
+                'payload_allocation', 'produce', value.handle, observation.handle,
+                current_configuration))
+
+    def read_payload_allocation(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self._owned_output(value, 'payload_allocation')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('read_payload_allocation', self._call(
+                'payload_allocation', 'validate', value.handle, current_configuration))
+            return self._read_output(value, 'payload_allocation', 'length')
+
+    def begin_payload_allocation(self, value: _Output, current_configuration: int) -> None:
+        """Mark this one physical write; a repeated begin is not a resend permit."""
+        with self._lock:
+            self._owned_output(value, 'payload_allocation')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('begin_payload_allocation', self._call(
+                'payload_allocation', 'begin', value.handle, current_configuration))
+
+    def confirm_payload_allocation(self, value: _Output, observation: _Input,
+                               current_configuration: int) -> None:
+        """Observe the same allocation CAS; grants no acquisition or resend permission."""
+        with self._lock:
+            self._owned_output(value, 'payload_allocation')
+            self._owned_input(observation)
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current payload configuration')
+            self._check('confirm_payload_allocation', self._call(
+                'payload_allocation', 'confirm', value.handle, observation.handle, current_configuration))
+
+    def close_payload_allocation(self, value: _Output) -> bool:
+        return self._close_output(value, 'payload_allocation', 'close')
 
     def reserve_material(self, run: int, kind: int, *,
                          cleanup: Callable[[], bool]) -> _Output:
