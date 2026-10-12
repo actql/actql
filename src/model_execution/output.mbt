@@ -58,6 +58,9 @@ pub fn start_model_output_preparation(
   max_workspace_slots : Int,
 ) -> Result[ModelOutputPreparation, ModelExecutionIssue] {
   let state = execution.state
+  if check_model_original_resources_mutable(state) is Err(issue) {
+    return Err(issue)
+  }
   if !state.accepted ||
     state.reclaimed ||
     state.output_uses == 2147483647 ||
@@ -118,6 +121,9 @@ pub fn advance_model_output_preparation(
   value : ModelOutputPreparation,
   quantum : Int,
 ) -> Result[@relation.AdmittedOutputPoll, ModelExecutionIssue] {
+  if check_model_original_resources_mutable(value.execution.state) is Err(issue) {
+    return Err(issue)
+  }
   @relation.advance_admitted_output_preparation(value.materialization, quantum).map_err(issue => {
       Session(issue)
     },
@@ -134,6 +140,9 @@ pub fn complete_model_output(
   if value.completed is Some(output) {
     return Ok(output)
   }
+  if check_model_original_resources_mutable(value.execution.state) is Err(issue) {
+    return Err(issue)
+  }
   match @relation.complete_trusted_output(value.port, ()) {
     Ok(output) => {
       value.completed = Some(output)
@@ -145,6 +154,9 @@ pub fn complete_model_output(
 
 ///|
 pub fn cancel_model_output_preparation(value : ModelOutputPreparation) -> Bool {
+  if check_model_original_resources_mutable(value.execution.state) is Err(_) {
+    return false
+  }
   @relation.cancel_admitted_output_preparation(value.materialization)
 }
 
@@ -154,6 +166,9 @@ pub fn cleanup_model_output_preparation(
 ) -> Result[Bool, ModelExecutionIssue] {
   if value.reclaimed {
     return Ok(true)
+  }
+  if check_model_original_resources_mutable(value.execution.state) is Err(issue) {
+    return Err(issue)
   }
   match @relation.cleanup_admitted_output_preparation(value.materialization) {
     Ok(false) => Ok(false)
