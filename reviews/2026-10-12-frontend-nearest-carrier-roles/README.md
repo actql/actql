@@ -38,6 +38,14 @@ by the current scalar-id `to_vectors` entry and is not silently approximated.
 - `run-csgNzt`: Node 79/80; a second current-grammar assertion still named the
   retained Lag grammar. The independent NEAREST preimage supplies its new
   grammar CID; the old Lag fixture itself remains byte-identical.
+- `run-FNGevs`: fixed `db863df472f4d0e61e8c6206f05596fad1018b4b`, JS
+  27/28, subsequent steps unexecuted. The strengthened removed-receiver test
+  incorrectly expected the column resolver's issue instead of the ordinary
+  expression owner's adopted `UnknownReference` diagnostic with authored origin.
+  `run-Igyt13` was a diagnostic-test compilation failure (execution 0);
+  `run-usIS51` retained the actual Expression rejection. The corrected assertion
+  follows `query_expression/lower_test.mbt`'s existing contract, changes no product
+  condition, and does not accept arbitrary failure as success.
 
 Original raw receipts and output remain under this worktree's `_build`; failure
 records are not replaced by later success. Each working-source receipt includes

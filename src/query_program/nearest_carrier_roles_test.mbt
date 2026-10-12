@@ -146,13 +146,17 @@ test "Vectors NEAREST permits exact role restatement and a normal output tail" {
     )
     is Err(RangeAliasRequiresRelation),
   )
+  let removed = with_carrier_program(
+    prefix + "FROM qv |> NEAREST cv AS c METRIC dot K 1 AS hit |> SELECT qv.hit",
+    nearest_context(),
+  )
+  // Ordinary expression resolution owns an absent receiver. Require its
+  // adopted UnknownReference and original authored position, not any error.
   assert_true(
-    with_carrier_program(
-      prefix +
-      "FROM qv |> NEAREST cv AS c METRIC dot K 1 AS hit |> SELECT qv.hit",
-      nearest_context(),
-    )
-    is Err(UnknownColumn),
+    removed
+    is Err(
+      Expression({ issue: @expression.UnknownReference, origin: Some(_), })
+    ),
   )
 }
 
