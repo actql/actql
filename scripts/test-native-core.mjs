@@ -33,7 +33,8 @@ const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/
   ? nativeClientCheckpointFixture(root) : {};
 // Only the final Native test child receives the injection environment. The
 // existing checkpoint producers and other preparation commands do not.
-const readerCustody = full || args.some(arg => arg.includes('platform_native/client_host'))
+const readerCustody = full || args.some(arg =>
+  arg.includes('platform_native/client_host') || arg.includes('cmd/native_client'))
   ? nativeRuntimeReaderCustodyFixture(root, scratch.path) : {};
 // The WAL inspection fixture must use exec, not SQLite in a forked child.
 // macOS system SQLite calls platform services that are unsafe before exec.
