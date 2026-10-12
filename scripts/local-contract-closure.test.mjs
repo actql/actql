@@ -53,8 +53,8 @@ test('inherited text/time dependency edges resolve through explicit roles', () =
   assert.equal(bodies.unicode_semantics.data_cid, textTimeBase.bound_derivation.case_fold.unicode_data_cid);
 });
 
-test('the inherited text/time dependency resolves to its original pinned body', () => {
-  const expected = 'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc';
+test('the inherited text/time dependency resolves to its adopted ContentRef body', () => {
+  const expected = 'sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9';
   assert.equal(read('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid, expected);
   assert.equal(machineCid(textTimeBase), expected);
   assert.equal(Object.hasOwn(textTimeBase, 'contract_cid'), false);
@@ -143,4 +143,22 @@ test('contract selection retains transitive dependencies and omits unrelated Cat
     }
   }
   assert.notEqual(corpus.cases[1].expected_cid, corpus.cases[2].expected_cid);
+});
+
+// Reconstruct the exact two-field migration from the retained introduction
+// preimage. No historical file is rewritten and no current old-wire fallback
+// is admitted.
+test('the pre-ContentRef text/time body retains its distinct historical identity', () => {
+  const historical = structuredClone(textTimeBase);
+  assert.equal(historical.barrier_schema.$defs.value_contract.oneOf[7]
+    .properties.type.const, 'content_ref');
+  historical.barrier_schema.$defs.value_contract.oneOf[7]
+    .properties.type.const = 'artifact_ref';
+  historical.barrier_schema_cid =
+    'sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28';
+  assert.equal(machineCid(historical.barrier_schema), historical.barrier_schema_cid);
+  const historicalCID =
+    'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc';
+  assert.equal(machineCid(historical), historicalCID);
+  assert.notEqual(machineCid(textTimeBase), historicalCID);
 });
