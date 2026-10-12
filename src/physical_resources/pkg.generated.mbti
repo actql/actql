@@ -102,6 +102,8 @@ pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
 
 pub fn[T] original_resource_park_current(OriginalResourcePark[T], T) -> OriginalResourcePark[T]?
 
+pub fn[T] original_resource_park_current_for_ledger(OriginalResourcePark[T], Ledger) -> OriginalResourcePark[T]?
+
 pub fn[T] original_resource_park_origin(OriginalResourcePark[T]) -> T?
 
 pub fn[T] original_state_document_block_matches(FundedReadClaim[T], T, OriginalStateDocument, Int) -> Result[Bool, OriginalReadIssue]

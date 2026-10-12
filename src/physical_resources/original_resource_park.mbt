@@ -109,6 +109,22 @@ pub fn[T] original_resource_park_current(
 }
 
 ///|
+// Read a parked token against a consumer's existing actual Ledger, without
+// exposing its origin or creating a second token. This is not Model membership,
+// quiescence, journal invalidation, funding or send permission.
+pub fn[T] original_resource_park_current_for_ledger(
+  value : OriginalResourcePark[T],
+  ledger : Ledger,
+) -> OriginalResourcePark[T]? {
+  guard value.fence is Some(fence) &&
+    value.origin is Some(origin) &&
+    physical_equal(fence.identity.ledger, ledger) else {
+    return None
+  }
+  original_resource_park_current(value, origin)
+}
+
+///|
 // Borrow only the original opaque origin, never its Ledger/reservations. This
 // is not proof that A's Model/Entry or Store ACK is parked/authenticated.
 pub fn[T] original_resource_park_origin(value : OriginalResourcePark[T]) -> T? {
