@@ -185,6 +185,12 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
 }
 
 test('joined fixed SDK and original encrypted Store preserve exact raw bytes across Store reopen', async t => {
+  let reopened;
+  // Register before the parent fixture so this same reopened Owner confirms
+  // close before the shared directory can be removed.
+  t.after(async () => {
+    if (reopened !== undefined) assert.equal(await reopened.close(), true);
+  });
   const f = await joinedFixture(t);
   const observed = await f.wait(() => f.call.poll(), value => value.kind === 'chat');
   t.diagnostic('joined boundary: original raw saved Chat view observed');
@@ -200,10 +206,9 @@ test('joined fixed SDK and original encrypted Store preserve exact raw bytes acr
   assert.equal(f.retained[0].holding.status().committed, true);
   await f.store.close();
   t.diagnostic('joined boundary: original Store closed');
-  const reopened = await openLocalPublicationStore({...f.storeOptions,
+  reopened = await openLocalPublicationStore({...f.storeOptions,
     privateEvidenceKey: Buffer.from(f.storeOptions.privateEvidenceKey)},
     createPublicationContractControlFixture());
-  t.after(() => reopened.close());
   const saved = await reopened.confirmModelRawEvidence(f.binding);
   t.diagnostic('joined boundary: reopened Store raw bytes reconfirmed');
   assert.deepEqual(saved.bytes, Buffer.from(wire));

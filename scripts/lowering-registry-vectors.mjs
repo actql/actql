@@ -71,7 +71,24 @@ for (const [name, value] of [['registered_body', registry], ['registered_values'
       `  ${JSON.stringify(JSON.stringify(value))}`, '}');
   }
 }
+// Refresh only execution-contract inputs; authored Programs, Source identities,
+// requests, rows and failure expectations remain independent fixture evidence.
+function nativeSourceContracts(path, prefix) {
+  let body = readFileSync(path, 'utf8');
+  for (const [name, value] of [['registry', registry], ['values', values], ['fragment', fragment]]) {
+    const pattern = new RegExp(`(let ${prefix}_${name} : String =\\s*\\n\\s*#\\|)[^\\n]+`, 'g');
+    assert.equal([...body.matchAll(pattern)].length, 1, `${path}: ${name}`);
+    body = body.replace(pattern, (_, declaration) => declaration + JSON.stringify(value));
+  }
+  return body;
+}
 for (const [path, body] of [
+  ['src/client_local_host/resident_source_query_regression_wbtest.mbt',
+    nativeSourceContracts('src/client_local_host/resident_source_query_regression_wbtest.mbt', 'source_query_original')],
+  ['src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt',
+    nativeSourceContracts('src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt', 'resident_effect_source')],
+  ['src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt',
+    nativeSourceContracts('src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt', 'retained_source')],
   ['src/client_local_host/content_recovery_contracts_wbtest.mbt',
     contentRecoveryLines.join('\n') + '\n'],
   ['src/local_bridge/graph_order_contracts_wbtest.mbt',
