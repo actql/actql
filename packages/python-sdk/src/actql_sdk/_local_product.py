@@ -114,7 +114,9 @@ class InstalledLocalHost:
         self._configuration: _RunConfiguration | None = None
         self._run_loans: list[_Run] = []
         self._row_outputs: list[_Output] = []
+        self._run_rows: list[tuple[_Run, _Output]] = []
         self._journal_outputs: list[_Output] = []
+        self._admission_observations: dict[int, _Output] = {}
         # Physical write-invocation custody, not Run/admission state. A retained
         # attempt cannot be reused as a transport retry or new acceptance.
         self._row_write_attempts: set[int] = set()
@@ -444,14 +446,45 @@ class InstalledLocalHost:
             output = self._reserve(lambda: self._runs.reserve_submitted_rows(
                 run, configuration, row_input, cleanup=lambda: True))
             self._row_outputs.append(output)
+            self._run_rows.append((run, output))
             installation.binding.inspect(lambda _: self._core.produce_material(output))
             self._commit_original_run_rows(output)
-            # A fresh same-Store inspection supplies the original saved admission.
-            # Neither the candidate nor the successful SQLite API response does.
+            admission = self._read_original_saved_admission(run)
+            # The immutable row Owner/input remain in Core. These consumed
+            # buffers need not overlap the later dispatch/Compute/Result phase.
+            if not self._core.retire_material_output(output):
+                raise LocalProductCleanupPending(self)
+            if not self._core.retire_submission_append_output(observed):
+                raise LocalProductCleanupPending(self)
+            self._pending_run_write = None
+            return run, admission
+
+    def _read_original_saved_admission(self, run: _Run) -> bytes:
+        """Reobserve the retained original rows without preparation, acceptance or dispatch.
+
+        The earlier transport may be retired; its nominal Plan/rows/input loan
+        must still be live. Core checks the original saved admission revision
+        against the current actual Run/submission snapshot, not a cached reply.
+        This produces neither Store ACK nor a completed Run/Result.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        store = installation._store
+        if (configuration is None or not configuration.sdk or store is None
+                or not any(original is run for original in self._run_loans)):
+            raise ValueError('Foreign original saved Local Run')
+        with self._core._lock:
+            self._runs._run(run)
+            if run.handle in self._admission_observations:
+                raise LocalProductCleanupPending(self)
+            held = [output for original, output in self._run_rows if original is run]
+            if len(held) != 1 or not any(original is held[0] for original in self._row_outputs):
+                raise ValueError('Original saved Local rows are unavailable')
             journal = self._reserve(lambda: self._core.reserve_journal_observation(
-                output, configuration.handle, store=store,
+                held[0], configuration.handle, store=store,
                 current=installation.binding.current, cleanup=lambda: True))
             self._journal_outputs.append(journal)
+            self._admission_observations[run.handle] = journal
             admission: list[bytes] = []
             with installation.binding.fenced() as fences:
                 def inspect(reader: Any) -> None:
@@ -459,19 +492,12 @@ class InstalledLocalHost:
                         self._core.inspect_journal_observation(journal, reader)
                         admission.append(self._core.read_journal_admission(journal, reader))
                     installation.binding.inspect_reader(reader, consume)
-                store.inspect_namespaces(
-                    fences, inspect=inspect, current=installation.binding.current)
-            # The immutable row Owner/input remain in Core. These consumed
-            # buffers need not overlap the later dispatch/Compute/Result phase.
+                store.inspect_namespaces(fences, inspect=inspect, current=installation.binding.current)
             if not self._core.close_journal_observation(journal):
                 raise LocalProductCleanupPending(self)
             self._journal_outputs.remove(journal)
-            if not self._core.retire_material_output(output):
-                raise LocalProductCleanupPending(self)
-            if not self._core.retire_submission_append_output(observed):
-                raise LocalProductCleanupPending(self)
-            self._pending_run_write = None
-            return run, admission[0]
+            del self._admission_observations[run.handle]
+            return admission[0]
 
     def _commit_original_run_rows(self, output: _Output) -> None:
         """Forward the original Core candidate in one fenced SQLite transaction.
@@ -1975,10 +2001,15 @@ class InstalledLocalHost:
                 if not self._core.close_journal_observation(output):
                     return False
                 self._journal_outputs.remove(output)
+                self._admission_observations = {run: original
+                    for run, original in self._admission_observations.items()
+                    if original is not output}
             for output in tuple(reversed(self._row_outputs)):
                 if not self._core.close_material(output):
                     return False
                 self._row_outputs.remove(output)
+                self._run_rows[:] = [(run, original) for run, original in self._run_rows
+                                     if original is not output]
                 self._row_write_attempts.discard(output.ticket)
                 if self._pending_run_write is output:
                     self._pending_run_write = None

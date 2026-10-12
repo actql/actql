@@ -8,6 +8,7 @@ priv struct StoredMaterial {
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
+  mut closing : Bool
   mut submission : StoredSubmittedMaterial?
   mut sdk_start : StoredSDKStartStep?
   mut sdk_publication : StoredSDKPublicationBinding?
@@ -82,6 +83,7 @@ fn reserve_material_record(
     invoked: false,
     produced: false,
     output_closed: false,
+    closing: false,
     submission: None,
     sdk_start: None,
     sdk_publication: None,
@@ -206,16 +208,25 @@ fn submitted_rows_material_wire(
     if saved.key != fields.1 || saved.body != fields.2 || saved.revision != 0L {
       return Err(-35)
     }
-    let candidate = match sdk_run_append_candidate(value, current, plan, packet) {
+    let candidate = match
+      sdk_run_append_candidate(value, current, plan, packet) {
       Ok(value) => value
       Err(code) => return Err(code)
     }
-    let (key, body, revision, count) = @host.client_run_journal_append_rows(candidate)
-    if key != fields.0 || body != fields.3 { return Err(-31) }
+    let (key, body, revision, count) = @host.client_run_journal_append_rows(
+      candidate,
+    )
+    if key != fields.0 || body != fields.3 {
+      return Err(-31)
+    }
     Some((revision, count))
-  } else { None }
+  } else {
+    None
+  }
   // Preserve any existing nominal row Owner held by an observation child.
-  if submission.rows is None { submission.rows = Some(rows) }
+  if submission.rows is None {
+    submission.rows = Some(rows)
+  }
   try {
     let writer = @encode.writer(1048576, 10, 1)
     @encode.begin_object(writer)
@@ -250,7 +261,10 @@ fn submitted_rows_material_wire(
 pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
-    !material.output_closed && material.produced && material.kind == 6 &&
+    !material.output_closed &&
+    !material.closing &&
+    material.produced &&
+    material.kind == 6 &&
     material.submission is Some(submission) &&
     submission.sdk_wire is Some(expected) &&
     value.runs.get(material.run) is Some(record) &&
@@ -258,11 +272,14 @@ pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
     value.preparations.get(record.preparation) is Some(preparation) else {
     return -2
   }
-  let actual = match submitted_rows_material_wire(value, material, plan, preparation) {
+  let actual = match
+    submitted_rows_material_wire(value, material, plan, preparation) {
     Ok(wire) => wire
     Err(code) => return code
   }
-  if actual != expected { return -35 }
+  if actual != expected {
+    return -35
+  }
   0
 }
 
@@ -280,7 +297,10 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
     value.environments.get(preparation.environment) is Some(environment) else {
     return -2
   }
-  if value.closing || value.runtime_closing || material.output_closed {
+  if value.closing ||
+    value.runtime_closing ||
+    material.output_closed ||
+    material.closing {
     return -5
   }
   if material.produced {
@@ -353,14 +373,16 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
         Ok(value) => value
         Err(issue) => return issue
       }
-    7 | 8 => match sdk_start_material_wire(value, material, record, plan) {
-      Ok(wire) => wire
-      Err(code) => return code
-    }
-    9 => match sdk_publication_material_wire(value, material, plan) {
-      Ok(wire) => wire
-      Err(code) => return code
-    }
+    7 | 8 =>
+      match sdk_start_material_wire(value, material, record, plan) {
+        Ok(wire) => wire
+        Err(code) => return code
+      }
+    9 =>
+      match sdk_publication_material_wire(value, material, plan) {
+        Ok(wire) => wire
+        Err(code) => return code
+      }
     _ => return -3
   }
   let result = status(
@@ -385,15 +407,21 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
   }
   if material.sdk_publication is Some(_) {
     let code = validate_sdk_publication_material(nonce, handle)
-    if code != 0 { return code }
+    if code != 0 {
+      return code
+    }
   }
   if material.sdk_start is Some(_) {
     let code = validate_sdk_start_material(nonce, handle)
-    if code != 0 { return code }
+    if code != 0 {
+      return code
+    }
   }
   if material.submission is Some({ sdk_wire: Some(_), .. }) {
     let code = validate_submitted_rows_material(nonce, handle)
-    if code != 0 { return code }
+    if code != 0 {
+      return code
+    }
   }
   match @buffers.buffer_length(value.pool, material.slot) {
     Some(length) => length
@@ -414,11 +442,23 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
   if value.physical_starts.values().any(child => child.sdk_step == Some(handle)) {
     return -9
   }
-  if value.materials.values().any(child =>
-    (child.sdk_publication is Some({ rows_material, .. }) && rows_material == handle) ||
-    (child.sdk_start is Some({ publication_material, .. }) && publication_material == handle)) {
+  if value.materials
+    .values()
+    .any(child => {
+      (
+        child.sdk_publication is Some({ rows_material, .. }) &&
+        rows_material == handle
+      ) ||
+      (
+        child.sdk_start is Some({ publication_material, .. }) &&
+        publication_material == handle
+      )
+    }) {
     return -9
   }
+  // Transport retirement preserves the original rows/input borrow. Full
+  // close does not: once its cleanup starts no new observation may borrow it.
+  material.closing = true
   if !material.output_closed {
     let result = status(@buffers.close_buffer(value.pool, material.slot))
     if result != 0 {
@@ -444,11 +484,26 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
 #export_name("actql_material_retire_output")
 pub fn retire_material_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.materials.get(handle) is Some(material) && material.produced &&
-    (material.kind == 6 || material.kind == 7 || material.kind == 8 || material.kind == 9) else { return -2 }
-  if material.output_closed { return 0 }
+    value.materials.get(handle) is Some(material) &&
+    material.produced &&
+    (
+      material.kind == 6 ||
+      material.kind == 7 ||
+      material.kind == 8 ||
+      material.kind == 9
+    ) else {
+    return -2
+  }
+  if material.closing {
+    return -5
+  }
+  if material.output_closed {
+    return 0
+  }
   let code = status(@buffers.close_buffer(value.pool, material.slot))
-  if code != 0 { return code }
+  if code != 0 {
+    return code
+  }
   material.output_closed = true
   value.copies.remove(handle) |> ignore
   0
