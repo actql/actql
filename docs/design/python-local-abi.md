@@ -1764,3 +1764,23 @@ Reopen, attach and resume restore the saved originals and never regenerate their
 policy, expiry or identity from current defaults. Installed component selection
 remains lazy, exact-cohort and exact-ABI. Default 100M fuel, existing capacity
 bounds and independent public Local/wheel/Store-ACK acceptance are unchanged.
+
+Saved originals are read through the existing `LocalFileRoot` physical Owner.
+`open_original` retains a nominal descriptor and the observed device, inode,
+size and timestamp generation of the private, owned regular file. Reads use
+one explicitly released chunk at a time, at the root's existing chunk limit,
+with a maximum original size of 1MiB. Descriptor and original-name observations
+are rechecked before and after each read and before a cached chunk is reused.
+Unicode, line endings, JSON values and absent fields are not interpreted or
+normalized by this port. The Host reserves transfer and retained-byte workspace
+before opening; file size and descriptor limits alone are not global memory
+accounting.
+
+Short reads, changed generations and acquisition failures retain the original
+handle for cleanup and supply no completed observation. Closing after input
+cleanup stops that descriptor without deleting or rewriting originals. An
+uncertain stop retains its chunk and root capacity; retry observes the same
+descriptor without another close or open. Physical EOF/digest is neither
+adoption nor current authority. The existing Common adopted/current material
+must still validate the original Account and actual same-Store adoption row,
+and publication requires its independent current publisher and durable ACK.
