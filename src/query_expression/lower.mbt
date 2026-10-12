@@ -197,6 +197,7 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "VECTOR_SCORE" => ("VECTOR_SCORE", "vector_score", 3, 3)
     "VECTOR_COSINE_SIMILARITY" =>
       ("VECTOR_COSINE_SIMILARITY", "vector_score", 2, 2)
     "VECTOR_INNER_PRODUCT" => ("VECTOR_INNER_PRODUCT", "vector_score", 2, 2)
@@ -441,6 +442,7 @@ fn append_resolved(
   // this classification in the bounded postorder pass rather than reopening
   // the AST or treating arbitrary expression nodes as parameter holes.
   let numbers : Array[Double?] = []
+  let strings : Array[String?] = []
   let parameters : Array[Bool] = []
   let mut current : @origin.Origin? = None
   let mut work = 0
@@ -456,6 +458,7 @@ fn append_resolved(
       let lowering : Lowering = { builder, origin, }
       let mut literal : @builder.Node? = None
       let mut numeric : Double? = None
+      let mut text_literal : String? = None
       let mut parameter = false
       let result = match node.kind {
         Null | Boolean(_) | Number(_) | StringLiteral(_) => {
@@ -468,7 +471,10 @@ fn append_resolved(
                 numeric = Some(value)
                 Number(value)
               }
-              StringLiteral(value) => String(value)
+              StringLiteral(value) => {
+                text_literal = Some(value)
+                String(value)
+              }
               _ => raise Abort(InvalidArguments)
             },
           )
@@ -573,6 +579,7 @@ fn append_resolved(
         Parenthesized(child) => {
           literal = literals[child]
           numeric = numbers[child]
+          text_literal = strings[child]
           parameter = parameters[child]
           nodes[child]
         }
@@ -661,11 +668,25 @@ fn append_resolved(
                 raise Abort(InvalidArguments)
               }
               if name == "vector_score" {
-                let metric = match public_name {
-                  "VECTOR_COSINE_SIMILARITY" => "cosine"
-                  "VECTOR_INNER_PRODUCT" => "dot"
-                  "VECTOR_L2_DISTANCE" => "l2"
-                  _ => raise Abort(UnsupportedFunction)
+                let metric = if public_name == "VECTOR_SCORE" {
+                  // Literal role follows transparent grouping in this bounded
+                  // postorder pass. Never evaluate a Parameter, field or CASE
+                  // to choose an operator metric or fold a data enum's case.
+                  match strings[args[2]] {
+                    Some(value) if ["cosine", "dot", "l2"].contains(value) =>
+                      value
+                    _ => {
+                      current = @query.expression_origin(ast, args[2])
+                      raise Abort(InvalidArguments)
+                    }
+                  }
+                } else {
+                  match public_name {
+                    "VECTOR_COSINE_SIMILARITY" => "cosine"
+                    "VECTOR_INNER_PRODUCT" => "dot"
+                    "VECTOR_L2_DISTANCE" => "l2"
+                    _ => raise Abort(UnsupportedFunction)
+                  }
                 }
                 let score = lowering.form(
                   "vector_score",
@@ -844,6 +865,7 @@ fn append_resolved(
       nodes.push(result)
       literals.push(literal)
       numbers.push(numeric)
+      strings.push(text_literal)
       parameters.push(parameter)
     }
     Ok(nodes[@query.expression_root(ast)])
