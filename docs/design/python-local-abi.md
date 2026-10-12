@@ -1936,3 +1936,23 @@ or recreate lost keys. After successful SQL setup, the original writer cannot
 resume payload operations and is stopped explicitly; uncertain stop retains
 the same descriptor/root capacity. Neither physical schema setup nor the
 one-time creation claim is Host adoption, Run admission or public acceptance.
+
+`OriginalLocalInstallation` composes these ports for the installed source-free
+profile. Only an empty private installation directory takes the first-bootstrap
+path. Core supplies the seven configuration originals and original selection,
+initialization, configuration custody and journal custody bodies. The physical
+DB file is acquired and its initializing marker synced before schema/key IO.
+Key, selected settings, initial counters and adoption are persisted together in
+one physical transaction. Their existence still requires Common's actual
+adoption/current validation before protected work; physical COMMIT is not a
+Run, publication or durable Result acknowledgement.
+
+Reopen never invokes bootstrap or updates policy/expiry. It reuses exact saved
+bytes and rechecks the original directory, file and Store generations, marker,
+settings membership and epoch custody. Missing/partial material or changed
+Source/Result roots is unavailable, not repaired. Unknown initial COMMIT keeps
+the same Store and originals; later reopen inspects them without repeating the
+initial batch. Setup encoding, raw-byte/descriptor and SQLite workspace loans
+remain held until their original cleanup succeeds. This assembly does not own
+the Core instance, start Source/Compute/Model/Effect, cancel a Run, or constitute
+the installed public Client/wheel acceptance gate.
