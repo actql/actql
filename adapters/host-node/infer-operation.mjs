@@ -28,7 +28,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
-  ioNotification, originalPreparation}) {
+  ioNotification, originalPreparation, rawCaptureBinder}) {
+  if (rawCaptureBinder !== undefined && typeof rawCaptureBinder !== 'function') {
+    throw new TypeError('InvalidInferRawCaptureBinder');
+  }
+  let rawCaptureBound = false;
   // The original installing Run has already reserved this entire simultaneous
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
@@ -183,6 +187,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (reclaimed) {
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
+      rawCaptureBinder = undefined;
       io?.close();
       io = undefined;
     }
@@ -300,6 +305,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   let originalPreparedCallSet;
+  // Installation code retains the binder created for THIS original request.
+  // There is no provider-global map or replacement physical operation. The
+  // initial envelope funds this callback/reference even before a raw selection.
+  const retainRawCaptureBinder = callback => {
+    if (closing || reclaimed || rawCaptureBound || rawCaptureBinder !== undefined ||
+        typeof callback !== 'function') {
+      throw new TypeError('InferRawCaptureBinderUnavailable');
+    }
+    rawCaptureBinder = callback;
+  };
   const operation = Object.freeze({run, stop, close, cleanup,
     installSettlementCleanup(callback) {
       if (cleanupSettlement !== undefined || typeof callback !== 'function') {
@@ -401,6 +416,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Installation-only wake endpoint of this already claimed operation.
     // It is not an ACK, public capability or permission to begin another call.
     ioNotification,
+    // Private installation seam of this original physical operation only.
+    // Common registration supplies the nominal raw authority; this callback
+    // creates neither a send claim nor an alternate cleanup owner.
+    bindModelRawCapture(registration) {
+      if (closing || reclaimed || rawCaptureBound || rawCaptureBinder === undefined) {
+        throw new TypeError('InferRawCaptureBindingUnavailable');
+      }
+      rawCaptureBound = true;
+      if (rawCaptureBinder(registration) !== undefined) {
+        throw new TypeError('InvalidInferRawCaptureBinderResult');
+      }
+    },
     bindModelEntryPersistence: (control, plan, preparedCallSet, scope, observation) =>
       control.bindCheckedClientInferModelEntryPersistence(plan.compiled, active,
         plan.runDefinition, preparedCallSet, scope, {...observation,
@@ -475,7 +502,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // its overlap with Core's retained callback; no per-poll context is made.
       checked(moon.clientProgramBindInferPhysicalPreflight(active,
         ioNotification === undefined ? physicalPreflight
-          : request => physicalPreflight(request, ioNotification)));
+          : request => physicalPreflight(request, ioNotification, retainRawCaptureBinder)));
     }
     if (egressAdmission !== undefined) checked(moon.clientProgramBindInferEgress(active, egressAdmission));
   } catch (error) {

@@ -64,6 +64,47 @@ test('preflight receives the same original notification only when Core calls it'
   assert.equal(f.notification.notify(), false);
 });
 
+test('shared physical preflight retains a distinct raw binder for each original operation', async () => {
+  const ports = [];
+  const preflight = (request, context, retainBinder) => {
+    const port = {request, context, retainBinder, registrations: []};
+    ports.push(port);
+    retainBinder(value => { port.registrations.push(value); });
+    return 'original-plan';
+  };
+  const a = fixture({preflight, poll: () => true}), b = fixture({preflight, poll: () => true});
+  const first = a.open(), second = b.open();
+  assert.equal(a.bound()(a.request), 'original-plan');
+  assert.equal(b.bound()(b.request), 'original-plan');
+  assert.equal(ports[0].request, a.request); assert.equal(ports[1].request, b.request);
+  assert.equal(ports[0].context, a.notification); assert.equal(ports[1].context, b.notification);
+  assert.notEqual(ports[0].retainBinder, ports[1].retainBinder);
+  const originalA = {}, originalB = {};
+  first.bindModelRawCapture(originalA); second.bindModelRawCapture(originalB);
+  assert.deepEqual(ports[0].registrations, [originalA]);
+  assert.deepEqual(ports[1].registrations, [originalB]);
+  assert.throws(() => ports[0].retainBinder(() => {}), /InferRawCaptureBinderUnavailable/u);
+  await first.close(); await second.close();
+  assert.throws(() => ports[1].retainBinder(() => {}), /InferRawCaptureBinderUnavailable/u);
+  assert.equal(ports.length, 2, 'retired setter cannot reopen or prepare another physical port');
+});
+
+test('invalid raw binder does not replace the original pending preflight responsibility', async () => {
+  let setter;
+  const f = fixture({preflight(request, context, retainBinder) {
+    assert.equal(request, f.request); assert.equal(context, f.notification);
+    setter = retainBinder;
+    assert.throws(() => setter({}), /InferRawCaptureBinderUnavailable/u);
+    setter(() => {});
+    assert.throws(() => setter(() => assert.fail('replacement')), /InferRawCaptureBinderUnavailable/u);
+  }, poll: () => true});
+  const original = f.open(); f.bound()(f.request);
+  original.bindModelRawCapture({});
+  await original.close();
+  assert.equal(original.cleanupPending(), false);
+  assert.throws(() => setter(() => {}), /InferRawCaptureBinderUnavailable/u);
+});
+
 test('pinned SDK request preparation wakes the same drive without a physical fetch', async () => {
   const sdkPackage = JSON.parse(readFileSync(new URL(
     '../../packages/provider-ai-sdk/node_modules/@ai-sdk/openai/package.json', import.meta.url)));
