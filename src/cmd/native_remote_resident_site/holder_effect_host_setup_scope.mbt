@@ -222,8 +222,16 @@ fn holder_effect_host_snapshot_extent(
   profile : HolderEffectHostSetupProfile,
   root : String,
   snapshot : Array[(String, String)],
+  control_text_bytes? : Int64 = 0L,
 ) -> Int64? {
-  let mut total = profile.retained_controls_bytes
+  guard holder_effect_host_extent_add(
+      profile.retained_controls_bytes,
+      control_text_bytes,
+    )
+    is Some(initial) else {
+    return None
+  }
+  let mut total = initial
   for fixed in [profile.array_bytes, profile.string_bytes] {
     guard holder_effect_host_extent_add(total, fixed) is Some(value) else {
       return None
@@ -269,12 +277,18 @@ fn retain_holder_effect_host_snapshot(
   scope : HolderEffectHostSetupScope,
   root : String,
   snapshot : Array[(String, String)],
+  control_text_bytes? : Int64 = 0L,
 ) -> Bool {
   guard holder_effect_host_read_scope_current(scope) &&
     scope.depth == 1 &&
     scope.holding is None &&
     scope.operation is Some(operation) &&
-    holder_effect_host_snapshot_extent(scope.profile, root, snapshot)
+    holder_effect_host_snapshot_extent(
+      scope.profile,
+      root,
+      snapshot,
+      control_text_bytes~,
+    )
     is Some(bytes) &&
     @site.retain_site_operation_holding(operation, bytes) is Some(holding) else {
     return false
