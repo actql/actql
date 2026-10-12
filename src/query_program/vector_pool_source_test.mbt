@@ -194,3 +194,23 @@ test "P2 prepared two-member public pool sources retain derived grouping and emp
     }
   }
 }
+
+///|
+test "P2 Carrier continuation retains qualified input scope without restoring dropped fields" {
+  let actual = with_carrier_program(
+    "WITH members AS (FROM candidates AS c |> WHERE c.label = 'first' |> to_vectors(id: c.item_id, vector: c.embedding)) FROM members |> pool_vectors(by: [label], method: 'mean') |> vectors() |> SELECT label, embedding, member_count",
+    nearest_context(),
+  ).unwrap()
+  vector_pool_checked(actual)
+  assert_eq(
+    with_carrier_argument(actual, "filter"),
+    "{\"eq\":[{\"field\":\"label\"},{\"literal\":\"first\"}]}",
+  )
+  assert_true(
+    with_carrier_program(
+      "WITH members AS (FROM candidates AS c |> SELECT item_id, embedding |> to_vectors(id: item_id, vector: embedding)) FROM members |> pool_vectors(by: [label], method: 'mean') |> vectors() |> SELECT embedding",
+      nearest_context(),
+    )
+    is Err(UnknownColumn),
+  )
+}
