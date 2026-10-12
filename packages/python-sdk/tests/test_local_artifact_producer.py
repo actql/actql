@@ -180,30 +180,52 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
     def test_postcopy_corruption_and_notice_substitution_keep_failed_output_unaccepted(self):
-        copy = producer.shutil.copyfile
+        copy = producer.copy_original
         for filename in ('client_host_wasm.wasm', 'MOONBIT-CORE-NOTICE'):
             with self.subTest(filename=filename):
-                def corrupt(source, destination):
-                    value = copy(source, destination)
+                def corrupt(source, destination, maximum, digest):
+                    value = copy(source, destination, maximum, digest)
                     if Path(destination).name == filename:
                         Path(destination).write_bytes(b'altered original')
                     return value
-                with patch.object(producer.shutil, 'copyfile', side_effect=corrupt):
+                with patch.object(producer, 'copy_original', side_effect=corrupt):
                     with self.assertRaises(LocalInstallationError):
                         self.run_producer()
                 self.assertFalse((self.output / 'producer.json').exists())
                 shutil.rmtree(self.output)
 
     def test_original_receipt_change_during_copy_is_not_certified(self):
-        copy = producer.shutil.copyfile
-        def change(source, destination):
-            result = copy(source, destination)
+        copy = producer.copy_original
+        def change(source, destination, maximum, digest):
+            result = copy(source, destination, maximum, digest)
             self.core_file.write_bytes(self.core_file.read_bytes() + b'\n')
             return result
-        with patch.object(producer.shutil, 'copyfile', side_effect=change):
+        with patch.object(producer, 'copy_original', side_effect=change):
             with self.assertRaisesRegex(ValueError, 'receipt changed'):
                 self.run_producer()
         self.assertFalse((self.output / 'producer.json').exists())
+
+    def test_component_growth_or_symlink_after_precheck_is_refused_before_copy(self):
+        original = self.module.read_bytes()
+        check = producer.recipe.library_target
+        for replacement in ('grow', 'symlink'):
+            with self.subTest(replacement=replacement):
+                def replace(library):
+                    check(library)
+                    if replacement == 'grow':
+                        with self.module.open('ab') as stream:
+                            stream.truncate(32 * 1024 * 1024 + 1)
+                    else:
+                        self.module.unlink()
+                        self.module.symlink_to(self.library)
+                with patch.object(producer.recipe, 'library_target', side_effect=replace):
+                    with self.assertRaises(LocalInstallationError):
+                        self.run_producer()
+                self.assertFalse((self.output / 'client_host_wasm.wasm').exists())
+                self.assertFalse((self.output / 'producer.json').exists())
+                self.module.unlink()
+                self.module.write_bytes(original)
+                shutil.rmtree(self.output)
 
     def test_dirty_source_and_existing_destination_cannot_be_overwritten(self):
         (self.source / 'uncommitted').write_text('dirty')

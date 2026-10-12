@@ -11,7 +11,6 @@ import importlib.util
 import json
 from pathlib import Path
 import platform
-import shutil
 import stat
 import subprocess
 import sys
@@ -54,6 +53,12 @@ def component(path: Path, digest: str, maximum: int, filename: str) -> dict[str,
     require(stat.S_ISREG(size.st_mode), 'Selected component must be an original regular file')
     _read_file(path, maximum=maximum, expected=size.st_size, digest=digest)
     return {'file': filename, 'bytes': size.st_size, 'sha256': digest}
+
+
+def copy_original(path: Path, target: Path, maximum: int, digest: str) -> None:
+    # Read the original through the same bounded, no-follow digest check at
+    # copy time; a growing or replaced input cannot turn copying into unbounded I/O.
+    target.write_bytes(_read_file(path, maximum=maximum, digest=digest))
 
 
 def produce(core_receipt: Path, duckdb_receipt: Path, destination: Path) -> dict[str, object]:
@@ -113,7 +118,11 @@ def produce(core_receipt: Path, duckdb_receipt: Path, destination: Path) -> dict
     recipe.library_target(library)
     destination.mkdir()
     for name, path in {'client_host_wasm.wasm': module, 'libduckdb.dylib': library, **notices}.items():
-        shutil.copyfile(path, destination / name)
+        maximum = 32 * 1024 * 1024 if name == 'client_host_wasm.wasm' else (
+            128 * 1024 * 1024 if name == 'libduckdb.dylib' else 1024 * 1024)
+        expected = digest if name == 'client_host_wasm.wasm' else (
+            duckdb['library_sha256'] if name == 'libduckdb.dylib' else notice_hashes[name])
+        copy_original(path, destination / name, maximum, expected)
     wire = (json.dumps(body, indent=2) + '\n').encode('utf-8')
     require(len(wire) <= 65536, 'Python Local artifact metadata exceeds its fixed envelope')
     (destination / 'artifact.json').write_bytes(wire)
