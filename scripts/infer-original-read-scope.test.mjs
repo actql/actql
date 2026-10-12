@@ -7,6 +7,12 @@ import * as moon from
 import {canonicalText} from './check-canonical-json.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {checked} from '../adapters/host-common/runtime-result.mjs';
+import {mkdtemp, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
+  openContinuationEvidence} from '../adapters/host-node/local-continuation-evidence.mjs';
+import {loadCheckpointRuntime} from '../adapters/host-node/sqlite-checkpoint-journal.mjs';
 
 // Existing independently authored admission inputs, never expected outputs.
 const source = readFileSync(new URL(
@@ -41,13 +47,14 @@ function original() {
     step, canonicalText({...executionBody, self_cid: executionCid}), executionCid));
   const graph = checked(moon.clientProgramInferPlanGraph(prepared, step,
     execution, `sha256:${'b'.repeat(64)}`, `sha256:${'c'.repeat(64)}`));
-  const calls = {begin: [], read: [], finish: [], settle: []};
+  const calls = {begin: [], read: [], finish: [], settle: [], state: []};
   const consumingMoon = {...moon};
   for (const [name, kind] of [
     ['clientProgramBeginInferOriginalReadScope', 'begin'],
     ['clientProgramPrepareInferNodeReadLayout', 'read'],
     ['clientProgramFinishInferOriginalReadScope', 'finish'],
     ['clientProgramSettleInferOriginalReadPreparation', 'settle'],
+    ['clientProgramPrepareInferNodeReadState', 'state'],
   ]) consumingMoon[name] = (...args) => {
     calls[kind].push(args);
     return moon[name](...args);
@@ -111,7 +118,7 @@ test('original read scope control rejects foreign owners before the Common bridg
     assert.throws(() => f.control.finishCheckedClientInferOriginalReadScope(
       compiled, definition, f.graph, undefined, true), TypeError);
   }
-  assert.deepEqual(f.calls, {begin: [], read: [], finish: [], settle: []});
+  assert.deepEqual(f.calls, {begin: [], read: [], finish: [], settle: [], state: []});
 });
 
 test('original read scope control refuses absent cleanup without changing original custody', () => {
@@ -170,7 +177,8 @@ test('original read scope rejects invalid installed quantities before bootstrap'
   assert.equal(f.calls.begin.length, 0);
 });
 
-function admittedOriginalRead(f) {
+function admittedOriginalRead(f, {stateWriter = false,
+  writerLimits = {maxWireBytes: 4096, maxNodes: 1000, maxDepth: 20}} = {}) {
   // Existing independently sealed input vector, not a numerical Node profile
   // or an expected output derived from the implementation under test.
   const source = readFileSync(new URL(
@@ -203,10 +211,206 @@ function admittedOriginalRead(f) {
     layoutArtifactCid: f.root, probability: undefined};
   const scope = f.control.beginCheckedClientInferOriginalReadScope(
     f.compiled, f.definition, f.graph, bootstrap);
+  if (stateWriter) {
+    const writer = f.control.prepareCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, scope, selected, writerLimits);
+    return {scope, writer, read: f.control.originalClientInferNodeReadStateRead(writer), selected};
+  }
   const read = f.control.prepareCheckedClientInferNodeReadLayout(
     f.compiled, f.definition, f.graph, scope, selected);
   return {scope, read, selected};
 }
+
+test('original Writer stores its same checked preparation bytes without issuing restore permission', async t => {
+  const f = original();
+  const {scope, writer, read} = admittedOriginalRead(f, {stateWriter: true});
+  let poll, work = 0;
+  do {
+    poll = f.control.advanceCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, writer, 1);
+    assert.ok(work < 17);
+    assert.notEqual(poll.kind, 'failed');
+    work += poll.work;
+  } while (poll.kind === 'continue');
+  assert.equal(poll.kind, 'complete');
+  assert.equal(work, 17);
+  // Common verifies the original compiled Run/definition/plan/Writer before
+  // finish. Store ownership does not replace that original checked binding.
+  assert.throws(() => f.control.finishCheckedClientInferNodeReadState(
+    f.foreignCompiled, f.definition, f.graph, writer), TypeError);
+  const wire = f.control.finishCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer);
+  const document = JSON.parse(wire);
+  assert.equal(document[0], 'actql-original-ledger-state/0.1');
+  assert.equal(document[2][0], '17');
+  assert.deepEqual(document[9].map(row => row.slice(0, 4)), [['-2', '0', '7000', '3000']]);
+  assert.equal(f.control.originalClientInferNodeReadStateRead(writer), read);
+  const state = await mkdtemp(join(tmpdir(), 'actql-writer-storage-caller-'));
+  t.after(() => rm(state, {recursive: true, force: true}));
+  await createPrivateEvidenceKey(state);
+  const key = await loadPrivateEvidenceKey(state);
+  const runtime = await loadCheckpointRuntime();
+  const open = () => openContinuationEvidence({stateDirectory: state, ...key,
+    contractControl: f.control, isTerminalRunOutcome: runtime.runOutcomeTerminal,
+    preparation: () => ({status: 'run_created', runStatus: 'cancelled'})});
+  let evidence = open();
+  t.after(() => evidence.close());
+  const runId = JSON.parse(f.definition.wire).run_id;
+  const owner = `model-${runId}`;
+  const [cid] = await evidence.hold(owner, f.definition.identity,
+    [{name: 'original_model_state', wire}]);
+  assert.equal(cid, `sha256:${createHash('sha256').update(Buffer.from(wire)).digest('hex')}`);
+  const receipt = await evidence.open(owner);
+  assert.equal(receipt.requestCid, f.definition.identity);
+  assert.equal((await receipt.bytes('original_model_state', cid, {maxBytes: 4096})).toString(), wire);
+  await evidence.close();
+  evidence = open();
+  assert.equal((await (await evidence.open(owner)).bytes('original_model_state', cid,
+    {maxBytes: 4096})).toString(), wire);
+  assert.equal(f.control.stopCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, scope, writer), undefined);
+  assert.throws(() => f.control.settleCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, false), ownerRefusal);
+  assert.equal(f.control.originalClientInferNodeReadStateRead(writer), read);
+  assert.deepEqual(await evidence.settle(), {retired: [], pending: []});
+  assert.equal(f.control.settleCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, true), undefined);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+  // Even these Core component observations do not replace the not-yet-wired
+  // issued no-Result/no-unresolved-call release facts of the original Run.
+  assert.deepEqual(await evidence.settle(), {retired: [], pending: []});
+  assert.equal(f.calls.begin.length, 1);
+  assert.equal(f.calls.state.length, 1);
+  assert.equal(f.calls.read.length, 0);
+});
+
+test('original Writer facade uses actual Common one-shot read and bounded cursor', () => {
+  for (const quantum of [1, 32]) {
+    const f = original();
+    const {scope, writer, read, selected} = admittedOriginalRead(f, {stateWriter: true});
+    assert.equal(f.calls.read.length, 0, 'normal descriptor issuer is not a second step');
+    assert.equal(f.calls.state.length, 1);
+    assert.throws(() => f.control.claimCheckedClientInferNodePreparationLayout(
+      f.compiled, f.definition, f.graph, read, selected), ownerRefusal);
+    assert.throws(() => f.control.finishCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, writer), ownerRefusal);
+    let work = 0, calls = 0, poll;
+    do {
+      poll = f.control.advanceCheckedClientInferNodeReadState(
+        f.compiled, f.definition, f.graph, writer, quantum);
+      assert.ok(++calls <= 17, 'finite independent empty-inventory block count');
+      assert.ok(poll.work >= 0 && poll.work <= quantum);
+      assert.notEqual(poll.kind, 'failed'); work += poll.work;
+    } while (poll.kind === 'continue');
+    assert.equal(poll.kind, 'complete'); assert.equal(work, 17);
+    const wire = f.control.finishCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, writer);
+    const value = JSON.parse(wire);
+    // Independent facts, not a restored Ledger or authenticated Store receipt.
+    assert.equal(value[0], 'actql-original-ledger-state/0.1');
+    assert.equal(value[2][0], '17');
+    assert.deepEqual(value[9].map(token => token.slice(0, 4)), [['-2', '0', '7000', '3000']]);
+    assert.throws(() => f.control.finishCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, writer), ownerRefusal);
+    assert.equal(f.control.originalClientInferNodeReadStateRead(writer), read);
+    f.control.claimCheckedClientInferNodePreparationLayout(
+      f.compiled, f.definition, f.graph, read, selected);
+    f.control.stopCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, scope, writer);
+    assert.throws(() => f.control.settleCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, writer, false), ownerRefusal);
+    assert.equal(f.control.originalClientInferNodeReadStateRead(writer), read);
+    f.control.settleCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, writer, true);
+    assert.throws(() => f.control.originalClientInferNodeReadStateRead(writer), ownerRefusal);
+    assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+      f.compiled, f.definition, f.graph, scope, true), true);
+    assert.equal(f.calls.begin.length, 1);
+    assert.equal(f.calls.state.length, 1, 'no retry/replacement read');
+  }
+});
+
+test('original Writer facade rejects foreign bindings without advancing original encoder', () => {
+  const f = original();
+  const {scope, writer} = admittedOriginalRead(f, {stateWriter: true});
+  assert.throws(() => f.control.advanceCheckedClientInferNodeReadState(
+    f.foreignCompiled, f.definition, f.graph, writer, 1), TypeError);
+  const otherRun = f.control.defineCheckedClientCompiledRun(f.compiled,
+    {namespaceId: 'scope', runId: 'other-writer', createdAt: '2026-10-02T00:00:00.000Z',
+      validUntil: '2099-01-01T00:00:00.000Z'});
+  const foreign = f.control.advanceCheckedClientInferNodeReadState(
+    f.compiled, otherRun, f.graph, writer, 1);
+  assert.equal(foreign.kind, 'failed'); assert.equal(foreign.work, 0);
+  assert.throws(() => f.control.finishCheckedClientInferNodeReadState(
+    f.compiled, otherRun, f.graph, writer), ownerRefusal);
+  assert.throws(() => f.control.stopCheckedClientInferNodeReadState(
+    f.compiled, otherRun, f.graph, scope, writer), ownerRefusal);
+  assert.throws(() => f.control.settleCheckedClientInferNodeReadState(
+    f.compiled, otherRun, f.graph, writer, true), ownerRefusal);
+  const current = f.control.advanceCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, 1);
+  assert.equal(current.kind, 'continue'); assert.equal(current.work, 1);
+  f.control.stopCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, scope, writer);
+  f.control.settleCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, writer, true);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+});
+
+test('original Writer facade keeps stop and failed physical cleanup distinct', () => {
+  const f = original();
+  const {scope, writer, read} = admittedOriginalRead(f, {stateWriter: true});
+  assert.equal(f.control.advanceCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, 1).work, 1);
+  f.control.stopCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, scope, writer);
+  assert.equal(f.control.advanceCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, 1).kind, 'failed');
+  assert.throws(() => f.control.finishCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer), ownerRefusal);
+  assert.throws(() => f.control.settleCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, false), ownerRefusal);
+  assert.equal(f.control.originalClientInferNodeReadStateRead(writer), read);
+  f.control.settleCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, writer, true);
+  assert.throws(() => f.control.originalClientInferNodeReadStateRead(writer), ownerRefusal);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+});
+
+test('original Writer facade encoding refusal does not become successful saved state', () => {
+  const f = original();
+  const {scope, writer} = admittedOriginalRead(f, {stateWriter: true,
+    writerLimits: {maxWireBytes: 1, maxNodes: 1000, maxDepth: 20}});
+  const failed = f.control.advanceCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, 1);
+  assert.equal(failed.kind, 'failed'); assert.equal(failed.work, 1);
+  assert.throws(() => f.control.finishCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer), ownerRefusal);
+  assert.throws(() => f.control.settleCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, false), ownerRefusal);
+  f.control.stopCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, scope, writer);
+  f.control.settleCheckedClientInferNodeReadState(f.compiled, f.definition, f.graph, writer, true);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+});
+
+test('original Writer facade validates exact integer caps and quantum before Common', () => {
+  const f = original();
+  const {scope, read, selected} = admittedOriginalRead(f);
+  for (const invalid of [null, {maxWireBytes: -1, maxNodes: 1, maxDepth: 0},
+    {maxWireBytes: 100, maxNodes: 0, maxDepth: 0},
+    {maxWireBytes: 100, maxNodes: 1.5, maxDepth: 0},
+    {maxWireBytes: 2147483648, maxNodes: 1, maxDepth: 0}]) {
+    assert.throws(() => f.control.prepareCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, scope, selected, invalid), TypeError);
+  }
+  assert.equal(f.calls.state.length, 0);
+  for (const quantum of [0, -1, 1.5, 2147483648]) {
+    assert.throws(() => f.control.advanceCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, {}, quantum), TypeError);
+  }
+  f.control.stopCheckedClientInferOriginalReadPreparation(f.compiled, f.definition, f.graph, scope, read);
+  f.control.settleCheckedClientInferOriginalReadPreparation(f.compiled, f.definition, f.graph, read, true);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+});
 
 test('original read retirement keeps failed cleanup separate from original Run finalization', () => {
   const f = original();

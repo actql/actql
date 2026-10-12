@@ -39,71 +39,34 @@ pub fn native_client_submitted_run_admission_revision(
 fn submitted_run_admission_body(
   admission : NativeClientSubmittedRunAdmission,
 ) -> Result[String, NativeClientRunJournalIssue] {
-  let request = match
-    @host.client_request_identity_record_wire(admission.request) {
-    Ok(value) => value
-    Err(_) => return Err(Encoding)
-  }
-  try {
-    let writer = @encode.writer(8192, 8, 2)
-    @encode.begin_object(writer)
-    @encode.key(writer, "admitted_revision")
-    // The existing exact Int64 decoder accepts decimal text, not a JSON
-    // number routed through a floating-point value.
-    @encode.string_value(writer, admission.revision.to_string())
-    @encode.key(writer, "request")
-    @encode.string_value(writer, request)
-    @encode.key(writer, "run_definition_cid")
-    @encode.string_value(writer, admission.run_definition_cid)
-    @encode.end_object(writer)
-    Ok(@encode.finish(writer))
-  } catch {
-    _ => Err(Encoding)
-  }
+  @host.client_submitted_run_admission_wire(
+    admission.request,
+    admission.run_definition_cid,
+    admission.revision,
+  ).map_err(issue => {
+    match issue {
+      @host.Encoding => Encoding
+      @host.CustodyLost => CustodyLost
+    }
+  })
 }
 
 ///|
 fn read_submitted_run_admission(
   wire : String,
 ) -> Result[NativeClientSubmittedRunAdmission, NativeClientRunJournalIssue] {
-  let source = @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-    max_input_bytes: 8192,
-    max_nodes: 8,
-    max_depth: 2,
-  }).to_option()
-  guard source is Some(source) &&
-    @decode.admit(source, {
-      max_nodes: 8,
-      max_depth: 2,
-      max_string_bytes: 8192,
-      max_total_string_bytes: 8192,
-    })
-    is Ok(cursor) &&
-    @decode.closed_object(cursor, [
-      "admitted_revision", "request", "run_definition_cid",
-    ])
-    is Ok(object) &&
-    epoch_text(object, "request") is Some(request_wire) &&
-    epoch_text(object, "run_definition_cid") is Some(run_definition_cid) &&
-    @decode.lookup(object, "admitted_revision") is Some(revision) &&
-    @decode.decimal_int64(revision) is Ok(revision) &&
-    revision >= 0L else {
-    return Err(CustodyLost)
-  }
-  let request = match
-    @host.admit_client_request_identity_record_wire(request_wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let admission : NativeClientSubmittedRunAdmission = {
-    request,
-    run_definition_cid,
-    revision,
-  }
-  match submitted_run_admission_body(admission) {
-    Ok(original) if original == wire => Ok(admission)
-    _ => Err(CustodyLost)
-  }
+  @host.admit_client_submitted_run_admission_wire(wire)
+  .map(value => {
+    request: value.0,
+    run_definition_cid: value.1,
+    revision: value.2,
+  })
+  .map_err(issue => {
+    match issue {
+      @host.Encoding => Encoding
+      @host.CustodyLost => CustodyLost
+    }
+  })
 }
 
 ///|

@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-10-12T02:33:50.456Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Independent row watermark control and source connection",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+        "--target",
+        "js",
+        "src/query_program/row_watermark_source_test.mbt"
+      ],
+      "startedAt": "2026-10-12T02:33:50.597Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 9,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:33:50.648Z",
+      "endedAt": "2026-10-12T02:33:50.652Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "fb9a644f-9129-4a6a-bea6-b145ca0d518b",
+    "pid": 24893,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T02:33:50.586Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-wSLS73"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T02:33:50.760Z",
+  "outputComplete": true,
+  "exitCode": 9,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

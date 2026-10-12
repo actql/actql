@@ -1280,11 +1280,11 @@ test "keyed paths reject cross-domain starts without changing retained material"
         [],
       ).unwrap()
     }
+    // A well-typed identity in another definition domain is not a graph member.
+    // Missing selector IDs fail before traversal, without revoking the input.
     assert_true(
       finish_traverse(active)
-      is Err(
-        @local_sga.TraversePathIssue(@local_sga.TraversePathsInputUnavailable)
-      ),
+      is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsStartMissing)),
     )
     assert_true(@local_sga.cleanup_traverse(active).unwrap())
     assert_false(@local_sga.cleanup_traverse(active).unwrap())
