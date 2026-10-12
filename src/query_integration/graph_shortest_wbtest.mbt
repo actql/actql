@@ -132,7 +132,7 @@ test "Shortest shares bounded simple-path execution with typed parallel edges an
 }
 
 ///|
-test "Shortest zero-hop execution has independently decomposed total work workspace and mid-selection cancellation" {
+fn shortest_current_resource_boundary(direct : Bool) -> Unit raise {
   let nodes = keyed_node_source(
     rows="[{\"id\":1,\"tenant\":\"a\",\"name\":\"one\"}]",
   )
@@ -230,19 +230,35 @@ test "Shortest zero-hop execution has independently decomposed total work worksp
           Some(@local_sga.TraversePathsWorkspaceLimit),
         ),
       ] {
-      let active = @local_sga.start_traverse_view(
-        @bounded.control(),
-        task_test_completion(owner),
-        prepared_sequence(owner),
-        0,
-        @graphs.producer_read_view(input).unwrap(),
-        1,
-        { max_work, max_nodes: 10000, max_text_bytes: 10000, max_depth: 50, },
-        workspace,
-        10000,
-        10000,
-        [],
-      ).unwrap()
+      let active = (if direct {
+        @local_sga.start_traverse(
+          @bounded.control(),
+          task_test_completion(owner),
+          prepared_sequence(owner),
+          0,
+          input,
+          1,
+          { max_work, max_nodes: 10000, max_text_bytes: 10000, max_depth: 50, },
+          workspace,
+          10000,
+          10000,
+          [],
+        )
+      } else {
+        @local_sga.start_traverse_view(
+          @bounded.control(),
+          task_test_completion(owner),
+          prepared_sequence(owner),
+          0,
+          @graphs.producer_read_view(input).unwrap(),
+          1,
+          { max_work, max_nodes: 10000, max_text_bytes: 10000, max_depth: 50, },
+          workspace,
+          10000,
+          10000,
+          [],
+        )
+      }).unwrap()
       for _ in 0..<(control_work + 1) {
         match @local_sga.advance_traverse(active, quantum).unwrap() {
           @local_sga.TraverseContinue(..) => ()
@@ -273,24 +289,45 @@ test "Shortest zero-hop execution has independently decomposed total work worksp
   }
   for during_row in [false, true] {
     let control = @bounded.control()
-    let active = @local_sga.start_traverse_view(
-      control,
-      task_test_completion(owner),
-      prepared_sequence(owner),
-      0,
-      @graphs.producer_read_view(input).unwrap(),
-      1,
-      {
-        max_work: total_work,
-        max_nodes: 10000,
-        max_text_bytes: 10000,
-        max_depth: 50,
-      },
-      output_workspace,
-      10000,
-      10000,
-      [],
-    ).unwrap()
+    let active = (if direct {
+      @local_sga.start_traverse(
+        control,
+        task_test_completion(owner),
+        prepared_sequence(owner),
+        0,
+        input,
+        1,
+        {
+          max_work: total_work,
+          max_nodes: 10000,
+          max_text_bytes: 10000,
+          max_depth: 50,
+        },
+        output_workspace,
+        10000,
+        10000,
+        [],
+      )
+    } else {
+      @local_sga.start_traverse_view(
+        control,
+        task_test_completion(owner),
+        prepared_sequence(owner),
+        0,
+        @graphs.producer_read_view(input).unwrap(),
+        1,
+        {
+          max_work: total_work,
+          max_nodes: 10000,
+          max_text_bytes: 10000,
+          max_depth: 50,
+        },
+        output_workspace,
+        10000,
+        10000,
+        [],
+      )
+    }).unwrap()
     for _ in 0..<(control_work + 1) {
       assert_true(
         @local_sga.advance_traverse(active, 1).unwrap()
@@ -322,6 +359,16 @@ test "Shortest zero-hop execution has independently decomposed total work worksp
     assert_false(@local_sga.cleanup_traverse(active).unwrap())
   }
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+}
+
+///|
+test "Shortest zero-hop execution has independently decomposed total work workspace and mid-selection cancellation" {
+  shortest_current_resource_boundary(false)
+}
+
+///|
+test "Shortest direct entrypoint retains exact work workspace and private cancellation" {
+  shortest_current_resource_boundary(true)
 }
 
 ///|

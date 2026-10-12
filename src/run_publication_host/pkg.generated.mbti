@@ -433,6 +433,10 @@ pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) ->
 
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
+pub fn client_effect_static_computation_plan_view(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[String, ClientInteractivePlanIssue]
+
+pub fn client_effect_static_declarations(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int) -> Result[ClientEffectStaticDeclarationSet, ClientEffectStaticDeclarationIssue]
+
 pub fn client_effect_table_write_binding(PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, ClientEffectMemberDescriptorIssue]
 
 pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
@@ -616,6 +620,8 @@ pub fn client_local_product_bootstrap_originals(String, String) -> Result[Client
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+
+pub fn client_model_current_state_read_bounds(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalCurrentStateReadBounds, ClientModelReadPreparationIssue]
 
 pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, ClientModelOriginalOriginIssue]
 
@@ -1573,6 +1579,8 @@ pub fn start_client_keyed_row_request(ClientKeyedLeftRead, Int, @sourceview_reso
 
 pub fn start_client_model_current_state_comparison(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalCurrentStateDocument, Int) -> Result[@physical_resources.OriginalCurrentStateComparison[ClientModelReadOrigin], @physical_resources.OriginalStateComparisonIssue]
 
+pub fn start_client_model_current_state_document_read(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @decode_core.Cursor, Int, @decode_core.Limits) -> Result[@physical_resources.OriginalCurrentStateDocumentRead, @physical_resources.OriginalCurrentStateReadIssue]
+
 pub fn start_client_model_current_state_write(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
@@ -2061,6 +2069,50 @@ pub(all) enum ClientEffectSourceDispatchIssue {
   ForeignInput
   Protocol(@remote_site_protocol.DispatchIssue)
 }
+
+pub(all) enum ClientEffectStaticContractDeclaration {
+  MappingDeclaration(String, String, String)
+  CommandDeclaration(String, String, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientEffectStaticDeclarationIssue {
+  ForeignCompilation
+  InvalidLimits
+  WorkLimit
+  IncompleteInventory
+  Member(ClientEffectMemberDescriptorIssue)
+} derive(@debug.Debug)
+
+pub(all) struct ClientEffectStaticDeclarationSet {
+  program : ClientProgramIdentity
+  compiled_plan_cid : String
+  check_environment_cid : String
+  unit_id : String
+  members : Array[ClientEffectStaticMemberDeclaration]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientEffectStaticInputDeclaration {
+  ResultDeclaration(String)
+  TableInputDeclaration(String)
+  NoRowInputDeclaration
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientEffectStaticMemberDeclaration {
+  member_ordinal : Int
+  stage_ordinal : Int
+  effect_id : String
+  effect_kind : String
+  contract : ClientEffectStaticContractDeclaration
+  input : ClientEffectStaticInputDeclaration
+  failure_policy : String
+  minimum_approval : ClientEffectStaticMinimumApproval
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientEffectStaticMinimumApproval {
+  ContractMinimumNone
+  ContractMinimumRequired
+  ContractMinimumNotRepresented
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientEffectTransferredArtifactIssue {
   Unavailable
