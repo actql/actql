@@ -7,6 +7,12 @@ import * as moon from
 import {canonicalText} from './check-canonical-json.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {checked} from '../adapters/host-common/runtime-result.mjs';
+import {mkdtemp, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
+  openContinuationEvidence} from '../adapters/host-node/local-continuation-evidence.mjs';
+import {loadCheckpointRuntime} from '../adapters/host-node/sqlite-checkpoint-journal.mjs';
 
 // Existing independently authored admission inputs, never expected outputs.
 const source = readFileSync(new URL(
@@ -214,6 +220,70 @@ function admittedOriginalRead(f, {stateWriter = false,
     f.compiled, f.definition, f.graph, scope, selected);
   return {scope, read, selected};
 }
+
+test('original Writer stores its same checked preparation bytes without issuing restore permission', async t => {
+  const f = original();
+  const {scope, writer, read} = admittedOriginalRead(f, {stateWriter: true});
+  let poll, work = 0;
+  do {
+    poll = f.control.advanceCheckedClientInferNodeReadState(
+      f.compiled, f.definition, f.graph, writer, 1);
+    assert.ok(work < 17);
+    assert.notEqual(poll.kind, 'failed');
+    work += poll.work;
+  } while (poll.kind === 'continue');
+  assert.equal(poll.kind, 'complete');
+  assert.equal(work, 17);
+  // Common verifies the original compiled Run/definition/plan/Writer before
+  // finish. Store ownership does not replace that original checked binding.
+  assert.throws(() => f.control.finishCheckedClientInferNodeReadState(
+    f.foreignCompiled, f.definition, f.graph, writer), TypeError);
+  const wire = f.control.finishCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer);
+  const document = JSON.parse(wire);
+  assert.equal(document[0], 'actql-original-ledger-state/0.1');
+  assert.equal(document[2][0], '17');
+  assert.deepEqual(document[9].map(row => row.slice(0, 4)), [['-2', '0', '7000', '3000']]);
+  assert.equal(f.control.originalClientInferNodeReadStateRead(writer), read);
+  const state = await mkdtemp(join(tmpdir(), 'actql-writer-storage-caller-'));
+  t.after(() => rm(state, {recursive: true, force: true}));
+  await createPrivateEvidenceKey(state);
+  const key = await loadPrivateEvidenceKey(state);
+  const runtime = await loadCheckpointRuntime();
+  const open = () => openContinuationEvidence({stateDirectory: state, ...key,
+    contractControl: f.control, isTerminalRunOutcome: runtime.runOutcomeTerminal,
+    preparation: () => ({status: 'run_created', runStatus: 'cancelled'})});
+  let evidence = open();
+  t.after(() => evidence.close());
+  const runId = JSON.parse(f.definition.wire).run_id;
+  const owner = `model-${runId}`;
+  const [cid] = await evidence.hold(owner, f.definition.identity,
+    [{name: 'original_model_state', wire}]);
+  assert.equal(cid, `sha256:${createHash('sha256').update(Buffer.from(wire)).digest('hex')}`);
+  const receipt = await evidence.open(owner);
+  assert.equal(receipt.requestCid, f.definition.identity);
+  assert.equal((await receipt.bytes('original_model_state', cid, {maxBytes: 4096})).toString(), wire);
+  await evidence.close();
+  evidence = open();
+  assert.equal((await (await evidence.open(owner)).bytes('original_model_state', cid,
+    {maxBytes: 4096})).toString(), wire);
+  assert.equal(f.control.stopCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, scope, writer), undefined);
+  assert.throws(() => f.control.settleCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, false), ownerRefusal);
+  assert.equal(f.control.originalClientInferNodeReadStateRead(writer), read);
+  assert.deepEqual(await evidence.settle(), {retired: [], pending: []});
+  assert.equal(f.control.settleCheckedClientInferNodeReadState(
+    f.compiled, f.definition, f.graph, writer, true), undefined);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+  // Even these Core component observations do not replace the not-yet-wired
+  // issued no-Result/no-unresolved-call release facts of the original Run.
+  assert.deepEqual(await evidence.settle(), {retired: [], pending: []});
+  assert.equal(f.calls.begin.length, 1);
+  assert.equal(f.calls.state.length, 1);
+  assert.equal(f.calls.read.length, 0);
+});
 
 test('original Writer facade uses actual Common one-shot read and bounded cursor', () => {
   for (const quantum of [1, 32]) {
