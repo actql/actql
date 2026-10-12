@@ -1,0 +1,38 @@
+///|
+// Core preparation phase only, not a byte grant, stable cut or send authority.
+// Captured children are allowed, but an issued descriptor/read cannot acquire
+// another prefix behind the original immutable snapshot.
+pub fn original_ledger_preparation_available(
+  identity : OriginalLedgerIdentity,
+) -> Bool {
+  guard original_ledger_inventory_available(identity) &&
+    identity.ledger.original_inventory is Some(value) else {
+    return false
+  }
+  !value.descriptor_issued && !value.read_claimed
+}
+
+///|
+// Only the accounted Row capture Owner supplies these exact opaque tokens.
+// The initial Direct capture must be the single recorded child/holding. After
+// the prefix reserves its attempt, even successful cleanup cannot restore this
+// prerequisite. Capacity failure leaves the same original capture retryable.
+pub fn original_captured_prefix_available(
+  ledger : Ledger,
+  reservation : Reservation,
+  holding : Holding,
+) -> Bool {
+  guard ledger.original_inventory is Some(value) &&
+    original_ledger_preparation_available(value.identity) else {
+    return false
+  }
+  value.reservations.length() == 1 &&
+  physical_equal(value.reservations[0], reservation) &&
+  !reservation_open(reservation) &&
+  value.holdings.length() == 1 &&
+  physical_equal(value.holdings[0], holding) &&
+  holding_available(ledger, holding) &&
+  value.delegations.is_empty() &&
+  ledger.next_capacity_serial == Some(-2) &&
+  ledger.usage.attempts == 1
+}

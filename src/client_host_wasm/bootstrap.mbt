@@ -8,6 +8,7 @@ priv struct StoredBootstrap {
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
+  mut sdk_profile : Bool?
 }
 
 ///|
@@ -55,6 +56,7 @@ pub fn reserve_bootstrap(
     invoked: false,
     produced: false,
     output_closed: false,
+    sdk_profile: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -64,12 +66,26 @@ pub fn reserve_bootstrap(
 ///|
 #export_name("actql_bootstrap_produce")
 pub fn produce_bootstrap(nonce : Int64, handle : Int) -> Int {
+  produce_bootstrap_profile(nonce, handle, false)
+}
+
+///|
+#export_name("actql_bootstrap_produce_sdk")
+pub fn produce_sdk_bootstrap(nonce : Int64, handle : Int) -> Int {
+  produce_bootstrap_profile(nonce, handle, true)
+}
+
+///|
+fn produce_bootstrap_profile(nonce : Int64, handle : Int, sdk : Bool) -> Int {
   guard selected(nonce) is Some(value) &&
     value.bootstraps.get(handle) is Some(record) else {
     return -2
   }
   if value.closing || value.runtime_closing || record.output_closed {
     return -5
+  }
+  if record.sdk_profile is Some(previous) && previous != sdk {
+    return -3
   }
   if record.produced {
     return 0
@@ -78,6 +94,7 @@ pub fn produce_bootstrap(nonce : Int64, handle : Int) -> Int {
     return -33
   }
   record.invoked = true
+  record.sdk_profile = Some(sdk)
   let borrow = match record.borrow {
     Ok(value) => value
     Err(issue) => return issue_code(issue)
@@ -89,10 +106,16 @@ pub fn produce_bootstrap(nonce : Int64, handle : Int) -> Int {
     required_text(object, "observed_at") is Some(at) else {
     return -31
   }
-  let originals = match
-    @host.client_local_product_bootstrap_originals(root, at) {
-    Ok(value) => value
-    Err(_) => return -31
+  let (originals, extra) = if sdk {
+    match @host.client_local_product_sdk_bootstrap_originals(root, at) {
+      Ok(value) => (value.original, Some((value.profile, value.read)))
+      Err(_) => return -31
+    }
+  } else {
+    match @host.client_local_product_bootstrap_originals(root, at) {
+      Ok(value) => (value, None)
+      Err(_) => return -31
+    }
   }
   let wire = try {
     let writer = @encode.writer(1048576, 32, 2)
@@ -115,6 +138,18 @@ pub fn produce_bootstrap(nonce : Int64, handle : Int) -> Int {
       ] {
       @encode.key(writer, key)
       @encode.string_value(writer, text)
+    }
+    if extra is Some((profile, read)) {
+      @encode.key(writer, "run_policy_profile")
+      @encode.string_value(
+        writer,
+        @host.client_local_run_policy_profile_wire(profile),
+      )
+      @encode.key(writer, "sdk_read")
+      @encode.string_value(
+        writer,
+        @publication.local_sdk_result_read_selection_wire(read),
+      )
     }
     @encode.end_object(writer)
     @encode.finish(writer)

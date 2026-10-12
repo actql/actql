@@ -20,6 +20,7 @@ pub struct LocalSubmittedRunRows {
   preparing : Bytes
   run : Bytes
   submitted : Bytes
+  local_policy_original : String?
 }
 
 ///|
@@ -38,6 +39,7 @@ pub fn prepare_local_submitted_run_rows(
   tuple : @authorization.AccessTuple,
   context_cid : String,
   now : Double,
+  local_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
 ) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue] {
   if !physical_equal(
       plan.input,
@@ -83,18 +85,38 @@ pub fn prepare_local_submitted_run_rows(
     !@host.client_submitted_intent_transition("preparing", "ready") {
     return Err(CustodyLost)
   }
+  // The Host supplies the selected nominal original. Structural correspondence
+  // cannot replace its adopted profile/current or the same-transaction ACK.
+  let local_policy_original = match local_policy_original {
+    None => None
+    Some(original) => {
+      let body = @host.client_local_run_policy_original_body(original)
+      if @host.validate_client_local_run_policy_original_run(
+          body,
+          plan.request,
+          plan.definition,
+        )
+        is Err(_) {
+        return Err(CustodyLost)
+      }
+      Some(@utf8.decode(body) catch { _ => return Err(CustodyLost) })
+    }
+  }
   let run = match
-    @host.client_run_journal_row_body({
-      request: plan.request,
-      definition: plan.definition,
-      dispatch_reserved: false,
-      physical_start_claimed: false,
-      cancellation_requested: false,
-      publication_binding: None,
-      publication_policy_originals: None,
-      effect_material_originals: None,
-      checkpoint: None,
-    }) {
+    @host.client_run_journal_row_body(
+      {
+        request: plan.request,
+        definition: plan.definition,
+        dispatch_reserved: false,
+        physical_start_claimed: false,
+        cancellation_requested: false,
+        publication_binding: None,
+        publication_policy_originals: None,
+        effect_material_originals: None,
+        checkpoint: None,
+      },
+      local_run_policy_originals=local_policy_original,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
   }
@@ -107,7 +129,15 @@ pub fn prepare_local_submitted_run_rows(
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
   }
-  Ok({ plan, preparation, reference, preparing, run, submitted, })
+  Ok({
+    plan,
+    preparation,
+    reference,
+    preparing,
+    run,
+    submitted,
+    local_policy_original,
+  })
 }
 
 ///|
@@ -163,9 +193,15 @@ pub fn validate_local_saved_submitted_rows(
     submission_revision < 0L {
     return Err(CustodyLost)
   }
-  let run = match @host.decode_client_run_journal_row(run_body) {
+  let (run, saved_policy) = match
+    @host.decode_client_run_journal_row_with_local_policy(run_body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
+  }
+  // Later Run revisions may change dispatch/publication facts. The original
+  // finite Policy packet is immutable, including its initial issued_at.
+  if saved_policy != value.local_policy_original {
+    return Err(CustodyLost)
   }
   let submitted = match
     @host.decode_client_submitted_journal_row(submission_body) {

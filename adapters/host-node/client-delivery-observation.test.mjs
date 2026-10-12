@@ -16,6 +16,57 @@ const expected = {
 const hint = 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.';
 
 for (const entrance of ['local', 'https']) {
+  test(`${entrance}: revoked Delivery lookup withholds found and absent Store observations`,
+    {timeout: 20000}, async () => {
+      const scratch = await createOwnedScratch({parent: tmpdir(),
+        prefix: 'actql-delivery-revocation-', label: `${entrance} lookup revocation`});
+      execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+        '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
+        '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+      {cwd: scratch.path, stdio: 'ignore'});
+      const fixture = await openReadOpeningFixture(scratch.path);
+      const host = await connectOpeningHost(fixture, entrance, scratch.path);
+      try {
+        const run = await host.client.start(openingProgram,
+          {submissionRef: host.client.newSubmission({nonce: 'revoked-delivery-lookup'})});
+        const result = run.result('answer'), reader = result.rows();
+        assert.deepEqual(await Array.fromAsync(reader), [{id: 1}, {id: 2}]);
+        await host.settled();
+        const completed = await result.deliveryAttempt(reader.attemptId);
+        assert.equal(completed.kind, 'found');
+        assert.equal(completed.record.state, 'succeeded');
+        const missing = 'unopened-delivery-attempt';
+        assert.deepEqual(await result.deliveryAttempt(missing), {kind: 'not_found'});
+        for (const attemptId of [reader.attemptId, missing]) {
+          let entered, release;
+          const reached = new Promise(resolve => {entered = resolve;});
+          const gate = new Promise(resolve => {release = resolve;});
+          fixture.afterDeliveryLookup(async found => {
+            assert.equal(found === undefined, attemptId === missing);
+            entered();
+            await gate;
+          });
+          const pending = result.deliveryAttempt(attemptId);
+          await reached;
+          fixture.authorize(false);
+          release();
+          await assert.rejects(pending, {code: 'ResultAccessDenied'});
+          fixture.afterDeliveryLookup(undefined);
+          fixture.authorize(true);
+        }
+        assert.deepEqual(await result.deliveryAttempt(reader.attemptId), completed);
+        assert.equal((await run.status()).status, 'succeeded');
+        assert.deepEqual(fixture.counts,
+          {admissions: 1, readers: 1, computes: 1, definitions: 1});
+      } finally {
+        await host.close();
+        await fixture.close();
+      }
+      scratch.passed();
+    });
+}
+
+for (const entrance of ['local', 'https']) {
   for (const phase of ['normal', 'before-commit', 'after-commit']) {
     test(`${entrance}: delivery observation explains ${phase} against one published Run`, {timeout: 20000}, async () => {
       const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-delivery-observation-', label: `${entrance} ${phase}`});
