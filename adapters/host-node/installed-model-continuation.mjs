@@ -215,6 +215,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   async function prime(record) {
     const receiptWire = record.originals.fixedInputReceiptWire;
     const receipt = JSON.parse(receiptWire);
+    if (receipt.runId !== record.inventory.runId ||
+        receipt.runDefinitionCid !== record.inventory.runDefinitionCid) fail('ModelSnapshotBindingMismatch');
     const bytes = await checkpoints().readModelInput(receipt);
     const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
     const snapshot = JSON.parse(wire);

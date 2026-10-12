@@ -51,6 +51,9 @@ fn local_execute_publish_values(
   store : @local_store.Store,
   current : () -> Bool,
 ) -> String raise ClientStop {
+  if !current() {
+    stop("LocalSubmissionAuthorizationDenied")
+  }
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
@@ -119,11 +122,24 @@ fn local_execute_publish_values(
       8192,
       64,
     ).unwrap_or_else(() => stop("LocalAuthoringEvidenceUnavailable"))
+    let publisher = host
+      .bind_run_publisher(
+        crypto,
+        settings.principal,
+        settings.connection,
+        request,
+        definition,
+        settings.run_file.unwrap_or_else(() => {
+          stop("LocalRunInstallationRequired")
+        }),
+        store,
+      )
+      .unwrap_or_else(() => stop("LocalPublisherAuthorityUnavailable"))
     let now = local_utc_now()
     let intent : @local_publication.NativeRunPublicationIntent = {
       namespace_id: run.namespace_id,
       authority_scope_cid: @run_host.client_request_authority_scope_cid(request),
-      publication_policy_cid: local_host_result(host.configuration()).configuration_cid(),
+      publication_policy_cid: publisher.publication_policy_cid(),
       publication_target_cid: run.store_authority_cid,
       requested_at: now,
     }
@@ -138,10 +154,13 @@ fn local_execute_publish_values(
       .install_publication_service(
         store,
         run.namespace_id,
-        _ => current(),
+        _ => publisher.current(),
         65536,
         8192,
         64,
+        request_authorize=Some((context, facts) => {
+          publisher.authorize_request(context, facts)
+        }),
       )
       .unwrap_or_else(() => stop("LocalPublicationAuthorityUnavailable"))
     let pending = work
