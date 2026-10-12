@@ -16184,6 +16184,94 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/original-resource.closed-binding",
+      "statement_sha256": "818b1990806032ce27be596ecffadc1d9acea0317dea758a64b1875ae816f946",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-resource.original-bytes",
+      "statement_sha256": "1b3ed0150cf347c2865c6ff6dae5c742b1e2e196918cacf2408d15e100f8b833",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-resource.preparation-not-current",
+      "statement_sha256": "55fcde2d122030e0cd6f7fd58eb36575801b532d83324fe8b9b8765a24b13e2d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-resource.current-cut",
+      "statement_sha256": "de46c7de9ae06061f387ae881604e7350251a74bdfd32183b8f00d8aff3ebe08",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-resource.ack-and-admission",
+      "statement_sha256": "eeea39e59437ae82a7623cb232de4cfb1a1bfc1d8703108eca96bc2e5b4ef0eb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-resource.no-send",
+      "statement_sha256": "36ec3d1a105c7c75c518b4f17800ef70d3e47844955678f96f69686005a156f6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-resource.custody",
+      "statement_sha256": "3b4970b9a13f8165e0ffea363c37ae3e87bc9b09969531f0c13c2346013cb531",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/original-resource.bootstrap",
+      "statement_sha256": "573a20a6f9fd21449c83a7097fcc15220fd7dcf4f737e9a04ed7d704353fb3f9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "original-model-resource-state",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.discovery/exact-artifact-surface",
       "statement_sha256": "2808e9bed429a9e716df89549b1cd1c9add615cfb9f56c0451c0fdf851111ad0",
       "status": "pending",

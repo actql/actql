@@ -79,9 +79,11 @@ test "unrelated lowering issues do not invent a named relation witness" {
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(unused, fixture_context(), construction_limits())
-    is Err(UnsupportedCte),
-    msg="unused CTE refusal still precedes resolving the outer relation",
+    exact_unresolved_relation(
+      compile(unused, fixture_context(), construction_limits()),
+      [("missing", false)],
+    ),
+    msg="valid unused WITH does not hide the missing outer relation",
   )
 }
 

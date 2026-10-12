@@ -1,0 +1,1059 @@
+{
+  "scope": "Adopted P2-T watermark_rows source roles connected to unchanged common Relation watermark owner",
+  "verification_source": "d57736ea54cced2bf4ef820e6481f36a2397c6c3",
+  "verification_tree": "2161fd606e348f185455448e233a460a5175f34d",
+  "followup_source": "54fd05a7859ed273fd8cce0770fced927b053d8a",
+  "adopted_main": "d62f4de55f98badeb37af933f6fdb0e5dbfeae22",
+  "parent_1604": "unmerged; normal ancestry retained, no child merge into dependency branch",
+  "public": {
+    "executed": false,
+    "packages_produced": 0,
+    "prepared_normal": 8,
+    "prepared_refusal": 6,
+    "command": "node scripts/test-packed-public-query.mjs --row-watermark-only --keep-artifacts",
+    "requires": "Explicit shared Heavy window and normal matching five-package producer; preserve original caps."
+  },
+  "executions": [
+    {
+      "run": "run-wSLS73",
+      "summary": {
+        "startedAt": "2026-10-12T02:33:50.456Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent row watermark control and source connection",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"moon\",process.argv.slice(1),{cwd:process.cwd()});",
+              "--target",
+              "js",
+              "src/query_program/row_watermark_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:33:50.597Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 9,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:33:50.648Z",
+            "endedAt": "2026-10-12T02:33:50.652Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "fb9a644f-9129-4a6a-bea6-b145ca0d518b",
+          "pid": 24893,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:33:50.586Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-wSLS73"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:33:50.760Z",
+        "outputComplete": true,
+        "exitCode": 9,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": []
+    },
+    {
+      "run": "run-ViRHQL",
+      "summary": {
+        "startedAt": "2026-10-12T02:34:33.835Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent row watermark control and source connection",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_program/row_watermark_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:34:33.903Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 2,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:34:42.338Z",
+            "endedAt": "2026-10-12T02:34:42.343Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "4c904d07-4cd9-47bb-a727-9d9630ef9cfe",
+          "pid": 26129,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:34:33.894Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ViRHQL"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:34:42.405Z",
+        "outputComplete": true,
+        "exitCode": 2,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-gqXmsA"
+      ]
+    },
+    {
+      "run": "run-f1QZZa",
+      "summary": {
+        "startedAt": "2026-10-12T02:35:08.598Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Independent row watermark control and source connection",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_program/row_watermark_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:35:08.671Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:35:17.965Z",
+            "endedAt": "2026-10-12T02:35:17.967Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "a12e6aa8-bc9c-4849-a4d3-9695c8be323f",
+          "pid": 26437,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:35:08.662Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-f1QZZa"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:35:18.080Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-rivfE8"
+      ]
+    },
+    {
+      "run": "run-kvBqad",
+      "summary": {
+        "startedAt": "2026-10-12T02:36:12.818Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Independent row watermark control and source connection",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_program/row_watermark_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:36:12.886Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:36:20.286Z",
+            "endedAt": "2026-10-12T02:36:20.289Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "b8c55201-5c86-416b-ae6a-d93e48392471",
+          "pid": 26941,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:36:12.878Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-kvBqad"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:36:20.352Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-MPBHvc"
+      ]
+    },
+    {
+      "run": "run-24wl4K",
+      "summary": {
+        "startedAt": "2026-10-12T02:38:30.994Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Existing generator or independent oracle compilation-manifests",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:38:31.107Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:38:31.450Z",
+            "endedAt": "2026-10-12T02:38:31.454Z"
+          },
+          {
+            "name": "Existing generator or independent oracle row-watermark-identity-oracle",
+            "command": [
+              "node",
+              "scripts/row-watermark-identity-oracle.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:38:31.559Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:38:31.641Z",
+            "endedAt": "2026-10-12T02:38:31.644Z"
+          },
+          {
+            "name": "Existing generator or independent oracle update-document-metadata",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:38:31.725Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:38:34.038Z",
+            "endedAt": "2026-10-12T02:38:34.040Z"
+          },
+          {
+            "name": "Existing generator or independent oracle check-actql-spec-family",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:38:34.122Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:38:36.542Z",
+            "endedAt": "2026-10-12T02:38:36.546Z"
+          },
+          {
+            "name": "Existing generator or independent oracle check-canonical-json",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:38:36.645Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:38:39.705Z",
+            "endedAt": "2026-10-12T02:38:39.709Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "14339836-045d-4cad-84f3-b496c9f9b302",
+          "pid": 28905,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:38:31.096Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-24wl4K"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:38:39.799Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": []
+    },
+    {
+      "run": "run-6ye8kQ",
+      "summary": {
+        "startedAt": "2026-10-12T02:39:10.686Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Independent declared public inventory",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import{readFileSync,writeFileSync}from'node:fs';import{registeredPublicQueryInventory}from'./scripts/public-query-inventory.mjs';const path='scripts/fixtures/public-query-inventory.json';const old=JSON.parse(readFileSync(path,'utf8'));const actual=await registeredPublicQueryInventory();writeFileSync(path,JSON.stringify({...old,...actual},null,2)+'\\n');console.log(JSON.stringify(actual));"
+            ],
+            "startedAt": "2026-10-12T02:39:10.812Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:39:11.722Z",
+            "endedAt": "2026-10-12T02:39:11.726Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "229b9f3a-5e7e-434d-ba01-790747a36d1f",
+          "pid": 30134,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:39:10.798Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-6ye8kQ"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:39:11.834Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": []
+    },
+    {
+      "run": "run-ZZUbv2",
+      "summary": {
+        "startedAt": "2026-10-12T02:39:52.610Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Pinned authored-file formatting",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import{execFileSync}from'node:child_process';import{writeFileSync}from'node:fs';for(const path of process.argv.slice(1))writeFileSync(path,execFileSync('moonfmt',[path],{maxBuffer:4194304}));",
+              "src/query_program/row_watermark_source_test.mbt",
+              "src/query_program/query_script_carriers.mbt",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/sga_argument_roles.mbt"
+            ],
+            "startedAt": "2026-10-12T02:39:52.716Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:39:52.991Z",
+            "endedAt": "2026-10-12T02:39:52.997Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "371eb2fa-4024-4a9d-91d5-7a7fdc809e83",
+          "pid": 31438,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:39:52.705Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ZZUbv2"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:39:53.093Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": []
+    },
+    {
+      "run": "run-mIIDCX",
+      "summary": {
+        "startedAt": "2026-10-12T02:40:12.641Z",
+        "status": "timeout",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent row watermark and affected source callers",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_program/row_watermark_source_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt",
+              "src/query_program/event_window_source_test.mbt",
+              "src/query_program/with_vectors_events_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-12T02:40:12.769Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:40:42.157Z",
+            "endedAt": "2026-10-12T02:40:42.162Z"
+          },
+          {
+            "name": "Affected grammar canonical consumer",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/canonical_json/identity_vectors.generated_test.mbt",
+              "--filter",
+              "contract spec/manifests/actql-grammar-0.1.json#"
+            ],
+            "startedAt": "2026-10-12T02:40:42.267Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:40:47.349Z",
+            "endedAt": "2026-10-12T02:40:47.358Z"
+          },
+          {
+            "name": "Independent row watermark fixtures identities and historical consumers",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/row-watermark-source.test.mjs",
+              "scripts/row-watermark-identity.test.mjs",
+              "scripts/event-dedupe-source.test.mjs",
+              "scripts/event-dedupe-identity.test.mjs",
+              "scripts/event-window-identity.test.mjs",
+              "scripts/vector-pool-identity.test.mjs",
+              "scripts/sga-signature-role-identity.test.mjs",
+              "scripts/client-values-run-materials-vector.test.mjs",
+              "scripts/compilation-manifests.test.mjs",
+              "scripts/frontend-profile.test.mjs",
+              "scripts/public-query-profiles.test.mjs"
+            ],
+            "startedAt": "2026-10-12T02:40:47.474Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:41:05.759Z",
+            "endedAt": "2026-10-12T02:41:05.765Z"
+          },
+          {
+            "name": "Read-only compilation-manifests",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs"
+            ],
+            "startedAt": "2026-10-12T02:41:05.882Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:41:06.332Z",
+            "endedAt": "2026-10-12T02:41:06.339Z"
+          },
+          {
+            "name": "Read-only update-document-metadata",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs"
+            ],
+            "startedAt": "2026-10-12T02:41:06.457Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:41:10.751Z",
+            "endedAt": "2026-10-12T02:41:10.755Z"
+          },
+          {
+            "name": "Read-only check-actql-spec-family",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs"
+            ],
+            "startedAt": "2026-10-12T02:41:10.865Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": null,
+            "signal": "SIGTERM",
+            "exitedAt": "2026-10-12T02:41:12.902Z",
+            "endedAt": "2026-10-12T02:41:12.907Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "9432485e-65ad-4b78-9b26-e8aa8f7541f0",
+          "pid": 31918,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:40:12.749Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-mIIDCX"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:41:13.083Z",
+        "outputComplete": true,
+        "exitCode": 124,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-Dtyfio",
+        "focused-test-hav2mU",
+        "focused-test-m4YzXK"
+      ]
+    },
+    {
+      "run": "run-ZTU6kF",
+      "summary": {
+        "startedAt": "2026-10-12T02:41:37.588Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Read-only check-actql-spec-family",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs"
+            ],
+            "startedAt": "2026-10-12T02:41:37.743Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:41:41.875Z",
+            "endedAt": "2026-10-12T02:41:41.894Z"
+          },
+          {
+            "name": "Read-only check-canonical-json",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs"
+            ],
+            "startedAt": "2026-10-12T02:41:42.153Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:41:46.461Z",
+            "endedAt": "2026-10-12T02:41:46.464Z"
+          },
+          {
+            "name": "Exact authored MoonBit formatting",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import assert from'node:assert/strict';import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';for(const path of process.argv.slice(1))assert.equal(execFileSync('moonfmt',[path],{encoding:'utf8',maxBuffer:4194304}),readFileSync(path,'utf8'),path);",
+              "src/query_program/row_watermark_source_test.mbt",
+              "src/query_program/query_script_carriers.mbt",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/sga_argument_roles.mbt"
+            ],
+            "startedAt": "2026-10-12T02:41:46.566Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:41:46.831Z",
+            "endedAt": "2026-10-12T02:41:46.834Z"
+          },
+          {
+            "name": "Product and specification whitespace",
+            "command": [
+              "git",
+              "diff",
+              "--check",
+              "c3045502f",
+              "HEAD",
+              "--",
+              ".",
+              ":(exclude)reviews/**"
+            ],
+            "startedAt": "2026-10-12T02:41:46.964Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:41:47.161Z",
+            "endedAt": "2026-10-12T02:41:47.165Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "0284b631-0859-456e-9fae-b3fae31ee130",
+          "pid": 33562,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:41:37.731Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ZTU6kF"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:41:47.296Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": []
+    }
+  ],
+  "retained_members": [
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/0001.summary.json",
+      "bytes": 630,
+      "sha256": "4d1fda36f0a2c5c9e768597375f7813a4af97e33f96ee8bb26e9c120366bd57e"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/0002.summary.json",
+      "bytes": 2233,
+      "sha256": "c540439fcb394d6ea24603d6f707729ff1513c15d261d4584a7088b914afba8f"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/0003.summary.json",
+      "bytes": 2454,
+      "sha256": "86c8f867dad22c76c338b00237e8ef9c85485eb0848fa036c4558785612557bf"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/0004.summary.json",
+      "bytes": 2474,
+      "sha256": "aa56f2166fd4bde2b148a322bec29f1fc66cb52685a3dfe3a3e83ed28413959c"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/001.result.json",
+      "bytes": 1629,
+      "sha256": "dd4a4d688e57c3b1b4d78b270eb7c5d167aa5df9f9adda96c5ba91f752c38881"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/001.started.json",
+      "bytes": 1444,
+      "sha256": "cd027c7392847306e0c1c40ef3abd0beea41e02ae0cfa686ae719ef7483f5f21"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/001.stdout.log",
+      "bytes": 70578,
+      "sha256": "39d38f6daec66f8809054e218fc5be0955802e72ae8f0208cf3e47be353b8ddb"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-Dtyfio/summary.json",
+      "bytes": 2474,
+      "sha256": "aa56f2166fd4bde2b148a322bec29f1fc66cb52685a3dfe3a3e83ed28413959c"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/0001.summary.json",
+      "bytes": 630,
+      "sha256": "ff80fc3287c52f18eb38bddd4dcc935158975d829c8e713e04dd239c0b8e5a28"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/0002.summary.json",
+      "bytes": 1560,
+      "sha256": "5a8a6eae1746b152fe215eb6f25dcfe4b909fd56042578f65a609b745e515d14"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/0003.summary.json",
+      "bytes": 1779,
+      "sha256": "85f0c27466d04779d22249bab8d576c22a4405bddb2d5e53c8099f56668ff24d"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/0004.summary.json",
+      "bytes": 1799,
+      "sha256": "bdb880eb1fcff61881c63ec8bb27df9cf2c4ca67578a8a56674935bfc889fc3c"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/001.result.json",
+      "bytes": 990,
+      "sha256": "d9d18fa1c7257e7799371a9491afb166d3262bed913314e29b4ba3fbe3cab947"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/001.started.json",
+      "bytes": 807,
+      "sha256": "fb155c3cf22a1fe97b231f2fbf0417e5487c475050aabf16f76f36ab4559b09b"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/001.stdout.log",
+      "bytes": 38,
+      "sha256": "30a04d9fb9b3e8b0c88d173d0654b97191bd61de5cd6b067b91b74f25115ca4a"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-MPBHvc/summary.json",
+      "bytes": 1799,
+      "sha256": "bdb880eb1fcff61881c63ec8bb27df9cf2c4ca67578a8a56674935bfc889fc3c"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/0001.summary.json",
+      "bytes": 630,
+      "sha256": "8f78fae83307c3b936dd4eca2652d8c2c831b28c1a98d00c909c61177408a927"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/0002.summary.json",
+      "bytes": 1560,
+      "sha256": "acba633ef19c2087328172a074b8e0ddc289802be4a491a9d9e8e14f9f23e3ec"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/0003.summary.json",
+      "bytes": 1785,
+      "sha256": "4d904dc00b357744963a37bb9857a91b06ac0e19f03fd0b204153b4c3b80c683"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/0004.summary.json",
+      "bytes": 1806,
+      "sha256": "181ef160e497b26670407e64759851a2dcc7d9df3c6a75772267187107d2bdb0"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/001.result.json",
+      "bytes": 996,
+      "sha256": "559b57794129b60d63b0f0cc9c5628de51713197874fb539b817919f0619a174"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/001.started.json",
+      "bytes": 807,
+      "sha256": "8a2c329463172d0ca3c898ce5f9e774ed9c8eaa6acd8186bad44d58c51eef041"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/001.stdout.log",
+      "bytes": 3978,
+      "sha256": "85d3c86729b2803142519f555eb3e2c99e9214cb66881bd88efb13875d837b6b"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-gqXmsA/summary.json",
+      "bytes": 1806,
+      "sha256": "181ef160e497b26670407e64759851a2dcc7d9df3c6a75772267187107d2bdb0"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/0001.summary.json",
+      "bytes": 630,
+      "sha256": "64f416195f9be37e5ab25a25a1bf2c32532f6ad8ef7123bd4dd6fd0fd8d2ff0a"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/0002.summary.json",
+      "bytes": 1809,
+      "sha256": "629cf24a65fa3b732ddea181c42dd92e38e6fe37796d66b9aeda2938a0a7b233"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/0003.summary.json",
+      "bytes": 2031,
+      "sha256": "aa100785cd4ffca048c7e9797d423d4f6afe046899718c77b23444792b4e5829"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/0004.summary.json",
+      "bytes": 2051,
+      "sha256": "5a51bea4630fbba2862081288ba3212bbc948016c8a8c80cdb30b80dc3cb6b48"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/001.result.json",
+      "bytes": 1226,
+      "sha256": "cf9bd1f8fb89fed89da2bb453970a014a4e8f4cbddfb706bd82730a45695ae42"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/001.started.json",
+      "bytes": 1040,
+      "sha256": "2217b09790799eafc57ecb9bf7caf59c05c9572af51078ccb422aaa783a3fd70"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/001.stdout.log",
+      "bytes": 40,
+      "sha256": "e00f1886813512e48b6cbecc5532bd9ff1a8e3f19ba2703d5a3cb69467c2ebca"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-hav2mU/summary.json",
+      "bytes": 2051,
+      "sha256": "5a51bea4630fbba2862081288ba3212bbc948016c8a8c80cdb30b80dc3cb6b48"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/0001.summary.json",
+      "bytes": 630,
+      "sha256": "085cd9e6831e4c2f7d90a77129f4fee2076996f36ab7024c7bf1ff0dc618ec6c"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/0002.summary.json",
+      "bytes": 1646,
+      "sha256": "96b876c3459d95f0127ea69ad26491a2261d102ed8673f17d91106c8f975bf38"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/0003.summary.json",
+      "bytes": 1872,
+      "sha256": "1b519af2493475320e7ba18d98ffc8f586b0728b8378ebd9e500225c5c5c0c71"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/0004.summary.json",
+      "bytes": 1892,
+      "sha256": "7c9c81074e37677461668a216dc83f731de5b6954dbfd987dde3c2cedb376937"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/001.result.json",
+      "bytes": 1075,
+      "sha256": "10ef152534b7d05f2c363e5e386dcba6371a79a777870dbca37fb254cdb24f2d"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/001.started.json",
+      "bytes": 885,
+      "sha256": "c59cf638bc64c0e283b027104a898136b1de2e9d84e705db2562454bba573170"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/001.stdout.log",
+      "bytes": 38,
+      "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-m4YzXK/summary.json",
+      "bytes": 1892,
+      "sha256": "7c9c81074e37677461668a216dc83f731de5b6954dbfd987dde3c2cedb376937"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/0001.summary.json",
+      "bytes": 630,
+      "sha256": "65159dca2e7d54e67683e82764974e2dd58f9dcf8ff61afacb992c10422e5de5"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/0002.summary.json",
+      "bytes": 1560,
+      "sha256": "4868aba530223cead9ee841e1adf6d6d87a9ef1f22ba24d72d01ede4f1cfe428"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/0003.summary.json",
+      "bytes": 1779,
+      "sha256": "6d366cea8cc5619335671abe656c73f54c143b1248276bdf90f445330148de7a"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/0004.summary.json",
+      "bytes": 1799,
+      "sha256": "0fc28425ba06941b7b6c326d5c5516376576c56aac047f53523ec8f8010cff4a"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/001.result.json",
+      "bytes": 990,
+      "sha256": "6fd71799650fa40e383d13d5f85a8e72b1698b9b123136865da7f259e877ad7c"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/001.started.json",
+      "bytes": 807,
+      "sha256": "9d16b2291f88ddd69b56569ad5fe61face1ca221103339d8f21378d44baea858"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/001.stdout.log",
+      "bytes": 38,
+      "sha256": "97372d6d024ba8fb9a214e3a9a3495ca88a0631086280e8b2271682e11ea6fb0"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/focused-test-rivfE8/summary.json",
+      "bytes": 1799,
+      "sha256": "0fc28425ba06941b7b6c326d5c5516376576c56aac047f53523ec8f8010cff4a"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-24wl4K/output.log",
+      "bytes": 2086,
+      "sha256": "eff4e5e0349a0d44bb005c013a2130e4a4e82aaa65663497faa51e834ecdbb11"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-24wl4K/summary.json",
+      "bytes": 3152,
+      "sha256": "b9e99c688c2d420bc11e5bbb48a302c6ef5e5482f8d98cbe5cf234b64114cee1"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-6ye8kQ/output.log",
+      "bytes": 696,
+      "sha256": "697611b3373c728e1ca2a35cef26ff6ad0e4dead4746adee10c3ba29e8359f01"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-6ye8kQ/summary.json",
+      "bytes": 1755,
+      "sha256": "89c0d3dba23e130e321d9bf56b5b0ea03db9f5ee0c64c1104304854db09eda2d"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-ViRHQL/output.log",
+      "bytes": 4310,
+      "sha256": "622c6768ebe4d20b4e0ae5d52697f22520fdf33f11a1e625412d32c58c930e16"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-ViRHQL/summary.json",
+      "bytes": 1648,
+      "sha256": "bc37af77116109a2f083c71aedee019759490f4eeabdf66a56fde1c0a6b4144e"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-ZTU6kF/output.log",
+      "bytes": 205,
+      "sha256": "deceffc4b5671360f98619fea45cea37c6334e31162755f026056fb71976c058"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-ZTU6kF/summary.json",
+      "bytes": 3077,
+      "sha256": "e58df7664ceee4068fecbada457b160142d1849f671e3806782743ea2f652dd5"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-ZZUbv2/output.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-ZZUbv2/summary.json",
+      "bytes": 1755,
+      "sha256": "5fa2f8134c1a4635d140294cec2dde3f97d6cc27dbd1dbe8cbf955de99c9b520"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-f1QZZa/output.log",
+      "bytes": 360,
+      "sha256": "96d8964037e767a9ce2733e92514b9e14d08b1cd4c18d44bb51cbdc7a5e8f9e7"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-f1QZZa/summary.json",
+      "bytes": 1647,
+      "sha256": "20d237e3a90f8a6e9bbd7862fd35aa9e788ddb95f9caf5f9160c67bad81a1ebb"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-kvBqad/output.log",
+      "bytes": 360,
+      "sha256": "68f5fa81f33fbad7968711bba634588ad7112d05479a67ec6e1b94c32d08e884"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-kvBqad/summary.json",
+      "bytes": 1647,
+      "sha256": "9f1195cc2edbe9c22e130cb817d2d183775674bec75637b4f6fbe8d0a6b6516c"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-mIIDCX/output.log",
+      "bytes": 72736,
+      "sha256": "981c551ef3a684ac74c6f156040a33584c76fb35c4b9af987a015728ac0c5bc7"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-mIIDCX/summary.json",
+      "bytes": 4982,
+      "sha256": "a4c497792ffb361a5a293cc3cafc37860b5c025e87a5eeb99bebb6da1dc92441"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-wSLS73/output.log",
+      "bytes": 27,
+      "sha256": "a3aa7194adef7966b51ab757809f2c3e6cc413361edbc87676a07e3e0e025e62"
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/p2-row-watermark-evidence/run-wSLS73/summary.json",
+      "bytes": 1625,
+      "sha256": "3626b5223b1aa38d47d6325d9dc09d032c3f57030a973fc7a4439ed6055d5b8d"
+    }
+  ],
+  "retained_bytes": 238964,
+  "interpretation": {
+    "baseline": "93da JS1/3: independent JSON checked; two source forms failed parser. First node argument error wSLS73 executed no tests.",
+    "verification": "d577 JS23/23, canonical JS1/1, Node133/133, compilation and metadata freshness passed; aggregate124 at family check.",
+    "followup": "54fd only tracked plan changed; family/canonical freshness, exact-file fmt and product/spec whitespace passed complete0. No prior aggregate promoted.",
+    "unverified": "Host winner rows/schema, same-request/re-read, package production, Native/Wasm runtime, Hosted CI, remaining P2 surfaces."
+  }
+}

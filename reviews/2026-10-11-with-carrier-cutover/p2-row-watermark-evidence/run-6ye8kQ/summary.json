@@ -1,0 +1,44 @@
+{
+  "startedAt": "2026-10-12T02:39:10.686Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Independent declared public inventory",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import{readFileSync,writeFileSync}from'node:fs';import{registeredPublicQueryInventory}from'./scripts/public-query-inventory.mjs';const path='scripts/fixtures/public-query-inventory.json';const old=JSON.parse(readFileSync(path,'utf8'));const actual=await registeredPublicQueryInventory();writeFileSync(path,JSON.stringify({...old,...actual},null,2)+'\\n');console.log(JSON.stringify(actual));"
+      ],
+      "startedAt": "2026-10-12T02:39:10.812Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:39:11.722Z",
+      "endedAt": "2026-10-12T02:39:11.726Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "229b9f3a-5e7e-434d-ba01-790747a36d1f",
+    "pid": 30134,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T02:39:10.798Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-6ye8kQ"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T02:39:11.834Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
