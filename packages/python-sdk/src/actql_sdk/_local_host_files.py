@@ -1,5 +1,6 @@
 """Original Host file/Store physical pins; Core decides adoption and authority."""
 from dataclasses import dataclass
+from collections.abc import Callable
 from threading import RLock
 
 from ._local_files import (
@@ -34,10 +35,12 @@ class LocalHostFiles:
     """
 
     def __init__(self, root: LocalFileRoot, store: LocalByteStore, *,
-                 max_files: int, max_bytes: int) -> None:
+                 max_files: int, max_bytes: int,
+                 observe_roots: Callable[[], None] | None = None) -> None:
         if (type(root) is not LocalFileRoot or type(store) is not LocalByteStore
                 or type(max_files) is not int or not 1 <= max_files <= 9
-                or type(max_bytes) is not int or not 1 <= max_bytes <= 2097152):
+                or type(max_bytes) is not int or not 1 <= max_bytes <= 2097152
+                or observe_roots is not None and not callable(observe_roots)):
             raise ValueError('Invalid original Local Host physical pins')
         root._open()
         self._lock = RLock()
@@ -45,6 +48,7 @@ class LocalHostFiles:
         self._identity = object()
         self._root = root
         self._store = store
+        self._observe_roots = observe_roots
         self._generation = store.observe_generation()
         self._max_files = max_files
         self._max_bytes = max_bytes
@@ -117,6 +121,8 @@ class LocalHostFiles:
             if self._closing or self._pending:
                 raise ValueError('Original Local Host physical current is unavailable')
             self._root._open()
+            if self._observe_roots is not None and self._observe_roots() is not None:
+                raise ValueError('Original Local root observation cannot return permission')
             if self._store.observe_generation() != self._generation:
                 raise ValueError('Original Local Host Store generation changed')
             for value in self._files.values():

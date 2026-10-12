@@ -23,3 +23,33 @@ pub fn local_program_diagnostic_issue(
 ) -> SourceViewContextIssue {
   Program(Program(issue))
 }
+
+///|
+/// Preserve selected Source and request failures in their owning error domains.
+/// These projections do not resolve, prepare, acquire or authorize a Source.
+pub fn source_selection_diagnostic_issue(
+  issue : @sourceviews.Issue,
+) -> SourceRegistrationIssue {
+  Selection(issue)
+}
+
+///|
+pub fn source_request_bindings_diagnostic_issue(
+  issue : @binding_declarations.Issue,
+) -> PrepareSourcesIssue {
+  Declarations(issue)
+}
+
+///|
+pub fn source_request_slots_diagnostic_issue(
+  issue : @request_slots.Issue,
+) -> PrepareSourcesIssue {
+  Slots(issue)
+}
+
+///|
+pub fn source_request_context_diagnostic_issue(
+  issue : @sourceviews.RequestIssue,
+) -> PrepareSourcesIssue {
+  Requests(Context(issue))
+}
