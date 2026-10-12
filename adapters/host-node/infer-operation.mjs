@@ -37,6 +37,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
+  const originalScope = originalPreparation?.scope;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
@@ -363,6 +364,28 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     bindOriginalPreparation: (read, retainedBytes, executionBytes) =>
       checked(moon.clientProgramBindInferOriginalPreparation(active, read,
         retainedBytes, executionBytes)),
+    // Installation-owned original references only. The existing Common owner
+    // admits its quiescent boundary; no Node snapshot, caller Bool or CID can
+    // substitute for the actual scope/token. A missing port is unavailable,
+    // not a fallback to a Resource-only park.
+    parkOriginalResources() {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramParkInferOriginalModelResources !== 'function') {
+        throw new Error('InferOriginalModelParkUnavailable');
+      }
+      return checked(moon.clientProgramParkInferOriginalModelResources(
+        active, originalScope));
+    },
+    originalResourceParkCurrent(park) {
+      // A pending close is not a physical stop or invalidation. Preserve the
+      // original observation while Core still owns this same parked scope.
+      if (reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramInferOriginalModelResourceParkCurrent !== 'function') {
+        return undefined;
+      }
+      return moon.clientProgramInferOriginalModelResourceParkCurrent(
+        active, originalScope, park);
+    },
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
