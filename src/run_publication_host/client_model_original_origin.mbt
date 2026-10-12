@@ -28,6 +28,27 @@ pub fn check_client_model_original_checked_origin(
   if !@resources.original_ledger_inventory_available(scope.identity) {
     return Err(Unavailable)
   }
+  check_client_model_original_origin_fields(
+    scope, compiled, definition, plan, document, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
+  )
+}
+
+///|
+// Shared data validation only. Every public entry must establish its own
+// original lifecycle first: initial available inventory or exact live park.
+fn check_client_model_original_origin_fields(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  document : @publication.ModelOriginalResourceDocument,
+  layout : ClientNodeModelPreparationLayout?,
+  installation : @environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @environment.DecisionProbabilityProfile?,
+) -> Result[Unit, ClientModelOriginalOriginIssue] {
   if !client_model_origin_matches(scope.origin, compiled, definition, plan) {
     return Err(ForeignRun)
   }
