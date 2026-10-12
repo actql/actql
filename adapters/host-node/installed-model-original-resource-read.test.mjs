@@ -21,7 +21,7 @@ const cid = c => `sha256:${c.repeat(64)}`;
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
 async function originalFixture(t, {unretained=false, retainState,
-  storeBootstrap={maxWireBytes: 4096, maxDirectoryEntries: 22}}={}) {
+  storeBootstrap={maxWireBytes: 4096, maxDirectoryEntries: 22}, currentStateCodec=codec()}={}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-original-resource-'));
   const control = runtimeCore(moon).publicationControl;
   const keys = generateKeyPairSync('ed25519');
@@ -60,7 +60,7 @@ async function originalFixture(t, {unretained=false, retainState,
   const f = await currentResourceFixture(moon, control, 'installed-resource', {signal: abort.signal,
     // Independent fresh fixture: root18 + input/state objects2 + holdings2.
     // This Store acquisition clamp is not a normal numerical capacity grant.
-    storeBootstrap, metadataAcquisition: {
+    storeBootstrap, currentStateCodec, metadataAcquisition: {
     metadata: {maxWireBytes: 4096, maxLedgerEntries: 4},
     directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
     retainedBytes: 7000n, workspaceBytes: 3000n}});
@@ -106,6 +106,75 @@ const codec = () => ({quantum: 1, comparisonWork: 5,
   decode: {maxWork: 20000,
     parse: {max_input_bytes: 10000, max_nodes: 1000, max_depth: 20},
     tree: {max_nodes: 1000, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000}}});
+
+test('original dispatch caller completes actual save COMMIT and fence consume once without a Model send grant', async t=>{
+  const {root,cp,f,opened,retains}=await originalFixture(t,{unretained:true});
+  const first=opened.prepareOriginalResourcesForDispatch();
+  assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
+  await first;
+  assert.equal(retains.length,1);
+  assert.deepEqual(await originalFixtureStoreInventory(root),{root:18,objects:2,holdings:2,total:22});
+  assert.deepEqual(JSON.parse(retains[0].bodyWire).cut.slots.map(slot=>slot.state),['Unsent']);
+  assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
+  assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
+  assert.equal(f.sends(),0);
+});
+
+test('original dispatch caller retains failed physical save and does not repeat park or Store send', async t=>{
+  const issue=Object.assign(new Error('OriginalStoreResponseLost'),{code:'OriginalStoreResponseLost'});
+  const {root,cp,f,opened,retains}=await originalFixture(t,{unretained:true,
+    async retainState(args,actual){await actual.retainOriginalModelState(args);throw issue;}});
+  const first=opened.prepareOriginalResourcesForDispatch();
+  await assert.rejects(first,error=>error===issue);
+  assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
+  assert.equal(retains.length,1);
+  assert.deepEqual(await originalFixtureStoreInventory(root),{root:18,objects:2,holdings:2,total:22});
+  assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
+  assert.equal(opened.close(),false);
+  assert.equal(opened.token.available,true);
+  assert.equal(f.sends(),0);
+});
+
+test('original dispatch caller preserves exact opening refusal after real save with no COMMIT or resend', async t=>{
+  const {root,cp,f,opened,retains}=await originalFixture(t,{unretained:true,
+    storeBootstrap:{maxWireBytes:4096,maxDirectoryEntries:21}});
+  const first=opened.prepareOriginalResourcesForDispatch();
+  await assert.rejects(first,{code:'PublicationStoreBootstrapEntriesLimit'});
+  assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
+  assert.equal(retains.length,1);
+  assert.deepEqual(await originalFixtureStoreInventory(root),{root:18,objects:2,holdings:2,total:22});
+  assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
+  assert.equal(opened.close(),false);
+  assert.equal(f.sends(),0);
+});
+
+test('original dispatch caller keeps actual invalidation COMMIT loss parked and never blindly repeats',async t=>{
+  const {cp,f,opened,retains}=await originalFixture(t,{unretained:true});
+  const originalExec=DatabaseSync.prototype.exec;
+  let linked=false,losses=0;
+  DatabaseSync.prototype.exec=function(sql,...args){
+    const cut=sql==='COMMIT'?this.prepare(
+      'SELECT current_cut_link_json FROM resume_model_scopes WHERE scope_cid = ?')
+      .get(opened.inventory.scopeCid)?.current_cut_link_json:undefined;
+    const result=originalExec.call(this,sql,...args);
+    if(cut!==undefined&&cut!==null)linked=true;
+    else if(sql==='COMMIT'&&linked&&cut===null){losses++;throw Error('OriginalInvalidationCommitResponseLost');}
+    return result;
+  };
+  let first;
+  try {
+    first=opened.prepareOriginalResourcesForDispatch();
+    await assert.rejects(first,error=>error.code==='CheckpointJournalCommitOutcomeUnknown'&&error.outcome==='unknown');
+  } finally {DatabaseSync.prototype.exec=originalExec;}
+  assert.equal(linked,true);assert.equal(losses,1);
+  assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
+  assert.equal(retains.length,1);
+  assert.equal(opened.close(),false);
+  assert.equal(opened.cleanupPending(),true);
+  assert.equal(opened.token.available,true);
+  assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
+  assert.equal(f.sends(),0);
+});
 
 test('original save caller uses Common Writer envelope then actual Store ACK and same journal COMMIT', async t => {
   const {root, cp, closeFixture, controller, f, opened, storageBinding, origin, retains} =

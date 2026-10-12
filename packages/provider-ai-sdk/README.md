@@ -50,6 +50,22 @@ phase payloads, output tuple and Node progress reference/callback/context overla
 must be funded before normal startup; this private integration supplies no
 numerical layout, public capability or execution permission.
 
+The original installed read declaration also selects immutable
+`currentStateCodec` limits (`quantum`, `comparisonWork`, `decode`) for its
+existing Writer/read/comparison child. Those finite serializer limits are not
+physical funding. The original installation's missing selection refuses
+before a child is created; request data or a copied declaration cannot supply
+it. When the existing authorization gate returns dispatch, the original Run
+caller saves its quiescent resource state through the same selected Store,
+confirms the same journal cut, and consumes that journal's invalidation through
+the original Resource Owner before the next Model advance can create an Entry.
+Waiting approval does not perform that transition. Save/COMMIT loss keeps the
+same failed Promise, park and custody without blind retry. This fence removal
+does not issue InferAllow or bypass current authority/egress/Entry/send checks.
+The original codec and dispatch-cut record/Promise overlap still require full
+installation funding; normal public startup and restore are not established
+by these private Store/journal tests.
+
 The private physical preflight can retain the original operation's raw binder
 before Approval. Its installed continuation supplies one actual Store persistence
 port after nominal raw registration, before returning dispatch and creating an
