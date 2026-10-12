@@ -20,7 +20,7 @@ test('constructible contracts exclude opaque domains recursively and retain deci
   const s=valuesContract(parameterPrograms(r)[0].$defs.value_contract);
   assert.equal(s.oneOf.find(s=>s.properties.type.const==='decimal').allOf.length,38);
   const serialized=JSON.stringify(s);
-  assert.ok(!serialized.includes('"json"')); assert.ok(!serialized.includes('resource_ref'));assert.ok(!serialized.includes('artifact_ref'));
+  assert.ok(!serialized.includes('"json"')); assert.ok(!serialized.includes('resource_ref'));assert.ok(!serialized.includes('content_ref'));
   assert.ok(!serialized.includes('"#/$defs/value_contract"'));assert.ok(serialized.includes('"#/$defs/values_contract"'));
 });
 test('embedded values contracts and generator rules detect drift',()=>{

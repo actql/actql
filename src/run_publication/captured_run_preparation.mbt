@@ -12,6 +12,7 @@ priv struct CapturedRunIssuanceInputs {
   advances : Array[PendingSourceStateAdvance]
   authoring : RunEvidenceValue
   models : Array[RunEvidenceValue]
+  content_generations : Array[BoundContentGeneration]
   preview : EffectPreviewIdentity?
   plan_values : Array[(String, String)]
   max_wire_bytes : Int
@@ -99,6 +100,7 @@ pub fn start_effect_free_captured_run(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+  content_generations? : Array[BoundContentGeneration] = [],
 ) -> CapturedRunIssuancePreparation {
   start_captured_computation_preparation(
     {
@@ -114,6 +116,7 @@ pub fn start_effect_free_captured_run(
       advances,
       authoring,
       models,
+      content_generations,
       preview: None,
       plan_values: [],
       max_wire_bytes,
@@ -146,6 +149,7 @@ pub fn start_effectful_captured_run(
   max_depth : Int,
   max_workspace : Int,
   dependency_inventory? : CapturedEffectDependencyInventory? = None,
+  content_generations? : Array[BoundContentGeneration] = [],
 ) -> CapturedRunIssuancePreparation {
   start_captured_computation_preparation(
     {
@@ -161,6 +165,7 @@ pub fn start_effectful_captured_run(
       advances,
       authoring,
       models,
+      content_generations,
       preview: Some(preview),
       plan_values,
       max_wire_bytes,
@@ -352,6 +357,7 @@ fn CapturedRunIssuancePreparation::step(
           inputs.max_nodes,
           inputs.max_depth,
           self.max_workspace - self.live,
+          content_generations=prepared.content_generations,
         ) {
         Ok(child) => child
         Err(issue) => return Err(issue)

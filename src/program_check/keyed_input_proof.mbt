@@ -2,7 +2,8 @@
 struct KeyedInputProof {
   execution : SourceExecution
   source : UnitOperationSource
-  proof : ReidentifiedStep
+  proof : ReidentifiedStep?
+  acquired : ReidentifiedSourceInput?
 }
 
 ///|
@@ -18,6 +19,11 @@ fn prepare_keyed_input_proofs(
   // Coordinates are local to the already audited Stage closure. Repeated
   // acquisitions retain separate entries but share the exact converted proof.
   let converted : Map[(Int, Int, Int), ReidentifiedStep] = Map([])
+  let acquired : Map[(Int, Int, Int), ReidentifiedSourceInput] = Map([])
+  let session = match conversion {
+    Some(session) => session
+    None => proof_conversion(units, budget)
+  }
   for execution in checks {
     identity_charge(budget, 1)
     guard execution.kind is KeyedRequest(binding) else { continue }
@@ -44,11 +50,42 @@ fn prepare_keyed_input_proofs(
       @sourceviews.keyed_join_left(binding.join) else {
       raise ForeignOwner
     }
-    let (visit, claim, _) = @capacity.target_membership_coordinates(
-      binding.producer,
-    )
+    if @step_bounds.target_rows_source(rows) is Some(original) {
+      guard @capacity.target_membership_input_coordinates(binding.producer)
+        is Some((visit, input)) &&
+        input == @step_bounds.source_input_rows_index(original) &&
+        @capacity.target_membership_coordinates(binding.producer) is None else {
+        raise ForeignOwner
+      }
+      let key = (binding.stage, visit, input)
+      identity_charge(budget, 1)
+      let retained = match acquired.get(key) {
+        Some(retained) => {
+          guard physical_equal(retained.original, original) else {
+            raise ForeignOwner
+          }
+          retained
+        }
+        None => {
+          let producer = proof_conversion_owner(
+            session,
+            @step_bounds.source_input_rows_pipeline(original),
+            budget,
+          )
+          let retained = reidentify_source_input(producer, original, budget)
+          acquired[key] = retained
+          retained
+        }
+      }
+      out.push({ execution, source, proof: None, acquired: Some(retained), })
+      continue
+    }
+    guard @capacity.target_membership_coordinates(binding.producer)
+      is Some((visit, claim, _)) else {
+      raise UnconvertedProofInput
+    }
     let key = (binding.stage, visit, claim)
-    let original = @step_bounds.target_rows_bound(rows)
+    let original = require_step_target_rows(rows)
     identity_charge(budget, 1)
     let proof = match converted.get(key) {
       Some(proof) => {
@@ -58,12 +95,17 @@ fn prepare_keyed_input_proofs(
         proof
       }
       None => {
-        let proof = reidentify_step_graph(units, original, budget, conversion~)
+        let proof = reidentify_step_graph(
+          units,
+          original,
+          budget,
+          conversion=Some(session),
+        )
         converted[key] = proof
         proof
       }
     }
-    out.push({ execution, source, proof, })
+    out.push({ execution, source, proof: Some(proof), acquired: None, })
   }
   out
 }
@@ -92,6 +134,13 @@ pub fn keyed_input_proof_source(value : KeyedInputProof) -> UnitOperationSource 
 }
 
 ///|
-pub fn keyed_input_proof_bound(value : KeyedInputProof) -> ReidentifiedStep {
+pub fn keyed_input_proof_bound(value : KeyedInputProof) -> ReidentifiedStep? {
   value.proof
+}
+
+///|
+pub fn keyed_input_proof_acquired(
+  value : KeyedInputProof,
+) -> ReidentifiedSourceInput? {
+  value.acquired
 }

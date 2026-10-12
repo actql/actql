@@ -29,11 +29,16 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/pipeline_parameters",
+  "actql/actql/sourceview_resolution" @source_resolution,
+  "actql/actql/source_request_slots" @request_slots,
+  "actql/actql/binding_declarations" @bindings,
+  "actql/actql/encode_core" @encode,
 }
 
 import {
+  "moonbitlang/core/json",
+  "actql/actql/canonical_json" @json_identity,
   "actql/actql/source_value" @source,
-  "actql/actql/encode_core" @encode,
   "actql/actql/program_check" @check,
   "actql/actql/numeric_reduction" @numeric,
   "moonbitlang/core/encoding/utf8",
@@ -46,5 +51,4 @@ import {
 
 import {
   "actql/actql/source_value" @source,
-  "actql/actql/encode_core" @encode,
 } for "wbtest"

@@ -197,6 +197,7 @@ fn lower_script_carrier_calls(
   output : String,
   retained? : Array[RetainedResult]? = None,
   allow_nonrelation? : Bool = false,
+  set_head? : Bool = false,
 ) -> Input raise Abort {
   let selected = selected_input(query, { ..context, inputs: known, }, limits)
   let mut input = bind_script_input(
@@ -341,7 +342,10 @@ fn lower_script_carrier_calls(
     }
     sources.carriers[name] = carrier
   }
-  let tail = @query.after_graph_calls(query)
+  let tail = @query.after_graph_calls(
+    query,
+    current_source=Some({ value: input.name, quoted: true, }),
+  )
   if @query.operation_at(tail, 0) is Some(Nearest(_)) {
     let peers = known.map(peer => {
       if input_relation_matches(@query.relation(tail), peer) {
@@ -351,8 +355,17 @@ fn lower_script_carrier_calls(
       }
     })
     return lower_script_nearest_carrier(
-      construction, tail, peers, context, sources, limits, steps, reserved, output,
+      construction,
+      tail,
+      peers,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      output,
       retained,
+      set_head~,
     )
   }
   if !(carrier is @carrier.Relation(_)) {
@@ -388,5 +401,6 @@ fn lower_script_carrier_calls(
     reserved,
     output,
     retained~,
+    set_head~,
   )
 }

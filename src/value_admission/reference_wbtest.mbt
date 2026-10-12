@@ -29,8 +29,8 @@ fn resource_reference_wire() -> String {
 }
 
 ///|
-fn artifact_reference_wire() -> String {
-  "{\"$actql_ref\":\"artifact\",\"artifact_ref_cid\":\"sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff\",\"media_type\":\"application/json\",\"metadata\":{\"artifact_store_id\":\"fixture\",\"availability_evidence_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"capture_authority\":\"read_content\",\"content_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"data_classification\":\"internal\",\"effective_data_policy_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"issuer_evidence\":{},\"media_type\":\"application/json\",\"retention_class\":\"fixture\",\"size_bytes\":3,\"storage_scope\":\"workspace\",\"truncated\":false},\"version\":\"actql-artifact-ref/0.1\"}"
+fn content_reference_wire() -> String {
+  "{\"$actql_ref\":\"content\",\"content_ref_cid\":\"sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff\",\"media_type\":\"application/json\",\"metadata\":{\"availability_evidence_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"capture_authority\":\"read_content\",\"content_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"content_store_id\":\"fixture\",\"data_classification\":\"internal\",\"effective_data_policy_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"issuer_evidence\":{},\"media_type\":\"application/json\",\"retention_class\":\"fixture\",\"size_bytes\":3,\"storage_scope\":\"workspace\",\"truncated\":false},\"version\":\"actql-content-ref/0.1\"}"
 }
 
 ///|
@@ -158,20 +158,20 @@ test "reference issuance rejects foreign contracts wires and authority" {
 }
 
 ///|
-test "Host issuer validates artifact envelopes and media constraints" {
-  let expected = artifact_reference_wire()
+test "Host issuer validates content envelopes and media constraints" {
+  let expected = content_reference_wire()
   let exact = reference_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
   )
-  let any = reference_contract("{\"type\":\"artifact_ref\",\"nullable\":false}")
+  let any = reference_contract("{\"type\":\"content_ref\",\"nullable\":false}")
   let wrong = reference_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"text/plain\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"text/plain\"}",
   )
   let validated = Ref(0)
   let issuer = bind_reference_issuer(
     (contract, wire) => {
       validated.val += 1
-      wire == expected && contract.shape is @contract.ArtifactRef(..)
+      wire == expected && contract.shape is @contract.ContentRef(..)
     },
     _ => true,
   )

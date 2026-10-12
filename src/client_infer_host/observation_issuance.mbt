@@ -25,6 +25,7 @@ struct ObservationIssuanceState {
   compiled : @publication_host.ClientCompiledRun
   definition : @publication.PublicationContract
   template : @publication.RunEvidenceValue
+  mut generations : Array[@publication_host.ClientSerializationGeneration]
   artifacts : Array[@publication.RunEvidenceValue]
   policy_cid : String
   sources : Array[@publication.ModelSourceObservation]
@@ -61,8 +62,9 @@ pub fn start_observation_issuance(
   active : Execution,
   ledger : @resources.Ledger,
   limits : ObservationIssuanceLimits,
+  generations? : Array[@publication_host.ClientSerializationGeneration] = [],
 ) -> Result[ObservationIssuance, Issue] {
-  start_complete_observation_issuance([active], ledger, limits)
+  start_complete_observation_issuance([active], ledger, limits, generations~)
 }
 
 ///|
@@ -73,6 +75,7 @@ pub fn start_complete_observation_issuance(
   owners : Array[Execution],
   ledger : @resources.Ledger,
   limits : ObservationIssuanceLimits,
+  generations? : Array[@publication_host.ClientSerializationGeneration] = [],
 ) -> Result[ObservationIssuance, Issue] {
   if limits.max_slots < 0 ||
     limits.max_slots > 128 ||
@@ -89,6 +92,43 @@ pub fn start_complete_observation_issuance(
   let plans = @publication_host.client_compiled_run_infers(bound.compiled)
   if plans.length() != owners.length() {
     return Err(Model(@model.OutputIdentity))
+  }
+  // This compiler currently retains at most one Content component. Require
+  // its actual completion or authenticated recovered token attached to the
+  // original Model owner, not a caller's claim that generation succeeded.
+  let content_count = if @publication_host.client_compiled_run_serialization(
+      bound.compiled,
+    )
+    is Some(_) {
+    1
+  } else {
+    0
+  }
+  if generations.length() != content_count {
+    return Err(Model(@model.OutputIdentity))
+  }
+  for generation in generations {
+    if @publication_host.client_serialization_generation_capture_for(
+        generation,
+        bound.compiled,
+        bound.definition,
+      )
+      is None ||
+      !owners.any(active => {
+        if active.serialized_generation is Some(original) &&
+          physical_equal(original, generation) {
+          return true
+        }
+        @publication_host.client_serialization_generation_output_for(
+          generation,
+          bound.compiled,
+        )
+        is Some(output) &&
+        active.serialized_output is Some(original) &&
+        @relation.completed_output_same_occurrence(output, original)
+      }) {
+      return Err(Model(@model.OutputIdentity))
+    }
   }
   for index in 0..<owners.length() {
     let active = owners[index]
@@ -149,7 +189,8 @@ pub fn start_complete_observation_issuance(
   // payload bytes or a fabricated model usage observation.
   let workspace = limits.max_wire_bytes.to_int64() * 16L +
     count.to_int64() * 128L +
-    (owners.length() - 1).to_int64() * 256L
+    (owners.length() - 1).to_int64() * 256L +
+    generations.length().to_int64() * 256L
   let reservation = match
     @resources.reserve_attempt(ledger, 0L, workspace, 0L) {
     Ok(value) => value
@@ -207,6 +248,7 @@ pub fn start_complete_observation_issuance(
     compiled: bound.compiled,
     definition: bound.definition,
     template: @publication_host.client_compiled_run_template(bound.compiled),
+    generations: generations.copy(),
     artifacts,
     sources,
     policy_cid,
@@ -246,6 +288,21 @@ fn emit_observation_issuance_step(
   state : ObservationIssuanceState,
 ) -> Result[Unit, Issue] raise @encode.EncodeFailure {
   let writer = state.writer
+  // Physical byte custody remains with the existing Content/Store owner.
+  // Recheck its live fence at every bounded step and at publication adoption;
+  // a previously observed CID is not a permanent availability grant.
+  let generations : Array[@publication.BoundContentGeneration] = []
+  for generation in state.generations {
+    guard @publication_host.client_serialization_generation_capture_for(
+        generation,
+        state.compiled,
+        state.definition,
+      )
+      is Some(capture) else {
+      return Err(Model(@model.OutputIdentity))
+    }
+    generations.push(capture)
+  }
   match state.phase {
     Begin => {
       @encode.begin_object(writer)
@@ -309,13 +366,35 @@ fn emit_observation_issuance_step(
       @encode.key(writer, "replayability")
       @encode.begin_object(writer)
       @encode.key(writer, "materialized")
-      // Evidence identity precedes Store durability. Later availability evidence
-      // cannot be invented from a successful physical call or equal CID.
-      @encode.bool_value(writer, false)
+      // Content proofs exist only after verified physical Store custody. The
+      // Model-only path still cannot invent availability from a successful call.
+      @encode.bool_value(writer, !generations.is_empty())
       @encode.key(writer, "availability_evidence_cids")
       @encode.begin_array(writer)
+      for generation in generations {
+        guard @publication.bound_content_generation_availability(generation)
+          is Some(cid) else {
+          return Err(Model(@model.OutputIdentity))
+        }
+        @encode.string_value(writer, cid)
+      }
       @encode.end_array(writer)
       @encode.end_object(writer)
+      if !generations.is_empty() {
+        @encode.key(writer, "content_generation_cids")
+        @encode.begin_array(writer)
+        for generation in generations {
+          guard @publication.bound_content_generation_value(generation)
+            is Some(value) else {
+            return Err(Model(@model.OutputIdentity))
+          }
+          @encode.string_value(
+            writer,
+            @publication.run_evidence_value_identity(value),
+          )
+        }
+        @encode.end_array(writer)
+      }
       @encode.key(writer, "model_slot_capture_cids")
       @encode.begin_array(writer)
       state.phase = if state.count == 0 { Finalize } else { Slot }
@@ -356,7 +435,7 @@ fn emit_observation_issuance_step(
         Ok(value) => value
         Err(issue) => return Err(Model(@model.InvocationEvidence(issue)))
       }
-      let invocation = match
+      let issued = if generations.is_empty() {
         @publication.issue_model_run_invocation(
           state.template,
           observation,
@@ -364,7 +443,19 @@ fn emit_observation_issuance_step(
           state.limits.max_wire_bytes,
           1024,
           20,
-        ) {
+        )
+      } else {
+        @publication.issue_content_model_run_invocation(
+          state.template,
+          observation,
+          state.bindings,
+          generations,
+          state.limits.max_wire_bytes,
+          1024,
+          20,
+        )
+      }
+      let invocation = match issued {
         Ok(value) => value
         Err(issue) => return Err(Model(@model.InvocationEvidence(issue)))
       }
@@ -434,7 +525,16 @@ pub fn advance_observation_issuance(
 pub fn observation_issuance_value(
   active : ObservationIssuance,
 ) -> (@publication.RunEvidenceValue, @publication.PublicationContract)? {
-  if active.accepted && !active.reclaimed {
+  if active.accepted &&
+    !active.reclaimed &&
+    active.state.generations.all(generation => {
+      @publication_host.client_serialization_generation_capture_for(
+        generation,
+        active.state.compiled,
+        active.state.definition,
+      )
+      is Some(_)
+    }) {
     Some((active.state.observation.unwrap(), active.state.invocation.unwrap()))
   } else {
     None
@@ -480,6 +580,7 @@ pub fn cleanup_observation_issuance(
   for output in active.state.output_uses {
     release_output(output) |> ignore
   }
+  active.state.generations = []
   active.reclaimed = true
   Ok(true)
 }

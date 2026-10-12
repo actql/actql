@@ -59,6 +59,38 @@ pub fn client_program_prepare_composed_infer_segments(
 }
 
 ///|
+/// A generated Content input owns its prefix separately. Prepare only the
+/// same checked consumer's suffix; never reinterpret Serialize as pure Compute.
+#export_name("clientProgramPrepareComposedInferComputeSuffix")
+pub fn client_program_prepare_composed_infer_compute_suffix(
+  prepared : @publication_host.PreparedClientProgram,
+  occurrence : @publication_host.ClientInferOccurrence,
+  registry : String,
+  values : String,
+  fragment : String,
+  ordered : String,
+) -> Result[@execution.GeneratedSequence?, @infer_host.Issue] {
+  guard @publication_host.client_infer_occurrence_matches(occurrence, prepared) else {
+    return Err(@infer_host.InvalidAdvance)
+  }
+  if @publication_host.client_infer_occurrence_terminal(occurrence) {
+    return Ok(None)
+  }
+  match
+    @client_local_host.prepare_client_composed_infer_suffix(
+      prepared,
+      occurrence,
+      registry,
+      values,
+      fragment_body=Some(fragment),
+      ordered_body=Some(ordered),
+    ) {
+    Some(suffix) => Ok(Some(suffix))
+    None => Err(@infer_host.InvalidAdvance)
+  }
+}
+
+///|
 #export_name("clientProgramCompileLocalInfers")
 pub fn client_program_compile_local_infers(
   prepared : @publication_host.PreparedClientProgram,
@@ -105,6 +137,26 @@ pub fn client_program_start_complete_infer_observation_issuance(
     max_wire_bytes,
     max_work,
   })
+}
+
+///|
+/// Complete inventories stay opaque across the installing adapter. No JSON
+/// metadata substitutes for the live generation or adopted Model slot owners.
+#export_name("clientProgramStartContentInferObservationIssuance")
+pub fn client_program_start_content_infer_observation_issuance(
+  executions : Array[@infer_host.Execution],
+  generations : Array[@publication_host.ClientSerializationGeneration],
+  ledger : @resources.Ledger,
+  max_slots : Int,
+  max_wire_bytes : Int,
+  max_work : Int,
+) -> Result[@infer_host.ObservationIssuance, @infer_host.Issue] {
+  @infer_host.start_complete_observation_issuance(
+    executions,
+    ledger,
+    { max_slots, max_wire_bytes, max_work, },
+    generations~,
+  )
 }
 
 ///|
@@ -267,6 +319,17 @@ pub fn client_program_effect_allowed_infer_run(
 }
 
 ///|
+#export_name("clientProgramEffectAllowedSerializationRun")
+pub fn client_program_effect_allowed_serialization_run(
+  allowed : @publication_host.ClientEffectAllowedRun,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.client_effect_allowed_serialization_run(allowed)
+}
+
+///|
 #export_name("clientProgramEffectAllowedInferRunWithPolicyBody")
 pub fn client_program_effect_allowed_infer_run_with_policy_body(
   allowed : @publication_host.ClientEffectAllowedRun,
@@ -413,6 +476,77 @@ pub fn client_program_start_composed_infer_execution(
 }
 
 ///|
+/// Use the same bounded input owner as the Model component, without dispatch.
+/// Captured inputs must carry the matching admitted Source closure.
+#export_name("clientProgramStartComposedInferInput")
+pub fn client_program_start_composed_infer_input(
+  occurrence : @publication_host.ClientInferOccurrence,
+  prefix : @execution.GeneratedSequence,
+  inputs : Array[@local.ManagedProviderInput],
+  sources : @publication_host.ClientInferComposedSources?,
+) -> Result[
+  @client_local_host.ClientInferInputExecution,
+  @client_local_host.ClientInferInputIssue,
+] {
+  if (
+      sources is Some(value) &&
+      !@publication_host.client_infer_composed_sources_matches(
+        value, occurrence,
+      )
+    ) ||
+    (
+      @publication_host.client_infer_occurrence_has_captured_sources(occurrence) &&
+      sources is None
+    ) {
+    return Err(@client_local_host.UnsupportedProgram)
+  }
+  let limits = @infer_host.standard_limits()
+  @client_local_host.start_client_composed_infer_input(
+    occurrence,
+    prefix,
+    inputs,
+    limits.input,
+    limits.measurement,
+    limits.mapping,
+    keyed=sources.bind(value => {
+      @publication_host.client_infer_composed_keyed_lookup(value, occurrence)
+    }),
+  )
+}
+
+///|
+#export_name("clientProgramStartKeyedInferExecution")
+pub fn client_program_start_keyed_infer_execution(
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  prefix : @execution.GeneratedSequence,
+  provider : @model.ModelProvider,
+  sources : @publication_host.ClientInferComposedSources,
+  suffix : @execution.GeneratedSequence?,
+  ledger : @resources.Ledger,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_keyed(
+    occurrence,
+    graph,
+    prefix,
+    provider,
+    @infer_host.standard_limits(),
+    sources,
+    suffix,
+    ledger,
+  )
+}
+
+///|
+#export_name("clientProgramAdvanceInferRoot")
+pub fn client_program_advance_infer_root(
+  active : @infer_host.Execution,
+  quantum : Int,
+) -> Result[@infer_host.Poll, @infer_host.Issue] {
+  @infer_host.advance_root(active, quantum)
+}
+
+///|
 #export_name("clientProgramComposedInferLocalProvider")
 pub fn client_program_composed_infer_local_provider(
   occurrence : @publication_host.ClientInferOccurrence,
@@ -420,6 +554,34 @@ pub fn client_program_composed_infer_local_provider(
   observe_issue : (@infer_host.Issue) -> Unit,
   retain_completed : (@infer_host.Execution) -> Bool,
   allow_cleanup : (@infer_host.Execution) -> Bool,
+) -> @local.ManagedProvider {
+  client_infer_local_provider(
+    occurrence, open, observe_issue, retain_completed, allow_cleanup, false,
+  )
+}
+
+///|
+#export_name("clientProgramGeneratedInferLocalProvider")
+pub fn client_program_generated_infer_local_provider(
+  occurrence : @publication_host.ClientInferOccurrence,
+  open : (Array[@local.ManagedProviderInput]) -> @infer_host.Execution?,
+  observe_issue : (@infer_host.Issue) -> Unit,
+  retain_completed : (@infer_host.Execution) -> Bool,
+  allow_cleanup : (@infer_host.Execution) -> Bool,
+) -> @local.ManagedProvider {
+  client_infer_local_provider(
+    occurrence, open, observe_issue, retain_completed, allow_cleanup, true,
+  )
+}
+
+///|
+fn client_infer_local_provider(
+  occurrence : @publication_host.ClientInferOccurrence,
+  open : (Array[@local.ManagedProviderInput]) -> @infer_host.Execution?,
+  observe_issue : (@infer_host.Issue) -> Unit,
+  retain_completed : (@infer_host.Execution) -> Bool,
+  allow_cleanup : (@infer_host.Execution) -> Bool,
+  boundary_only : Bool,
 ) -> @local.ManagedProvider {
   @infer_host.composed_local_provider(
     occurrence,
@@ -436,6 +598,7 @@ pub fn client_program_composed_infer_local_provider(
     },
     retain_completed~,
     allow_cleanup~,
+    boundary_only~,
   )
 }
 
@@ -451,6 +614,7 @@ pub fn client_program_admit_composed_infer_sources(
   authority_scope_cid : String,
   started_at : String,
   completed_at : String,
+  keyed : @publication_host.ClientKeyedLookupObservation?,
 ) -> Result[
   @publication_host.ClientInferComposedSources,
   @publication_host.ClientInferCallScopeIssue,
@@ -488,8 +652,16 @@ pub fn client_program_admit_composed_infer_sources(
     evidence.push(source)
   }
   @publication_host.admit_client_infer_composed_sources(
-    occurrence, captures, identities, requirements, logicals, evidence, authority_scope_cid,
-    started_at, completed_at,
+    occurrence,
+    captures,
+    identities,
+    requirements,
+    logicals,
+    evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    keyed~,
   )
 }
 

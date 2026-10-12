@@ -81,7 +81,7 @@
       "resource_kind": "Order"
     },
     "artifact": {
-      "type": "artifact_ref",
+      "type": "content_ref",
       "nullable": false,
       "media_type": "text/plain"
     },

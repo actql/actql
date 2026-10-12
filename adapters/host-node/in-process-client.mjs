@@ -12,7 +12,7 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
   validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
-import {validWirePlanViewShape, validWireRunViewShape} from '../../packages/client-wire/index.mjs';
+import {validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
@@ -62,7 +62,7 @@ export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, lookupSubmission,
   attach, lookupRequest, stateService, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
-  resources, inspectResource, peekResource, check, plan, inspectRun, maxRowBytes, observe,
+  resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -173,6 +173,12 @@ export function createNodeInProcessClientHost({
       if (operation === 'plan') {
         const view = await invoke(plan);
         if (!validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
+        return view;
+      }
+      if (operation === 'run-plan') {
+        const view = await invoke(runPlan);
+        if (!validWireRunPlanViewShape(view) ||
+            Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) fail('InvalidClientHostRunPlanView');
         return view;
       }
       if (operation === 'inspect-run') {

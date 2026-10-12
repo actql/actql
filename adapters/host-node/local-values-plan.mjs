@@ -27,6 +27,15 @@ const cid = value => `sha256:${createHash('sha256')
 const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const valuesAdmissions = new WeakMap();
+const originalPlans = new WeakMap();
+const originalPlanLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
+export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan);}
+
+function retainOriginalPlan(plan, compiled, preparedProgram, control) {
+  originalPlans.set(plan, control.captureOriginalClientRunPlan(
+    compiled, preparedProgram, plan.runDefinition, originalPlanLimits));
+  return plan;
+}
 // The ordinary Effect-free INFER Host profile explicitly binds unknown
 // provenance. It never relabels synthetic values or Model output as public.
 // Effect-bearing profiles retain their separate required installation policy.
@@ -227,7 +236,7 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
 }
 
 export function acquiredEffectPublicationPlan({acquired, captured,
-  sourceEvidenceWire, captureStartedAt, captureCompletedAt}) {
+  sourceEvidenceWire, captureStartedAt, captureCompletedAt, content}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
@@ -245,16 +254,20 @@ export function acquiredEffectPublicationPlan({acquired, captured,
   }
   const source = captured.checkedSource;
   const {observation, invocation, owner: invocationOwner} =
-    control.issueCheckedClientEffectCapturedInvocation(
+    content === undefined ? control.issueCheckedClientEffectCapturedInvocation(
       prepared, compilation, admission, definition,
       captured.capture.source(), {sourceEvidenceWire,
         inputLogicalWire: moon.strategyRunEvidenceJson(captured.logicalInput),
         sourceRef: source.sourceRef,
         sourceContractCid: source.sourceContractCid,
         authorityScopeCid, dataPolicyCid: source.sourceDataPolicyCid,
-        captureStartedAt, captureCompletedAt}, limits);
+        captureStartedAt, captureCompletedAt}, limits)
+      : control.issueCheckedClientSerializationInvocation(content.compiled,
+        runDefinition, content.generation, limits);
   const sourceEvidence = control.admitRunEvidence('source_evidence',
     sourceEvidenceWire, limits);
+  const dataPolicyCid = content === undefined ? source.sourceDataPolicyCid
+    : JSON.parse(observation.wire).data_policy_cid;
   const run = JSON.parse(runDefinition.wire);
   const resultCount = moon.clientProgramEffectCompilationResultNames(
     compilation).length;
@@ -265,13 +278,20 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
       captured.identity)], sourceEvidence: [sourceEvidence],
     authorityScopeCid, namespaceId, storeAuthorityCid,
-    dataPolicyCid: source.sourceDataPolicyCid, createdAt: run.created_at,
+    dataPolicyCid, createdAt: run.created_at,
     now, resultCount, retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared});
+  let sourceRetention = retention;
+  if (content !== undefined) {
+    const body = JSON.parse(retention.wire);
+    delete body.effective_retention_policy_cid;
+    body.effective_data_policy_cid = source.sourceDataPolicyCid;
+    sourceRetention = control.seal('result_retention_policy', JSON.stringify(body), limits);
+  }
   const acquiredEvidence = control.issueCheckedAcquiredEffectEvidence(
     prepared, captured.capture.source(), captured.identity,
     captured.requirement, captured.logicalInput, sourceEvidence,
-    authorityScopeCid, source.sourceDataPolicyCid, retention, limits);
+    authorityScopeCid, source.sourceDataPolicyCid, sourceRetention, limits, 0, retention);
   const inputBodies = moon.clientProgramCapturedSourceDependencyBodies(
     captured.identity, captured.capture.source());
   if (typeof inputBodies?._0 !== 'string' ||
@@ -286,9 +306,19 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
       wire: inputBodies._1}),
   ]);
+  const contentGenerations = content === undefined ? undefined : Object.freeze([content.generation]);
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
+    ...(contentGenerations === undefined ? {} : {
+      receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
+      captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations})}),
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence, retentionDependencies, acquisitionDependencies,
+      ...(content === undefined ? {} : {acquiredCatalogBodies: Object.freeze([
+        ...acquiredEvidence.catalogBodies,
+        ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)).map(body =>
+          Object.freeze({kind: body._0, cid: body._1, wire: body._2})),
+      ])}),
       sourceLocalInvocation: acquiredEvidence.invocation,
       runInvocation: invocation, observation})});
 }
@@ -301,7 +331,8 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
-  if (!Array.isArray(sources) || sources.length !== 2) {
+  if (!Array.isArray(sources) || (issuedModel === undefined ? sources.length !== 2
+    : ![1, 2].includes(sources.length))) {
     throw new TypeError('IncompleteAcquiredEffectSources');
   }
   const dataPolicyCid = moon.clientProgramEffectPublicationDataPolicyCid(prepared);
@@ -378,7 +409,11 @@ export function acquiredInferEffectPublicationPlan({acquired, sources,
   try {
     const plan = acquiredMultiEffectPublicationPlan({acquired, sources,
       captureStartedAt, captureCompletedAt, issuedModel: issued, modelEvidence});
-    return Object.freeze({...issued, plan});
+    const contentGenerations = operation.contentGenerations?.();
+    const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
+      receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
+      captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations})});
+    return Object.freeze({...issued, plan: completePlan});
   } catch (error) {
     acquired.moon.clientProgramReleaseInferInvocationBinding(issued.binding);
     throw error;
@@ -429,7 +464,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     authorization: compiled.authorization.wire,
     ...(originalPolicy === undefined ? {} : {valuesHostPolicyOriginal: originalPolicy}),
   }));
-  return plan;
+  return retainOriginalPlan(plan, compiled, preparedProgram, control);
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -448,6 +483,68 @@ export function inferTaskRunAdmission(options) {
     throw new TypeError('MissingInstalledInferGraph');
   }
   return checkedTaskRunAdmission(options, 'infer');
+}
+
+// Select the original checked Content occurrence, not a second parsed Program
+// or a pure Values fallback. Physical generation must still supply its actual
+// input/generation observations before publication can issue an Invocation.
+export function serializationTaskRunAdmission(options) {
+  const serializationGraph = selectInstalledSerializationGraph(options);
+  return checkedTaskRunAdmission({...options, serializationGraph}, 'serialization');
+}
+
+// Both terminal publication and an intermediate Model input select the same
+// installed ceilings and original checked occurrence. Only root ownership differs.
+export function selectInstalledSerializationGraph(options, component = false) {
+  const {moon, control, preparedProgram} = options;
+  const occurrences = moon.clientProgramSerializationOccurrences(preparedProgram);
+  if (!Array.isArray(occurrences) || occurrences.length !== 1) {
+    throw new TypeError('InstalledContentComponentUnsupported');
+  }
+  const occurrence = occurrences[0];
+  const selected = {task: occurrence._0, step: occurrence._1,
+      maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes,
+      resultDataPolicy: options.resultDataPolicy ?? inferResultPolicy};
+  const serializationGraph = moon.clientProgramAcquisitionCount(preparedProgram) === 0
+    ? component
+      ? control.prepareCheckedClientSerializationComponent(preparedProgram, selected)
+      : control.prepareCheckedClientSerializationGraph(preparedProgram, selected)
+    : component
+      ? control.prepareCheckedClientAcquiredSerializationComponent(preparedProgram, selected)
+      : control.prepareCheckedClientAcquiredSerializationGraph(preparedProgram, selected);
+  return serializationGraph;
+}
+
+// Physical generation discharges the already-admitted Content component.
+// Reuse the normal Result retention/publication plan and add only its original
+// typed Content proofs. No caller-composed observation or second Run is used.
+export function serializationTaskPublicationPlan({moon, control, preparedProgram,
+  admitted, generation, authorityScopeCid, namespaceId, storeAuthorityCid, now,
+  sourceEvidence = [], outputLimits = localOutputLimits}) {
+  control.checkClientCompiledRunOwner(admitted.compiled, preparedProgram);
+  if (admitted.kind !== 'serialization') {
+    throw new TypeError('InvalidContentPublicationAdmission');
+  }
+  const issued = control.issueCheckedClientSerializationInvocation(admitted.compiled,
+    admitted.runDefinition, generation, limits);
+  const bindings = control.checkedClientSerializationRecoveryBindings(admitted.compiled,
+    generation, storeAuthorityCid);
+  const input = bindings.find(binding => binding.name === 'content_input_artifact');
+  if (input === undefined) throw new TypeError('ContentPublicationInputMissing');
+  const observation = JSON.parse(issued.observation.wire);
+  const plan = localPublicationPlan({control, admission: admitted.admission,
+    runDefinition: admitted.runDefinition, invocation: issued.invocation,
+    observation: issued.observation, compiledPlanCid: admitted.compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
+    inputRelationCids: [JSON.parse(input.wire).logical_relation_cid], sourceEvidence,
+    authorityScopeCid, namespaceId, storeAuthorityCid,
+    dataPolicyCid: observation.data_policy_cid, createdAt: admitted.createdAt, now,
+    resultCount: moon.clientProgramResultCount(preparedProgram), outputLimits,
+    compiled: admitted.compiled, preparedProgram});
+  const contentGenerations = Object.freeze([generation]);
+  return Object.freeze({...plan,
+    receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
+    captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations})});
 }
 
 // Only the common issuer can attach a model observation to this exact Run.
@@ -476,14 +573,18 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
       createdAt: admitted.createdAt, now,
       resultCount: moon.clientProgramResultCount(preparedProgram),
       compiled: admitted.compiled, preparedProgram});
-    return Object.freeze({plan, ...issued});
+    const contentGenerations = operation.contentGenerations?.();
+    const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
+      receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
+      captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations})});
+    return Object.freeze({plan: completePlan, ...issued});
   } catch (error) {
     moon.clientProgramReleaseInferInvocationBinding(issued.binding);
     throw error;
   }
 }
 
-function checkedTaskRunAdmission({control, preparedProgram, inferGraph,
+function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
   authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy}, kind) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
@@ -496,16 +597,20 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph,
     authority_scope_cid: authorityScopeCid});
   const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
     kind, {executionContextCid: contextCid,
-      hostPolicyCid: policyCid(kind === 'infer' ? 'checked-infer' : 'checked-tasks'),
+      hostPolicyCid: policyCid(kind === 'infer' ? 'checked-infer'
+        : kind === 'serialization' ? 'checked-content' : 'checked-tasks'),
       expiresAt: validUntil,
-      ...(kind === 'infer' ? {resultDataPolicy: resultDataPolicy ?? inferResultPolicy} : {})}, inferGraph);
+      ...(kind === 'infer' ? {resultDataPolicy: resultDataPolicy ?? inferResultPolicy} : {})},
+    kind === 'serialization' ? serializationGraph : inferGraph);
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
-  return Object.freeze({...compiled, compiled, runDefinition, createdAt,
-    ...(kind === 'infer' ? {inferGraph} : {})});
+  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt,
+    ...(kind === 'infer' ? {inferGraph} : {}),
+    ...(kind === 'serialization' ? {serializationGraph} : {})});
+  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control) : admitted;
 }
 
 // Multi-task source-free Programs use the common task compiler and the same
@@ -517,7 +622,7 @@ export function sourceFreeTaskPlan(options) {
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits);
-  return localPublicationPlan({control, admission: acquired.admission,
+  const plan = localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
@@ -525,6 +630,10 @@ export function sourceFreeTaskPlan(options) {
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled: acquired.compiled, preparedProgram});
+  valuesAdmissions.set(plan, Object.freeze({prepared: acquired.preparedEvidence.wire,
+    authorization: acquired.authorization.wire}));
+  originalPlans.set(plan, sourceFreePlanOriginal(acquired));
+  return plan;
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing
@@ -602,6 +711,56 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
       moon.clientProgramCapturedSourceLogicalCid(source.captured.identity)))],
     sourceEvidence: sources.map(source => control.admitRunEvidence('source_evidence',
       source.sourceEvidenceWire, limits)),
+    authorityScopeCid, namespaceId, storeAuthorityCid,
+    dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
+    now, resultCount: moon.clientProgramResultCount(preparedProgram),
+    compiled: acquired.compiled, preparedProgram});
+}
+
+// A keyed JOIN completes a second Source, not a second Direct task prefix.
+// Retain both Source evidence entries while reusing the admitted compilation
+// and the ordinary Result publication/retention plan.
+export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
+  preparedProgram, captured, sourceEvidenceWire, keyedObservation,
+  authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt,
+  namespaceId, storeAuthorityCid, now}) {
+  control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
+  if (typeof sourceEvidenceWire !== 'string' ||
+      captured?.logicalInput === undefined || captured?.identity === undefined ||
+      captured?.requirement === undefined || captured?.capture === undefined ||
+      keyedObservation?.observation === undefined ||
+      typeof keyedObservation.inputLogicalWire !== 'string' ||
+      typeof keyedObservation.sourceEvidenceWire !== 'string' ||
+      moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
+      moon.clientProgramCapturedSourceMatches(preparedProgram, captured.capture.source()) !== true) {
+    throw new TypeError('InvalidAcquiredTaskPublication');
+  }
+  // Read the wires from the same live opaque observation passed to issuance.
+  // Callers cannot swap one completed lookup's text onto another lookup owner.
+  const wires = moon.clientProgramKeyedLookupObservationWires(keyedObservation.observation);
+  if (wires === undefined || wires._0 !== keyedObservation.inputLogicalWire ||
+      wires._1 !== keyedObservation.sourceEvidenceWire) {
+    throw new TypeError('InvalidAcquiredTaskPublication');
+  }
+  const {observation, invocation} = control.issueCheckedClientCompiledKeyedInvocation(
+    acquired.compiled, acquired.runDefinition, {captured, sourceEvidenceWire,
+      inputLogicalWire: moon.strategyRunEvidenceJson(captured.logicalInput),
+      keyedObservation: keyedObservation.observation, authorityScopeCid,
+      dataPolicyCid: effectiveDataPolicyCid, captureStartedAt, captureCompletedAt}, limits);
+  // Both logical inputs have been validated by the portable issuer above.
+  // Acquired Source relations are logical dependencies, not captured input
+  // Artifacts. Do not omit the right Source's empty logical Relation.
+  const keyedInput = JSON.parse(wires._0);
+  return localPublicationPlan({control, admission: acquired.admission,
+    runDefinition: acquired.runDefinition, invocation, observation,
+    compiledPlanCid: acquired.compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
+    inputRelationCids: [...new Set([
+      moon.clientProgramCapturedSourceLogicalCid(captured.identity),
+      keyedInput.logical_relation_cid,
+    ])],
+    sourceEvidence: [sourceEvidenceWire, wires._1].map(wire =>
+      control.admitRunEvidence('source_evidence', wire, limits)),
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),

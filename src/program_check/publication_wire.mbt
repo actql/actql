@@ -43,7 +43,7 @@ fn emit_publication_row_body(
   ]
   for i in 0..<count {
     let candidate = @context.publication_row_limit_program_at(selected, i).unwrap()
-    let bound = @step_bounds.target_rows_bound(
+    let bound = require_step_target_rows(
       @capacity.target_membership_rows(candidate.membership),
     )
     if !physical_equal(bound, proofs[i].original) {

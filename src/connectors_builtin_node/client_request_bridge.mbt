@@ -83,6 +83,19 @@ pub fn client_request_program_cid(
 }
 
 ///|
+#export_name("clientProgramMatchesRequestIdentity")
+pub fn client_program_matches_request_identity(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  let identity = @publication_host.prepared_client_identity(prepared)
+  identity.program_definition_cid ==
+  @publication_host.client_request_program_cid(request) &&
+  identity.parameter_values_cid ==
+  @publication_host.client_request_parameters_cid(request)
+}
+
+///|
 #export_name("clientRequestParametersCid")
 pub fn client_request_parameters_cid(
   value : @publication_host.ClientRequestIdentity,

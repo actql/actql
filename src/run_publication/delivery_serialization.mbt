@@ -68,19 +68,25 @@ fn delivery_schema_type(
 
 ///|
 fn csv_quote(text : String) -> Result[String, DeliverySerializationIssue] {
-  if text.contains("\u{0}") {
-    return Err(DeliverySerializationNul)
+  // Preserve the existing always-quoted Result wire. Content generation will
+  // drive the same escape cursor with its separately checked framing policy.
+  let cursor = match start_csv_quoted_text(text, 2147483647) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let output = StringBuilder(size_hint=text.length() + 2)
-  output.write_char('"')
-  for character in text {
-    if character == '"' {
-      output.write_char('"')
+  let output = StringBuilder()
+  while true {
+    let (piece, complete, _) = match advance_csv_quoted_text(cursor, 64) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
-    output.write_char(character)
+    output.write_string(piece)
+    if complete {
+      return Ok(output.to_string())
+    }
+  } nobreak {
+    Err(DeliverySerializationClosed)
   }
-  output.write_char('"')
-  Ok(output.to_string())
 }
 
 ///|
@@ -152,7 +158,7 @@ fn csv_delivery_value(
         @json.Bool(flag) => Ok(if flag { "true" } else { "false" })
         _ => Err(DeliverySerializationTypeMismatch(kind))
       }
-    "array" | "object" | "vector" | "json" | "resource_ref" | "artifact_ref" => {
+    "array" | "object" | "vector" | "json" | "resource_ref" | "content_ref" => {
       let text = match
         canonical_delivery_value(value, max_wire_bytes, max_nodes, max_depth) {
         Ok(text) => text

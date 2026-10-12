@@ -23,6 +23,7 @@ const clone = value => structuredClone(value);
 const stageRegistry = JSON.parse(readFileSync(
   'spec/contracts/actql-stage-contracts.json', 'utf8'));
 const stageSchemas = stageRegistry.schemas;
+const referenceSchemas = JSON.parse(readFileSync(registryPath, 'utf8')).schemas;
 const publicationSchemas = JSON.parse(readFileSync(
   'spec/contracts/actql-run-publication.json', 'utf8')).schemas;
 
@@ -114,9 +115,21 @@ export function effectSourceArtifactSchema() {
 
 // Preserve the ordinary member schema and its contract-selection obligations.
 // The private input is a distinct closed source namespace, never a Result alias.
-export function effectPreviewSchema(existing) {
+function withResourceTarget(existing, resourceRef) {
+  const target = clone(existing);
+  target.oneOf = target.oneOf.filter(branch =>
+    branch.properties?.$actql_ref?.const !== 'resource');
+  target.oneOf.push(clone(resourceRef));
+  return target;
+}
+
+export function effectPreviewSchema(existing, resourceRef = referenceSchemas.resource_ref) {
   const preview = clone(existing);
   const member = preview.properties.effects.items;
+  // A Command keeps the checked ResourceRef, not a row scalar or a hash-only
+  // approximation. Shape admission does not issue it or authorize its use.
+  member.properties.changes.items.properties.target_row_identity = withResourceTarget(
+    member.properties.changes.items.properties.target_row_identity, resourceRef);
   member.properties.source_table_input = {type: 'string', minLength: 1};
   const sources = ['source_result', 'source_table_input', 'result_artifact_cid'];
   const sourceBinding = {oneOf: [
@@ -423,7 +436,8 @@ export function correctedContracts(registry, cli) {
   const next = clone(registry);
   const artifact = resultArtifactSchema();
   const effectSourceArtifact = effectSourceArtifactSchema();
-  const preview = effectPreviewSchema(next.artifact_schemas.effect_preview);
+  const preview = effectPreviewSchema(next.artifact_schemas.effect_preview,
+    next.schemas.resource_ref);
   const manifest = clone(next.artifact_schemas.result_manifest);
   delete manifest.properties.results.minProperties;
   manifest.properties.results.additionalProperties = clone(artifact);
@@ -472,6 +486,10 @@ export function correctedContracts(registry, cli) {
     ['actql-effect-preview/0.1', preview],
   ]);
   next.artifact_schemas.effect_preview = preview;
+  const displayedRow = next.artifact_schemas.review_projection
+    .properties.displayed_rows.items;
+  displayedRow.properties.target_row_identity = withResourceTarget(
+    displayedRow.properties.target_row_identity, next.schemas.resource_ref);
   next.artifact_schemas.result_manifest = manifest;
   next.artifact_schemas.run_receipt = receipt;
   next.artifact_schemas.run_state = state;

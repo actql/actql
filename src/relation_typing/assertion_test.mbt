@@ -64,7 +64,7 @@ test "row assertion syntax rejects invalid alternatives and invalid equality key
 ///|
 test "unique assertions admit nullable reference domains without narrowing or proof" {
   let row = schema(
-    "{\"resource\":{\"type\":\"resource_ref\",\"resource_kind\":\"Customer\",\"nullable\":true},\"artifact\":{\"type\":\"artifact_ref\",\"nullable\":true},\"n\":{\"type\":\"number\",\"nullable\":true}}",
+    "{\"resource\":{\"type\":\"resource_ref\",\"resource_kind\":\"Customer\",\"nullable\":true},\"artifact\":{\"type\":\"content_ref\",\"nullable\":true},\"n\":{\"type\":\"number\",\"nullable\":true}}",
   )
   let value = check_row(
     AssertRows,

@@ -49,7 +49,7 @@ fn pipe_join_input_alias(query : Query) -> NamePart?? {
         safe = relation
         current_range = None
       }
-      Infer(_) | Nearest(_) | RetainResult(_) => return None
+      Infer(_) | Serialize(_) | Nearest(_) | RetainResult(_) => return None
       UnnestSource(_, _, _) => safe = false
     }
   }
@@ -77,7 +77,8 @@ fn pipe_join_range_input(query : Query) -> Bool {
   query.graph is None &&
   query.operations.all(operation => {
     match operation {
-      Infer(_) | Nearest(_) | RetainResult(_) | GraphCall(_) => false
+      Infer(_) | Serialize(_) | Nearest(_) | RetainResult(_) | GraphCall(_) =>
+        false
       _ => true
     }
   })

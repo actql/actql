@@ -124,6 +124,8 @@ pub fn local_import_retention_capacity(limits : LocalImportLimits) -> Int64? {
       v.max_nodes.to_int64() +
       w.max_nodes.to_int64() +
       w.max_columns.to_int64() +
+      r.max_nodes.to_int64() +
+      // One finite per-row reference view during receiving re-admission.
       r.max_nodes.to_int64()
     ) +
     8L *
@@ -293,7 +295,9 @@ pub fn[E] prepare_local_materializing_execution(
             retention_released: () => {
               match attempt.release_check {
                 None => true
-                Some(check) => check()
+                // Physical file retirement is not yet retirement of the
+                // attached opaque authority and conversion roots.
+                Some(check) => check() && attempt.cleanup_complete
               }
             },
             released: fn() {  },
@@ -754,8 +758,8 @@ fn revoke_local_materializing_attempt(
     @execution.cancel_completed_export_receipt(receipt)
   }
   attempt.export_preparation = None
-  attempt.export_stream = None
-  attempt.export_receipt = None
+  // Revoked export/receipt owners stay attached until their authority roots
+  // have actually been retired by bounded cleanup below.
   if attempt.provider_execution is Some(active) {
     cancel_managed_provider(active) |> ignore
   }
@@ -784,6 +788,29 @@ pub fn advance_local_materializing_cleanup(
     }
     if !release_local_materializing_scratch(attempt) {
       return false
+    }
+    if attempt.export_stream is Some(stream) {
+      if !@execution.advance_cancel_completed_output_export(stream, quantum) {
+        return false
+      }
+      attempt.export_stream = None
+    }
+    if attempt.export_receipt is Some(receipt) {
+      if !@execution.advance_cancel_completed_export_receipt(receipt, quantum) {
+        return false
+      }
+      attempt.export_receipt = None
+    }
+    if attempt.output is Some(output) &&
+      @execution.completed_output_retained_material(output) is Some(material) {
+      if attempt.release_check is Some(check) && !check() {
+        return false
+      }
+      if !@execution.advance_retained_output_reference_reclamation(
+          material, quantum,
+        ) {
+        return false
+      }
     }
     for _ in 0..<quantum {
       if attempt.cleanup_index >= attempt.imports.length() {

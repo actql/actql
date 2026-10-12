@@ -86,7 +86,7 @@ test "formal interval Program retains Unit search limits and original proof grap
                 0,
               ).unwrap(),
             ),
-          ),
+          ).unwrap(),
         ),
       )
     }
@@ -285,7 +285,7 @@ test "imported interval search retains producer Unit proofs without consumer cop
         ).unwrap()
         assert_eq(@capacity.target_membership_consumer_visit(membership), 0)
         assert_eq(
-          @capacity.target_membership_coordinates(membership),
+          @capacity.target_membership_coordinates(membership).unwrap(),
           (index + 1, 0, index + 1),
         )
       }

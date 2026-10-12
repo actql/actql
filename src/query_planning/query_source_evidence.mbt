@@ -45,6 +45,29 @@ pub fn query_acquisition_source_evidence_facts(
     @environment.SnapshotMode {
     return None
   }
+  selected_source_evidence_facts(selected)
+}
+
+///|
+/// Resolve the keyed response Source from the original checked JOIN, not a
+/// substitute Direct acquisition or a provider's returned metadata. These
+/// static facts do not grant I/O or prove that a response has been captured.
+pub fn keyed_source_evidence_facts(
+  facts : @acquisition.KeyedSourceFacts,
+) -> QuerySourceEvidenceFacts? {
+  let join = @acquisition.keyed_source_join(facts)
+  let selected = @acquisition.keyed_request_input(
+    @acquisition.parameterized_keyed_request(
+      @acquisition.keyed_join_request(join),
+    ),
+  )
+  selected_source_evidence_facts(selected)
+}
+
+///|
+fn selected_source_evidence_facts(
+  selected : @acquisition.ResolvedInput,
+) -> QuerySourceEvidenceFacts? {
   let catalog = @acquisition.catalog_owner(selected)
   let selected_item = @environment.source_request_member(
     @acquisition.selected_contract(selected),
@@ -126,6 +149,41 @@ pub fn query_requirement_source_evidence_members(
     return Err(@environment.ContractMismatch("checked_source"))
   }
   let selected = @acquisition.selected_contract(@acquisition.mode_input(mode))
+  selected_source_evidence_members(selected, facts)
+}
+
+///|
+/// Keep the keyed Source's evidence members in the same admitted Catalog
+/// environment as its request and response roles. Equal names in another
+/// Connector environment are not a replacement for these checked members.
+pub fn keyed_source_evidence_members(
+  keyed : @acquisition.KeyedSourceFacts,
+) -> Result[
+  @environment.ConnectorSourceEvidenceMembers,
+  @environment.SourceEvidenceMemberIssue,
+] {
+  guard keyed_source_evidence_facts(keyed) is Some(facts) else {
+    return Err(@environment.ContractMismatch("checked_source"))
+  }
+  let join = @acquisition.keyed_source_join(keyed)
+  let selected = @acquisition.selected_contract(
+    @acquisition.keyed_request_input(
+      @acquisition.parameterized_keyed_request(
+        @acquisition.keyed_join_request(join),
+      ),
+    ),
+  )
+  selected_source_evidence_members(selected, facts)
+}
+
+///|
+fn selected_source_evidence_members(
+  selected : @environment.SourceViewRequestContract,
+  facts : QuerySourceEvidenceFacts,
+) -> Result[
+  @environment.ConnectorSourceEvidenceMembers,
+  @environment.SourceEvidenceMemberIssue,
+] {
   let environment = @environment.member_environment(
     @environment.source_request_member(selected),
   )

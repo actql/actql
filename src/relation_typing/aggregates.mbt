@@ -212,7 +212,7 @@ fn aggregate_constructible(
       fail(source, BudgetExceeded)
     }
     match c.shape {
-      @contract.Json | @contract.ResourceRef(..) | @contract.ArtifactRef(..) =>
+      @contract.Json | @contract.ResourceRef(..) | @contract.ContentRef(..) =>
         fail(source, ForbiddenAggregateValue)
       @contract.Array(item, ..) => work.push((item, depth + 1))
       @contract.Object(fields) =>

@@ -56,5 +56,6 @@ fn construct_parsed(
     effect_headers~,
     graph=environment.graph,
     model_tasks=environment.model_tasks,
+    request_value_policies=environment.request_value_policies,
   )
 }

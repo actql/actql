@@ -335,6 +335,20 @@ pub fn open_prepared_captured_client_effect_run(
 }
 
 ///|
+/// Acquisition and its registered Content family retain the original ledger.
+/// The existing checked Source binding still decides whether Compute can open.
+pub fn open_prepared_accounted_captured_client_effect_run(
+  value : PreparedClientEffectRun,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+) -> Result[@strategy.CapturedEffectRunDAG, ClientRunOpenIssue] {
+  @strategy.open_captured_effect_run_dag(value.checked, source, ledger).map_err(issue => {
+      Run(issue)
+    },
+  )
+}
+
+///|
 /// The two acquisition owners transfer their existing ledger and original
 /// captures; opening Compute must not re-account them on a fresh ledger.
 pub fn open_prepared_multi_captured_client_effect_run(

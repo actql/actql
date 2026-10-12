@@ -6,6 +6,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {operationInventory} from './bound-transfer-laws.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {verifyInferenceBarrierSchema} from './inference-barrier-contract.mjs';
+import {verifyContentSerializationSchemas} from './content-serialization-contract.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -44,10 +45,11 @@ function grammarBody() {
 
 function barrierBody() {
   verifyInferenceBarrierSchema();
+  verifyContentSerializationSchemas();
   const registry = read('spec/contracts/actql-production-profile-schemas.json');
   const names = Object.keys(registry.schemas).filter(name =>
     name.endsWith('_barrier')).sort();
-  assert.deepEqual(names, ['artifact_barrier', 'inference_barrier', 'lookup_barrier',
+  assert.deepEqual(names, ['content_barrier', 'inference_barrier', 'lookup_barrier',
     'text_time_evaluation_barrier']);
   const contracts = names.map(name => {
     const contractCid = machineCid(registry.schemas[name]);
@@ -162,6 +164,10 @@ export function verifyCompilationManifests(write = false) {
     `  ${JSON.stringify(aoaIrVersion)}`, '}', '',
     '///|', 'pub fn compiler_inference_barrier_contract_cid() -> String {',
     `  ${JSON.stringify(verifyInferenceBarrierSchema().cid)}`, '}', '',
+    '///|', 'pub fn compiler_content_barrier_contract_cid() -> String {',
+    `  ${JSON.stringify(verifyContentSerializationSchemas().barrierCid)}`, '}', '',
+    '///|', 'pub fn compiler_content_serialization_contract_cid() -> String {',
+    `  ${JSON.stringify(verifyContentSerializationSchemas().serializationCid)}`, '}', '',
   ].join('\n');
   if (write) writeFileSync(moonPath, moon);
   assert.equal(readFileSync(moonPath, 'utf8'), moon,

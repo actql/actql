@@ -1,5 +1,5 @@
 import type {Client, Execution} from './index.js';
-import type {WirePlanView, WireRunView} from '@actql/client-wire';
+import type {WirePlanView, WireRunView, WireRunPlanView} from '@actql/client-wire';
 
 declare const client: Client;
 declare const run: Execution;
@@ -12,3 +12,8 @@ void plan; void consistency; void pending;
 await client.plan('SELECT 1 AS n', {stopOnEntry: true});
 // @ts-expect-error Inspect does not accept a manual resume or Sample request.
 await run.inspect({until: 'step', sampleItems: 1});
+
+const original: WireRunPlanView = await run.plan({maxWireBytes: 65536});
+void original.run_ref; void original.plan_view.logical_map;
+// @ts-expect-error Original map reads do not admit execution or Sample options.
+await run.plan({until: 'step'});

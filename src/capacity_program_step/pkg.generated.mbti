@@ -8,6 +8,7 @@ import {
   "actql/actql/capacity_policy",
   "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
+  "actql/actql/check_environment",
   "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
@@ -73,6 +74,12 @@ pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_wi
 pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
 
 pub fn check_prepared_bound(BoundDerivation, @capacity_witness.ProgramProofClaim, Array[BoundInput], Int, max_input_work? : Int, max_operand_work? : Int) -> (Result[StepBound, Issue], (Int, Int))
+
+pub fn check_source_input_rows(@pipeline_typing.CheckedPipeline, Int, @check_environment.SourceRequestContracts, @check_environment.SourceViewRequestContract, @check_environment.FileListingRows, Int) -> Result[SourceInputRows, SourceInputRowsIssue]
+
+pub fn check_source_target_rows(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, SourceInputRows, Int) -> Result[TargetRows, TargetRowsIssue]
+
+pub fn check_source_target_rows_usage(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, SourceInputRows, Int) -> (Result[TargetRows, TargetRowsIssue], Int)
 
 pub fn check_target_rows(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, StepBound, Int) -> Result[TargetRows, TargetRowsIssue]
 
@@ -196,11 +203,29 @@ pub fn resolved_program(ResolvedApplications) -> Applications
 
 pub fn source_at(StepBound, Int) -> BoundInput?
 
+pub fn source_input_rows_index(SourceInputRows) -> Int
+
+pub fn source_input_rows_limit(SourceInputRows) -> @check_environment.FileListingRows
+
+pub fn source_input_rows_pipeline(SourceInputRows) -> @pipeline_typing.CheckedPipeline
+
+pub fn source_input_rows_request(SourceInputRows) -> @check_environment.SourceViewRequestContract
+
+pub fn source_input_rows_requests(SourceInputRows) -> @check_environment.SourceRequestContracts
+
+pub fn source_input_rows_subject(@pipeline_typing.CheckedPipeline, Int) -> String?
+
+pub fn source_input_rows_work(SourceInputRows) -> Int
+
 pub fn subject_ref(@pipeline_typing.CheckedPipeline, Int) -> String?
 
-pub fn target_rows_bound(TargetRows) -> StepBound
+pub fn target_rows_bound(TargetRows) -> StepBound?
+
+pub fn target_rows_candidate_cid(TargetRows) -> String
 
 pub fn target_rows_pipeline(TargetRows) -> @pipeline_typing.CheckedPipeline
+
+pub fn target_rows_source(TargetRows) -> SourceInputRows?
 
 pub fn target_rows_target(TargetRows) -> @pipeline_typing.Target
 
@@ -475,6 +500,18 @@ pub(all) enum ResolutionRequest {
 }
 
 type ResolvedApplications
+
+type SourceInputRows
+
+pub(all) enum SourceInputRowsIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidInput
+  ForeignRequest
+  ForeignCarrier
+  ForeignProfile
+  SubjectMismatch
+} derive(Eq, @debug.Debug)
 
 type StepBound
 

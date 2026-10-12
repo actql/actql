@@ -1,0 +1,8 @@
+{
+  "source_revision": "c2267b2734acff76894a332db445d120dfc7b4af",
+  "expression_contract_cid": "sha256:bfb03b8ce1884b8fcd64023d210d9db69643cb884ae472282329c3988721d253",
+  "expression_schemas_cid": "sha256:b2bc1f3d518211ee75984a668c445f9038e18d5f41db33c36bb5e0b18e4ede30",
+  "program_schema_cid": "sha256:c10f6b440e853dd526cd9becc0b3e1e9964e5f21d976820b688ef675a8bc0699",
+  "scalar_law_manifest_cid": "sha256:a99ee999ce67ba339026b263122e8d978d5ef09ef73b988a6f184aed10209acf",
+  "expression_grammar_sha256": "67418602980bb27d554de713c792af7c6fb5ee76ba01f6c42b076142cdb7ec5a"
+}

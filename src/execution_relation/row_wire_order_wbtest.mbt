@@ -22,6 +22,7 @@ test "row wire preparation preserves independent work and shift steps across qua
     for _ in 0..<100 {
       let (done, used) = advance_row_wire_order(cursor, quantum).unwrap()
       assert_true(used <= quantum)
+      assert_eq(cursor.poll_work, used)
       steps += used
       if done {
         break

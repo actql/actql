@@ -35,7 +35,7 @@ priv enum BoundedOutputRowChargePhase {
 /// logical output occurrences have been charged. The caller owns the row's
 /// storage reservation; this cursor accounts its temporary traversal frames.
 priv struct BoundedOutputRowCharge {
-  output : AdmittedOutput
+  buffer : AdmittedRowBuffer
   workspace : RowWorkspace
   mut cells : Array[@admitted.Value]
   mut presence_cells : Array[@admitted.Value?]?
@@ -58,7 +58,21 @@ fn start_bounded_output_row_charge(
   workspace : RowWorkspace,
   presence_cells? : Array[@admitted.Value?]? = None,
 ) -> Result[BoundedOutputRowCharge, BoundedOutputRowChargeIssue] {
-  let buffer = output.buffer
+  start_bounded_buffer_row_charge(
+    output.buffer,
+    cells,
+    workspace,
+    presence_cells~,
+  )
+}
+
+///|
+fn start_bounded_buffer_row_charge(
+  buffer : AdmittedRowBuffer,
+  cells : Array[@admitted.Value],
+  workspace : RowWorkspace,
+  presence_cells? : Array[@admitted.Value?]? = None,
+) -> Result[BoundedOutputRowCharge, BoundedOutputRowChargeIssue] {
   if !buffer.open || buffer.reading {
     return Err(OutputCapture(ClosedCapture))
   }
@@ -89,7 +103,7 @@ fn start_bounded_output_row_charge(
   }
   buffer.reading = true
   Ok({
-    output,
+    buffer,
     workspace,
     cells,
     presence_cells,
@@ -111,7 +125,7 @@ fn cleanup_bounded_output_row_charge(cursor : BoundedOutputRowCharge) -> Unit {
     cursor.measure = None
   }
   if !(cursor.phase is Terminal) {
-    cursor.output.buffer.reading = false
+    cursor.buffer.reading = false
   }
   cursor.cells = []
   cursor.presence_cells = None
@@ -124,7 +138,7 @@ fn cleanup_bounded_output_row_charge(cursor : BoundedOutputRowCharge) -> Unit {
 fn advance_bounded_output_row_charge(
   cursor : BoundedOutputRowCharge,
 ) -> Result[Bool, BoundedOutputRowChargeIssue] {
-  let buffer = cursor.output.buffer
+  let buffer = cursor.buffer
   if !buffer.open || !buffer.reading || cursor.phase is Terminal {
     return Err(OutputCapture(ClosedCapture))
   }

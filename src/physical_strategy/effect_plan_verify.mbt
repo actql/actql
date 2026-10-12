@@ -5,7 +5,8 @@
 struct CapturedEffectPlanVerifier {
   preview : CapturedEffectPreviewInputs
   preview_index : Int
-  terminal : @results.EffectPlanTerminal
+  terminal : @results.EffectPlanTerminal?
+  command : @results.EffectCommandInputBinding?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
   mut live : Bool
@@ -30,6 +31,7 @@ struct CapturedEffectProposalPlan {
   input : CapturedEffectInput
   terminal : @results.EffectPlanTerminal?
   create_terminal : @results.EffectCreateRowTerminal?
+  command : @results.EffectCommandInputBinding?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
   mut live : Bool
@@ -47,6 +49,7 @@ pub(all) enum CapturedEffectProposalIssue {
   Row(@results.EffectPlanRowIssue)
   Changes(@results.EffectPlanChangeIssue)
   Create(@results.EffectCreateRowIssue)
+  Command(@results.EffectCommandRowIssue)
   SelectorEncoding
 } derive(Debug)
 
@@ -60,6 +63,9 @@ pub fn prepare_captured_effect_proposal_plan(
   max_fields : Int,
   max_work : Int,
 ) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue] {
+  if max_fields < 0 || max_work < 0 {
+    return Err(Plan(@results.EffectPlanBindingIssue::InvalidLimits))
+  }
   guard captured_effect_input_at(inputs, member_index) is Some(input) else {
     return Err(InvalidMember)
   }
@@ -71,14 +77,31 @@ pub fn prepare_captured_effect_proposal_plan(
   )
   let effects = @checked.effect_program_static_effects(static_candidate)
   let rules = @results.effect_static_candidate_mapping_rules(effects)
-  let terminal = match
-    @results.effect_plan_terminal_for_member(
-      rules, member_index, max_fields, max_work,
+  let command = match
+    @results.effect_command_input_for_member(
+      @results.effect_static_candidate_command_inputs(effects),
+      member_index,
+      max_work,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))
   }
-  let create_terminal = if terminal is None {
+  if command is Some(command) &&
+    @results.effect_command_input_field_count(command) > max_fields {
+    return Err(Plan(@results.Terminal(@results.FieldLimit)))
+  }
+  let terminal = if command is Some(_) {
+    None
+  } else {
+    match
+      @results.effect_plan_terminal_for_member(
+        rules, member_index, max_fields, max_work,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Plan(issue))
+    }
+  }
+  let create_terminal = if terminal is None && command is None {
     match
       @results.effect_create_row_terminal_for_member(
         rules, member_index, max_fields, max_work,
@@ -89,15 +112,25 @@ pub fn prepare_captured_effect_proposal_plan(
   } else {
     None
   }
-  if terminal is None && create_terminal is None {
+  if terminal is None && create_terminal is None && command is None {
     return Err(MissingPlan)
   }
-  let source_result = match terminal {
-    Some(value) => @results.effect_plan_terminal_source_result(value)
-    None =>
-      @results.effect_create_row_terminal_source_result(
-        create_terminal.unwrap(),
-      )
+  let source_result = if command is Some(command) {
+    @syntax.effect_header_source_result(
+      @results.effect_result_binding_header(
+        @results.effect_command_target_effect(
+          @results.effect_command_input_target(command),
+        ),
+      ),
+    ).unwrap()
+  } else {
+    match terminal {
+      Some(value) => @results.effect_plan_terminal_source_result(value)
+      None =>
+        @results.effect_create_row_terminal_source_result(
+          create_terminal.unwrap(),
+        )
+    }
   }
   if input.source.member_index != member_index ||
     source_result !=
@@ -110,6 +143,7 @@ pub fn prepare_captured_effect_proposal_plan(
     input,
     terminal,
     create_terminal,
+    command,
     literals: @results.effect_static_candidate_mapping_literals(effects),
     next_row: 0,
     live: true,
@@ -141,66 +175,79 @@ pub fn project_captured_effect_proposal_row(
     value.live = false
     return Err(RowOrder)
   }
-  let (selector, changes) = match value.terminal {
-    Some(terminal) => {
-      let row = match
-        @results.project_effect_plan_row(
-          terminal, source_row, source_row_index, max_fields, max_work,
-        ) {
-        Ok(value) => value
-        Err(issue) => {
-          value.live = false
-          return Err(Row(issue))
-        }
+  let (selector, changes) = if value.command is Some(command) {
+    match
+      @results.project_effect_command_row(
+        command, source_row, max_fields, max_work, max_bytes, max_nodes, max_depth,
+      ) {
+      Ok(projected) => projected
+      Err(issue) => {
+        value.live = false
+        return Err(Command(issue))
       }
-      let changes = match
-        @results.effect_plan_row_intended_changes_wire(
-          row,
-          value.literals,
-          max_fields,
-          max_work,
-          max_bytes,
-          max_nodes,
-          max_depth,
-        ) {
-        Ok(value) => value
-        Err(issue) => {
-          value.live = false
-          return Err(Changes(issue))
-        }
-      }
-      let selector = @identity.stringify_value(
-        @results.effect_plan_row_selector(row),
-        max_bytes,
-        max_nodes,
-        max_depth,
-      ) catch {
-        _ => {
-          value.live = false
-          return Err(SelectorEncoding)
-        }
-      }
-      (selector, changes)
     }
-    None => {
-      let changes = match
-        @results.effect_create_row_intended_changes_wire(
-          value.create_terminal.unwrap(),
-          value.literals,
-          source_row,
-          max_fields,
-          max_work,
+  } else {
+    match value.terminal {
+      Some(terminal) => {
+        let row = match
+          @results.project_effect_plan_row(
+            terminal, source_row, source_row_index, max_fields, max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => {
+            value.live = false
+            return Err(Row(issue))
+          }
+        }
+        let changes = match
+          @results.effect_plan_row_intended_changes_wire(
+            row,
+            value.literals,
+            max_fields,
+            max_work,
+            max_bytes,
+            max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => {
+            value.live = false
+            return Err(Changes(issue))
+          }
+        }
+        let selector = @identity.stringify_value(
+          @results.effect_plan_row_selector(row),
           max_bytes,
           max_nodes,
           max_depth,
-        ) {
-        Ok(value) => value
-        Err(issue) => {
-          value.live = false
-          return Err(Create(issue))
+        ) catch {
+          _ => {
+            value.live = false
+            return Err(SelectorEncoding)
+          }
         }
+        (selector, changes)
       }
-      ("null", changes)
+      None => {
+        let changes = match
+          @results.effect_create_row_intended_changes_wire(
+            value.create_terminal.unwrap(),
+            value.literals,
+            source_row,
+            max_fields,
+            max_work,
+            max_bytes,
+            max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => {
+            value.live = false
+            return Err(Create(issue))
+          }
+        }
+        ("null", changes)
+      }
     }
   }
   value.next_row += 1
@@ -253,6 +300,7 @@ pub(all) enum CapturedEffectPlanVerifyIssue {
   Plan(CapturedEffectPlanIssue)
   Row(@results.EffectPlanRowIssue)
   Changes(@results.EffectPlanChangeIssue)
+  Command(@results.EffectCommandRowIssue)
 }
 
 ///|
@@ -262,15 +310,14 @@ pub fn prepare_captured_effect_plan_verifier(
   max_fields : Int,
   max_work : Int,
 ) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue] {
-  if captured_effect_preview_input_at(preview, preview_index) is None {
+  guard captured_effect_preview_input_at(preview, preview_index) is Some(input) else {
     return Err(InvalidMember)
   }
   let terminal = match
     captured_effect_preview_plan_terminal(
       preview, preview_index, max_fields, max_work,
     ) {
-    Ok(Some(value)) => value
-    Ok(None) => return Err(MissingPlan)
+    Ok(value) => value
     Err(issue) => return Err(Plan(issue))
   }
   let run = @checked.effect_program_run_preview_owner(
@@ -278,8 +325,56 @@ pub fn prepare_captured_effect_plan_verifier(
   )
   let static_candidate = @checked.effect_program_run_static_candidate(run)
   let effects = @checked.effect_program_static_effects(static_candidate)
+  // Mapping members keep their original preparation bound: unrelated Command
+  // entries must not increase their required lookup budget.
+  let command = if @publication.effect_preview_member_kind(
+      @checked.effect_program_run_preview_identity(
+        captured_effect_preview_owner(preview),
+      ),
+      preview_index,
+    ) ==
+    Some("command") {
+    match
+      @results.effect_command_input_for_member(
+        @results.effect_static_candidate_command_inputs(effects),
+        input.source.member_index,
+        max_work,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Plan(Plan(issue)))
+    }
+  } else {
+    None
+  }
+  if command is Some(command) {
+    if terminal is Some(_) ||
+      @results.effect_command_input_field_count(command) > max_fields {
+      return Err(Plan(Plan(@results.Terminal(@results.FieldLimit))))
+    }
+    let source_result = @syntax.effect_header_source_result(
+      @results.effect_result_binding_header(
+        @results.effect_command_target_effect(
+          @results.effect_command_input_target(command),
+        ),
+      ),
+    )
+    if source_result !=
+      Some(@execution.managed_result_occurrence_name(input.source.occurrence)) {
+      return Err(Plan(ForeignBinding))
+    }
+  } else if terminal is None {
+    return Err(MissingPlan)
+  }
   let literals = @results.effect_static_candidate_mapping_literals(effects)
-  Ok({ preview, preview_index, terminal, literals, next_row: 0, live: true, })
+  Ok({
+    preview,
+    preview_index,
+    terminal,
+    command,
+    literals,
+    next_row: 0,
+    live: true,
+  })
 }
 
 ///|
@@ -305,46 +400,60 @@ pub fn check_captured_effect_plan_row(
     value.live = false
     return Err(PreviewMismatch)
   }
-  let projected = match
-    @results.project_effect_plan_row(
-      value.terminal,
-      source_row,
-      source_row_index,
-      max_fields,
-      max_work,
-    ) {
-    Ok(value) => value
-    Err(issue) => {
-      value.live = false
-      return Err(Row(issue))
+  let (selector, changes) = if value.command is Some(command) {
+    match
+      @results.project_effect_command_row(
+        command, source_row, max_fields, max_work, max_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        value.live = false
+        return Err(Command(issue))
+      }
     }
-  }
-  let changes = match
-    @results.effect_plan_row_intended_changes_wire(
-      projected,
-      value.literals,
-      max_fields,
-      max_work,
+  } else {
+    let projected = match
+      @results.project_effect_plan_row(
+        value.terminal.unwrap(),
+        source_row,
+        source_row_index,
+        max_fields,
+        max_work,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        value.live = false
+        return Err(Row(issue))
+      }
+    }
+    let changes = match
+      @results.effect_plan_row_intended_changes_wire(
+        projected,
+        value.literals,
+        max_fields,
+        max_work,
+        max_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        value.live = false
+        return Err(Changes(issue))
+      }
+    }
+    let selector = @identity.stringify_value(
+      @results.effect_plan_row_selector(projected),
       max_bytes,
       max_nodes,
       max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => {
-      value.live = false
-      return Err(Changes(issue))
+    ) catch {
+      _ => {
+        value.live = false
+        return Err(SelectorEncoding)
+      }
     }
-  }
-  let selector = @identity.stringify_value(
-    @results.effect_plan_row_selector(projected),
-    max_bytes,
-    max_nodes,
-    max_depth,
-  ) catch {
-    _ => {
-      value.live = false
-      return Err(SelectorEncoding)
-    }
+    (selector, changes)
   }
   let identity = @checked.effect_program_run_preview_identity(
     captured_effect_preview_owner(value.preview),
@@ -409,8 +518,9 @@ pub fn captured_effect_plan_proof_matches(
 }
 
 ///|
-/// Every member with a checked Plan must contribute exactly one proof from
-/// the same captured owner. This is payload evidence, not send authority.
+/// Every checked row Plan or Command must contribute exactly one proof from
+/// the same captured owner. Commands have no Mapping Plan CID, but their
+/// target and payload still require input evidence. This is not send authority.
 pub fn check_captured_effect_plan_proofs(
   preview : CapturedEffectPreviewInputs,
   proofs : Array[CapturedEffectPlanProof],
@@ -437,8 +547,7 @@ pub fn check_captured_effect_plan_proofs(
     let member_index = proof.preview_index
     if member_index < 0 ||
       member_index >= count ||
-      @publication.effect_preview_member_plan_cid(identity, member_index)
-      is None ||
+      !captured_effect_member_requires_plan_proof(identity, member_index) ||
       !captured_effect_plan_proof_matches(proof, preview, member_index) {
       return Err(ForeignProof(proof_index))
     }
@@ -448,12 +557,21 @@ pub fn check_captured_effect_plan_proofs(
     seen[member_index] = true
   }
   for index in 0..<count {
-    if @publication.effect_preview_member_plan_cid(identity, index) is Some(_) &&
+    if captured_effect_member_requires_plan_proof(identity, index) &&
       !seen[index] {
       return Err(MissingProof(index))
     }
   }
   Ok(())
+}
+
+///|
+fn captured_effect_member_requires_plan_proof(
+  identity : @publication.EffectPreviewIdentity,
+  index : Int,
+) -> Bool {
+  @publication.effect_preview_member_plan_cid(identity, index) is Some(_) ||
+  @publication.effect_preview_member_kind(identity, index) == Some("command")
 }
 
 ///|

@@ -12,7 +12,7 @@ priv enum AdmittedOutputRowPhase {
 /// One provisional row, driven by its caller's existing bounded execution.
 /// It grants neither execution completion nor publication authority.
 struct AdmittedOutputRowCursor {
-  output : AdmittedOutput
+  buffer : AdmittedRowBuffer
   workspace : RowWorkspace
   mut scope : SlotScope?
   mut read : ((Int) -> RelationCell?)?
@@ -65,7 +65,21 @@ fn start_admitted_output_row_state(
   read : (Int) -> RelationCell?,
   allow_presence : Bool,
 ) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue] {
-  let buffer = output.buffer
+  start_admitted_buffer_row_state(
+    output.buffer,
+    max_workspace_slots,
+    read,
+    allow_presence,
+  )
+}
+
+///|
+fn start_admitted_buffer_row_state(
+  buffer : AdmittedRowBuffer,
+  max_workspace_slots : Int,
+  read : (Int) -> RelationCell?,
+  allow_presence : Bool,
+) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue] {
   if !buffer.open || buffer.reading {
     return Err(OutputRowCapture(ClosedCapture))
   }
@@ -89,7 +103,7 @@ fn start_admitted_output_row_state(
   }
   buffer.reading = true
   Ok({
-    output,
+    buffer,
     workspace,
     scope: Some(scope),
     read: Some(read),
@@ -127,7 +141,7 @@ fn fail_admitted_output_row(
 pub fn advance_admitted_output_row(
   cursor : AdmittedOutputRowCursor,
 ) -> Result[Bool, AdmittedOutputRowIssue] {
-  let buffer = cursor.output.buffer
+  let buffer = cursor.buffer
   if cursor.cleaned || cursor.phase is Complete || cursor.phase is Failed {
     return Err(OutputRowCapture(ClosedCapture))
   }
@@ -216,8 +230,8 @@ pub fn advance_admitted_output_row(
       // No callback or await occurs between the two lock transitions.
       buffer.reading = false
       match
-        start_bounded_output_row_charge(
-          cursor.output,
+        start_bounded_buffer_row_charge(
+          cursor.buffer,
           cursor.cells,
           cursor.workspace,
           presence_cells=cursor.presence_cells,
@@ -283,8 +297,8 @@ pub fn cleanup_admitted_output_row(cursor : AdmittedOutputRowCursor) -> Bool {
     cursor.charge = None
   }
   if !(cursor.phase is Complete) {
-    cancel_admitted_output(cursor.output) |> ignore
-    cursor.output.buffer.reading = false
+    revoke_admitted_buffer(cursor.buffer)
+    cursor.buffer.reading = false
   }
   cursor.cells = []
   cursor.presence_cells = None

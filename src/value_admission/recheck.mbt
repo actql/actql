@@ -153,7 +153,7 @@ fn recheck_value(
       true
     }
     (Reference(reference), @contract.ResourceRef(_))
-    | (Reference(reference), @contract.ArtifactRef(_)) =>
+    | (Reference(reference), @contract.ContentRef(_)) =>
       reference_available(reference) &&
       reference_compatible(reference, contract)
     (JsonData(value), @contract.Json) => {

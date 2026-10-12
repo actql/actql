@@ -1,5 +1,26 @@
 ///|
 /// Host-private Source custody; no provider read or completed Run is created.
+#export_name("clientProgramExportSourceOriginalRead")
+pub fn client_program_export_source_original_read(
+  read : @execution.SuppliedRelationRead,
+) -> Result[
+  (String, String, Array[String]),
+  @client_row_source_host.RowOriginalCaptureIssue,
+] {
+  @client_row_source_host.export_row_original_read(read).map(value => {
+    @client_row_source_host.row_original_capture_export_facts(value)
+  })
+}
+
+///|
+#export_name("clientProgramSourceCaptureOriginalRead")
+pub fn client_program_source_capture_original_read(
+  value : @client_local_host.ClientAccountedSourceCapture,
+) -> @execution.SuppliedRelationRead? {
+  @client_local_host.accounted_client_source_original_read(value)
+}
+
+///|
 #export_name("clientProgramExportSourceCapture")
 pub fn client_program_export_source_capture(
   source : @query.CapturedInputSource,
@@ -54,8 +75,10 @@ pub fn client_program_restore_source_capture(
   descriptor : String,
   rows : Array[String],
   ledger : @resources.Ledger?,
-  capacity : @client_local_host.ClientDuckDBCaptureCapacity,
+  capacity : @client_local_host.ClientInstalledCaptureCapacity,
   custody_available : () -> Bool,
+  reference_issuer : @admitted.ReferenceIssuer?,
+  original_input : (String, String, Array[String])?,
 ) -> Result[
   @client_local_host.ClientAccountedSourceCapture,
   @client_local_host.ClientSourceCaptureIssue,
@@ -63,7 +86,7 @@ pub fn client_program_restore_source_capture(
   let receiving_ledger = match ledger {
     Some(value) => value
     None => {
-      let capacity = @client_local_host.client_duckdb_capture_capacity_values(
+      let capacity = @client_local_host.installed_capture_capacity_values(
         capacity,
       )
       match
@@ -81,8 +104,17 @@ pub fn client_program_restore_source_capture(
     }
   }
   @client_local_host.restore_accounted_client_source_capture(
-    requirement, saved_requirement_cid, expected_binding, saved_binding, descriptor,
-    rows, receiving_ledger, capacity, custody_available,
+    requirement,
+    saved_requirement_cid,
+    expected_binding,
+    saved_binding,
+    descriptor,
+    rows,
+    receiving_ledger,
+    capacity,
+    custody_available,
+    reference_issuer?,
+    original_input~,
   )
 }
 
@@ -98,8 +130,12 @@ pub fn client_program_source_capture_source(
 #export_name("clientProgramCloseSourceCapture")
 pub fn client_program_close_source_capture(
   value : @client_local_host.ClientAccountedSourceCapture,
+  quantum : Int?,
 ) -> Bool {
-  @client_local_host.close_accounted_client_source_capture(value)
+  @client_local_host.close_accounted_client_source_capture(
+    value,
+    quantum=quantum.unwrap_or(64),
+  )
 }
 
 ///|

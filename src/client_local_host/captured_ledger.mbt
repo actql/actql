@@ -160,6 +160,52 @@ fn client_local_store_inventory(
 }
 
 ///|
+/// Add one installed family task's complete reservation to the original Run.
+/// A predecessor's reservation can still be held by its accepted borrower;
+/// the next task therefore overlaps, rather than replacing the largest task.
+/// Precheck each addition and multiplication before forming the totals.
+fn client_local_family_task_inventory(
+  previous : (Int64, Int64),
+  provider_bytes : Int64,
+  scratch_bytes : Int64,
+  input_count : Int,
+  import_bytes : Int64,
+  export_bytes : Int64,
+  max_bytes : Int64,
+) -> (Int64, Int64)? {
+  let (retained, executing) = previous
+  if max_bytes < 0L ||
+    retained < 0L ||
+    executing < 0L ||
+    retained > max_bytes ||
+    executing > max_bytes ||
+    provider_bytes < 0L ||
+    scratch_bytes < 0L ||
+    import_bytes < 0L ||
+    export_bytes < 0L ||
+    input_count < 0 ||
+    scratch_bytes > max_bytes ||
+    provider_bytes > max_bytes - retained ||
+    export_bytes > max_bytes - retained - provider_bytes ||
+    (
+      input_count > 0 &&
+      import_bytes >
+      (max_bytes - retained - provider_bytes - export_bytes) /
+      input_count.to_int64()
+    ) {
+    return None
+  }
+  let task_retained = provider_bytes +
+    export_bytes +
+    input_count.to_int64() * import_bytes
+  if task_retained > max_bytes - scratch_bytes ||
+    scratch_bytes + task_retained > max_bytes - executing {
+    return None
+  }
+  Some((retained + task_retained, executing + scratch_bytes + task_retained))
+}
+
+///|
 /// Keep the original checked Effect owner while sizing its Local suffix.
 pub fn client_effect_local_ledger_limits(
   prepared : @publication_host.PreparedClientEffectComputation,
@@ -185,6 +231,164 @@ pub fn client_effect_local_ledger_limits(
       value.0
     },
   )
+}
+
+///|
+/// Size the actual registered family and its enclosing Relation chain before
+/// Source I/O. The caller supplies the same installed execution ceilings used
+/// to select the task; a metadata-only sequence allowance is not sufficient.
+pub fn client_effect_family_ledger_limits(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  families : Array[@local.ManagedProvider],
+) -> @resources.LedgerLimits? {
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(prepared),
+  )
+  let count = @strategy.graph_task_count(graph)
+  let first = @strategy.graph_captured_prefix(graph)
+  if count < 1 ||
+    count > 32 ||
+    first < 0 ||
+    first >= count ||
+    families.is_empty() {
+    return None
+  }
+  guard prepare_client_effect_local_sequences(
+      prepared, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(sequences) &&
+    sequences.length() == count else {
+    return None
+  }
+  let mut retained = 0L
+  let mut executing = 0L
+  let mut ports = 0L
+  // Reuse the existing retained-input and export allowances. Every consumer
+  // port is retained independently, including repeated producer occurrences.
+  let values = execution.rows.input_values
+  let imports = client_local_import_limits(
+    {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: execution.rows.max_rows,
+      max_value_bytes: 10000,
+      common_fragment: None,
+    },
+    values,
+  )
+  guard @local.local_import_retention_capacity(imports) is Some(import_bytes) &&
+    @local.local_export_retention_capacity(
+      client_local_export_limits(execution.rows.max_rows, values),
+    )
+    is Some(export_bytes) else {
+    return None
+  }
+  let ceiling = 536870912L
+  for task in first..<count {
+    guard @local.local_bounded_relation_provider(
+        execution,
+        measurement,
+        sequences[task],
+        family=families,
+      )
+      is Some(provider) &&
+      @local.managed_provider_capacity(provider, sequences[task])
+      is Some(capacity) &&
+      @strategy.graph_task_input_count(graph, task) is Some(inputs) else {
+      return None
+    }
+    let bytes = @execution.execution_capacity_retained_bytes(capacity)
+    let scratch = @execution.execution_capacity_execution_bytes(capacity)
+    guard client_local_family_task_inventory(
+        (retained, executing),
+        bytes,
+        scratch,
+        inputs,
+        import_bytes,
+        export_bytes,
+        ceiling,
+      )
+      is Some((next_retained, next_executing)) else {
+      return None
+    }
+    // The installed managed driver advertises provider execution together
+    // with retained provider output, each input import and output export.
+    // Size that same overlap before acquisition, not just the provider core.
+    retained = next_retained
+    ports += inputs.to_int64()
+    // A completed family can retain its original reservation until accepted
+    // Model evidence reaches Store custody. Downstream tasks may borrow that
+    // output meanwhile. Admit this overlap, not merely the largest task, and
+    // do not force cleanup of an input owner to make the next task fit.
+    executing = next_executing
+  }
+  Some({
+    planning_work: 100000,
+    attempts: count,
+    holdings: count,
+    transfer_bytes: ports * imports.wire.max_bytes.to_int64(),
+    retained_bytes: retained,
+    execution_bytes: executing,
+  })
+}
+
+///|
+/// Bind the actual selected Source capacity to this checked Effect graph and
+/// retain acquisition plus all family consumers on one original Run ledger.
+pub fn prepare_client_effect_family_capture_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  capacity : ClientInstalledCaptureCapacity,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  families : Array[@local.ManagedProvider],
+) -> @resources.Ledger? {
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(prepared),
+  )
+  guard @strategy.graph_captured_prefix(graph) == 1 &&
+    prepare_effect_local_query_requirement(
+      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Ok(requirement) &&
+    @planning.query_requirement_cid(requirement) ==
+    @planning.query_requirement_cid(capacity.requirement) &&
+    client_effect_family_ledger_limits(
+      prepared, registry_body, values_body, fragment_body, ordered_body, execution,
+      measurement, families,
+    )
+    is Some(limits) else {
+    return None
+  }
+  let ceiling = 536870912L
+  if transport_bytes < 0L ||
+    transport_execution_bytes < 0L ||
+    capacity.retained_bytes < 0L ||
+    capacity.execution_bytes < 0L ||
+    capacity.retained_bytes > ceiling - limits.retained_bytes ||
+    capacity.execution_bytes > ceiling - transport_execution_bytes ||
+    transport_bytes > 9223372036854775807L - limits.transfer_bytes {
+    return None
+  }
+  @resources.create_ledger({
+    ..limits,
+    transfer_bytes: limits.transfer_bytes + transport_bytes,
+    retained_bytes: limits.retained_bytes + capacity.retained_bytes,
+    execution_bytes: Int64::max(
+      limits.execution_bytes,
+      capacity.execution_bytes + transport_execution_bytes,
+    ),
+  }).to_option()
 }
 
 ///|
@@ -370,6 +574,28 @@ struct ClientInstalledCaptureCapacity {
   requirement : @planning.QueryRequirement
   retained_bytes : Int64
   execution_bytes : Int64
+  original_input : Bool
+}
+
+///|
+/// Retain the checked pending envelope without selecting a realization or
+/// granting a read. Restored Source custody uses this same installed budget.
+pub fn installed_pending_duckdb_capture_capacity(
+  pending : ClientDuckDBCaptureCapacity,
+) -> ClientInstalledCaptureCapacity {
+  {
+    requirement: pending.requirement,
+    retained_bytes: pending.retained_bytes,
+    execution_bytes: pending.execution_bytes,
+    original_input: false,
+  }
+}
+
+///|
+pub fn installed_capture_capacity_values(
+  capacity : ClientInstalledCaptureCapacity,
+) -> Array[Int64] {
+  [capacity.retained_bytes, capacity.execution_bytes]
 }
 
 ///|
@@ -474,6 +700,7 @@ pub fn installed_duckdb_capture_capacity(
     requirement: @duckdb_host.configured_capture_requirement(selected),
     retained_bytes: capacity.retained_bytes,
     execution_bytes: capacity.execution_bytes,
+    original_input: false,
   })
 }
 
@@ -490,7 +717,59 @@ pub fn installed_row_capture_capacity(
     requirement: @row_source_host.row_acquisition_requirement(selected),
     retained_bytes: retained,
     execution_bytes: execution,
+    original_input: true,
   })
+}
+
+///|
+/// One selected acquisition and its borrowed Content prefix use the same Run
+/// ledger. Both live allocations are counted before acquisition begins; the
+/// selected Source requirement must still match the original checked owner.
+pub fn prepare_serialization_captured_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  capacity : ClientInstalledCaptureCapacity,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  prefix_retained_bytes : Int64,
+  prefix_execution_bytes : Int64,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  guard (task == 0 || task == 1) &&
+    prepare_local_query_requirement(
+      prepared, 0, 0, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Ok(requirement) &&
+    @planning.query_requirement_cid(requirement) ==
+    @planning.query_requirement_cid(capacity.requirement) else {
+    return None
+  }
+  let maximum = 9223372036854775807L
+  if transport_bytes < 0L ||
+    transport_execution_bytes < 0L ||
+    prefix_retained_bytes < 0L ||
+    prefix_execution_bytes < 0L ||
+    capacity.retained_bytes < 0L ||
+    capacity.execution_bytes < 0L ||
+    capacity.retained_bytes > maximum - prefix_retained_bytes ||
+    capacity.execution_bytes > maximum - prefix_execution_bytes {
+    return None
+  }
+  let execution_bytes = capacity.execution_bytes + prefix_execution_bytes
+  if transport_execution_bytes > maximum - execution_bytes {
+    return None
+  }
+  @resources.create_ledger({
+    planning_work: 100000,
+    attempts: 2,
+    holdings: 1,
+    transfer_bytes: transport_bytes,
+    retained_bytes: capacity.retained_bytes + prefix_retained_bytes,
+    execution_bytes: execution_bytes + transport_execution_bytes,
+  }).to_option()
 }
 
 ///|

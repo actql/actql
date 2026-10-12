@@ -670,6 +670,15 @@ pub fn client_program_compiled_run_matches(
 }
 
 ///|
+#export_name("clientProgramCompiledEffectProgram")
+pub fn client_program_compiled_effect_program(
+  value : @publication_host.ClientCompiledRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> @publication_host.PreparedClientProgram? {
+  @publication_host.client_compiled_effect_program(value, prepared)
+}
+
+///|
 /// The installed Local profile applies one bounded sequence definition to
 /// compiler material and the task that physically executes it.
 fn client_local_sequence_limits() -> @lower.SequenceLimits {
@@ -1685,6 +1694,86 @@ pub fn client_program_query_acquisition_source_index(
   acquisition : @acquisition.QueryAcquisition,
 ) -> Int {
   @acquisition.query_acquisition_source_index(acquisition)
+}
+
+///|
+/// Select a keyed input from the same checked Program, without a substitute
+/// Direct query or provider-supplied request/schema. This does not authorize I/O.
+#export_name("clientProgramPrepareKeyedAcquisition")
+pub fn client_program_prepare_keyed_acquisition(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+  join_step : Int?,
+) -> Result[
+  @publication_host.ClientKeyedAcquisition,
+  @publication_host.ClientKeyedAcquisitionIssue,
+] {
+  @publication_host.prepare_client_keyed_acquisition(
+    prepared,
+    stage,
+    source_index,
+    1000000,
+    join_step~,
+  )
+}
+
+///|
+#export_name("clientProgramEffectPrepareKeyedAcquisition")
+pub fn client_program_effect_prepare_keyed_acquisition(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+  join_step : Int?,
+) -> Result[
+  @publication_host.ClientKeyedAcquisition,
+  @publication_host.ClientKeyedAcquisitionIssue,
+] {
+  @publication_host.prepare_client_effect_keyed_acquisition(
+    prepared,
+    stage,
+    source_index,
+    1000000,
+    join_step~,
+  )
+}
+
+///|
+#export_name("clientProgramKeyedAcquisitionSourceEvidenceFacts")
+pub fn client_program_keyed_acquisition_source_evidence_facts(
+  acquisition : @publication_host.ClientKeyedAcquisition,
+) -> Result[Array[String], String] {
+  match
+    @publication_host.client_keyed_acquisition_source_evidence_facts(
+      acquisition,
+    ) {
+    Some(facts) => Ok(@planning.query_source_evidence_fact_values(facts))
+    None => Err("CheckedSourceEvidenceFactsUnavailable")
+  }
+}
+
+///|
+#export_name("clientProgramKeyedAcquisitionCoordinates")
+pub fn client_program_keyed_acquisition_coordinates(
+  acquisition : @publication_host.ClientKeyedAcquisition,
+) -> Array[Int] {
+  let binding = @publication_host.client_keyed_acquisition_binding(acquisition)
+  [
+    binding.stage,
+    @acquisition.keyed_join_input(binding.join),
+    @acquisition.keyed_join_step(binding.join),
+  ]
+}
+
+///|
+#export_name("clientProgramKeyedAcquisitionMatchesProgram")
+pub fn client_program_keyed_acquisition_matches_program(
+  acquisition : @publication_host.ClientKeyedAcquisition,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @publication_host.client_keyed_acquisition_matches_program(
+    acquisition, prepared,
+  )
 }
 
 ///|
@@ -2867,6 +2956,27 @@ pub fn client_program_effect_plan_cid(
     value,
   )
   let effects = @program_check.effect_program_static_effects(candidate)
+  // Command retains its original typed input/target contract in the checked
+  // Program. It does not have a Mapping/AoA terminal or its logical Plan CID.
+  let command = match
+    @effect_results.effect_command_input_for_member(
+      @effect_results.effect_static_candidate_command_inputs(effects),
+      member_index,
+      max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Binding(issue))
+  }
+  if command is Some(_) {
+    if max_fields < 0 {
+      return Err(Binding(@effect_results.InvalidLimits))
+    }
+    if @effect_results.effect_command_input_field_count(command.unwrap()) >
+      max_fields {
+      return Err(Binding(@effect_results.Terminal(@effect_results.FieldLimit)))
+    }
+    return Ok(None)
+  }
   let rules = @effect_results.effect_static_candidate_mapping_rules(effects)
   let terminal = match
     @effect_results.effect_plan_terminal_for_member(
@@ -2891,7 +3001,7 @@ pub fn client_program_effect_plan_cid(
 }
 
 ///|
-/// Read the authored member and its resolved Mapping through the portable
+/// Read the authored member and its resolved contract through the portable
 /// checked owner. The Node bridge makes no independent identity decision.
 #export_name("clientProgramEffectMemberDescriptor")
 pub fn client_program_effect_member_descriptor(
@@ -2906,6 +3016,20 @@ pub fn client_program_effect_member_descriptor(
   @publication_host.client_effect_member_descriptor(
     value, stage_index, effect_id, max_work,
   )
+}
+
+///|
+/// Project the existing owner's typed refusal without inspecting compiler tags
+/// or reevaluating the Program in the Host.
+#export_name("clientProgramEffectMemberDescriptorIssueCode")
+pub fn client_program_effect_member_descriptor_issue_code(
+  issue : @publication_host.ClientEffectMemberDescriptorIssue,
+) -> String {
+  match issue {
+    @publication_host.InvalidMember => "InvalidMember"
+    @publication_host.MissingMapping => "MissingMapping"
+    @publication_host.WorkLimit => "WorkLimit"
+  }
 }
 
 ///|
@@ -4225,6 +4349,34 @@ pub fn client_program_admit_effect_publication(
 }
 
 ///|
+fn client_program_local_execution_limits() -> (
+  @execution.SequenceExecutionLimits,
+  @execution.FixedInputGuardMeasureLimits,
+) {
+  let values : @execution.ValueLimits = {
+    max_nodes: 10000,
+    max_text_bytes: 10000,
+    max_depth: 100,
+    max_work: 100000,
+  }
+  (
+    {
+      rows: {
+        max_rows: 100,
+        metadata_entries: 10000,
+        retained_entries: 10000,
+        operation_entries: 10000,
+        input_values: values,
+        output_values: values,
+      },
+      max_work: 100000,
+      max_frames: 100,
+    },
+    { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
+  )
+}
+
+///|
 fn client_program_configure_local_host(
   run : @strategy.CapturedDAG,
   graph : @strategy.CheckedDAG,
@@ -4242,30 +4394,8 @@ fn client_program_configure_local_host(
     max_value_bytes: 10000,
     common_fragment: None,
   }
-  let values : @execution.ValueLimits = {
-    max_nodes: 10000,
-    max_text_bytes: 10000,
-    max_depth: 100,
-    max_work: 100000,
-  }
-  let execution : @execution.SequenceExecutionLimits = {
-    rows: {
-      max_rows: 100,
-      metadata_entries: 10000,
-      retained_entries: 10000,
-      operation_entries: 10000,
-      input_values: values,
-      output_values: values,
-    },
-    max_work: 100000,
-    max_frames: 100,
-  }
-  let measurement : @execution.FixedInputGuardMeasureLimits = {
-    max_work: 10000,
-    max_bytes: 10000,
-    max_nodes: 10000,
-    max_depth: 100,
-  }
+  let (execution, measurement) = client_program_local_execution_limits()
+  let values = execution.rows.input_values
   let providers = match
     selected_client_sga_providers(generated, execution, measurement) {
     Some(providers) => providers
@@ -6466,7 +6596,12 @@ fn open_client_local_effect_host(
   let computation = @publication_host.prepared_client_effect_run_computation(
     prepared,
   )
-  let opened = if multiple {
+  let opened = if !multiple && acquisition_ledger is Some(ledger) {
+    guard source is Some(captured) else { return None }
+    @publication_host.open_prepared_accounted_captured_client_effect_run(
+      prepared, captured, ledger,
+    )
+  } else if multiple {
     @publication_host.open_prepared_multi_captured_client_effect_run(
       prepared,
       captured_sources,
@@ -6532,6 +6667,69 @@ fn open_client_local_effect_host(
     Some(host) => Some({ host, run, })
     None => None
   }
+}
+
+///|
+/// The source and Content task use the same pre-I/O ledger. Installing the
+/// family does not create a Source observation, generation or mutation permit.
+#export_name("clientProgramOpenCapturedContentEffectHost")
+pub fn client_program_open_captured_content_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  provider : @local.ManagedProvider,
+) -> ClientLocalEffectHost? {
+  open_client_local_effect_host(
+    prepared,
+    Some(source),
+    registry,
+    values,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=fragment,
+    ordered_body=ordered,
+    acquisition_ledger=Some(ledger),
+    component_providers=[provider],
+  )
+}
+
+///|
+/// The original captured task installs every selected checked family on its
+/// pre-acquisition ledger. It does not prepare another Program or input owner.
+#export_name("clientProgramOpenCapturedFamilyEffectHost")
+pub fn client_program_open_captured_family_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> ClientLocalEffectHost? {
+  if providers.is_empty() {
+    return None
+  }
+  open_client_local_effect_host(
+    prepared,
+    Some(source),
+    registry,
+    values,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=fragment,
+    ordered_body=ordered,
+    acquisition_ledger=Some(ledger),
+    component_providers=providers,
+  )
 }
 
 ///|
@@ -7365,12 +7563,17 @@ pub fn client_program_row_source_prepare_acquisition(
   requirement : @planning.QueryRequirement,
   query_contract : String,
   evidence_contract : String,
+  listing_policy : @capacity_policy.Policy?,
 ) -> Result[
   @client_row_source_host.RowAcquisition,
   @client_row_source_host.RowHostIssue,
 ] {
   @client_row_source_host.prepare_row_acquisition(
-    declaration, requirement, query_contract, evidence_contract,
+    declaration,
+    requirement,
+    query_contract,
+    evidence_contract,
+    listing_policy~,
   )
 }
 
@@ -7380,6 +7583,14 @@ pub fn client_program_row_source_columns(
   acquisition : @client_row_source_host.RowAcquisition,
 ) -> Array[String] {
   @client_row_source_host.row_acquisition_columns(acquisition)
+}
+
+///|
+#export_name("clientProgramRowSourceRequestWire")
+pub fn client_program_row_source_request_wire(
+  acquisition : @client_row_source_host.RowAcquisition,
+) -> Result[String, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.row_acquisition_request_wire(acquisition)
 }
 
 ///|
@@ -7446,10 +7657,105 @@ pub fn client_program_row_source_begin(
   max_page_bytes : Int,
   max_page_rows : Int,
   max_capture_rows : Int,
+  reference_issuer : @admitted.ReferenceIssuer?,
 ) -> Result[Bool, @client_row_source_host.RowHostIssue] {
   @client_row_source_host.begin_row_run(
-    run, max_page_bytes, max_page_rows, max_capture_rows,
+    run,
+    max_page_bytes,
+    max_page_rows,
+    max_capture_rows,
+    reference_issuer~,
   ).map(_ => true)
+}
+
+///|
+// The Host chooses validation and current authority. The physical driver
+// cannot create this admission capability by returning a tagged JSON value.
+#export_name("clientProgramResourceReferenceIssuer")
+pub fn client_program_resource_reference_issuer(
+  validate : (String, String) -> Bool,
+  authorize : (String) -> Bool,
+) -> @admitted.ReferenceIssuer {
+  @admitted.bind_reference_issuer(
+    (contract, wire) => {
+      match contract.shape {
+        @parameter_contract.ResourceRef(resource_kind~) =>
+          validate(resource_kind, wire)
+        _ => false
+      }
+    },
+    authorize,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceIsListing")
+pub fn client_program_row_source_is_listing(
+  acquisition : @client_row_source_host.RowAcquisition,
+) -> Bool {
+  @client_row_source_host.row_acquisition_is_listing(acquisition)
+}
+
+///|
+#export_name("clientProgramRowSourceListingComplete")
+pub fn client_program_row_source_listing_complete(
+  run : @client_row_source_host.RowRun,
+) -> Bool {
+  @client_row_source_host.row_run_listing_complete(run)
+}
+
+///|
+#export_name("clientProgramRowSourceBeginListingRequest")
+pub fn client_program_row_source_begin_listing_request(
+  run : @client_row_source_host.RowRun,
+  token : String?,
+  elapsed_ms : Int64,
+) -> Result[Bool, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.begin_row_run_listing_request(run, token, elapsed_ms).map(_ => {
+      true
+    },
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceBeginListingPage")
+pub fn client_program_row_source_begin_listing_page(
+  run : @client_row_source_host.RowRun,
+  body : Bytes,
+  elapsed_ms : Int64,
+  charge : @client_row_source_host.RowPageCharge?,
+) -> Result[Bool, @client_row_source_host.RowHostIssue] {
+  (match charge {
+    None =>
+      @client_row_source_host.begin_row_run_listing_page(run, body, elapsed_ms)
+    Some(charge) =>
+      @client_row_source_host.begin_charged_row_run_listing_page(
+        run, charge, body, elapsed_ms,
+      )
+  }).map(_ => true)
+}
+
+///|
+#export_name("clientProgramRowSourceAdvanceListingPage")
+pub fn client_program_row_source_advance_listing_page(
+  run : @client_row_source_host.RowRun,
+  quantum : Int,
+  elapsed_ms : Int64,
+) -> Result[String, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.advance_row_run_listing_page(run, quantum, elapsed_ms).map(value => {
+      let body : Json = match value {
+        ListingPageContinue(work~) =>
+          { "status": "continue", "work": work.to_json() }
+        ListingPageComplete(rows~, work~) =>
+          {
+            "status": "complete",
+            "rows": rows.to_json(),
+            "work": work.to_json(),
+          }
+      }
+      body.stringify()
+    },
+  )
 }
 
 ///|

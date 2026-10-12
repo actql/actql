@@ -1,0 +1,16 @@
+{
+  "installation": {
+    "registration": "gcs",
+    "revision": "gcs/0.1",
+    "responseHeaders": ["content-encoding", "content-range", "x-goog-generation", "x-goog-metageneration"],
+    "source": {
+      "profileVersion": "actql-installed-gcs-source/0.1",
+      "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+      "exports": {
+        "check": "checkInstalledGcsSourceProfile",
+        "identityParts": "installedGcsSourceIdentityParts",
+        "load": "loadInstalledGcsSource"
+      }
+    }
+  }
+}

@@ -16,6 +16,7 @@ pub struct ClientInferPlanGraph {
   barrier_cid : String
   input : ClientTaskFragmentNode
   output : ClientTaskFragmentNode
+  serialization : ClientSerializationPlanGraph?
 }
 
 ///|
@@ -29,6 +30,7 @@ pub(all) enum ClientInferPlanGraphIssue {
   Result(ClientResultPlanPartsIssue)
   Encoding
   ItemLimit(ClientInferItemLimitIssue)
+  Serialization(ClientSerializationEffectPlanIssue)
 }
 
 ///|
@@ -98,6 +100,13 @@ pub fn client_infer_plan_graph_matches_occurrence(
 ///|
 pub fn client_infer_plan_graph_wire(value : ClientInferPlanGraph) -> String {
   value.graph.wire
+}
+
+///|
+pub fn client_infer_plan_graph_serialization(
+  value : ClientInferPlanGraph,
+) -> ClientSerializationPlanGraph? {
+  value.serialization
 }
 
 ///|
@@ -207,6 +216,31 @@ pub fn issue_installed_client_composed_infer_plan_graph(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  if @strategy.graph_program_has_effects(occurrence.owner.graph) {
+    let serialization = match
+      issue_client_serialization_effect_plan(
+        occurrence.owner,
+        sequence_limits,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Serialization(issue))
+    }
+    if serialization is Some(component) {
+      return issue_prepared_client_serialized_infer_plan_graph(
+        occurrence,
+        component,
+        execution,
+        sequence_limits,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+        include_results=false,
+      )
+    }
+  }
   issue_prepared_client_composed_infer_plan_graph(
     occurrence,
     execution,
@@ -281,6 +315,58 @@ pub fn issue_prepared_client_composed_infer_plan_graph(
 }
 
 ///|
+/// Connect an already checked Content component to this exact Model
+/// occurrence. Generation remains a distinct barrier and retains its original
+/// policy/quantity binding; a pure-prefix reconstruction cannot substitute.
+pub fn issue_prepared_client_serialized_infer_plan_graph(
+  occurrence : ClientInferOccurrence,
+  serialization : ClientSerializationPlanGraph,
+  execution : @environment.ModelExecutionContract,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  include_results? : Bool = true,
+) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  if !client_infer_occurrence_matches(occurrence, occurrence.owner) {
+    return Err(UnsupportedProgram)
+  }
+  issue_client_infer_plan_graph_for_occurrence(
+    occurrence,
+    execution,
+    prepared_client_check_environment_cid(occurrence.owner),
+    @environment.model_task_identity(
+      @environment.model_execution_task(execution),
+    ).2,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    1000000,
+    include_results,
+    serialization=Some(serialization),
+  )
+}
+
+///|
+fn client_infer_required_profiles(
+  value : ClientInferPlanGraph,
+) -> Array[(String, String)] {
+  let profiles = [
+    ("actql-infer/0.1", @environment.compiler_inference_barrier_contract_cid()),
+  ]
+  if value.serialization is Some(_) {
+    profiles.push(
+      (
+        "actql-content/0.1",
+        @environment.compiler_content_barrier_contract_cid(),
+      ),
+    )
+  }
+  profiles
+}
+
+///|
 fn issue_client_infer_plan_graph_for_occurrence(
   occurrence : ClientInferOccurrence,
   execution : @environment.ModelExecutionContract,
@@ -292,6 +378,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
   max_depth : Int,
   capacity_work : Int,
   include_results : Bool,
+  serialization? : ClientSerializationPlanGraph? = None,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
   let value = occurrence.owner
   let owner = occurrence.preparation
@@ -329,9 +416,33 @@ fn issue_client_infer_plan_graph_for_occurrence(
     value => value
   }
   let prefix = match
-    issue_client_infer_prefix_fragment_for_owner(
-      owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
+    (match serialization {
+      Some(component) => {
+        guard physical_equal(component.owner, value) &&
+          physical_equal(@lower.serialization_owner(component.barrier), owner) &&
+          component.task == task &&
+          component.step < step else {
+          return Err(UnsupportedProgram)
+        }
+        if component.step + 1 == step {
+          Ok(component.output)
+        } else {
+          issue_client_serialized_infer_compute_fragment(
+            component,
+            step,
+            step - 1,
+            sequence_limits,
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+        }
+      }
+      None =>
+        issue_client_infer_prefix_fragment_for_owner(
+          owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+        )
+    }) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
@@ -464,10 +575,121 @@ fn issue_client_infer_plan_graph_for_occurrence(
     }
     let barrier_id = "task_" + task.to_string() + "_infer_" + step.to_string()
     let output_port = @lower.node_id(node)
-    let nodes : Array[@canonical.CanonicalValue] = [prefix_node]
+    let nodes : Array[@canonical.CanonicalValue] = []
+    if serialization is None {
+      nodes.push(prefix_node)
+    }
     let edges : Array[@canonical.CanonicalValue] = []
     let roots : Array[@canonical.CanonicalValue] = []
     let transformations : Array[ClientResultTransformation] = []
+    let content_producers : Array[(Int, String, String, String)] = []
+    if serialization is Some(component) {
+      guard parse_plan_identity_value(
+          component.graph.wire,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        )
+        is Some(content_graph) &&
+        @canonical.object_field(content_graph, "nodes")
+        is Some(@canonical.Array(content_nodes)) &&
+        @canonical.object_field(content_graph, "data_edges")
+        is Some(@canonical.Array(content_edges)) &&
+        @canonical.object_field(content_graph, "root_refs")
+        is Some(@canonical.Array(content_roots)) &&
+        @canonical.array_values(content_roots).is_empty() else {
+        return Err(Encoding)
+      }
+      // These opaque component nodes retain the real byte producer and policy,
+      // not a reconstruction from Program JSON or a VALUES metadata substitute.
+      for node in @canonical.array_values(content_nodes) {
+        nodes.push(node)
+      }
+      for edge in @canonical.array_values(content_edges) {
+        edges.push(edge)
+      }
+      let producers : Array[ClientTaskFragmentNode] = [component.output]
+      content_producers.push(
+        (
+          component.step,
+          component.output.node_id,
+          component.output.output_port,
+          component.output.output_contract_cid,
+        ),
+      )
+      for next in (component.step + 1)..<step {
+        let fragment = if next == step - 1 {
+          prefix
+        } else {
+          match
+            issue_client_serialized_infer_compute_fragment(
+              component, step, next, sequence_limits, max_wire_bytes, max_nodes,
+              max_depth,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(Input(issue))
+          }
+        }
+        guard parse_plan_identity_value(
+            fragment.wire,
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+          is Some(node) else {
+          return Err(Encoding)
+        }
+        nodes.push(node)
+        guard @lower.node_at(@lower.bound_preparation(owner), next)
+          is Some(consumer) else {
+          return Err(UnsupportedProgram)
+        }
+        for port in 0..<@lower.node_input_count(consumer) {
+          guard @lower.node_input_target(consumer, port)
+            is Some(@pipeline.Step(source)) &&
+            @lower.node_at(@lower.bound_preparation(owner), source)
+            is Some(source_node) else {
+            return Err(UnsupportedProgram)
+          }
+          let mut producer : ClientTaskFragmentNode? = None
+          for candidate in producers {
+            if candidate.output_port == @lower.node_id(source_node) {
+              producer = Some(candidate)
+            }
+          }
+          guard producer is Some(producer) else {
+            return Err(UnsupportedProgram)
+          }
+          let edge = "{\"carrier\":\"relation\",\"contract_cid\":\"" +
+            producer.output_contract_cid +
+            "\",\"from\":{\"node_id\":\"" +
+            producer.node_id +
+            "\",\"port\":\"" +
+            producer.output_port +
+            "\"},\"to\":{\"node_id\":\"" +
+            fragment.node_id +
+            "\",\"port\":\"input_" +
+            port.to_string() +
+            "\"}}"
+          guard parse_plan_identity_value(
+              edge, max_wire_bytes, max_nodes, max_depth,
+            )
+            is Some(edge) else {
+            return Err(Encoding)
+          }
+          edges.push(edge)
+        }
+        producers.push(fragment)
+        content_producers.push(
+          (
+            next,
+            fragment.node_id,
+            fragment.output_port,
+            fragment.output_contract_cid,
+          ),
+        )
+      }
+    }
     let node_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(node_writer)
     @encode.key(node_writer, "barrier")
@@ -528,6 +750,11 @@ fn issue_client_infer_plan_graph_for_occurrence(
       (step - 1, prefix.node_id, prefix.output_port, prefix.output_contract_cid),
       (step, barrier_id, output_port, output_contract_cid),
     ]
+    for producer in content_producers {
+      if producer.0 != step - 1 {
+        producers.push(producer)
+      }
+    }
     let mut result_node = barrier_id
     let mut result_port = output_port
     let mut result_contract = output_contract_cid
@@ -542,7 +769,15 @@ fn issue_client_infer_plan_graph_for_occurrence(
     for next in (step + 1)..<(terminal + 1) {
       let fragment = match
         issue_client_infer_compute_fragment(
-          owner, task, step, next, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+          owner,
+          task,
+          step,
+          next,
+          sequence_limits,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+          serialization_boundary=serialization.map(value => value.step),
         ) {
         Ok(fragment) => fragment
         Err(issue) => return Err(Input(issue))
@@ -669,6 +904,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
       barrier_cid,
       input: prefix,
       output,
+      serialization,
     })
   } catch {
     _ => Err(Encoding)

@@ -1,6 +1,7 @@
 // Explicit Host configuration of the existing capacity contract. This is
 // neither caller Program input nor an adapter-owned policy override.
 import contract from '../../spec/contracts/actql-capacity-host-policy.json' with {type: 'json'};
+import environmentContract from '../../spec/contracts/actql-check-environment.json' with {type: 'json'};
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 
 const snapshots = new WeakSet();
@@ -34,12 +35,44 @@ export function snapshotHostCapacityPolicy(value) {
   } catch { fail('PolicySnapshot'); }
 }
 
-export function selectInstalledHostEnvironment(moon, baseWire, selection) {
+const lookupSnapshots = new WeakSet();
+
+// Select finite lookup ceilings at the Host boundary, never from a Source
+// adapter or caller Program. Absence remains unresolved, not implicit defaults.
+export function snapshotHostLookupExecutionPolicy(value) {
+  if (value === undefined) return undefined;
+  if (value !== null && typeof value === 'object' && lookupSnapshots.has(value)) return value;
+  const invalid = () => { throw Object.assign(new TypeError('InvalidInstalledHostLookupExecutionPolicy'),
+    {code: 'InvalidInstalledHostLookupExecutionPolicy'}); };
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+        Object.getPrototypeOf(value) !== Object.prototype) invalid();
+    const entries = Object.entries(value);
+    const shape = environmentContract.policy_components.lookup_execution.schema;
+    const keys = new Set(entries.map(([key]) => key));
+    if (entries.length !== shape.required.length ||
+        shape.required.some(key => !keys.has(key))) invalid();
+    for (const [key, item] of entries) {
+      const rule = shape.properties[key];
+      if (!Object.hasOwn(shape.properties, key) || (Object.hasOwn(rule, 'const') ? item !== rule.const :
+        !Number.isSafeInteger(item) || Object.is(item, -0) ||
+          item < rule.minimum || item > rule.maximum)) invalid();
+    }
+    const snapshot = Object.freeze(Object.fromEntries(entries));
+    lookupSnapshots.add(snapshot);
+    return snapshot;
+  } catch { invalid(); }
+}
+
+export function selectInstalledHostEnvironment(moon, baseWire, selection, lookupSelection) {
   const policy = snapshotHostCapacityPolicy(selection);
-  if (policy === undefined) return baseWire;
+  const lookup = snapshotHostLookupExecutionPolicy(lookupSelection);
+  if (policy === undefined && lookup === undefined) return baseWire;
   const {evidence_bundle_cid: ignored, ...body} = JSON.parse(baseWire);
   void ignored;
-  body.host_policy_profile = {...body.host_policy_profile, capacity: policy};
+  body.host_policy_profile = {...body.host_policy_profile,
+    ...(policy === undefined ? {} : {capacity: policy}),
+    ...(lookup === undefined ? {} : {lookup_execution: lookup})};
   const evidenceCid = contentCid(body);
   const wire = canonicalJson({...body, evidence_bundle_cid: evidenceCid});
   if (moon.clientProgramCheckEnvironment(wire, evidenceCid,

@@ -110,14 +110,19 @@ fn decode_retained_row(
   text : String,
   limits : RetainedRowDecodeLimits,
   reference_cells? : Array[Array[@admitted.ReferenceValue]],
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[Array[@admitted.CheckedValue], RetainedRowDecodeIssue] {
   // Dense import is not a NULL-filling adapter for conditional schemas.
   if !@schema.all_fields_required(schema) {
     return Err(InvalidShape)
   }
-  decode_retained_presence_cells(schema, text, limits, reference_cells?).map(cells => {
-    cells.map(cell => cell.unwrap())
-  })
+  decode_retained_presence_cells(
+    schema,
+    text,
+    limits,
+    reference_cells?,
+    reference_issuer?,
+  ).map(cells => cells.map(cell => cell.unwrap()))
 }
 
 ///|
@@ -126,8 +131,10 @@ fn decode_retained_presence_cells(
   text : String,
   limits : RetainedRowDecodeLimits,
   reference_cells? : Array[Array[@admitted.ReferenceValue]],
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[Array[@admitted.CheckedValue?], RetainedRowDecodeIssue] {
-  if limits.max_bytes < 0 ||
+  if (reference_cells is Some(_) && reference_issuer is Some(_)) ||
+    limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_text_bytes < 0 ||
     limits.max_depth < 0 ||
@@ -195,8 +202,8 @@ fn decode_retained_presence_cells(
       Some(cells) => cells[column]
       None => []
     }
-    let admitted = match reference_cells {
-      Some(_) => {
+    let admitted = match (reference_cells, reference_issuer) {
+      (Some(_), _) => {
         let issuer = @admitted.bind_reference_reissuer((required, wire) => {
           guard references.get(used.val) is Some(reference) &&
             @admitted.reference_wire(reference) == wire &&
@@ -224,7 +231,25 @@ fn decode_retained_presence_cells(
           wire=true,
         )
       }
-      None =>
+      (None, Some(issuer)) =>
+        @admitted.admit_host(
+          issuer,
+          contract,
+          cell,
+          {
+            max_nodes: limits.max_nodes,
+            max_text_bytes: limits.max_text_bytes,
+            max_depth: limits.max_depth,
+          },
+          {
+            max_bytes: limits.max_bytes,
+            max_nodes: limits.max_nodes,
+            max_depth: limits.max_depth,
+            max_text_units: limits.max_text_bytes,
+          },
+          wire=true,
+        )
+      (None, None) =>
         @admitted.admit_wire(contract, cell, {
           max_nodes: limits.max_nodes,
           max_text_bytes: limits.max_text_bytes,
@@ -274,6 +299,7 @@ fn read_retained_relation_row_references(
   decode_limits : RetainedRowDecodeLimits,
   value_limits : ValueLimits,
   reference_cells? : Array[Array[@admitted.ReferenceValue]],
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[AdmittedRelationRow, RetainedRowDecodeIssue] {
   let cells = match
     decode_retained_presence_cells(
@@ -281,6 +307,7 @@ fn read_retained_relation_row_references(
       text,
       decode_limits,
       reference_cells?,
+      reference_issuer?,
     ) {
     Ok(cells) => cells
     Err(issue) => return Err(issue)
@@ -348,10 +375,13 @@ fn append_admitted_output_wire_references(
 }
 
 ///|
+/// Stored-input readmission may supply an already authorized current reissuer.
+/// This never replaces the original per-cell authority of a live export.
 pub fn append_completed_output_import_wire(
   value : CompletedOutputImport,
   text : String,
   limits : RetainedRowDecodeLimits,
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[Unit, CompletedImportIssue] {
   if !value.open || value.reading {
     return Err(Closed)
@@ -360,14 +390,39 @@ pub fn append_completed_output_import_wire(
     cancel_completed_output_import(value) |> ignore
     return Err(Unavailable)
   }
-  let schema = value.source.representation.unwrap().receipt.schema
+  let material = value.source.representation.unwrap()
+  // A supplied current issuer cannot override a live export's exact reference
+  // inventory. Stored-input readmission has no in-process export inventory.
+  if reference_issuer is Some(_) && material.references is Some(_) {
+    cancel_completed_output_import(value) |> ignore
+    return Err(WireRow(InvalidShape))
+  }
+  let schema = material.receipt.schema
+  let reference_cells = match material.references {
+    None => None
+    Some(references) => {
+      let row = if @schema.all_fields_required(schema) {
+        value.admitted.buffer.rows.length()
+      } else {
+        value.admitted.buffer.presence_rows.length()
+      }
+      guard completed_export_reference_row(references, row, limits.max_nodes)
+        is Some(cells) else {
+        cancel_completed_output_import(value) |> ignore
+        return Err(WireRow(InvalidShape))
+      }
+      Some(cells)
+    }
+  }
   if !@schema.all_fields_required(schema) {
     return match
-      read_retained_relation_row(
+      read_retained_relation_row_references(
         schema,
         text,
         limits,
         value.admitted.buffer.budget.limits,
+        reference_cells?,
+        reference_issuer?,
       ) {
       Ok(row) => append_completed_output_import_presence(value, row)
       Err(issue) => {
@@ -376,7 +431,14 @@ pub fn append_completed_output_import_wire(
       }
     }
   }
-  match decode_retained_row(schema, text, limits) {
+  match
+    decode_retained_row(
+      schema,
+      text,
+      limits,
+      reference_cells?,
+      reference_issuer?,
+    ) {
     Ok(values) => append_completed_output_import(value, values)
     Err(issue) => {
       cancel_completed_output_import(value) |> ignore

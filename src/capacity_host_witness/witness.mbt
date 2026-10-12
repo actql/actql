@@ -32,6 +32,7 @@ fn mapping(field : String) -> (@derivation.BoundUnit, String)? {
     "max_artifact_bytes" => Some((Bytes, "actql.host.artifact-bytes"))
     "max_artifact_rows" => Some((Rows, "actql.host.artifact-rows"))
     "max_effect_items" => Some((EffectItems, "actql.host.effect-items"))
+    "max_file_listing_items" => Some((Rows, "actql.host.file-listing-items"))
     "max_graph_input_edges" => Some((Edges, "actql.host.graph-input-edges"))
     "max_graph_input_nodes" => Some((Nodes, "actql.host.graph-input-nodes"))
     "max_graph_output_rows" => Some((Rows, "actql.host.graph-output"))

@@ -189,7 +189,7 @@ test "pivot compares every key domain including owned references" {
       "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false," +
+      "{\"type\":\"content_ref\",\"nullable\":false," +
       "\"media_type\":\"application/json\"}",
       "",
       "artifact",
@@ -266,7 +266,7 @@ test "pivot first preserves every relation value domain" {
       "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true," +
+      "{\"type\":\"content_ref\",\"nullable\":true," +
       "\"media_type\":\"application/json\"}",
       "",
       "artifact",

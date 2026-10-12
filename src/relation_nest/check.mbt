@@ -44,7 +44,7 @@ fn constructible(
   while work.pop() is Some(c) {
     spend(b, s)
     match c.shape {
-      @contract.Json | @contract.ResourceRef(..) | @contract.ArtifactRef(..) =>
+      @contract.Json | @contract.ResourceRef(..) | @contract.ContentRef(..) =>
         fail(s, NotConstructible(name))
       @contract.Array(item, ..) => work.push(item)
       @contract.Object(fields) => {

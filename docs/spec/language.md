@@ -730,7 +730,7 @@ every field name and recursive value contract; knowing some names is not complet
 ### Closed value contracts
 
 The closed value type names are `string`, `number`, `decimal`, `boolean`, `timestamp`,
-`date`, `json`, `object`, `array`, `vector`, `resource_ref`, and `artifact_ref`.
+`date`, `json`, `object`, `array`, `vector`, `resource_ref`, and `content_ref`.
 The primitive value domains are:
 
 <!-- requirement-block: value-contracts.type-value-domain-string-unicode -->
@@ -749,7 +749,7 @@ dimensions and the 0.1 f32 element law. Opaque reference values are defined in
 [Opaque reference values](#opaque-references). Arithmetic, conversion, and null propagation are specified in [Expressions and predicates](#expressions).
 
 <!-- requirement-block: value-contracts.every-field-contract-including-an-array-element-contract-or-object value-contracts.array-contracts-must-declare-items value-contracts.object-contracts-must-declare-fields value-contracts.for-json-pick-on-a-typed-object-a-referenced-path-must value-contracts.when-schema-is-present-it-is-complete-runtime-rows-must value-contracts.when-schema-is-present-it-is-complete-runtime-rows-must.second -->
-`resource_ref` and `artifact_ref` additionally declare `resource_kind` or optional `media_type`
+`resource_ref` and `content_ref` additionally declare `resource_kind` or optional `media_type`
 and require issuer evidence as specified in [Opaque reference values](#opaque-references). Every field contract, including
 an array element contract or object property contract, MUST declare `nullable`.
 `array` contracts MUST declare `items`; `object` contracts MUST declare
@@ -870,7 +870,7 @@ also has `type` and required `nullable`; `?` marks an optional member.
 | `object` | `fields: {AuthoredFieldName: AuthorValueContract}` | recursive checked fields; `additional_properties: false` |
 | `vector` | `dimensions` | `element_type: f32` |
 | `resource_ref` | `resource_kind` | unchanged |
-| `artifact_ref` | `media_type?` | unchanged |
+| `content_ref` | `media_type?` | unchanged |
 
 `AuthorValueContract` is exactly the author column; `CheckedValueContract`
 is its recursive expansion plus only the checked members listed above.
@@ -942,7 +942,7 @@ Nullability and value-size bounds may differ; each input still satisfies its
 own contract, and the operation's null policy governs null keys. Base types
 must match without coercion. Decimal precision/scale may differ: decimal keys
 compare by exact numeric value under [Exact decimal values](#decimal-values).
-ResourceKind must match; ArtifactRef media restrictions do not change reference equality.
+ResourceKind must match; ContentRef media restrictions do not change reference equality.
 Scalar and reference domains are comparable under these rules; object, array,
 json, and vector keys are not admitted. Join-key compatibility uses this
 relation, not `TypeEqual`.
@@ -1002,14 +1002,14 @@ Two opaque scalar types cross carrier boundaries:
   namespace plus content identities for provider identity, authority scope,
   Resource boundary, and the complete reference. It contains no native provider
   locator, view, connector version, observation time, etag, or schema evidence.
-- `artifact_ref<Mime>` identifies captured bytes and carries content CID, media
+- `content_ref<Mime>` identifies captured bytes and carries content CID, media
   type, bounded byte count/range, storage scope, truncation, sensitivity,
   capture authority, and optional source ResourceRef/version evidence.
 
 ResourceRef equality is equality of `identity_cid`, scoped by provider
 namespace, ResourceKind, provider identity, authority scope, and boundary.
 Connection names and authentication revisions do not determine that identity.
-ArtifactRef equality is equality of `artifact_ref_cid`, including store, scope,
+ContentRef equality is equality of `content_ref_cid`, including store, scope,
 retention, and policy; equal `content_cid` values establish byte identity only.
 SourceView and serialization output contracts may expose `content_cid` as a
 separate field.
@@ -1020,7 +1020,7 @@ distinct, and uniqueness checks, independently of acquisition or in-memory
 object identity. Within each reference type, `eq`/`neq` use that equality.
 References are scalar keys for equality-based operations. For specification-defined
 canonical identity ordering and deterministic compiler completion, use AoA code-unit
-order of `identity_cid` for ResourceRefs or `artifact_ref_cid` for ArtifactRefs.
+order of `identity_cid` for ResourceRefs or `content_ref_cid` for ContentRefs.
 This includes canonical group/partition enumeration and request-key ordering
 where the operation already admits reference keys; it does not expand any
 operation's admitted key or Carrier types. Machine-only means not
@@ -1029,7 +1029,7 @@ canonical order remains part of observable semantics. Author-order restrictions
 and their validation boundaries are defined in [Lexical and ordering rules](#ordering).
 
 <!-- requirement-block: opaque-references.host-accepted-bindings-and-artifact-or-result-inputs-must-revalidate-issuer opaque-references.references-serialize-as-tagged-canonical-json-objects-but-their-internals -->
-Only a Connector host may issue a `resource_ref`. An `artifact_ref` may be
+Only a Connector host may issue a `resource_ref`. An `content_ref` may be
 issued only by a Connector capture or an authorized content-addressed Artifact
 Store derivation. Both issuers bind typed issuer evidence; the public protocol
 exports validators, not an author-accessible issuer. A reference grants no
@@ -1052,7 +1052,7 @@ image/audio-specific carriers do not exist.
 
 `AuthorOrderable` comprises `string`, `number`, `decimal`, `boolean`,
 `timestamp`, and `date`. `CanonicalOrderable` comprises those types plus
-`resource_ref` and `artifact_ref`. These are specification classifications,
+`resource_ref` and `content_ref`. These are specification classifications,
 not source syntax. A portable order is the specified total order over non-null
 values of a `CanonicalOrderable` type: numeric order for `number` and `decimal`, `false < true`
 for `boolean`, chronological order for `timestamp` and `date`, the string order
@@ -1114,8 +1114,8 @@ The external and computational models are orthogonal:
 Resource -> SourceView ---------------------> Carrier
 Relation -> ModelTask infer acquisition ----> Relation
 Relation -> keyed SourceView join acquisition -> Relation
-Relation -> Artifact serialization ---------> Relation<artifact_ref>
-Relation<artifact_ref> -> typed external SourceView join -> Relation
+Relation -> Artifact serialization ---------> Relation<content_ref>
+Relation<content_ref> -> typed external SourceView join -> Relation
 Carrier  -> AoA algebra -> Effect Plan -> Receipt
 ```
 
@@ -1348,7 +1348,7 @@ whether all required static and correlation roles are covered.
 The host supplies the opaque binding at invocation. Its declaration and request
 position belong to Program identity; the concrete binding belongs to Invocation
 identity and `resolved_request_cid` source evidence. Bindings MUST be used only
-inside SourceView requests. A binding MUST NOT create a ResourceRef or ArtifactRef.
+inside SourceView requests. A binding MUST NOT create a ResourceRef or ContentRef.
 The host invocation contract MUST expose each declaration name and its
 `resource_kind` or media-type constraint separately from the opaque values
 artifact. Authors MUST NOT inspect that artifact to discover keys, and authoring tooling
@@ -1426,7 +1426,7 @@ They mean finite collection enumeration, provider candidate search, exact
 Resource observation fetch, and provider-declared relationship traversal. Search MAY
 be ranked and incomplete; it MUST NOT be promoted to a complete extent.
 Read authority is exactly `read_metadata`, `read_content`, or `read_binary`.
-A metadata SourceView cannot expose a content or ArtifactRef field. Referencing
+A metadata SourceView cannot expose a content or ContentRef field. Referencing
 one is a check failure. A reference to such a field MUST NOT trigger an
 implicit read-authority upgrade.
 
@@ -3448,7 +3448,7 @@ constructor fields, heterogeneous elements, and hidden capability references.
 `{object: {static_name: Expression, ...}}` builds a closed, non-empty product;
 all named properties are present, including nullable properties. Field names
 use the same closed schema rules as relation fields. Computed keys, spread,
-merge, omission, opaque JSON, and hidden ResourceRef/ArtifactRef values are
+merge, omission, opaque JSON, and hidden ResourceRef/ContentRef values are
 not admitted. Key order is canonical for identity, not an author-selected
 semantic order. Classification/provenance includes every child dependency.
 
@@ -3863,7 +3863,7 @@ The complete canonical vocabulary is:
 | Acquisition | [`infer`](#infer) | relation -> relation |
 | Acquisition | [`search_candidates`](#candidate-search) | relation -> candidates and coverage relations |
 | Search | [`text_rank`](#text-rank) | relation x relation -> relation |
-| Artifact | [`serialize`](#serialize) | relation -> relation containing `artifact_ref` |
+| Artifact | [`serialize`](#serialize) | relation -> relation containing `content_ref` |
 
 <!-- requirement-block: operation-inventory.implementations-must-not-execute-an-unknown-spelling-through-fuzzy-matching -->
 Reserved operation, argument-key, scalar-function, predicate, Effect-kind, and
@@ -4967,7 +4967,7 @@ assertion branches fail planning rather than silently disappearing. No
 <!-- requirement-block: assert-rows.equality-key-domains assert-rows.nullable-key-contracts -->
 Fields in `assert_rows.unique_by` MUST belong to the scalar or reference
 domains admitted by `KeyComparable` ([Closed value contracts](#value-contracts)),
-including ResourceRef and ArtifactRef. Object, array, json and vector fields
+including ResourceRef and ContentRef. Object, array, json and vector fields
 are not admitted. Nullable field contracts MUST be accepted during type
 checking; the physical assertion rejects null or missing component values.
 Type checking alone neither narrows those contracts nor establishes a
@@ -6695,7 +6695,7 @@ domain and the same named node and edge definition sets. Definition and property
 declaration order may differ; align them by the existing name rules. The exact
 definition spelling embedded in identity and each ordered key type descriptor
 must nevertheless match: `N` and `n`, decimal precision/scale changes, and
-different ArtifactRef media types are not implicit identity conversions.
+different ContentRef media types are not implicit identity conversions.
 Check rejects those mismatches with typed identity reasons. Key-component order
 and original key-column correspondence, label sets and label-visible property
 sets, and source/target definition mappings must agree. Property value contracts
@@ -7893,7 +7893,7 @@ Strict mode exposes no such Relation. Replay and notification use the original
 capture; neither issues a replacement model call. Effect apply MUST NOT
 rerun inference. Graph, vectors, or events enter `infer` only after an explicit
 row bridge. The profile rejects `resource_ref` model inputs. It admits typed
-`artifact_ref` inputs and bounded homogeneous arrays under the ModelTask media
+`content_ref` inputs and bounded homogeneous arrays under the ModelTask media
 contract: MIME, content identity, complete/truncated status, byte/page/frame
 limits, transfer method, classifications, region and egress scope are explicit.
 Issuer, current scope, permission, availability and exact content bytes are
@@ -7905,6 +7905,61 @@ hidden business mutations. Tool use, hosted search/retrieval, code interpreters,
 streaming downstream, dynamic model or prompt selection, embedding generation,
 and reranking are outside `actql-infer/0.1`. Cross-Run model cache is deferred;
 same-observation replay and same-slot retry do not introduce one.
+
+The installed complete-byte media profile resolves every role in
+`media_input_contracts` to an `actql-model-media-input/0.1` dependency. Its closed
+envelope contains `version`, `payload` and `self_cid`; the CID hashes the
+canonical envelope without `self_cid`. The closed payload contains
+`media_type`, positive safe-integer `max_bytes`, explicitly nullable positive
+`max_pages` and `max_frames`, `complete: true`, `transfer_method: "inline_bytes"`,
+nonempty duplicate-free `classifications` and `regions`, and
+`egress_scope_cid`. NULL page/frame ceilings mean not applicable, not permission
+for unlimited parsing of that medium. Missing bodies, substituted identities,
+duplicate role bindings and unreferenced bodies are rejected; all dependencies
+share the installed byte/node/work envelope. This initial profile does not
+admit truncated content, author-supplied URLs or another transfer method.
+
+Media roles are matched to the ModelTask's declared input fields, not observed
+rows. A role must be a direct ContentRef or a homogeneous ContentRef array with
+an explicit finite item bound. Its declared MIME restriction, when present,
+must match the dependency's MIME. A broad ContentRef type does not waive the
+dependency's runtime MIME restriction. Missing media bindings, unknown roles,
+scalar roles, nested Content containers and unbounded arrays are rejected by
+this installed profile. Nullable inputs and empty Relations do not remove
+these static obligations. This matching uses the existing bounded dependency
+admission envelope and retains the exact checked role/body/CID binding.
+
+Dependency admission is not attachment admission. The physical Model preflight
+must additionally bind each original Ref and content identity, current issuer
+authority, exact retained bytes, applicable media limits and current egress
+permission to the same checked role and call. A syntactically valid body or
+ContentRef envelope is not such evidence. Request preparation checks the
+original opaque Ref's availability before emitting its input frame, including
+references inside arrays and objects; that check alone does not establish
+physical byte validation or replace the dispatch-time authority fence.
+
+Physical preflight receives the smaller of the current Model quantum and its
+remaining work budget. It reports the actual consumed work on each advance,
+including failed validation; the common bounded Model owner adds it once.
+Exact-byte hashing charges one work per examined byte, with at most 256 bytes
+per byte-check update and no more than the admitted quantum across an advance.
+Completion/control transitions are separately charged; adapters cannot count a
+whole attachment as one poll. Invalid work reports stop without provider
+dispatch. Work exhaustion never resumes preparation or dispatch, and pending
+physical cleanup retains its existing reservation until release succeeds.
+
+The physical owner issues an `actql-model-attachment-admission/0.1` observation
+for each call with non-NULL Content attachments. Its ordered inventory binds
+each checked role and array ordinal (or -1 for a direct role), original Ref CID,
+validated content CID and size, media dependency CID, effective policy,
+classification, region, egress scope, applicable page/frame counts and complete
+inline-byte transport. The record also binds the call slot, ModelTask, fixed
+request and actual dispatch authority. Its CID enters that slot's
+`attachment_admission_cids`; it is saved through the same private capture Store
+before settlement is acknowledged. A scalar or all-NULL call has an empty
+inventory. Saved restoration verifies the exact referenced record and its call
+and authority binding. This observation neither extends byte custody nor
+authorizes another provider dispatch.
 
 A model slot identity binds the Program/Stage definitions, effective inputs,
 input artifact and key, ModelTask and fixed request. It excludes future response
@@ -8150,7 +8205,7 @@ maximum of the authoritative SourceView policy and the named input's minimum,
 then resolve the barrier output policy from both request-input and acquired
 response provenance. The barrier and downstream ResultDefinitions bind all
 source policy CIDs. Compile time produces egress requirements, not an admission
-claim. Concrete ArtifactRef admission follows [Reference admission and availability](protocols/artifacts.md#reference-admission). Immediately before
+claim. Concrete ContentRef admission follows [Reference admission and availability](protocols/artifacts.md#reference-admission). Immediately before
 provider access, runtime MUST recheck sensitivity, completeness, MIME, bytes,
 availability, provider-account boundary, region, and current Host policy
 against the bound egress requirements. Failure performs zero provider calls.
@@ -8194,6 +8249,29 @@ dispatch either. Egress still requires admission under the applicable destinatio
 data-handling contract and current Host policy, including the existing rejection
 of unknown classification for model egress. This classification calculation does
 not supply missing provenance or define a substitute effective-policy preimage.
+
+<!-- requirement-block: external-joins.host-request-value-policy-subject external-joins.host-request-value-policy-contribution external-joins.host-request-value-policy-verification external-joins.host-request-value-policy-fail-closed -->
+The Host may bind verified policy evidence for the complete static value set of
+one checked Source Request. Such evidence MUST bind the original Program
+Definition CID, effective Parameter Values CID, Stage/input occurrence, selected
+SourceView contract CID, and the canonical identity of its exact bound static
+request values. It MUST retain the contributing admitted data-policy Envelope
+from the same selected Environment separately from the response policy. The Host
+MUST verify all of those value contributors; the response classification alone
+does not establish their provenance. Authored Programs cannot self-assert this
+evidence. Missing, duplicate, foreign or mismatched evidence MUST NOT resolve
+unknown provenance. Unresolved Host bindings cannot be attested as concrete
+request values. Correlated keyed values still require their own producer policy.
+Default versus supplied Parameter origin remains a separate correspondence even
+when the effective Parameter Values CID and request bytes are identical; an
+attestation for one origin cannot be reused for the other without verification.
+
+<!-- requirement-block: external-joins.host-request-value-policy-authority -->
+Policy evidence for request values is not provider access or Model approval.
+Current egress, authorization, scope and approval checks remain independent, and
+an admitted policy whose classification is unknown remains unknown. Rechecking
+or recovery MUST establish the original correspondence before using the evidence;
+equal effective-policy CIDs do not permit transplanting it to another request.
 
 <!-- machine-import: ../../spec/contracts/actql-effective-data-policy.json# sha256:93dd2547ab54c61374ed35f397af0195be23555f63a383310323d909c489f5ff -->
 <!-- machine-import: ../../spec/contracts/actql-effective-data-policy.json#/schemas/policy sha256:529c2309545304d5436bfcaac9f5c878e8137df6d7030494b33920a6e6b6cb02 -->
@@ -8269,21 +8347,21 @@ physical node order, or normalization presentation text.
 
 <a id="serialize"></a>
 
-### Artifact serialization: `serialize`
+### Content serialization: `serialize`
 
 <!-- requirement-block: serialize.it-must-not-upload-the-artifact-implicitly -->
 The public operation name is `serialize` and the module profile is
-`actql-artifact/0.1`. It converts one explicitly ordered Relation into one
-content-addressed Artifact and returns a one-row Relation carrying its
-`artifact_ref`; it is distinct from ordinary Result delivery. It MUST NOT upload
-the Artifact implicitly.
+`actql-content/0.1`. It converts one explicitly ordered Relation into one
+content-addressed Content and returns a one-row Relation carrying its
+`content`; it is distinct from ordinary Result delivery. It MUST NOT upload
+the Content implicitly.
 
 <!-- requirement-block: serialize.the-artifact-barrier-must-bind-every-input-data-policy-cid-and serialize.artifact-derivation-preserves-policy-exactly-the-barrier-output-policy-emitted -->
-The Artifact barrier MUST bind every input data-policy CID and the effective
-output data-policy CID. Artifact derivation preserves policy exactly: the
-barrier output policy, emitted ArtifactRef metadata policy, issuer-evidence
+The Content barrier MUST bind every input data-policy CID and the effective
+output data-policy CID. Content derivation preserves policy exactly: the
+barrier output policy, emitted ContentRef metadata policy, issuer-evidence
 policy, and derivation-evidence policy MUST be identical. A later Invocation
-receiving that ArtifactRef therefore cannot replace its original policy with a
+receiving that ContentRef therefore cannot replace its original policy with a
 weaker local-input default.
 
 ```yaml
@@ -8293,48 +8371,80 @@ weaker local-input default.
     order_by: [{customer_id: asc}]
     encoding: utf-8
     line_ending: crlf
-    csv:
-      header: true
-      delimiter: ","
-      null: ""
-    logical_name: risk-export.csv
+    header: true
+    field_delimiter: ","
+    null_marker: ""
+    name: risk-export.csv
   as: risk_export
 ```
 
 <!-- requirement-block: serialize.csv-must-use-u-0022-as-its-quote-character-this-is serialize.fields-must-be-the-exact-emitted-field-sequence-and-order-by serialize.fields-must-be-the-exact-emitted-field-sequence-and-order-by.second serialize.the-machine-barrier-must-contain-both-resolved-limits-using-program -->
 `format` is exactly `csv` or `jsonl`; encoding is `utf-8` or `utf-8-bom`, and
-line ending is `lf` or `crlf`. CSV delimiter, header, and null spelling are
-explicit and closed. CSV MUST use U+0022 as its quote character; this is a
-serialization-profile law, not an author field. The null spelling is either
-empty unquoted null or `\\N`; empty strings remain quoted
-empty cells. `fields` MUST be the exact emitted field sequence and
-`order_by` MUST provide a total stable order. `bounds.max_rows` and
+line ending is `lf` or `crlf`. Authored `UTF-8`, `UTF-8-BOM`, `LF` and `CRLF`
+are also accepted and resolve to those lowercase profile tokens through the
+common checker in every source format. This finite option resolution does not
+normalize names, field values or the NULL marker. All source formats resolve omitted encoding to
+`utf-8` and line ending to `lf`. `name` is a mandatory nonempty label, not a
+destination. CSV requires explicit `header` and `null_marker`; its omitted
+`field_delimiter` resolves to comma. The delimiter is exactly comma or semicolon,
+and the NULL marker is exactly empty text or the two-character string `\N`.
+JSONL rejects all three CSV-only options. The old nested `csv` object and
+`logical_name` option are not alternative spellings.
+
+CSV MUST use U+0022 as its quote character; this is a serialization-profile law,
+not an author field. Header cells are quoted exactly when they contain the
+selected delimiter, quote, CR or LF. String, date and timestamp data cells are
+always quoted, including ordinary strings, empty strings and a string equal to
+the NULL marker. Quotes are doubled. Number, Boolean and exact decimal cells
+use the existing common scalar spelling without quotes; NULL uses the unquoted
+marker. Structured and reference cells contain the existing canonical typed
+wire value inside one quoted CSV cell. References are not dereferenced. No
+Unicode normalization, newline conversion inside cells or spreadsheet formula
+escaping is applied. This Content framing does not change existing Result
+delivery's always-quoted headers, comma, LF or fixed NULL spelling.
+
+CSV requires every selected column to have a Required presence declaration;
+nullable values are independently allowed. A Conditional column is rejected
+even if every sampled row happens to contain it. JSONL preserves a missing
+Conditional field by omitting its key and an explicit NULL by emitting JSON
+`null`. It uses the common typed wire representation, including exact decimal,
+JSON-domain and reference representation, in the specified field sequence.
+Each complete record ends with the selected line ending. A BOM, when selected,
+is emitted once at the beginning, including an empty input. Empty CSV consists
+of that optional BOM and optional header with its line ending; empty JSONL
+consists only of its optional BOM.
+
+`fields` MUST be the exact emitted field sequence. The operation MUST specify
+`order_by` or `preserve_order: true`, not both. `order_by` requires a checked
+total stable order; `preserve_order` requires an active upstream total-order
+witness, not provider arrival order. `bounds.max_rows` and
 `bounds.max_bytes` are author guards as defined in [Author guards, resolved limits, and Plan facts](#resolved-limits), counting input rows
 and serialized bytes respectively. The machine barrier MUST contain both
 resolved limits, using Program proof, Host policy, and any authored guards.
 A downstream Command Contract is checked independently during Effect preflight;
 serialization does not infer future consumers by reverse dataflow. A breach
 publishes neither a partial
-Artifact nor a partial output Relation.
+Content nor a partial output Relation.
 
 <!-- requirement-block: serialize.before-an-artifact-serialization-barrier-is-admitted-the-input-relation -->
-Before an Artifact serialization barrier is admitted, the input Relation MUST
+Before a Content serialization barrier is admitted, the input Relation MUST
 have either a compiler-proven candidate key or a total stable ordering witness
 from an algebra contract. When a candidate key closes authored ordering ties,
 its omitted fields are appended ascending and journaled. Authored `order_by`
 alone cannot prove that ties are impossible.
 
 <!-- requirement-block: serialize.actql-source-must-not-contain-bytes-base64-storage-locators-or -->
-The output fields are exactly `artifact_ref`, `media_type`, `size_bytes`,
-`logical_name`, and `row_count`. The barrier input CID is derivation evidence,
+The output fields, in order, are exactly `name`, `content`, `media_type`,
+`size_bytes` and `row_count`. Even an empty typed input produces one output row.
+The barrier input CID is derivation evidence,
 not business data. Only the host
-Artifact Store may issue the `artifact_ref`. ActQL source MUST NOT contain
+Content Store may issue the `content_ref`. ActQL source MUST NOT contain
 bytes, base64, storage locators, or an author-supplied content CID. Upload,
 attachment, and
 resumable transfer remain Connector-owned typed `command` Effects over the
-resulting `artifact_ref`.
+resulting `content_ref`.
 
-`serialize` creates an Invocation-scoped immutable Artifact. Workspace
+`serialize` creates an Invocation-scoped immutable Content. Workspace
 persistence, retention, and later deletion are not serialization semantics;
 they require an explicit typed store/upload Effect or Run Graph policy. CSV
 serialization is byte-faithful and performs no implicit spreadsheet formula
@@ -8346,8 +8456,8 @@ escaping. Authors apply any business transformation before serialization.
 
 ActQL has no media profile and no `extract_text`, `transcribe`, `ocr`, or
 provider-feature operation family. A captured PDF, image, or audio object is an
-`artifact_ref`; already extracted information may be read as a typed Relation.
-A keyed SourceView accepting an ArtifactRef is subject to exactly the same
+`content_ref`; already extracted information may be read as a typed Relation.
+A keyed SourceView accepting an ContentRef is subject to exactly the same
 observation classification as a direct SourceView ([Connector SourceViews](#sourceviews)). It may read existing
 structured results or capture bytes. Newly interpreting a document requires a
 registered extraction profile; [SourceView transformation profiles](protocols/contracts.md#sourceview-transformations) currently registers none. Naming a
@@ -8698,7 +8808,7 @@ A command consumes one named result. Its `target.field` MUST be a
 value-level `resource_ref<K>` whose kind equals the Command Contract target
 kind. Each `input` member is exactly `{literal: ...}` or `{field: ...}` and is
 validated against the closed Connector-owned input contract. Unknown, missing,
-nullable, vector-dimension, ArtifactRef-media, and ResourceRef-kind mismatches
+nullable, vector-dimension, ContentRef-media, and ResourceRef-kind mismatches
 fail during check or preview. The target field may be projected away only by
 making the command invalid; receipt-only lineage cannot restore it.
 
@@ -9233,7 +9343,7 @@ closed Executable Plan nodes:
 | `infer` | `acquisition_barrier` | `actql-inference-barrier/0.1` |
 | keyed SourceView `join` acquisition | `acquisition_barrier` followed by RelA `join` | `actql-lookup-barrier/0.1` |
 | `search_candidates` | one `acquisition_barrier` with candidates and coverage output ports | `actql-search-barrier/0.1` |
-| `serialize` | `artifact_barrier` | `actql-artifact-barrier/0.1` |
+| `serialize` | `content_barrier` | `actql-content-barrier/0.1` |
 | binary64 `sum` / `avg` | compiler-inserted `numeric_observation` | numeric capture contract; exact lanes remain AoA computations |
 
 The barrier contract, profile contract CID, input and output port contracts,
@@ -9872,7 +9982,7 @@ An exact Preview MUST bind Unit Definition, used effective values, local contrac
 closure, exact admitted inputs/imports and observations, required issuer, order,
 completeness, policy/provenance, targets, payloads, guards, management-write recipe
 and resolved limits. Type equality alone cannot substitute a different producer
-receipt. Full ArtifactRef scope remains material. Global Program/lock/manifest
+receipt. Full ContentRef scope remains material. Global Program/lock/manifest
 CIDs, unrelated metadata, physical Run ids and the dispatch key itself are
 excluded, including indirect ancestry through Invocation, Result, receipt or
 parameter envelopes. Projected evidence has its own CID, never its parent's CID.
@@ -10280,7 +10390,7 @@ FractionValue := finite number in [0, 1] | ParamRef
 GroupBody := {by: [Field, ...] | [], aggregates: {OutputFieldName: AggregateCall}*}
 ValuesBody := {schema: {OutputFieldName: ConstructibleValueContract}+,
   rows: [{OutputFieldName: CellValue}*, ...] | []}
-ConstructibleValueContract := AuthorValueContract excluding json/resource_ref/artifact_ref
+ConstructibleValueContract := AuthorValueContract excluding json/resource_ref/content_ref
   at every recursive type position
 ValuesConstraints := each row has exactly the declared field set;
   cells use CellValue, not expressions; schema is nonempty even for zero rows.
@@ -10720,22 +10830,22 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:08826f64b2224dc908b42b6fbb94b1c1e989c6e8f64185d36c108028ff4e0b45
+../../spec/contracts/actql-aoa.json# sha256:8af884906323059938ad32b129f7918f18d3c2e852f4ec36072c3b681c7423e4
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
-../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
-../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e
-../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551
+../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:dab36fadb3ae6a4d7c65351d5bec6ddc1ca104601d9e936d2bbd4d69231288d2
+../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d
+../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:813b8eb2aedb09ded46851075f0bc5c2df5158782e791b267c9097517abb96b5
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:15d526e1fef0f003c3cc66715c5a7ca60ff1d24508eab20b44cc37f6124131c3
+../../spec/contracts/actql-expressions.json# sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:13d2c700aef09d7fd33d3eba9705f89541432b766b328ad394f9c2acd4686bc2
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:d88c7ba0e4be6e1ea2519468f82303012dcdd8d8daf48af9e9a5889411659cb1
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
 ../../spec/contracts/actql-expressions.json#/laws sha256:bb8faf6038bb2b548b25b994d5baf926d2052a4611d1608191bab2d296251725
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:b924311d35a118ab7ba0944690f6175606d8fcea0fdb89ad8bb8071fa7f589e3
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:efd1cf279fa61aa22b1e1634646bd8cf9136967fccbb4eec81416ebe1ac0f012
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:e07531aa4e844069941baae63c624996db3c0d5ed4a2eddfb26b7030816da542
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:067f0a0017116bd31143765743e5f7251b2550f18cb91b321faae296b240ff01
 ```
 
 <!-- stage-contract-pins:start -->
