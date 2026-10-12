@@ -71,7 +71,7 @@ fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
     "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
-    "session", "events", "watermark_rows", "lag",
+    "session", "events", "watermark_rows", "lag", "asof_join", "interval_join",
   ].contains(name)
 }
 
@@ -261,6 +261,15 @@ fn lower_script_carrier_calls(
       "watermark_rows" => ["time", "late_policy", "watermark_ms", "max_skew"]
       "dedupe_events" => ["by", "order_by"]
       "lag" => ["partition_by", "order_by", "field", "output", "offset"]
+      "asof_join" =>
+        [
+          "with", "kind", "by", "left_id", "left_time", "right_time", "direction",
+          "tolerance", "select", "right_tie_break",
+        ]
+      "interval_join" =>
+        [
+          "with", "kind", "mode", "on", "left", "right", "select", "max_output_rows",
+        ]
       _ => []
     }
     // Optional pool roles are preserved as authored. The common pool owner
@@ -274,6 +283,13 @@ fn lower_script_carrier_calls(
       ["kind", "size"]
     } else if call.operation == "lag" {
       ["partition_by", "order_by", "field", "output"]
+    } else if call.operation == "asof_join" {
+      [
+        "with", "kind", "by", "left_time", "right_time", "direction", "tolerance",
+        "select",
+      ]
+    } else if call.operation == "interval_join" {
+      ["with", "kind", "mode", "on", "left", "right"]
     } else if call.operation == "watermark_rows" {
       // The common watermark owner checks exactly one threshold source.
       // Never choose precedence or synthesize a threshold in the frontend.
@@ -291,7 +307,12 @@ fn lower_script_carrier_calls(
       call.end,
     ).unwrap()
     let construction = { ..construction, generated: origin, }
-    let body = if call.arguments.is_empty() {
+    let body = if ["asof_join", "interval_join"].contains(call.operation) {
+      script_temporal_join_body(
+        construction, call, query, input, known, context, sources, limits, steps,
+        reserved,
+      )
+    } else if call.arguments.is_empty() {
       construction.add(Bool(true))
     } else {
       construction.object(
