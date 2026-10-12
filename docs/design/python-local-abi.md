@@ -2016,3 +2016,38 @@ with the original Run/intent transaction. Lookup and restoration reuse that save
 packet without extending prior Result, grant or receipt deadlines. Those Owner
 connections and actual runtime/wheel acceptance remain separate from this ABI's
 compiler and scalar physical-port checks.
+
+### Explicit SDK first-install selection
+
+Private ABI55 adds `actql_bootstrap_produce_sdk`. Its explicitly selected factory
+retains the seven original bootstrap bodies and adds `run_policy_profile` and
+`sdk_read`. The original producer's seven-field output is unchanged. A loan
+cannot switch producers after invocation; SDK and original transports have
+distinct nominal Python families. Installed component admission requires the
+matching ABI rather than falling back to an older module.
+
+The Common delivery metadata Owner issues the closed
+`actql-local-sdk-result-read-selection/0.1` body and its exact-byte SHA256 CID.
+It selects principal `local-cli`, connection `local`, Result `answer`, purpose
+`python-local-read`, sink `sdk-rows`, existing `jsonl` serialization,
+`max_bytes=65536` and `max_uses=1`. It binds the original finite profile and data
+Policy CIDs. Sink selection introduces no new Result format. Metadata admission
+is not Account authorization, a grant, a delivery attempt or durable acceptance.
+
+The SDK factory persists nine source originals, with exactly eight selected
+files excluding Account. Each of the two extra originals is limited to 8192
+bytes during acquisition and pinning. An additional 131072-byte shared workspace
+reservation (eight times their combined maximum) precedes producer or physical
+acquisition, including restoration. The existing bounded producer output/copy
+reservation remains separate; no selected-file, byte, fuel or pool ceiling is
+increased. Failure retains its original loans. Missing finite/read files in a
+saved installation do not trigger rebootstrap, adoption or an automatic upgrade.
+
+No absolute read expiry appears in the SDK read selection. Initial acceptance
+must bind its exact CID, original adoption, reference/request and Run Definition
+in the saved Common policy packet and commit it with the original Run. Lookup
+precedes new issuance. Read expiry comes only from the Common-admitted saved
+packet; current Account permission, original selected file generations,
+committed index/manifest/retention and grant usage remain independent checks.
+Whole-process, compiled-module and SDK non-buffer accounting is not established
+by these bounded metadata reservations.
