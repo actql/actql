@@ -161,11 +161,11 @@ test "P2 window source retains common invalid body duration and Carrier refusals
     ),
     (
       "FROM rows |> window_events(kind: 'fixed', size: 10)",
-      Window(WrongCarrier),
+      WrongCarrier(RelationKind),
     ),
     (
       "FROM ev |> row_window(time: occurred_ms, kind: 'fixed', size: 10)",
-      Window(WrongCarrier),
+      WrongCarrier(EventsKind),
     ),
     (
       "FROM ev |> watermark_events(watermark_ms: 0, policy: 'MARK')",
