@@ -448,6 +448,8 @@ pub fn client_values_host_source_evidence_facts(@run_publication_host.PreparedCl
 
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
+pub fn client_values_host_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
+
 pub fn client_values_host_submission_epoch(String, String, Double, Double) -> @logical_request_scope.SubmissionEpoch?
 
 pub fn client_values_host_submission_epoch_cid(@logical_request_scope.SubmissionEpoch) -> String
@@ -495,6 +497,8 @@ pub fn client_values_host_task_result_definitions(@run_publication_host.Prepared
 pub fn client_values_host_task_result_names(@run_publication_host.ClientTaskCompilation) -> Array[String]
 
 pub fn client_values_host_task_result_schema(@run_publication_host.PreparedClientProgram, Int) -> Result[Array[String], ClientValuesHostTaskResultSchemaIssue]
+
+pub fn client_values_host_task_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
 
 pub fn client_values_host_task_template_wire(@run_publication_host.ClientTaskCompilation) -> String
 
