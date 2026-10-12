@@ -10,6 +10,7 @@ pub struct ClientInferCallScope {
   source : @publication.ModelSourceObservation?
   sources : Array[@publication.ModelSourceObservation]
   named_sources : Array[(String, @publication.ModelSourceObservation)]
+  generation : ClientSerializationGeneration?
   unit_definition_cid : String
   source_ordinal : Int
 }
@@ -67,10 +68,26 @@ pub fn issue_client_infer_occurrence_call_scope(
   max_depth : Int,
   captured? : ClientInferCapturedInput? = None,
   sources? : ClientInferComposedSources? = None,
+  generation? : ClientSerializationGeneration? = None,
 ) -> Result[ClientInferCallScope, ClientInferCallScopeIssue] {
   let owner = occurrence.owner
   let step = occurrence.step
   let prefix = occurrence.preparation
+  let generated_sources = match generation {
+    None => None
+    Some(value) => {
+      if captured is Some(_) || sources is Some(_) {
+        return Err(ForeignInput)
+      }
+      guard client_serialization_generation_sources_for_infer(
+          value, occurrence, plan,
+        )
+        is Some(originals) else {
+        return Err(ForeignInput)
+      }
+      Some(originals)
+    }
+  }
   if sources is Some(value) &&
     (
       captured is Some(_) ||
@@ -84,7 +101,8 @@ pub fn issue_client_infer_occurrence_call_scope(
   }
   if client_infer_occurrence_has_captured_sources(occurrence) &&
     captured is None &&
-    sources is None {
+    sources is None &&
+    generated_sources is None {
     // An imported Source path needs its complete capture closure; it cannot
     // silently take the no-external-sources identity route.
     return Err(ForeignInput)
@@ -144,6 +162,25 @@ pub fn issue_client_infer_occurrence_call_scope(
           @publication.run_evidence_value_identity(input.logical),
         )
       }
+      if value.keyed is Some((name, keyed, _)) {
+        @encode.key(writer, name)
+        @encode.string_value(
+          writer,
+          @publication.run_evidence_value_identity(keyed.input),
+        )
+      }
+    }
+    if generated_sources is Some(originals) {
+      for (name, observation) in originals {
+        let (_, logical, _, _) = @publication.model_source_observation_originals(
+          observation,
+        )
+        @encode.key(writer, name)
+        @encode.string_value(
+          writer,
+          @publication.run_evidence_value_identity(logical),
+        )
+      }
     }
     @encode.end_object(writer)
     @encode.end_object(writer)
@@ -196,18 +233,25 @@ pub fn issue_client_infer_occurrence_call_scope(
     artifact,
     effective,
     source: captured.map(value => value.observation),
-    sources: sources
-    .map(client_infer_composed_source_observations)
-    .unwrap_or([]),
+    sources: match generated_sources {
+      Some(originals) => originals.map(item => item.1)
+      None =>
+        sources.map(client_infer_composed_source_observations).unwrap_or([])
+    },
     named_sources: match captured {
       Some(value) => [(value.name, value.observation)]
       None =>
-        sources
-        .map(value => value.inputs.map(input => (input.name, input.observation)))
-        .unwrap_or([])
+        match generated_sources {
+          Some(originals) => originals
+          None =>
+            sources
+            .map(client_infer_composed_named_source_observations)
+            .unwrap_or([])
+        }
     },
     unit_definition_cid,
     source_ordinal: step,
+    generation,
   })
 }
 
@@ -217,9 +261,25 @@ pub fn client_infer_call_scope_matches(
   owner : PreparedClientProgram,
   input : @execution.CompletedOutput,
 ) -> Bool {
+  client_infer_call_scope_generation_available(value) &&
   physical_equal(value.owner, owner) &&
   @execution.completed_output_available(input) &&
   @execution.completed_output_same_occurrence(value.input, input)
+}
+
+///|
+fn client_infer_call_scope_generation_available(
+  value : ClientInferCallScope,
+) -> Bool {
+  value.generation
+  .map(generation => {
+    client_serialization_generation_source_observations_for(
+      generation,
+      generation.run,
+    )
+    is Some(_)
+  })
+  .unwrap_or(true)
 }
 
 ///|
@@ -277,6 +337,7 @@ pub fn client_infer_call_scope_matches_rows(
   rows : @execution.PreparedInferRows,
   fixed_request_cid : String,
 ) -> Bool {
+  client_infer_call_scope_generation_available(value) &&
   fixed_request_cid == value.plan.request_cid &&
   @execution.prepared_infer_rows_matches_completed_input(rows, value.input) &&
   physical_equal(
@@ -295,7 +356,8 @@ pub fn issue_client_infer_call_slot(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@publication.RunEvidenceValue, ClientInferCallScopeIssue] {
-  if !@execution.completed_output_available(value.input) ||
+  if !client_infer_call_scope_generation_available(value) ||
+    !@execution.completed_output_available(value.input) ||
     @publication.run_evidence_value_name(key) != "model_input_key" {
     return Err(ForeignInput)
   }
@@ -353,7 +415,8 @@ pub fn client_infer_call_scope_unit_id(value : ClientInferCallScope) -> String? 
 pub fn client_infer_call_scope_snapshot(
   value : ClientInferCallScope,
 ) -> Result[String, ClientInferCallScopeIssue] {
-  if !@execution.completed_output_available(value.input) {
+  if !client_infer_call_scope_generation_available(value) ||
+    !@execution.completed_output_available(value.input) {
     return Err(ForeignInput)
   }
   let writer = @encode.writer(1000000, 100000, 100) catch {
@@ -453,12 +516,85 @@ fn infer_scope_evidence(
 /// Preparing these logical acquisitions never contacts a Source provider.
 fn infer_scope_expected_sources(
   occurrence : ClientInferOccurrence,
+  plan? : ClientInferPlanGraph? = None,
 ) -> Result[
   Array[(String, @planning.QuerySourceEvidenceFacts)],
   ClientInferCallScopeIssue,
 ] {
   let owner = occurrence.owner
   let graph = owner.graph
+  if plan is Some(selected) && selected.serialization is Some(component) {
+    if @strategy.graph_source_free_inputs_complete(graph) {
+      return Ok([])
+    }
+    guard physical_equal(component.owner, owner) &&
+      client_serialization_single_capture_shape(owner, component.task) &&
+      @strategy.graph_task_unit_index(graph, 0) is Some(stage) &&
+      prepare_client_query_acquisition(owner, stage, 0) is Ok(acquisition) &&
+      @planning.query_acquisition_source_evidence_facts(acquisition)
+      is Some(facts) &&
+      @acquisition.pipeline_request_at(
+        @acquisition.query_acquisition_owner(acquisition),
+        @acquisition.query_acquisition_source_index(acquisition),
+      )
+      is Some(@acquisition.Direct(mode, _)) else {
+      return Err(ForeignInput)
+    }
+    let name = @acquisition.declaration(@acquisition.mode_input(mode)).input_name
+    let expected = [(name, facts)]
+    if client_single_direct_observation_covers_sources(owner) {
+      return Ok(expected)
+    }
+    guard select_client_single_keyed_acquisition(owner) is Ok(Some(keyed)) &&
+      client_keyed_acquisition_coordinates(keyed) is Some((_, task, join)) &&
+      task == component.task &&
+      join < component.step &&
+      @planning.keyed_source_evidence_facts(keyed.facts) is Some(right) &&
+      @pipeline.input_at(
+        @lower.pipeline(@lower.bound_preparation(keyed.owner)),
+        @checked.source_execution_subject(keyed.check).input,
+      )
+      is Some((right_name, _)) &&
+      right_name != name else {
+      return Err(ForeignInput)
+    }
+    expected.push((right_name, right))
+    return Ok(expected)
+  }
+  if select_client_single_keyed_acquisition(owner) is Ok(Some(keyed)) &&
+    @strategy.graph_captured_prefix(graph) == 1 &&
+    @strategy.graph_task_count(graph) == 1 &&
+    occurrence.task == 0 {
+    guard client_keyed_acquisition_coordinates(keyed)
+      is Some((stage, task, join)) &&
+      stage == occurrence.stage &&
+      task == occurrence.task &&
+      join < occurrence.step &&
+      client_keyed_direct_acquisition_coordinates(keyed)
+      is Some((direct_stage, input, _)) &&
+      prepare_client_query_acquisition(owner, direct_stage, input)
+      is Ok(acquisition) &&
+      @planning.query_acquisition_source_evidence_facts(acquisition)
+      is Some(left) &&
+      @planning.keyed_source_evidence_facts(keyed.facts) is Some(right) &&
+      @acquisition.pipeline_request_at(
+        @acquisition.query_acquisition_owner(acquisition),
+        @acquisition.query_acquisition_source_index(acquisition),
+      )
+      is Some(@acquisition.Direct(mode, _)) &&
+      @pipeline.input_at(
+        @lower.pipeline(@lower.bound_preparation(keyed.owner)),
+        @checked.source_execution_subject(keyed.check).input,
+      )
+      is Some((right_name, _)) else {
+      return Err(ForeignInput)
+    }
+    let name = @acquisition.declaration(@acquisition.mode_input(mode)).input_name
+    if name == right_name {
+      return Err(ForeignInput)
+    }
+    return Ok([(name, left), (right_name, right)])
+  }
   if client_acquired_infer_prefix_owner(owner, 0, occurrence.step) is Some(_) {
     guard prepare_client_query_acquisition(owner, occurrence.stage, 0)
       is Ok(acquisition) &&
@@ -565,7 +701,8 @@ pub fn read_client_infer_saved_call_scope(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let expected = match infer_scope_expected_sources(occurrence) {
+  let expected = match
+    infer_scope_expected_sources(occurrence, plan=Some(plan)) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -785,5 +922,6 @@ pub fn restore_client_infer_call_scope(
     named_sources: value.named_sources.copy(),
     unit_definition_cid,
     source_ordinal: occurrence.step,
+    generation: None,
   })
 }

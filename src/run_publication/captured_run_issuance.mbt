@@ -459,6 +459,7 @@ pub fn issue_effect_free_captured_run(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  content_generations? : Array[BoundContentGeneration] = [],
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
   issue_captured_computation_run(
     run_definition,
@@ -478,6 +479,7 @@ pub fn issue_effect_free_captured_run(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    content_generations~,
   )
 }
 
@@ -696,6 +698,7 @@ fn prepare_captured_context_inputs(
     advances,
     authoring,
     models: ordered_models,
+    content_generations: inputs.content_generations,
     preview,
     plans,
   })
@@ -721,6 +724,7 @@ fn issue_captured_computation_run(
   max_nodes : Int,
   max_depth : Int,
   dependency_inventory? : CapturedEffectDependencyInventory? = None,
+  content_generations? : Array[BoundContentGeneration] = [],
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
   let workspace = publication_evidence_workspace(max_nodes)
   let preparation = start_captured_computation_preparation(
@@ -737,6 +741,7 @@ fn issue_captured_computation_run(
       advances,
       authoring,
       models,
+      content_generations,
       preview,
       plan_values,
       max_wire_bytes,

@@ -238,6 +238,11 @@ pub fn kernel_input_schema(kernel : PreparedKernel) -> @schema.Schema {
 
 ///|
 pub fn kernel_output_schema(kernel : PreparedKernel) -> @schema.Schema {
+  // A checked serialization's internal sort retains its Relation input. The
+  // Content metadata schema belongs to the later byte barrier, not this sort.
+  if kernel.owner.prepared.nodes[kernel.step_index].payload is Serialize(_) {
+    return @relation.output_schema(kernel.checked)
+  }
   kernel.owner.prepared.nodes[kernel.step_index].output_schema.unwrap()
 }
 

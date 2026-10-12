@@ -230,11 +230,12 @@ pub fn open_captured_dag(
   source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
+  supplied_reads? : Array[(Int, Int, @execution.SuppliedRelationRead)] = [],
 ) -> Result[CapturedDAG, RunIssue] {
   if graph.captured_prefix != 1 || graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
-  open_checked_dag(graph, [(0, source)], ledger, supplied)
+  open_checked_dag(graph, [(0, source)], ledger, supplied, supplied_reads~)
 }
 
 ///|
@@ -401,6 +402,7 @@ fn open_checked_dag(
   supplied : Array[@execution.CapturedRows],
   completed? : Array[(Int, @execution.CompletedOutput)] = [],
   root_wire_bytes? : Int? = None,
+  supplied_reads? : Array[(Int, Int, @execution.SuppliedRelationRead)] = [],
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners.length()
   if count == 0 {
@@ -481,7 +483,8 @@ fn open_checked_dag(
     ) {
     return Err(UnsupportedGraph)
   }
-  if supplied.length() != graph.supplied_slots.length() {
+  if supplied.length() + supplied_reads.length() !=
+    graph.supplied_slots.length() {
     return Err(UnsupportedGraph)
   }
   let supplied_inputs : Array[Array[@execution.CapturedRows?]] = Array::makei(
@@ -507,6 +510,45 @@ fn open_checked_dag(
     if !matched {
       return Err(ForeignCapture)
     }
+  }
+  let read_inputs : Array[Array[@execution.SuppliedRelationRead?]] = Array::makei(
+    count,
+    task => Array::make(input_counts[task], None),
+  )
+  for (task, port, read) in supplied_reads {
+    if task < first_task ||
+      task >= count ||
+      port < 0 ||
+      port >= input_counts[task] ||
+      supplied_inputs[task][port] is Some(_) ||
+      read_inputs[task][port] is Some(_) {
+      return Err(ForeignCapture)
+    }
+    let mut selected : LocalInputSlot? = None
+    for slot in graph.supplied_slots {
+      if slot.consumer == task && slot.input == port {
+        selected = Some(slot)
+        break
+      }
+    }
+    guard selected is Some(slot) &&
+      @execution.supplied_relation_read_matches_input(
+        read,
+        graph.owners[task],
+        slot.source_input,
+      ) else {
+      return Err(ForeignCapture)
+    }
+    if slot.operation_input is Some((step, operation_input)) &&
+      !@execution.supplied_relation_read_matches_operation_input(
+        read,
+        graph.owners[task],
+        step,
+        operation_input,
+      ) {
+      return Err(ForeignCapture)
+    }
+    read_inputs[task][port] = Some(read)
   }
   for index in first_task..<count {
     let prepared = @lower.bound_preparation(graph.owners[index])
@@ -727,7 +769,7 @@ fn open_checked_dag(
       parents: [],
     })
   }
-  Ok({
+  let run : CapturedDAG = {
     graph,
     offer_owner: { graph, },
     original_sources: sources.copy(),
@@ -762,9 +804,7 @@ fn open_checked_dag(
       )
     }),
     supplied: supplied_inputs,
-    supplied_reads: Array::makei(count, task => {
-      Array::make(input_counts[task], None)
-    }),
+    supplied_reads: read_inputs,
     stopped: false,
     failure: None,
     running: None,
@@ -786,7 +826,16 @@ fn open_checked_dag(
     managed_selections: Array::make(count, None),
     activation_required: false,
     activation_grant: None,
-  })
+  }
+  for (task, port, read) in supplied_reads {
+    let lifetime = lifetimes[task]
+    run.supplied_reads[task][port] = Some(
+      @execution.restrict_supplied_relation_read(read, fn() {
+        lifetime.live && !run.done[task] && !run.stopped
+      }),
+    )
+  }
+  Ok(run)
 }
 
 ///|
@@ -1063,7 +1112,14 @@ pub fn captured_task_input(
   let receiver_input = edge.source_input.unwrap_or(edge.input)
   let bound = if edge.producer < run.graph.captured_prefix &&
     run.sources[edge.producer] is Some(source) {
-    match @query.bind_captured_source(source, receiver, receiver_input) {
+    let binding = match (edge.operation_input, edge.source_input) {
+      (Some((step, operation_input)), None) =>
+        @query.bind_captured_source_operation(
+          source, receiver, step, operation_input,
+        )
+      _ => @query.bind_captured_source(source, receiver, receiver_input)
+    }
+    match binding {
       Ok(bound) => bound
       Err(issue) => {
         fail_captured_task(run, task, Capture(issue))

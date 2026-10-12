@@ -26,6 +26,7 @@ import {
   "actql/actql/relation_set",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
+  "actql/actql/run_publication",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "actql/actql/stage_syntax",
@@ -398,6 +399,32 @@ pub fn row_count(CheckedPipeline, Target) -> RowCount?
 
 pub fn schema_at(CheckedPipeline, Target) -> @relation_schema.Schema?
 
+pub fn serialization_input_schema(CheckedSerialization) -> @relation_schema.Schema
+
+pub fn serialization_max_bytes(CheckedSerialization) -> @relation_typing.CheckedCountValue?
+
+pub fn serialization_max_rows(CheckedSerialization) -> @relation_typing.CheckedCountValue?
+
+pub fn serialization_order(CheckedPipeline, Int) -> SerializationOrder?
+
+pub fn serialization_order_completion(SerializationOrder) -> SortCompletion?
+
+pub fn serialization_order_inherited(SerializationOrder) -> LogicalOrder?
+
+pub fn serialization_order_input(SerializationOrder) -> Target
+
+pub fn serialization_order_pipeline(SerializationOrder) -> CheckedPipeline
+
+pub fn serialization_order_step(SerializationOrder) -> Int
+
+pub fn serialization_profile(CheckedSerialization) -> @run_publication.ContentSerializationProfile
+
+pub fn serialization_sort(CheckedSerialization) -> @relation_typing.CheckedOperation?
+
+pub fn serialization_sort_strategy(SerializationOrder) -> SortStrategy?
+
+pub fn serialization_source(CheckedSerialization) -> @decode_core.Cursor
+
 pub fn sort_completion_count(SortCompletion) -> Int
 
 pub fn sort_completion_field(SortCompletion, Int) -> @relation_schema.FieldName?
@@ -465,6 +492,7 @@ type BoundAuthorGuards
 type BoundGuardClosure
 
 pub enum CheckedOperation {
+  Serialize(CheckedSerialization)
   Infer(@relation_evidence.CheckedInfer)
   Unary(@relation_typing.CheckedOperation)
   Join(right~ : Target, checked~ : @relation_join_shape.CheckedJoin)
@@ -503,6 +531,8 @@ pub enum CheckedOperation {
 }
 
 type CheckedPipeline
+
+type CheckedSerialization
 
 pub struct CheckedStep {
   source : @decode_core.Cursor
@@ -547,6 +577,7 @@ pub enum ContextualOrder {
   AnalyticPosition(AnalyticPositionOrder)
   Aggregates(GroupOrders)
   NestedRows(NestOrder)
+  Serialization(SerializationOrder)
 }
 
 type ContextualOrders
@@ -656,6 +687,8 @@ pub(all) enum IssueKind {
   MissingModelTasks
   InferRequiresAlias
   Infer(@relation_evidence.InferIssueKind)
+  Serialize(@run_publication.ContentSerializationIssue)
+  SerializeOrderUnproven
   UnresolvedOrder
   KeyEvidence(@relation_evidence.IssueKind)
   WrongCarrier(@carrier_contract.Kind)
@@ -724,6 +757,7 @@ pub struct NestOrderTerm {
 }
 
 pub(all) enum OperationObligation {
+  SerializationInputOrder
   RelationRequirement(@relation_typing.PendingValidation)
   JoinRequirement(@relation_join_shape.Obligation)
   AppendRequirement(@relation_append.Obligation)
@@ -826,6 +860,8 @@ pub struct RowCount {
   upper : Int64
   exact : Bool
 } derive(Eq, @debug.Debug)
+
+type SerializationOrder
 
 type SortCompletion
 

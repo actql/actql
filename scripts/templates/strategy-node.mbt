@@ -709,12 +709,27 @@ pub fn strategy_issue_effect_free_run_receipt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_effect_free_run_receipt(
-      admission, run_definition, invocation, observation, definitions, artifacts,
-      manifest, normalization_journal, binding_names, binding_digests, source_evidence,
-      model_evidence, barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+      admission,
+      run_definition,
+      invocation,
+      observation,
+      definitions,
+      artifacts,
+      manifest,
+      normalization_journal,
+      binding_names,
+      binding_digests,
+      source_evidence,
+      model_evidence,
+      barrier_attempt_receipt_cids,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      content_generations~,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1023,10 +1038,24 @@ pub fn strategy_begin_effect_free_captured_run(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.CapturedRunIssuancePreparation {
   @publication.start_effect_free_captured_run(
-    run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
-    advances, authoring, models, max_wire_bytes, max_nodes, max_depth, max_workspace,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    advances,
+    authoring,
+    models,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    content_generations~,
   )
 }
 
@@ -1053,6 +1082,7 @@ pub fn strategy_begin_effectful_captured_run(
   max_depth : Int,
   dependency_wire : String?,
   max_workspace : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.CapturedRunIssuancePreparation raise NodeHostFailure {
   if plan_names.length() != plan_wires.length() {
     raise InvalidCommand
@@ -1092,6 +1122,7 @@ pub fn strategy_begin_effectful_captured_run(
     max_depth,
     max_workspace,
     dependency_inventory~,
+    content_generations~,
   )
 }
 
@@ -3235,6 +3266,27 @@ pub fn strategy_host_output_export_next(
   value : StrategyHostOutputExport,
 ) -> String? raise NodeHostFailure {
   strategy_publication_output_result(value.core.next())
+}
+
+///|
+#export_name("strategyHostOutputExportAdvance")
+pub fn strategy_host_output_export_advance(
+  value : StrategyHostOutputExport,
+  quantum : Int,
+) -> (String?, Bool, Int, @publication_host.PublicationOutputExportIssue?) {
+  let (progress, work, issue) = value.core.advance(quantum)
+  match progress {
+    Some(progress) => (progress.batch, progress.complete, work, None)
+    None => (None, false, work, issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportRowsComplete")
+pub fn strategy_host_output_export_rows_complete(
+  value : StrategyHostOutputExport,
+) -> Bool raise NodeHostFailure {
+  strategy_publication_output_result(value.core.rows_complete())
 }
 
 ///|
@@ -7322,6 +7374,7 @@ pub fn strategy_remote_bundle_record_restore(
 }
 
 // BUNDLE_RETENTION_OWNER_EXPORTS_BEGIN
+
 ///|
 #export_name("strategyRemoteBundleDistributionPrepare")
 pub fn strategy_remote_bundle_distribution_prepare(
@@ -7336,7 +7389,7 @@ pub fn strategy_remote_bundle_distribution_prepare(
 ///|
 #export_name("strategyRemoteBundleDistributionIdentity")
 pub fn strategy_remote_bundle_distribution_identity(
-  value : @bundle.RemoteBundleDistribution
+  value : @bundle.RemoteBundleDistribution,
 ) -> String {
   @bundle.bundle_distribution_identity(value)
 }
@@ -7395,7 +7448,11 @@ pub fn strategy_remote_bundle_hold_scope_prepare(
   site_generation : Int,
   attempt_id : String,
 ) -> @bundle.RemoteBundleHoldScope raise NodeHostFailure {
-  match @bundle.prepare_bundle_hold_scope(distribution, coordinator_authority, workspace_id, authority_scope_cid, environment, set_revision_cid, runtime_bundle_cid, site_key, site_generation, attempt_id) {
+  match
+    @bundle.prepare_bundle_hold_scope(
+      distribution, coordinator_authority, workspace_id, authority_scope_cid, environment,
+      set_revision_cid, runtime_bundle_cid, site_key, site_generation, attempt_id,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7404,7 +7461,7 @@ pub fn strategy_remote_bundle_hold_scope_prepare(
 ///|
 #export_name("strategyRemoteBundleHoldScopeIdentity")
 pub fn strategy_remote_bundle_hold_scope_identity(
-  value : @bundle.RemoteBundleHoldScope
+  value : @bundle.RemoteBundleHoldScope,
 ) -> String {
   @bundle.bundle_hold_scope_identity(value)
 }
@@ -7423,7 +7480,7 @@ pub fn strategy_remote_bundle_hold_scope_json(
 ///|
 #export_name("strategyRemoteBundleHoldScopeProjection")
 pub fn strategy_remote_bundle_hold_scope_projection(
-  value : @bundle.RemoteBundleHoldScope
+  value : @bundle.RemoteBundleHoldScope,
 ) -> Array[String] {
   @bundle.bundle_hold_scope_projection(value)
 }
@@ -7435,7 +7492,8 @@ pub fn strategy_remote_bundle_hold_scope_admit_json(
   body : String,
   claimed_scope_cid : String,
 ) -> @bundle.RemoteBundleHoldScope raise NodeHostFailure {
-  match @bundle.admit_bundle_hold_scope_json(distribution, body, claimed_scope_cid) {
+  match
+    @bundle.admit_bundle_hold_scope_json(distribution, body, claimed_scope_cid) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7448,7 +7506,10 @@ pub fn strategy_remote_bundle_hold_binding_from_scope(
   catalog_incarnation : String,
   initial_revision : Int,
 ) -> @bundle.RemoteBundleHoldBinding raise NodeHostFailure {
-  match @bundle.prepare_bundle_hold_binding_from_scope(scope, catalog_incarnation, initial_revision) {
+  match
+    @bundle.prepare_bundle_hold_binding_from_scope(
+      scope, catalog_incarnation, initial_revision,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7476,9 +7537,7 @@ pub fn strategy_remote_bundle_hold_binding_scope(
 
 ///|
 #export_name("strategyRemoteBundleCatalogIncarnationValid")
-pub fn strategy_remote_bundle_catalog_incarnation_valid(
-  value : String
-) -> Bool {
+pub fn strategy_remote_bundle_catalog_incarnation_valid(value : String) -> Bool {
   @bundle.valid_bundle_catalog_incarnation(value)
 }
 
@@ -7498,7 +7557,12 @@ pub fn strategy_remote_bundle_hold_binding_prepare(
   initial_revision : Int,
   attempt_id : String,
 ) -> @bundle.RemoteBundleHoldBinding raise NodeHostFailure {
-  match @bundle.prepare_bundle_hold_binding(distribution, catalog_incarnation, coordinator_authority, workspace_id, authority_scope_cid, environment, set_revision_cid, runtime_bundle_cid, site_key, site_generation, initial_revision, attempt_id) {
+  match
+    @bundle.prepare_bundle_hold_binding(
+      distribution, catalog_incarnation, coordinator_authority, workspace_id, authority_scope_cid,
+      environment, set_revision_cid, runtime_bundle_cid, site_key, site_generation,
+      initial_revision, attempt_id,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7507,7 +7571,7 @@ pub fn strategy_remote_bundle_hold_binding_prepare(
 ///|
 #export_name("strategyRemoteBundleHoldBindingIdentity")
 pub fn strategy_remote_bundle_hold_binding_identity(
-  value : @bundle.RemoteBundleHoldBinding
+  value : @bundle.RemoteBundleHoldBinding,
 ) -> String {
   @bundle.bundle_hold_binding_identity(value)
 }
@@ -7538,7 +7602,10 @@ pub fn strategy_remote_bundle_hold_binding_admit_json(
   body : String,
   claimed_binding_cid : String,
 ) -> @bundle.RemoteBundleHoldBinding raise NodeHostFailure {
-  match @bundle.admit_bundle_hold_binding_json(distribution, body, claimed_binding_cid) {
+  match
+    @bundle.admit_bundle_hold_binding_json(
+      distribution, body, claimed_binding_cid,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7552,7 +7619,9 @@ pub fn strategy_remote_bundle_hold_observe(
   binding : @bundle.RemoteBundleHoldBinding,
   exact_live_hold : Bool,
 ) -> @bundle.RemoteBundleHoldObservation {
-  @bundle.observe_bundle_hold(catalog_incarnation, record, binding, exact_live_hold)
+  @bundle.observe_bundle_hold(
+    catalog_incarnation, record, binding, exact_live_hold,
+  )
 }
 
 ///|
@@ -7572,7 +7641,10 @@ pub fn strategy_remote_bundle_hold_retain_prepare(
   binding : @bundle.RemoteBundleHoldBinding,
   max_owners : Int,
 ) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
-  match @bundle.prepare_bundle_hold_retain(catalog_incarnation, active_bundle_cid, record, binding, max_owners) {
+  match
+    @bundle.prepare_bundle_hold_retain(
+      catalog_incarnation, active_bundle_cid, record, binding, max_owners,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7586,7 +7658,10 @@ pub fn strategy_remote_bundle_hold_fence_prepare(
   binding : @bundle.RemoteBundleHoldBinding,
   exact_live_hold : Bool,
 ) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
-  match @bundle.prepare_bundle_hold_fence(catalog_incarnation, record, binding, exact_live_hold) {
+  match
+    @bundle.prepare_bundle_hold_fence(
+      catalog_incarnation, record, binding, exact_live_hold,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7611,7 +7686,8 @@ pub fn strategy_remote_bundle_custody_request_prepare(
   binding : @bundle.RemoteBundleHoldBinding,
   operation : String,
 ) -> @bundle.RemoteBundleCustodyRequest raise NodeHostFailure {
-  match @bundle.prepare_bundle_custody_request(distribution, binding, operation) {
+  match
+    @bundle.prepare_bundle_custody_request(distribution, binding, operation) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7620,7 +7696,7 @@ pub fn strategy_remote_bundle_custody_request_prepare(
 ///|
 #export_name("strategyRemoteBundleCustodyRequestIdentity")
 pub fn strategy_remote_bundle_custody_request_identity(
-  value : @bundle.RemoteBundleCustodyRequest
+  value : @bundle.RemoteBundleCustodyRequest,
 ) -> String {
   @bundle.bundle_custody_request_identity(value)
 }
@@ -7639,7 +7715,7 @@ pub fn strategy_remote_bundle_custody_request_json(
 ///|
 #export_name("strategyRemoteBundleCustodyRequestOperation")
 pub fn strategy_remote_bundle_custody_request_operation(
-  value : @bundle.RemoteBundleCustodyRequest
+  value : @bundle.RemoteBundleCustodyRequest,
 ) -> String {
   @bundle.bundle_custody_request_operation(value)
 }
@@ -7700,7 +7776,10 @@ pub fn strategy_remote_bundle_custody_response_prepare(
   catalog_incarnation : String?,
   record_revision : Int?,
 ) -> @bundle.RemoteBundleCustodyResponse raise NodeHostFailure {
-  match @bundle.prepare_bundle_custody_response(request, observation, catalog_incarnation, record_revision) {
+  match
+    @bundle.prepare_bundle_custody_response(
+      request, observation, catalog_incarnation, record_revision,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7718,7 +7797,10 @@ pub fn strategy_remote_bundle_custody_response_fields_prepare(
 ) -> @bundle.RemoteBundleCustodyResponse raise NodeHostFailure {
   let catalog = if catalog_present { Some(catalog_incarnation) } else { None }
   let revision = if revision_present { Some(record_revision) } else { None }
-  match @bundle.prepare_bundle_custody_response_fields(request, observation, catalog, revision) {
+  match
+    @bundle.prepare_bundle_custody_response_fields(
+      request, observation, catalog, revision,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }
@@ -7727,7 +7809,7 @@ pub fn strategy_remote_bundle_custody_response_fields_prepare(
 ///|
 #export_name("strategyRemoteBundleCustodyResponseIdentity")
 pub fn strategy_remote_bundle_custody_response_identity(
-  value : @bundle.RemoteBundleCustodyResponse
+  value : @bundle.RemoteBundleCustodyResponse,
 ) -> String {
   @bundle.bundle_custody_response_identity(value)
 }
@@ -7746,7 +7828,7 @@ pub fn strategy_remote_bundle_custody_response_json(
 ///|
 #export_name("strategyRemoteBundleCustodyResponseKind")
 pub fn strategy_remote_bundle_custody_response_kind(
-  value : @bundle.RemoteBundleCustodyResponse
+  value : @bundle.RemoteBundleCustodyResponse,
 ) -> String {
   @bundle.bundle_custody_response_kind(value)
 }
@@ -7814,7 +7896,10 @@ pub fn strategy_remote_bundle_custody_response_admit_json(
   body : String,
   claimed_response_cid : String,
 ) -> @bundle.RemoteBundleCustodyResponse raise NodeHostFailure {
-  match @bundle.admit_bundle_custody_response_json(request, body, claimed_response_cid) {
+  match
+    @bundle.admit_bundle_custody_response_json(
+      request, body, claimed_response_cid,
+    ) {
     Ok(value) => value
     Err(issue) => raise RemoteBundle(issue)
   }

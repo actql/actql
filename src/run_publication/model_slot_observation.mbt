@@ -14,7 +14,12 @@ fn model_slot_reference_error(field : String) -> RunEvidenceValueIssue {
 
 ///|
 fn model_template_requires_slots(template : RunEvidenceValue) -> Bool {
-  guard @json.object_field(template.value, "required_profile_contracts")
+  model_template_value_requires_slots(template.value)
+}
+
+///|
+fn model_template_value_requires_slots(template : @json.CanonicalValue) -> Bool {
+  guard @json.object_field(template, "required_profile_contracts")
     is Some(@json.Array(profiles)) else {
     return false
   }
@@ -293,6 +298,26 @@ pub fn issue_model_run_invocation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, RunEvidenceValueIssue] {
+  // A Model-only capture does not prove a containing Content generation.
+  if content_template_requires_generation(template) ||
+    @json.object_field(observation.value, "content_generation_cids") is Some(_) {
+    return Err(RunEvidenceReferenceMismatch("content_generation_cids"))
+  }
+  match verify_model_invocation_observation(template, observation, expected) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  issue_run_invocation_owned(
+    template, observation, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn verify_model_invocation_observation(
+  template : RunEvidenceValue,
+  observation : RunEvidenceValue,
+  expected : Array[BoundModelSlotCapture],
+) -> Result[Unit, RunEvidenceValueIssue] {
   if template.name != "bound_invocation_template" ||
     observation.name != "observation_set" {
     return Err(UnknownRunEvidence)
@@ -312,11 +337,5 @@ pub fn issue_model_run_invocation(
       return Err(model_slot_reference_error("program_definition_cid"))
     }
   }
-  match verify_model_observation_slots(observation, expected) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  issue_run_invocation_owned(
-    template, observation, max_wire_bytes, max_nodes, max_depth,
-  )
+  verify_model_observation_slots(observation, expected)
 }

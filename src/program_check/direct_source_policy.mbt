@@ -7,6 +7,7 @@ pub struct DirectSourcePolicy {
   response_cid : String
   classification : @environment.DataClassification
   unknown_provenance : Bool
+  request_value_policy : @environment.SourceDataPolicy?
 }
 
 ///|
@@ -14,6 +15,7 @@ fn prepare_direct_source_policy(
   request : @sourceviews.ParameterizedRequest,
   response : SourceResponsePolicy,
   response_cid : String,
+  request_value_policy? : @environment.SourceDataPolicy? = None,
 ) -> DirectSourcePolicy raise UnitBuildFailure {
   guard physical_equal(
     @sourceviews.request_input(@sourceviews.parameterized_request(request)),
@@ -21,13 +23,13 @@ fn prepare_direct_source_policy(
   ) else {
     raise ForeignOwner
   }
-  // Current static request admission carries literal/Parameter/Host-binding
-  // values but no authoritative policy attestation for those values. Preserve
-  // their exact occurrences through request; never infer a public default.
+  // Type admission alone supplies no policy. Only Host-verified evidence
+  // selected for this exact request may discharge static value provenance.
   let unknown_provenance = @sourceviews.parameterized_request_field_count(
       request,
     ) >
-    0
+    0 &&
+    request_value_policy is None
   {
     request,
     response,
@@ -35,9 +37,15 @@ fn prepare_direct_source_policy(
     classification: if unknown_provenance {
       @environment.Unknown
     } else {
-      response.classification
+      combine_classification(
+        response.classification,
+        request_value_policy
+        .map(@environment.data_classification)
+        .unwrap_or(@environment.Public),
+      )
     },
     unknown_provenance,
+    request_value_policy,
   }
 }
 
@@ -74,14 +82,21 @@ fn emit_source_policy(
   )
   @encode.key(writer, "source_data_policy_cids")
   @encode.begin_array(writer)
-  @encode.string_value(
-    writer,
-    @environment.contract_identity(
+  let response_cid = @environment.contract_identity(
       @environment.data_policy_envelope(
         @environment.source_view_data_policy(value.response.authoritative),
       ),
-    ).2,
-  )
+    ).2
+  let request_cid = value.request_value_policy.map(policy => {
+    @environment.contract_identity(@environment.data_policy_envelope(policy)).2
+  })
+  if request_cid is Some(cid) && @canonical.compare_utf16(cid, response_cid) < 0 {
+    @encode.string_value(writer, cid)
+  }
+  @encode.string_value(writer, response_cid)
+  if request_cid is Some(cid) && @canonical.compare_utf16(cid, response_cid) > 0 {
+    @encode.string_value(writer, cid)
+  }
   @encode.end_array(writer)
   @encode.key(writer, "source_response_policy_cids")
   @encode.begin_array(writer)

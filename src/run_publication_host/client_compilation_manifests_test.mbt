@@ -37,7 +37,7 @@ test "compiler manifests require exact pinned bodies" {
   assert_true(
     admit_client_compilation_manifests(
       grammar,
-      barrier.replace(old="artifact_barrier", new="other_barrier"),
+      barrier.replace(old="content_barrier", new="other_barrier"),
       10000,
       1000,
       20,

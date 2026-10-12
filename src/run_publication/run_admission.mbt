@@ -248,6 +248,21 @@ pub fn check_run_publication_program_binding(
 }
 
 ///|
+/// The original admitted Run lifetime, not a renewal or a current-time check.
+pub fn run_definition_lifetime(
+  definition : PublicationContract,
+) -> (String, String)? {
+  if definition.name != "run_definition" {
+    return None
+  }
+  guard contract_string(definition, "created_at") is Some(created) &&
+    contract_string(definition, "valid_until") is Some(until) else {
+    return None
+  }
+  Some((created, until))
+}
+
+///|
 /// The saved admission and Run Definition have separate deadlines. A Host
 /// supplies its current clock immediately before claiming physical execution;
 /// structural admission alone cannot establish that either record is live.

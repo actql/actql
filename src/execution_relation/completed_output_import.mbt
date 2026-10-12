@@ -121,6 +121,21 @@ pub fn cancel_completed_output_import(value : CompletedOutputImport) -> Bool {
 }
 
 ///|
+/// Both receiving value admission and verification admission belong to this
+/// conversion. Observe their actual cumulative work after failure, finish or
+/// reclamation as well; returning a successful output is not required.
+pub fn completed_output_import_cumulative_work(
+  value : CompletedOutputImport,
+) -> Int64 {
+  let receiving = value.admitted.buffer.budget
+  let verifying = value.stream.buffer.budget
+  receiving.work.to_int64() +
+  receiving.external_work.to_int64() +
+  verifying.work.to_int64() +
+  verifying.external_work.to_int64()
+}
+
+///|
 /// A completed conversion transferred its rows; only private failed or
 /// unfinished admission buffers may be reclaimed. No source is re-read.
 pub fn advance_cancel_completed_output_import(

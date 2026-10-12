@@ -16,7 +16,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
-  submission, existingModel, modelClaim, parentResume, modelJournalPort}) {
+  submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun}) {
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
   const multiple = count === 2;
@@ -37,6 +37,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let modelPlan;
   let modelRecord = existingModel;
   let ledger;
+  let contentFamily, contentPlan, contentRecovery, restoredModelInput;
   const diagnostic = diagnosticObserver(observe);
   const observeUsage = (name, facts = {}) => {
     const usage = ledger === undefined ? checkedHost === undefined ? undefined
@@ -89,6 +90,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       catch (error) { failure = error; }
       try { if (settled) await cleanupInfer(); }
       catch (error) { failure ??= error; }
+      try { if (settled) await contentFamily?.close(); }
+      catch (error) { failure ??= error; }
+      try { if (settled) await contentRecovery?.close(); }
+      catch (error) { failure ??= error; }
       if (failure !== undefined) observeUsage('effect_computation_cleanup_pending');
       if (failure !== undefined) throw failure;
     },
@@ -99,6 +104,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         observeUsage('effect_computation_cleanup_pending');
         return false;
       }
+      if (contentFamily !== undefined && (!await contentFamily.cleanup() ||
+          contentFamily.cleanupPending())) {
+        observeUsage('effect_computation_cleanup_pending');
+        return false;
+      }
+      if (contentRecovery !== undefined && (!await contentRecovery.cleanup() ||
+          contentRecovery.cleanupPending())) return false;
       const physical = execution ?? recovery;
       if (physical !== undefined) {
         if (await physical.cleanup() === false ||
@@ -157,6 +169,95 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       signal?.throwIfAborted();
     }
     await sourceContinuation?.prepared(sources);
+    const serializations = moon.clientProgramEffectSerializationOccurrences(acquired.prepared);
+    const captureStartedAt = sourceContinuation?.times().captureStartedAt ?? now();
+    let captureCompletedAt;
+    const evidence = [];
+    let component;
+    if (serializations.length > 0) {
+      if (multiple || sourceFree || serializations.length !== 1 ||
+          typeof contentRun?.effectFamily !== 'function' ||
+          typeof sources[0]?.adapter.ledgerCapacity !== 'function') {
+        throw new TypeError('UnsupportedInstalledContentEffectClosure');
+      }
+      // Both children borrow this exact compiled Run, not two independently
+      // reconstructed wrappers with merely equal wire identities.
+      const compiled = infer === undefined
+        ? acquired.control.adoptCheckedClientEffectSerializationRun(acquired.allowed, acquired.runDefinition)
+        : acquired.control.adoptCheckedClientEffectInferRun(acquired.allowed, acquired.runDefinition,
+          acquired.resultDataPolicy, acquired.resultDataPolicyLimits);
+      if (infer !== undefined) {
+        modelPlan = {compiled, runDefinition: acquired.runDefinition};
+      }
+      contentPlan = {kind: 'effect', compiled, runDefinition: acquired.runDefinition,
+        inferGraph: infer?.graph,
+        serializationGraph: acquired.control.compiledSerializationGraph(compiled)};
+      let restored;
+      if (modelToken !== undefined) {
+        restoredModelInput = {
+          token: modelToken, snapshot: modelToken.snapshot,
+          sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
+          savedScope: modelController.savedScope(modelPlan, acquired.prepared, infer, modelToken),
+        };
+        restored = await contentRun.recover({preparedEffect: acquired.prepared,
+          plan: contentPlan, store, principalId, signal, restoredInput: restoredModelInput,
+          retainExecution(value) { contentRecovery = value; }});
+      }
+      contentFamily = contentRun.effectFamily({prepared: acquired.prepared,
+        plan: contentPlan, store, principalId, signal, restored});
+    }
+    const prepareInferComponent = () => {
+      if (infer === undefined) return undefined;
+      if (!multiple && !sourceFree && contentFamily === undefined) {
+        throw new TypeError('UnsupportedComposedInferSourceClosure');
+      }
+      const admittedSources = sourceFree || contentFamily !== undefined ? undefined
+        : checked(moon.clientProgramAdmitComposedInferSources(
+          infer.occurrence, captures.map(value => value.capture.source()),
+          captures.map(value => value.identity), captures.map(value => value.requirement),
+          captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)),
+          evidence.map(value => value.sourceEvidenceWire), acquired.authorityScopeCid,
+          captureStartedAt, captureCompletedAt));
+      const compiled = modelPlan?.compiled ?? acquired.control.adoptCheckedClientEffectInferRun(
+        acquired.allowed, acquired.runDefinition, acquired.resultDataPolicy,
+        acquired.resultDataPolicyLimits);
+      const plan = modelPlan ?? {compiled, runDefinition: acquired.runDefinition};
+      modelPlan = plan;
+      const restoredInput = restoredModelInput ?? (modelToken === undefined ? undefined : {
+        token: modelToken, snapshot: modelToken.snapshot,
+        sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
+        savedScope: modelController.savedScope(plan, acquired.prepared, infer, modelToken),
+      });
+      return openNodeComposedInferProvider({moon, selected: infer, sources: admittedSources,
+        ...(contentFamily === undefined ? {} : {generatedInput: {
+          generation: () => contentFamily.generation(),
+          recovery: () => contentFamily.recovery(),
+        }}),
+        control: acquired.control, plan, principalId, signal, now, durableCalls: true, restoredInput,
+        retainOperation(operation) {
+          inferOperation = operation;
+          inferCapture = openNodeInferCaptureCustody({moon, control: acquired.control,
+            operation, plan, store, storeAuthorityCid: acquired.storeAuthorityCid, durableCalls: true,
+            sourceEvidence: evidence.map(source => acquired.control.admitRunEvidence(
+              'source_evidence', source.sourceEvidenceWire,
+              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})),
+            faultInjection,
+            publicationFor: ({issuance, modelEvidence}) =>
+              sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
+                compiled, operation, issuance, modelEvidence}) :
+              acquiredInferEffectPublicationPlan({acquired, sources: evidence,
+                compiled, operation, issuance, modelEvidence,
+                captureStartedAt, captureCompletedAt})});
+        },
+        retainCompleted: () => inferCapture.retainCompleted()});
+    };
+    if (contentFamily !== undefined) {
+      component = prepareInferComponent();
+      // Resolve every registered family on the original Source ledger before
+      // any adapter read; Model opens only when Local binds its completed edge.
+      ledger = contentFamily.prepareLedger(sources[0].adapter.ledgerCapacity(sources[0].preparedSource),
+        component === undefined ? [] : [component.provider]);
+    }
     if (multiple) {
       const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));
       const pendingSelection = sources.some(value => value.preparedSource.selection === undefined);
@@ -169,8 +270,6 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         capacities.map(value => value.executionBytes), registry, values, fragment, ordered);
       if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
     }
-    const captureStartedAt = sourceContinuation?.times().captureStartedAt ?? now();
-    const evidence = [];
     for (const source of sources) {
       signal?.throwIfAborted();
       diagnostic('acquisition_started', {task: source.occurrence.task,
@@ -212,50 +311,19 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       await sourceContinuation?.captured(source, captured, sourceEvidenceWire,
         captureStartedAt, now());
     }
-    const captureCompletedAt = sourceContinuation?.times().captureCompletedAt ?? now();
-    let publicationPlan = infer === undefined ? multiple
+    captureCompletedAt = sourceContinuation?.times().captureCompletedAt ?? now();
+    contentFamily?.bindCapture(captures[0], {...evidence[0],
+      authorityScopeCid: acquired.authorityScopeCid, captureStartedAt, captureCompletedAt});
+    // A completed Source does not close a Run containing a generation barrier.
+    // Its original Content evidence must be issued by the selected component
+    // before publication is prepared; never fill that inventory with [] or
+    // claim a Source-only Invocation for the same checked Template.
+    let publicationPlan = infer === undefined && serializations.length === 0 ? multiple
       ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
         captureStartedAt, captureCompletedAt})
       : acquiredEffectPublicationPlan({acquired, ...evidence[0],
         captureStartedAt, captureCompletedAt}) : undefined;
-    let component;
-    if (infer !== undefined) {
-      if (!multiple && !sourceFree) throw new TypeError('UnsupportedComposedInferSourceClosure');
-      const sources = sourceFree ? undefined : checked(moon.clientProgramAdmitComposedInferSources(
-        infer.occurrence, captures.map(value => value.capture.source()),
-        captures.map(value => value.identity), captures.map(value => value.requirement),
-        captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)),
-        evidence.map(value => value.sourceEvidenceWire), acquired.authorityScopeCid,
-        captureStartedAt, captureCompletedAt));
-      const compiled = acquired.control.adoptCheckedClientEffectInferRun(
-        acquired.allowed, acquired.runDefinition, acquired.resultDataPolicy,
-        acquired.resultDataPolicyLimits);
-      const plan = {compiled, runDefinition: acquired.runDefinition};
-      modelPlan = plan;
-      const restoredInput = modelToken === undefined ? undefined : {
-        token: modelToken, snapshot: modelToken.snapshot,
-        sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
-        savedScope: modelController.savedScope(plan, acquired.prepared, infer, modelToken),
-      };
-      component = openNodeComposedInferProvider({moon, selected: infer, sources,
-        control: acquired.control, plan, principalId, signal, now, durableCalls: true, restoredInput,
-        retainOperation(operation) {
-          inferOperation = operation;
-          inferCapture = openNodeInferCaptureCustody({moon, control: acquired.control,
-            operation, plan, store, storeAuthorityCid: acquired.storeAuthorityCid, durableCalls: true,
-            sourceEvidence: evidence.map(source => acquired.control.admitRunEvidence(
-              'source_evidence', source.sourceEvidenceWire,
-              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})),
-            faultInjection,
-            publicationFor: ({issuance, modelEvidence}) =>
-              sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
-                compiled, operation, issuance, modelEvidence}) :
-              acquiredInferEffectPublicationPlan({acquired, sources: evidence,
-                compiled, operation, issuance, modelEvidence,
-                captureStartedAt, captureCompletedAt})});
-        },
-        retainCompleted: () => inferCapture.retainCompleted()});
-    }
+    if (component === undefined && infer !== undefined) component = prepareInferComponent();
     signal?.throwIfAborted();
     checkedHost = sourceFree
       ? moon.clientProgramOpenSourceFreeInferEffectHost(owner,
@@ -267,6 +335,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         moon.clientProgramOpenMultiCapturedInferEffectHost(owner,
           captures.map(value => value.capture.source()), ledger,
           registry, values, fragment, ordered, component.provider)
+      : contentFamily !== undefined
+      ? moon.clientProgramOpenCapturedFamilyEffectHost(owner,
+        captures[0].capture.source(), ledger, registry, values, fragment, ordered,
+        component === undefined ? [contentFamily.provider] : [contentFamily.provider, component.provider])
       : moon.clientProgramOpenCapturedLocalEffectHost(owner,
         captures[0].capture.source(), registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);
@@ -276,15 +348,14 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     // Without a returned Compute owner an exception cannot prove a stop.
     // Keep the responsibility rather than relabeling it as released.
     unresolved = true;
-    if (multiple) {
+    if (multiple || contentFamily !== undefined) {
       const dag = moon.strategyHostRun(moon.clientProgramLocalEffectHostRuntime(checkedHost));
       for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
     }
-    if (component !== undefined && typeof withComputePauseHandler !== 'function') {
-      throw new TypeError('ModelPauseConfigurationMissing');
+    if ((component !== undefined || contentFamily !== undefined) && typeof withComputePauseHandler !== 'function') {
+      throw new TypeError('PhysicalPauseConfigurationMissing');
     }
-    const configurations = component === undefined ? computeConfigurations
-      : withComputePauseHandler(computeConfigurations, async boundary => {
+    const handleModelPause = async boundary => {
         const operation = component.operation();
         if (operation === undefined || inferCapture === undefined) throw new Error('ModelPauseOwnerMissing');
         if (boundary.status === 'settling') {
@@ -319,6 +390,16 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         });
         return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint,
           cleanupPending: true, cleanupHandle};
+      };
+    const configurations = component === undefined && contentFamily === undefined ? computeConfigurations
+      : withComputePauseHandler(computeConfigurations, boundary => {
+        // Slots are local to each child. A shared numerical slot must not
+        // route a Model settlement into the already-completed Content owner.
+        if (contentFamily !== undefined && contentFamily.generation() === undefined) {
+          return contentFamily.handlePause(boundary);
+        }
+        if (component !== undefined) return handleModelPause(boundary);
+        throw new Error('PhysicalPauseOwnerMissing');
       });
     execution = await runCapturedEffectComputation(checkedHost,
       {...configurations,
@@ -351,6 +432,15 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       if (inferCapture === undefined) throw component.failure() ?? new Error('InstalledInferCaptureUnavailable');
       publicationPlan = (await inferCapture.persist()).plan;
       await faultInjection?.('infer_capture_committed', {});
+    }
+    if (contentFamily !== undefined && component === undefined) {
+      const generation = contentFamily.generation();
+      if (generation === undefined) throw new Error('InstalledContentGenerationEvidenceUnavailable');
+      publicationPlan = acquiredEffectPublicationPlan({acquired, ...evidence[0],
+        captureStartedAt, captureCompletedAt, content: {...contentPlan, generation}});
+    }
+    if (publicationPlan === undefined) {
+      throw new Error('InstalledContentGenerationEvidenceUnavailable');
     }
     return Object.freeze({execution, checkedHost, publicationPlan,
       cleanupOwner: custody});

@@ -24,6 +24,7 @@ const limits = {maxWireBytes: 8192, maxNodes: 512, maxDepth: 64};
 const keys = generateKeyPairSync('ed25519');
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
 const preparedOriginals = new WeakMap();
+const checkedOriginals = new WeakMap();
 
 function original(control, runId = 'original') {
   const environment = moon.clientProgramCheckEnvironment(input('infer_fixture_environment'),
@@ -50,6 +51,7 @@ function original(control, runId = 'original') {
   const definition = control.defineCheckedClientCompiledRun(compiled,
     {namespaceId: 'scope', runId, createdAt: '2026-10-02T00:00:00.000Z', validUntil: '2099-01-01T00:00:00.000Z'});
   preparedOriginals.set(definition, compiled.preparedEvidence.identity);
+  checkedOriginals.set(definition, {compiled, graph});
   return definition;
 }
 
@@ -78,6 +80,31 @@ function wireFor(definition, binding, changes = {}) {
     run_id: 'original', run_definition_cid: definition.identity, storage_binding_cid: binding.identity,
     ...changes.origin}});
 }
+
+test('original origin bridge uses compiled and Store evidence token domains and refuses missing layout', async t => {
+  const f = await fixture(t), port = await f.open();
+  const {compiled, graph} = checkedOriginals.get(f.definition);
+  const binding = await port.observeModelOriginalStorageBinding();
+  const storage = await port.modelOriginalStorageBindingEvidence(binding);
+  const scope = f.control.beginCheckedClientInferOriginalReadScope(compiled, f.definition, graph,
+    {bootstrapRetainedBytes: 3n, bootstrapExecutionBytes: 2n,
+      maxReservations: 4, maxHoldings: 2, maxDelegations: 0});
+  const selected = {layout: undefined, installation: {}, runtimeArtifactCid: cid('d'),
+    layoutArtifactCid: cid('e'), probability: undefined};
+  const get = (c, d, s) =>
+    f.control.checkedClientInferOriginalResourceOriginField(c, d, graph, scope,
+      selected, s, 'run_id');
+  // The actual Common issuer, not a JS fallback, refuses an uninstalled layout.
+  assert.throws(() => get(compiled, f.definition, storage), error => error.code === 'MoonBitHostFailure');
+  for (const foreign of [undefined, f.definition, {...compiled}]) {
+    assert.throws(() => get(foreign, f.definition, storage), TypeError);
+  }
+  assert.throws(() => get(compiled, {...f.definition}, storage), TypeError);
+  assert.throws(() => get(compiled, f.definition, {...storage}), TypeError);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(compiled,
+    f.definition, graph, scope, true), true);
+  assert.equal('consume' in scope || 'send' in storage, false);
+});
 
 test('original state saved observation verifies same actual Store and refuses copied foreign restart authority', async t => {
   const f = await fixture(t), port = await f.open();

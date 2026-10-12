@@ -61,8 +61,15 @@ test "typed NEAREST retains ordered composite identities without rebuilding vect
   for i in 0..<steps.length() {
     let step = @wire.open_object(@wire.element_at(cursor, i).unwrap()).unwrap()
     assert_true(@wire.lookup(step, "to_vectors") is None)
+    assert_true(@wire.lookup(step, "vectors") is None)
   }
-  let nearest = @wire.open_object(@wire.element_at(cursor, 4).unwrap()).unwrap()
+  let nearest_steps = @wire.elements(cursor)
+    .unwrap()
+    .filter(step => {
+      @wire.lookup(@wire.open_object(step).unwrap(), "nearest") is Some(_)
+    })
+  assert_eq(nearest_steps.length(), 1)
+  let nearest = @wire.open_object(nearest_steps[0]).unwrap()
   assert_eq(
     @wire.text(@wire.lookup(nearest, "from").unwrap()),
     Ok("candidate_vectors"),
@@ -72,8 +79,10 @@ test "typed NEAREST retains ordered composite identities without rebuilding vect
     @wire.text(@wire.lookup(options, "queries").unwrap()),
     Ok("query_vectors"),
   )
-  let extraction = @wire.open_object(@wire.element_at(cursor, 5).unwrap()).unwrap()
-  let extraction = @wire.lookup(extraction, "derive").unwrap()
+  let derives = @wire.elements(cursor)
+    .unwrap()
+    .filter_map(step => @wire.lookup(@wire.open_object(step).unwrap(), "derive"))
+  let extraction = derives[0]
   let keys = @wire.object_field_names(extraction).unwrap()
   let extraction = @wire.open_object(extraction).unwrap()
   // Independent positional identity contract: component zero is b, one is a.

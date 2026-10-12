@@ -17,7 +17,7 @@ fn lower_script_set_relation(
   let first_step = steps.length()
   let first = pipe_physical_name(reserved, "aql_data_set_term_")
   reserved.push(first)
-  let left = lower_script_relation_term(
+  let left = lower_script_relation(
     construction,
     query,
     known,

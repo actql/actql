@@ -277,8 +277,9 @@ pub fn prepare_client_duckdb_acquisition(
 fn configure_client_duckdb_native(
   requirement : @planning.QueryRequirement,
   receipts : @planning.QueryTwoReceiptContract,
-  choice : @planning.AcquisitionChoice,
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBNativePreparation,
   ],
   limits? : @duckdb_host.NativeHostLimits = client_duckdb_native_limits(),
@@ -404,8 +405,9 @@ pub fn prepare_client_duckdb_broad_acquisition(
 fn configure_client_duckdb_broad(
   requirement : @planning.QueryRequirement,
   contracts : @planning.QueryEvidenceContracts,
-  choice : @planning.AcquisitionChoice,
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBQueryPreparation,
   ],
 ) -> @duckdb_host.BroadHostConfiguration {

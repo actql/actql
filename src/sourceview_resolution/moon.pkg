@@ -5,6 +5,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/capacity_program_step" @capacity,
   "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
   "actql/actql/canonical_value" @unicode,
   "actql/actql/source_request_slots" @slots,
   "actql/actql/binding_declarations" @bindings,
@@ -28,6 +29,17 @@ import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/capacity_witness" @witness,
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "actql/actql/execution_query" @query,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/client_row_source_host" @rowhost,
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/bounded_execution" @bounded,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/physical_cost" @cost,
+  "actql/actql/physical_resources" @resources,
 } for "test"
 
 formatter(ignore: [ "vectors.generated_test.mbt" ])

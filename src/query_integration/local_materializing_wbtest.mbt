@@ -372,8 +372,8 @@ test "Local materializing execution uses the common reservation and exact retain
         ).unwrap()
         assert_eq(tail, "]")
         if mode == 5 {
-          let material = @execution.retain_admitted_output_stream(content, (), fn() {
-            true
+          let material = @execution.retain_admitted_output_stream(content, (), () => {
+            !released.val
           })
           @local_connector.bind_local_output_export(
             consumer,
@@ -426,6 +426,16 @@ test "Local materializing execution uses the common reservation and exact retain
         @strategy.refresh_task_execution_cleanup(run, ticket).unwrap(),
       )
       released.val = true
+      if mode == 5 {
+        // A physical release fact cannot retire the import/output roots. The
+        // common refresh is observational; the installed owner drives cleanup.
+        assert_false(
+          @strategy.refresh_task_execution_cleanup(run, ticket).unwrap(),
+        )
+      }
+      assert_true(
+        @local_connector.advance_local_materializing_cleanup(consumer, 64),
+      )
       assert_true(
         @strategy.refresh_task_execution_cleanup(run, ticket).unwrap(),
       )

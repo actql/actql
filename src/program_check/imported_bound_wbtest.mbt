@@ -26,7 +26,7 @@ test "imported Result retains an admitted producer row bound without consumer co
   for i in 0..<2 {
     let membership = @context.publication_row_limit_program_at(consumer, i).unwrap().membership
     assert_eq(@capacity.target_membership_consumer_visit(membership), 0)
-    let (visit, claim, _) = @capacity.target_membership_coordinates(membership)
+    let (visit, claim, _) = @capacity.target_membership_coordinates(membership).unwrap()
     assert_eq(visit, i + 1)
     assert_eq(claim, 0)
   }

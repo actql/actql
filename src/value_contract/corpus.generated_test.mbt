@@ -103,17 +103,17 @@ test "value contract corpus: resource-kind" {
 
 ///|
 test "value contract corpus: artifact-unrestricted" {
-  let value = @value_contract.read_author(cursor("{\"type\":\"artifact_ref\",\"nullable\":true}"), limits()).unwrap()
-  assert_eq(render(value), "{\"nullable\":true,\"type\":\"artifact_ref\"}")
-  let checked = @value_contract.read_checked(cursor("{\"nullable\":true,\"type\":\"artifact_ref\"}"), limits()).unwrap()
+  let value = @value_contract.read_author(cursor("{\"type\":\"content_ref\",\"nullable\":true}"), limits()).unwrap()
+  assert_eq(render(value), "{\"nullable\":true,\"type\":\"content_ref\"}")
+  let checked = @value_contract.read_checked(cursor("{\"nullable\":true,\"type\":\"content_ref\"}"), limits()).unwrap()
   assert_true(@value_contract.type_equal(value, checked, 1000))
 }
 
 ///|
 test "value contract corpus: artifact-media" {
-  let value = @value_contract.read_checked(cursor("{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}"), limits()).unwrap()
-  assert_eq(render(value), "{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"artifact_ref\"}")
-  let checked = @value_contract.read_checked(cursor("{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"artifact_ref\"}"), limits()).unwrap()
+  let value = @value_contract.read_checked(cursor("{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}"), limits()).unwrap()
+  assert_eq(render(value), "{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"content_ref\"}")
+  let checked = @value_contract.read_checked(cursor("{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"content_ref\"}"), limits()).unwrap()
   assert_true(@value_contract.type_equal(value, checked, 1000))
 }
 

@@ -150,7 +150,7 @@ test "Graph MATCH operands retain producer ownership before material collection"
   ).unwrap()
   let bound = @step_bounds.target_rows_bound(
     @capacity.target_membership_rows(candidate.membership),
-  )
+  ).unwrap()
   let input = @pipeline.produced_input(source, Step(0)).unwrap()
   let limits : @pipeline.Limits = {
     max_steps: 10,
@@ -203,7 +203,7 @@ test "Graph MATCH operands retain producer ownership before material collection"
   ).unwrap()
   let foreign_bound = @step_bounds.target_rows_bound(
     @capacity.target_membership_rows(foreign_candidate.membership),
-  )
+  ).unwrap()
   assert_eq(
     @wire.cid(@wire.program_proof_witness(@step_bounds.checked_proof(bound))),
     @wire.cid(

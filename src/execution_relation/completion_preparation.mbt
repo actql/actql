@@ -8,6 +8,9 @@ struct CompletionPreparation {
   retained_ids : Array[String]
   selected_step : Int?
   selected_terminal_step : Int?
+  // The checked byte-generation verifier, not the internal sort, completes
+  // the logical metadata output at this coordinate.
+  serialization_output : Int?
 }
 
 ///|
@@ -43,6 +46,7 @@ pub fn prepare_completion(
     retained_ids: retained_ids.copy(),
     selected_step: None,
     selected_terminal_step: None,
+    serialization_output: None,
   })
 }
 
@@ -64,6 +68,7 @@ pub fn generated_completion_preparation(
       Some(steps) => steps.get(steps.length() - 1)
       None => generated.selected_prefix_end
     },
+    serialization_output: None,
   }
 }
 
@@ -97,4 +102,23 @@ pub fn completion_preparation_sequence(
   value : CompletionPreparation,
 ) -> @lower.PreparedSequence {
   value.sequence
+}
+
+///|
+/// A compiler-selected internal sort has the input Relation schema, not the
+/// later Content metadata schema at its enclosing logical coordinate.
+fn completion_preparation_schema(
+  value : CompletionPreparation,
+  target : @pipeline.Target,
+) -> @schema.Schema? {
+  if target is Step(index) &&
+    value.serialization_output != Some(index) &&
+    @lower.sequence_serialization_input_kernel(value.sequence, index)
+    is Some(kernel) {
+    return Some(@lower.kernel_output_schema(kernel))
+  }
+  @lower.preparation_schema_at(
+    @lower.bound_preparation(completion_preparation_owner(value)),
+    target,
+  )
 }

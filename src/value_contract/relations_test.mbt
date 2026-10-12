@@ -149,12 +149,12 @@ test "decimal vector and reference parameters use distinct relations" {
   assert_true(@value_contract.key_comparable(r1, r1))
   assert_true(@value_contract.join_nullability(r1, r2, 1) is None)
   let pdf = author(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
   )
   let json = author(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
   )
-  let any = scalar("artifact_ref")
+  let any = scalar("content_ref")
   assert_true(@value_contract.assignable(pdf, any, 1))
   assert_true(!@value_contract.assignable(any, pdf, 1))
   assert_true(!@value_contract.assignable(pdf, json, 1))

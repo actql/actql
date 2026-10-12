@@ -76,6 +76,85 @@ fn preview_identity_test_canonical(wire : String) -> String {
 }
 
 ///|
+test "Command Preview retains its closed ResourceRef target through readmission" {
+  let a = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let target =
+    #|{"$actql_ref":"resource","authority_scope_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","boundary_cid":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","identity_cid":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","provider_identity_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","provider_namespace":"fixture","resource_kind":"file","version":"actql-resource-ref/0.1"}
+  let raw = preview_identity_test_wire(
+      run,
+      authoring,
+      preview_identity_test_cid("4"),
+      "target-sentinel",
+      a,
+      a,
+    )
+    .replace_all(
+      old="\"effect_kind\":\"update\"",
+      new="\"effect_kind\":\"command\"",
+    )
+    .replace_all(
+      old="\"mapping\":\"mapping:fixture\"",
+      new="\"contract\":\"command:fixture\"",
+    )
+    .replace_all(
+      old="resolved_mapping_contract_cid",
+      new="resolved_command_contract_cid",
+    )
+    .replace_all(old="\"target-sentinel\"", new=target)
+    .replace_all(
+      old="{\"state\":\"version\",\"version_cid\":\"" + a + "\"}",
+      new="{\"state\":\"not_applicable\"}",
+    )
+    .replace_all(
+      old="{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}}",
+      new="{\"state\":\"not_applicable\"}",
+    )
+    .replace_all(
+      old="\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}",
+      new="\"after\":{\"state\":\"not_applicable\"}",
+    )
+  let draft = preview_identity_test_canonical(raw)
+  let (wire, identity) = author_effect_preview_semantic_wire(
+    draft, run, authoring, 8192, 512, 16,
+  ).unwrap()
+  assert_eq(effect_preview_row_correlation_wire(identity, 0, 0), Some(target))
+  assert_true(effect_preview_row_states_not_applicable(identity, 0, 0))
+  assert_eq(
+    effect_preview_row_intended_value_wire(identity, 0, 0),
+    Some("{\"Name\":\"After\"}"),
+  )
+  let readmitted = admit_effect_preview_identity(
+    wire, run, authoring, 8192, 512, 16,
+  ).unwrap()
+  assert_eq(effect_preview_row_correlation_wire(readmitted, 0, 0), Some(target))
+  // A shape-valid ref is not issuance. The captured verifier and current
+  // installation still validate its exact target and current authority.
+  for
+    invalid in [
+      draft.replace_all(
+        old="\"resource_kind\":\"file\"",
+        new="\"extra\":1,\"resource_kind\":\"file\"",
+      ),
+      draft.replace_all(
+        old="\"authority_scope_cid\":\"" +
+          preview_identity_test_cid("b") +
+          "\",",
+        new="",
+      ),
+      draft.replace_all(
+        old="actql-resource-ref/0.1",
+        new="actql-resource-ref/invalid",
+      ),
+    ] {
+    assert_true(
+      canonical_effect_preview_draft_wire(invalid, 8192, 512, 16) is Err(_),
+    )
+  }
+}
+
+///|
 fn preview_identity_test_wire(
   run_cid : String,
   authoring_cid : String,

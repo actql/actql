@@ -78,6 +78,13 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
   method('clientProgramRowSourceAttempt', [run], attempt, () => {
     assert.equal(settled(attempt), false);
   });
+  method('clientProgramRowSourceCaptureBegin', [run], ok(undefined), () => {
+    assert.equal(settled(attempt), true);
+  });
+  method('clientProgramRowSourceCaptureAdvance', [run, 64],
+    ok({_0: true, _1: 1n}));
+  method('clientProgramRowSourceCaptureCleanup', [run], ok(true));
+  method('clientProgramRowSourceCaptureCleanupAdvance', [run, 64], ok(true));
   method('clientProgramRowSourceCapture', [run], ok(capture), () => {
     assert.equal(settled(attempt), true,
       'the completed physical attempt is settled before Capture');
@@ -100,6 +107,8 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
     : 'clientProgramIssueCapturedTaskSourceLogical';
   method(logicalName, [checkedOwner, source, identity, requirement,
     ...(!effectful || task !== 0 ? [task] : [])], ok(logicalInput));
+  method('clientProgramSelectedInferStep', [checkedOwner], undefined);
+  method('clientProgramComposedInferOccurrences', [checkedOwner], ok([]));
   const hostName = retainedRelationOutput
     ? 'clientProgramOpenCapturedLocalRetainedHost'
     : 'clientProgramOpenCapturedLocalHost';
@@ -150,13 +159,14 @@ for (const accounted of [false, true]) {
   for (const effectful of [false, true]) {
     for (const task of [0, 1]) {
       test(`row run completes exact ${accounted ? 'accounted' : 'unaccounted'} ${effectful ? 'Effect' : 'ordinary'} task ${task}`,
-        () => {
+        async () => {
           const f = rowRunFixture({accounted, effectful, task});
           const owner = f.start();
           assert.equal(Object.isFrozen(owner), true);
           assert.equal(owner.run, f.run);
-          const result = owner.complete(f.options);
-          assert.equal(result instanceof Promise, false);
+          const pending = owner.complete(f.options);
+          assert.equal(pending instanceof Promise, true);
+          const result = await pending;
           assert.equal(Object.isFrozen(result), true);
           assert.equal(Object.isFrozen(result.capture), true);
           assert.equal(result.checkedSource, f.prepared.checkedSource);
@@ -172,9 +182,13 @@ for (const accounted of [false, true]) {
             accounted ? 'function' : 'undefined');
           assert.deepEqual(f.names().filter(name =>
             name !== 'clientProgramRowSourceCaptureSource'), [f.startName,
-            'clientProgramRowSourceFinish', 'clientProgramRowSourceAttempt',
+            'currentRead', 'clientProgramRowSourceFinish', 'clientProgramRowSourceAttempt',
+            'clientProgramRowSourceCaptureBegin', 'currentRead',
+            'clientProgramRowSourceCaptureAdvance', 'currentRead',
             'clientProgramRowSourceCapture', f.matchName, f.identifyName,
-            f.logicalName, ...(!accounted && !effectful ? [f.hostName] : [])]);
+            f.logicalName, ...(!accounted && !effectful ? [
+              'clientProgramSelectedInferStep', 'clientProgramComposedInferOccurrences',
+              f.hostName] : [])]);
           assert.equal(f.settled(f.attempt), true);
           assert.equal(f.settled(f.foreignAttempt), false);
           result.close();
@@ -191,24 +205,57 @@ for (const accounted of [false, true]) {
 
 for (const retainedRelationOutput of [false, true]) {
   test(`ordinary unaccounted row run selects ${retainedRelationOutput ? 'retained' : 'ordinary'} Host`,
-    () => {
+    async () => {
       const f = rowRunFixture({retainedRelationOutput});
       const owner = f.start();
-      assert.equal(owner.complete(f.options).setup, f.setup);
+      assert.equal((await owner.complete(f.options)).setup, f.setup);
       assert.equal(f.count(f.hostName), 1);
       owner.close();
     });
 }
 
+test('acquired INFER carries its original Source tuple without opening a pure Host', async () => {
+  const f = rowRunFixture();
+  f.respond('clientProgramSelectedInferStep', 3);
+  const owner = f.start();
+  const result = await owner.complete(f.options);
+  assert.equal(result.capturedSource, f.source);
+  assert.equal(result.inferStep, 3);
+  assert.equal(result.composedInfer, false);
+  assert.equal(result.setup, undefined);
+  assert.equal(result.identity, f.identity);
+  assert.equal(result.logicalInput, f.logicalInput);
+  assert.equal(result.capture.source(), f.source);
+  assert.equal(f.count(f.hostName), 0);
+  assert.equal(f.count('clientProgramRowSourceCapture'), 1);
+  result.close();
+  owner.close();
+  assert.equal(f.count(f.closeName), 1);
+});
+
+test('acquired composed INFER retains one original capture for the common Model owner', async () => {
+  const f = rowRunFixture();
+  f.respond('clientProgramComposedInferOccurrences', ok([token('first'), token('second')]));
+  const owner = f.start();
+  const result = await owner.complete(f.options);
+  assert.equal(result.capturedSource, f.source);
+  assert.equal(result.composedInfer, true);
+  assert.equal(result.setup, undefined);
+  assert.equal(f.count(f.hostName), 0);
+  assert.equal(f.count('clientProgramRowSourceCapture'), 1);
+  owner.close();
+  assert.equal(f.count(f.closeName), 1);
+});
+
 for (const effectful of [false, true]) {
   for (const task of [0, 1]) {
     test(`row run rejects non-true ${effectful ? 'Effect' : 'ordinary'} task ${task} matches before identity or Host`,
-      () => {
+      async () => {
         for (const matched of [false, 1, 'true', undefined]) {
           const f = rowRunFixture({effectful, task});
           f.respond(f.matchName, matched);
           const owner = f.start();
-          assert.throws(() => owner.complete(f.options),
+          await assert.rejects(owner.complete(f.options),
             {code: 'InstalledSourceProgramMismatch'});
           assert.equal(f.count(f.identifyName), 0);
           assert.equal(f.count(f.logicalName), 0);
@@ -224,20 +271,22 @@ test('row run rechecks current read before each evidence issue and forwards exac
   async () => {
     const f = rowRunFixture({accounted: true, task: 1});
     const owner = f.start();
-    const result = owner.complete(f.options);
+    const result = await owner.complete(f.options);
+    const baselineReads = f.count('currentRead');
+    const baselineCalls = f.calls.length;
     let release;
     const pendingRead = new Promise(resolve => { release = resolve; });
     f.authorize(() => pendingRead);
     const request = {authorityScopeCid: 'authority-scope-cid',
       effectiveDataPolicyCid: 'effective-policy-cid'};
     const issued = result.issueSourceEvidence(request);
-    assert.equal(f.count('currentRead'), 1);
+    assert.equal(f.count('currentRead'), baselineReads + 1);
     assert.equal(f.count('clientProgramRowSourceIssueSourceEvidence'), 0);
     release(true);
     assert.equal(await issued, f.evidence);
     f.authorize(async () => true);
     assert.equal(await result.issueSourceEvidence(request), f.evidence);
-    assert.deepEqual(f.names().filter(name => name === 'currentRead' ||
+    assert.deepEqual(f.names().slice(baselineCalls).filter(name => name === 'currentRead' ||
       name === 'clientProgramRowSourceIssueSourceEvidence'), ['currentRead',
       'clientProgramRowSourceIssueSourceEvidence', 'currentRead',
       'clientProgramRowSourceIssueSourceEvidence']);
@@ -248,23 +297,24 @@ test('denied current read issues no source evidence and preserves the denial',
   async () => {
     const f = rowRunFixture();
     const owner = f.start();
-    const result = owner.complete(f.options);
+    const result = await owner.complete(f.options);
+    const baselineReads = f.count('currentRead');
     const denial = Object.assign(new Error('ExecutionAuthorizationDenied'),
       {code: 'ExecutionAuthorizationDenied'});
     f.authorize(async () => { throw denial; });
     await assert.rejects(result.issueSourceEvidence({
       authorityScopeCid: 'authority-scope-cid',
       effectiveDataPolicyCid: 'effective-policy-cid'}), error => error === denial);
-    assert.equal(f.count('currentRead'), 1);
+    assert.equal(f.count('currentRead'), baselineReads + 1);
     assert.equal(f.count('clientProgramRowSourceIssueSourceEvidence'), 0);
     owner.close();
   });
 
 test('accounted capture retains the exact DAG task through its original capture',
-  () => {
+  async () => {
     const f = rowRunFixture({accounted: true, task: 1});
     const owner = f.start();
-    const result = owner.complete(f.options);
+    const result = await owner.complete(f.options);
     const dag = token('dag');
     const task = token('dag-task');
     assert.equal(result.capture.retainTask(dag, task), f.retainedTask);
@@ -304,7 +354,7 @@ for (const accounted of [false, true]) {
       const owner = f.start();
       const primary = f.fail(f.logicalName);
       f.fail(f.closeName, {times: 2, checked: accounted});
-      assert.throws(() => owner.complete(f.options), error => error === primary);
+      await assert.rejects(owner.complete(f.options), error => error === primary);
       assert.equal(f.count('clientProgramRowSourceCapture'), 1);
       assert.equal(f.count(f.hostName), 0);
       const state = {started: true, closeFailed: false, recovery: undefined};
@@ -364,11 +414,11 @@ test('successful failure cleanup closes once without installing recovery', () =>
   assert.equal(f.count(f.closeName), 1);
 });
 
-test('failed Finish cannot settle or capture its physical attempt', () => {
+test('failed Finish cannot settle or capture its physical attempt', async () => {
   const f = rowRunFixture();
   const owner = f.start();
   f.fail('clientProgramRowSourceFinish', {checked: true});
-  assert.throws(() => owner.complete(f.options), {code: 'MoonBitHostFailure'});
+  await assert.rejects(owner.complete(f.options), {code: 'MoonBitHostFailure'});
   assert.equal(f.settled(f.attempt), false);
   assert.equal(f.count('clientProgramRowSourceAttempt'), 0);
   assert.equal(f.count('clientProgramRowSourceCapture'), 0);
@@ -376,11 +426,73 @@ test('failed Finish cannot settle or capture its physical attempt', () => {
   assert.equal(f.count(f.closeName), 1);
 });
 
-test('missing ordinary Host is rejected after capture and logical issue', () => {
+test('row capture refuses authority revoked after positive child work without another resume', async () => {
+  const f = rowRunFixture({accounted: true});
+  const owner = f.start();
+  const denial = Object.assign(new Error('ExecutionAuthorizationDenied'),
+    {code: 'ExecutionAuthorizationDenied'});
+  f.respond('clientProgramRowSourceCaptureAdvance', ok({_0: false, _1: 1n}));
+  let reads = 0;
+  f.authorize(async () => {
+    if (++reads === 3) throw denial;
+    return true;
+  });
+  await assert.rejects(owner.complete(f.options), error => error === denial);
+  assert.equal(f.count('clientProgramRowSourceCaptureAdvance'), 1);
+  assert.equal(f.count('clientProgramRowSourceCapture'), 0);
+  assert.equal(f.count(f.logicalName), 0);
+  assert.equal(f.count(f.hostName), 0);
+  f.fail(f.closeName, {checked: true});
+  const state = {closeFailed: false};
+  owner.closeAfterFailure(state);
+  assert.equal(state.closeFailed, true);
+  f.respond('clientProgramRowSourceCaptureCleanupAdvance', ok(false));
+  assert.equal(await state.recovery.cleanup(), false);
+  assert.equal(state.recovery.cleanupPending(), true);
+  assert.equal(f.count(f.closeName), 1, 'no reservation retry before child stop');
+  f.respond('clientProgramRowSourceCaptureCleanupAdvance', ok(true));
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(state.recovery.cleanupPending(), false);
+  assert.equal(f.count(f.closeName), 2);
+  assert.equal(f.count(f.startName), 1);
+  assert.equal(f.count('clientProgramRowSourceCaptureAdvance'), 1);
+  assert.equal(f.count('clientProgramRowSourceCapture'), 0);
+});
+
+test('close while current read is awaiting prevents capture setup after the await', async () => {
+  const f = rowRunFixture();
+  const owner = f.start();
+  let release;
+  f.authorize(() => new Promise(resolve => { release = resolve; }));
+  const pending = owner.complete(f.options);
+  owner.close();
+  release(true);
+  await assert.rejects(pending, {code: 'InstalledSourceClosed'});
+  assert.equal(f.count('clientProgramRowSourceFinish'), 0);
+  assert.equal(f.count('clientProgramRowSourceCaptureBegin'), 0);
+  assert.equal(f.count('clientProgramRowSourceCaptureAdvance'), 0);
+  assert.equal(f.count('clientProgramRowSourceCapture'), 0);
+});
+
+test('abort during current read prevents setup without declaring successful Source capture', async () => {
+  const f = rowRunFixture();
+  const owner = f.start();
+  const control = new AbortController();
+  const reason = new Error('CancelledOriginalAcquisition');
+  f.authorize(async () => { control.abort(reason); return true; });
+  await assert.rejects(owner.complete({...f.options, signal: control.signal}),
+    error => error === reason);
+  assert.equal(f.count('clientProgramRowSourceFinish'), 0);
+  assert.equal(f.count('clientProgramRowSourceCaptureBegin'), 0);
+  assert.equal(f.count('clientProgramRowSourceCapture'), 0);
+  owner.closeAfterFailure({});
+});
+
+test('missing ordinary Host is rejected after capture and logical issue', async () => {
   const f = rowRunFixture();
   const owner = f.start();
   f.respond(f.hostName, undefined);
-  assert.throws(() => owner.complete(f.options),
+  await assert.rejects(owner.complete(f.options),
     {code: 'InstalledSourceHostUnavailable'});
   assert.equal(f.count('clientProgramRowSourceCapture'), 1);
   assert.equal(f.count(f.logicalName), 1);

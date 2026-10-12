@@ -264,8 +264,8 @@ test "correlation KeyComparable does not collapse to identical checked contracts
         true,
       ),
       (
-        "{\"type\":\"artifact_ref\",\"media_type\":\"text/plain\",\"nullable\":false}",
-        "{\"type\":\"artifact_ref\",\"media_type\":\"application/json\",\"nullable\":false}",
+        "{\"type\":\"content_ref\",\"media_type\":\"text/plain\",\"nullable\":false}",
+        "{\"type\":\"content_ref\",\"media_type\":\"application/json\",\"nullable\":false}",
         true,
       ),
       (

@@ -275,6 +275,17 @@ pub fn parse_query(
   format : Format,
   source_path? : String = "<source>",
 ) -> Result[@syntax.Query, Issue] {
+  parse_selected_query_script(document, format, source_path~).map(script => {
+    @syntax.script_query(script)
+  })
+}
+
+///|
+fn parse_selected_query_script(
+  document : String,
+  format : Format,
+  source_path? : String = "<source>",
+) -> Result[@syntax.QueryScript, Issue] {
   match format {
     Text | Sql => ()
     Json | Yaml => return Err(InvalidFormat)
@@ -294,7 +305,7 @@ pub fn parse_query(
       Err(issue) => return Err(QuerySyntax(issue))
     }
   }
-  match @syntax.parse_query(document, syntax_limits(), source_path~) {
+  match @syntax.parse_query_script(document, syntax_limits(), source_path~) {
     Ok(value) => Ok(value)
     Err(issue) => Err(QuerySyntax(issue))
   }

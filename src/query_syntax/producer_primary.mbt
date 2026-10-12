@@ -83,6 +83,7 @@ fn QueryParser::producer_query(
     bindings: [],
     relation: [],
     source_alias: None,
+    file_listing: None,
     graph: Some({ pattern: None, expectation: None, }),
     joins: [],
     operations: [],
@@ -90,6 +91,7 @@ fn QueryParser::producer_query(
     final_operations: [],
     effect: None,
     table_effect: None,
+    commands: [],
     work: self.work,
   }
 }

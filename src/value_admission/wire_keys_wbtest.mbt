@@ -62,13 +62,13 @@ test "typed long key wire preserves byte bounds and cancellation custody" {
 test "reference wire yields through the retained canonical metadata envelope" {
   let name = String::make(256, 'k')
   let text = String::make(4096, 'g')
-  let expected = artifact_reference_wire().replace(
+  let expected = content_reference_wire().replace(
     old="\"issuer_evidence\":{}",
     new="\"issuer_evidence\":{\"" + name + "\":[\"" + text + "\",null]}",
   )
   let checked = issue_reference(
     bind_reference_issuer((_, wire) => wire == expected, _ => true),
-    reference_contract("{\"type\":\"artifact_ref\",\"nullable\":false}"),
+    reference_contract("{\"type\":\"content_ref\",\"nullable\":false}"),
     expected,
     { max_bytes: 10000, max_nodes: 64, max_depth: 5, max_text_units: 10000, },
   ).unwrap()

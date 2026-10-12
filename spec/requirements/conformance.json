@@ -114,7 +114,7 @@
     },
     {
       "requirement_id": "actql.conformance/module-workloads.module-required-closure-workload-core",
-      "statement_sha256": "51b2f95f8d6a8c074c2e9d430eb20e700aeecd7275c256b0aa109ca32e5af92a",
+      "statement_sha256": "74598d482eea91f18f4b177868998c15e51c2ba053ca183d9ebee3586942ea5b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

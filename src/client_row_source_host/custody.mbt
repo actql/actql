@@ -35,6 +35,7 @@ priv enum RowAttemptState {
   AwaitingCleanup(@execution.CapturedRows)
   EvidenceIssued(RowRecords)
   Captured(RowObservation)
+  KeyedRetained(RowKeyedRetention)
   Failed
 }
 
@@ -51,20 +52,40 @@ priv struct RowRetention {
 
 ///|
 priv struct RowIssuer {
-  registration : @planning.QueryEvidenceRegistration[RowAttempt]
+  registration : @planning.QueryEvidenceRegistration[
+    @planning.QueryEvidenceContracts,
+    @planning.QueryRequirement,
+    RowAttempt,
+  ]
 }
 
 ///|
 priv struct RowAuthority {
   issuer : RowIssuer
-  token : @planning.QueryEvidenceAttemptAuthority[RowAttempt]
+  token : @planning.QueryEvidenceAttemptAuthority[
+    @planning.QueryEvidenceContracts,
+    @planning.QueryRequirement,
+    RowAttempt,
+  ]
 }
 
 ///|
 struct RowAttempt {
-  preparation : RowSourcePreparation
-  authority : RowAuthority
+  preparation : RowAttemptPreparation
+  authority : RowAttemptAuthority
   mut state : RowAttemptState
+}
+
+///|
+priv enum RowAttemptPreparation {
+  DirectPreparation(RowSourcePreparation)
+  KeyedPreparation(RowKeyedAcquisition)
+}
+
+///|
+priv enum RowAttemptAuthority {
+  DirectAuthority(RowAuthority)
+  KeyedAuthority(RowKeyedAuthority)
 }
 
 ///|
@@ -114,7 +135,7 @@ fn custody_issue(
 
 ///|
 fn abort_row_attempt(attempt : RowAttempt) -> Unit {
-  if attempt.state is Captured(_) {
+  if attempt.state is (Captured(_) | KeyedRetained(_)) {
     return
   }
   if attempt.state is Reading(read) {
@@ -138,11 +159,15 @@ fn verify_row_records(
   attempt : RowAttempt,
   records : RowRecords,
 ) -> Result[Unit, RowEvidenceIssue] {
+  guard attempt.preparation is DirectPreparation(preparation) &&
+    attempt.authority is DirectAuthority(authority) else {
+    return Err(UnauthorizedAttempt)
+  }
   if !@planning.query_evidence_registration_live(issuer.registration) {
     return Err(IssuerClosed)
   }
-  if !physical_equal(issuer, attempt.authority.issuer) ||
-    !physical_equal(records.authority, attempt.authority) {
+  if !physical_equal(issuer, authority.issuer) ||
+    !physical_equal(records.authority, authority) {
     return Err(UnauthorizedAttempt)
   }
   let current = match attempt.state {
@@ -154,7 +179,7 @@ fn verify_row_records(
     physical_equal(current, records) &&
     physical_equal(
       @planning.query_evidence_registration_requirement(issuer.registration),
-      attempt.preparation.requirement,
+      preparation.requirement,
     ) else {
     return Err(ForeignRecords)
   }
@@ -176,10 +201,14 @@ fn complete_row_capture(
   attempt : RowAttempt,
   limits : RowCompletionLimits,
 ) -> Result[RowObservation, RowEvidenceIssue] {
+  guard attempt.preparation is DirectPreparation(preparation) &&
+    attempt.authority is DirectAuthority(authority) else {
+    return Err(UnauthorizedAttempt)
+  }
   if !@planning.query_evidence_registration_live(issuer.registration) {
     return Err(IssuerClosed)
   }
-  if !physical_equal(issuer, attempt.authority.issuer) {
+  if !physical_equal(issuer, authority.issuer) {
     return Err(UnauthorizedAttempt)
   }
   if !@planning.query_evidence_transport_matches(issuer.registration, attempt) {
@@ -191,7 +220,7 @@ fn complete_row_capture(
   }
   let completed = match
     execute_row_source_residual(
-      attempt.preparation,
+      preparation,
       scan,
       limits.execution,
       limits.guards,
@@ -203,7 +232,7 @@ fn complete_row_capture(
       })
   }
   let sequence = @planning.query_material_owner(
-    @planning.query_requirement_material(attempt.preparation.requirement),
+    @planning.query_requirement_material(preparation.requirement),
   )
   let query = @query.query_sequence_requirement(sequence)
   guard @execution.completed_output(
@@ -212,6 +241,39 @@ fn complete_row_capture(
     )
     is Some(output) else {
     return fail_attempt(attempt, MissingOutput).map_err(issue => Attempt(issue))
+  }
+  complete_row_capture_output(issuer, attempt, output, limits)
+}
+
+///|
+/// Both residuals finish through the same custody. The synchronous caller
+/// executes the exact scan here; the bounded caller separately verifies its
+/// sealed supplied-input occurrence before passing the guarded completion.
+fn complete_row_capture_output(
+  issuer : RowIssuer,
+  attempt : RowAttempt,
+  output : @execution.CompletedOutput,
+  limits : RowCompletionLimits,
+) -> Result[RowObservation, RowEvidenceIssue] {
+  guard attempt.preparation is DirectPreparation(preparation) &&
+    attempt.authority is DirectAuthority(authority) &&
+    physical_equal(issuer, authority.issuer) &&
+    @planning.query_evidence_registration_live(issuer.registration) &&
+    @planning.query_evidence_transport_matches(issuer.registration, attempt) &&
+    attempt.state is AwaitingCleanup(scan) else {
+    return Err(UnverifiedTransport)
+  }
+  let sequence = @planning.query_material_owner(
+    @planning.query_requirement_material(preparation.requirement),
+  )
+  guard @execution.completed_output_matches_port(
+    output,
+    preparation.owner,
+    @sourcequery.query_acquisition_capture(
+      @query.query_sequence_requirement(sequence),
+    ),
+  ) else {
+    return Err(Attempt(MissingOutput))
   }
   let completion = { output, }
   let measured = match
@@ -223,19 +285,18 @@ fn complete_row_capture(
       })
   }
   let retained = { completion, measured, }
-  let authority = attempt.authority
   if !physical_equal(
       @planning.query_evidence_registration_requirement(
         authority.issuer.registration,
       ),
-      attempt.preparation.requirement,
+      preparation.requirement,
     ) {
     abort_row_attempt(attempt)
     return Err(UnauthorizedAttempt)
   }
   guard @lower.preparation_input_schema(
-      @lower.bound_preparation(attempt.preparation.owner),
-      attempt.preparation.input_index,
+      @lower.bound_preparation(preparation.owner),
+      preparation.input_index,
     )
     is Some(schema) else {
     abort_row_attempt(attempt)
@@ -296,6 +357,9 @@ fn row_captured_source(
   attempt : RowAttempt,
   observation : RowObservation,
 ) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
+  guard attempt.preparation is DirectPreparation(preparation) else {
+    return Err(Unavailable)
+  }
   let live = fn() {
     verify_row_records(issuer, attempt, observation.records) is Ok(_) &&
     attempt.state is Captured(actual) &&
@@ -304,7 +368,7 @@ fn row_captured_source(
   if !live() {
     return Err(Unavailable)
   }
-  let requirement = attempt.preparation.requirement
+  let requirement = preparation.requirement
   @query.prepare_trusted_capture_port(
     @planning.query_material_owner(
       @planning.query_requirement_material(requirement),

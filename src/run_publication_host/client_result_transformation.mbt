@@ -50,6 +50,26 @@ pub fn prepare_client_result_transformation(
 }
 
 ///|
+/// Resolve the Result from the original compiler-retained checked Program.
+/// Composed Model children need no standalone pure Program handle; the same
+/// Run/Invocation binding still has to retain and authorize their completion.
+pub fn prepare_client_compiled_result_transformation(
+  compiled : ClientCompiledRun,
+  result : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientResultTransformation, ClientResultTransformationIssue] {
+  prepare_client_result_transformation(
+    compiled.owner,
+    result,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 pub fn client_result_transformation_plan(
   value : ClientResultTransformation,
 ) -> ClientResultPlanIdentity {
@@ -158,6 +178,20 @@ pub fn ClientResultTransformationPreparation::advance(
       Output(issue)
     },
   )
+}
+
+///|
+/// A transport must charge the existing view's observed progress before
+/// interpreting a failed poll. No new Result view or accounting owner is made.
+pub fn ClientResultTransformationPreparation::advance_progress(
+  self : ClientResultTransformationPreparation,
+  quantum : Int,
+) -> (Bool, Int, ClientResultTransformationIssue?) {
+  let (ready, work, issue) = @execution.advance_completed_result_relation_export_progress(
+    self.preparation,
+    quantum,
+  )
+  (ready, work, issue.map(issue => Output(issue)))
 }
 
 ///|

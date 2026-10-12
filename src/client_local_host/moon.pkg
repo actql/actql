@@ -7,6 +7,7 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/value_admission" @admitted,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,
@@ -24,3 +25,8 @@ import {
   "actql/actql/client_row_source_host" @row_source_host,
   "moonbitlang/core/json",
 }
+
+import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+} for "wbtest"

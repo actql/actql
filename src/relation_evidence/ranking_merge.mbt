@@ -69,8 +69,7 @@ fn ranking_join(
           match c.shape {
             ResourceRef(resource_kind~) =>
               @checking.charge(b, at, resource_kind)
-            ArtifactRef(media_type=Some(media)) =>
-              @checking.charge(b, at, media)
+            ContentRef(media_type=Some(media)) => @checking.charge(b, at, media)
             _ => ()
           }
         }

@@ -88,6 +88,184 @@ pub fn prepare_client_infer_prefix(
 }
 
 ///|
+/// Serialization uses the same registry, contexts and bounded Local prefix
+/// preparation. This empty-input entry must not admit an acquired Source.
+pub fn prepare_client_serialization_prefix(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @execution.GeneratedSequence? {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) &&
+    @pipeline.input_count(@lower.pipeline(@lower.bound_preparation(owner))) == 0 else {
+    return None
+  }
+  prepare_client_serialization_prefix_owned(
+    Pure(prepared),
+    task,
+    step,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+/// Select only the checked Compute after the original acquisition capture.
+/// The caller must supply that capture through exact operation input bindings.
+pub fn prepare_client_acquired_serialization_prefix(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @execution.GeneratedSequence? {
+  if task == 1 {
+    // The checked Stage producer is bound at runtime by bind_captured_source;
+    // this is preparation of its consumer, not replay of the Source task.
+    let graph = @publication_host.prepared_client_graph(prepared)
+    guard @strategy.graph_task_count(graph) == 2 &&
+      @strategy.graph_captured_prefix(graph) == 1 &&
+      @strategy.graph_task_input_count(graph, task) == Some(1) else {
+      return None
+    }
+    return prepare_client_serialization_prefix_owned(
+      Pure(prepared),
+      task,
+      step,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+  }
+  guard @publication_host.prepare_client_query_acquisition(prepared, task, 0)
+    is Ok(query) &&
+    @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
+    prepare_client_serialization_prefix_owned(
+      Pure(prepared),
+      task,
+      step,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(prefix) else {
+    return None
+  }
+  let count = @execution.generated_sequence_step_count(prefix)
+  guard count > 0 &&
+    @execution.generated_sequence_step_index_at(prefix, count - 1)
+    is Some(terminal) &&
+    terminal > capture else {
+    return None
+  }
+  @execution.select_generated_sequence_range(prefix, capture + 1, terminal)
+}
+
+///|
+/// Prepare the original Effect task's bounded prefix for its Content family.
+/// DAG producer reads remain bound to this same receiver; this entry performs
+/// no acquisition, generation, task reservation or Effect approval.
+pub fn prepare_client_effect_serialization_prefix(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  task : Int,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @execution.GeneratedSequence? {
+  if @publication_host.prepared_client_effect_serialization_occurrences(
+      prepared,
+    ) !=
+    [(task, step)] {
+    return None
+  }
+  prepare_client_serialization_prefix_owned(
+    Effect(prepared),
+    task,
+    step,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+fn prepare_client_serialization_prefix_owned(
+  prepared : ClientLocalSequenceOwner,
+  task : Int,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @execution.GeneratedSequence? {
+  let (graph, barrier) = match prepared {
+    Pure(value) =>
+      (
+        @publication_host.prepared_client_graph(value),
+        @publication_host.prepare_client_serialization(
+          value,
+          task,
+          step,
+          max_work=10000,
+        ),
+      )
+    Effect(value) =>
+      (
+        @strategy.checked_effect_computation_graph(
+          @publication_host.prepared_client_effect_computation_graph(value),
+        ),
+        @publication_host.prepare_client_effect_serialization(
+          value,
+          task,
+          step,
+          max_work=10000,
+        ),
+      )
+  }
+  guard barrier is Ok(barrier) else { return None }
+  let selected = @strategy.graph_task_selected_step(graph, task)
+  if (selected is Some(index) && index != step) ||
+    @pipeline.serialization_order_input(@lower.serialization_order(barrier)) !=
+    @pipeline.Step(step - 1) {
+    return None
+  }
+  prepare_client_local_sequences_owned(
+    prepared,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task_count=Some(task + 1),
+    selected_task=Some(task),
+    infer_prefix=Some(
+      (
+        task,
+        if @pipeline.serialization_sort(@lower.serialization_checked(barrier))
+          is Some(_) {
+          step
+        } else {
+          step - 1
+        },
+      ),
+    ),
+    serialization_input=Some((task, barrier)),
+  ).bind(sequences => sequences.get(0))
+}
+
+///|
 /// Prepare only the Compute suffix for the same installed Infer occurrence.
 /// The acquisition marker is retained for coordinates, never selected for
 /// execution. Its completed output must be supplied through exact bindings.
@@ -100,6 +278,8 @@ pub fn prepare_client_infer_suffix(
   ordered_body? : String? = None,
 ) -> @execution.GeneratedSequence? {
   guard @publication_host.client_infer_prefix_owner(prepared, 0, step)
+    is Some(_) ||
+    @publication_host.client_acquired_infer_prefix_owner(prepared, 0, step)
     is Some(_) else {
     return None
   }
@@ -239,25 +419,66 @@ fn prepare_owned_infer_segment(
 }
 
 ///|
-/// Physical source capture ends at its own checked filter/select boundary.
-/// The remaining pre-INFER steps belong to Local, not to the source adapter.
-fn prepare_client_infer_acquisition_prefix(
-  prepared : @publication_host.PreparedClientProgram,
+/// The original checked acquisition determines its input and capture prefix.
+/// Other inputs and downstream consumers stay in the same Program, but are
+/// neither required nor executed by this physical acquisition preparation.
+fn prepare_client_query_acquisition_prefix(
+  prepared : ClientLocalSequenceOwner,
   task : Int,
-  step : Int,
+  source_index : Int,
   registry_body : String,
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
 ) -> @execution.GeneratedSequence? {
-  guard @publication_host.client_acquired_infer_prefix_owner(
-      prepared, task, step,
-    )
-    is Some(_) &&
-    @publication_host.prepare_client_query_acquisition(prepared, task, 0)
-    is Ok(query) &&
-    @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
-    capture < step else {
+  let query = match prepared {
+    Pure(value) =>
+      @publication_host.prepare_client_query_acquisition(
+        value, task, source_index,
+      )
+    Effect(value) =>
+      @publication_host.prepare_client_effect_query_acquisition(
+        value, task, source_index,
+      )
+  }
+  guard query is Ok(query) &&
+    @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) else {
+    return None
+  }
+  prepare_client_local_sequences_owned(
+    prepared,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task_count=Some(task + 1),
+    selected_task=Some(task),
+    infer_prefix=Some((task, capture)),
+    acquisition_source=Some((task, source_index)),
+  ).bind(sequences => sequences.get(0))
+}
+
+///|
+/// Prepare metadata for an authenticated saved pre-INFER output. Earlier
+/// producer coordinates are non-executable boundaries, not a replay prefix.
+fn prepare_client_restored_serialization_sequence(
+  prepared : @publication_host.PreparedClientProgram,
+  occurrence : @publication_host.ClientInferOccurrence,
+  serialization_step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @execution.GeneratedSequence? {
+  let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  let graph = @publication_host.prepared_client_graph(prepared)
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) &&
+    physical_equal(
+      owner,
+      @publication_host.client_infer_occurrence_preparation(occurrence),
+    ) else {
     return None
   }
   prepare_client_local_sequences_owned(
@@ -266,8 +487,10 @@ fn prepare_client_infer_acquisition_prefix(
     values_body,
     fragment_body,
     ordered_body,
-    task_count=Some(1),
-    infer_prefix=Some((task, capture)),
+    task_count=Some(task + 1),
+    selected_task=Some(task),
+    infer_prefix=Some((task, step - 1)),
+    serialization_restore=Some((task, serialization_step, step)),
   ).bind(sequences => sequences.get(0))
 }
 
@@ -282,6 +505,9 @@ fn prepare_client_local_sequences_owned(
   infer_prefix? : (Int, Int)? = None,
   infer_suffix? : (Int, Int)? = None,
   selected_task? : Int? = None,
+  acquisition_source? : (Int, Int)? = None,
+  serialization_input? : (Int, @lower.PreparedSerialization)? = None,
+  serialization_restore? : (Int, Int, Int)? = None,
 ) -> Array[@execution.GeneratedSequence]? {
   if registry_body.length() > 100000 || values_body.length() > 100000 {
     return None
@@ -368,6 +594,16 @@ fn prepare_client_local_sequences_owned(
       @publication_host.prepared_client_composed_infer_occurrences(value).unwrap_or([],
       )
   }
+  let serialization_boundaries = match prepared {
+    Effect(value) =>
+      @publication_host.prepared_client_effect_serialization_occurrences(value)
+    Pure(_) => []
+  }
+  // Each checked boundary still needs its installed provider. Retaining both
+  // markers neither executes generation nor grants Model authorization.
+  if serialization_boundaries.length() > 1 {
+    return None
+  }
   if selected_task is Some(task) && (task < 0 || task >= count) {
     return None
   }
@@ -379,51 +615,94 @@ fn prepare_client_local_sequences_owned(
       })
       .get(0)
       .map(@publication_host.client_infer_occurrence_coordinates)
+    let serialization_boundary = serialization_boundaries
+      .filter(boundary => {
+        @strategy.graph_task_owner(graph, boundary.0) is Some(boundary_owner) &&
+        @strategy.graph_task_owner(graph, task) is Some(task_owner) &&
+        physical_equal(boundary_owner, task_owner)
+      })
+      .get(0)
+      .map(boundary => boundary.1)
     if selected_task is Some(selected) && task != selected {
       continue
     }
     guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       return None
     }
+    let source_index = match acquisition_source {
+      Some((source_task, source_index)) if source_task == task => source_index
+      _ => 0
+    }
     let acquiring = match prepared {
       Pure(value) =>
-        @publication_host.prepare_client_query_acquisition(value, task, 0)
+        @publication_host.prepare_client_query_acquisition(
+          value, task, source_index,
+        )
         is Ok(_)
       Effect(value) =>
         @publication_host.prepare_client_effect_query_acquisition(
-          value, task, 0,
+          value, task, source_index,
         )
         is Ok(_)
     }
     let sequence = match
-      (match infer_prefix {
-        Some((prefix_task, terminal)) if task == prefix_task =>
-          @lower.prepare_sequence_prefix(
+      (match serialization_restore {
+        Some((selected, producer, consumer)) if selected == task =>
+          @lower.prepare_serialization_infer_input_sequence(
             owner,
-            terminal,
+            producer,
+            consumer,
             client_local_owner_sequence_limits(prepared),
           )
         _ =>
-          match infer_suffix {
-            Some((suffix_task, step)) if suffix_task == task =>
-              @lower.prepare_sequence_with_infer_boundary(
-                owner,
-                step,
+          match serialization_input {
+            Some((serialization_task, barrier)) if task == serialization_task =>
+              @lower.prepare_serialization_input_sequence(
+                barrier,
                 client_local_owner_sequence_limits(prepared),
               )
             _ =>
-              match composed_boundary {
-                Some((infer_task, _, step)) if infer_task == task =>
-                  @lower.prepare_sequence_with_infer_boundary(
+              match infer_prefix {
+                Some((prefix_task, terminal)) if task == prefix_task =>
+                  @lower.prepare_sequence_prefix(
                     owner,
-                    step,
+                    terminal,
                     client_local_owner_sequence_limits(prepared),
                   )
                 _ =>
-                  @lower.prepare_sequence(
-                    owner,
-                    client_local_owner_sequence_limits(prepared),
-                  )
+                  match infer_suffix {
+                    Some((suffix_task, step)) if suffix_task == task =>
+                      @lower.prepare_sequence_with_infer_boundary(
+                        owner,
+                        step,
+                        client_local_owner_sequence_limits(prepared),
+                        serialization=serialization_boundary,
+                      )
+                    _ =>
+                      match composed_boundary {
+                        Some((infer_task, _, step)) if infer_task == task =>
+                          @lower.prepare_sequence_with_infer_boundary(
+                            owner,
+                            step,
+                            client_local_owner_sequence_limits(prepared),
+                            serialization=serialization_boundary,
+                          )
+                        _ =>
+                          match serialization_boundary {
+                            Some(step) =>
+                              @lower.prepare_sequence_with_serialization_boundary(
+                                owner,
+                                step,
+                                client_local_owner_sequence_limits(prepared),
+                              )
+                            _ =>
+                              @lower.prepare_sequence(
+                                owner,
+                                client_local_owner_sequence_limits(prepared),
+                              )
+                          }
+                      }
+                  }
               }
           }
       }) {
@@ -592,6 +871,20 @@ fn prepare_client_local_sequences_owned(
           boundary + 1,
           @execution.generated_sequence_step_count(sequence) - 1,
         )
+        is Some(selected) else {
+        return None
+      }
+      selected
+      // A segmented graph task executes and retains only its exact operation.
+      // Reserving the whole authored Stage for every selected task would count
+      // unrelated siblings repeatedly and could also expose the wrong terminal.
+      // Explicit prefix/suffix preparations keep their own checked ranges.
+    } else if infer_prefix is None &&
+      acquisition_source is None &&
+      serialization_input is None &&
+      serialization_restore is None &&
+      @strategy.graph_task_selected_step(graph, task) is Some(step) {
+      guard @execution.select_generated_sequence_step(sequence, step)
         is Some(selected) else {
         return None
       }

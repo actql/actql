@@ -86,9 +86,7 @@ pub fn check_effect_preview_static_inventory(
     }
     let id = @syntax.effect_header_id(header)
     let target = effect_command_target_contract(binding)
-    let expected_cid = @environment.member_cid(
-      @environment.command_target_member(target),
-    )
+    let expected_cid = @environment.command_target_cid(target)
     let mut found = false
     for index in 0..<@publication.effect_preview_member_count(preview) {
       if remaining <= 0 {

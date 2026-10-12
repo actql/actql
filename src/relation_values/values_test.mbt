@@ -196,7 +196,7 @@ test "decimal values use exact scale strings and report nested literal failures"
 test "constructor restrictions apply to complete schemas including empty rows" {
   for
     field in [
-      "{\"type\":\"json\",\"nullable\":false}", "{\"type\":\"artifact_ref\",\"nullable\":true}",
+      "{\"type\":\"json\",\"nullable\":false}", "{\"type\":\"content_ref\",\"nullable\":true}",
       "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"resource_ref\",\"resource_kind\":\"Customer\",\"nullable\":false}}",
     ] {
     assert_true(
