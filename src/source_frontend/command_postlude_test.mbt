@@ -3,7 +3,7 @@ test "SQL and Pipe use the same checked COMMAND postlude without losing effects"
   let cases : Array[(Format, String)] = [
     (Sql, "SELECT id FROM records |> RESULT selected"),
     (Text, "FROM records |> SELECT id |> RESULT selected"),
-    (Text, "DATA ids = SELECT id FROM records; FROM ids |> RESULT selected"),
+    (Text, "WITH ids AS (SELECT id FROM records) FROM ids |> RESULT selected"),
   ]
   for (format, query) in cases {
     let text = query +
@@ -16,7 +16,7 @@ test "SQL and Pipe use the same checked COMMAND postlude without losing effects"
   }
   assert_true(
     lower(
-      "DATA ids = SELECT id FROM records; FROM ids |> RESULT selected; EFFECT upload COMMAND FROM RESULT selected AS t TARGET t.id CONTRACT c INPUT ();",
+      "WITH ids AS (SELECT id FROM records) FROM ids |> RESULT selected; EFFECT upload COMMAND FROM RESULT selected AS t TARGET t.id CONTRACT c INPUT ();",
       Sql,
       Some(test_context()),
     )

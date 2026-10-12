@@ -62,7 +62,7 @@ test('original preparation typed refusal is preserved without a retry or replace
 });
 
 function fundedFixture(available = true, startIssue) {
-  const calls = [], active = {}, read = {}, consumer = {}, compiled = {}, runDefinition = {}, graph = {};
+  const calls = [], active = {}, read = {}, consumer = {}, compiled = {}, runDefinition = {}, graph = {}, scope = {};
   let stopped = false, claimed = false;
   const moon = {
     clientProgramClaimInferOriginalPreparation(...args) {
@@ -79,16 +79,17 @@ function fundedFixture(available = true, startIssue) {
     clientProgramInferExecutionStopped: () => stopped,
     clientProgramCleanupInferExecution: () => ({$tag: 1, _0: true}),
   };
-  const originalPreparation = {read, compiled, runDefinition, readRetainedBytes: 7n,
+  const originalPreparation = {read, scope, compiled, runDefinition, readRetainedBytes: 7n,
     readExecutionBytes: 5n, modelRetainedBytes: 100n, modelExecutionBytes: 5n};
   const options = {moon, preparedProgram: {}, step: 2, graph, registry: 'registry',
     values: 'values', fragment: 'fragment', ordered: 'ordered', provider: {}, originalPreparation};
-  return {options, originalPreparation, calls, graph, consumer};
+  return {options, originalPreparation, calls, graph, consumer, active};
 }
 
 test('funded start claims original envelope before Core allocation and keeps distinct Model grant', async () => {
   const f = fundedFixture();
   const operation = openNodeInferOperation(f.options);
+  assert.strictEqual(operation.originalResourceScope(), f.originalPreparation.scope);
   assert.deepEqual(f.calls[0], ['claim', f.originalPreparation.read,
     f.originalPreparation.compiled, f.originalPreparation.runDefinition, f.graph, 7n, 5n]);
   assert.deepEqual(f.calls[1], ['start', f.options.preparedProgram, 2, f.graph,
@@ -211,4 +212,47 @@ test('installed layout requires explicit selected facts and original control wit
     assert.throws(() => openNodeInferOperation(f.options), /InvalidInferOriginalPreparationLayout/u);
     assert.equal(f.calls.length, 0);
   }
+});
+
+test('original Model park adapter delegates the same active and scope without advancing', async () => {
+  const f = fundedFixture();
+  const park = Object.freeze({});
+  f.options.moon.clientProgramParkInferOriginalModelResources = (active, scope) => {
+    f.calls.push(['park', active, scope]);
+    return {$tag: 1, _0: park};
+  };
+  f.options.moon.clientProgramInferOriginalModelResourceParkCurrent = (active, scope, original) => {
+    f.calls.push(['current', active, scope, original]);
+    return original === park ? park : undefined;
+  };
+  const operation = openNodeInferOperation(f.options);
+  assert.strictEqual(operation.parkOriginalResources(), park);
+  assert.deepEqual(f.calls.at(-1), ['park', f.active, f.originalPreparation.scope]);
+  const originalScope = f.originalPreparation.scope;
+  f.originalPreparation.scope = {};
+  assert.strictEqual(operation.originalResourceParkCurrent(park), park);
+  assert.deepEqual(f.calls.at(-1), ['current', f.active, originalScope, park]);
+  assert.equal(operation.originalResourceParkCurrent({...park}), undefined);
+  assert.equal(f.calls.some(call => call[0] === 'advance'), false);
+  await operation.close();
+  assert.equal(operation.originalResourceParkCurrent(park), undefined);
+  assert.equal(operation.originalResourceScope(), undefined);
+  assert.throws(() => operation.parkOriginalResources(), /InferOriginalModelParkUnavailable/u);
+});
+
+test('original Model park has no unowned or missing-port fallback and preserves typed refusal', async () => {
+  const unowned = fixture();
+  assert.throws(() => unowned.operation.parkOriginalResources(), /InferOriginalModelParkUnavailable/u);
+  await unowned.operation.close();
+  const missing = fundedFixture();
+  const noPort = openNodeInferOperation(missing.options);
+  assert.throws(() => noPort.parkOriginalResources(), /InferOriginalModelParkUnavailable/u);
+  await noPort.close();
+  const f = fundedFixture();
+  const issue = {kind: 'InvalidAdvance'};
+  f.options.moon.clientProgramParkInferOriginalModelResources = () => ({$tag: 0, _0: issue});
+  const operation = openNodeInferOperation(f.options);
+  assert.throws(() => operation.parkOriginalResources(), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === issue);
+  await operation.close();
 });

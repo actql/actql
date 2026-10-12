@@ -1,0 +1,154 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.nearest_typed_control",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "request_id": {
+                "type": "string",
+                "nullable": false
+              },
+              "embedding": {
+                "type": "vector",
+                "dimensions": 2,
+                "nullable": false
+              },
+              "note": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "rows": [
+              {
+                "request_id": "q1",
+                "embedding": [
+                  1,
+                  0
+                ],
+                "note": null
+              }
+            ]
+          },
+          "as": "queries"
+        },
+        {
+          "from": "queries",
+          "to_vectors": {
+            "id": "request_id",
+            "vector": "embedding"
+          },
+          "as": "query_vectors"
+        },
+        {
+          "values": {
+            "schema": {
+              "item_id": {
+                "type": "string",
+                "nullable": false
+              },
+              "embedding": {
+                "type": "vector",
+                "dimensions": 2,
+                "nullable": false
+              },
+              "label": {
+                "type": "string",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "item_id": "b",
+                "embedding": [
+                  0,
+                  1
+                ],
+                "label": "second"
+              },
+              {
+                "item_id": "a",
+                "embedding": [
+                  1,
+                  0
+                ],
+                "label": "first"
+              }
+            ]
+          },
+          "as": "candidates"
+        },
+        {
+          "from": "candidates",
+          "to_vectors": {
+            "id": "item_id",
+            "vector": "embedding"
+          },
+          "as": "candidate_vectors"
+        },
+        {
+          "from": "candidate_vectors",
+          "nearest": {
+            "queries": "query_vectors",
+            "metric": "dot",
+            "k": 2
+          }
+        },
+        {
+          "derive": {
+            "hit": {
+              "object": {
+                "query_key": {
+                  "object": {
+                    "request_id": {
+                      "field": "query_id"
+                    }
+                  }
+                },
+                "candidate_key": {
+                  "object": {
+                    "item_id": {
+                      "field": "candidate_id"
+                    }
+                  }
+                },
+                "score": {
+                  "field": "score"
+                },
+                "rank": {
+                  "field": "rank"
+                }
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "hit"
+          ],
+          "as": "out"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "out",
+          "fields": [
+            "hit"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

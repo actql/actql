@@ -183,13 +183,17 @@ pub(all) struct InferClause {
 }
 
 ///|
+pub(all) struct NearestRolePair {
+  keys : Array[Array[NamePart]]
+  vector : Expression
+}
+
+///|
 pub(all) struct NearestClause {
   relation : Array[NamePart]
   candidate_alias : NamePart
-  query_keys : Array[Array[NamePart]]
-  query_vector : Expression
-  candidate_keys : Array[Array[NamePart]]
-  candidate_vector : Expression
+  query_roles : NearestRolePair?
+  candidate_roles : NearestRolePair?
   metric : String
   k : Int64
   keep : Array[KeepItem]
@@ -476,8 +480,14 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         Nearest({
           ..clause,
           relation: clause.relation.copy(),
-          query_keys: clause.query_keys.map(path => path.copy()),
-          candidate_keys: clause.candidate_keys.map(path => path.copy()),
+          query_roles: clause.query_roles.map(roles => {
+            ..roles,
+            keys: roles.keys.map(path => path.copy()),
+          }),
+          candidate_roles: clause.candidate_roles.map(roles => {
+            ..roles,
+            keys: roles.keys.map(path => path.copy()),
+          }),
           keep: clause.keep.map(item => { ..item, path: item.path.copy(), }),
         }),
       )
@@ -3475,14 +3485,22 @@ fn QueryParser::nearest_clause(
   let relation = self.resolve_producer(self.path())
   self.keyword("AS")
   let candidate_alias = self.name()
-  self.keyword("QUERY")
-  let query_keys = self.nearest_keys()
-  self.keyword("VECTOR")
-  let query_vector = self.expression()
-  self.keyword("CANDIDATE")
-  let candidate_keys = self.nearest_keys()
-  self.keyword("VECTOR")
-  let candidate_vector = self.expression()
+  let query_roles = if self.has("QUERY") {
+    self.keyword("QUERY")
+    let keys = self.nearest_keys()
+    self.keyword("VECTOR")
+    Some({ keys, vector: self.expression(), })
+  } else {
+    None
+  }
+  let candidate_roles = if self.has("CANDIDATE") {
+    self.keyword("CANDIDATE")
+    let keys = self.nearest_keys()
+    self.keyword("VECTOR")
+    Some({ keys, vector: self.expression(), })
+  } else {
+    None
+  }
   self.keyword("METRIC")
   let metric_start = self.peek().start
   let metric = self.name()
@@ -3497,10 +3515,8 @@ fn QueryParser::nearest_clause(
   {
     relation,
     candidate_alias,
-    query_keys,
-    query_vector,
-    candidate_keys,
-    candidate_vector,
+    query_roles,
+    candidate_roles,
     metric: metric.value.to_lower(),
     k,
     keep,

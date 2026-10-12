@@ -120,6 +120,22 @@ fn lower_script_relation(
       allow_nonrelation~,
     )
   }
+  if single_term && @query.operation_at(query, 0) is Some(Nearest(_)) {
+    return lower_script_nearest_carrier(
+      construction,
+      query,
+      known,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      output,
+      retained,
+      set_head~,
+      graphs~,
+    )
+  }
   if single_term {
     let input = known
       .filter(input => input_relation_matches(@query.relation(query), input))

@@ -106,3 +106,13 @@ pub fn graph_source_query(query : Query) -> Query {
     query
   }
 }
+
+///|
+// The caller has emitted this first operation through its ordinary owner.
+pub fn after_first_query_operation(query : Query) -> Query? {
+  if query.operations.is_empty() {
+    None
+  } else {
+    Some({ ..query, operations: query.operations[1:].to_owned(), })
+  }
+}

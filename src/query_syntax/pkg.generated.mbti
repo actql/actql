@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn after_first_query_operation(Query) -> Query?
+
 pub fn after_graph_calls(Query) -> Query
 
 pub fn after_graph_row_calls(Query, Int) -> Query?
@@ -405,14 +407,17 @@ pub(all) struct NamePart {
 pub(all) struct NearestClause {
   relation : Array[NamePart]
   candidate_alias : NamePart
-  query_keys : Array[Array[NamePart]]
-  query_vector : Expression
-  candidate_keys : Array[Array[NamePart]]
-  candidate_vector : Expression
+  query_roles : NearestRolePair?
+  candidate_roles : NearestRolePair?
   metric : String
   k : Int64
   keep : Array[KeepItem]
   name : NamePart
+}
+
+pub(all) struct NearestRolePair {
+  keys : Array[Array[NamePart]]
+  vector : Expression
 }
 
 pub(all) struct PivotClause {
