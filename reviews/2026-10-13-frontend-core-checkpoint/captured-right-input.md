@@ -17,12 +17,26 @@ missing public Result. `run-MvGHmG` and `run-l1KwBT` each execute 0/1: pipeline
 original retained right input order. The chain binder explicitly forced
 `capture=false` for every right input, losing Context's requested capture Result.
 
-Remove that one override. The existing binder still resolves the Source,
-constructs its requested capture boundary, shares it and obtains publication
-order from the common Result owner. Correlated UNNEST remains an operation on
-the current row; no independent Source capture is fabricated for it. The direct
-two-Source single-JOIN exception, Source Request, provider/driver, predicate,
-limit, common order rules and resource owners are unchanged.
+Replace that unconditional override with the existing acquisition Owner's
+authored request-form projection. Its original Catalog correlation roles and
+nominal RequestContext slots distinguish complete Direct coverage from a keyed
+template. A Direct request keeps its requested capture boundary and obtains
+publication order from the common Result owner. A keyed template stays at its
+actual JOIN occurrence; adding a Direct Select/Result would invalidate its
+required JoinRight-only consumer classification. Existing bound leaves keep
+their original placement without another probe.
+
+The shared Common classification retains partial-correlation, foreign-owner
+and work refusals. The original check_pipeline_requests still checks every
+actual consumer, request value and mode. The opaque RequestFormCheck is only
+authored field coverage: it grants no complete-Program acceptance, capacity,
+authorization or acquisition/reacquisition permission. The Frontend supplies
+the original declaration to the existing Collector/resolution/slot/request
+Owners and reads this projection, with no duplicated classifier or fallback.
+
+Correlated UNNEST remains a current-row operation, separately from a correlated
+SourceView. The direct two-Source single-JOIN exception, Source Request,
+provider/driver, predicate, limit, order rules and resource Owners are unchanged.
 
 The first diagnostic patch attached to an identical text in a different local
 typing control: `run-AlhuZZ` still failed the original selected case with an
