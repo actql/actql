@@ -4,6 +4,10 @@
 // This is a common Owner integration fixture, not installed-product acceptance.
 fn original_prefix_execution_fixture(
   source? : Bool = false,
+  environment_override? : String? = None,
+  document_override? : String? = None,
+  serialization_coordinate? : (Int, Int)? = None,
+  serialization_bounds? : (Int, Int) = (2, 128),
 ) -> (
   @publication_host.PreparedClientProgram,
   @publication_host.ClientCompiledRun,
@@ -14,12 +18,26 @@ fn original_prefix_execution_fixture(
     #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
-  let baseline = if source {
+  let baseline = if environment_override is Some(value) {
+    value
+  } else if source {
     source_query_original_environment
   } else {
     baseline
   }
-  let baseline_cid = if source {
+  let baseline_cid = if environment_override is Some(_) {
+    let parsed = @json.parse(baseline) catch {
+      _ => abort("fixture environment JSON")
+    }
+    match parsed {
+      Object(fields) =>
+        match fields.get("evidence_bundle_cid") {
+          Some(String(value)) => value
+          _ => abort("fixture environment CID")
+        }
+      _ => abort("fixture environment object")
+    }
+  } else if source {
     "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554"
   } else {
     "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904"
@@ -42,7 +60,9 @@ fn original_prefix_execution_fixture(
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"original-content-prefix","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2},{"id":1}]},"as":"seed"},{"serialize":{"format":"jsonl","fields":["id"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":2,"max_bytes":128}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["name","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
-  let document = if source {
+  let document = if document_override is Some(value) {
+    value
+  } else if source {
     (
       #|{"version":"actql/0.1","id":"original-content-source","stages":[{"id":"capture","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","amount"]}}},{"id":"classify","inputs":{"rows":{"result":{"stage":"capture","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"serialize":{"format":"jsonl","fields":["id","amount"],"order_by":[{"id":"asc"}],"name":"out.jsonl","bounds":{"max_rows":2,"max_bytes":128}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["name","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
     )
@@ -62,8 +82,18 @@ fn original_prefix_execution_fixture(
     10000, 1000, 20,
   ).unwrap()
   let content = if source {
+    let (task, step) = serialization_coordinate.unwrap_or((1, 1))
     @publication_host.issue_prepared_client_acquired_serialization_plan_component(
-      prepared, 1, 1, 2, 128, 10000, sequence, 1000000, 100000, 100,
+      prepared,
+      task,
+      step,
+      serialization_bounds.0,
+      serialization_bounds.1,
+      10000,
+      sequence,
+      1000000,
+      100000,
+      100,
     ).unwrap()
   } else {
     @publication_host.issue_prepared_client_serialization_plan_component(
