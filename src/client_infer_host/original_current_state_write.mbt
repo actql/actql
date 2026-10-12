@@ -6,13 +6,22 @@ pub fn start_original_model_current_state_write(
   scope : @publication_host.ClientModelReadScope,
   park : @publication_host.ClientModelResourcePark,
   writer : @encode.Writer,
-) -> Result[@publication_host.ClientModelCurrentStateWrite, @resources.OriginalStateWriteIssue] {
+) -> Result[
+  @publication_host.ClientModelCurrentStateWrite,
+  @resources.OriginalStateWriteIssue,
+] {
   guard original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     return Err(@resources.Original(@resources.ChangedOriginalState))
   }
   @publication_host.start_client_model_current_state_write(
-    park, scope, bound.compiled, bound.definition, plan, writer,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
+    writer,
   )
 }
 
@@ -27,12 +36,20 @@ pub fn advance_original_model_current_state_write(
   quantum : Int,
 ) -> @resources.OriginalStateWritePoll {
   guard original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     return @resources.StateWriteFailed(
-      @resources.Original(@resources.ChangedOriginalState), work=0,
+      @resources.Original(@resources.ChangedOriginalState),
+      work=0,
     )
   }
   @publication_host.advance_client_model_current_state_write(
-    value, park, scope, bound.compiled, bound.definition, plan, quantum,
+    value,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
+    quantum,
   )
 }
