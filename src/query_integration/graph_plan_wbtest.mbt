@@ -235,13 +235,15 @@ test "retained external Relation selector splits only its Carrier consumer" {
       is Err(WorkLimit),
     )
   }
-  let bounded = checkpoint_graph_issue(@strategy.prepare_checked_dag(
-    program,
-    owners,
-    20,
-    216,
-    source_free_root=true,
-  ))
+  let bounded = checkpoint_graph_issue(
+    @strategy.prepare_checked_dag(
+      program,
+      owners,
+      20,
+      216,
+      source_free_root=true,
+    ),
+  )
   assert_true(physical_equal(@strategy.graph_program(bounded), program))
   assert_eq(@strategy.graph_task_count(bounded), 5)
   for task, expected in [None, None, Some(0), Some(1), Some(2)] {
