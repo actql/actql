@@ -8,7 +8,7 @@ const steps = process.argv.includes('--normative-write')
     command:'node',args:['scripts/'+name+'.mjs','--write']}))
   : process.argv.includes('--format')
   ? [{name:'Format only vector pooling source adapter and controls',command:'moon',args:['fmt',
-    'src/query_syntax/sga_call.mbt','src/query_syntax/sga_argument_roles.mbt',
+    'src/query_syntax/query.mbt','src/query_syntax/sga_call.mbt','src/query_syntax/sga_argument_roles.mbt',
     'src/query_program/query_script_carriers.mbt','src/query_syntax/vector_pool_role_test.mbt',
     'src/query_program/vector_pool_source_test.mbt']}]
   : [focused('Vector pool authored role counterexamples and independent common controls', 'moon', ['--target','js',

@@ -89,6 +89,18 @@ fn sga_call_head(token : Token) -> Bool {
 }
 
 ///|
+fn carrier_call_head(token : Token) -> Bool {
+  match token.value {
+    Word(name) =>
+      [
+        "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
+        "to_events", "session", "events",
+      ].contains(ascii_upper(name).to_lower())
+    _ => false
+  }
+}
+
+///|
 fn copy_sga_argument(argument : SgaArgument) -> SgaArgument {
   match argument {
     ObjectValue(fields) =>
