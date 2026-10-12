@@ -3,11 +3,9 @@
 // retention and concurrent scratch from admitted originals and an installed
 // physical profile. This is not a public descriptor, an adopted total formula,
 // or permission to keep additional input keys without that derivation.
-priv struct PreparedModelCapacity {
-  prepared_rows : Int
-  retained_bytes : Int64
-  execution_bytes : Int64
-}
+// Private numerical arguments in prepared-row, retained-byte, scratch-byte order.
+// This alias is package-private and carries no authority or public constructor.
+type PreparedModelCapacity = (Int, Int64, Int64)
 
 ///|
 fn reserve_prepared_model_capacity(
@@ -16,17 +14,14 @@ fn reserve_prepared_model_capacity(
   bound : PreparedModelCapacity?,
 ) -> Result[@resources.CapacityReservation?, ModelExecutionIssue] {
   guard bound is Some(bound) else { return Ok(None) }
+  let (bound_rows, retained_bytes, execution_bytes) = bound
   if prepared_rows < 0 ||
-    bound.prepared_rows != prepared_rows ||
-    bound.retained_bytes <= 0L ||
-    bound.execution_bytes < 0L {
+    bound_rows != prepared_rows ||
+    retained_bytes <= 0L ||
+    execution_bytes < 0L {
     return Err(InvalidLimits)
   }
-  @resources.reserve_capacity(
-    ledger,
-    bound.retained_bytes,
-    bound.execution_bytes,
-  )
+  @resources.reserve_capacity(ledger, retained_bytes, execution_bytes)
   .map(value => Some(value))
   .map_err(issue => Ledger(issue))
 }
