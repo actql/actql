@@ -38,7 +38,7 @@ class BootstrapCustodyTests(unittest.TestCase):
                 self.assertEqual(core._inputs[2].payload, b'')
                 self.assertGreaterEqual(args[2], 2 * 1_048_576)
                 return 19
-            if (family, name) == ('bootstrap', 'produce'):
+            if family == 'bootstrap' and name in ('produce', 'produce_sdk'):
                 return 0
             if (family, name) == ('bootstrap', 'length'):
                 return len(payload)
@@ -141,10 +141,28 @@ class BootstrapCustodyTests(unittest.TestCase):
             self.assertEqual(core._inputs[loan.ticket].payload, b'')
 
     def test_bootstrap_exports_use_the_closed_current_private_abi(self):
-        self.assertEqual(LOCAL_CORE_ABI, 54)
+        self.assertEqual(LOCAL_CORE_ABI, 55)
         self.assertEqual(_BOOTSTRAP_SIGNATURES, {
             'reserve': ('i64 i32 i32 i64', 'i32'),
             'produce': ('i64 i32', 'i32'),
+            'produce_sdk': ('i64 i32', 'i32'),
             'length': ('i64 i32', 'i32'),
             'close': ('i64 i32', 'i32'),
         })
+
+    def test_sdk_profile_requires_its_own_nominal_output_and_exact_producer(self):
+        core, source, calls, _, payload = self.bridge()
+        output = core.reserve_sdk_bootstrap(source, cleanup=lambda: True)
+        self.assertEqual(output.family, 'bootstrap_sdk')
+        before = len(calls)
+        for operation in (lambda: core.produce_bootstrap(output),
+                          lambda: core.read_bootstrap(output),
+                          lambda: core.close_bootstrap(output)):
+            with self.assertRaises(ValueError):
+                operation()
+        self.assertEqual(len(calls), before)
+        core.produce_sdk_bootstrap(output)
+        self.assertEqual(core.read_sdk_bootstrap(output), payload)
+        self.assertEqual([name for family, name, _ in calls if family == 'bootstrap' and name.startswith('produce')], ['produce_sdk'])
+        self.assertTrue(core.close_sdk_bootstrap(output))
+        self.assertIs(core._loans[source.ticket], source)
