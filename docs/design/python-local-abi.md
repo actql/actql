@@ -1878,3 +1878,61 @@ Its raw-byte limits require the assembly's simultaneous workspace reservation;
 they do not establish global memory accounting. Full saved intent/settings and
 adoption validation, the public Client assembly and actual Store ACK remain
 required beyond these metadata and physical ports.
+
+`OriginalHostBinding` supplies the same saved originals to the existing
+Common adopted/current material through a read-only SQLite snapshot. Trusted
+assembly supplies the four original Core projections, exact source/staged
+Account files, custody files and selected settings. The binding retains their
+loans and checks their exact saved bytes; it does not issue those originals or
+reconstruct their identities. The existing Common Owner still validates the
+actual singleton adoption row, Account and scope and makes operation decisions.
+
+The snapshot fences the original selected manifest/file rows at revision zero,
+their complete namespace membership, and the physical epoch key/clock row.
+Epoch observation performs no projection or clock advance. Explicit clock
+progress is observed by the next snapshot; replacement keys and backwards
+retained clocks are refused. Core, original File roots, then Store are locked
+in that order. The query reader is detached at frame exit and cannot be reused
+for protected work outside the snapshot. No fresh write transaction begins in
+this read-only frame; existing pending-write confirmation remains separate.
+
+Live close seals new work and keeps these loans until frame exit. Failed output
+cleanup retains the same current/input/workspace handles. A reserve trap without
+a returned handle retains its exact physical ticket and requires the original
+instance's actual retirement; it cannot be repeated or called complete. Closing
+this supplier does not cancel a Run, close the caller's Store/files or repair
+adoption. Actual initialization, publication ACK, public Client/runtime and
+installed-wheel acceptance remain required parts of the product assembly.
+
+The same binding can lend its physical fences to the existing Store's inspected
+CAS or successor-lookup operation. `fenced()` holds Core/File custody but starts
+no transaction. The caller includes every returned fence in the original Store
+operation and supplies `inspect_reader` within that operation's inspection.
+The physical reader checks its exact original object, lifetime, thread and
+required fence coverage before Core receives it. Copies, expired readers,
+another Store or missing adoption/epoch fences cannot borrow current material.
+
+Core's current frame exists only during the original inventory inspection;
+its reader detaches before physical CAS/COMMIT. Precommit and postcommit physical
+checks do not become Account Allow, publication success or a durable ACK.
+Saved-row readmission and `return_committed` use a fresh original read snapshot
+and the existing Core full-chain/publisher validation. COMMIT-after-ACK-loss
+remains Unknown with the same Store; its exact successor can be inspected
+without repeating the original CAS. Rollback failure keeps that original
+connection pending and prevents a new frame until explicit physical cleanup.
+
+Initial trusted assembly can acquire the empty DB through the existing File
+Owner, bind its actual device/inode into the original journal custody, and
+persist the initializing marker before opening SQLite. The physical Store's
+`initialize_owned_file` consumes that exact exclusive empty-file handle once
+while retaining the same root lock and writer for cleanup. It does not accept
+a boolean, copied handle, renamed file, another directory or a later pathname
+as a creation claim. SQL failure does not restore the consumed acquisition.
+
+This entry creates only the existing physical schema. Epoch keys, settings,
+adoption and original Core validation remain separate assembly obligations.
+A reopened empty DB without that original acquisition cannot create a schema
+or recreate lost keys. After successful SQL setup, the original writer cannot
+resume payload operations and is stopped explicitly; uncertain stop retains
+the same descriptor/root capacity. Neither physical schema setup nor the
+one-time creation claim is Host adoption, Run admission or public acceptance.
