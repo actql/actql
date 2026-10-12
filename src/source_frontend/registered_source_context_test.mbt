@@ -47,6 +47,6 @@ test "derived JOIN input requires original Source Catalog metadata" {
     fail("the original captured input must be retained")
   }
   let object = @wire.open_object(declaration).unwrap()
-  assert_eq(@wire.lookup(object, "view"), None)
+  assert_true(@wire.lookup(object, "view") is None)
   assert_true(lower(source, Sql, Some(context)) is Ok(_))
 }
