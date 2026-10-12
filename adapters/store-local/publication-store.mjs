@@ -9,6 +9,7 @@ import {
   link,
   mkdir,
   open,
+  opendir,
   readdir,
   readFile,
   rename,
@@ -231,7 +232,96 @@ async function processIsAlive(pid) {
   }
 }
 
-async function acquireStoreOwnership(root) {
+// One physical opening's acquisition controls, not a capacity Owner/grant.
+// Names and metadata are conservatively kept in this opening's raw footprint
+// until it completes: no earlier Buffer/String/Promise retirement is assumed.
+// The original Host envelope separately funds decode/tree/backing, the one
+// excess Dirent/EOF probe, FD/Dir/cleanup controls and generated Host baseline.
+function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
+  if (!exactKeys(supplied, ['maxWireBytes', 'maxDirectoryEntries']) ||
+      !quantity(supplied.maxWireBytes) || supplied.maxWireBytes === 0 ||
+      !quantity(supplied.maxDirectoryEntries)) {
+    fail('InvalidPublicationStoreBootstrapBounds');
+  }
+  // Capture before I/O. A mutated argument never widens this opening.
+  const {maxWireBytes, maxDirectoryEntries} = supplied;
+  let entries = 0, rawBytes = 0;
+  const readMetadata = async path => {
+    const bytes = await readBounded(path,
+      Math.min(maxMetadataBytes, maxWireBytes - rawBytes));
+    rawBytes += bytes.byteLength;
+    return bytes;
+  };
+  const readDirectory = async path => {
+    const directory = await opendir(path, {encoding: 'buffer', bufferSize: 1});
+    let primary, failed = false;
+    try {
+      const names = [];
+      for (;;) {
+        const entry = await directory.read();
+        if (entry === null) break;
+        // Count every actually acquired entry, before filtering or descent.
+        // The one excess native Dirent is a separately funded refusal probe.
+        if (entries === maxDirectoryEntries) fail('PublicationStoreBootstrapEntriesLimit');
+        entries++;
+        if (!(entry.name instanceof Uint8Array) ||
+            entry.name.byteLength > maxWireBytes - rawBytes) {
+          fail('PublicationStoreBootstrapWireLimit');
+        }
+        rawBytes += entry.name.byteLength;
+        let name;
+        try { name = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(entry.name); }
+        catch (cause) { fail('InvalidPublicationStoreDirectoryName', cause); }
+        names.push(name);
+      }
+      return names;
+    } catch (cause) { primary = cause; failed = true; throw cause; }
+    finally {
+      try {
+        if (await directory.close() === false) fail('PublicationStoreBootstrapCleanupPending');
+      }
+      catch (closeFailure) {
+        let original = directory, flight;
+        const status = () => Object.freeze({pending: original !== undefined});
+        const cleanup = Object.freeze({status, retry() {
+          if (flight !== undefined) return flight;
+          if (original === undefined) return Promise.resolve(status());
+          flight = Promise.resolve().then(() => original.close()).then(result => {
+            if (result === false) fail('PublicationStoreBootstrapCleanupPending');
+            original = undefined;
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        }});
+        const reason = failed ? primary : closeFailure;
+        const failure = reason !== null && typeof reason === 'object' &&
+          Object.isExtensible(reason) && reason.cleanupHandle === undefined
+          ? reason : new Error('PublicationStoreBootstrapCleanupPending', {cause: reason});
+        failure.cleanupHandle = cleanup;
+        failure.cleanupPending = true;
+        failure.cleanupError = closeFailure;
+        throw failure;
+      }
+    }
+  };
+  return Object.freeze({readMetadata, readDirectory});
+}
+
+// Use the same cumulative opening scan for old temporary trees too. Native
+// recursive rm would acquire their entries behind the physical clamp. This
+// retains existing cleanup semantics; it creates no new cleanup authority.
+async function removeOpeningTree(path, bootstrap) {
+  if (bootstrap === undefined) return rm(path, {recursive: true, force: false});
+  const state = await lstat(path);
+  if (state.isDirectory() && !state.isSymbolicLink()) {
+    for (const name of await bootstrap.readDirectory(path)) {
+      await removeOpeningTree(resolve(path, name), bootstrap);
+    }
+    await rmdir(path);
+  } else await unlink(path);
+}
+
+async function acquireStoreOwnership(root, bootstrap) {
   const ownershipDirectory = resolve(root, 'owner');
   const ownerPath = resolve(ownershipDirectory, 'owner.json');
   const token = randomUUID();
@@ -267,10 +357,13 @@ async function acquireStoreOwnership(root) {
         },
       });
     } catch (error) {
+      if (error?.cleanupHandle !== undefined) throw error;
       if (error?.code !== 'EEXIST') throw error;
       let existing;
-      try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
+      try { existing = JSON.parse(bootstrap === undefined
+        ? await readFile(ownerPath, 'utf8') : await bootstrap.readMetadata(ownerPath)); }
       catch (readError) {
+        if (readError?.cleanupHandle !== undefined) throw readError;
         if (readError?.code === 'ENOENT') {
           fail('PublicationStoreBusy');
         }
@@ -288,7 +381,7 @@ async function acquireStoreOwnership(root) {
         if (renameError?.code === 'ENOENT') continue;
         throw renameError;
       }
-      await rm(stale, {recursive: true, force: false});
+      await removeOpeningTree(stale, bootstrap);
       await syncDirectoryPath(root);
     }
   }
@@ -403,9 +496,15 @@ export async function openLocalPublicationStore(
   supplied,
   suppliedControl,
   durability = localDurability,
+  suppliedBootstrap,
 ) {
   const configuration = validateConfiguration(supplied);
   const contractControl = validateContractControl(suppliedControl);
+  const bootstrap = suppliedBootstrap === undefined ? undefined
+    : storeBootstrapAcquisition(suppliedBootstrap, configuration.maxObjectBytes);
+  const readOpeningDirectory = bootstrap?.readDirectory ?? readdir;
+  const readOpeningMetadata = bootstrap?.readMetadata ??
+    (path => readBounded(path, configuration.maxObjectBytes));
   if (!exactKeys(durability, ['syncDirectory']) ||
       typeof durability.syncDirectory !== 'function') {
     fail('InvalidPublicationStoreDurability');
@@ -448,7 +547,7 @@ export async function openLocalPublicationStore(
     if (!state.isDirectory() || state.isSymbolicLink()) {
       fail('UnknownPublicationStoreFormat');
     }
-    existingNames = await readdir(root);
+    existingNames = await readOpeningDirectory(root);
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;
   }
@@ -465,11 +564,20 @@ export async function openLocalPublicationStore(
     }
     let previous;
     try {
-      previous = JSON.parse(await readBounded(storeContractPath,
-        configuration.maxObjectBytes));
+      previous = JSON.parse(await readOpeningMetadata(storeContractPath));
     } catch (cause) {
-      throw Object.assign(new Error('UnknownPublicationStoreFormat',
+      const failure = Object.assign(new Error('UnknownPublicationStoreFormat',
         {cause}), {code: 'UnknownPublicationStoreFormat', target: root});
+      // This reader precedes Store ownership. The same original failed FD
+      // must remain visible to installed initialization cleanup; wrapping a
+      // format refusal must not make that cleanup appear complete.
+      if (cause?.cleanupHandle !== undefined) {
+        failure.cleanupHandle = cause.cleanupHandle;
+        failure.cleanupPending = true;
+        failure.cleanupError = cause.cleanupError;
+        failure.primaryFailure = cause.primaryFailure ?? cause;
+      }
+      throw failure;
     }
     if (previous?.version === storeContract.version &&
         previous?.isolation === undefined &&
@@ -505,9 +613,7 @@ export async function openLocalPublicationStore(
     await syncDirectory(root);
   } catch (error) {
     if (error?.code !== 'EEXIST') throw error;
-    const existing = await readBounded(
-      storeContractPath, configuration.maxObjectBytes,
-    );
+    const existing = await readOpeningMetadata(storeContractPath);
     if (!existing.equals(storeContractBytes)) {
       fail('PublicationStoreAuthorityMismatch');
     }
@@ -515,7 +621,7 @@ export async function openLocalPublicationStore(
 
   let storedBytes = 0;
   let objectCount = 0;
-  for (const name of await readdir(objectsDirectory)) {
+  for (const name of await readOpeningDirectory(objectsDirectory)) {
     if (!/^[0-9a-f]{64}$/u.test(name)) {
       fail('InvalidPublicationStoreObject');
     }
@@ -535,9 +641,9 @@ export async function openLocalPublicationStore(
   // One process owns the complete capacity authority for this local Store.
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
-  const ownership = await acquireStoreOwnership(root);
+  const ownership = await acquireStoreOwnership(root, bootstrap);
   try {
-  for (const name of await readdir(stagingDirectory)) {
+  for (const name of await readOpeningDirectory(stagingDirectory)) {
     const path = resolve(stagingDirectory, name);
     if (!/^object-[0-9a-f-]{36}$/u.test(name) ||
         !(await lstat(path)).isFile()) {
@@ -547,14 +653,14 @@ export async function openLocalPublicationStore(
   }
   await syncDirectory(stagingDirectory);
 
-  for (const name of await readdir(custodyDirectory)) {
+  for (const name of await readOpeningDirectory(custodyDirectory)) {
     const path = resolve(custodyDirectory, name);
     if (!custodyNamePattern.test(name) || !(await lstat(path)).isFile()) {
       fail('InvalidPublicationPreparedCustody');
     }
   }
   await syncDirectory(custodyDirectory);
-  for (const name of await readdir(preparedSchemasDirectory)) {
+  for (const name of await readOpeningDirectory(preparedSchemasDirectory)) {
     const path = resolve(preparedSchemasDirectory, name);
     if (/^\.staging-[0-9a-f-]{36}\.json$/u.test(name)) {
       await unlink(path);
@@ -566,10 +672,10 @@ export async function openLocalPublicationStore(
   }
   await syncDirectory(preparedSchemasDirectory);
 
-  for (const name of await readdir(deliveriesDirectory)) {
+  for (const name of await readOpeningDirectory(deliveriesDirectory)) {
     const path = resolve(deliveriesDirectory, name);
     if (name.startsWith('.staging-')) {
-      await rm(path, {recursive: true, force: false});
+      await removeOpeningTree(path, bootstrap);
       continue;
     }
     if (!/^[0-9a-f]{64}$/u.test(name) || !(await lstat(path)).isDirectory()) {
@@ -577,16 +683,16 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(deliveriesDirectory);
-  for (const name of await readdir(manifestReadsDirectory)) {
+  for (const name of await readOpeningDirectory(manifestReadsDirectory)) {
     const path = resolve(manifestReadsDirectory, name);
     if (name.startsWith('.staging-')) {
-      await rm(path, {recursive: true, force: false});
+      await removeOpeningTree(path, bootstrap);
       continue;
     }
     if (!/^[0-9a-f]{64}$/u.test(name) || !(await lstat(path)).isDirectory()) {
       fail('InvalidManifestReadStore');
     }
-    for (const useName of await readdir(path)) {
+    for (const useName of await readOpeningDirectory(path)) {
       if (useName.startsWith('.staging-')) {
         await rm(resolve(path, useName), {force: false});
         continue;
@@ -598,14 +704,14 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(manifestReadsDirectory);
-  for (const name of await readdir(metadataInventoriesDirectory)) {
+  for (const name of await readOpeningDirectory(metadataInventoriesDirectory)) {
     if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
         !(await lstat(resolve(metadataInventoriesDirectory, name))).isFile()) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
   }
   await syncDirectory(metadataInventoriesDirectory);
-  for (const name of await readdir(metadataDeletionsDirectory)) {
+  for (const name of await readOpeningDirectory(metadataDeletionsDirectory)) {
     const path = resolve(metadataDeletionsDirectory, name);
     if (name.startsWith('.staging-')) {
       await unlink(path);
@@ -621,7 +727,7 @@ export async function openLocalPublicationStore(
     physicalHoldingsDirectory,
     physicalHoldingDeletionsDirectory,
   ]) {
-    for (const name of await readdir(directory)) {
+    for (const name of await readOpeningDirectory(directory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
           !(await lstat(resolve(directory, name))).isFile()) {
         fail('InvalidPublicationPhysicalHoldingStore');
@@ -629,19 +735,19 @@ export async function openLocalPublicationStore(
     }
     await syncDirectory(directory);
   }
-  for (const keyHash of await readdir(retentionExtensionsDirectory)) {
+  for (const keyHash of await readOpeningDirectory(retentionExtensionsDirectory)) {
     const directory = resolve(retentionExtensionsDirectory, keyHash);
     if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
         !(await lstat(directory)).isDirectory()) {
       fail('InvalidPublicationRetentionExtensionStore');
     }
-    for (const name of await readdir(directory)) {
+    for (const name of await readOpeningDirectory(directory)) {
       const path = resolve(directory, name);
       if (!/^[0-9a-f]{64}$/u.test(name) ||
           !(await lstat(path)).isDirectory()) {
         fail('InvalidPublicationRetentionExtensionStore');
       }
-      for (const record of await readdir(path)) {
+      for (const record of await readOpeningDirectory(path)) {
         if (!recordNamePattern.test(record) ||
             !(await lstat(resolve(path, record))).isFile()) {
           fail('InvalidPublicationRetentionExtensionStore');
@@ -652,13 +758,13 @@ export async function openLocalPublicationStore(
     await syncDirectory(directory);
   }
   await syncDirectory(retentionExtensionsDirectory);
-  for (const keyHash of await readdir(deletionsDirectory)) {
+  for (const keyHash of await readOpeningDirectory(deletionsDirectory)) {
     const directory = resolve(deletionsDirectory, keyHash);
     if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
         !(await lstat(directory)).isDirectory()) {
       fail('InvalidPublicationDeletionStore');
     }
-    for (const name of await readdir(directory)) {
+    for (const name of await readOpeningDirectory(directory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
           !(await lstat(resolve(directory, name))).isFile()) {
         fail('InvalidPublicationDeletionStore');
@@ -666,7 +772,7 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(deletionsDirectory);
-  for (const name of await readdir(clocksDirectory)) {
+  for (const name of await readOpeningDirectory(clocksDirectory)) {
     const path = resolve(clocksDirectory, name);
     if (name.startsWith('.staging-')) {
       await rm(path, {force: false});
