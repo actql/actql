@@ -23,7 +23,7 @@ test "checked read cleanup keeps original custody after stopping and refuses for
     read, compiled, definition, plan, 7L, 5L,
   ).unwrap()
   enter_client_model_read_consumer(consumer, compiled, definition, plan, 7L, 5L).unwrap()
-  stop_client_model_read_consumer(consumer)
+  stop_client_model_read_consumer(consumer).unwrap()
   assert_false(client_model_read_available(read, compiled, definition, plan))
   let before = @resources.ledger_usage(ledger)
   for

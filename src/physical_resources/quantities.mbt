@@ -53,6 +53,10 @@ pub fn configure_quantities(
   ledger : Ledger,
   limits : QuantityAmounts,
 ) -> Result[Unit, LedgerIssue] {
+  match check_original_resources_mutable(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if !valid_quantities(limits) {
     return Err(InvalidLimits)
   }

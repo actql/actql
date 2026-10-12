@@ -82,6 +82,7 @@ pub(all) enum LedgerIssue {
   TokenLimit
   CostLimit
   DurationLimit
+  ResourceParked
 } derive(Eq, Debug)
 
 ///|
@@ -132,6 +133,10 @@ pub fn charge_planning(
   ledger : Ledger,
   work : Int,
 ) -> Result[Unit, LedgerIssue] {
+  match check_original_resources_mutable(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if work < 0 {
     return Err(InvalidCharge)
   }
@@ -235,7 +240,7 @@ fn reservation_check(
   if !reservation.open {
     return Err(ClosedReservation)
   }
-  Ok(())
+  check_original_resources_mutable(ledger)
 }
 
 ///|
@@ -516,6 +521,10 @@ pub fn release_allocation(
   }
   if !holding.live {
     return Err(ClosedHolding)
+  }
+  match check_original_resources_mutable(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   ledger.usage = {
     ..ledger.usage,
