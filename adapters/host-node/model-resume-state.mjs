@@ -503,13 +503,18 @@ export function createModelResumeState(database, {
   function originalJournalFacts(identity) {
     const state = checked(identity);
     const runId = state.inventory.runId;
+    // Every selected occurrence is re-admitted before an observation can feed
+    // an original data projection. Validating only the requested occurrence
+    // would leave another occurrence's rows as unauthenticated discovery data.
+    const scopes = database.prepare('SELECT * FROM resume_model_scopes WHERE run_id = ? ORDER BY task_index, scope_cid').all(runId);
+    for (const scope of scopes) checked(JSON.parse(scope.inventory_json));
     // Run revision is not a substitute for any of these independently updated
     // rows. Keep original bytes and complete ordered history, including other
     // Model occurrences and original continuation/approval fences of this Run.
     return freeze(copy({
       identity: select(state.inventory, scopeKeys),
       run: run(runId),
-      scopes: database.prepare('SELECT * FROM resume_model_scopes WHERE run_id = ? ORDER BY task_index, scope_cid').all(runId),
+      scopes,
       slots: database.prepare(`SELECT s.* FROM resume_model_slots s
         JOIN resume_model_scopes m ON m.scope_cid = s.scope_cid
         WHERE m.run_id = ? ORDER BY m.task_index, s.scope_cid, s.ordinal`).all(runId),
@@ -635,6 +640,33 @@ export function createModelResumeState(database, {
       },
       originalModelJournalObservationFacts(observation) {
         return originalJournalObservation(observation);
+      },
+      // Pure data projection outside any SQLite commit/approval boundary. The
+      // configured Common port is installation-owned; it neither verifies
+      // Store custody nor creates resource park/restore/send permission.
+      originalModelJournalDataIdentities(observation) {
+        const facts = originalJournalObservation(observation);
+        transaction.run(() => {
+          if (!same(facts, originalJournalFacts(facts.identity))) {
+            fail('ModelOriginalJournalObservationChanged');
+          }
+        });
+        const identities = facts.attempts.map(row => {
+          const scope = facts.scopes.find(value => value.scope_cid === row.scope_cid);
+          if (scope === undefined) fail('ModelResumeInventoryCorrupt');
+          const entry = JSON.parse(row.entry_json);
+          const originals = JSON.parse(entry.provenance === 'deferred' && scope.registration_kind === 'immediate'
+            ? scope.checkpoint_originals_json : scope.originals_json);
+          return synchronous(verifier?.projectOriginalJournalIdentity, {originals, row});
+        });
+        // The projection is not a user callback inside a transaction. A lost
+        // observation or any intervening mutation refuses the entire result.
+        transaction.run(() => {
+          if (!same(facts, originalJournalFacts(facts.identity))) {
+            fail('ModelOriginalJournalObservationChanged');
+          }
+        });
+        return freeze(identities);
       },
       // After an await, compare all original storage facts, not Run.version
       // alone. Even a match proves no resource freeze or committed cut link.

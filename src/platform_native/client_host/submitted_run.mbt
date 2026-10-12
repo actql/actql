@@ -36,58 +36,25 @@ pub fn native_client_submitted_run_admission_revision(
 }
 
 ///|
-fn submitted_run_admission_body(
-  admission : NativeClientSubmittedRunAdmission,
-) -> Result[String, NativeClientRunJournalIssue] {
-  @host.client_submitted_run_admission_wire(
-    admission.request,
-    admission.run_definition_cid,
-    admission.revision,
-  ).map_err(issue => {
-    match issue {
-      @host.Encoding => Encoding
-      @host.CustodyLost => CustodyLost
-    }
-  })
-}
-
-///|
-fn read_submitted_run_admission(
-  wire : String,
-) -> Result[NativeClientSubmittedRunAdmission, NativeClientRunJournalIssue] {
-  @host.admit_client_submitted_run_admission_wire(wire)
-  .map(value => {
-    request: value.0,
-    run_definition_cid: value.1,
-    revision: value.2,
-  })
-  .map_err(issue => {
-    match issue {
-      @host.Encoding => Encoding
-      @host.CustodyLost => CustodyLost
-    }
-  })
-}
-
-///|
 fn NativeClientRunJournal::validate_submitted_run_admission(
   self : NativeClientRunJournal,
   record : NativeClientSubmittedIntentRecord,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard record.run_admission is Some(admission) else { return Ok(()) }
-  guard epoch_cursor(@scope.submission_epoch_wire(record.reference.epoch.body))
-    is Some(cursor) &&
-    @decode.open_object(cursor) is Ok(epoch) &&
-    epoch_text(epoch, "authority_scope_cid") ==
-    Some(@host.client_request_authority_scope_cid(admission.request)) &&
-    @host.client_request_caller_id(admission.request) ==
-    record.reference.request_id else {
-    return Err(CustodyLost)
+  let reference = match
+    @host.admit_client_submission_reference_record(record.reference.wire) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
   }
   match self.retained(admission.request) {
-    Ok(Some(run)) if @publication.publication_contract_identity(run.definition) ==
-      admission.run_definition_cid &&
-      run.revision >= admission.revision => Ok(())
+    Ok(Some(run)) =>
+      @host.validate_client_submitted_retained_run(
+        reference,
+        (admission.request, admission.run_definition_cid, admission.revision),
+        run.request,
+        run.definition,
+        run.revision,
+      ).map_err(_ => CustodyLost)
     Err(Physical(issue)) => Err(Physical(issue))
     _ => Err(CustodyLost)
   }
