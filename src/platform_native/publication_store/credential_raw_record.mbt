@@ -3,19 +3,10 @@
 // Only the existing typed preparation grant/use can supply the original scope.
 priv struct LocalPreparationRawBinding {
   fields : Array[String]
-  binding_wire : String
   descriptor_wire : String
   holding : String
   response_limit : Int
   max_plaintext_bytes : Int
-}
-
-///|
-pub struct NativeLocalPreparationRawObservation {
-  use_cid : String
-  status : Int
-  body : Bytes
-  body_digest : String
 }
 
 ///|
@@ -62,7 +53,6 @@ fn raw_cipher_envelope_bytes(plaintext_bytes : Int64) -> Int64 {
 }
 
 ///|
-#warnings("-unused_value")
 fn local_preparation_raw_binding(
   grant : @credential.LocalPreparationCredentialGrant,
   original_use : @credential.LocalPreparationCredentialUse,
@@ -130,7 +120,6 @@ fn local_preparation_raw_binding(
   }
   Ok({
     fields,
-    binding_wire,
     descriptor_wire,
     holding: "sha256:" + @sha.hex(@utf8.encode(binding_wire)),
     response_limit: response_limit.to_int(),
@@ -139,7 +128,6 @@ fn local_preparation_raw_binding(
 }
 
 ///|
-#warnings("-unused_value")
 fn local_preparation_raw_reservation_bytes(
   binding : LocalPreparationRawBinding,
 ) -> Result[Int64, NativePublicationStoreIssue] {
@@ -152,7 +140,6 @@ fn local_preparation_raw_reservation_bytes(
 }
 
 ///|
-#warnings("-unused_value")
 fn local_preparation_raw_record(
   binding : LocalPreparationRawBinding,
   status : Int,
@@ -170,7 +157,6 @@ fn local_preparation_raw_record(
 }
 
 ///|
-#warnings("-unused_value")
 fn restore_local_preparation_raw_record(
   wire : String,
   binding : LocalPreparationRawBinding,
