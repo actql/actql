@@ -9,6 +9,7 @@ struct NativeLocalPackagedRuntime {
     (@filesystem.Root, String, @filesystem.NativeFileGeneration),
   ]
   mut reader : @filesystem.Reader?
+  mut reader_open_failure : @filesystem.NativeReaderOpenFailure?
   mut sqlite : String
   mut crypto : String
   mut ready : Bool
@@ -73,10 +74,13 @@ fn local_runtime_read_member(
     (collect && bytes > 65536L) {
     local_runtime_stop(Limit)
   }
-  let reader = root
-    .open_reader(name, generation)
-    .map_err(issue => Physical(issue))
-    |> local_runtime_result
+  let reader = match root.open_reader_with_custody(name, generation) {
+    Ok(reader) => reader
+    Err(failure) => {
+      runtime.reader_open_failure = Some(failure)
+      local_runtime_stop(Physical(failure.issue()))
+    }
+  }
   runtime.reader = Some(reader)
   let hasher = @sha.hasher()
   let retained : Array[Byte] = []
@@ -138,6 +142,7 @@ pub fn open_native_local_packaged_runtime(
     roots: [root],
     witnesses: [],
     reader: None,
+    reader_open_failure: None,
     sqlite: "",
     crypto: "",
     ready: false,
@@ -222,6 +227,7 @@ pub fn NativeLocalPackagedRuntime::check_current(
   if !self.ready ||
     self.closed ||
     self.reader is Some(_) ||
+    self.reader_open_failure is Some(_) ||
     !self.witnesses.all(w => w.0.verify_generation(w.1, w.2)) {
     Err(Changed)
   } else {
@@ -274,6 +280,12 @@ pub fn NativeLocalPackagedRuntime::close(
     return Ok(())
   }
   self.ready = false
+  if self.reader_open_failure is Some(failure) {
+    if failure.retry_cleanup() is Err(_) {
+      return Err(CleanupPending)
+    }
+    self.reader_open_failure = None
+  }
   if self.reader is Some(reader) {
     if reader.close() is Err(_) {
       return Err(CleanupPending)

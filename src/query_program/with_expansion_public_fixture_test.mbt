@@ -443,11 +443,34 @@ test "WITH captured expansion reuses resolved common Result input order" {
     ],
     parameter_declarations: Some(declarations),
   }
-  let lowered = @frontend.lower(
-    "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
-    Text,
-    Some(context),
-  ).unwrap()
+  let lowered = match
+    @frontend.lower(
+      "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+      Text,
+      Some(context),
+    ) {
+    Ok(lowered) => lowered
+    Err(
+      QueryLowering(
+        BindingPreparation(
+          SourceProgram(Program(Order(stage, PipelineOrder(issue))))
+        )
+      )
+    ) =>
+      fail(
+        "Source pipeline order stage " +
+        stage.to_string() +
+        ": " +
+        @debug.to_string(issue.kind) +
+        ": " +
+        @debug.to_string(@wire.cursor_path(issue.source)),
+      )
+    Err(QueryLowering(issue)) => {
+      let _ = with_demand_program(Err(issue))
+      fail("query refusal cannot return a lowered source")
+    }
+    Err(_) => fail("captured expansion failed before query lowering")
+  }
   let program = lowered.program.unwrap()
   // The canonical numeric capture Result now supplies its common publication
   // order to JOIN and correlated UNNEST. No physical arrival order is assumed.
