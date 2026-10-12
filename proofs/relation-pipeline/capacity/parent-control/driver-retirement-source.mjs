@@ -38,11 +38,12 @@ const scratch=`{
       (ordinary.val is None && finalization_payload.val is None && finalization_available.val is None &&
        finalization_receipt.val is None && finalization_material.val is None && finalization_completed.val is None) ) &&
     finalization_values.val is None && finalization_retention.val is None && finalization_stream.val is None &&
-    finalization_result_preparation.val is None
+    finalization_result_preparation.val is None && relation_snapshot_cancel.val is None
   }`;
 const ownedScratch=`{
   if !(disposed.val || (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
     scratch_uses.val != 0 || provider_execution.val is Some(_) ||
+    relation_snapshot_cancel.val is Some(_) ||
     (!live.val && input_stop.phase != Stopped) {
     return
   }
@@ -189,6 +190,70 @@ const importReclaim=`{
   }
   advance_admitted_buffer_reclamation(value.stream.buffer, quantum)
 }`;
+// These are correspondence premises for the existing conditional model, not
+// another capacity allowance or a proof of physical file/import reclamation.
+const cancelSnapshot=`{
+  if stream.val is Some(value) { @execution.cancel_completed_output_export(value) }
+  if receipt.val is Some(value) { @execution.cancel_completed_export_receipt(value) }
+  if importing.val is Some(value) { @execution.cancel_completed_output_import(value) |> ignore }
+  restored.val = None
+  phase.val = Failed
+  cleanup_references(64)
+}`;
+const snapshotCleanup=`{
+  if quantum <= 0 { return false }
+  if stream.val is Some(value) {
+    if !@execution.advance_cancel_completed_output_export(value, quantum) { return false }
+    stream.val = None
+  }
+  if receipt.val is Some(value) {
+    if !@execution.advance_cancel_completed_export_receipt(value, quantum) { return false }
+    receipt.val = None
+  }
+  if stored.val is Some(value) {
+    if !storage_released() { return false }
+    if @execution.completed_output_retained_material(value) is Some(material) &&
+      !@execution.advance_retained_output_reference_reclamation(material, quantum) { return false }
+    stored.val = None
+  }
+  true
+}`;
+const snapshotFinish=`{
+  guard live.val && phase.val == Restored && storage_released() &&
+    stored.val is None && stream.val is None && receipt.val is None &&
+    restored.val is Some(value) else { return Err(Configuration(InvalidLimits)) }
+  ordinary.val = Some(value)
+  restored.val = None
+  relation_snapshot_cancel.val = None
+  phase.val = Finished
+  snapshot_ready.val = true
+  Ok(())
+}`;
+const cleanupPrefix=`{
+  if scratch_uses.val != 0 { return false }
+  if !stop_owned_inputs() { return false }
+  if !release_provider_scratch() { return false }
+  if relation_snapshot_cancel.val is Some(cancel) {
+    if !cancel() { return false }
+    relation_snapshot_cancel.val = None
+  }
+  release_owned_scratch()
+`;
+const cancelFinalization=`{
+  finalization_cancelled.val = true
+  if relation_snapshot_cancel.val is Some(cancel) {
+    if cancel() { relation_snapshot_cancel.val = None }
+  }
+  if finalization_completed.val is Some(completed) && !finalization_ready.val {
+    @execution.revoke_unpublished_managed_completed_output(completed) |> ignore
+  }
+  if finalization_values.val is Some(values) { @execution.cancel_managed_output_values(values) |> ignore }
+  if finalization_retention.val is Some(port) { @execution.cancel_managed_output_retention_port(port) |> ignore }
+  if finalization_stream.val is Some(stream) { @execution.cancel_completed_output_export(stream) }
+  if finalization_result_preparation.val is Some(preparation) {
+    @execution.cancel_completed_result_relation_export(preparation) |> ignore
+  }
+}`;
 export function checkDriverRetirementSource(read) {
   const driver=read(driverPath).toString(),strategy=read(strategyPath).toString();
   const roots=read(scratchRetirementPath).toString();
@@ -207,8 +272,16 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(importer,'advance_cancel_completed_output_import(')),clean(importReclaim),'Changed import buffer reclamation owner');
   assert.equal((driver.match(/deferred_reclamation=true/g)??[]).length,3,'Changed bounded input/snapshot import preparation');
   assert.equal((driver.match(/retained_imports\.push\(importing\)/g)??[]).length,1,'Changed snapshot import custody registration');
-  assert(!blockAfter(driver,'relation_snapshot_cancel.val = Some(fn()').includes('importing.val = None'),'Snapshot cancellation discarded pending import custody');
-  assert.match(clean(blockAfter(driver,'cleanup_refresh: fn()')),/^\{ifscratch_uses\.val!=0\{returnfalse\}if!stop_owned_inputs\(\)\{returnfalse\}if!release_provider_scratch\(\)/,'Changed cleanup callback/input/provider ordering');
+  const snapshot=blockAfter(driver,'prepare_relation_snapshot: fn(storage_released)');
+  assert.equal(clean(blockAfter(snapshot,'relation_snapshot_cancel.val = Some(fn()')),clean(cancelSnapshot),'Changed snapshot cancellation/capture custody');
+  assert.equal(clean(blockAfter(snapshot,'let cleanup_references = fn(quantum : Int)')),clean(snapshotCleanup),'Changed snapshot storage/reference cleanup completion');
+  assert.equal(clean(blockAfter(snapshot,'finish: () =>')),clean(snapshotFinish),'Changed successful snapshot finalization custody transfer');
+  assert.equal(clean(blockAfter(driver,'let cancel_finalization = fn()')),clean(cancelFinalization),'Changed pending snapshot cancellation retry custody');
+  assert(clean(blockAfter(driver,'cleanup_refresh: fn()')).startsWith(clean(cleanupPrefix)),
+    'Changed cleanup callback/input/provider/snapshot retirement ordering');
+  assert.match(driver.replace(/\s+/g,' '),/let relation_snapshot_cancel : Ref\[\(\(\) -> Bool\)\?\] = Ref\(None\)/);
+  assert.deepEqual([...driver.matchAll(/relation_snapshot_cancel\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),
+    ['None','Some(fn() {','None','None'],'Unreviewed snapshot callback root replacement');
   assert.equal(clean(blockAfter(roots,'fn local_managed_scratch_retirement(')),clean('{ { phase: Bridges, index: 0, } }'),'Changed initial scratch retirement phase');
   assert.equal(clean(blockAfter(roots,'advance_local_managed_scratch_retirement(')),clean(rootSlice),'Changed bounded scratch root retirement slice');
   assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
@@ -221,5 +294,8 @@ export function checkDriverRetirementSource(read) {
     retainsProviderUntilStoppedAndCleanupSuccess:true,clearsProviderAfterCleanupSuccess:true,
     cachesFinalProviderWorkBeforeDroppingRoot:true,incrementalScratchRootRetirement:true,
     incrementalInputRevocation:true,incrementalPrivateImportRows:true,
+    snapshotCustody:{pendingCancelRetainsCallback:true,retirementRequiresCallbackAbsent:true,
+      cleanupRetryBeforeRootRetirement:true,successfulFinishRequiresReleasedStorage:true,
+      pendingImporterRemainsRegistered:true},
     wholePhysicalLifetimeUpper:false,ledgerGenerationCorrespondence:false};
 }
