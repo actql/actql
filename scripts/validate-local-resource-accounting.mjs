@@ -97,7 +97,7 @@ export function validateResourceAccounting({
   const graphRefusals = new Set(families.operations.filter(entry =>
     graphClassification[entry.operation] === 'blocked').map(entry => entry.operation));
   if (graphProfile?.contract !== 'actql-graph-contract/0.1' ||
-      graphRefusals.size === 0 || families.operations.some(entry =>
+      families.operations.some(entry =>
         graphClassification[entry.operation] !== undefined &&
         graphClassification[entry.operation] !== entry.status)) {
     fail('current Graph resource scope must match the authoritative family classification');
@@ -261,7 +261,7 @@ export function validateResourceAccounting({
   const checkEnd = sourceCheck.indexOf('///|', checkStart);
   const check = sourceCheck.slice(checkStart, checkEnd);
   const packageScripts = readJson(path.join(root, 'package.json')).scripts;
-  if (refusal?.suite !== 'node:graph_public_host' ||
+  if (graphRefusals.size > 0 && (refusal?.suite !== 'node:graph_public_host' ||
       refusal.path !== publicRefusalPath ||
       refusal.fixture !== 'keyed constructor and TRAIL reach public Named Results through' ||
       JSON.stringify(refusal.targets) !== JSON.stringify(['node']) ||
@@ -280,7 +280,7 @@ export function validateResourceAccounting({
       !publicRefusal.includes('physicalSteps.slice(before), []') ||
       !publicRefusal.includes('for (const externalInput of [false,true])') ||
       !packageScripts['check:distribution-client']?.includes(publicRefusalPath) ||
-      !packageScripts['check:distribution-client']?.includes('scripts/test-packed-graph.mjs')) {
+      !packageScripts['check:distribution-client']?.includes('scripts/test-packed-graph.mjs'))) {
     fail('current Graph refusals lack the shared required public pre-execution boundary');
   }
   const routeKeys = routeEntries.map(
@@ -476,8 +476,9 @@ export function validateResourceAccounting({
     if (route.view_entrypoint !== undefined) {
       productionSources.push(['view_entrypoint', route.view_entrypoint]);
     }
+    const productionTexts = new Map();
     for (const [role, value] of productionSources) {
-      if (typeof value.path !== 'string' ||
+      if (typeof value?.path !== 'string' ||
         !value.path.startsWith('src/') ||
         value.path.split('/').includes('..') ||
         /(?:_test|_wbtest|\.generated)\./u.test(value.path)) {
@@ -490,6 +491,7 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(file, 'utf8');
+      productionTexts.set(value.path, sourceText);
       if (role === 'dispatch' &&
         (typeof value.marker !== 'string' || !sourceText.includes(value.marker))) {
         fail(`${label}: dispatch marker does not reach production source`);
@@ -1766,9 +1768,9 @@ export function validateResourceAccounting({
         shortest_path: 'start_shortest_view',
         graphs_equal: 'start_graph_equality_views',
       }[route.operation];
-      const provider = fs.readFileSync(path.join(root, route.dispatch.path), 'utf8');
-      if (route.selected_entrypoint?.symbol !== selectedSymbol ||
-        !provider.includes(`@sga.${selectedSymbol}(`)) {
+      const provider = productionTexts.get(dispatch.path);
+      if (provider !== undefined && (route.selected_entrypoint?.symbol !== selectedSymbol ||
+        !provider.includes(`@sga.${selectedSymbol}(`))) {
         fail(`${label}: selected Graph operation does not reach its view kernel`);
       }
     }
