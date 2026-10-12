@@ -1734,6 +1734,20 @@ class InstalledLocalHost:
                 return None
             return observation.finish()
 
+    def _project_original_observed_index(self, projection: OriginalCommitProjection,
+                                         consume: Callable[[bytes, bytes], object]) -> None:
+        """Forward the actual stored index to the original publication caller only.
+
+        The index export itself checks the full-chain observation and publisher;
+        action codes and physical write returns cannot supply these bytes.
+        """
+        self._active()
+        with self._core._lock:
+            observation = self._store_observations.get(projection._publication.ticket)
+            if observation is None or observation._projection is not projection:
+                raise ValueError('Original Local Store observation is unavailable')
+            observation.project_observed_index(consume)
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],

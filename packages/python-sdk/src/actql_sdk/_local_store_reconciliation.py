@@ -223,6 +223,33 @@ class OriginalStoreReconciliation:
                     return action
                 return self._current_call(consume)
 
+    def project_observed_index(self, consume: Callable[[bytes, bytes], object]) -> None:
+        """Transport the actual admitted index under the same complete File/current frame.
+
+        The existing Core export refuses unfinished, absent, failed or retired
+        observations and independently rechecks the original publisher. No action
+        code or Python comparison is elevated to admission, ACK or Run success.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original observed index consumer')
+        core = self._projection._core
+        with core._lock:
+            self._nominal()
+            if self._active or not self._entered:
+                raise RuntimeError('Original Store observation transfer is not available')
+            with self._serialized_facts():
+                def project() -> None:
+                    self._before_lookup()
+                    def transfer(identity: bytes, body: bytes) -> None:
+                        self._validate_facts()
+                        if consume(identity, body) is not None:
+                            raise ValueError('Invalid synchronous observed index consumer result')
+                        # Failed consumers/current checks retain the same output
+                        # reservations until explicit original-loan cleanup.
+                        self._validate_facts()
+                    self._projection.project_observed_index(transfer)
+                self._current_call(project)
+
     def _current_call(self, consume: Callable[[], _T]) -> _T:
         # File/Core locks are held by the caller before the fresh Store frame.
         # Reuse the original binding after prepare; never manufacture a grant
