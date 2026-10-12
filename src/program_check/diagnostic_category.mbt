@@ -290,6 +290,10 @@ fn environment_diagnostic_category(
 ///|
 fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
   match issue {
+    RequestForm(InvalidLimits) => InvalidConfiguration
+    RequestForm(WorkLimit) => CompileLimit
+    RequestForm(PartialCorrelation) => InvalidInput
+    RequestForm(ForeignRequests) => UnclassifiedFailure
     UnsupportedBindings(_) | UnsupportedEffects(_) => UnsupportedImplementation
     DeclarationWorkLimit | CapacityMetadataBudget => CompileLimit
     Registration(Declarations(WorkLimit | OrderLimit))

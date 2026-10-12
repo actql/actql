@@ -20,3 +20,19 @@ pub fn source_context_diagnostic(
 ) -> CheckDiagnostic {
   construction_failure_diagnostic(Source(SourceView(issue)))
 }
+
+///|
+/// Preserve request preparation failures under the original common Owner.
+pub fn source_requests_diagnostic(
+  issue : @context.PrepareSourcesIssue,
+) -> CheckDiagnostic {
+  construction_failure_diagnostic(Source(Requests(issue)))
+}
+
+///|
+/// Authored request form checking grants no acquisition or execution authority.
+pub fn source_request_form_diagnostic(
+  issue : @sourceviews.RequestFormIssue,
+) -> CheckDiagnostic {
+  construction_failure_diagnostic(Source(RequestForm(issue)))
+}

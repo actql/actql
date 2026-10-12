@@ -119,6 +119,14 @@ pub fn client_submission_epoch_token_body(
 }
 
 ///|
+/// Original token identity only, not epoch authentication or current authority.
+pub fn client_submission_epoch_token_authority_scope_cid(
+  value : ClientSubmissionEpochToken,
+) -> String {
+  value.authority_scope_cid
+}
+
+///|
 pub fn client_submission_epoch_token_tag(
   value : ClientSubmissionEpochToken,
 ) -> Bytes {
