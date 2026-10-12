@@ -1612,3 +1612,42 @@ refusal or permission to repeat the batch. Query and cleanup
 failures are exceptions, never unmatched/absent results or replay permission.
 The adapter only returns physical generations/raw bytes. Existing Core Owners
 still validate original identity, admission, publication and execution facts.
+
+The shared SubmissionReference codec preserves the original Native token
+shape, canonical reference bytes and typed nonce identity. A syntactically
+valid authenticator is not HMAC authentication. The physical Host still verifies
+the original durable key, clock and epoch in the same admission transaction.
+Native authentication, journal readers, count custody and transactions remain
+separate from this pure codec.
+
+The Local submitted-row preparation binds the exact nominal submitted
+preparation to its original checked Plan, request, current Account permit and
+context. It compares the retained preparing row with the original encoded
+intent and reference before projecting the initial Run row and ready candidate.
+It cannot prepare a ready row again, replace an equivalent preparation, or use
+a foreign or expired reference. These opaque projections perform no I/O and
+prove no COMMIT, accepted Submission or start permission. Before adoption, the
+Host must validate complete original journal/count custody, current epoch
+authentication and the same physical transaction, then readmit the actual saved
+rows through the existing Owners. A lost acknowledgement never authorizes
+repeating the candidate writes or reconstructing a new Run.
+
+Private ABI47 projects the original submitted-row candidates through the
+existing material output family. Its separate reserve entry binds an original
+Run, current Account configuration and input buffer containing the original
+reference, retained preparing bytes and observed epoch clock. Ordinary material
+kinds remain closed at 1–5. The new entry retains the original submitted
+preparation; it does not pair a copied intent with an unrelated prepared Plan.
+Core emits physical keys and raw preparing/initial Run/ready candidate strings
+using the shared original codecs. The same existing one-MiB output reservation
+accounts for transfer and Python destinations before encoding. Encoding or
+cleanup refusal does not release the original handle prematurely.
+
+The candidate output closes before returning its input borrow. Cleanup failure
+retains the same output, Run, current configuration and borrow for retry;
+successful output retirement is not repeated while physical reader stop is
+pending. New reads/production of a retired output are refused. No operation
+admits a Submission, persists a Run, reserves dispatch, starts Compute, cancels
+a Run or commits publication. The Host must still connect the complete original
+issuance/count inventory, authenticated epoch, same-Store transaction and actual
+saved-row readmission before exposing a public accepted operation.
