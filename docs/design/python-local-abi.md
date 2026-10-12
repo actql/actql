@@ -1860,3 +1860,21 @@ publisher grant or Store ACK. The low-level trusted configuration entry remains
 for existing private component/Host uses; product Local assembly does not use
 it as a fallback. Public assembly and real runtime/wheel acceptance are separate
 remaining connections.
+
+Private ABI52 adds `actql_original_*` for the existing initialization,
+configuration custody, journal custody and selected-settings preimages. Core
+admits original Account bytes and emits original bodies/CIDs; Python supplies
+bounded raw bytes and physical generations. Native delegates only the ordered
+record encoding, retaining its original nonce, crypto errors, IO and current
+checks. No original is repaired or reissued during restoration.
+
+One output reservation retains its original input borrow. Output cleanup must
+succeed before that borrow returns; failed cleanup retains the same handle.
+`LocalHostFiles` pins exact saved descriptors and the original Store generation,
+rechecking them before returning retained bytes. Acquisition or stop failures
+retain the same physical handle for explicit cleanup. It preserves saved names,
+Store and Run custody and does not parse JSON or issue a permission boolean.
+Its raw-byte limits require the assembly's simultaneous workspace reservation;
+they do not establish global memory accounting. Full saved intent/settings and
+adoption validation, the public Client assembly and actual Store ACK remain
+required beyond these metadata and physical ports.

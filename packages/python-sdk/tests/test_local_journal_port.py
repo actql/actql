@@ -320,7 +320,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         callbacks.reader = None
 
     def test_private_loader_matches_changed_abi_imports_and_revision_width(self):
-        self.assertEqual(LOCAL_CORE_ABI, 51)
+        self.assertEqual(LOCAL_CORE_ABI, 52)
         self.assertEqual(_JOURNAL_SIGNATURES, {
             'reserve': ('i64 i32 i32 i32 i64', 'i32'), 'inspect': ('i64 i32', 'i32'),
             'revision': ('i64 i32 i32', 'i64'), 'close': ('i64 i32', 'i32')})

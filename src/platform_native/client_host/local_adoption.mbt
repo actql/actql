@@ -308,7 +308,9 @@ pub fn begin_native_local_host_adoption(
       }
       expected[3] = nonce
       let body = match
-        local_adoption_record(keys.mapi((i, key) => (key, expected[i]))) {
+        @host.client_local_initialization_record_body(expected).map_err(_ => {
+          NativeLocalAdoptionIssue::Encoding
+        }) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -444,15 +446,11 @@ pub fn NativeLocalAdoptionSession::stage_configuration(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      let fields = [
-        generation.device.to_string(),
-        generation.inode.to_string(),
-        self.intent_cid,
-        generation.size.to_string(),
-        "actql-native-local-configuration-custody/0.1",
-      ]
       let body = match
-        local_adoption_record(keys.mapi((i, key) => (key, fields[i]))) {
+        @host.client_local_configuration_custody_record(
+          self.intent_cid,
+          (generation.device, generation.inode, generation.size),
+        ).map_err(_ => NativeLocalAdoptionIssue::Encoding) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }

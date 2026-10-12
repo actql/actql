@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 51
+LOCAL_CORE_ABI = 52
 
 
 class LocalCoreError(RuntimeError):
@@ -477,6 +477,12 @@ _CURRENT_SIGNATURES = {
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
+_ORIGINAL_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
 
@@ -600,6 +606,8 @@ class LocalCore:
                              for name, value in _JOURNAL_SIGNATURES.items()})
             expected.update({'actql_current_' + name: value
                              for name, value in _CURRENT_SIGNATURES.items()})
+            expected.update({'actql_original_' + name: value
+                             for name, value in _ORIGINAL_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -1225,6 +1233,42 @@ class LocalCore:
             value = _Output(self._identity, ticket, handle, limit, 'bootstrap')
             self._loans[ticket] = value
             return value
+
+    def reserve_original_metadata(self, source: _Input, kind: int, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain original physical observations before the existing Core codec.
+
+        Kind selects initialization/configuration custody/journal custody/selected
+        settings metadata. Core emits their exact original bodies and CIDs. No
+        method initializes a Host, commits, authorizes or begins a Run.
+        """
+        with self._lock:
+            self._owned_input(source)
+            if self._closing or type(kind) is not int or kind not in (1, 2, 3, 4) or not callable(cleanup):
+                raise ValueError('Invalid Local original metadata reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'original')))
+            handle = self._call('original', 'reserve', source.handle, kind, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_original_metadata', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'original')
+            self._loans[ticket] = value
+            return value
+
+    def produce_original_metadata(self, value: _Output) -> None:
+        self._produce_output(value, 'original', 'produce')
+
+    def read_original_metadata(self, value: _Output) -> bytes:
+        return self._read_output(value, 'original', 'length')
+
+    def close_original_metadata(self, value: _Output) -> bool:
+        return self._close_output(value, 'original', 'close')
 
     def produce_bootstrap(self, value: _Output) -> None:
         self._produce_output(value, 'bootstrap', 'produce')

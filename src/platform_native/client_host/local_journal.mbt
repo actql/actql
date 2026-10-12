@@ -21,13 +21,11 @@ fn local_journal_body(
   configuration_custody_cid : String,
   ownership : @filesystem.NativeFileOwnership,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
-  local_adoption_record([
-    ("configuration_custody_cid", configuration_custody_cid),
-    ("device", ownership.device.to_string()),
-    ("inode", ownership.inode.to_string()),
-    ("intent_cid", session.intent_cid),
-    ("version", "actql-native-local-journal-custody/0.1"),
-  ])
+  @host.client_local_journal_custody_record(
+    session.intent_cid,
+    configuration_custody_cid,
+    (ownership.device, ownership.inode),
+  ).map_err(_ => NativeLocalAdoptionIssue::Encoding)
 }
 
 ///|
