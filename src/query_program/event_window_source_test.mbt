@@ -127,8 +127,12 @@ fn event_window_source(
 
 ///|
 fn event_window_issue(text : String) -> @pipeline.IssueKind raise {
-  match with_carrier_program(text, { ..pair_context(), inputs: [],
-    parameter_declarations: Some(number_parameter_declarations()), }) {
+  match
+    with_carrier_program(text, {
+      ..pair_context(),
+      inputs: [],
+      parameter_declarations: Some(number_parameter_declarations()),
+    }) {
     Err(BindingPreparation(LocalProgram(Pipeline(0, issue)))) => issue.kind
     Err(_) => fail("Unexpected window refusal boundary")
     Ok(_) => fail("Invalid window must not be admitted")
@@ -139,25 +143,61 @@ fn event_window_issue(text : String) -> @pipeline.IssueKind raise {
 test "P2 window source retains common invalid body duration and Carrier refusals" {
   let prefix = "WITH rows AS (SELECT 1 AS event_id, 0 AS occurred_ms), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) "
   let cases : Array[(String, @pipeline.IssueKind)] = [
-    ("FROM rows |> row_window(time: occurred_ms, kind: 'FIXED', size: 10)", Window(InvalidBody)),
-    ("FROM rows |> row_window(time: occurred_ms, kind: 'sliding', size: 10)", Window(InvalidBody)),
-    ("FROM rows |> row_window(time: occurred_ms, kind: 'fixed', size: 10, step: 0)", Window(InvalidMilliseconds)),
-    ("FROM rows |> row_window(time: occurred_ms, kind: 'fixed', size: 10, offset: 0.5)", Window(InvalidMilliseconds)),
-    ("FROM rows |> window_events(kind: 'fixed', size: 10)", Window(WrongCarrier)),
-    ("FROM ev |> row_window(time: occurred_ms, kind: 'fixed', size: 10)", Window(WrongCarrier)),
-    ("FROM ev |> watermark_events(watermark_ms: 0, policy: 'MARK')", Event(InvalidBody)),
-    ("FROM ev |> watermark_events(watermark_ms: @p, policy: 'mark')", Event(Decode(WrongType))),
-    ("FROM rows |> watermark_events(watermark_ms: 0, policy: 'mark')", Event(WrongCarrier(RelationKind))),
+    (
+      "FROM rows |> row_window(time: occurred_ms, kind: 'FIXED', size: 10)",
+      Window(InvalidBody),
+    ),
+    (
+      "FROM rows |> row_window(time: occurred_ms, kind: 'sliding', size: 10)",
+      Window(InvalidBody),
+    ),
+    (
+      "FROM rows |> row_window(time: occurred_ms, kind: 'fixed', size: 10, step: 0)",
+      Window(InvalidMilliseconds),
+    ),
+    (
+      "FROM rows |> row_window(time: occurred_ms, kind: 'fixed', size: 10, offset: 0.5)",
+      Window(InvalidMilliseconds),
+    ),
+    (
+      "FROM rows |> window_events(kind: 'fixed', size: 10)",
+      Window(WrongCarrier),
+    ),
+    (
+      "FROM ev |> row_window(time: occurred_ms, kind: 'fixed', size: 10)",
+      Window(WrongCarrier),
+    ),
+    (
+      "FROM ev |> watermark_events(watermark_ms: 0, policy: 'MARK')",
+      Event(InvalidBody),
+    ),
+    (
+      "FROM ev |> watermark_events(watermark_ms: @p, policy: 'mark')",
+      Event(Decode(WrongType)),
+    ),
+    (
+      "FROM rows |> watermark_events(watermark_ms: 0, policy: 'mark')",
+      Event(WrongCarrier(RelationKind)),
+    ),
   ]
   for (call, expected) in cases {
     assert_eq(event_window_issue(prefix + call), expected)
   }
-  assert_true(with_carrier_program(prefix +
-    "FROM rows |> row_window(time: missing, kind: 'fixed', size: 10)",
-    { ..pair_context(), inputs: [], }) is Err(UnknownColumn))
-  assert_true(with_carrier_program(prefix +
-    "FROM rows |> row_window(time: occurred_ms, kind: 'fixed', size: 10, max_output_rows: 1)",
-    { ..pair_context(), inputs: [], }) is Err(InvalidQuery))
+  assert_true(
+    with_carrier_program(
+      prefix + "FROM rows |> row_window(time: missing, kind: 'fixed', size: 10)",
+      { ..pair_context(), inputs: [], },
+    )
+    is Err(UnknownColumn),
+  )
+  assert_true(
+    with_carrier_program(
+      prefix +
+      "FROM rows |> row_window(time: occurred_ms, kind: 'fixed', size: 10, max_output_rows: 1)",
+      { ..pair_context(), inputs: [], },
+    )
+    is Err(InvalidQuery),
+  )
 }
 
 ///|
@@ -165,11 +205,22 @@ test "P2 window omission does not synthesize step or offset into authored Progra
   for event in [false, true] {
     let operation = if event { "window_events" } else { "row_window" }
     let body = "{\"kind\":\"fixed\",\"size\":\"10ms\"" +
-      (if event { "" } else { ",\"time\":\"occurred_ms\"" }) + "}"
-    let actual = with_carrier_program(event_window_source(event, operation +
-      "(kind: 'fixed', size: '10ms'" + (if event { "" } else { ", time: r.occurred_ms" }) + ")"),
-      { ..pair_context(), inputs: [], }).unwrap()
-    assert_eq(with_carrier_argument(actual, operation), with_carrier_argument(event_window_control(event, body), operation))
+      (if event { "" } else { ",\"time\":\"occurred_ms\"" }) +
+      "}"
+    let actual = with_carrier_program(
+      event_window_source(
+        event,
+        operation +
+        "(kind: 'fixed', size: '10ms'" +
+        (if event { "" } else { ", time: r.occurred_ms" }) +
+        ")",
+      ),
+      { ..pair_context(), inputs: [], },
+    ).unwrap()
+    assert_eq(
+      with_carrier_argument(actual, operation),
+      with_carrier_argument(event_window_control(event, body), operation),
+    )
     event_window_common_checked(actual)
   }
 }
