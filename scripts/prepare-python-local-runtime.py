@@ -59,7 +59,7 @@ def library_target(path: Path) -> None:
                 if length < 16:
                     raise ValueError('Invalid installed DuckDB minimum OS')
                 minimum.append(struct.unpack_from('<I', commands, position + 8)[0])
-            if command in (0xc, 0x18 | 0x80000000, 0x1f | 0x80000000, 0x23 | 0x80000000):
+            if command in (0xc, 0x18 | 0x80000000, 0x1f | 0x80000000, 0x20, 0x23 | 0x80000000):
                 if length < 24:
                     raise ValueError('Invalid installed DuckDB dependency command')
                 start = struct.unpack_from('<I', commands, position + 8)[0]
