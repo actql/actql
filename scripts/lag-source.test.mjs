@@ -30,3 +30,13 @@ test('Lag fixtures reach both ordinary and focused installed public consumers',(
   assert.ok(installer.includes("['scripts/fixtures/lag-source-input.mjs', 'lag-source-input.mjs']"));
   assert.ok(installer.includes("if (process.argv.includes('--lag-only')) return;"));
 });
+
+test('Lag registration adds exactly the independent eight successes and six refusals',async()=>{
+  const before=JSON.parse(readFileSync('scripts/fixtures/pre-lag-public-query-inventory.json','utf8'));
+  const {registeredPublicQueryInventory}=await import('./public-query-inventory.mjs');
+  const actual=await registeredPublicQueryInventory();
+  assert.equal(actual.totalCases,before.totalCases+14);
+  assert.deepEqual(actual.counts,{...before.counts,successes:before.counts.successes+8,refusals:before.counts.refusals+6});
+  assert.deepEqual(actual.profiles.slice(1),before.profiles.slice(1));
+  assert.deepEqual(actual.repeatedFailures,before.repeatedFailures);
+});
