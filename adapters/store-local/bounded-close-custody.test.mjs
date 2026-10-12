@@ -163,6 +163,9 @@ test('actual original Store binding read retains Store ownership until the same 
   prototype.stat = stat;
   assert(original.fd >= 0);
   assert.equal(primary.cleanupHandle.status().pending, true);
+  await assert.rejects(store.observeOriginalModelStorageBinding(),
+    {code: 'PublicationStoreCleanupPending'});
+  assert.equal(attempts, 1, 'pending metadata custody cannot start a replacement read');
   await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
   assert.equal(store.status().closed, false);
   const reader = primary.cleanupHandle;

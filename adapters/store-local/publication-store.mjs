@@ -5365,6 +5365,9 @@ export async function openLocalPublicationStore(
   let originalModelStorageBindingReaders = 0;
   const observeOriginalModelStorageBinding = async () => {
     active();
+    if (originalModelStorageBindingReaders !== 0) {
+      fail('PublicationStoreCleanupPending');
+    }
     originalModelStorageBindingReaders++;
     const bytes = await readBounded(storeContractPath, 256, () => {
       originalModelStorageBindingReaders--;
