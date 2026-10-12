@@ -9,6 +9,25 @@ from actql_sdk._local_run import LocalRunCustody
 
 
 class RunCustodyTests(unittest.TestCase):
+    def test_original_submitted_projection_uses_nominal_run_and_current_parents(self):
+        core, _, custody, inputs, _, configuration, run, calls, _ = self.bridge()
+        core._inputs = {}
+        core._released = set()
+        core._next_ticket = 6
+        output = custody.reserve_submitted_rows(run, configuration, inputs[4], cleanup=lambda: True)
+        self.assertEqual(calls[-1][:2], ('material', 'reserve_submitted_rows'))
+        self.assertEqual(calls[-1][2][:3], (44, 43, 15))
+        self.assertIs(core._loans[output.ticket], output)
+        before = len(calls)
+        for action in (
+            lambda: custody.reserve_submitted_rows(copy.copy(run), configuration, inputs[4], cleanup=lambda: True),
+            lambda: custody.reserve_submitted_rows(run, copy.copy(configuration), inputs[4], cleanup=lambda: True),
+            lambda: custody.reserve_submitted_rows(run, configuration, copy.copy(inputs[4]), cleanup=lambda: True),
+        ):
+            with self.assertRaises(ValueError):
+                action()
+        self.assertEqual(len(calls), before)
+
     def bridge(self):
         core = LocalCore.__new__(LocalCore)
         core._lock = RLock()
