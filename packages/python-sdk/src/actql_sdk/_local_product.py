@@ -85,6 +85,9 @@ class InstalledLocalHost:
         self._step_outputs: list[_Output] = []
         self._step_write_attempts: set[int] = set()
         self._pending_start_write: _Output | None = None
+        self._publication_bindings: list[tuple[_Run, _Output]] = []
+        self._binding_write_attempts: set[int] = set()
+        self._pending_binding_write: _Output | None = None
         self._physical_starts: list[_PhysicalStart] = []
         self._source_free_computes: list[_SourceFreeCompute] = []
         self._source_free_invocations: list[tuple[_SourceFreeCompute, _Output]] = []
@@ -523,6 +526,64 @@ class InstalledLocalHost:
                 self._core.confirm_sdk_start_step(output, current))
             self._pending_start_write = None
 
+    def _bind_original_publication(self, run: _Run) -> _Output:
+        """Forward original Common row binding before dispatch; never a Store ACK."""
+        installation = self._active()
+        store = installation._store
+        if (store is None or self._configuration is None or not self._configuration.sdk
+                or not any(original is run for original in self._run_loans)):
+            raise ValueError('Foreign original Local publication Run')
+        with self._core._lock:
+            if self._pending_binding_write is not None:
+                raise LocalStorageError('Original publication binding requires lookup; replay is unavailable')
+            for original, output in self._publication_bindings:
+                if original is run:
+                    installation.binding.inspect(lambda current:
+                        self._core.confirm_sdk_publication_binding(output, current))
+                    if not self._core.retire_material_output(output):
+                        raise LocalProductCleanupPending(self)
+                    return output
+            output = self._reserve(lambda: self._core.reserve_material(
+                run.handle, 9, cleanup=lambda: True))
+            # Keep the same child before any fallible production/validation.
+            self._publication_bindings.append((run, output))
+            captured: list[dict[str, Any]] = []
+            def produce(current: _Output) -> None:
+                self._core.produce_material(output)
+                captured.append(_object(self._core.read_sdk_publication_binding(output, current), 1048576))
+            installation.binding.inspect(produce)
+            candidate = captured[0]
+            if (set(candidate) != {'kind', 'key', 'revision', 'body'}
+                    or any(type(candidate[key]) is not str for key in candidate)
+                    or candidate['kind'] not in ('publication', 'retained')):
+                raise ValueError('Invalid original Core publication binding projection')
+            revision = candidate['revision']
+            if (not revision.isascii() or not revision.isdecimal()
+                    or (len(revision) > 1 and revision.startswith('0'))
+                    or len(revision) > 19 or int(revision) > 2**63 - 1):
+                raise ValueError('Invalid original Core publication binding generation')
+            if candidate['kind'] == 'publication':
+                writes = (ByteWrite(store.namespaced_key('client_runs', candidate['key']),
+                                    int(revision), candidate['body'].encode('utf-8')),)
+                with installation.binding.fenced() as fences:
+                    def inspect(reader: Any) -> None:
+                        installation.binding.inspect_reader(reader, lambda current:
+                            self._core.validate_sdk_publication_binding(output, current))
+                    self._binding_write_attempts.add(output.ticket)
+                    self._pending_binding_write = output
+                    result = store.compare_exchange_many_inspected(
+                        writes, fences, inspect=inspect, current=installation.binding.current)
+                if result is None:
+                    raise LocalStorageError('Original publication binding conflicted; lookup is required')
+            # The physical response is not sufficient. Core reads and adopts
+            # the actual same-Store successor (or retained original) separately.
+            installation.binding.inspect(lambda current:
+                self._core.confirm_sdk_publication_binding(output, current))
+            self._pending_binding_write = None
+            if not self._core.retire_material_output(output):
+                raise LocalProductCleanupPending(self)
+            return output
+
     def _configure_original_compute(self, run: _Run) -> _SourceFreeCompute:
         """Join the original saved Run/start/Compute Owners without executing tasks."""
         installation = self._active()
@@ -533,6 +594,7 @@ class InstalledLocalHost:
         with self._core._lock:
             if self._pending_start_write is not None:
                 raise LocalStorageError('Original Local start requires lookup; new Compute is unavailable')
+            self._bind_original_publication(run)
             for kind in (7, 8):
                 output = self._reserve(lambda: self._core.reserve_material(
                     run.handle, kind, cleanup=lambda: True))
@@ -861,6 +923,13 @@ class InstalledLocalHost:
                 self._step_write_attempts.discard(output.ticket)
                 if self._pending_start_write is output:
                     self._pending_start_write = None
+            for run, output in tuple(reversed(self._publication_bindings)):
+                if not self._core.close_material(output):
+                    return False
+                self._publication_bindings.remove((run, output))
+                self._binding_write_attempts.discard(output.ticket)
+                if self._pending_binding_write is output:
+                    self._pending_binding_write = None
             for output in tuple(reversed(self._journal_outputs)):
                 if not self._core.close_journal_observation(output):
                     return False
