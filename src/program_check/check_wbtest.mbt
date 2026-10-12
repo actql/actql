@@ -154,17 +154,19 @@ test "check constructs Local and two-stage Result-import Programs from source" {
 
 ///|
 test "check rejects unsupported or malformed later steps without a partial result" {
+  // The flag selects the expected refusal phase, never acceptance.
+  // Adopted Graph forms with missing required options fail Source validation.
   for
     (steps, source_error) in [
       ("[{\"asof_join\":{}}]", true),
       ("[{\"sequence\":{}}]", true),
       ("[{\"traverse\":{}}]", true),
       ("[{\"reach\":{}}]", true),
-      ("[{\"shortest_path\":{}}]", false),
+      ("[{\"shortest_path\":{}}]", true),
       ("[{\"graft_graph\":{}}]", true),
       ("[{\"union_graphs\":{}}]", true),
       ("[{\"subtract_graphs\":{}}]", true),
-      ("[{\"mean_graphs\":{}}]", false),
+      ("[{\"mean_graphs\":{}}]", true),
       ("[{\"to_vectors\":{}}]", true),
       ("[{\"normalize_vectors\":{}}]", true),
       ("[{\"score_vectors\":{}}]", true),

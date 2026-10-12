@@ -122,7 +122,7 @@ pub fn reserve_run(
   guard selected(nonce) is Some(value) &&
     value.run_configurations.contains(configuration) &&
     value.preparations.get(preparation) is Some(prepared) &&
-    prepared.outcome is Some(Ok(_)) &&
+    stored_preparation_input(prepared) is Some(_) &&
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
@@ -163,7 +163,7 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
     value.runs.get(handle) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     value.preparations.get(record.preparation) is Some(preparation) &&
-    preparation.outcome is Some(Ok(input)) else {
+    stored_preparation_input(preparation) is Some(input) else {
     return -2
   }
   if record.restoration is Some(_) {
@@ -252,7 +252,7 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
     value.runs.get(handle) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     value.preparations.get(record.preparation) is Some(preparation) &&
-    preparation.outcome is Some(Ok(input)) &&
+    stored_preparation_input(preparation) is Some(input) &&
     value.restorations.get(materials) is Some(restoration) &&
     restoration.outcome is Some(Ok(restored)) &&
     restoration.expected_definition_cid is Some(definition_cid) else {
