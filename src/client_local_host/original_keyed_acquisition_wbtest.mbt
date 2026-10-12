@@ -4,7 +4,7 @@
 // it supplies no expectation for a Source observation or Model result.
 fn original_keyed_environment_members(
   bodies : Array[String],
-) -> @json.Json raise {
+) -> Json raise {
   let ordered = bodies.map(body => {
     let wire = @identity.stringify_value(
       @identity.from_json(@json.parse(body), 100000, 100, 1000000),
