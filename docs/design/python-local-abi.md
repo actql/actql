@@ -1903,3 +1903,20 @@ instance's actual retirement; it cannot be repeated or called complete. Closing
 this supplier does not cancel a Run, close the caller's Store/files or repair
 adoption. Actual initialization, publication ACK, public Client/runtime and
 installed-wheel acceptance remain required parts of the product assembly.
+
+The same binding can lend its physical fences to the existing Store's inspected
+CAS or successor-lookup operation. `fenced()` holds Core/File custody but starts
+no transaction. The caller includes every returned fence in the original Store
+operation and supplies `inspect_reader` within that operation's inspection.
+The physical reader checks its exact original object, lifetime, thread and
+required fence coverage before Core receives it. Copies, expired readers,
+another Store or missing adoption/epoch fences cannot borrow current material.
+
+Core's current frame exists only during the original inventory inspection;
+its reader detaches before physical CAS/COMMIT. Precommit and postcommit physical
+checks do not become Account Allow, publication success or a durable ACK.
+Saved-row readmission and `return_committed` use a fresh original read snapshot
+and the existing Core full-chain/publisher validation. COMMIT-after-ACK-loss
+remains Unknown with the same Store; its exact successor can be inspected
+without repeating the original CAS. Rollback failure keeps that original
+connection pending and prevents a new frame until explicit physical cleanup.

@@ -1,5 +1,6 @@
 """Original physical Host supplier for the existing Common current/scope Owner."""
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 import json
 from typing import Any, TypeVar
 
@@ -209,29 +210,68 @@ class OriginalHostBinding:
         Original pending-write confirmation uses its existing separate caller.
         No current reader, grant or successful result is returned as a token.
         """
+        with self.fenced() as fences:
+            self._store.inspect_namespaces(fences,
+                inspect=lambda reader: self.inspect_reader(reader, consume),
+                current=self.current)
+
+    @contextmanager
+    def fenced(self) -> Iterator[tuple[ByteFence, ...]]:
+        """Borrow original physical fences for the existing Store operation.
+
+        The trusted assembly passes every returned fence to the same Store's
+        existing inspected read/CAS port, and inspect_reader as its inspector.
+        This starts no transaction and decides no action or retry. An attempted
+        COMMIT failure remains the Store's original Unknown; this scope only
+        releases its transient frame, never the original operation or loans.
+        """
         with self._core._lock, self._source._root._lock, self._state._root._lock:
             self._nominal()
-            if self._active or self._current is None or not callable(consume):
+            if self._active or self._current is None or self._closing:
                 raise ValueError('Original Local Host snapshot is unavailable')
             self._physical_current()
             self._frame_epoch = self._epoch.custody_fence()
             self._active = True
             try:
-                self._store.inspect_namespaces((*self._fences, self._frame_epoch),
-                    inspect=lambda reader: self._inspect(reader, consume),
-                    current=self._physical_current)
+                yield (*self._fences, self._frame_epoch)
             finally:
                 self._active = False
                 self._frame_epoch = None
 
-    def _inspect(self, reader: _NamespaceReader, consume: Callable[[_Output], object]) -> None:
-        assert self._current is not None
+    def current(self) -> None:
+        """Physical current callback inside the original fenced Store operation.
+
+        It is neither Account Allow nor publication authorization. Common still
+        rechecks current material at each protected stage; saved-row adoption and
+        return_committed occur in their own fresh original read snapshot.
+        """
+        with self._core._lock:
+            self._nominal()
+            if not self._active:
+                raise ValueError('Original Local Host physical frame is unavailable')
+            self._physical_current()
+
+    def inspect_reader(self, reader: _NamespaceReader, consume: Callable[[_Output], object]) -> None:
+        """Use the same actual read/write transaction's borrowed namespace reader.
+
+        This method cannot issue a write or acknowledge its success. The existing
+        Store retains transaction/COMMIT/cleanup responsibility, and Core reads
+        original inventory/admission/commit materials through this same reader.
+        """
+        self._nominal()
+        if (not self._active or self._current is None or self._frame_epoch is None
+                or type(reader) is not _NamespaceReader or reader.owner is not self._store
+                or not callable(consume)):
+            raise ValueError('Original Local Host transaction reader is unavailable')
+        required = (*self._fences, self._frame_epoch)
+        reader.check_fences(reader, required)
         self._settings_inventory(reader)
         with self._core.host_current_frame(self._current, reader):
             self._core.bind_host_current(self._current)
             consume(self._current)
             self._core.validate_host_current(self._current)
         self._settings_inventory(reader)
+        reader.check_fences(reader, required)
 
     def close(self) -> bool:
         """Release these loans only; preserve saved files, Store and original Run."""

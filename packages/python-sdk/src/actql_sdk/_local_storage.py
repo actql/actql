@@ -35,6 +35,7 @@ class _NamespaceReader:
     read: Callable[[str, str, _NamespaceConsumer], None]
     owner: 'LocalByteStore'
     current: Callable[[], None]
+    check_fences: Callable[['_NamespaceReader', tuple['ByteFence', ...]], None]
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -708,6 +709,21 @@ class LocalByteStore:
                 failure = error
                 raise
 
+        def check_fences(view: _NamespaceReader, required: tuple[ByteFence, ...]) -> None:
+            nonlocal failure
+            try:
+                if view is not reader or type(required) is not tuple:
+                    raise ValueError('Copied or foreign Local inventory snapshot')
+                current_snapshot()
+                if required:
+                    self._validate_metadata_fences(required, ())
+                if (any(value not in fences for value in required)
+                        or any(write.key == value.key for write in successors for value in required)):
+                    raise LocalStorageError('Original Local snapshot is missing required physical fences')
+            except BaseException as error:
+                failure = error
+                raise
+
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
                     scan: bool) -> None:
             nonlocal reading, reads, copied, failure
@@ -770,12 +786,13 @@ class LocalByteStore:
 
         try:
             fence()
-            result = inspect(_NamespaceReader(
+            reader = _NamespaceReader(
                 scan_after=lambda namespace, after, consume:
                     observe(namespace, after, consume, scan=True),
                 read=lambda namespace, key, consume:
                     observe(namespace, key, consume, scan=False),
-                owner=self, current=current_snapshot))
+                owner=self, current=current_snapshot, check_fences=check_fences)
+            result = inspect(reader)
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:
