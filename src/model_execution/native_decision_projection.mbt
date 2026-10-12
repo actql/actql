@@ -84,7 +84,11 @@ fn native_decision_field(
 ///|
 fn native_decision_text(value : @decode.Cursor, name : String) -> String? {
   match native_decision_field(value, name) {
-    Some(field) => match @decode.text(field) { Ok(text) => Some(text); Err(_) => None }
+    Some(field) =>
+      match @decode.text(field) {
+        Ok(text) => Some(text)
+        Err(_) => None
+      }
     None => None
   }
 }
@@ -111,7 +115,8 @@ pub fn start_native_decision_projection(
   let prompt = @environment.single_attempt_model_prompt(provider.dependencies)
   if !physical_equal(task, request.task) ||
     !@environment.single_attempt_model_dependencies_match(
-      provider.dependencies, provider.execution,
+      provider.dependencies,
+      provider.execution,
     ) {
     return Err(ForeignRequest)
   }
@@ -124,20 +129,35 @@ pub fn start_native_decision_projection(
     native_decision_field(payload, "questions") is Some(questions) else {
     return Err(Unsupported)
   }
-  if max_bytes < 1 || max_nodes < 1 || max_depth < 1 || max_frames < 1 ||
+  if max_bytes < 1 ||
+    max_nodes < 1 ||
+    max_depth < 1 ||
+    max_frames < 1 ||
     max_work < 0 {
     return Err(Limit)
   }
   Ok({
-    provider: Some(provider), request: Some(request), decision: Some(decision),
-    questions: Some(questions), max_bytes, max_nodes, max_depth, max_frames,
-    max_work, work: 0, state_nodes: 0, state_frames: [], question_frames: [],
+    provider: Some(provider),
+    request: Some(request),
+    decision: Some(decision),
+    questions: Some(questions),
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_frames,
+    max_work,
+    work: 0,
+    state_nodes: 0,
+    state_frames: [],
+    question_frames: [],
     phase: FindState(0, 0),
   })
 }
 
 ///|
-pub fn retire_native_decision_projection(cursor : NativeDecisionProjection) -> Unit {
+pub fn retire_native_decision_projection(
+  cursor : NativeDecisionProjection,
+) -> Unit {
   match cursor.phase {
     StateWire(writer, emission) => {
       @admitted.cancel_wire_emit(emission)
@@ -175,7 +195,9 @@ pub fn retire_native_decision_request(value : NativeDecisionRequest) -> Unit {
 }
 
 ///|
-pub fn native_decision_request_wires(value : NativeDecisionRequest) -> (String, String)? {
+pub fn native_decision_request_wires(
+  value : NativeDecisionRequest,
+) -> (String, String)? {
   match (value.state_wire, value.questions_wire) {
     (Some(state), Some(questions)) => Some((state, questions))
     _ => None
@@ -192,7 +214,8 @@ pub fn native_decision_request_matches(
     (Some(original_provider), Some(original_request), Some(original_decision)) =>
       physical_equal(original_provider, provider) &&
       physical_equal(original_request, request) &&
-      @environment.single_attempt_model_decision(provider.dependencies) is Some(decision) &&
+      @environment.single_attempt_model_decision(provider.dependencies)
+      is Some(decision) &&
       physical_equal(original_decision, decision)
     _ => false
   }
@@ -205,24 +228,30 @@ pub fn native_decision_request_binding(
   match value.request {
     Some(request) => {
       let task = request.task
-      Some((
-        @environment.model_task_identity(task).2,
-        @environment.model_task_prompt_cid(task),
-        @environment.model_task_schema_cids(task).1,
-        @environment.model_task_model_selector(task),
-      ))
+      Some(
+        (
+          @environment.model_task_identity(task).2,
+          @environment.model_task_prompt_cid(task),
+          @environment.model_task_schema_cids(task).1,
+          @environment.model_task_model_selector(task),
+        ),
+      )
     }
     None => None
   }
 }
 
 ///|
-pub fn native_decision_question_id(value : NativeDecisionRequest, index : Int) -> String? {
+pub fn native_decision_question_id(
+  value : NativeDecisionRequest,
+  index : Int,
+) -> String? {
   match value.questions {
-    Some(questions) => match @decode.element_at(questions, index) {
-      Some(q) => native_decision_text(q, "id")
-      None => None
-    }
+    Some(questions) =>
+      match @decode.element_at(questions, index) {
+        Some(q) => native_decision_text(q, "id")
+        None => None
+      }
     None => None
   }
 }
@@ -236,12 +265,16 @@ pub fn native_decision_option_id(
   guard value.questions is Some(questions) &&
     @decode.element_at(questions, question) is Some(q) &&
     native_decision_field(q, "options") is Some(options) &&
-    @decode.element_at(options, option) is Some(item) else { return None }
+    @decode.element_at(options, option) is Some(item) else {
+    return None
+  }
   native_decision_text(item, "id")
 }
 
 ///|
-pub fn native_decision_projection_work(cursor : NativeDecisionProjection) -> Int {
+pub fn native_decision_projection_work(
+  cursor : NativeDecisionProjection,
+) -> Int {
   cursor.work
 }
 
@@ -269,7 +302,8 @@ pub fn advance_native_decision_projection(
     return native_decision_projection_fail(cursor, Limit)
   }
   cursor.work += 1
-  guard cursor.request is Some(request) && cursor.decision is Some(decision) &&
+  guard cursor.request is Some(request) &&
+    cursor.decision is Some(decision) &&
     cursor.questions is Some(questions) else {
     return native_decision_projection_fail(cursor, ForeignRequest)
   }
@@ -287,8 +321,13 @@ pub fn advance_native_decision_projection(
           let mut next = position
           let mut equal = true
           for _ in 0..<64 {
-            if next == name.length() { break }
-            if name[next] != wanted[next] { equal = false; break }
+            if next == name.length() {
+              break
+            }
+            if name[next] != wanted[next] {
+              equal = false
+              break
+            }
             next += 1
           }
           if !equal {
@@ -309,8 +348,15 @@ pub fn advance_native_decision_projection(
       }
       CheckState(state) => {
         guard cursor.state_frames.pop() is Some(frame) else {
-          let writer = @encode.writer(cursor.max_bytes, cursor.max_nodes, cursor.max_depth)
-          cursor.phase = StateWire(writer, @admitted.start_wire_emit(state, writer))
+          let writer = @encode.writer(
+            cursor.max_bytes,
+            cursor.max_nodes,
+            cursor.max_depth,
+          )
+          cursor.phase = StateWire(
+            writer,
+            @admitted.start_wire_emit(state, writer),
+          )
           return Ok(None)
         }
         match frame {
@@ -320,31 +366,39 @@ pub fn advance_native_decision_projection(
             }
             cursor.state_nodes += 1
             match value {
-              @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) | @admitted.Text(_) => ()
-              @admitted.JsonData(_) => return native_decision_projection_fail(cursor, Unsupported)
-              @admitted.Array(items) => cursor.state_frames.push(ArrayNext(items, 0))
-              @admitted.Object(items) => cursor.state_frames.push(ObjectNext(items, 0))
+              @admitted.Null
+              | @admitted.Boolean(_)
+              | @admitted.Number(_)
+              | @admitted.Text(_) => ()
+              @admitted.JsonData(_) =>
+                return native_decision_projection_fail(cursor, Unsupported)
+              @admitted.Array(items) =>
+                cursor.state_frames.push(ArrayNext(items, 0))
+              @admitted.Object(items) =>
+                cursor.state_frames.push(ObjectNext(items, 0))
               _ => return native_decision_projection_fail(cursor, Unsupported)
             }
           }
-          ArrayNext(items, index) => {
+          ArrayNext(items, index) =>
             if @admitted.element_count(items) > index {
               if cursor.state_frames.length() > cursor.max_frames - 2 {
                 return native_decision_projection_fail(cursor, Limit)
               }
               cursor.state_frames.push(ArrayNext(items, index + 1))
-              cursor.state_frames.push(Read(@admitted.element_at(items, index).unwrap()))
+              cursor.state_frames.push(
+                Read(@admitted.element_at(items, index).unwrap()),
+              )
             }
-          }
-          ObjectNext(items, index) => {
+          ObjectNext(items, index) =>
             if @admitted.element_count(items) > index {
               if cursor.state_frames.length() > cursor.max_frames - 2 {
                 return native_decision_projection_fail(cursor, Limit)
               }
               cursor.state_frames.push(ObjectNext(items, index + 1))
-              cursor.state_frames.push(Read(@admitted.element_at(items, index).unwrap().1))
+              cursor.state_frames.push(
+                Read(@admitted.element_at(items, index).unwrap().1),
+              )
             }
-          }
         }
         if cursor.state_frames.length() > cursor.max_frames {
           return native_decision_projection_fail(cursor, Limit)
@@ -356,7 +410,11 @@ pub fn advance_native_decision_projection(
         }
         if @admitted.advance_wire_emit(emission) {
           let state_wire = @encode.finish(writer)
-          let questions_writer = @encode.writer(cursor.max_bytes, cursor.max_nodes, cursor.max_depth)
+          let questions_writer = @encode.writer(
+            cursor.max_bytes,
+            cursor.max_nodes,
+            cursor.max_depth,
+          )
           @encode.begin_ordered_object(questions_writer)
           cursor.question_frames.push(Question(0))
           cursor.phase = Questions(state_wire, questions_writer)
@@ -366,15 +424,18 @@ pub fn advance_native_decision_projection(
         guard cursor.question_frames.pop() is Some(frame) else {
           @encode.end_object(writer)
           let value : NativeDecisionRequest = {
-            provider: cursor.provider, request: cursor.request,
-            decision: cursor.decision, questions: cursor.questions,
-            state_wire: Some(state_wire), questions_wire: Some(@encode.finish(writer)),
+            provider: cursor.provider,
+            request: cursor.request,
+            decision: cursor.decision,
+            questions: cursor.questions,
+            state_wire: Some(state_wire),
+            questions_wire: Some(@encode.finish(writer)),
           }
           cursor.phase = Ready(value)
           return Ok(Some(value))
         }
         match frame {
-          Question(index) => {
+          Question(index) =>
             if index < @decode.array_length(questions).unwrap() {
               let q = @decode.element_at(questions, index).unwrap()
               let kind = native_decision_text(q, "type").unwrap()
@@ -390,23 +451,45 @@ pub fn advance_native_decision_projection(
               cursor.question_frames.push(TextStart(instructions))
               cursor.question_frames.push(KeyStart("instructions"))
               if kind != "boolean" {
-                let items = native_decision_field(q, if kind == "choice" { "options" } else { "levels" }).unwrap()
+                let items = native_decision_field(
+                  q,
+                  if kind == "choice" {
+                    "options"
+                  } else {
+                    "levels"
+                  },
+                ).unwrap()
                 let count = @decode.array_length(items).unwrap()
                 // Selected TypeSafe profile limits; never a common language ban.
                 if (kind == "choice" && count > 255) ||
                   (kind == "score" && count > 10) {
                   return native_decision_projection_fail(cursor, Unsupported)
                 }
-                cursor.question_frames.push(if kind == "choice" { EndObject } else { EndArray })
-                cursor.question_frames.push(Criteria(items, 0, kind == "choice"))
-                cursor.question_frames.push(if kind == "choice" { BeginObject } else { BeginArray })
+                cursor.question_frames.push(
+                  if kind == "choice" {
+                    EndObject
+                  } else {
+                    EndArray
+                  },
+                )
+                cursor.question_frames.push(
+                  Criteria(items, 0, kind == "choice"),
+                )
+                cursor.question_frames.push(
+                  if kind == "choice" {
+                    BeginObject
+                  } else {
+                    BeginArray
+                  },
+                )
                 cursor.question_frames.push(KeyStart("criteria"))
               }
               cursor.question_frames.push(BeginObject)
-              cursor.question_frames.push(KeyStart(native_decision_wire_key("q", index)))
+              cursor.question_frames.push(
+                KeyStart(native_decision_wire_key("q", index)),
+              )
             }
-          }
-          Criteria(items, index, choice) => {
+          Criteria(items, index, choice) =>
             if index < @decode.array_length(items).unwrap() {
               let needed = if choice { 3 } else { 2 }
               if cursor.question_frames.length() > cursor.max_frames - needed {
@@ -421,14 +504,27 @@ pub fn advance_native_decision_projection(
               cursor.question_frames.push(Criteria(items, index + 1, choice))
               cursor.question_frames.push(TextStart(text))
               if choice {
-                cursor.question_frames.push(KeyStart(native_decision_wire_key("o", index)))
+                cursor.question_frames.push(
+                  KeyStart(native_decision_wire_key("o", index)),
+                )
               }
             }
-          }
-          KeyStart(name) => cursor.question_frames.push(Key(@encode.start_ordered_key(writer, name)))
-          Key(key) => if !@encode.advance_ordered_key(key) { cursor.question_frames.push(Key(key)) }
-          TextStart(text) => cursor.question_frames.push(Text(@encode.start_string_value(writer, text)))
-          Text(text) => if !@encode.advance_string_value(text) { cursor.question_frames.push(Text(text)) }
+          KeyStart(name) =>
+            cursor.question_frames.push(
+              Key(@encode.start_ordered_key(writer, name)),
+            )
+          Key(key) =>
+            if !@encode.advance_ordered_key(key) {
+              cursor.question_frames.push(Key(key))
+            }
+          TextStart(text) =>
+            cursor.question_frames.push(
+              Text(@encode.start_string_value(writer, text)),
+            )
+          Text(text) =>
+            if !@encode.advance_string_value(text) {
+              cursor.question_frames.push(Text(text))
+            }
           BeginObject => @encode.begin_ordered_object(writer)
           EndObject => @encode.end_object(writer)
           BeginArray => @encode.begin_array(writer)
