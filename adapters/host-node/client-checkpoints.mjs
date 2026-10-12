@@ -949,7 +949,51 @@ export async function installRemoteCheckpoints({root, namespaceId,
     }
     await originalModelStorageEvidence(storageBinding);
     current();
-    return document;
+    return {document, storage: selected};
+  }
+  async function confirmOriginalModelStateSavedBytes(args, acquisition) {
+    const {runDefinition, storageBinding, receipt, identity} = args;
+    const runId = contractControl.runDefinitionRunId(runDefinition);
+    if (identity === null || typeof identity !== 'object' || Array.isArray(identity) ||
+        Object.keys(identity).sort().join(',') !== 'inputArtifactCid,preparedInvocationCid,providerBindingCid,runDefinitionCid,runId,scopeCid,strategyRevision,taskIndex' ||
+        identity.runId !== runId || identity.runDefinitionCid !== runDefinition.identity) {
+      fail('InvalidOriginalModelStateCustody');
+    }
+    const {document, storage} = await readOriginalModelStateBytes(args, acquisition);
+    if (acquisition !== undefined) {
+      selectOriginalInferMetadataAcquisition(acquisition, `model-${runId}`, runDefinition.identity);
+    }
+    if (closed) fail('OriginalModelStateHostStopped');
+    if (contractControl.modelOriginalResourceOriginField(document, 'prepared_invocation_cid') !== identity.preparedInvocationCid) {
+      fail('OriginalModelStateBindingMismatch');
+    }
+    const documentWire = document.wire;
+    // Projection of the Common-admitted data only, not a Resource phase or
+    // current journal decision. Preserve the original saved evidence issuer.
+    const data = JSON.parse(documentWire);
+    if (data.cut?.scope_cid !== identity.scopeCid || data.cut.input_artifact_cid !== identity.inputArtifactCid) {
+      fail('OriginalModelStateBindingMismatch');
+    }
+    const reference = evidence.reference(receipt.ownerId, 'original_model_state', documentWire);
+    if (reference.semantic_cid !== receipt.cid) fail('OriginalModelStateBindingMismatch');
+    let originals = originalStateSavedByBinding.get(storageBinding);
+    if (originals === undefined) {
+      originals = new Map(); originalStateSavedByBinding.set(storageBinding, originals);
+    }
+    const prior = originals.get(reference.holding_cid);
+    if (prior !== undefined) {
+      if (prior.facts.documentWire !== documentWire ||
+          capturedValueWire(prior.facts.identity) !== capturedValueWire(identity)) fail('OriginalModelStateBindingMismatch');
+      return prior.observation;
+    }
+    const observation = Object.freeze({kind: 'saved-original-model-state'});
+    const facts = freezeSavedData({identity: {...identity}, documentCid: receipt.cid,
+      holdingCid: reference.holding_cid, storageBindingCid: storage.identity,
+      resourceStateCid: data.resource_state_cid, phase: data.resource_phase, cut: data.cut, documentWire});
+    const original = {observation, facts, storageBinding, runDefinition};
+    originalStateSavedObservations.set(observation, original);
+    originals.set(reference.holding_cid, original);
+    return observation;
   }
   // Errors that a later attempt may clear (a busy Store, a transient read);
   // anything else is permanent for this item and only observed.
@@ -1384,74 +1428,20 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return Object.freeze({ownerId, cid, runId, runDefinitionCid,
         storageBindingCid: selected.identity});
     },
-    readOriginalModelState: args => readOriginalModelStateBytes(args, undefined),
+    readOriginalModelState: async args => (await readOriginalModelStateBytes(args, undefined)).document,
     async readOriginalModelStateSelected(args, acquisition) {
       // Required nominal original; an omitted/forged handle cannot opt out to
       // a legacy read. This is current-cut only, not a prime/general restriction.
       selectOriginalInferMetadataAcquisition(acquisition);
-      return readOriginalModelStateBytes(args, acquisition);
+      return (await readOriginalModelStateBytes(args, acquisition)).document;
     },
     // A same-installation saved-byte observation, not a restore/read/send
     // grant. The existing Store is actually reopened and verified first;
     // an imported receipt or matching configuration alone cannot issue it.
-    async confirmOriginalModelStateSaved({runDefinition, storageBinding, receipt, identity}) {
-      const runId = contractControl.runDefinitionRunId(runDefinition);
-      const selected = await originalModelStorageEvidence(storageBinding);
-      if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
-          Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
-          receipt.ownerId !== `model-${runId}` || receipt.runId !== runId ||
-          receipt.runDefinitionCid !== runDefinition.identity ||
-          receipt.storageBindingCid !== selected.identity ||
-          !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '') ||
-          identity === null || typeof identity !== 'object' || Array.isArray(identity) ||
-          Object.keys(identity).sort().join(',') !== 'inputArtifactCid,preparedInvocationCid,providerBindingCid,runDefinitionCid,runId,scopeCid,strategyRevision,taskIndex' ||
-          identity?.runId !== runId || identity.runDefinitionCid !== runDefinition.identity) {
-        fail('InvalidOriginalModelStateCustody');
-      }
-      const held = await evidence.open(receipt.ownerId);
-      if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
-      const bytes = await held.bytes('original_model_state', receipt.cid,
-        {maxBytes: MAX_MODEL_INPUT_BYTES});
-      const documentWire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-      const document = contractControl.readModelOriginalResourceDocument(documentWire,
-        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
-      if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
-          contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
-          contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity ||
-          contractControl.modelOriginalResourceOriginField(document, 'prepared_invocation_cid') !== identity.preparedInvocationCid) {
-        fail('OriginalModelStateBindingMismatch');
-      }
-      // This is projection of a Common-admitted document, not another shape
-      // validator or a Resource phase decision. C's actual issuer is separate.
-      const data = JSON.parse(documentWire);
-      if (data.cut?.scope_cid !== identity.scopeCid ||
-          data.cut.input_artifact_cid !== identity.inputArtifactCid) {
-        fail('OriginalModelStateBindingMismatch');
-      }
-      await originalModelStorageEvidence(storageBinding);
-      const reference = evidence.reference(receipt.ownerId, 'original_model_state', documentWire);
-      if (reference.semantic_cid !== receipt.cid) fail('OriginalModelStateBindingMismatch');
-      let originals = originalStateSavedByBinding.get(storageBinding);
-      if (originals === undefined) {
-        originals = new Map(); originalStateSavedByBinding.set(storageBinding, originals);
-      }
-      const prior = originals.get(reference.holding_cid);
-      if (prior !== undefined) {
-        if (prior.facts.documentWire !== documentWire ||
-            capturedValueWire(prior.facts.identity) !== capturedValueWire(identity)) {
-          fail('OriginalModelStateBindingMismatch');
-        }
-        return prior.observation;
-      }
-      const observation = Object.freeze({kind: 'saved-original-model-state'});
-      const facts = freezeSavedData({identity: {...identity},
-        documentCid: receipt.cid, holdingCid: reference.holding_cid,
-        storageBindingCid: selected.identity, resourceStateCid: data.resource_state_cid,
-        phase: data.resource_phase, cut: data.cut, documentWire});
-      const original = {observation, facts, storageBinding, runDefinition};
-      originalStateSavedObservations.set(observation, original);
-      originals.set(reference.holding_cid, original);
-      return observation;
+    confirmOriginalModelStateSaved: args => confirmOriginalModelStateSavedBytes(args, undefined),
+    async confirmOriginalModelStateSavedSelected(args, acquisition) {
+      selectOriginalInferMetadataAcquisition(acquisition);
+      return confirmOriginalModelStateSavedBytes(args, acquisition);
     },
     originalModelStateSavedFacts(observation) {
       if (closed) fail('OriginalModelStateHostStopped');

@@ -78,6 +78,21 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   const selectedLoaded = await port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
     storageBinding: binding, receipt}, acquisition);
   assert.equal(selectedLoaded.wire, bodyWire);
+  // The same real Store issues a historical saved-byte observation. These
+  // cut-shaped data identities still confer no actual journal/restore grant.
+  const identity = {runId: 'current-store', runDefinitionCid: f.runDefinition.identity,
+    preparedInvocationCid: origin.prepared_invocation_cid, scopeCid: cid('8'),
+    inputArtifactCid: cid('7'), providerBindingCid: cid('5'), taskIndex: 0, strategyRevision: 0};
+  const savedArgs = {runDefinition: f.runDefinition, storageBinding: binding, receipt, identity};
+  const saved = await port.confirmOriginalModelStateSavedSelected(savedArgs, acquisition);
+  const savedFacts = port.originalModelStateSavedFacts(saved);
+  assert.equal(savedFacts.documentWire, bodyWire);
+  assert.equal(savedFacts.documentCid, receipt.cid);
+  assert.equal(savedFacts.phase, 'parked');
+  assert.strictEqual(await port.confirmOriginalModelStateSavedSelected(savedArgs, acquisition), saved);
+  assert.strictEqual(await port.confirmOriginalModelStateSaved(savedArgs), saved);
+  await assert.rejects(port.confirmOriginalModelStateSavedSelected(savedArgs, {...acquisition}),
+    {code: 'InferOriginalMetadataAcquisitionUnavailable'});
   await assert.rejects(port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
     storageBinding: binding, receipt}, {...acquisition}), {code: 'InferOriginalMetadataAcquisitionUnavailable'});
   const loaded = await port.readOriginalModelState({runDefinition: f.runDefinition,
@@ -108,7 +123,11 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   assert.equal(f.sends(), 0);
   await assert.rejects(f.operation.close(), error => error.code === 'MoonBitHostFailure');
   assert.equal(f.operation.cleanupPending(), true);
+  assert.strictEqual(port.originalModelStateSavedObservationCurrent(saved), saved);
+  assert.strictEqual(port.originalModelStateSavedFacts(saved), savedFacts);
   await assert.rejects(port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
     storageBinding: binding, receipt}, acquisition), {code: 'InferOriginalMetadataAcquisitionUnavailable'});
+  await assert.rejects(port.confirmOriginalModelStateSavedSelected(savedArgs, acquisition),
+    {code: 'InferOriginalMetadataAcquisitionUnavailable'});
   assert.equal(f.sends(), 0);
 });
