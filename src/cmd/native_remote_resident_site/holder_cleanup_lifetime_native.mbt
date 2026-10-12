@@ -215,6 +215,7 @@ fn settle_holder_caller_reservation(operation : @site.SiteOperation?) -> Unit {
 /// and the entire receiver frame have ended. Matching consumes the private
 /// handoff; the next command/terminal path cannot run before this Owner ACK.
 /// This is a lifetime boundary, never a promise of GC or RSS reclamation.
+#owned(closed)
 fn finish_holder_command(closed : HolderCommandClose) -> Unit raise CommandStop {
   match closed {
     HolderCommandClosed(operation) =>
