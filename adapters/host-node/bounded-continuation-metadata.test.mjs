@@ -85,10 +85,10 @@ test('bounded continuation metadata preserves retirement and raw Unicode cleanup
 
 test('bounded continuation metadata invalid UTF8 JSON nonregular symlink and missing files stay distinct', async t => {
   const {path, directory} = await fixture(t);
-  for (const content of [Buffer.from([0xff]), Buffer.from('{broken')]) {
+  for (const content of [Buffer.from([0xff]), Buffer.from('{broken'), Buffer.from('\ufeff' + text)]) {
     await writeFile(path, content);
     await assert.rejects(readContinuationLedgerBounded(path, 'original-run',
-      {maxWireBytes: 273, maxLedgerEntries: 0}), {code: 'InvalidContinuationLedger'});
+      {maxWireBytes: 276, maxLedgerEntries: 0}), {code: 'InvalidContinuationLedger'});
   }
   await writeFile(path, text);
   const link = join(directory, 'link');
@@ -112,6 +112,17 @@ test('bounded continuation metadata captures supplied bounds before await and co
   limits.maxWireBytes = 8192;
   limits.maxLedgerEntries = 1;
   await assert.rejects(pending, {code: 'ContinuationLedgerEntriesLimit'});
+});
+
+test('bounded continuation metadata pre-abort preserves original reason without missing-ledger inference', async () => {
+  const abort = new AbortController();
+  const reason = Object.assign(new Error('OriginalScopeCancelled'), {code: 'ENOENT'});
+  abort.abort(reason);
+  await assert.rejects(readContinuationLedgerBounded('/not-an-original-path', 'original-run',
+    {maxWireBytes: 273, maxLedgerEntries: 0}, abort.signal), error => error === reason);
+  await assert.rejects(readContinuationLedgerBounded('/not-an-original-path', 'original-run',
+    {maxWireBytes: 273, maxLedgerEntries: 0}, {aborted: false}),
+    {code: 'InvalidPublicationMetadataSignal'});
 });
 
 test('bounded continuation metadata retains the same failed original FD until cleanup retry', async t => {
@@ -162,4 +173,107 @@ test('bounded continuation metadata retains the same failed original FD until cl
   assert.equal(attempts, 3);
   await cleanup.retry();
   assert.equal(attempts, 3);
+});
+
+// Hook only the original reader's real FileHandle. No substitute pathname
+// read, Store issuer, Ledger, publication or permission is supplied here.
+async function interruptedReader(t, {failedClose = false, readFailure = false, closeAbort = false} = {}) {
+  const {path} = await fixture(t);
+  const probe = await open(path, 'r');
+  const prototype = Object.getPrototypeOf(probe);
+  const stat = prototype.stat;
+  await probe.close();
+  const abort = new AbortController();
+  const primary = new Error(readFailure ? 'OriginalMetadataReadFailed' : 'OriginalScopeCancelled');
+  if (failedClose && !readFailure) Object.freeze(primary);
+  const closeFailure = new Error('OriginalFdClosePending');
+  let original, close, failure, reads = 0, closes = 0, released = 0;
+  let rejectClose = failedClose;
+  t.after(async () => {
+    prototype.stat = stat;
+    rejectClose = false;
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    else if (original?.fd >= 0) await Reflect.apply(close, original, []);
+  });
+  prototype.stat = function(...args) {
+    if (new Error().stack.includes('at readBounded ') && original === undefined) {
+      original = this;
+      const read = this.read;
+      close = this.close;
+      this.read = async function(bytes, offset, length, position) {
+        reads++;
+        if (readFailure && reads === 2) throw primary;
+        const result = await Reflect.apply(read, this,
+          [bytes, offset, readFailure ? Math.min(1, length) : length, position]);
+        if (!readFailure && !closeAbort && result.bytesRead > 0) abort.abort(primary);
+        return result;
+      };
+      this.close = async function() {
+        closes++;
+        if (closeAbort) abort.abort(primary);
+        if (rejectClose) throw closeFailure;
+        await Reflect.apply(close, this, []);
+        released++;
+      };
+    }
+    return Reflect.apply(stat, this, args);
+  };
+  try {
+    await readContinuationLedgerBounded(path, 'original-run',
+      {maxWireBytes: 273, maxLedgerEntries: 0}, abort.signal);
+    assert.fail('An interrupted read must not return parsed metadata');
+  } catch (error) { failure = error; }
+  prototype.stat = stat;
+  return {path, original, failure, primary, closeFailure,
+    counts: () => ({reads, closes, released}),
+    allowClose: () => { rejectClose = false; }};
+}
+
+test('bounded continuation metadata cancellation after real positive I/O closes the original FD without another read', async t => {
+  const f = await interruptedReader(t);
+  assert.strictEqual(f.failure, f.primary);
+  assert.deepEqual(f.counts(), {reads: 1, closes: 1, released: 1});
+  assert.equal(f.original.fd, -1);
+  assert.equal(f.failure.cleanupHandle, undefined);
+});
+
+test('bounded continuation metadata frozen cancellation and failed close keep the same cleanup custody', async t => {
+  const f = await interruptedReader(t, {failedClose: true});
+  assert.strictEqual(f.failure.cause, f.primary);
+  assert.strictEqual(f.failure.cleanupError, f.closeFailure);
+  assert.equal(f.failure.cleanupPending, true);
+  assert.deepEqual(f.counts(), {reads: 1, closes: 1, released: 0});
+  assert(f.original.fd >= 0);
+  const cleanup = f.failure.cleanupHandle;
+  const flight = cleanup.retry();
+  assert.strictEqual(cleanup.retry(), flight);
+  await assert.rejects(flight, error => error === f.closeFailure);
+  assert.equal(cleanup.status().pending, true);
+  await rm(f.path);
+  await writeFile(f.path, 'not the original metadata');
+  f.allowClose();
+  assert.equal((await cleanup.retry()).pending, false);
+  assert.equal(f.original.fd, -1);
+  assert.deepEqual(f.counts(), {reads: 1, closes: 3, released: 1});
+  await cleanup.retry();
+  assert.deepEqual(f.counts(), {reads: 1, closes: 3, released: 1});
+});
+
+test('bounded continuation metadata mid-read failure preserves primary and original FD pending close', async t => {
+  const f = await interruptedReader(t, {readFailure: true, failedClose: true});
+  assert.strictEqual(f.failure, f.primary);
+  assert.strictEqual(f.failure.cleanupError, f.closeFailure);
+  assert.deepEqual(f.counts(), {reads: 2, closes: 1, released: 0});
+  assert(f.original.fd >= 0);
+  f.allowClose();
+  assert.equal((await f.failure.cleanupHandle.retry()).pending, false);
+  assert.equal(f.original.fd, -1);
+  assert.deepEqual(f.counts(), {reads: 2, closes: 2, released: 1});
+});
+
+test('bounded continuation metadata cancellation during successful close precedes UTF8 parse', async t => {
+  const f = await interruptedReader(t, {closeAbort: true});
+  assert.strictEqual(f.failure, f.primary);
+  assert.equal(f.original.fd, -1);
+  assert.deepEqual(f.counts(), {reads: 2, closes: 1, released: 1});
 });

@@ -18,7 +18,7 @@ const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {c
 // The existing physical reader closes the same original FD before returning;
 // failed close retains that FD in the original error.cleanupHandle. Do not
 // settle the caller's whole decode reservation merely because the FD closed.
-export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied) {
+export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied, signal) {
   const maxWireBytes = supplied?.maxWireBytes;
   const maxLedgerEntries = supplied?.maxLedgerEntries;
   if (typeof path !== 'string' || path.length === 0 ||
@@ -30,19 +30,22 @@ export async function readContinuationLedgerBounded(path, prepareAttemptId, supp
   }
   // Capture before the first await, so caller mutation cannot widen a read.
   let bytes;
-  try { bytes = await readBoundedLocalMetadata(path, maxWireBytes); }
+  try { bytes = await readBoundedLocalMetadata(path, maxWireBytes, undefined, signal); }
   catch (error) {
     // This consumes known original metadata, never creates a new ledger.
     // Missing/raced-away bytes are unavailable, not evidence of a fresh Run
     // or successful cleanup. Preserve pending original FD custody unchanged.
-    if (error?.code === 'ENOENT' && error.cleanupHandle === undefined) {
+    if (!signal?.aborted && error?.code === 'ENOENT' && error.cleanupHandle === undefined) {
       fail('ContinuationMetadataUnavailable', error);
     }
     throw error;
   }
+  // Close confirmation is not cancellation confirmation or resource release.
+  // In particular, cancellation during close must not start decode/parse.
+  signal?.throwIfAborted();
   let value;
   try {
-    value = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes));
+    value = JSON.parse(new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes));
   } catch (cause) { fail('InvalidContinuationLedger', cause); }
   if (!keys(value, ['version', 'prepare_attempt_id', 'request_cid', 'key_id', 'holdings'], ['abandoned']) ||
       value.version !== version || value.prepare_attempt_id !== prepareAttemptId ||

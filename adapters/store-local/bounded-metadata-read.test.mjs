@@ -10,14 +10,14 @@ import {runInNewContext} from 'node:vm';
 // This is a source-backed physical primitive test, not public Run acceptance.
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url),
   'utf8');
-const start = source.indexOf('async function readBounded(path, maximum, closed) {');
+const start = source.indexOf('async function readBounded(path, maximum, closed, signal) {');
 const end = source.indexOf('\nasync function processIsAlive(', start);
 assert(start >= 0 && end > start);
 const body = source.slice(start, end);
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const quantity = value => Number.isSafeInteger(value) && value >= 0;
 const load = overrides => runInNewContext(`(${body})`, {
-  constants, lstat, open, Buffer, quantity, fail, ...overrides,
+  constants, lstat, open, Buffer, quantity, fail, AbortSignal, ...overrides,
 });
 const invalid = error => error?.code === 'InvalidPublicationStoreObject';
 const state = changes => ({
@@ -72,6 +72,48 @@ test('metadata read pins the FD and requests only the declared bytes plus probe'
       constants.O_NONBLOCK);
     assert.equal(f.closes(), 1);
   });
+
+test('metadata cancellation before open acquires no FD or buffer', async () => {
+  const f = fixture();
+  const abort = new AbortController();
+  const reason = new Error('OriginalScopeCancelled');
+  abort.abort(reason);
+  let acknowledged = 0;
+  await assert.rejects(f.read('original', 4, () => { acknowledged++; }, abort.signal),
+    error => error === reason);
+  assert.equal(acknowledged, 1);
+  assert.deepEqual(f.allocations, []);
+  assert.deepEqual(f.opened, []);
+  assert.deepEqual(f.reads, []);
+  assert.equal(f.closes(), 0);
+});
+
+test('metadata cancellation after a positive read does no next read or probe', async () => {
+  const abort = new AbortController();
+  const reason = new Error('OriginalScopeCancelled');
+  const allocations = [];
+  let reads = 0, closes = 0, acknowledged = 0;
+  const read = load({
+    async open() { return {
+      async stat() { return state(); },
+      async read(bytes) {
+        reads++;
+        bytes[0] = 97;
+        abort.abort(reason);
+        return {bytesRead: 1};
+      },
+      async close() { closes++; },
+    }; },
+    async lstat() { return state(); },
+    Buffer: {allocUnsafeSlow(n) { allocations.push(n); return Buffer.allocUnsafeSlow(n); }},
+  });
+  await assert.rejects(read('original', 4, () => { acknowledged++; }, abort.signal),
+    error => error === reason);
+  assert.deepEqual(allocations, [4]);
+  assert.equal(reads, 1);
+  assert.equal(closes, 1);
+  assert.equal(acknowledged, 1);
+});
 
 test('metadata growth cannot expand allocation or escape through readFile',
   async () => {
