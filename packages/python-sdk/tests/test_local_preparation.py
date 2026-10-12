@@ -43,7 +43,7 @@ class PreparationCustodyTests(unittest.TestCase):
     def test_original_handles_and_input_kind_only_reach_core(self):
         core, adapter, config, document, calls, _ = self.bridge()
         environment = adapter.install_environment(config, profile='source-free')
-        for format, kind in [('text', 2), ('program', 1)]:
+        for format, kind in [('text', 2), ('program', 1), ('submitted', 3)]:
             loan = adapter.reserve(environment, document, format=format)
             self.assertIs(loan.input, document)
             self.assertIs(loan.environment, environment)
