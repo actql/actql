@@ -97,6 +97,28 @@ pub fn prepare_client_model_read(
 }
 
 ///|
+// The original owning Run retains this scope when layout/descriptor/read
+// admission fails before a preparation exists. Its final cleanup uses the
+// same census/bootstrap; no Ledger projection or reconstructed binding is
+// needed. The acknowledgement covers the owning Run, not merely read failure.
+// Existing live-child checks still prevent early return after successful issue.
+pub fn finish_client_model_read_scope(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, ClientModelReadPreparationIssue] {
+  if !client_model_origin_matches(scope.origin, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.finish_original_ledger_inventory(
+    scope.ledger,
+    original_run_cleanup_complete,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
 fn client_model_read_origin_matches(
   value : ClientModelReadPreparation,
   compiled : ClientCompiledRun,
@@ -213,4 +235,25 @@ pub fn settle_client_model_read(
       Resource(issue)
     },
   )
+}
+
+///|
+// The original owning Run calls this only on its final cleanup path. Read
+// retirement alone does not acknowledge other Run children/FD/Store cleanup.
+// No Ledger getter or reconstructed origin is added for this finalization.
+pub fn finish_client_model_read_inventory(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, ClientModelReadPreparationIssue] {
+  if !client_model_read_origin_matches(value, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.finish_funded_read_inventory(
+    value.claim,
+    value.origin,
+    original_run_cleanup_complete,
+  ).map_err(issue => Resource(issue))
 }

@@ -16,6 +16,7 @@ priv struct LocalHostSettings {
   source_file : String?
   run_file : String?
   read_file : String?
+  reviewer_file : String?
 }
 
 ///|
@@ -55,6 +56,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
     "journal_snapshot_bytes", "installation_files", "source_file", "run_file", "read_file",
+    "reviewer_file",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -103,6 +105,10 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
     installation_files,
+    reviewer_file: match @decode.lookup(fields, "reviewer_file") {
+      None => None
+      Some(_) => Some(local_settings_text(fields, "reviewer_file"))
+    },
     read_file: match @decode.lookup(fields, "read_file") {
       None => None
       Some(_) => Some(local_settings_text(fields, "read_file"))
@@ -118,6 +124,10 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   }
   if settings.principal.length() > 512 || settings.connection.length() > 512 {
     stop("InvalidLocalHostConfiguration")
+  }
+  if settings.reviewer_file is Some(file) &&
+    !settings.installation_files.contains(file) {
+    stop("LocalReviewerOriginalNotSelected")
   }
   if @decode.lookup(root, "state_dir") is Some(value) {
     guard @decode.text(value) is Ok(path) &&
@@ -226,6 +236,9 @@ fn execute_native_local_adoption(
       Some((file, @utf8.encode(body)))
     }
   }
+  let selected_reviewer = local_selected_effect_reviewer_original(
+    root, settings,
+  )
   let crypto = @local_crypto.load_library(settings.signature_library).unwrap_or_else(() => {
       stop("NativeLocalSignatureUnavailable")
     },
@@ -276,6 +289,15 @@ fn execute_native_local_adoption(
     }
   }
   if selected_read is Some((file, body)) {
+    guard session.selected_configuration(file) is Ok(selected) &&
+      selected == body else {
+      if !session.close() {
+        stop("LocalConfigurationChangedCleanupPending")
+      }
+      stop("LocalConfigurationChanged")
+    }
+  }
+  if selected_reviewer is Some((file, body)) {
     guard session.selected_configuration(file) is Ok(selected) &&
       selected == body else {
       if !session.close() {

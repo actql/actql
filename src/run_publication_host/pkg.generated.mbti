@@ -732,6 +732,10 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn finish_client_model_read_inventory(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Bool, ClientModelReadPreparationIssue]
+
+pub fn finish_client_model_read_scope(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Bool, ClientModelReadPreparationIssue]
+
 pub fn handoff_client_model_read(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelReadPreparationIssue]
@@ -985,6 +989,8 @@ pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int,
 pub fn prepare_client_infer_item_limit(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@program_check.InferItemLimit, ClientInferItemLimitIssue]
 
 pub fn prepare_client_model_read(ClientModelReadScope, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
+
+pub fn prepare_client_node_model_read_layout(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[ClientModelReadPreparation, ClientModelPreparationLayoutIssue]
 
 pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
 
@@ -2717,6 +2723,7 @@ pub fn PublicationOutputExport::finish(Self) -> Result[String, PublicationOutput
 pub fn PublicationOutputExport::issue_artifact(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::issue_durable_binding(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::issue_result_evidence(Self, String, Array[String], String, String, String, Int, Int, Int) -> Result[Unit, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::issue_sealed_durable_binding(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @publication_payload.PublicationPayloadRecord, Int, Int, Int) -> Result[@run_publication.PublicationContract, PublicationOutputPayloadIssue]
 pub fn PublicationOutputExport::logical_relation_cid(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::matches_captured_run(Self, @physical_strategy.CapturedDAG) -> Bool
 pub fn PublicationOutputExport::measurement(Self) -> Result[@execution_relation.CompletedRelationExportMeasurement, PublicationOutputExportIssue]
@@ -2763,6 +2770,7 @@ pub(all) enum PublicationOutputPayloadIssue {
   RequestMismatch
   Payload(@publication_payload.PublicationPayloadIssue)
   Replay(PublicationOutputExportIssue)
+  Binding(PublicationOutputExportIssue)
 }
 
 type PublicationOutputReplay

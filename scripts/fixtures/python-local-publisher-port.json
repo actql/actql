@@ -1,0 +1,18 @@
+{
+  "scope": "private_scalar_publisher_transport_with_independent_fixture_authority",
+  "stage_ordinals": [0, 1, 2],
+  "stages": ["request", "commit", "return_committed"],
+  "cases": [
+    "original_six_facts_and_owner_generated_index_all_stages",
+    "current_run_source_and_foreign_index_refuse_before_callback",
+    "independent_denial_and_unknown_do_not_cache_or_resend",
+    "authority_revocation_during_callback_is_fenced_afterwards",
+    "same_transport_cleanup_then_original_input_borrow_stop_retry",
+    "no_source_compute_retry_or_store_commit_acknowledgement",
+    "original_preflight_close_waits_for_same_transport_custody"
+  ],
+  "actual_module_execution": false,
+  "product_policy_issuer_acceptance": false,
+  "store_install_acceptance": false,
+  "public_local_acceptance": false
+}

@@ -420,6 +420,29 @@ pub fn prepare_publication_payload_reserved(
 }
 
 ///|
+/// Bind an actual trusted Store reservation to the original nominal request.
+/// The physical adapter reads the existing publication_payload namespace; these
+/// values do not attest persistence on their own. This prepares the existing
+/// transition without committing it, creating a writer or granting publication.
+pub fn prepare_observed_publication_payload_reserved(
+  record : PublicationPayloadRecord,
+  store_authority : String,
+  capacity_namespace : String,
+  material_identity : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
+  if store_authority != record.request.store_authority_cid ||
+    capacity_namespace != "publication_payload" ||
+    material_identity != record.request.material_generation_cid ||
+    reserved_bytes != record.request.max_bytes ||
+    reserved_objects != 1L {
+    return Err(StateCollision)
+  }
+  prepare_publication_payload_reserved(record)
+}
+
+///|
 pub fn prepare_publication_payload_writing(
   record : PublicationPayloadRecord,
 ) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
@@ -671,6 +694,110 @@ pub fn commit_publication_payload_transition(
   record.opaque_generation_cid = transition.next_opaque_generation_cid
   record.actual_bytes = transition.next_actual_bytes
   record.physical_digest = transition.next_physical_digest
+  Ok(record)
+}
+
+///|
+/// Confirm one original transition from the trusted Store's exact durable
+/// observation. Admission of these bytes proves their format, not persistence;
+/// the physical adapter must read them from this material key and generation.
+/// This confirmation grants neither publisher authority nor a Run outcome.
+fn validate_observed_payload_transition(
+  transition : PublicationPayloadTransition,
+  store_authority : String,
+  material_identity : String,
+  physical_revision : Int64,
+  durable : DurablePublicationPayloadRecord,
+) -> Result[Unit, PublicationPayloadIssue] {
+  if store_authority != transition.record.request.store_authority_cid ||
+    material_identity != transition.record.request.material_generation_cid ||
+    physical_revision != transition.expected_revision.to_int64() + 1L ||
+    durable.revision.to_int64() != physical_revision ||
+    durable.request.request_cid != transition.record.request.request_cid {
+    return Err(StateCollision)
+  }
+  let expected = match publication_payload_transition_durable_json(transition) {
+    Ok(body) => body
+    Err(issue) => return Err(issue)
+  }
+  if durable.body != expected {
+    return Err(StateCollision)
+  }
+  Ok(())
+}
+
+///|
+pub fn commit_observed_publication_payload_transition(
+  transition : PublicationPayloadTransition,
+  store_authority : String,
+  material_identity : String,
+  physical_revision : Int64,
+  durable : DurablePublicationPayloadRecord,
+) -> Result[PublicationPayloadRecord, PublicationPayloadIssue] {
+  match
+    validate_observed_payload_transition(
+      transition, store_authority, material_identity, physical_revision, durable,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  commit_publication_payload_transition(transition, true)
+}
+
+///|
+/// Read-only confirmation after a completed original commit loses its reply.
+/// This never advances a transition or confirms a later revision. A partial or
+/// mismatching original record stays unresolved with its original responsibility.
+pub fn confirm_committed_publication_payload_transition(
+  transition : PublicationPayloadTransition,
+  store_authority : String,
+  material_identity : String,
+  physical_revision : Int64,
+  durable : DurablePublicationPayloadRecord,
+) -> Result[PublicationPayloadRecord, PublicationPayloadIssue] {
+  match
+    validate_observed_payload_transition(
+      transition, store_authority, material_identity, physical_revision, durable,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let record = transition.record
+  if record.revision.to_int64() != physical_revision {
+    return Err(StateCollision)
+  }
+  match publication_payload_record_durable_json(record) {
+    Ok(body) if body == durable.body => Ok(record)
+    _ => Err(StateCollision)
+  }
+}
+
+///|
+/// Match the original initial record against one real Store observation.
+/// This does not reserve payload capacity, advance a transition or publish.
+pub fn confirm_initial_publication_payload_record(
+  record : PublicationPayloadRecord,
+  store_authority : String,
+  material_identity : String,
+  physical_revision : Int64,
+  durable : DurablePublicationPayloadRecord,
+) -> Result[PublicationPayloadRecord, PublicationPayloadIssue] {
+  if record.state != Intent ||
+    record.revision != 0 ||
+    store_authority != record.request.store_authority_cid ||
+    material_identity != record.request.material_generation_cid ||
+    physical_revision != 0L ||
+    durable.revision != 0 ||
+    durable.request.request_cid != record.request.request_cid {
+    return Err(StateCollision)
+  }
+  let expected = match publication_payload_record_durable_json(record) {
+    Ok(body) => body
+    Err(issue) => return Err(issue)
+  }
+  if durable.body != expected {
+    return Err(StateCollision)
+  }
   Ok(record)
 }
 

@@ -71,3 +71,48 @@ pub fn prepare_local_preflight_payload_request(
   )
   .map_err(issue => Output(issue))
 }
+
+///|
+/// Revalidate the original preflight/Result/current Run and Source account,
+/// then bind the same filesystem Sealed payload through its content Owner.
+/// Neither a durable record nor equal-looking physical facts replace nominal
+/// Result custody or grant current publisher authority.
+pub fn issue_local_preflight_sealed_result_binding(
+  preflight : LocalPublicationPreflight,
+  result : Int,
+  original : LocalResultPublication,
+  record : @payload.PublicationPayloadRecord,
+  account : @authorization.AdmittedAccountConfiguration,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, LocalPublicationPayloadIssue] {
+  match
+    reuse_local_preflight_result_publication(
+      preflight,
+      result,
+      original,
+      original.output,
+      account,
+    ) {
+    Err(issue) => return Err(Preflight(issue))
+    Ok(_) => ()
+  }
+  let (_, attempt) = local_publication_preflight_contracts(preflight)
+  let request = @payload.publication_payload_record_request(record)
+  if @payload.publication_payload_request_attempt(request) !=
+    @publication.publication_contract_identity(attempt) {
+    return Err(Output(@host.RequestMismatch))
+  }
+  original.output
+  .issue_sealed_durable_binding(
+    original.host.plan.definition,
+    original.invocation.invocation,
+    original.retention,
+    record,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+  .map_err(issue => Output(issue))
+}

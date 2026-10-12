@@ -79,12 +79,12 @@ fn allocation_name(
   request : @payload.PublicationPayloadRequest,
   ordinal : Int64,
 ) -> String {
-  "alloc-" + record_key(request)[7:].to_owned() + "-" + ordinal.to_string()
+  @payload.prepare_publication_payload_allocation_name(request, ordinal)
 }
 
 ///|
 /// The file name inside an allocation area.
-const ALLOCATION_FILE : String = "payload"
+const ALLOCATION_FILE : String = @payload.PUBLICATION_PAYLOAD_ALLOCATION_FILE
 
 ///|
 /// What the Store recorded about a request's allocation area: its name and,
@@ -96,33 +96,13 @@ priv struct RecordedAllocation {
 }
 
 ///|
-fn parse_digits(text : String) -> Int64? {
-  if text.is_empty() {
-    return None
-  }
-  let mut value = 0L
-  for character in text {
-    let code = character.to_int()
-    if code < 48 || code > 57 || value > 100000000000000L {
-      return None
-    }
-    value = value * 10L + (code - 48).to_int64()
-  }
-  Some(value)
-}
-
-///|
 fn allocation_body(allocation : RecordedAllocation) -> Bytes {
-  @utf8.encode(
-    match allocation.identity {
-      Some(identity) =>
-        allocation.name +
-        "|" +
-        identity.device.to_string() +
-        "|" +
-        identity.inode.to_string()
-      None => allocation.name
-    },
+  @payload.encode_publication_payload_allocation(
+    allocation.name,
+    allocation.identity.map(identity => {
+      device: identity.device,
+      inode: identity.inode,
+    }),
   )
 }
 
@@ -133,40 +113,27 @@ fn recorded_allocation(
   store : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[RecordedAllocation?, NativePublicationStoreIssue] {
-  let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
   match
-    store.database.read("publication_payload_allocation", record_key(request)) {
-    Ok(value) => {
-      let parts = @utf8.decode_lossy(value.body).split("|").collect()
-      guard parts.length() == 1 || parts.length() == 3 else {
-        return Err(StateCollision)
-      }
-      let name = parts[0].to_owned()
-      guard name.has_prefix(prefix) &&
-        parse_digits(
-          name.unsafe_substring(start=prefix.length(), end=name.length()),
-        )
-        is Some(_) else {
-        return Err(StateCollision)
-      }
-      if parts.length() == 1 {
-        return Ok(Some({ name, identity: None, }))
-      }
-      match
-        (parse_digits(parts[1].to_owned()), parse_digits(parts[2].to_owned())) {
-        (Some(device), Some(inode)) =>
+    store.database.read(
+      @payload.publication_payload_allocation_namespace(),
+      record_key(request),
+    ) {
+    Ok(value) =>
+      match @payload.admit_publication_payload_allocation(request, value.body) {
+        Err(_) => Err(StateCollision)
+        Ok(allocation) =>
           Ok(
             Some({
-              name,
-              identity: Some({
-                device: device.reinterpret_as_uint64(),
-                inode: inode.reinterpret_as_uint64(),
+              name: @payload.publication_payload_allocation_name(allocation),
+              identity: @payload.publication_payload_allocation_ownership(
+                allocation,
+              ).map(identity => {
+                device: identity.device,
+                inode: identity.inode,
               }),
             }),
           )
-        _ => Err(StateCollision)
       }
-    }
     Err(@sqlite.NotFound) => Ok(None)
     Err(issue) => Err(Database(issue))
   }
@@ -182,19 +149,15 @@ fn next_allocation_ordinal(
 ) -> Result[Int64, NativePublicationStoreIssue] {
   match recorded_allocation(store, request) {
     Ok(None) => Ok(1L)
-    Ok(Some(allocation)) => {
-      let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
+    Ok(Some(allocation)) =>
       match
-        parse_digits(
-          allocation.name.unsafe_substring(
-            start=prefix.length(),
-            end=allocation.name.length(),
-          ),
+        @payload.next_publication_payload_allocation_ordinal(
+          request,
+          allocation.name,
         ) {
-        Some(ordinal) => Ok(ordinal + 1L)
-        None => Err(StateCollision)
+        Ok(ordinal) => Ok(ordinal)
+        Err(_) => Err(StateCollision)
       }
-    }
     Err(issue) => Err(issue)
   }
 }
@@ -208,19 +171,27 @@ fn record_allocation(
   allocation : RecordedAllocation,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let body = allocation_body(allocation)
-  match store.database.insert("publication_payload_allocation", key, body) {
+  match
+    store.database.insert(
+      @payload.publication_payload_allocation_namespace(),
+      key,
+      body,
+    ) {
     Ok(_) => return Ok(())
     Err(@sqlite.Collision) => ()
     Err(issue) => return Err(Database(issue))
   }
   let current = match
-    store.database.read("publication_payload_allocation", key) {
+    store.database.read(
+      @payload.publication_payload_allocation_namespace(),
+      key,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }
   match
     store.database.compare_exchange(
-      "publication_payload_allocation",
+      @payload.publication_payload_allocation_namespace(),
       key,
       current.revision,
       body,
