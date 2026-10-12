@@ -5,12 +5,13 @@ import {createHash} from 'node:crypto';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
+import {installModelProviders} from './installed-model.mjs';
 const source = readFileSync(new URL('../../src/client_infer_host/fixture.generated_wbtest.mbt', import.meta.url), 'utf8');
 const input = name => source.match(new RegExp(`let ${name} : String =\\n\\s+#\\|([^\\n]+)`, 'u'))[1];
 const cid = c => `sha256:${c.repeat(64)}`;
 const identity = body => `sha256:${createHash('sha256').update(canonicalText(body)).digest('hex')}`;
 
-export async function currentResourceFixture(moon, control, runId = 'current-resource') {
+export async function currentResourceFixture(moon, control, runId = 'current-resource', metadataOptions = {}) {
   const environment = moon.clientProgramCheckEnvironment(input('infer_fixture_environment'),
     input('infer_fixture_environment_cid'), false, false, true, false, false, false, false);
   const prepared = moon.clientProgramPreparationReady(moon.clientProgramPrepareEffectFreeWithParameters(
@@ -46,18 +47,34 @@ export async function currentResourceFixture(moon, control, runId = 'current-res
     validator_artifact_cid: profileBody.completion.validator_artifact_cid,
     completion_basis: profileBody.completion.basis};
   delete installation.port_abi;
-  const selected = {layout: {response_profile: profile, runtime_artifact_cid: cid('d'), layout_artifact_cid: cid('e'),
+  let selected = {layout: {response_profile: profile, runtime_artifact_cid: cid('d'), layout_artifact_cid: cid('e'),
     program_definition_cid: template.program_definition_cid, parameter_values_cid: template.parameter_values_cid,
     barrier_cid: moon.clientProgramInferPlanBoundary(graph)._3,
     prepared_rows: 2n, retained_bytes: 7000n, execution_bytes: 3000n},
   installation, runtimeArtifactCid: cid('d'), layoutArtifactCid: cid('e'), probability: undefined};
+  let sends = 0;
+  const invoke = () => {sends++; return undefined;};
+  let metadataInstallation;
+  let provider;
+  if (Object.hasOwn(metadataOptions, 'metadataAcquisition')) {
+    const registered = installModelProviders(moon, () => [{providerId: 'models/fixture',
+      invoke, validatePrompt: () => true, originalReadInstallation: {
+        bootstrap: {bootstrapRetainedBytes: 100000n, bootstrapExecutionBytes: 100000n,
+          maxReservations: 8, maxHoldings: 8, maxDelegations: 8},
+        modelRetainedBytes: 100000n, modelExecutionBytes: 3000n, nodeInstallation: selected,
+        metadataAcquisition: metadataOptions.metadataAcquisition}}]).get('models/fixture');
+    metadataInstallation = registered.originalReadInstallation;
+    selected = metadataInstallation.nodeInstallation;
+    if (metadataOptions.copiedNodeInstallation) selected = {...selected};
+    if (metadataOptions.copiedOriginal) metadataInstallation = {...metadataInstallation};
+    provider = registered.provider;
+  } else provider = moon.clientProgramInstallModelProvider('models/fixture', invoke);
   const scope = control.beginCheckedClientInferOriginalReadScope(compiled, runDefinition, graph,
     {bootstrapRetainedBytes: 100000n, bootstrapExecutionBytes: 100000n,
       maxReservations: 8, maxHoldings: 8, maxDelegations: 8});
   const read = control.prepareCheckedClientInferNodeReadLayout(compiled, runDefinition, graph, scope, selected);
-  let sends = 0;
-  const provider = moon.clientProgramInstallModelProvider('models/fixture', () => {sends++; return undefined;});
   const originalPreparation = {scope, read, control, compiled, runDefinition, nodeInstallation: selected,
+    ...(metadataInstallation === undefined ? {} : {metadataInstallation}),
     readRetainedBytes: 7000n, readExecutionBytes: 3000n, modelRetainedBytes: 100000n, modelExecutionBytes: 3000n};
   const operation = openNodeInferOperation({moon, preparedProgram: prepared, step, graph,
     registry: input('infer_fixture_registry'), values: input('infer_fixture_values'),
