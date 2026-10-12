@@ -134,7 +134,9 @@ The snapshot callback adds a separate driver correspondence premise. Both
 `release_owned_scratch` and the observational `scratch_released` witness must
 refuse a held callback. Cancellation that returns `false` keeps the same callback;
 `cleanup_refresh` retries it after input stop and provider cleanup, before root
-retirement. The registered importer remains in the input-stop cursor even when
+retirement. The final physical snapshot-storage predicate and common Owner
+cleanup result remain independent: an unreleased file or common cleanup failure
+cannot be reported as success after detaching the callback. The registered importer remains in the input-stop cursor even when
 snapshot cancellation has begun. Snapshot references are detached only after
 bounded reference cleanup and the original physical storage-release predicate.
 Successful finalization requires the live/restored state, absent stored/stream/

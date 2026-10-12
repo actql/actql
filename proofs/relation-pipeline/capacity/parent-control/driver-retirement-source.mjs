@@ -239,6 +239,14 @@ const cleanupPrefix=`{
   }
   release_owned_scratch()
 `;
+// Callback detachment does not replace the independent physical storage
+// predicate or the existing common Owner's fallible cleanup observation.
+const cleanupSuffix=`
+  if !snapshot_storage_released.val.map(check => check()).unwrap_or(true) {
+    return false
+  }
+  @strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(false,)
+}`;
 const cancelFinalization=`{
   finalization_cancelled.val = true
   if relation_snapshot_cancel.val is Some(cancel) {
@@ -277,8 +285,11 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(snapshot,'let cleanup_references = fn(quantum : Int)')),clean(snapshotCleanup),'Changed snapshot storage/reference cleanup completion');
   assert.equal(clean(blockAfter(snapshot,'finish: () =>')),clean(snapshotFinish),'Changed successful snapshot finalization custody transfer');
   assert.equal(clean(blockAfter(driver,'let cancel_finalization = fn()')),clean(cancelFinalization),'Changed pending snapshot cancellation retry custody');
-  assert(clean(blockAfter(driver,'cleanup_refresh: fn()')).startsWith(clean(cleanupPrefix)),
+  const cleanup=clean(blockAfter(driver,'cleanup_refresh: fn()'));
+  assert(cleanup.startsWith(clean(cleanupPrefix)),
     'Changed cleanup callback/input/provider/snapshot retirement ordering');
+  assert(cleanup.endsWith(clean(cleanupSuffix)),
+    'Changed snapshot storage or common Owner cleanup completion witness');
   assert.match(driver.replace(/\s+/g,' '),/let relation_snapshot_cancel : Ref\[\(\(\) -> Bool\)\?\] = Ref\(None\)/);
   assert.deepEqual([...driver.matchAll(/relation_snapshot_cancel\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),
     ['None','Some(fn() {','None','None'],'Unreviewed snapshot callback root replacement');
