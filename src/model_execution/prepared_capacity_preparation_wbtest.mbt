@@ -20,11 +20,7 @@ test "Model prepared capacity: every masked row remains prepared before dispatch
       None,
       durable_calls=true,
       send_mask=Some(mask),
-      prepared_capacity=Some({
-        prepared_rows: 2,
-        retained_bytes: 100L,
-        execution_bytes: 5L,
-      }),
+      prepared_capacity=Some((2, 100L, 5L)),
     ).unwrap()
     let claim = active.state.prepared_capacity.unwrap()
     let mut ready = false
