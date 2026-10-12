@@ -7134,6 +7134,7 @@ fn compile_join_steps(
   right_from? : String = "r",
   step_bindings? : Map[String, String] = Map([]),
   capture_left? : Bool = false,
+  values_bound? : Int64? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -7141,7 +7142,11 @@ fn compile_join_steps(
     raise Abort(UnsupportedCte)
   }
   let part = @query.join_part_at(query, 0).unwrap()
-  let max_output_rows = authored_join_bound(part, limits)
+  let max_output_rows = if part.max_output_rows is Some(_) {
+    authored_join_bound(part, limits)
+  } else {
+    values_bound.unwrap_or_else(() => authored_join_bound(part, limits))
+  }
   let left_qualifier = @query.relation_alias(query).unwrap_or(left_name)
   let right_qualifier = part.source_alias.unwrap_or(right_name)
   if same_name(left_qualifier, right_qualifier) {
@@ -8442,6 +8447,42 @@ fn join_values_rows(input : Input) -> Int raise Abort {
 }
 
 ///|
+// Preserve the existing Values-specific bound before the shared binder turns
+// the original input into a StepReference. Unknown sources retain their own
+// existing authored/default admission path.
+fn values_join_output_bound(
+  part : @query.JoinPart,
+  left : Input,
+  right : Input,
+  limits : Limits,
+) -> Int64 raise Abort {
+  if part.max_output_rows is Some(_) {
+      authored_join_bound(part, limits)
+    } else {
+      let left_rows = join_values_rows(left).to_int64()
+      let right_rows = join_values_rows(right).to_int64()
+      let factor = if part.kind == "inner" || part.kind == "cross" {
+        right_rows
+      } else if right_rows == 0L {
+        1L
+      } else {
+        right_rows
+      }
+      let extra = if part.kind == "full" { right_rows } else { 0L }
+      if extra > 9007199254740991L ||
+        (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
+        raise Abort(UnsupportedJoin)
+      }
+      let raw_bound = left_rows * factor + extra
+      let bound = if raw_bound == 0L { 1L } else { raw_bound }
+      if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
+        raise Abort(UnsupportedJoin)
+      }
+      bound
+    }
+}
+
+///|
 fn join_seed_stage(
   construction : Construction,
   input : Input,
@@ -9282,30 +9323,7 @@ fn compile_join_query(
       next,
       result_tail=Some((limits, retained)),
     )
-    let bound = if part.max_output_rows is Some(_) {
-      authored_join_bound(part, limits)
-    } else {
-      let left_rows = join_values_rows(left).to_int64()
-      let right_rows = join_values_rows(right).to_int64()
-      let factor = if part.kind == "inner" || part.kind == "cross" {
-        right_rows
-      } else if right_rows == 0L {
-        1L
-      } else {
-        right_rows
-      }
-      let extra = if part.kind == "full" { right_rows } else { 0L }
-      if extra > 9007199254740991L ||
-        (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
-        raise Abort(UnsupportedJoin)
-      }
-      let raw_bound = left_rows * factor + extra
-      let bound = if raw_bound == 0L { 1L } else { raw_bound }
-      if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
-        raise Abort(UnsupportedJoin)
-      }
-      bound
-    }
+    let bound = values_join_output_bound(part, left, right, limits)
     let left_stage = "aql_join_left"
     let right_stage = "aql_join_right"
     let operation = if part.kind == "cross" {
