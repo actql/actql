@@ -4,8 +4,10 @@ test "a static label does not supply the missing admitted Graph producer" {
     "FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id",
     syntax_limits(),
   ).unwrap()
-  assert_true(exact_unresolved_relation(
-    compile(parsed, fixture_context(), construction_limits()),
-    [("g", false)],
-  ))
+  assert_true(
+    exact_unresolved_relation(
+      compile(parsed, fixture_context(), construction_limits()),
+      [("g", false)],
+    ),
+  )
 }
