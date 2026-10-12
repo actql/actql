@@ -31,6 +31,7 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
+import {selectOriginalInferMetadataAcquisition} from './infer-operation.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -909,6 +910,47 @@ export async function installRemoteCheckpoints({root, namespaceId,
     if (closed) fail('OriginalModelStateHostStopped');
     return selected;
   }
+  async function readOriginalModelStateBytes({runDefinition, storageBinding, receipt}, acquisition) {
+    const runId = contractControl.runDefinitionRunId(runDefinition);
+    const ownerId = `model-${runId}`;
+    const current = () => {
+      if (closed) fail('OriginalModelStateHostStopped');
+      if (acquisition !== undefined) {
+        selectOriginalInferMetadataAcquisition(acquisition, ownerId, runDefinition.identity);
+      }
+    };
+    current();
+    // The selected path never silently delegates to the ordinary Evidence
+    // reader. Its physical metadata/FD lifetime belongs to that same Owner.
+    if (acquisition !== undefined && typeof evidence.openOriginalModelState !== 'function') {
+      fail('InferOriginalMetadataAcquisitionUnavailable');
+    }
+    const selected = await originalModelStorageEvidence(storageBinding);
+    current();
+    if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
+        Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
+        !IDENTIFIER.test(runId) || receipt.ownerId !== ownerId ||
+        receipt.runId !== runId || receipt.runDefinitionCid !== runDefinition.identity ||
+        receipt.storageBindingCid !== selected.identity ||
+        !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '')) fail('InvalidOriginalModelStateCustody');
+    const held = await (acquisition === undefined ? evidence.open(ownerId)
+      : evidence.openOriginalModelState(ownerId, acquisition));
+    current();
+    if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
+    const bytes = await held.bytes('original_model_state', receipt.cid, {maxBytes: MAX_MODEL_INPUT_BYTES});
+    current();
+    const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+    const document = contractControl.readModelOriginalResourceDocument(wire,
+      {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+    if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
+        contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
+        contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
+      fail('OriginalModelStateBindingMismatch');
+    }
+    await originalModelStorageEvidence(storageBinding);
+    current();
+    return document;
+  }
   // Errors that a later attempt may clear (a busy Store, a transient read);
   // anything else is permanent for this item and only observed.
   const PERMANENT = new Set(['ArtifactIntegrityFailed',
@@ -1342,31 +1384,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return Object.freeze({ownerId, cid, runId, runDefinitionCid,
         storageBindingCid: selected.identity});
     },
-    async readOriginalModelState({runDefinition, storageBinding, receipt}) {
-      const runId = contractControl.runDefinitionRunId(runDefinition);
-      const selected = await originalModelStorageEvidence(storageBinding);
-      if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
-          Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
-          !IDENTIFIER.test(runId) || receipt.ownerId !== `model-${runId}` ||
-          receipt.runId !== runId || receipt.runDefinitionCid !== runDefinition.identity ||
-          receipt.storageBindingCid !== selected.identity ||
-          !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '')) {
-        fail('InvalidOriginalModelStateCustody');
-      }
-      const held = await evidence.open(receipt.ownerId);
-      if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
-      const bytes = await held.bytes('original_model_state', receipt.cid,
-        {maxBytes: MAX_MODEL_INPUT_BYTES});
-      const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-      const document = contractControl.readModelOriginalResourceDocument(wire,
-        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
-      if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
-          contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
-          contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
-        fail('OriginalModelStateBindingMismatch');
-      }
-      await originalModelStorageEvidence(storageBinding);
-      return document;
+    readOriginalModelState: args => readOriginalModelStateBytes(args, undefined),
+    async readOriginalModelStateSelected(args, acquisition) {
+      // Required nominal original; an omitted/forged handle cannot opt out to
+      // a legacy read. This is current-cut only, not a prime/general restriction.
+      selectOriginalInferMetadataAcquisition(acquisition);
+      return readOriginalModelStateBytes(args, acquisition);
     },
     // A same-installation saved-byte observation, not a restore/read/send
     // grant. The existing Store is actually reopened and verified first;

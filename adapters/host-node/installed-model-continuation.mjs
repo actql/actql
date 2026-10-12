@@ -558,6 +558,35 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
+      async readOriginalResourceState(park, storageBinding, receipt) {
+        const originalScope = operation.originalResourceScope?.();
+        const current = () => {
+          if (!owner.available || originalPreparation === undefined ||
+              originalScope === undefined || originalScope !== originalPreparation.scope ||
+              checkpoints() !== cp || operation.originalResourceParkCurrent(park) !== park) {
+            fail('ModelOriginalResourceReadUnavailable');
+          }
+        };
+        current();
+        if (typeof cp.readOriginalModelStateSelected !== 'function') {
+          fail('InferOriginalMetadataAcquisitionUnavailable');
+        }
+        // This exact installed operation supplies its own nominal acquisition.
+        // No external operation/J/callback/Bool/CID can issue this selection.
+        const acquisition = operation.originalMetadataAcquisition(park);
+        const document = await cp.readOriginalModelStateSelected({runDefinition: plan.runDefinition,
+          storageBinding, receipt}, acquisition);
+        current();
+        // Actual Store custody is rechecked by CP. Match the twelve checked
+        // originals separately; schema/CID equality alone cannot prove them.
+        const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+        current();
+        control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
+          plan.runDefinition, selected.graph, originalScope, park, document,
+          originalPreparation.nodeInstallation, storage);
+        current();
+        return document;
+      },
       async originalResourceOrigin(storageBinding) {
         const originalScope = operation.originalResourceScope?.();
         const installation = originalPreparation?.nodeInstallation;
