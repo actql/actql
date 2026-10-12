@@ -3,6 +3,8 @@
 // membership; no query-local property annotation can redefine it.
 pub(all) struct GraphQuery {
   pattern : GraphPattern?
+  // The explicit FROM GRAPH operand keeps its authored origin after name resolution.
+  expectation : @origin.Origin?
 }
 
 ///|

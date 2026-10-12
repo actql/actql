@@ -14,6 +14,7 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
     "to_events" => path == ["id"] || path == ["time"]
     "row_window" | "watermark_rows" => path == ["time"]
     "dedupe_events" => path == ["by"]
+    "lag" => path == ["partition_by"] || path == ["field"]
     "session" => path == ["id"] || path == ["time"] || path == ["by"]
     _ => false
   }
@@ -24,6 +25,7 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_output_argument(operation : String, path : Array[String]) -> Bool {
   (operation == "pool_vectors" && path == ["output_id"]) ||
+  (operation == "lag" && path == ["output"]) ||
   (
     (operation == "match_nodes" || operation == "match_edges") &&
     (

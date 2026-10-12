@@ -91,6 +91,7 @@ fn async_response_fixture(
     now,
     egress,
     limits~,
+    asynchronous=true,
     configure=active => {
       bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
       bind_physical_preflight(active, request => {

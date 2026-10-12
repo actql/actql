@@ -192,6 +192,12 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     // Common issuer supplies canonical data identities, not current grants.
     projectOriginalJournalIdentity: ({originals, row}) =>
       parseCore(runtime.modelOriginalJournalIdentity(JSON.stringify(originals), JSON.stringify(row))),
+    projectOriginalCurrentCut: ({facts}) =>
+      parseCore(runtime.modelOriginalJournalCutData(JSON.stringify(facts))).cut,
+    originalStateSaved: Object.freeze({
+      inspect: observation => checkpoints().originalModelStateSavedFacts(observation),
+      current: observation => checkpoints().originalModelStateSavedObservationCurrent(observation),
+    }),
     admitImmediateEntry({decision, preparedCallSet, inventory, originals, slot, attemptIndex,
       attemptCid, attemptWire, authorityWire, at}) {
       const owner = live.get(preparedCallSet);

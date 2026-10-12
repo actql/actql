@@ -56,7 +56,10 @@ fn lower_script_relation(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
   )
   let query = @query.after_producer_primary(query)
-  let graph = current_script_graph(current, query, graphs)
+  let graph = current_script_graph(current, query, graphs, known)
+  check_script_graph_expectation(
+    construction, query, graph, known, context, sources, limits, steps, reserved,
+  )
   let query = if graph is Some(_) {
     @query.graph_source_query(query)
   } else {
@@ -404,12 +407,12 @@ pub fn compile_query_script(
       steps,
       reserved,
     )
-    let current_graph = lower_script_primary(
+    let primary_graph = lower_script_primary(
       construction, root, known, graphs, context, sources, limits, steps, reserved,
     )
     let tail = @query.after_producer_primary(@query.after_query_bindings(root))
-    let mut query = if current_graph is Some(_) ||
-      script_graph_input(tail, graphs) is Some(_) {
+    let current_graph = current_script_graph(primary_graph, tail, graphs, known)
+    let mut query = if current_graph is Some(_) {
       @query.graph_source_query(tail)
     } else {
       tail
@@ -430,7 +433,15 @@ pub fn compile_query_script(
         quoted: true,
       })
       let current = split.map(pair => pair.0).unwrap_or(query)
-      let primary_graph = if stages.is_empty() { current_graph } else { None }
+      let resolved_graph = if stages.is_empty() {
+        current_graph
+      } else {
+        current_script_graph(None, current, graphs, stage_known)
+      }
+      check_script_graph_expectation(
+        construction, current, resolved_graph, stage_known, stage_context, stage_sources,
+        limits, stage_steps, reserved,
+      )
       let retained : Array[RetainedResult] = []
       let graph_row_set = script_has_graph_rows(current) &&
         @query.set_part_count(current) > 0
@@ -438,9 +449,7 @@ pub fn compile_query_script(
         !graph_row_set &&
         !script_has_carrier_calls(current) {
         let graph = require_script_graph_input(
-          current_script_graph(primary_graph, current, graphs),
-          current,
-          stage_known,
+          resolved_graph, current, stage_known,
         )
         lower_script_graph_rows(
           construction,
@@ -465,7 +474,7 @@ pub fn compile_query_script(
           "aql_script_result",
           retained,
           known=stage_known,
-          current=primary_graph,
+          current=resolved_graph,
         )
       } else {
         lower_script_relation(
