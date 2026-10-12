@@ -9,6 +9,17 @@ without networking. An opaque handle retains the original SDK invocation until
 its response is supplied or cancellation settles. Raw SDK exceptions are not
 exposed as diagnostics. No synchronous Model executor is added.
 
+The private original-request consumer obtains generation settings from the
+admitted MoonBit Task rather than inventing SDK defaults. It preserves requested
+temperature, top-p, output-token limit and optional seed. Decision has no such
+settings and refuses this generation builder. Integers outside the selected
+SDK's exact Number range refuse before preparation; this is not a restriction
+of the common Task's Int64 domain. The pinned JS ABI's signed Int64 interpretation
+is explicit. The installation still owns model-selector mapping, admitted
+prompt/schema, credentials and physical-profile compatibility; this projection
+does not establish any of them. The actual fixture verifies this mapping only
+for its selected non-reasoning chat profile, not every OpenAI model.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final
