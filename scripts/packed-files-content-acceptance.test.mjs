@@ -87,6 +87,24 @@ test('Pure runner requires a verified producer before any scratch or packing', (
   assert.match(result.stderr, /PackedPureContentRequiresVerifiedProducer/u);
   assert.doesNotMatch(result.stdout, /PACKED_CONTENT_CASE|Packed Client packages/u);
 });
+test('copied tarballs must match the original five producer digests before installation', () => {
+  const original = {revision: 'a'.repeat(40), tarballs: Object.fromEntries(
+    ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node']
+      .map((name, index) => [name, String(index + 1).repeat(64)]))};
+  const copied = {...original.tarballs};
+  verifyPackedContentProducerManifest(original, original.revision, copied);
+  for (const mutate of [
+    body => { body.sdk = 'f'.repeat(64); },
+    body => { delete body.sdk; },
+    body => { body.extra = '1'.repeat(64); },
+  ]) {
+    const changed = {...copied};
+    mutate(changed);
+    assert.throws(() => verifyPackedContentProducerManifest(
+      original, original.revision, changed), /PackedContentCopiedTarballMismatch/u);
+  }
+  assert.deepEqual(original.tarballs, copied);
+});
 for (const [name, mutate] of [
   ['Source replay after restart', facts => { facts.phases.at(-1).reads = 1; }],
   ['generation replay after restart', facts => { facts.phases.at(-1).generations = 1; }],

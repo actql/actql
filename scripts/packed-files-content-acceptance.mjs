@@ -36,7 +36,7 @@ export function packedContentSelection(args = []) {
 
 // Data/provenance check only. The package consumer must still read and compare
 // every actual tarball digest; this shape cannot issue admission or custody.
-export function verifyPackedContentProducerManifest(producer, revision) {
+export function verifyPackedContentProducerManifest(producer, revision, copiedTarballs) {
   assert.equal(producer?.revision, revision, 'PackedContentProducerRevisionMismatch');
   assert.ok(producer.tarballs !== null && typeof producer.tarballs === 'object' &&
     !Array.isArray(producer.tarballs), 'PackedContentProducerRequiresFivePackages');
@@ -44,6 +44,8 @@ export function verifyPackedContentProducerManifest(producer, revision) {
     'PackedContentProducerRequiresFivePackages');
   assert.ok(CLIENT_PACKAGES.every(name => typeof producer.tarballs[name] === 'string' &&
     /^[0-9a-f]{64}$/u.test(producer.tarballs[name])), 'PackedContentInvalidProducerDigest');
+  if (copiedTarballs !== undefined) assert.deepEqual(copiedTarballs, producer.tarballs,
+    'PackedContentCopiedTarballMismatch');
 }
 
 export function verifyPackedContentScenario({scenario, phases, bytes, receipt}) {

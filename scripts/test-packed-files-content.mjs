@@ -28,10 +28,9 @@ assert.ok(initial.clean, 'Packed Content requires committed source, not a diagno
 // later manifest replacement cannot silently mix producer observations.
 const producerManifest = producerDirectory === undefined || producerDirectory === ''
   ? undefined : await readFile(join(producerDirectory, 'packed-client-packages.json'));
-if (producerManifest !== undefined) {
-  const producer = JSON.parse(producerManifest.toString('utf8'));
-  verifyPackedContentProducerManifest(producer, initial.revision);
-}
+const producer = producerManifest === undefined ? undefined
+  : JSON.parse(producerManifest.toString('utf8'));
+if (producer !== undefined) verifyPackedContentProducerManifest(producer, initial.revision);
 const scratchParent = join(repository, '..', '.codex-scratch');
 const evidence = createCommandEvidence({scratch: scratchParent, revision: initial.revision,
   cwd: repository, prefix: 'packed-files-content-evidence-'});
@@ -70,21 +69,26 @@ try {
     await readFile(join(producerDirectory, 'packed-client-packages.json')), producerManifest,
     'PackedContentProducerManifestChanged');
   assert.deepEqual(checkoutState(repository), initial, 'packing changed source identity');
+  nonsecretReceipt.packages = [];
+  const copiedTarballs = {};
+  // Bind the actual copied bytes before npm can install them. Checking only
+  // the producer path before copying does not establish destination identity.
+  for (const name of CLIENT_PACKAGES) {
+    const sha256 = createHash('sha256').update(await readFile(join(scratch.path,
+      `actql-${name}-0.0.0-development.tgz`))).digest('hex');
+    copiedTarballs[name] = sha256;
+    nonsecretReceipt.packages.push({name, sha256});
+    evidence.summary.tarballs.push({name: `actql-${name}-0.0.0-development.tgz`, sha256});
+  }
+  if (producer !== undefined) verifyPackedContentProducerManifest(
+    producer, initial.revision, copiedTarballs);
+  evidence.persist();
   await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n', {flag: 'wx'});
   run('npm', ['install', '--ignore-scripts', '--no-save', '--no-audit', '--no-fund',
     ...CLIENT_PACKAGES.map(name => join(scratch.path, `actql-${name}-0.0.0-development.tgz`))]);
   auditPackedPackages(application, CLIENT_PACKAGES);
   const staged = await stagePackedContentFixtures({repository, application});
   nonsecretReceipt.fixture = staged;
-  nonsecretReceipt.packages = [];
-  // Exact tarball digests, not registry versions, bind this installation.
-  for (const name of CLIENT_PACKAGES) {
-    const sha256 = createHash('sha256').update(await readFile(join(scratch.path,
-      `actql-${name}-0.0.0-development.tgz`))).digest('hex');
-    nonsecretReceipt.packages.push({name, sha256});
-    evidence.summary.tarballs.push({name: `actql-${name}-0.0.0-development.tgz`, sha256});
-  }
-  evidence.persist();
   const childEnvironment = {...environment,
     PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
   delete childEnvironment.ACTQL_PACKED_CLIENT_PACKAGES;
