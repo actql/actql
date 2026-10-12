@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installModelProviders} from './installed-model.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
+import {selectedInferOriginalMetadataLimits} from './infer-original-installation.mjs';
 
 function fixture() {
   let installations = 0, sends = 0, lookups = 0;
@@ -24,6 +25,43 @@ const originalInstallation = () => ({
     layout: {response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
       program_definition_cid: 'program', parameter_values_cid: 'parameters',
       barrier_cid: 'barrier', prepared_rows: 3n, retained_bytes: 7n, execution_bytes: 5n}}});
+
+test('metadata declaration is captured only by the retained original installation and exact selection', () => {
+  const {moon, entry, counts} = fixture();
+  const declaration = originalInstallation();
+  declaration.metadataAcquisition = {metadata: {maxWireBytes: 512, maxLedgerEntries: 4},
+    directory: {maxWireBytes: 256, maxDirectoryEntries: 2}, retainedBytes: 7n, workspaceBytes: 5n};
+  const selected = installModelProviders(moon, () => [{...entry, originalReadInstallation: declaration}])
+    .get(entry.providerId).originalReadInstallation;
+  const original = selectedInferOriginalMetadataLimits(selected, selected.nodeInstallation);
+  declaration.metadataAcquisition.metadata.maxLedgerEntries = 100;
+  declaration.metadataAcquisition.workspaceBytes = 100n;
+  assert.equal(original.metadata.maxLedgerEntries, 4);
+  assert.equal(original.workspaceBytes, 5n);
+  assert.ok(Object.isFrozen(original.metadata) && Object.isFrozen(original.directory));
+  for (const [value, node] of [[{...selected}, selected.nodeInstallation],
+    [selected, {...selected.nodeInstallation}], [true, selected.nodeInstallation]]) {
+    assert.throws(() => selectedInferOriginalMetadataLimits(value, node), {code: 'InferOriginalMetadataAcquisitionUnavailable'});
+  }
+  assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
+test('metadata declaration refuses missing amounts nonfinite clamps and Provider metadata substitutes before installation', () => {
+  const good = {metadata: {maxWireBytes: 512, maxLedgerEntries: 4},
+    directory: {maxWireBytes: 256, maxDirectoryEntries: 2}, retainedBytes: 7n, workspaceBytes: 5n};
+  for (const metadataAcquisition of [null, {}, {...good, workspaceBytes: undefined},
+    {...good, retainedBytes: 0n}, {...good, workspaceBytes: 1},
+    {...good, metadata: {maxWireBytes: Infinity, maxLedgerEntries: 4}},
+    {...good, metadata: {maxWireBytes: 512, maxLedgerEntries: undefined}},
+    {...good, directory: {maxWireBytes: 256, maxDirectoryEntries: -1}},
+    {...good, metadata_bytes: 512}, {...good, maxObjectBytes: 512}]) {
+    const {moon, entry, counts} = fixture();
+    assert.throws(() => installModelProviders(moon, () => [{...entry,
+      originalReadInstallation: {...originalInstallation(), metadataAcquisition}}]),
+    /InvalidInstalledInferMetadataAcquisition/u);
+    assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
+  }
+});
 
 const rawSelection = () => ({profile: {}, probability: undefined,
   installation: {sdk: null, endpoint: 'original'}, retention: {}, metadata: {}, clock: {}, data: {},

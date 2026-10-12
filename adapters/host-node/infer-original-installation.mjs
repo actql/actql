@@ -6,10 +6,42 @@ const keys = (value, expected) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join(',') === expected;
 const int64 = (value, minimum) => typeof value === 'bigint' && value >= minimum &&
   value <= 9_223_372_036_854_775_807n;
+const originals = new WeakSet();
+const count = (value, minimum = 0) => Number.isSafeInteger(value) && value >= minimum;
+const unavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
+  {code: 'InferOriginalMetadataAcquisitionUnavailable'}); };
+
+function retainMetadata(value) {
+  if (value === undefined) return undefined;
+  if (!keys(value, 'directory,metadata,retainedBytes,workspaceBytes') ||
+      !keys(value.metadata, 'maxLedgerEntries,maxWireBytes') ||
+      !keys(value.directory, 'maxDirectoryEntries,maxWireBytes') ||
+      !count(value.metadata.maxWireBytes, 1) || !count(value.metadata.maxLedgerEntries) ||
+      !count(value.directory.maxWireBytes, 1) || !count(value.directory.maxDirectoryEntries) ||
+      !int64(value.retainedBytes, 1n) || !int64(value.workspaceBytes, 1n)) {
+    throw new TypeError('InvalidInstalledInferMetadataAcquisition');
+  }
+  // Complete simultaneous amounts are supplied by the reviewed installation,
+  // never derived from wire/count clamps, metadata payloads or object limits.
+  return Object.freeze({metadata: Object.freeze({...value.metadata}),
+    directory: Object.freeze({...value.directory}), retainedBytes: value.retainedBytes,
+    workspaceBytes: value.workspaceBytes});
+}
+
+// Data selector of this existing installation issuer, not a grant factory.
+// Copies and independently matching CIDs cannot substitute for the retained
+// original and exact five-field selection captured by its installed operation.
+export function selectedInferOriginalMetadataLimits(original, nodeInstallation) {
+  if (!originals.has(original) || original.nodeInstallation !== nodeInstallation ||
+      original.metadataAcquisition === undefined) unavailable();
+  return original.metadataAcquisition;
+}
 
 export function retainInferOriginalReadInstallation(value) {
   if (value === undefined) return undefined;
-  if (!keys(value, 'bootstrap,modelExecutionBytes,modelRetainedBytes,nodeInstallation') ||
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).filter(name => name !== 'metadataAcquisition').sort().join(',') !==
+        'bootstrap,modelExecutionBytes,modelRetainedBytes,nodeInstallation' ||
       !keys(value.bootstrap,
         'bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations') ||
       !int64(value.bootstrap.bootstrapRetainedBytes, 1n) ||
@@ -30,7 +62,8 @@ export function retainInferOriginalReadInstallation(value) {
   // Copy the finite declaration, not the opaque admitted profile/Owner. Common
   // still checks every original reference and all-R bound before read reserve
   // and again before one-shot claim. There is no permissive fallback.
-  return Object.freeze({bootstrap: Object.freeze({...value.bootstrap}),
+  const metadataAcquisition = retainMetadata(value.metadataAcquisition);
+  const retained = Object.freeze({bootstrap: Object.freeze({...value.bootstrap}),
     modelRetainedBytes: value.modelRetainedBytes,
     modelExecutionBytes: value.modelExecutionBytes,
     nodeInstallation: Object.freeze({layout: Object.freeze({...node.layout}),
@@ -39,5 +72,8 @@ export function retainInferOriginalReadInstallation(value) {
           sdk: node.installation.sdk === null ? null : Object.freeze({...node.installation.sdk}),
         })}),
       runtimeArtifactCid: node.runtimeArtifactCid, layoutArtifactCid: node.layoutArtifactCid,
-      probability: node.probability})});
+      probability: node.probability}),
+    ...(metadataAcquisition === undefined ? {} : {metadataAcquisition})});
+  originals.add(retained);
+  return retained;
 }

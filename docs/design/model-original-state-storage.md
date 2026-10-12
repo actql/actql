@@ -53,3 +53,54 @@ Object byte limits do not bound retention metadata or revision discovery.
 The installation must fund those acquisitions and all Writer/string/UTF-8/
 Store/AEAD/read/ACK overlaps before public use. This role does not introduce a
 numeric profile, fallback ceiling, resource pool or separate Owner.
+## Private original metadata acquisition
+
+The existing trusted Model installation may retain an optional
+`metadataAcquisition` declaration alongside its original read installation:
+
+```text
+{
+  metadata: {maxWireBytes, maxLedgerEntries},
+  directory: {maxWireBytes, maxDirectoryEntries},
+  retainedBytes: Int64-compatible positive bigint,
+  workspaceBytes: Int64-compatible positive bigint
+}
+```
+
+The four acquisition limits are explicit finite safe integers; byte limits are
+positive and entry counts may explicitly be zero. All retention revisions,
+including retired entries, count. Directory entries and cumulative UTF-8 name
+bytes have separate limits. Unknown counts are not zero or unlimited. Provider
+metadata limits and Store object limits are not substitutes. No default
+numerical profile is installed by the presence of these declarations.
+
+The installation snapshots and freezes this data before Run start. Its original
+nominal membership and exact five-field `nodeInstallation` selection are kept;
+an equal object, copied declaration, public packet, CID or Bool cannot select it.
+The operation captures that same installation through
+`originalPreparation.metadataInstallation`, with its existing checked Run,
+Scope and original read. Complete simultaneous retained/workspace amounts must
+cover all original holders and physical/decoder/queue overlap, not just one
+metadata buffer. Acquisition clamps neither calculate nor reserve that envelope.
+
+Only this original operation issues a stable private acquisition handle for its
+current park. The selector rechecks both existing Model/Resource Owners and the
+same read token's retention/execution coverage before I/O and after physical
+awaits. Optional owner-id/request-CID checks use the actual original Run ID and
+Run Definition separately. The returned immutable limits are data, not read,
+restore, COMMIT, approval or send authority. Dispatch admission may remain None.
+
+The handle weakly borrows the operation's four-field record
+`park/selection/handle/current`. Installation snapshots, selector/control frames,
+captured original references, source/UTF-8/parsed trees, directory backing and
+queues must be funded before allocation. Failed cleanup retains that record;
+actual successful operation cleanup clears it. Closing/cancellation refuses new
+acquisition, while the physical Owner's same-FD/directory retry remains separate
+and keeps its custody without requiring a new selector or INFER permission.
+
+This initial seam is current-cut/parked acquisition only. It does not make
+Source/general Evidence or Model prime-before-park depend on a park. Those
+startup lifetimes require their own existing-Scope funding connection. Missing,
+foreign, insufficient or unjustified original installation is unavailable;
+neither this seam nor its component fixtures establish a normal numerical
+profile or public INFER acceptance.
