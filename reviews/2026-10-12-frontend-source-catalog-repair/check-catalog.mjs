@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+const fixture = JSON.parse(readFileSync(new URL('./independent-catalog.json', import.meta.url), 'utf8'));
+const canonical = value => {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+  return JSON.stringify(value);
+};
+const cid = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+const omit = (value, key) => Object.fromEntries(Object.entries(value).filter(([name]) => name !== key));
+const environment = fixture.environment;
+for (const member of environment.contract_registry) assert.equal(cid(omit(member, 'cid')), member.cid);
+assert.deepEqual(environment.contract_registry.map(cid), environment.contract_registry.map(cid).sort());
+for (const view of environment.source_views) assert.equal(cid(omit(view, 'contract_cid')), view.contract_cid);
+for (const catalog of environment.connector_catalogs) assert.equal(cid(omit(catalog, 'catalog_cid')), catalog.catalog_cid);
+assert.equal(cid(omit(environment, 'evidence_bundle_cid')), environment.evidence_bundle_cid);
+assert.deepEqual(omit(environment, 'evidence_bundle_cid'), fixture.independentPreimages.environment);
+const source = readFileSync(new URL('../../src/source_frontend/registered_source_context_test.mbt', import.meta.url), 'utf8');
+assert.ok(source.includes(`#|${canonical(environment)}`));
+console.log('Independent Catalog: 5 contract, view, Catalog and environment hashes + complete-member order + MoonBit bytes match');
