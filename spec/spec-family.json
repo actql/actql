@@ -1914,6 +1914,12 @@
           "pointer": "",
           "cid": "sha256:f4418a7ecfc20cede8ab00dbd961804e82ff96cbb78c20ff342fb6bcf504b6b3",
           "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/artifact_schemas/model_original_resource_state",
+          "cid": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
+          "version": "actql-protocol-schema-registry/0.1"
         }
       ],
       "normative_imports": [
@@ -2331,7 +2337,7 @@
         {
           "owner": "actql.protocol.run",
           "version": "actql/0.1",
-          "document_cid": "sha256:4aaad732f8a4fcdf093f34e271bfd9d98965609bbc881244770e15c6e0b21c15"
+          "document_cid": "sha256:85692fa0ea23f42cb59ae852cc3bdc2829a817e542d2bfe2acd45826d97c607a"
         },
         {
           "owner": "actql.protocol.discovery",

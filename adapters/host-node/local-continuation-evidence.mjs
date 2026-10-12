@@ -30,7 +30,7 @@ const HOLDING_VERSION = 'actql-local-continuation-holding/0.1';
 const NAMESPACE = 'local-continuation-private';
 const NAMES = Object.freeze(['captured_input', 'invocation_request',
   'prepared_invocation', 'review_projection', 'continuation_record',
-  'source_capture']);
+  'source_capture', 'original_model_state']);
 const ATTEMPT = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 const fail = (code, cause) => {
@@ -388,8 +388,14 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       const pending = [];
       for (const id of await listLedgers()) {
         const ledger = await readLedger(id);
+        // A terminal Run, abandonment or missing journal row does not prove
+        // release of original Model state needed by retained Results,
+        // reconciliation or pending cleanup. The exact original Owner's
+        // release observation is not connected here yet; keep this role.
+        // This holding does not own or settle the Model/Ledger token itself.
         const releasable = ledger.holdings.filter(item =>
-          item.name !== 'invocation_request' && item.state !== 'retired');
+          item.name !== 'invocation_request' &&
+          item.name !== 'original_model_state' && item.state !== 'retired');
         if (releasable.length === 0 || needed(ledger)) continue;
         for (const item of releasable) item.state = 'retiring';
         await writeLedger(ledger);

@@ -33,6 +33,62 @@ fn protocol_test_finish(
 }
 
 ///|
+test "protocol positional records preserve order exact length and independent work" {
+  let nodes = [
+    StringRule(Some("original"), [], 0, 0),
+    BoolRule(Some(true)),
+    TupleRule([0, 1]),
+  ]
+  for quantum in [1, 7, 64] {
+    // One visit for the tuple and each field, plus the same indexed controls
+    // as ordinary arrays: 3 * 2 + 2 transitions, independent of quantum.
+    assert_eq(
+      protocol_test_finish(
+        protocol_test_start("[\"original\",true]", nodes, 2, 3),
+        quantum,
+      ),
+      (true, 0, 8),
+    )
+    for
+      wire in [
+        "[true,\"original\"]", "[\"original\"]", "[\"original\",true,null]", "[\"original\",false]",
+      ] {
+      assert_eq(
+        protocol_test_finish(protocol_test_start(wire, nodes, 2, 3), quantum).0,
+        false,
+      )
+    }
+    assert_eq(
+      protocol_test_finish(
+        protocol_test_start("[\"original\",true]", nodes, 2, 2),
+        quantum,
+      ).0,
+      false,
+    )
+    let empty = protocol_test_start("[]", [TupleRule([])], 0, 1)
+    assert_eq(protocol_test_finish(empty, quantum), (true, 0, 2))
+  }
+}
+
+///|
+test "protocol nested tuple cancellation retires frames without copying or refunding" {
+  let nodes = [NumberRule, TupleRule([0, 0]), TupleRule([1, 1])]
+  let cursor = protocol_test_start("[[1,2],[3,4]]", nodes, 2, 7)
+  guard cursor.pending[0] is Visit(input, _) else { fail("input") }
+  for _ in 0..<5 {
+    assert_eq(cursor.advance(1).1, 1)
+  }
+  let spent = cursor.budget.remaining
+  assert_true(spent < 7)
+  cursor.cancel()
+  cursor.cancel()
+  assert_eq(cursor.pending.length(), 0)
+  assert_eq(cursor.budget.remaining, spent)
+  assert_eq(cursor.advance(1), (false, 0))
+  assert_eq(@json.stringify_value(input, 10000, 1000, 16), "[[1,2],[3,4]]")
+}
+
+///|
 test "protocol registered ceilings use exact scalar lengths and existing cursor budgets" {
   for quantum in [1, 7, 64] {
     let strings = [

@@ -454,6 +454,10 @@ pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, Clie
 
 pub fn client_local_completion_free_catalog_cid() -> String
 
+pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
+
+pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+
 pub fn client_model_raw_capture_matches(ClientModelRawCaptureRegistration, ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope) -> Bool
 
 pub fn client_model_raw_capture_policy(ClientModelRawCaptureRegistration) -> @run_publication.BoundModelRawCapturePolicy
@@ -1909,6 +1913,32 @@ pub(all) enum ClientLocalNormalizationIssue {
   SubstitutedJournal
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
+
+pub(all) struct ClientLocalProductAssets {
+  environment : String
+  registry : String
+  values : String
+  fragment : String
+  ordered : String?
+  result_policy : String
+}
+
+pub(all) struct ClientLocalProductCommonOriginals {
+  account : Bytes
+  retention_dependencies : Bytes
+  retention_policy : Bytes
+  store : Bytes
+  result_policy : Bytes
+}
+
+pub(all) enum ClientLocalProductConfigurationIssue {
+  InvalidLocation
+  InvalidObservationTime
+  InvalidEnvironment
+  UnsupportedAsset
+  InvalidResultPolicy
+  ConfigurationLimit
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientModelInputCapacityIssue {
   ForeignCallScope
