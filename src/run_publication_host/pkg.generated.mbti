@@ -226,6 +226,8 @@ pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClie
 
 pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> @run_publication.CapturedEffectDependencyBody?
 
+pub fn client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
+
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
@@ -1464,6 +1466,12 @@ pub(all) enum ClientCompiledRunIssue {
   TaskBinding(ClientTaskRunBindingIssue)
   EffectBinding(ClientEffectCompiledRunIssue)
 }
+
+pub(all) enum ClientCompiledRunPlanIssue {
+  ForeignCompilation
+  UnsupportedCompilation
+  Projection(ClientInteractivePlanIssue)
+} derive(Eq, @debug.Debug)
 
 pub struct ClientDirectResultRoot {
   wire : String
