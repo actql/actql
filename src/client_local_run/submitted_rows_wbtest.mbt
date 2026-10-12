@@ -20,6 +20,9 @@ fn submitted_rows_preparation(
 ///|
 fn submitted_rows_plan(
   value : @input.LocalSubmittedPreparation,
+  created_at? : String = "2026-10-12T00:00:00.000Z",
+  valid_until? : String = "2099-01-01T00:00:00.000Z",
+  run_id? : String = "original-submitted-run",
 ) -> LocalRunPlan {
   let input = @input.local_submitted_preparation_input(value)
   let current = account(Allow)
@@ -33,9 +36,9 @@ fn submitted_rows_plan(
     context_cid(),
     "sha256:" + "c".repeat(64),
     "local",
-    "original-submitted-run",
-    "2026-10-12T00:00:00.000Z",
-    "2099-01-01T00:00:00.000Z",
+    run_id,
+    created_at,
+    valid_until,
     (source_free_original_policy_cid, source_free_original_policy),
   ).unwrap()
 }
@@ -55,6 +58,7 @@ fn submitted_rows_prepare(
   before : Bytes,
   current? : @authorization.AdmittedAccountConfiguration = account(Allow),
   now? : Double = 1000.0,
+  local_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
 ) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue] {
   let input = @input.local_submitted_preparation_input(value)
   prepare_local_submitted_run_rows(
@@ -69,6 +73,181 @@ fn submitted_rows_prepare(
     tuple(),
     context_cid(),
     now,
+    local_policy_original~,
+  )
+}
+
+///|
+fn submitted_rows_finite_policy(
+  plan : LocalRunPlan,
+  adoption? : String = "sha256:" + "a".repeat(64),
+) -> @host.ClientLocalRunPolicyOriginal {
+  // Actual dependency bodies, while physical adoption and read authority are
+  // intentionally not asserted by this pure Owner fixture.
+  let originals = @host.client_local_product_common_originals(
+    "/private/local",
+    "2026-10-12T00:00:00.000Z",
+    @host.client_local_product_assets(),
+  ).unwrap()
+  let profile = @host.client_local_run_policy_profile(originals).unwrap()
+  let at = "2026-10-13T00:00:00.001Z"
+  @host.bind_client_local_run_policy_original(
+    profile,
+    @host.admit_client_submission_reference_record(
+      submitted_rows_reference_wire,
+    ).unwrap(),
+    plan.request,
+    plan.definition,
+    @host.issue_client_local_run_retention_policy(profile, at).unwrap(),
+    at,
+    adoption,
+    "sha256:" + "f".repeat(64),
+  ).unwrap()
+}
+
+///|
+test "first accept row keeps finite packet beyond initial adoption deadline" {
+  let preparation = submitted_rows_preparation("SELECT 1 AS n")
+  let plan = submitted_rows_plan(
+    preparation,
+    created_at="2026-10-13T00:00:00.001Z",
+    valid_until="2026-10-14T00:00:00.001Z",
+  )
+  let policy = submitted_rows_finite_policy(plan)
+  let rows = submitted_rows_prepare(
+    plan,
+    preparation,
+    submitted_rows_before(preparation),
+    local_policy_original=Some(policy),
+  ).unwrap()
+  let (run_key, submission_key, _, run, submitted) = local_submitted_run_rows(
+    rows, plan, preparation,
+  ).unwrap()
+  let (decoded, packet) = @host.decode_client_run_journal_row_with_local_policy(
+    run,
+  ).unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(decoded.definition),
+    local_run_definition_cid(plan),
+  )
+  assert_eq(
+    packet.unwrap(),
+    @utf8.decode(@host.client_local_run_policy_original_body(policy)),
+  )
+  assert_eq(
+    @host.client_local_run_policy_original_issued_at(policy),
+    "2026-10-13T00:00:00.001Z",
+  )
+  assert_eq(
+    @publication.result_retention_interval_state(
+      @host.client_local_run_policy_original_retention(policy),
+      "2026-10-14T00:00:00.001Z",
+    ),
+    Ok("available"),
+  )
+  assert_eq(
+    @publication.result_retention_interval_state(
+      @host.client_local_run_policy_original_retention(policy),
+      "2026-10-14T00:00:00.002Z",
+    ),
+    Ok("retention_expired"),
+  )
+  assert_eq(
+    @publication.result_retention_interval_state(
+      @host.client_local_run_policy_original_retention(policy),
+      "2026-10-15T00:00:00.001Z",
+    ),
+    Ok("delete_due"),
+  )
+  assert_eq(
+    @publication.result_metadata_retention_state(
+      @host.client_local_run_policy_original_retention(policy),
+      "2026-10-20T00:00:00.001Z",
+    ),
+    Ok("delete_due"),
+  )
+  let advanced = @host.client_run_journal_row_body(
+    { ..decoded, dispatch_reserved: true, physical_start_claimed: true, },
+    local_run_policy_originals=packet,
+  ).unwrap()
+  assert_true(
+    validate_local_saved_submitted_rows(
+      rows, plan, preparation, run_key, 9L, advanced, submission_key, 2L, submitted,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "finite row cannot lose replace or renew its saved original packet" {
+  let preparation = submitted_rows_preparation("SELECT 1 AS n")
+  let plan = submitted_rows_plan(
+    preparation,
+    created_at="2026-10-13T00:00:00.001Z",
+    valid_until="2026-10-14T00:00:00.001Z",
+  )
+  let policy = submitted_rows_finite_policy(plan)
+  let rows = submitted_rows_prepare(
+    plan,
+    preparation,
+    submitted_rows_before(preparation),
+    local_policy_original=Some(policy),
+  ).unwrap()
+  let (run_key, submission_key, _, run, submitted) = local_submitted_run_rows(
+    rows, plan, preparation,
+  ).unwrap()
+  let (decoded, packet) = @host.decode_client_run_journal_row_with_local_policy(
+    run,
+  ).unwrap()
+  let foreign = submitted_rows_finite_policy(
+    plan,
+    adoption="sha256:" + "e".repeat(64),
+  )
+  for
+    changed in [
+      None,
+      Some(@utf8.decode(@host.client_local_run_policy_original_body(foreign))),
+      Some(
+        packet
+        .unwrap()
+        .replace(old="2026-10-13T00:00:00.001Z", new="2026-10-14T00:00:00.001Z"),
+      ),
+    ] {
+    let changed_run = @host.client_run_journal_row_body(
+      decoded,
+      local_run_policy_originals=changed,
+    ).unwrap()
+    assert_true(
+      validate_local_saved_submitted_rows(
+        rows, plan, preparation, run_key, 9L, changed_run, submission_key, 2L, submitted,
+      )
+      is Err(CustodyLost),
+    )
+  }
+}
+
+///|
+test "finite packet for another nominal Run cannot enter first accept candidate" {
+  let preparation = submitted_rows_preparation("SELECT 1 AS n")
+  let plan = submitted_rows_plan(
+    preparation,
+    created_at="2026-10-13T00:00:00.001Z",
+    valid_until="2026-10-14T00:00:00.001Z",
+  )
+  let foreign = submitted_rows_plan(
+    preparation,
+    created_at="2026-10-13T00:00:00.001Z",
+    valid_until="2026-10-14T00:00:00.001Z",
+    run_id="another-run",
+  )
+  assert_true(
+    submitted_rows_prepare(
+      plan,
+      preparation,
+      submitted_rows_before(preparation),
+      local_policy_original=Some(submitted_rows_finite_policy(foreign)),
+    )
+    is Err(CustodyLost),
   )
 }
 

@@ -647,6 +647,8 @@ pub fn client_local_product_finite_originals(String, String, String, String, Cli
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
+pub fn client_local_product_sdk_bootstrap_originals(String, String) -> Result[ClientLocalProductSDKBootstrapOriginals, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_run_policy_metadata_cursor(Bytes) -> Result[@decode_core.Cursor, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
@@ -2594,6 +2596,12 @@ pub(all) enum ClientLocalProductConfigurationIssue {
   InvalidResultPolicy
   ConfigurationLimit
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalProductSDKBootstrapOriginals {
+  original : ClientLocalProductBootstrapOriginals
+  profile : ClientLocalRunPolicyProfile
+  read : @run_publication.LocalSDKResultReadSelection
+}
 
 type ClientLocalRunPolicyOriginal
 
