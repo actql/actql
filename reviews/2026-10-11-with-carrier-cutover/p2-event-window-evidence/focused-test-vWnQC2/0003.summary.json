@@ -1,0 +1,68 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-vWnQC2",
+  "revision": "7258f04951320c58c9541badb955158b53f5273d",
+  "source": {
+    "revision": "7258f04951320c58c9541badb955158b53f5273d",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T01:49:19.700Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "moon",
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "src/query_program/event_window_source_test.mbt",
+        "src/query_syntax/event_window_role_test.mbt",
+        "src/query_program/with_vectors_events_test.mbt",
+        "src/query_program/vector_pool_source_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "7258f04951320c58c9541badb955158b53f5273d",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-12T01:49:19.896Z",
+      "endedAt": "2026-10-12T01:49:24.094Z",
+      "elapsedMs": 4196.082167,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 0,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 19,
+        "passed": 19,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}
