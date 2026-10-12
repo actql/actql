@@ -1935,6 +1935,74 @@ pub fn client_program_admitted_model_provider(
 }
 
 ///|
+/// Provider-specific preparation reads admitted originals without dispatch.
+#export_name("clientProgramProjectOpenAIChatRequest")
+pub fn client_program_project_openai_chat_request(
+  provider : @model.AdmittedModelProvider,
+  request : @model.ModelRequest,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_frames : Int,
+  max_work : Int,
+) -> Result[
+  (String, String, String, String, String, String, String),
+  @model.OpenAIChatProjectionIssue,
+] {
+  @model.project_openai_chat_request(
+    provider, request, max_bytes, max_nodes, max_depth, max_frames, max_work,
+  )
+}
+
+///|
+#export_name("clientProgramOpenAIChatProjectionIssueKind")
+pub fn client_program_openai_chat_projection_issue_kind(
+  issue : @model.OpenAIChatProjectionIssue,
+) -> String {
+  match issue {
+    @model.ForeignRequest => "foreign_request"
+    @model.Unsupported => "unsupported"
+    @model.Limit => "limit"
+  }
+}
+
+///|
+/// Incremental read-only preparation; no Run or call authority is issued.
+#export_name("clientProgramStartOpenAIChatProjection")
+pub fn client_program_start_openai_chat_projection(
+  provider : @model.AdmittedModelProvider,
+  request : @model.ModelRequest,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_frames : Int,
+  max_work : Int,
+) -> Result[@model.OpenAIChatProjection, @model.OpenAIChatProjectionIssue] {
+  @model.start_openai_chat_projection(
+    provider, request, max_bytes, max_nodes, max_depth, max_frames, max_work,
+  )
+}
+
+///|
+#export_name("clientProgramAdvanceOpenAIChatProjection")
+pub fn client_program_advance_openai_chat_projection(
+  cursor : @model.OpenAIChatProjection,
+) -> Result[
+  (String, String, String, String, String, String, String)?,
+  @model.OpenAIChatProjectionIssue,
+] {
+  @model.advance_openai_chat_projection(cursor)
+}
+
+///|
+#export_name("clientProgramRetireOpenAIChatProjection")
+pub fn client_program_retire_openai_chat_projection(
+  cursor : @model.OpenAIChatProjection,
+) -> Unit {
+  @model.retire_openai_chat_projection(cursor)
+}
+
+///|
 /// The graph binds references but does not authorize a Run or a model call.
 #export_name("clientProgramInferPlanGraph")
 pub fn client_program_infer_plan_graph(

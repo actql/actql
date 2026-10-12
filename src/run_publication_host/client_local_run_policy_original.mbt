@@ -190,6 +190,17 @@ pub fn client_local_run_policy_original_issued_at(
 }
 
 ///|
+/// Project the already-admitted original read endpoint. This is not a grant,
+/// a current clock, a renewed Policy or a change to the retention endpoint.
+pub fn client_local_run_policy_original_read_expires_at(
+  original : ClientLocalRunPolicyOriginal,
+) -> String {
+  run_profile_value(@publication.publication_contract_json(original.retention))
+  .bind(value => run_profile_text(value, "available_until"))
+  .unwrap_or("")
+}
+
+///|
 /// Structural Run correspondence for the existing journal inventory reader.
 /// This returns no selected profile, original custody or permission. Native
 /// current/adoption and actual dependency-body admission remain separate.
