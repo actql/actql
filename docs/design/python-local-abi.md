@@ -1556,3 +1556,25 @@ fallback. These private projections provide no Store key selection, write,
 current publisher grant, durable acknowledgement or restored Run state. Actual
 Wasm consumption, product aggregate accounting and public Local/wheel acceptance
 remain separate from compile and physical-adapter facade tests.
+
+## Original submitted input preparation
+
+Private ABI46 adds preparation kind 3 for the existing SDK submitted-intent
+envelope (`kind`, `input`, `parameters`). Core retains the original
+`ClientSubmittedIntent` together with the exact `LocalPreparedInput` produced
+from that envelope. Run preparation and restoration require that same nominal
+prepared input; a separately prepared document cannot replace it. This is input
+preparation custody, not durable Submission admission or permission to dispatch.
+
+Structured Program input uses the existing JSON frontend. Query input selects
+the existing explicit SQL or AQL-text frontend and preserves its original text,
+parameter declarations and supplied bindings. Missing bindings and explicit NULL
+remain distinct in the existing Checker. The installed Local profile rejects
+other query formats before preparation and does not try another format. No
+Source, Compute, Model, Effect or persistent Run operation is started by this
+preparation. Earlier module ABIs are rejected by the strict installed loader.
+
+The shared checked-binding validator is the original Native journal's pure
+request/prepared/compiled/definition check, reused by Local. Native still owns
+its original admission transaction and issuance count; this extraction neither
+acknowledges persistence nor grants publication authority.
