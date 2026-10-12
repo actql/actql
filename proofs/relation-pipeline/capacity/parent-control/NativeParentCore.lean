@@ -56,3 +56,32 @@ def retired : Footprint := ⟨64, 56, 56, 240, 80, 16, 24, 0, 0, 24, 0, 0⟩
 theorem retired_owner_witness : retired.bytes = 560 := by rfl
 
 end NativeParentCore
+
+/- Separate driver source-correspondence premises. These definitions describe
+   when a held snapshot callback may be detached, not its allocation extent.
+   The three NativeParentCore theorem statements above are unchanged. In
+   particular, `retired` is not evidence that this driver callback disappeared.
+   `complete` is the observed callback return, not an inferred physical stop;
+   the registered importer/input-stop and storage premises remain independent. -/
+namespace DriverSnapshotCorrespondence
+
+def callbackAfterCleanup (held complete : Bool) : Bool := held && !complete
+def retirementEligible (held : Bool) : Bool := !held
+
+structure FinalizationGate where
+  live : Bool
+  restored : Bool
+  storageReleased : Bool
+  storedAbsent : Bool
+  streamAbsent : Bool
+  receiptAbsent : Bool
+  originalValueReady : Bool
+
+def FinalizationGate.accepted (g : FinalizationGate) : Bool :=
+  g.live && g.restored && g.storageReleased && g.storedAbsent &&
+  g.streamAbsent && g.receiptAbsent && g.originalValueReady
+
+def callbackAfterFinish (held : Bool) (g : FinalizationGate) : Bool :=
+  held && !g.accepted
+
+end DriverSnapshotCorrespondence

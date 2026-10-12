@@ -1592,6 +1592,20 @@ it is named. Demand uses the original checked producer/import/projection edges;
 it does not waive input-required order, type, Catalog or profile obligations.
 Normal Host preparation and Result publication remain strict.
 
+The NONE-input `time_series(start: value, end: value, step: value)` primary
+produces a Relation through the existing common TEA generator. Use it in
+`WITH grid AS (time_series(...)) SELECT time FROM grid ORDER BY time`, or as
+an AQL-text primary followed by ordinary Pipe operators. SQL retains its
+WITH/SELECT query-head selection. The closed arguments are exactly start,
+end and step, using the endpoint and positive-step forms of the common
+`time_series` contract. A generator cannot consume a current Pipe input.
+The common checker determines the timestamp field, key, ascending generation
+order, range/arithmetic validity and resolved bounds; the frontend does not
+sample rows or substitute Parameter defaults. Unused bodies remain statically
+checked and only demanded generators remain in execution. Relation primaries
+are not Graph values or implicit Source reads. Installed public execution
+and the optional Calendar profile remain separate acceptance obligations.
+
 WITH can retain Relation, Graph, Vectors or Events according to the admitted
 common contract. The installed constructor and Graph consumer connections
 are described below. Typed Pipe calls also connect `to_vectors(id: field,
@@ -2236,3 +2250,92 @@ Initial support is Relation create and same-schema whole-table replace using
 the installed writer's admitted types. Syntax does not authorize a write.
 Append/upsert, schema evolution, automatic Catalog observation and other Carrier
 writers are separate implementation units.
+
+
+### Named temporal correlations
+
+The adopted ActQL Pipe calls `asof_join` and `interval_join` lower to the
+existing two-input TEA operations. Their `with:` value is a bare or backtick
+lexical producer reference, never a String containing a producer name. The
+current producer is the left operand. It is resolved and retained through the
+ordinary binding/capture Owner; a shared input is not acquired again.
+
+```aql
+WITH ticks AS (SELECT 1 AS id, 10 AS at),
+  spans AS (SELECT 7 AS id, 5 AS begin, 15 AS finish)
+FROM ticks AS t
+  |> interval_join(with: spans, kind: 'left', mode: 'point_in_interval',
+       on: [], left: {time: t.at},
+       right: {start: spans.begin, end: spans.finish},
+       select: {id: left.id, value: right.id}, max_output_rows: 3)
+  |> SELECT id, value |> ORDER BY id;
+```
+
+`asof_join` accepts exactly `with`, `kind`, `by`, `left_time`, `right_time`,
+`direction`, `tolerance`, `select`, and optional `left_id`, `right_tie_break`.
+`interval_join` accepts exactly `with`, `kind`, `mode`, `on`, `left`, `right`,
+and optional `select`, `max_output_rows`. Required/optional membership follows
+[the common as-of contract](language.md#asof-join) and
+[the interval contract](language.md#interval-join), including kind restrictions.
+No default tolerance, identity, pair or output guard is inserted by this surface.
+
+The pair-list `left` and `right` fields, temporal-record fields, `left_id`,
+`left_time`, `right_time` and `right_tie_break` retain typed FieldRef roles.
+Unqualified references use the signature's operand. The corresponding fixed
+`left.field`/`right.field` qualifier is allowed; left fields may use the current
+row alias and right fields the resolved `with` producer qualifier. A current
+row alias takes priority over a same-name WITH producer. A qualifier for the
+other operand is rejected instead of looking up a coincidentally named column.
+`select` uses ordinary OutputNames, including the existing reserved/quoted-name
+rules, mapped to explicit `left.field` or `right.field` selectors.
+Repeated pairs and tie-break fields retain their authored order and occurrence.
+
+Whole Parameters for tolerance and output guards retain their existing common
+binding obligations. As-of admits Relation or Events on the left and Relation
+on the right, returning a Relation; interval joins require two Relations.
+The common checker owns Carrier/type/NULL contracts, identity/tie completion,
+endpoint validation, logical order, bounds and pending value/resource evidence.
+Text lowering does not establish backend execution or external coverage.
+
+### Named ranking fusion
+
+`merge_rankings` is the adopted ActQL logical Pipe call for the existing
+[common ranking-fusion contract](language.md#merge-rankings). It consumes the
+current Relation and names earlier lexical peers with `with:`. A bare/backtick
+name is a ProducerRef; a String containing that name is not a reference.
+
+```aql
+WITH first AS (SELECT 1 AS id, 1 AS position),
+  other AS (SELECT 2 AS id, 1 AS position)
+FROM first AS current
+  |> merge_rankings(with: [other, other], by: [], candidate: current.id,
+       rank: current.position, k: 3,
+       score_policy: {rrf: {rank_constant: 1, weights: [1, 2, 3], rank_window: 2}})
+  |> SELECT id, score, rank |> ORDER BY rank;
+```
+
+The closed argument keys are `with`, `by`, `candidate`, `score`, `rank`,
+`score_policy`, `score_contract`, `k` and `tie_break`. Common policy checking
+selects required/forbidden members. `by`, `candidate`, `score`, `rank` and
+`tie_break` use ordinary current-row FieldRefs, including the existing explicit
+row-alias and quoted-field rules. Closed policy/score-contract keys are signature
+vocabulary; their authored String values, numeric values and list order are data.
+Repeated group/tie fields are retained until common checking.
+
+Max and weighted_sum use one peer. RRF may use a nonempty flat list. The current
+input occurs first, followed by every authored peer occurrence in list order.
+Binding/capture storage is shared by the existing owner, while repeated
+references remain separate weighted inputs in the ordinary Program and Plan.
+The frontend never deduplicates the RRF list, reweights it, substitutes k for a
+rank window, or changes the floating-point fold. An empty list is not a default.
+The common owner checks complete ranks, keys, domains, weights and all work,
+value, ordering and retained-state bounds before publication.
+
+For max/weighted_sum, `score_contract` does not authenticate arbitrary raw
+number columns. The common retained score-declaration evidence is still
+required. Literal Values with only number fields are rejected with the existing
+MissingScoreContract condition. Score snapshot reconciliation and the frontend
+check-only Context must preserve that evidence before a positive public
+score-fusion claim is made. This is a remaining connection requirement, not a
+new language restriction or permission to invent a declaration. Pure RRF does
+not require score-scale comparability; its own complete-input obligations remain.
