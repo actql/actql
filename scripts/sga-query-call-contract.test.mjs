@@ -480,7 +480,9 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   // The temporal unit also retains its complete authored normative inputs.
   const {grammar_manifest_cid: temporalCid, ...temporalBody} = read('scripts/fixtures/submitted-temporal-join-values-identities.json').grammar;
   assert.equal(cid(temporalBody), temporalCid);
-  assert.deepEqual(temporalBody, {...joinBody, query_text_grammar_sha256: temporalBody.query_text_grammar_sha256, query_text_rules_sha256: temporalBody.query_text_rules_sha256});
+  const {grammar_manifest_cid: preTemporalCid, ...preTemporalBody} = read('scripts/fixtures/pre-temporal-join-values-identities.json').grammar;
+  assert.equal(cid(preTemporalBody), preTemporalCid);
+  assert.deepEqual(temporalBody, {...preTemporalBody, query_text_grammar_sha256: temporalBody.query_text_grammar_sha256, query_text_rules_sha256: temporalBody.query_text_rules_sha256});
   assert.equal(temporalBody.query_text_grammar_sha256,
     fileDigest('reviews/2026-10-12-frontend-temporal-join-calls/preimages/submitted-query-grammar.ebnf'));
   assert.equal(temporalBody.query_text_rules_sha256,
