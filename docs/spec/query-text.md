@@ -1508,7 +1508,8 @@ string)`, `pool_vectors(by: [fields], method: string, vector: field,
 output_id: name)`, `vectors()`, `to_events(id: field, time: field)`,
 `row_window(time: field, kind: string, size: value, step: value?, offset: value?)`,
 `window_events(kind: string, size: value, step: value?, offset: value?)`,
-`watermark_events(watermark_ms: number, policy: string)`, `session(by:
+`watermark_events(watermark_ms: number, policy: string)`,
+`dedupe_events(by: [fields], order_by: [OrderKeys])`, `session(by:
 [fields], gap: string)` and `events()` to their existing common operations.
 Relation-input session additionally requires its existing `id` and `time`
 roles. Field roles resolve visible columns; they are not String values or
@@ -1552,6 +1553,21 @@ fresh output names and values: late means time strictly below the threshold;
 equality is not late. Both policies preserve retained identity, payload and
 relative order. Use `events()` before ordinary Relation projection. These
 source connections do not establish full TEA profile or public execution.
+
+`dedupe_events` preserves Events and the existing [dedupe contract](language.md#dedupe_events).
+`by` is an authored list of visible FieldRefs: an empty list selects globally,
+and repeated references remain repeated in their original order. `order_by`
+is nonempty and preserves the common OrderKey alternatives: `{score: 'desc'}`
+uses a FieldRef as its single key and the common implicit NULLS LAST;
+`{field: score, dir: 'desc', nulls: 'first'}` preserves explicit NULL placement.
+Quoted names and receiver paths use ordinary retained-column scope; Strings
+cannot replace FieldRefs. The explicit record keys are case insensitive, while
+direction and NULL-placement Strings retain exact values. An omitted argument
+is not filled in by the lowerer. The common owner checks KeyComparable grouping,
+AuthorOrderable order fields, actual identity/payload/clock retention and
+`FailOnTopTie`; input arrival order never supplies a hidden tie breaker.
+Use `events()` before Relation operations. These source/checker connections
+alone do not establish public Host execution.
 
 `FROM p` preserves the resolved Carrier. `FROM GRAPH p` adds a Graph expectation;
 it does not search past a nearer Relation binding. MATCH accepts Graph with or

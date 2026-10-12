@@ -166,7 +166,7 @@ pub fn install_publisher(
   guard selected(nonce) is Some(value) &&
     value.publishers.get(handle) is Some(child) &&
     value.publication_preflights.get(child.parent)
-    is Some({ closing: false, preflight: Some(preflight), .. }) &&
+    is Some({ closing: false, preflight: Some(preflight), compute, .. }) &&
     value.run_configurations.get(current_configuration) is Some(_) else {
     return -2
   }
@@ -175,6 +175,13 @@ pub fn install_publisher(
   }
   if child.port is Some(_) {
     return -3
+  }
+  // Follow the original Run's retained configuration. A newer current Account
+  // may revoke publication, but cannot supply or replace its original policy.
+  guard value.computes.get(compute) is Some(compute) &&
+    stored_compute_original_run(value, compute) is Some(original_run) &&
+    value.run_configurations.get(original_run.configuration) is Some(original) else {
+    return -36
   }
   let borrow = match child.borrow {
     Ok(borrow) => borrow
@@ -191,6 +198,7 @@ pub fn install_publisher(
     @local_run.install_local_preflight_publisher_port(
       preflight,
       store,
+      original.account,
       () => value.run_configurations.get(child.configuration).unwrap().account,
       () => publisher_current(value, child),
       fact => publisher_authorize(child, fact),
@@ -201,7 +209,16 @@ pub fn install_publisher(
       child.store = store
       0
     }
-    Err(_) => if child.unknown { -36 } else { -32 }
+    Err(issue) =>
+      if child.unknown {
+        -36
+      } else {
+        match issue {
+          AccessDenied => -35
+          NotCurrent => -32
+          _ => -31
+        }
+      }
   }
 }
 

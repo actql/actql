@@ -3,6 +3,7 @@
 // operation accepts a caller-provided allow callback inside a transaction.
 priv enum NativeLocalPolicyAuthorityPurpose {
   SubmitOriginals
+  PublishRun
   ReadRunMaterials
   ReadResultPolicy(String)
 }
@@ -36,6 +37,7 @@ fn NativeLocalPolicyAuthority::current_for(
   }
   let operation = match self.purpose {
     SubmitOriginals => "submit"
+    PublishRun => "publish"
     ReadRunMaterials | ReadResultPolicy(_) => "read"
   }
   if !(self.host.authorize({
@@ -48,7 +50,7 @@ fn NativeLocalPolicyAuthority::current_for(
     return false
   }
   match self.purpose {
-    SubmitOriginals | ReadRunMaterials => true
+    SubmitOriginals | PublishRun | ReadRunMaterials => true
     ReadResultPolicy(name) =>
       self.host.authorize({
         principal: self.principal,
