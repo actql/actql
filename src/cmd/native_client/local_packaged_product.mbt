@@ -76,16 +76,32 @@ fn local_packaged_runtime(
     }
     Err(_) => stop("PackagedLocalRuntimeUnavailable")
   }
-  let manifest = physical
-    .manifest()
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  let assets = physical
-    .assets()
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  let (sqlite, crypto) = physical
-    .library_paths()
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  { manifest, sqlite, crypto, assets, physical, }
+  local_packaged_runtime_from_physical(physical)
+}
+
+///|
+fn local_packaged_runtime_from_physical(
+  physical : @local_host.NativeLocalPackagedRuntime,
+) -> LocalPackagedRuntime raise ClientStop {
+  try {
+    let manifest = physical
+      .manifest()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    let assets = physical
+      .assets()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    let (sqlite, crypto) = physical
+      .library_paths()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    { manifest, sqlite, crypto, assets, physical, }
+  } catch {
+    error => {
+      if physical.close() is Err(_) {
+        stop("PackagedLocalRuntimeCleanupPending")
+      }
+      raise error
+    }
+  }
 }
 
 ///|

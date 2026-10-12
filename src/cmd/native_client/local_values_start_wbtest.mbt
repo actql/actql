@@ -143,3 +143,34 @@ test "current runtime asset selection keeps original Result Policy identity and 
   }
   assert_true(rejected)
 }
+
+///|
+// Exercise getter refusal and unacknowledged cleanup with the real opaque
+// filesystem carrier. This does not directly recreate a post-open path race.
+test "packaged runtime getter refusal retains unacknowledged cleanup" {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT").unwrap()
+  let path = parent + "/runtime-constructor-pending"
+  let root = @local_filesystem.open_root(path).unwrap()
+  let writer = root.create_writer("manifest.stage", 2L).unwrap()
+  writer.append(b"{}").unwrap()
+  writer.seal("local-runtime.json").unwrap() |> ignore
+  root.close().unwrap()
+  guard @local_host.open_native_local_packaged_runtime(
+      path,
+      "a".repeat(40),
+      "darwin-arm64",
+      "b".repeat(64),
+    )
+    is Err(Pending(physical, _)) else {
+    fail("diagnostic must retain the original pending cleanup carrier")
+  }
+  let stopped = try {
+    local_packaged_runtime_from_physical(physical) |> ignore
+    "unexpected-success"
+  } catch {
+    ClientStop(reason) => reason
+  }
+  assert_eq(stopped, "PackagedLocalRuntimeCleanupPending")
+  assert_true(physical.check_current() is Err(Changed))
+  assert_true(physical.close() is Err(CleanupPending))
+}
