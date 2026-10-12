@@ -1225,13 +1225,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:24939a508d342f03f49108be203bc432feb2e96c73d4f70789fe709cfad45f59");
+    "sha256:8583616304b53721127a9801b59aea12c2c7bf553d5130c53a38a533c684525b");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:74db514d304be03e8b5849acef8c8bc77933c2d9172a5af64bcbef7c6822f913");
+    "sha256:d666dd8b9f0d6d02939ee928711c19bbe0fe3a921a0d64c819386b2ebb9c9d67");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:4fe4927147b6cdd1f0d4765eb6e229602ec804f85e7d7cfbef25fdb0bea405aa");
+    "sha256:252141828f86bcbc4063bbe26cd428652b950e9edf5e864c6777b6416c4ca079");
   assert.equal(current.run.run_definition_cid,
-    "sha256:1b65662553b0ec3d4e55ec07eff0f9060b7a8ad6860466712cfb68576bc8d76a");
+    "sha256:12bf2b06808781ed3ee15ce8fd7e9ad229401a075bfc69f00960899fb9ff912c");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(
