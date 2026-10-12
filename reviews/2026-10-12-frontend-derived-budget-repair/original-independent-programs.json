@@ -1,0 +1,656 @@
+{
+  "base": "b0ae22c042efc04f90c7c279e2cc51aadc4651cf",
+  "note": "Original independently authored Program oracles retained unchanged. Current oracles are authored by producer composition, not generated from implementation output.",
+  "oracles": [
+    {
+      "file": "optional_derived_alias_test.mbt",
+      "kind": "Values projection",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.sql_set",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "a": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "b": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "a": 1,
+                      "b": "x"
+                    },
+                    {
+                      "a": 1,
+                      "b": "x"
+                    },
+                    {
+                      "a": 2,
+                      "b": "y"
+                    },
+                    {
+                      "a": null,
+                      "b": "n"
+                    }
+                  ]
+                },
+                "as": "aql_script_seed_3"
+              },
+              {
+                "from": "aql_script_seed_3",
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "a"
+                    },
+                    {
+                      "literal": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "a",
+                  "b"
+                ],
+                "as": "aql_script_cte_2"
+              },
+              {
+                "from": "aql_script_cte_2",
+                "select": [
+                  "b",
+                  "a"
+                ],
+                "as": "aql_script_result"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_script_result",
+                "fields": [
+                  "b",
+                  "a"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "nested_query_test.mbt",
+      "kind": "Values projection",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.sql_set",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "a": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "b": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "a": 1,
+                      "b": "x"
+                    },
+                    {
+                      "a": 1,
+                      "b": "x"
+                    },
+                    {
+                      "a": 2,
+                      "b": "y"
+                    },
+                    {
+                      "a": null,
+                      "b": "n"
+                    }
+                  ]
+                },
+                "as": "aql_script_seed_3"
+              },
+              {
+                "from": "aql_script_seed_3",
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "a"
+                    },
+                    {
+                      "literal": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "a",
+                  "b"
+                ],
+                "as": "aql_script_cte_2"
+              },
+              {
+                "from": "aql_script_cte_2",
+                "select": [
+                  "b",
+                  "a"
+                ],
+                "as": "aql_script_result"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_script_result",
+                "fields": [
+                  "b",
+                  "a"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "nested_query_test.mbt",
+      "kind": "Single captured projection",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.query_pair",
+        "stages": [
+          {
+            "id": "capture",
+            "inputs": {
+              "orders": {
+                "carrier": "relation",
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "status": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "amount": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "primary_key": [
+                  "id"
+                ]
+              }
+            },
+            "steps": [
+              {
+                "from": "orders",
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "amount"
+                    },
+                    {
+                      "literal": 10
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ],
+                "as": "aql_capture_0"
+              }
+            ],
+            "results": {
+              "source": {
+                "from": "aql_capture_0",
+                "fields": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "orders": {
+                "result": {
+                  "stage": "capture",
+                  "result": "source"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "orders",
+                "select": [
+                  "id"
+                ],
+                "as": "aql_script_result"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_script_result",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "nested_query_test.mbt",
+      "kind": "Shared captured UNION ALL",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.query_pair",
+        "stages": [
+          {
+            "id": "capture",
+            "inputs": {
+              "orders": {
+                "carrier": "relation",
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "status": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "amount": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "primary_key": [
+                  "id"
+                ]
+              }
+            },
+            "steps": [
+              {
+                "from": "orders",
+                "filter": {
+                  "literal": true
+                }
+              },
+              {
+                "select": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ],
+                "as": "aql_capture_0"
+              }
+            ],
+            "results": {
+              "source": {
+                "from": "aql_capture_0",
+                "fields": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "orders": {
+                "result": {
+                  "stage": "capture",
+                  "result": "source"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "orders",
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "amount"
+                    },
+                    {
+                      "literal": 10
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "aql_data_set_term_2"
+              },
+              {
+                "from": "orders",
+                "filter": {
+                  "lt": [
+                    {
+                      "field": "amount"
+                    },
+                    {
+                      "literal": 5
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id"
+                ],
+                "as": "aql_data_set_term_3"
+              },
+              {
+                "from": "aql_data_set_term_2",
+                "append": {
+                  "with": "aql_data_set_term_3"
+                },
+                "as": "aql_script_cte_1"
+              },
+              {
+                "from": "aql_script_cte_1",
+                "select": [
+                  "id"
+                ],
+                "as": "aql_script_result"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_script_result",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "cte_pipe_test.mbt",
+      "kind": "Values projection",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.sql_set",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "a": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "b": {
+                      "type": "string",
+                      "nullable": false
+                    }
+                  },
+                  "rows": [
+                    {
+                      "a": 1,
+                      "b": "x"
+                    },
+                    {
+                      "a": 1,
+                      "b": "x"
+                    },
+                    {
+                      "a": 2,
+                      "b": "y"
+                    },
+                    {
+                      "a": null,
+                      "b": "n"
+                    }
+                  ]
+                },
+                "as": "aql_script_seed_3"
+              },
+              {
+                "from": "aql_script_seed_3",
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "a"
+                    },
+                    {
+                      "literal": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "a",
+                  "b"
+                ],
+                "as": "aql_script_cte_2"
+              },
+              {
+                "from": "aql_script_cte_2",
+                "select": [
+                  "b",
+                  "a"
+                ],
+                "as": "aql_script_result"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_script_result",
+                "fields": [
+                  "b",
+                  "a"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "cte_pipe_test.mbt",
+      "kind": "Single captured projection",
+      "program": {
+        "version": "actql/0.1",
+        "id": "fixture.query_pair",
+        "stages": [
+          {
+            "id": "capture",
+            "inputs": {
+              "orders": {
+                "carrier": "relation",
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "status": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "amount": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "primary_key": [
+                  "id"
+                ]
+              }
+            },
+            "steps": [
+              {
+                "from": "orders",
+                "filter": {
+                  "gt": [
+                    {
+                      "field": "amount"
+                    },
+                    {
+                      "literal": 10
+                    }
+                  ]
+                }
+              },
+              {
+                "select": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ],
+                "as": "aql_capture_0"
+              }
+            ],
+            "results": {
+              "source": {
+                "from": "aql_capture_0",
+                "fields": [
+                  "id",
+                  "customer_id",
+                  "status",
+                  "amount"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "orders": {
+                "result": {
+                  "stage": "capture",
+                  "result": "source"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "orders",
+                "select": [
+                  "id"
+                ],
+                "as": "aql_script_result"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_script_result",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
