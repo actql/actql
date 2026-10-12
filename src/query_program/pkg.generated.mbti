@@ -5,6 +5,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/expression_typing",
+  "actql/actql/frontend_source_map",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_check_context",
   "actql/actql/program_source_builder",
@@ -97,6 +98,7 @@ pub(all) enum InputSource {
 pub(all) enum Issue {
   InvalidContext
   InvalidQuery
+  GraphExpected(@frontend_source_map.Origin?)
   RangeAliasRequiresRelation
   UnknownRelation
   UnresolvedRelation(RelationResolutionReference)
