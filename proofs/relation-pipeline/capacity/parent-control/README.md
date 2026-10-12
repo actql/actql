@@ -186,6 +186,14 @@ comments, literals and interpolation also extend that closure. Fixture enums are
 retained by their named type; common constructor spellings such as `Complete`
 are not treated as references to unrelated fixture types. Actual compilation
 must resolve selected constructor bindings under the retained signatures.
+Immutable constants in the explicitly typed `let name : String =` form may
+contain one or more non-interpolated `#|` raw-string lines. Their entire literal
+range is retained verbatim when referenced, or blanked with offsets/newlines
+preserved when outside the selected closure. Inferred/mutable declarations,
+initializer calls, other types, interpolation and trailing expressions remain
+rejected. This is a narrow diagnostic projection form, not a restriction on
+valid MoonBit source or new execution permission. Identifiers inside raw literal
+text continue to extend the conservative declaration closure.
 Retained helper declarations and their assertions remain unchanged. Imports are
 limited to aliases referenced by the same retained text. Unknown declarations,
 attributes, interpolated raw lines, ambiguous names and malformed input reject
