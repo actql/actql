@@ -8,28 +8,43 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from contextlib import ExitStack
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import os
+import secrets
 from pathlib import Path
 import stat
 import time
 from typing import Any, TypeVar
 
 from . import _wire as wire
-from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
+from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, load_local_module
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
-from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError
+from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._values import wire_bytes
 
 _T = TypeVar('_T')
 _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
                     'consentRefs': [], 'runners': []}
+
+
+@dataclass(eq=False)
+class _PayloadCustody:
+    # Physical metadata and original Core loans only; no payload/Run state.
+    publication: _Output
+    index: int
+    store_authority: str
+    generation: str
+    maximum: int
+    workspace: _Workspace | None = None
+    request: _Output | None = None
+    record: _Output | None = None
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -101,6 +116,8 @@ class InstalledLocalHost:
         self._reader_facts: list[OriginalReaderFacts] = []
         self._publication_write_attempts: set[int] = set()
         self._pending_publication_write: OriginalCommitProjection | None = None
+        self._payloads: list[_PayloadCustody] = []
+        self._payload_write_attempts: set[int] = set()
         self._inputs: list[_Input] = []
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
@@ -801,6 +818,120 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return publication
 
+    def _prepare_original_payload(self, publication: _Output, index: int) -> _PayloadCustody:
+        """Bind the retained Result to one existing Core payload Intent.
+
+        An opaque generation is allocated once, as in the existing Native
+        supplier. It is neither a content digest nor an execution permission.
+        Store authority comes from the adopted original; limits are unchanged
+        physical Store bounds. Core selects Result/attempt/schema/ordering.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        store = installation._store
+        if (configuration is None or not configuration.sdk or store is None
+                or type(index) is not int or not 0 <= index < 2**31
+                or not any(original is publication for original in self._publications)):
+            raise ValueError('Foreign original Local payload Result')
+        with self._core._lock:
+            for held in self._payloads:
+                if held.publication is publication and held.index == index:
+                    raise LocalStorageError('Original payload custody is retained; use its observation path')
+            selected = next(value for value in installation.binding._selected if value.name == 'store.json')
+            store_body = installation.binding._source.original_bytes(selected)
+            held = _PayloadCustody(publication, index,
+                'sha256:' + hashlib.sha256(store_body).hexdigest(),
+                'sha256:' + hashlib.sha256(secrets.token_bytes(32)).hexdigest(),
+                store._max_record_bytes)
+            self._payloads.append(held)
+            # Bound simultaneous physical row, decoded text and outer JSON
+            # encoding before making those copies. Core output/copy loans and
+            # original Source metadata holdings remain separately reserved.
+            held.workspace = self._reserve(lambda: self._core.reserve_workspace(
+                8 * 65536 + 512, stopped=lambda: True, cleanup=lambda: True))
+            source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                'store_authority_cid': held.store_authority,
+                'material_generation_cid': held.generation,
+                'max_payload_bytes': held.maximum,
+            }))
+            request = self._reserve(lambda: self._core.reserve_payload_request(
+                publication, index, source, cleanup=lambda: True))
+            held.request = request
+            installation.binding.inspect(lambda _:
+                self._core.produce_payload_request(request, configuration.handle))
+            record = self._reserve(lambda: self._core.reserve_payload_record(
+                request, cleanup=lambda: True))
+            held.record = record
+            installation.binding.inspect(lambda _:
+                self._core.produce_payload_record(record, configuration.handle))
+            return held
+
+    def _payload_original(self, held: _PayloadCustody, *, pending_confirmation: bool = False) -> tuple[OriginalLocalInstallation, _RunConfiguration, _Output]:
+        self._nominal()
+        installation = self._installation if pending_confirmation else self._active()
+        if installation is None or self._core._closed:
+            raise ValueError('Original Local payload installation is unavailable')
+        configuration = self._configuration
+        if (type(held) is not _PayloadCustody or configuration is None
+                or not any(original is held for original in self._payloads)
+                or held.record is None):
+            raise ValueError('Foreign original Local payload custody')
+        self._core._owned_output(held.record, 'payload_record')
+        return installation, configuration, held.record
+
+    def _save_original_payload_intent(self, held: _PayloadCustody) -> None:
+        """Forward one Core-produced Intent CAS, then inspect actual saved bytes."""
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            store = installation._store
+            if store is None:
+                raise ValueError('Original Local payload Store is unavailable')
+            if record.ticket in self._payload_write_attempts:
+                raise LocalStorageError('Original payload write requires lookup; replay is unavailable')
+            captured: list[bytes] = []
+            installation.binding.inspect(lambda _: captured.append(
+                self._core.read_payload_record(record, configuration.handle)))
+            write = ByteWrite(store.namespaced_key('payload_record', held.generation), None, captured[0])
+            with installation.binding.fenced() as fences:
+                def inspect(reader: Any) -> None:
+                    installation.binding.inspect_reader(reader, lambda _:
+                        self._core.begin_payload_record(record, configuration.handle))
+                self._payload_write_attempts.add(record.ticket)
+                result = store.compare_exchange_many_inspected(
+                    (write,), fences, inspect=inspect, current=installation.binding.current)
+            if result is None:
+                raise LocalStorageError('Original payload Intent conflicted; lookup is required')
+            self._observe_original_payload_intent(held)
+
+    def _observe_original_payload_intent(self, held: _PayloadCustody) -> None:
+        """Read the same key without replay; Core confirms only actual Store bytes."""
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held, pending_confirmation=True)
+            store = installation._store
+            if store is None or record.ticket not in self._payload_write_attempts:
+                raise ValueError('Original Local payload write observation is unavailable')
+            def consume(actual: StoredBytes | None) -> None:
+                if actual is None:
+                    raise LocalStorageError('Original Local payload row is unavailable; custody remains pending')
+                # No candidate equality or payload state is decided here.
+                raw = wire_bytes({  # type: ignore[no-untyped-call]
+                    'store_authority_cid': held.store_authority,
+                    'material_generation_cid': held.generation,
+                    'physical_revision': actual.generation,
+                    'record_json': actual.payload.decode('utf-8'),
+                })
+                source = self._copy(raw)
+                self._core.confirm_payload_record(record, source, configuration.handle)
+                if not self._core.close_input(source):
+                    raise LocalProductCleanupPending(self)
+                self._inputs.remove(source)
+            with installation.binding.fenced() as fences:
+                store.inspect_bounded_record_inspected(
+                    store.namespaced_key('payload_record', held.generation), 65536, fences,
+                    inspect=lambda reader, take:
+                        installation.binding.inspect_reader(reader, lambda _: take()),
+                    consume=consume, current=installation.binding.current)
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],
@@ -876,6 +1007,21 @@ class InstalledLocalHost:
                 if not fact.close():
                     return False
                 self._reader_facts.remove(fact)
+            for held in tuple(reversed(self._payloads)):
+                if held.record is not None:
+                    if not self._core.close_payload_record(held.record):
+                        return False
+                    self._payload_write_attempts.discard(held.record.ticket)
+                    held.record = None
+                if held.request is not None:
+                    if not self._core.close_payload_request(held.request):
+                        return False
+                    held.request = None
+                if held.workspace is not None:
+                    if not self._core.close_workspace(held.workspace):
+                        return False
+                    held.workspace = None
+                self._payloads.remove(held)
             for publication in tuple(reversed(self._publications)):
                 if not self._core.close_publication(publication):
                     return False

@@ -713,6 +713,54 @@ class LocalByteStore:
                 # No observation escapes and no cleanup is automatically repeated.
                 database.execute('ROLLBACK')
 
+    def inspect_bounded_record_inspected(
+            self, key: str, max_bytes: int, fences: tuple[ByteFence, ...], *,
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
+            consume: Callable[[StoredBytes | None], object],
+            current: Callable[[], object]) -> None:
+        """Borrow one bounded physical row in the original current read snapshot.
+
+        The key comes from the held original payload request. A missing row is
+        merely an observation; only Core can confirm it or choose a next action.
+        SQL bounds the copy before allocation, independently of the Store-wide
+        record limit. The same namespace/current/fence and cleanup rules apply.
+        This method performs no CAS, reservation, retry, publication or ACK.
+        """
+        self._key(key)
+        if (type(max_bytes) is not int or not 0 < max_bytes <= self._max_record_bytes
+                or not callable(inspect) or not callable(consume)):
+            raise ValueError('Invalid original Local bounded record inspection')
+
+        def observe(reader: _NamespaceReader) -> None:
+            attempts = 0
+            complete = False
+            failure: BaseException | None = None
+
+            def take() -> None:
+                nonlocal attempts, complete, failure
+                try:
+                    attempts += 1
+                    if attempts != 1:
+                        raise ValueError('Repeated original Local record consumption')
+                    reader.current()
+                    actual = self._read_bytes_locked(key, max_bytes=max_bytes)
+                    if consume(actual) is not None:
+                        raise ValueError('Invalid original Local record consumer result')
+                    del actual
+                    reader.current()
+                    complete = True
+                except BaseException as error:
+                    failure = error
+                    raise
+
+            result = inspect(reader, take)
+            if failure is not None:
+                raise failure
+            if result is not None or not complete:
+                raise ValueError('Incomplete original Local record inspection')
+
+        self.inspect_namespaces(fences, inspect=observe, current=current)
+
     def _inspect_namespace_locked(
             self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
