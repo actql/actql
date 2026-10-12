@@ -10241,7 +10241,55 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "shortest_path",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_traverse("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/traverse.mbt",
+        "symbol": "start_traverse"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/traverse.mbt",
+        "symbol": "start_traverse_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "shortest_typed_paths_zero_hop",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_shortest_wbtest.mbt",
+          "fixture": "Shortest shares bounded simple-path execution with typed parallel edges and zero-hop selection"
+        },
+        {
+          "role": "shortest_exact_work_workspace_selection_cancel",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_shortest_wbtest.mbt",
+          "fixture": "Shortest zero-hop execution has independently decomposed total work workspace and mid-selection cancellation"
+        },
+        {
+          "role": "shortest_weights_hop_cap_atomic_overrange",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_shortest_wbtest.mbt",
+          "fixture": "Shortest validates unvisited weights and preserves hop-capped cost selection and atomic overrange"
+        }
+      ],
+      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
     },
     {
       "inventory": "families",
@@ -10414,7 +10462,55 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "reach",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_traverse("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/traverse.mbt",
+        "symbol": "start_traverse"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/traverse.mbt",
+        "symbol": "start_traverse_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "reach_typed_selectors_depth_predicate",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_reach_wbtest.mbt",
+          "fixture": "Reach typed selectors preserve depth zero minimum depth and bounded predicate work"
+        },
+        {
+          "role": "reach_relation_starts_nonnull_membership",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_reach_wbtest.mbt",
+          "fixture": "Reach Relation starts recheck nonnull identities and reject NULL or absent membership"
+        },
+        {
+          "role": "reach_exact_work_workspace_handoff_cancel",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_reach_wbtest.mbt",
+          "fixture": "Reach independently counts exact work workspace and every pending handoff cancellation"
+        }
+      ],
+      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
     },
     {
       "inventory": "families",
@@ -10810,7 +10906,51 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "graft_graph",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_composition_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/union.mbt",
+        "symbol": "start_graph_composition_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "graft_bound_occurrences_independent_output",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_graft_wbtest.mbt",
+          "fixture": "Graph graft selected provider binds both occurrences and retains output independently"
+        },
+        {
+          "role": "graft_exact_work_workspace_one_short",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_graft_wbtest.mbt",
+          "fixture": "Graph graft empty work and workspace exact one short are independently bounded"
+        },
+        {
+          "role": "graft_cancel_input_custody",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_graft_wbtest.mbt",
+          "fixture": "Graph graft provider observes cancellation before output handoff and preserves input custody"
+        }
+      ],
+      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
     },
     {
       "inventory": "families",
@@ -11397,7 +11537,51 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "mean_graphs",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_mean_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/mean.mbt",
+        "symbol": "start_mean_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "mean_finite_profile_independent_output",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_mean_wbtest.mbt",
+          "fixture": "Mean provider requires its finite profile and owns an independent completed Graph"
+        },
+        {
+          "role": "mean_positive_work_cancel_handoff",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_mean_wbtest.mbt",
+          "fixture": "Mean observes every positive-work yield cancellation including private output handoff"
+        },
+        {
+          "role": "mean_exact_work_workspace_operation_boundaries",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/graph_mean_wbtest.mbt",
+          "fixture": "Mean managed empty fold has independent work workspace and exact-operation boundaries"
+        }
+      ],
+      "notes": "Current shared bounded Owner and existing operation-specific fixtures only. The authoritative classification remains partial with contract-only completed layers. No path or resource assurance, physical capacity acceptance, or full boundary completion is asserted."
     },
     {
       "inventory": "families",
