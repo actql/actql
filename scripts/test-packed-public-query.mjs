@@ -41,6 +41,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/event-dedupe-source-input.mjs', 'event-dedupe-source-input.mjs'],
   ['scripts/fixtures/pipe-pivot-source-input.mjs', 'pipe-pivot-source-input.mjs'],
   ['scripts/fixtures/match-with-producer-source-input.mjs', 'match-with-producer-source-input.mjs'],
   ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
@@ -411,6 +412,9 @@ if (process.argv.includes('--graph-shortest-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_SHORTEST_ONLY = '1';
   // Reuse the existing narrow Graph transport profile and retained rereads.
   runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_ONLY = '1';
+}
+if (process.argv.includes('--event-dedupe-only')) {
+  runtimeEnvironment.ACTQL_TEST_EVENT_DEDUPE_ONLY = '1';
 }
 if (process.argv.includes('--graph-mean-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_MEAN_ONLY = '1';
