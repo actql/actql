@@ -44,6 +44,8 @@ fn run_evidence_identity_field(name : String) -> String? {
     | "model_raw_capture_policy"
     | "model_raw_response"
     | "model_original_storage_binding"
+    | "model_journal_entry"
+    | "model_journal_settlement"
     | "model_dispatch_authority"
     | "model_call_attempt"
     | "model_attempt_accounting"
@@ -107,7 +109,9 @@ pub fn seal_run_evidence_value(
       max_wire_bytes,
       max_nodes - 1,
       max_depth,
-      data_keys=generated_interactive_protocol_schema(name),
+      data_keys=generated_interactive_protocol_schema(name) ||
+        name == "model_journal_entry" ||
+        name == "model_journal_settlement",
     ) {
     Ok(value) => value
     Err(_) => return Err(RunEvidenceInvalidWire)
@@ -164,7 +168,9 @@ pub fn admit_run_evidence_value(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      data_keys=generated_interactive_protocol_schema(name),
+      data_keys=generated_interactive_protocol_schema(name) ||
+        name == "model_journal_entry" ||
+        name == "model_journal_settlement",
     ) {
     Ok(value) => value
     Err(_) => return Err(RunEvidenceInvalidWire)
@@ -177,7 +183,7 @@ pub fn admit_run_evidence_value(
   if generated_interactive_protocol_schema(name) ||
     [
       "model_response_profile", "model_raw_capture_policy", "model_raw_response",
-      "model_original_storage_binding",
+      "model_original_storage_binding", "model_journal_entry", "model_journal_settlement",
     ].contains(name) {
     let canonical = @json.stringify_value(
       complete, max_wire_bytes, max_nodes, max_depth,

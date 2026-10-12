@@ -152,12 +152,26 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       const store = retained ?? await openStore();
       retained = undefined;
       const cleanups = [];
+      let workFailure;
+      let workFailed = false;
       try {
         cleanups.push(...await store.recoverPhysicalHoldingDeletions());
         return await work(store, cleanup => cleanups.push(cleanup));
+      } catch (error) {
+        workFailed = true;
+        workFailure = error;
+        throw error;
       } finally {
         if (cleanups.some(item => item.status().pending)) retained = store;
-        else await store.close();
+        else {
+          try { await store.close(); }
+          catch (closeFailure) {
+            // Pending original metadata/FD custody keeps this exact Store.
+            // Neither a failed close nor its Error is successful cleanup.
+            retained = store;
+            throw workFailed ? workFailure : closeFailure;
+          }
+        }
       }
     });
     queue = operation.catch(() => {});
@@ -458,9 +472,9 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     async close() {
       await queue;
       const store = retained;
-      retained = undefined;
       if (store !== undefined) {
-        try { await store.close(); } catch { /* durable deletion record */ }
+        await store.close();
+        retained = undefined;
       }
     },
   });
