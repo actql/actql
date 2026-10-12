@@ -55,6 +55,18 @@ test "original current write fixes parked current bytes quantum and work indepen
     )
     assert_eq(finish_current_state_test_writer(cursor, quantum), 17)
     assert_eq(@encode.finish(writer), expected)
+    // Current-cut data must not be admitted as the initial immutable read.
+    // Its dedicated matching Reader/Store authentication is a separate unit.
+    assert_true(
+      start_original_state_document_read(
+        original_document_test_cursor(expected),
+        4,
+        0,
+        0,
+        100,
+      )
+      is Err(InvalidRecord),
+    )
     assert_eq(ledger_usage(ledger), before)
     assert_eq(ledger.next_capacity_serial, serial)
     assert_true(claim.admitted == admitted)
