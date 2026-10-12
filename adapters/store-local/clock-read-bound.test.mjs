@@ -15,7 +15,7 @@ function section(from, to) {
   assert(start >= 0 && end > start);
   return source.slice(start, end);
 }
-const bounded = section('async function readBounded(path, maximum, closed, signal) {',
+const bounded = section('async function readBounded(path, maximum, closed, signal, ownerOnly = false) {',
   '\nasync function processIsAlive(');
 const keys = section('const exactKeys =', '\nasync function syncDirectoryPath(');
 const current = section('  let lastClockObservation;', '\n  const observeTrustedClock =');

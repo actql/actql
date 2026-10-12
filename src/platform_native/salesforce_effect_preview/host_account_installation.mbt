@@ -28,13 +28,18 @@ pub(all) enum NativeEffectHostAccountInstallationIssue {
   File(@bounded_files.NativeBoundedTextIssue)
   Configuration(@authorization.ConfigurationIssue)
   OriginalBindingMismatch
+  ReadScopeUnavailable
 }
 
 ///|
 /// Immutable installer selection, not a cached permission or a new Owner.
+/// read_scope_current is only a current capacity/binding fence. It cannot
+/// supply Account Allow or replace the Common permission decision.
 struct NativeEffectHostAccountInstallation {
   selected : NativeEffectHostAccountFile
   read_ceiling : Int
+  on_read_failure : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?
+  read_scope_current : (() -> Bool)?
 }
 
 ///|
@@ -67,6 +72,7 @@ fn host_account_configuration(
   selected : NativeEffectHostAccountFile,
   read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
   read_ceiling? : Int = 1000000,
+  read_scope_current? : (() -> Bool)? = None,
 ) -> Result[
   @authorization.AdmittedAccountConfiguration,
   NativeEffectHostAccountInstallationIssue,
@@ -74,9 +80,15 @@ fn host_account_configuration(
   if !host_account_read_ceiling_valid(read_ceiling) {
     return Err(InvalidSelection)
   }
+  if read_scope_current is Some(current) && !current() {
+    return Err(ReadScopeUnavailable)
+  }
   let wire = match read(read_ceiling) {
     Ok(value) => value
     Err(issue) => return Err(File(issue))
+  }
+  if read_scope_current is Some(current) && !current() {
+    return Err(ReadScopeUnavailable)
   }
   if @utf8.encode(wire).length() > read_ceiling {
     return Err(File(@bounded_files.CapacityExceeded))
@@ -90,6 +102,9 @@ fn host_account_configuration(
     configuration.configuration_cid() != selected.subject.configuration_cid {
     return Err(OriginalBindingMismatch)
   }
+  if read_scope_current is Some(current) && !current() {
+    return Err(ReadScopeUnavailable)
+  }
   Ok(configuration)
 }
 
@@ -98,6 +113,8 @@ fn install_host_account_with_read(
   selection : NativeEffectHostAccountFile?,
   read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
   read_ceiling? : Int = 1000000,
+  on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)? = None,
+  read_scope_current? : (() -> Bool)? = None,
 ) -> Result[
   NativeEffectHostAccountInstallation?,
   NativeEffectHostAccountInstallationIssue,
@@ -111,8 +128,15 @@ fn install_host_account_with_read(
     !host_account_subject_valid(selected.subject) {
     return Err(InvalidSelection)
   }
-  match host_account_configuration(selected, read, read_ceiling~) {
-    Ok(_) => Ok(Some({ selected, read_ceiling, }))
+  match
+    host_account_configuration(
+      selected,
+      read,
+      read_ceiling~,
+      read_scope_current~,
+    ) {
+    Ok(_) =>
+      Ok(Some({ selected, read_ceiling, on_read_failure, read_scope_current, }))
     Err(issue) => Err(issue)
   }
 }
@@ -126,6 +150,8 @@ fn install_host_account_with_read(
 pub fn install_native_effect_host_account(
   selection : NativeEffectHostAccountFile?,
   read_ceiling? : Int = 1000000,
+  on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)? = None,
+  read_scope_current? : (() -> Bool)? = None,
 ) -> Result[
   NativeEffectHostAccountInstallation?,
   NativeEffectHostAccountInstallationIssue,
@@ -136,14 +162,37 @@ pub fn install_native_effect_host_account(
       guard selection is Some(selected) else {
         return Err(@bounded_files.Missing)
       }
-      @bounded_files.read_bounded_text_file(
-        selected.root,
-        selected.name,
-        limit.to_int64(),
-      )
+      read_host_account_file_with_custody(selected, limit, on_read_failure)
     },
     read_ceiling~,
+    on_read_failure~,
+    read_scope_current~,
   )
+}
+
+///|
+/// Failure observation cannot substitute bytes, acknowledge cleanup or grant
+/// permission. The bounded filesystem Owner still performs every actual read;
+/// this only lets the same funded Host caller retain its original failure.
+fn read_host_account_file_with_custody(
+  selected : NativeEffectHostAccountFile,
+  limit : Int,
+  on_failure : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?,
+) -> Result[String, @bounded_files.NativeBoundedTextIssue] {
+  match
+    @bounded_files.read_bounded_text_file_with_custody(
+      selected.root,
+      selected.name,
+      limit.to_int64(),
+    ) {
+    Ok(wire) => Ok(wire)
+    Err(failure) => {
+      if on_failure is Some(observe) {
+        observe(failure)
+      }
+      Err(failure.issue())
+    }
+  }
 }
 
 ///|
@@ -161,13 +210,14 @@ pub fn NativeEffectHostAccountInstallation::read_current_configuration(
     host_account_configuration(
       self.selected,
       limit => {
-        @bounded_files.read_bounded_text_file(
-          self.selected.root,
-          self.selected.name,
-          limit.to_int64(),
+        read_host_account_file_with_custody(
+          self.selected,
+          limit,
+          self.on_read_failure,
         )
       },
       read_ceiling=self.read_ceiling,
+      read_scope_current=self.read_scope_current,
     ) {
     Ok(value) => Some(value)
     Err(_) => None
@@ -216,17 +266,34 @@ fn host_account_current_with_read(
   publication : Bool,
   read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
   read_ceiling? : Int = 1000000,
+  read_scope_current? : (() -> Bool)? = None,
 ) -> Bool {
-  guard host_account_configuration(selected, read, read_ceiling~) is Ok(first) &&
+  guard host_account_configuration(
+      selected,
+      read,
+      read_ceiling~,
+      read_scope_current~,
+    )
+    is Ok(first) &&
     host_account_permission(selected, first, dispatch_cid, publication) else {
     return false
   }
   // Re-admit and decide again after the first Core decision. No cached Allow,
   // unchanged-file predicate or permanently true current callback is installed.
-  guard host_account_configuration(selected, read, read_ceiling~) is Ok(last) else {
+  guard host_account_configuration(
+      selected,
+      read,
+      read_ceiling~,
+      read_scope_current~,
+    )
+    is Ok(last) else {
     return false
   }
-  host_account_permission(selected, last, dispatch_cid, publication)
+  host_account_permission(selected, last, dispatch_cid, publication) &&
+  (match read_scope_current {
+    Some(current) => current()
+    None => true
+  })
 }
 
 ///|
@@ -240,12 +307,13 @@ pub fn NativeEffectHostAccountInstallation::current_permission(
     dispatch_cid,
     publication,
     limit => {
-      @bounded_files.read_bounded_text_file(
-        self.selected.root,
-        self.selected.name,
-        limit.to_int64(),
+      read_host_account_file_with_custody(
+        self.selected,
+        limit,
+        self.on_read_failure,
       )
     },
     read_ceiling=self.read_ceiling,
+    read_scope_current=self.read_scope_current,
   )
 }

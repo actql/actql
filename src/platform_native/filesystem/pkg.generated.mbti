@@ -52,6 +52,10 @@ pub(all) enum NativeFilesystemIssue {
   Cleanup(String)
 }
 
+type NativeReaderOpenFailure
+pub fn NativeReaderOpenFailure::issue(Self) -> NativeFilesystemIssue
+pub fn NativeReaderOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
+
 type PrivateFileProjection
 pub fn PrivateFileProjection::export_original(Self) -> Result[Bytes, NativeFilesystemIssue]
 
@@ -64,12 +68,14 @@ type Root
 pub fn Root::acquire_lock(Self, String) -> Result[Lock, NativeFilesystemIssue]
 pub fn Root::adopt_private_file_projection(Self, String) -> Result[PrivateFileProjection, NativeFilesystemIssue]
 pub fn Root::bootstrap_parent_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
+pub fn Root::close(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::create_directory(Self, String) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
 pub fn Root::inspect_directory(Self, String) -> Result[NativeFileOwnership?, NativeFilesystemIssue]
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::open_child(Self, String) -> Result[Self, NativeFilesystemIssue]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
+pub fn Root::open_reader_with_custody(Self, String, NativeFileGeneration) -> Result[Reader, NativeReaderOpenFailure]
 pub fn Root::private_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::reclaim_generation(Self, String, NativeFileGeneration) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::remove_directory(Self, String, NativeFileOwnership) -> Result[Bool, NativeFilesystemIssue]
