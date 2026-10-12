@@ -342,6 +342,19 @@ fn lower_script_carrier_calls(
     sources.carriers[name] = carrier
   }
   let tail = @query.after_graph_calls(query)
+  if @query.operation_at(tail, 0) is Some(Nearest(_)) {
+    let peers = known.map(peer => {
+      if input_relation_matches(@query.relation(tail), peer) {
+        { ..input, relation: peer.relation, }
+      } else {
+        peer
+      }
+    })
+    return lower_script_nearest_carrier(
+      construction, tail, peers, context, sources, limits, steps, reserved, output,
+      retained,
+    )
+  }
   if !(carrier is @carrier.Relation(_)) {
     if Array::makei(@query.operation_count(tail), i => {
         @query.operation_at(tail, i)
