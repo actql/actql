@@ -59,19 +59,8 @@ fn local_run_policy_common_originals(
   NativeClientRunJournalIssue,
 ] {
   try {
-    let source = @source.parse_json_bytes_preserving(run, {
-      max_input_bytes: 65536,
-      max_nodes: 8192,
-      max_depth: 64,
-    }).unwrap_or_else(() => raise LocalReadPolicyStop(InvalidOriginal))
-    let cursor = read_policy_decoded(
-      @decode.admit(source, {
-        max_nodes: 8192,
-        max_depth: 64,
-        max_string_bytes: 8192,
-        max_total_string_bytes: 65536,
-      }),
-    )
+    let cursor = @host.client_local_run_policy_metadata_cursor(run)
+      .unwrap_or_else(() => raise LocalReadPolicyStop(InvalidOriginal))
     let root = read_policy_decoded(
       @decode.closed_object(cursor, ["native", "version"]),
     )
