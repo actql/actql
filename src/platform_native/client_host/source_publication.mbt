@@ -63,6 +63,10 @@ pub fn NativeClientSourceWork::install_publication_service(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  request_authorize? : ((
+    @publication.PublicationRequestContext,
+    @native_publication.NativeRunPublicationAuthorization,
+  ) -> Bool)? = None,
 ) -> Result[
   @native_publication.NativeRunPublicationService,
   NativeClientSourcePublicationIssue,
@@ -79,6 +83,7 @@ pub fn NativeClientSourceWork::install_publication_service(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    request_authorize~,
   ).map_err(issue => {
     match issue {
       Work(issue) => NativeClientSourcePublicationIssue::Work(issue)
