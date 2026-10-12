@@ -11,7 +11,7 @@ import sys
 from threading import RLock
 from typing import Any, Literal
 
-LOCAL_CORE_ABI = 46
+LOCAL_CORE_ABI = 47
 
 
 class LocalCoreError(RuntimeError):
@@ -235,6 +235,7 @@ _RUN_INVOCATION_SIGNATURES = {
 }
 _MATERIAL_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'reserve_submitted_rows': ('i64 i32 i32 i32 i32 i64', 'i32'),
     'produce': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -2077,6 +2078,37 @@ class LocalCore:
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_material', handle)
+            value = _Output(self._identity, ticket, handle, limit)
+            self._loans[ticket] = value
+            return value
+
+    def reserve_submitted_run_rows(self, run: int, current: int, source: _Input, *,
+                                   cleanup: Callable[[], bool]) -> _Output:
+        """Project original Owner row candidates, never a committed admission.
+
+        The original Run/current configuration and input borrow remain in Core
+        until this same output handle finishes cleanup. The installed Host must
+        separately fence authenticated epoch, count and current authority in
+        the actual Store transaction before any public acceptance.
+        """
+        with self._lock:
+            if (self._closing or type(run) is not int or run <= 0
+                    or type(current) is not int or current <= 0):
+                raise ValueError('Invalid original Local submitted row projection')
+            self._owned_input(source)
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1_048_576
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit)))
+            handle = self._call('material', 'reserve_submitted_rows', run, current,
+                                source.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_submitted_run_rows', handle)
             value = _Output(self._identity, ticket, handle, limit)
             self._loans[ticket] = value
             return value

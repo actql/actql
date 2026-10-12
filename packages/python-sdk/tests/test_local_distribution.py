@@ -26,7 +26,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.enterContext(patch('actql_sdk._local_distribution.sys.platform', 'darwin'))
         self.enterContext(patch('actql_sdk._local_distribution.platform.machine', return_value='arm64'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-                     'platform': 'darwin-arm64', 'core_abi': 46, 'wasmtime_version': '38.0.0',
+                     'platform': 'darwin-arm64', 'core_abi': 47, 'wasmtime_version': '38.0.0',
                      'duckdb_version': 'v1.5.5', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = b'fixture component ' + name.encode()
@@ -68,7 +68,7 @@ class LocalDistributionTests(unittest.TestCase):
 
     def test_duplicate_manifest_and_oversized_manifest_reject(self):
         path = self.directory / 'artifact.json'
-        path.write_text(json.dumps(self.body)[:-1] + ', "core_abi": 46}')
+        path.write_text(json.dumps(self.body)[:-1] + ', "core_abi": 47}')
         with self.assertRaisesRegex(LocalInstallationError, 'Duplicate'):
             self.inspect()
         path.write_bytes(b' ' * 65537)

@@ -11,6 +11,7 @@ import {
   "actql/actql/execution_authorization",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/logical_request_scope",
   "actql/actql/physical_host",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
@@ -116,6 +117,8 @@ pub fn local_source_publication_evidence(LocalSourcePublication) -> @run_publica
 
 pub fn local_source_publication_logical(LocalSourcePublication) -> @run_publication.RunEvidenceValue
 
+pub fn local_submitted_run_rows(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[(String, String, Bytes, Bytes, Bytes), LocalSubmittedRunRowsIssue]
+
 pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn prepare_local_preflight_commit_candidate(LocalPublicationPreflight, LocalRunManifest, LocalRunNormalization, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, @execution_authorization.AdmittedAccountConfiguration, LocalPublicationIntentLimits, Int) -> Result[(@run_publication.PublicationContract, @run_publication.PublicationCommitPreparation), LocalPublicationIntentIssue]
@@ -131,6 +134,8 @@ pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.Clie
 pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
 
 pub fn prepare_local_source_publication(LocalNativeSourceConfiguration, LocalComputeHost, @host.NativeHostSourceCapture, @execution_authorization.AdmittedAccountConfiguration, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[LocalSourcePublicationPreparation, LocalSourcePublicationIssue]
+
+pub fn prepare_local_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
 
 pub fn prepare_source_free_local_publication_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String, (String, String)) -> Result[LocalRunPlan, LocalRunIssue]
 
@@ -371,6 +376,26 @@ pub fn LocalSourcePublicationPreparation::advance(Self, Int) -> Result[(Bool, In
 pub fn LocalSourcePublicationPreparation::cancel(Self) -> Bool
 pub fn LocalSourcePublicationPreparation::finish(Self, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalSourcePublication, LocalSourcePublicationIssue]
 pub fn LocalSourcePublicationPreparation::work(Self) -> Int64
+
+pub struct LocalSubmittedRunRows {
+  plan : LocalRunPlan
+  preparation : @client_local_preparation.LocalSubmittedPreparation
+  reference : @run_publication_host.ClientSubmissionReferenceRecord
+  preparing : Bytes
+  run : Bytes
+  submitted : Bytes
+}
+
+pub(all) enum LocalSubmittedRunRowsIssue {
+  ForeignPreparation
+  ForeignReference
+  AuthorizationMismatch
+  Epoch(@logical_request_scope.SubmissionIdentityIssue)
+  EpochNotAdmissible(@logical_request_scope.SubmissionEpochValidity)
+  Binding(@run_publication_host.ClientRunBindingIssue)
+  CustodyLost
+  Encoding(@run_publication_host.ClientJournalEncodingIssue)
+}
 
 // Type aliases
 
