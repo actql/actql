@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 54
+LOCAL_CORE_ABI = 55
 
 
 class LocalCoreError(RuntimeError):
@@ -229,6 +229,7 @@ _SUBMISSION_SIGNATURES = {
 _BOOTSTRAP_SIGNATURES = {
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32', 'i32'),
+    'produce_sdk': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
@@ -1249,6 +1250,13 @@ class LocalCore:
         performs no adoption, writes, authority, Run admission or execution.
         The Host must restore saved originals instead of calling this again.
         """
+        return self._reserve_bootstrap(source, cleanup=cleanup, sdk=False)
+
+    def reserve_sdk_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool]) -> _Output:
+        """Explicit first-install metadata; never upgrade an adopted Host."""
+        return self._reserve_bootstrap(source, cleanup=cleanup, sdk=True)
+
+    def _reserve_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool], sdk: bool) -> _Output:
         with self._lock:
             self._owned_input(source)
             if self._closing or not callable(cleanup):
@@ -1265,7 +1273,7 @@ class LocalCore:
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_bootstrap', handle)
-            value = _Output(self._identity, ticket, handle, limit, 'bootstrap')
+            value = _Output(self._identity, ticket, handle, limit, 'bootstrap_sdk' if sdk else 'bootstrap')
             self._loans[ticket] = value
             return value
 
@@ -1313,6 +1321,19 @@ class LocalCore:
 
     def close_bootstrap(self, value: _Output) -> bool:
         return self._close_output(value, 'bootstrap', 'close')
+
+    def produce_sdk_bootstrap(self, value: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'bootstrap_sdk')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('produce_sdk_bootstrap', self._call('bootstrap', 'produce_sdk', value.handle))
+
+    def read_sdk_bootstrap(self, value: _Output) -> bytes:
+        return self._read_output(value, 'bootstrap_sdk', 'length', abi_family='bootstrap')
+
+    def close_sdk_bootstrap(self, value: _Output) -> bool:
+        return self._close_output(value, 'bootstrap_sdk', 'close', abi_family='bootstrap')
 
     def produce_submission_projection(self, value: _Output) -> None:
         self._produce_output(value, 'submission', 'produce')

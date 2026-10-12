@@ -145,7 +145,22 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     // A ready receipt establishes acceptance, not physical dispatch. Only
     // explicit replay re-enters the existing Run owner; lookup stays read-only.
     const flight = (async () => {
-      const preparedProgram = await prepareSubmit({...value, requestId});
+      let preparedProgram;
+      try {preparedProgram = await prepareSubmit({...value, requestId});}
+      catch (error) {
+        if (!isClientSubmitRejection(error?.code)) throw error;
+        // Current execution support cannot replace an already accepted intent.
+        // Re-read through the same authorized owner after the awaited failure:
+        // lost authority or custody is not permission to return a stale receipt.
+        const observed = await lookupSubmission(value);
+        if (observed.kind !== 'ready') fail('ClientSubmissionUnresolvable');
+        if (observed.intentCid !== original.intentCid ||
+            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(
+              key => observed.admission.ref[key] !== original.admission.ref[key])) {
+          fail('InvalidClientHostSubmissionOutcome');
+        }
+        return observed;
+      }
       const current = await authorize(value);
       if (current.authorityScopeCid !== fields.authorityScopeCid ||
           current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');

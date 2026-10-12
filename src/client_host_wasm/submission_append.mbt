@@ -27,9 +27,19 @@ fn submission_append_current(
 fn submission_append_run_inspection(
   row : @host.ClientJournalPhysicalRow,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
-  let record = match @host.decode_client_run_journal_row(row.body) {
+  let (record, local_policy) = match
+    @host.decode_client_run_journal_row_with_local_policy(row.body) {
     Ok(value) => value
     Err(_) => return Err(-31)
+  }
+  if local_policy is Some(wire) &&
+    @host.validate_client_local_run_policy_original_run(
+      @utf8.encode(wire),
+      record.request,
+      record.definition,
+    )
+    is Err(_) {
+    return Err(-31)
   }
   if record.checkpoint is Some(_) || record.effect_material_originals is Some(_) {
     return Err(-42)
