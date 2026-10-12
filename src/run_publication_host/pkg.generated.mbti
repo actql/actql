@@ -202,6 +202,8 @@ pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.Publicati
 
 pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_compiled_run_publication_policy_bodies(ClientCompiledRun, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
+
 pub fn client_compiled_run_result_names(ClientCompiledRun) -> Array[String]
 
 pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClientProgram, Int) -> Result[ClientResultTransformation?, ClientCompiledRunIssue]
@@ -766,6 +768,8 @@ pub fn issue_captured_source_input_logical(@physical_strategy.CheckedDAG, @execu
 
 pub fn issue_client_allowed_run_evidence(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, String, String, String) -> Result[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue), ClientAllowedRunEvidenceIssue]
 
+pub fn issue_client_compiled_local_values_invocation(ClientCompiledRun, @run_publication.PublicationContract, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn issue_client_compiled_multi_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_compiled_run_definition(ClientCompiledRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientCompiledRunIssue]
@@ -1221,6 +1225,8 @@ pub fn validate_client_retained_task_input_current(ClientRetainedTaskInput, Clie
 pub fn verify_client_retained_source_cleanup_observation(ClientRetainedSourceCleanup, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn with_client_infer_result_policy(ClientCompiledRun, String, String, Int, Int, Int) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
+pub fn with_client_source_free_result_policy(ClientCompiledRun, String, String, Int, Int, Int) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn with_prepared_client_values_row_limit(PreparedClientProgram, Int) -> PreparedClientProgram?
 

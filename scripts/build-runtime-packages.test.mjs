@@ -79,6 +79,7 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
+    'generated-owned-contracts',
     'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
     'connector-manifest-selection', 'connector-host-bundles', 'adapter-module-graph',
     ...Object.values(packages).map(item => item.builder)]) {
@@ -128,7 +129,10 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
     generateInstallations(readHostBundles(directory),
       join(directory, 'adapters/connectors-builtin/installations.generated.mjs'), directory));
   put(directory, 'scripts/owned-contract-version-legacy.json',
-    JSON.stringify({version: 1, baseline: '0.1', entries: []}));
+    readFileSync(join(root, 'scripts/owned-contract-version-legacy.json')));
+  put(directory, '.gitignore', '_build/\npackages/*/dist/\nnode_modules/\n');
+  const initialized = spawnSync('git', ['init', '--quiet'], {cwd: directory});
+  assert.equal(initialized.status, 0);
   // Use the real package builders and installed esbuild; only the MoonBit
   // compiler is replaced with independent tiny compiled-source fixtures.
   symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir');
@@ -158,6 +162,7 @@ import {syncBuiltinESMExports} from 'node:module';
 const original = childProcess.execFileSync;
 const record = value => appendFileSync('calls.jsonl', JSON.stringify(value) + '\\n');
 childProcess.execFileSync = (command, args, options) => {
+  if (command === 'git') return original(command, args, options);
   record({command: command === process.execPath ? 'node' : command, args,
     cwd: options.cwd, stdio: options.stdio});
   if (command === 'moon') return Buffer.alloc(0);
@@ -428,7 +433,7 @@ for (const name of Object.keys(packages)) {
   test(`${name} still rejects a generated nonbaseline contract version`, t => {
     const {result, calls} = run(t, [name], {version: name});
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Generated runtime contract versions must remain at 0\.1/);
+    assert.match(result.stderr, /Generated owned contracts require admitted production source/);
     assert.equal(calls.some(call => call.done), false);
   });
 }

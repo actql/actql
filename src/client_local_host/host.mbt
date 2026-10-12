@@ -218,6 +218,34 @@ pub fn open_captured_local_retained_host_on_ledger(
 }
 
 ///|
+/// Keep source-free Compute and its retained outputs on the installed Host's
+/// existing root Ledger, alongside Wasm and transfer reservations. Opening
+/// this checked task owner does not admit a Run or authorize physical work.
+pub fn open_source_free_local_retained_host_on_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    retained_output=true,
+    acquisition_ledger=Some(ledger),
+  )
+}
+
+///|
 fn open_checked_local_host(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource?,
@@ -312,7 +340,16 @@ fn open_checked_local_host(
   } else {
     match source {
       None =>
-        @publication_host.open_prepared_source_free_client_run(prepared, limits)
+        match acquisition_ledger {
+          Some(ledger) =>
+            @strategy.open_source_free_dag(graph, ledger).map_err(issue => {
+              @publication_host.ClientRunOpenIssue::Run(issue)
+            })
+          None =>
+            @publication_host.open_prepared_source_free_client_run(
+              prepared, limits,
+            )
+        }
       Some(captured) =>
         match acquisition_ledger {
           Some(ledger) =>
