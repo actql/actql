@@ -29,6 +29,9 @@ pub fn bind_prepared_model_observation(
   observe : (ModelPhysicalObservation) -> Unit,
 ) -> Bool {
   let state = value.owner.state
+  if check_model_original_resources_mutable(state) is Err(_) {
+    return false
+  }
   if !prepared_model_current(value) ||
     !(state.phase is DispatchSlot) ||
     state.entering is Some(_) ||
