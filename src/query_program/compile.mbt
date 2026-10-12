@@ -49,6 +49,8 @@ pub(all) struct Context {
   source_catalog : @environment.SourceRequestContracts?
   // Exact selected contract owner; this does not authorize model execution.
   model_tasks : @environment.ModelTasks?
+  // Exact optional Calendar owner selected by the Host, never authored data.
+  calendar_profile : @environment.SelectedCalendarProfile?
 }
 
 ///|

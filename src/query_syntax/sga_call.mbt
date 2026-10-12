@@ -42,6 +42,8 @@ fn sga_operation(name : String) -> Bool {
     | "asof_join"
     | "interval_join"
     | "time_series"
+    | "calendar_series"
+    | "calendar_bucket"
     | "merge_rankings"
     | "dedupe_events"
     | "session"
@@ -105,7 +107,7 @@ fn carrier_call_head(token : Token) -> Bool {
     Word(name) =>
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-        "to_events", "row_window", "window_events", "watermark_events", "session",
+        "to_events", "row_window", "calendar_bucket", "window_events", "watermark_events", "session",
         "events", "dedupe_events", "watermark_rows", "lag", "asof_join", "interval_join",
         "merge_rankings",
       ].contains(ascii_upper(name).to_lower())

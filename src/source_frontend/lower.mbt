@@ -80,6 +80,7 @@ pub fn bind_query_context(
   parameter_declarations? : @parameters.Declarations? = None,
   input_schemas? : Array[(String, @schema.Schema)] = [],
   model_tasks? : @environment.ModelTasks? = None,
+  calendar_profile? : @environment.SelectedCalendarProfile? = None,
   source_catalog? : @environment.SourceRequestContracts? = None,
 ) -> Result[@query.Context, AliasIssue] {
   if aliases.length() > 1024 {
@@ -91,6 +92,14 @@ pub fn bind_query_context(
   if model_tasks is Some(tasks) &&
     @environment.cid(@environment.model_tasks_environment(tasks)) !=
     environment_cid {
+    return Err(EnvironmentMismatch)
+  }
+  if calendar_profile is Some(profile) &&
+    @environment.cid(@environment.calendar_selection_environment(@environment.selected_calendar_selection(profile))) != environment_cid {
+    return Err(EnvironmentMismatch)
+  }
+  if calendar_profile is Some(profile) && model_tasks is Some(tasks) &&
+    !physical_equal(@environment.calendar_selection_environment(@environment.selected_calendar_selection(profile)), @environment.model_tasks_environment(tasks)) {
     return Err(EnvironmentMismatch)
   }
   if source_catalog is Some(catalog) {
@@ -116,6 +125,10 @@ pub fn bind_query_context(
         model_tasks is Some(tasks) &&
         !physical_equal(@environment.model_tasks_environment(tasks), wire)
       ) {
+      return Err(EnvironmentMismatch)
+    }
+    if calendar_profile is Some(profile) && !physical_equal(
+      @environment.calendar_selection_environment(@environment.selected_calendar_selection(profile)), wire) {
       return Err(EnvironmentMismatch)
     }
   }
@@ -169,6 +182,7 @@ pub fn bind_query_context(
     input_schemas,
     source_catalog,
     model_tasks,
+    calendar_profile,
     result_name: "answer",
     captured_stage: if captured {
       Some("capture")

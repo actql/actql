@@ -2367,3 +2367,45 @@ check-only Context must preserve that evidence before a positive public
 score-fusion claim is made. This is a remaining connection requirement, not a
 new language restriction or permission to invent a declaration. Pure RRF does
 not require score-scale comparability; its own complete-input obligations remain.
+
+### Optional named Calendar operations
+
+`calendar_bucket(time: field, unit: string, timezone: string, into: name,
+week_start: string?)` is an adopted Relation Pipe call. `calendar_series(start:
+value, end: value, unit: string, timezone: string, week_start: string?)` is a
+NONE-input Relation generator, using the existing producer-primary/WITH path.
+Both retain the optional [Calendar profile](language.md#calendar). No default
+profile, host locale, ambient timezone database or fixed-duration approximation
+is supplied by the frontend.
+
+```aql
+WITH days AS (
+  calendar_series(start: '2000-01-01T00:00:00.000Z',
+                  end: '2000-01-03T00:00:00.000Z',
+                  unit: 'day', timezone: 'UTC')
+)
+FROM days AS d
+  |> calendar_bucket(time: d.start, into: month,
+                     unit: 'month', timezone: 'UTC')
+  |> SELECT start, `end`, month
+  |> ORDER BY start
+```
+
+`time` uses the ordinary current FieldRef resolver and `into` the reserved/
+quoted OutputName rule. `unit`, `timezone` and `week_start` are exact decoded
+literal strings. `week_start` is required for week and forbidden for other
+units, including explicit NULL. Series endpoints retain literal timestamp or
+whole non-null timestamp Parameter roles; year/range/bound checks belong to the
+existing common owner. A generator cannot consume a Pipe input. Fixed signature
+key `end` remains available; the ordinary leading column name `end` must be
+quoted. Public Result fields retain authored projection order separately from
+canonical object-schema order.
+
+Trusted source Contexts carry the exact optional SelectedCalendarProfile from
+the existing CheckEnvironment. Actual Catalog and ModelTask owners must agree
+with that environment. The frontend neither reacquires TZDB bytes nor asserts
+physical execution capability. Missing profile remains a common refusal;
+foreign same-CID profile owners are not accepted through a published Catalog.
+Source/checker connection does not establish an installed Calendar runtime:
+current physical lowering and normal Host profile installation must be verified
+separately.
