@@ -90,7 +90,7 @@ pub fn project_openai_chat_request(
       let mut value_done = false
       while !value_done {
         if work >= max_work ||
-          @admitted.wire_emit_pending_frames(emission) > max_frames {
+          @admitted.wire_emit_pending_frames(emission) >= max_frames {
           @admitted.cancel_wire_emit(emission)
           @encode.cancel_writer(input)
           return Err(Limit)
