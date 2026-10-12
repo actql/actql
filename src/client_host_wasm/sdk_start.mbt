@@ -5,14 +5,15 @@ priv struct StoredSDKStartStep {
   row : @host.ClientJournalPhysicalRow
   body : Bytes
   start : @local_run.LocalRunPhysicalStart?
+  publication_material : Int
 }
 
 ///|
-fn sdk_start_original_row(
+fn sdk_saved_original_rows(
   value : Instance,
   run : Int,
   plan : @local_run.LocalRunPlan,
-) -> Result[(@host.ClientJournalPhysicalRow, @host.ClientRunJournalEncoding, String?), Int] {
+) -> Result[(@host.ClientJournalPhysicalRow, @host.ClientJournalPhysicalRow, @local_run.LocalSubmittedRunRows, @preparation.LocalSubmittedPreparation, Int), Int] {
   guard value.runs.get(run) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(current) &&
     current.sdk is Some(_) && record.sdk_submission is Some(held) &&
@@ -28,32 +29,48 @@ fn sdk_start_original_row(
     return Err(-35)
   }
   let submission = @host.client_saved_submission_row(saved)
-  let mut original_rows : @local_run.LocalSubmittedRunRows? = None
-  for material in value.materials.values() {
-    if material.run == run && material.kind == 6 &&
-      material.produced &&
+  for (handle, material) in value.materials {
+    if material.run == run && material.kind == 6 && material.produced &&
       material.submission is Some({ rows: Some(rows), .. }) {
-      original_rows = Some(rows)
-      break
+      if @local_run.validate_local_saved_submitted_rows(
+        rows, plan, preparation, row.key, row.revision, row.body,
+        submission.key, submission.revision, submission.body,
+      ) is Err(_) { return Err(-31) }
+      return Ok((row, submission, rows, preparation, handle))
     }
   }
-  guard original_rows is Some(rows) else { return Err(-2) }
-  if @local_run.validate_local_saved_submitted_rows(
-    rows, plan, preparation, row.key, row.revision, row.body,
-    submission.key, submission.revision, submission.body,
-  ) is Err(_) { return Err(-31) }
+  Err(-2)
+}
+
+///|
+fn sdk_start_original_row(
+  value : Instance,
+  run : Int,
+  plan : @local_run.LocalRunPlan,
+) -> Result[(@host.ClientJournalPhysicalRow, @host.ClientRunJournalEncoding, String?, Int), Int] {
+  let (row, submission, _, _, _) = match sdk_saved_original_rows(value, run, plan) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
   let (encoding, policy) = match @host.decode_client_run_journal_row_with_local_policy(row.body) {
     Ok(value) => value
     Err(_) => return Err(-31)
   }
-  // Starting a completed or unsupported saved path is not reconciliation.
-  // This first source-free entry never replaces publication/Effect originals.
-  if encoding.publication_binding is Some(_) ||
-    encoding.publication_policy_originals is Some(_) ||
-    encoding.effect_material_originals is Some(_) || encoding.checkpoint is Some(_) {
+  if encoding.effect_material_originals is Some(_) || encoding.checkpoint is Some(_) {
     return Err(-42)
   }
-  Ok((row, encoding, policy))
+  // Saved strings alone cannot authorize start. Only the same Common Owner's
+  // confirmed/retained nominal binding is accepted at this saved revision.
+  for (handle, material) in value.materials {
+    if material.run == run && material.kind == 9 && material.produced &&
+      material.sdk_publication is Some({ original: Some(original), .. }) {
+      match @local_run.validate_local_run_publication_binding_original(original, row, submission) {
+        Ok(_) => return Ok((row, encoding, policy, handle))
+        Err(issue) => return Err(sdk_publication_binding_issue(issue))
+      }
+    }
+  }
+  Err(-42)
 }
 
 ///|
@@ -65,7 +82,7 @@ fn prepare_sdk_start_step(
 ) -> Result[StoredSDKStartStep, Int] {
   guard value.run_configurations.get(record.configuration) is Some(current) &&
     current.sdk is Some(_) else { return Err(-2) }
-  let (row, encoding, policy) = match sdk_start_original_row(value, material.run, plan) {
+  let (row, encoding, policy, publication_material) = match sdk_start_original_row(value, material.run, plan) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
@@ -119,7 +136,7 @@ fn prepare_sdk_start_step(
     Ok(_) => ()
     Err(code) => return Err(code)
   }
-  Ok({ row, body, start, })
+  Ok({ row, body, start, publication_material, })
 }
 
 ///|
@@ -165,7 +182,8 @@ pub fn validate_sdk_start_material(nonce : Int64, handle : Int) -> Int {
     Err(code) => return code
   }
   if actual.row.key != original.row.key || actual.row.body != original.row.body ||
-    actual.row.revision != original.row.revision || actual.body != original.body {
+    actual.row.revision != original.row.revision || actual.body != original.body ||
+    actual.publication_material != original.publication_material {
     return -35
   }
   0
@@ -179,11 +197,12 @@ fn confirm_sdk_start_step(value : Instance, step_handle : Int, plan : @local_run
     material.sdk_start is Some(step) &&
     value.runs.get(material.run) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(current) else { return -2 }
-  let (row, _, _) = match sdk_start_original_row(value, material.run, plan) {
+  let (row, _, _, publication_material) = match sdk_start_original_row(value, material.run, plan) {
     Ok(value) => value
     Err(code) => return code
   }
-  if row.key != step.row.key || row.revision != step.row.revision + 1L || row.body != step.body {
+  if publication_material != step.publication_material ||
+    row.key != step.row.key || row.revision != step.row.revision + 1L || row.body != step.body {
     return -35
   }
   let permit = match @authorization.bind_dispatch_authorization(
