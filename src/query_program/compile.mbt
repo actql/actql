@@ -8457,29 +8457,29 @@ fn values_join_output_bound(
   limits : Limits,
 ) -> Int64 raise Abort {
   if part.max_output_rows is Some(_) {
-      authored_join_bound(part, limits)
+    authored_join_bound(part, limits)
+  } else {
+    let left_rows = join_values_rows(left).to_int64()
+    let right_rows = join_values_rows(right).to_int64()
+    let factor = if part.kind == "inner" || part.kind == "cross" {
+      right_rows
+    } else if right_rows == 0L {
+      1L
     } else {
-      let left_rows = join_values_rows(left).to_int64()
-      let right_rows = join_values_rows(right).to_int64()
-      let factor = if part.kind == "inner" || part.kind == "cross" {
-        right_rows
-      } else if right_rows == 0L {
-        1L
-      } else {
-        right_rows
-      }
-      let extra = if part.kind == "full" { right_rows } else { 0L }
-      if extra > 9007199254740991L ||
-        (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
-        raise Abort(UnsupportedJoin)
-      }
-      let raw_bound = left_rows * factor + extra
-      let bound = if raw_bound == 0L { 1L } else { raw_bound }
-      if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
-        raise Abort(UnsupportedJoin)
-      }
-      bound
+      right_rows
     }
+    let extra = if part.kind == "full" { right_rows } else { 0L }
+    if extra > 9007199254740991L ||
+      (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
+      raise Abort(UnsupportedJoin)
+    }
+    let raw_bound = left_rows * factor + extra
+    let bound = if raw_bound == 0L { 1L } else { raw_bound }
+    if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
+      raise Abort(UnsupportedJoin)
+    }
+    bound
+  }
 }
 
 ///|
