@@ -10,6 +10,12 @@ import {
 // Values
 pub fn[T] advance_funded_read_state_write(FundedReadClaim[T], T, Int) -> OriginalStateWritePoll
 
+pub fn[T] advance_original_current_state_comparison(OriginalCurrentStateComparison[T], Int) -> OriginalStateComparisonPoll
+
+pub fn advance_original_current_state_document_read(OriginalCurrentStateDocumentRead, Int) -> OriginalCurrentStateDocumentPoll
+
+pub fn[T] advance_original_current_state_write(OriginalCurrentStateWrite[T], Int) -> OriginalStateWritePoll
+
 pub fn[T] advance_original_state_comparison(OriginalStateComparison[T], Int) -> OriginalStateComparisonPoll
 
 pub fn advance_original_state_document_read(OriginalStateDocumentRead, Int) -> OriginalStateDocumentPoll
@@ -20,7 +26,15 @@ pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocatio
 
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
+pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
+
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
+
+pub fn[T] cancel_original_current_state_comparison(OriginalCurrentStateComparison[T]) -> Unit
+
+pub fn cancel_original_current_state_document_read(OriginalCurrentStateDocumentRead) -> Unit
+
+pub fn[T] cancel_original_current_state_write(OriginalCurrentStateWrite[T]) -> Unit
 
 pub fn[T] cancel_original_state_comparison(OriginalStateComparison[T]) -> Unit
 
@@ -47,6 +61,8 @@ pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> 
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
+
+pub fn[T] consume_original_resource_invalidation(OriginalResourceInvalidationRequest[T], OriginalResourcePark[T], T) -> Result[Unit, OriginalReadIssue]
 
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
@@ -96,9 +112,15 @@ pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, Ledge
 
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
+pub fn[T] original_current_state_comparison_current(OriginalCurrentStateComparison[T], OriginalResourcePark[T]) -> OriginalCurrentStateComparison[T]?
+
+pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], OriginalResourcePark[T]) -> OriginalCurrentStateWrite[T]?
+
 pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
 
 pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
+
+pub fn[T] original_resource_invalidation_current(OriginalResourceInvalidationRequest[T], OriginalResourcePark[T], T) -> OriginalResourceInvalidationRequest[T]?
 
 pub fn[T] original_resource_park_current(OriginalResourcePark[T], T) -> OriginalResourcePark[T]?
 
@@ -115,6 +137,8 @@ pub fn original_state_document_quantities(OriginalStateDocument) -> QuantityUsag
 pub fn original_state_document_usage(OriginalStateDocument) -> LedgerUsage?
 
 pub fn[T] park_original_resource_consumer(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
+
+pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
 
 pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
 
@@ -144,6 +168,8 @@ pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIs
 
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
+pub fn retire_original_current_state_document(OriginalCurrentStateDocument) -> Unit
+
 pub fn[T] retire_original_resource_park(OriginalResourcePark[T]) -> Result[Unit, OriginalReadIssue]
 
 pub fn retire_original_state_document(OriginalStateDocument) -> Unit
@@ -171,6 +197,12 @@ pub fn settle_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 pub fn shared_allocation_usage(SharedAllocation) -> SharedAllocationUsage
 
 pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
+
+pub fn[T] start_original_current_state_comparison(OriginalResourcePark[T], T, OriginalCurrentStateDocument, Int) -> Result[OriginalCurrentStateComparison[T], OriginalStateComparisonIssue]
+
+pub fn start_original_current_state_document_read(@decode_core.Cursor, Int, Int, Int, Int, @decode_core.Limits) -> Result[OriginalCurrentStateDocumentRead, OriginalStateDocumentIssue]
+
+pub fn[T] start_original_current_state_write(OriginalResourcePark[T], T, @encode_core.Writer) -> Result[OriginalCurrentStateWrite[T], OriginalStateWriteIssue]
 
 pub fn[T] start_original_state_comparison(FundedReadClaim[T], T, OriginalStateDocument, Int) -> Result[OriginalStateComparison[T], OriginalStateComparisonIssue]
 
@@ -237,6 +269,20 @@ pub(all) struct LedgerUsage {
   peak_retention_bytes : Int64
 } derive(Eq, @debug.Debug)
 
+type OriginalCurrentStateComparison[T]
+
+type OriginalCurrentStateDocument
+
+pub enum OriginalCurrentStateDocumentPoll {
+  CurrentDocumentContinue(work~ : Int)
+  CurrentDocumentComplete(OriginalCurrentStateDocument, work~ : Int)
+  CurrentDocumentFailed(OriginalStateDocumentIssue, work~ : Int)
+}
+
+type OriginalCurrentStateDocumentRead
+
+type OriginalCurrentStateWrite[T]
+
 type OriginalLedgerDescriptor[T]
 
 type OriginalLedgerIdentity
@@ -250,6 +296,8 @@ pub(all) enum OriginalReadIssue {
   CleanupPending
   Resource(LedgerIssue)
 } derive(Eq, @debug.Debug)
+
+type OriginalResourceInvalidationRequest[T]
 
 type OriginalResourcePark[T]
 

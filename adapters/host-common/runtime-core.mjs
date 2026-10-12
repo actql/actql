@@ -2815,6 +2815,19 @@ function publicationControl(moon) {
         token(definition), graph, layout, installation,
         runtimeArtifactCid, layoutArtifactCid, probability));
     },
+    // Data-only origin selection from the original checked Owner, before
+    // park. Storage must be the same actual port's rechecked binding evidence;
+    // matching strings/configuration cannot substitute for its opaque custody.
+    checkedClientInferOriginalResourceOriginField(compiled, definition, graph, scope,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, storage, field) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInferOriginalResourceOriginField(scope,
+        value, token(definition), graph, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage), field));
+    },
     // Explicit alternative to the normal descriptor issuer, not a fallback.
     // Bootstrap must already cover the dedicated Writer and finish-text borrow.
     prepareCheckedClientInferNodeReadState(compiled, definition, graph, scope,
