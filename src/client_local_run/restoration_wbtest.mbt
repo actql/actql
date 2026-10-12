@@ -27,7 +27,7 @@ fn restore_fixture(
 
 ///|
 test "restoration retains the original execution Owner and separate authored provenance" {
-  let text = "/*e\u0301/~😀*/\r\nDATA seed = SELECT 1 AS n; FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer"
+  let text = "/*e\u0301/~😀*/\r\nWITH seed AS (SELECT 1 AS n) FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer"
   for original_input in [@input.Program(program), @input.Aql(text)] {
     let original = plan(prepared(original_input), "original-run")
     let fresh = prepared(original_input)
