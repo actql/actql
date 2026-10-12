@@ -1596,3 +1596,19 @@ or a start permit. Native readmission still validates those original records,
 relationships and canonical bytes; its count, epoch and transaction fences are
 unchanged. The portable physical adapter must retain those same obligations
 before exposing any accepted Submission or Run.
+
+
+The physical byte Store can fence an original admission batch with exact epoch,
+configuration and issuance metadata bytes/generations in the same SQLite
+transaction. A count row that is replaced by that batch is checked against its
+original preimage before COMMIT, then against the exact successor during
+read-only lost-acknowledgement lookup. Other originals remain unchanged. The
+installed Host holds Core before Store and separately reserves the retained
+projection and SQLite workspace; its current typed port is checked before the
+transaction work, before COMMIT and before exposing a successful reply. A fenced COMMIT failure or current-port
+failure after COMMIT raises `LocalStorageCommitUnknown`, preserving the same
+Store cleanup handle and original cause. It cannot be reported as a pre-write
+refusal or permission to repeat the batch. Query and cleanup
+failures are exceptions, never unmatched/absent results or replay permission.
+The adapter only returns physical generations/raw bytes. Existing Core Owners
+still validate original identity, admission, publication and execution facts.
