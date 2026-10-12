@@ -25,10 +25,15 @@ pub(all) struct ClientRunJournalEncoding {
 /// proves neither a committed transaction nor permission to dispatch.
 pub fn client_run_journal_row_body(
   record : ClientRunJournalEncoding,
+  local_run_policy_originals? : String? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   let request = match client_request_identity_record_wire(record.request) {
     Ok(value) => value
     Err(_) => return Err(Encoding)
+  }
+  if local_run_policy_originals is Some(wire) &&
+    @utf8.encode(wire).length() > 8192 {
+    return Err(CapacityExceeded)
   }
   try {
     let writer = @encode.writer(131072, 32, 4)
@@ -45,6 +50,10 @@ pub fn client_run_journal_row_body(
     // Optional private originals preserve absent-field bytes for older rows.
     if record.effect_material_originals is Some(original) {
       @encode.key(writer, "effect_material_originals")
+      @encode.string_value(writer, original)
+    }
+    if local_run_policy_originals is Some(original) {
+      @encode.key(writer, "local_run_policy_originals")
       @encode.string_value(writer, original)
     }
     @encode.key(writer, "physical_start_claimed")

@@ -30,9 +30,25 @@ const replaceOnce = (source, from, to = '') => {
   return source.replace(from, to);
 };
 
+// Exact current callback-execution support delta, never a runtime fallback.
+// The complete normalized blob is compared with the existing review below.
+export function selectedBeforeBoundaryDispatch(source) {
+  return replaceOnce(source, `    | Some(@lower.SequenceMatchStep(_))
+    | Some(@lower.InferBoundary(_))
+    | Some(@lower.SerializationBoundary(_)) => true`,
+    '    | Some(@lower.SequenceMatchStep(_)) => true');
+}
+export function generatedBeforeBoundaryExclusions(source) {
+  return replaceOnce(source, `      | @lower.InferBoundary(_)
+      | @lower.SerializationBoundary(_)
+      | @lower.CompletedProducerBoundary(_) => false`,
+    '      | @lower.InferBoundary(_) => false');
+}
+
 // Exact callback-execution delta only. This is not an old runtime path.
 // No provider record, callback field, capture input or candidate array changes.
 export function selectedBeforeInputOnly(source) {
+  source = selectedBeforeBoundaryDispatch(source);
   let prior = replaceOnce(source, `      if count < 1 {
         return @lower.node_count(prepared) == 0 &&
           @lower.preparation_input_count(prepared) == 1 &&
@@ -176,14 +192,19 @@ export function providerBeforeReviewedCleanup(source, name) {
 export function checkConstructionSourceReview(profile, read) {
   const review = constructionSourceReview;
   assert.equal(review.version, 'actql-provider-construction-source-review/0.1');
-  assert.equal(hash(read(recipePath)), review.currentRecipeDigest, 'Changed current provider recipe');
+  const recipeBytes=read(recipePath).toString();
+  assert.equal(hash(recipeBytes), review.boundaryDispatchReview.recipeDigest, 'Changed current provider recipe');
+  assert.equal(hash(replaceOnce(recipeBytes, review.boundaryDispatchReview.selectedDigest, review.selectedDigest)),
+    review.currentRecipeDigest, 'Recipe changed beyond the reviewed source identity');
   const selectedPath = 'src/connectors/local/selected_relation_provider.mbt';
   const managedPath = 'src/connectors/local/managed_provider.mbt';
   const generatedPath = 'src/execution_relation/generated_sequence.mbt';
   const selected = read(selectedPath).toString();
   const managed = read(managedPath).toString();
   const generated = read(generatedPath).toString();
-  assert.equal(hash(selected), review.selectedDigest, 'Unreviewed provider constructor selected_relation_provider');
+  assert.equal(hash(selected), review.boundaryDispatchReview.selectedDigest, 'Unreviewed provider constructor selected_relation_provider');
+  assert.equal(hash(selectedBeforeBoundaryDispatch(selected)), review.selectedDigest,
+    'Boundary dispatch changed beyond the reviewed callback-execution alternatives');
   for (const provider of profile.providers.slice(1)) {
     const prior = providerBeforeReviewedCleanup(read(provider.path).toString(), provider.name);
     assert.equal(hash(prior), review.lifecycleReview.previousProviderDigests[provider.path],
@@ -207,6 +228,11 @@ export function checkConstructionSourceReview(profile, read) {
   const variant = review.generatedVariants.find(item => item.digest === hash(generated));
   assert(variant, `Changed provider representation premise ${generatedPath}`);
   let priorGenerated = generated;
+  if (variant.boundaryExclusions) {
+    priorGenerated = generatedBeforeBoundaryExclusions(priorGenerated);
+    assert.equal(hash(priorGenerated), variant.previousDigest,
+      'Boundary exclusions changed beyond the reviewed false branch');
+  }
   if (variant.constructorRename) {
     // Only the already integrated Graph constructor spelling changed. This
     // comparison preserves the historical blob; it creates no runtime alias.
@@ -219,7 +245,8 @@ export function checkConstructionSourceReview(profile, read) {
   }
   assert.equal(hash(priorGenerated), review.historicalSourcePremises[generatedPath],
     'Graph exclusions changed Relation preparation outside the reviewed false branch');
-  return {reviewDigest: hash(reviewBytes), recipeDigest: review.currentRecipeDigest,
+  return {reviewDigest: hash(reviewBytes), recipeDigest: hash(recipeBytes),
+    previousReviewedRecipeDigest: review.currentRecipeDigest,
     historicalRecipeDigest: review.originalRecipeDigest,
     selectedDigest: hash(selected), managedDigest: hash(managed), generatedDigest: hash(generated),
     reviewedGeneratedRevision: variant.revision,

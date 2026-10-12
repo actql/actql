@@ -2879,7 +2879,7 @@ fn QueryParser::pipe_tail(
           self.peek().start,
         )
       }
-      operations.push(GraphCall(self.sga_call()))
+      operations.push(GraphCall(self.sga_call(current_alias=source_alias)))
     } else if self.has("MATCH") {
       match graph {
         Some(current) if current.pattern is None => {
