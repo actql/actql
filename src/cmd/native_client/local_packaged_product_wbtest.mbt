@@ -36,3 +36,24 @@ test "packaged selection keeps unsupported Local controls unavailable" {
   ])
   assert_true(explicit.sources.get("config-root") is Some(@argparse.Argv))
 }
+
+///|
+test "packaged check preserves distinct document and configuration roots" {
+  let selected = command().parse(argv=[
+    "--mode", "local", "--input-root", "/documents", "check", "--format", "sql",
+    "--program-file", "query.sql",
+  ])
+  assert_eq(
+    local_document_root(selected, "/private/.actql-local"),
+    "/documents",
+  )
+  assert_eq(
+    required(selected.subcommand.unwrap().1, "program-file"),
+    "query.sql",
+  )
+  let legacy = command().parse(argv=[
+    "--mode", "local", "--config-root", "/private", "--config-file", "config.json",
+    "check", "--format", "sql", "--program-file", "query.sql",
+  ])
+  assert_eq(local_document_root(legacy, "/private"), "/private")
+}

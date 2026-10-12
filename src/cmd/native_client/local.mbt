@@ -124,6 +124,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     stop("LocalOperationUnavailable")
   }
   let root = required(matches, "config-root")
+  let input_root = local_document_root(matches, root)
   let (environment_file, evidence_cid) = local_configuration(
     text_file(root, required(matches, "config-file"), 65536L),
   )
@@ -142,7 +143,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     Err(_) => stop("UnsupportedLocalSourceFormat")
   }
   let supplied = optional(child, "parameters-file").map(name => {
-    local_input_cursor(text_file(root, name, 65536L))
+    local_input_cursor(text_file(input_root, name, 65536L))
   })
   let declarations = match optional(child, "parameter-declarations-file") {
     None => None
@@ -150,7 +151,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
       if format != Text && format != Sql {
         stop("external declarations require aql-text or sql")
       }
-      let source = local_input_cursor(text_file(root, name, 65536L))
+      let source = local_input_cursor(text_file(input_root, name, 65536L))
       match
         @parameters.read_declarations(Some(source), {
           max_parameters: 1024,
@@ -175,7 +176,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
   }
   let prepared = match
     @local_host.prepare_native_client_program(
-      text_file(root, required(child, "program-file"), 65536L),
+      text_file(input_root, required(child, "program-file"), 65536L),
       format,
       environment,
       supplied,
