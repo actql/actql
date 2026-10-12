@@ -125,11 +125,11 @@ test "FROM GRAPH resolves the nearest binding before any Carrier check" {
 
 ///|
 test "P2 qualified selector fields retain the declared lexical operand identity" {
-  for text in [
-    "reach(start: {from: rows, id: ROWS.element})",
-    "reach(start: {id: ROWS.element, from: rows})",
-    "apply_graph_delta(field: ROWS.delta, with: rows)",
-  ] {
+  for
+    text in [
+      "reach(start: {from: rows, id: ROWS.element})", "reach(start: {id: ROWS.element, from: rows})",
+      "apply_graph_delta(field: ROWS.delta, with: rows)",
+    ] {
     let parser = producer_scope_parser(text)
     let call = parser.sga_call()
     parser.end()
@@ -143,28 +143,48 @@ test "P2 qualified selector fields retain the declared lexical operand identity"
     }
     let selected = fields.filter(field => field.0 == "id" || field.0 == "field")
     let column = if call.operation == "reach" { "element" } else { "delta" }
-    assert_eq(selected[0].1, FieldReference([
-      { value: "inner_rows", quoted: false, },
-      { value: column, quoted: false, },
-    ]), msg=text)
+    assert_eq(
+      selected[0].1,
+      FieldReference([
+        { value: "inner_rows", quoted: false, },
+        { value: column, quoted: false, },
+      ]),
+      msg=text,
+    )
   }
-  let other = producer_scope_parser("reach(start: {from: rows, id: peer.element})")
+  let other = producer_scope_parser(
+    "reach(start: {from: rows, id: peer.element})",
+  )
   let call = other.sga_call()
   other.end()
-  assert_eq(call.arguments[0].1, ObjectValue([
-    ("from", Producer({ value: "inner_rows", quoted: false, })),
-    ("id", FieldReference([
-      { value: "outer_peer", quoted: false, },
-      { value: "element", quoted: false, },
-    ])),
-  ]))
-  let property = producer_scope_parser("match_nodes(where: {field: rows.element}, fields: [rows])")
+  assert_eq(
+    call.arguments[0].1,
+    ObjectValue([
+      ("from", Producer({ value: "inner_rows", quoted: false, })),
+      (
+        "id",
+        FieldReference([
+          { value: "outer_peer", quoted: false, },
+          { value: "element", quoted: false, },
+        ]),
+      ),
+    ]),
+  )
+  let property = producer_scope_parser(
+    "match_nodes(where: {field: rows.element}, fields: [rows])",
+  )
   let call = property.sga_call()
   property.end()
-  assert_eq(call.arguments[0].1, ObjectValue([
-    ("field", FieldReference([
-      { value: "rows", quoted: false, },
-      { value: "element", quoted: false, },
-    ])),
-  ]))
+  assert_eq(
+    call.arguments[0].1,
+    ObjectValue([
+      (
+        "field",
+        FieldReference([
+          { value: "rows", quoted: false, },
+          { value: "element", quoted: false, },
+        ]),
+      ),
+    ]),
+  )
 }
