@@ -69,7 +69,7 @@ fn script_prefix_carrier(
 ///|
 fn script_carrier_operation(name : String) -> Bool {
   [
-    "to_vectors", "normalize_vectors", "score_vectors", "vectors", "to_events", "session",
+    "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors", "to_events", "session",
     "events",
   ].contains(name)
 }
@@ -171,6 +171,7 @@ fn lower_script_carrier_calls(
     }
     let fields = match call.operation {
       "to_vectors" => ["id", "vector"]
+      "pool_vectors" => ["by", "vector"]
       "to_events" => ["id", "time"]
       "session" =>
         if carrier is @carrier.Relation(_) {
@@ -184,10 +185,19 @@ fn lower_script_carrier_calls(
       "to_vectors" | "to_events" => fields
       "session" => fields + ["gap"]
       "score_vectors" => ["query", "metric"]
+      "pool_vectors" => ["by", "vector", "method", "output_id"]
       _ => []
     }
+    // Optional pool roles are preserved as authored. The common pool owner
+    // requires a Relation component field, validates member-key evidence and
+    // permits only an exact Vectors component-role restatement.
+    let required = if call.operation == "pool_vectors" {
+      ["by", "method"]
+    } else {
+      allowed
+    }
     guard call.arguments.all(argument => allowed.contains(argument.0)) &&
-      allowed.all(name => call.arguments.any(argument => argument.0 == name)) else {
+      required.all(name => call.arguments.any(argument => argument.0 == name)) else {
       raise Abort(InvalidQuery)
     }
     let origin = @origin.range(

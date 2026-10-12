@@ -30,6 +30,7 @@ fn sga_operation(name : String) -> Bool {
     "to_vectors"
     | "normalize_vectors"
     | "score_vectors"
+    | "pool_vectors"
     | "vectors"
     | "to_events"
     | "session"

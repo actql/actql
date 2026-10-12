@@ -1,5 +1,5 @@
 ///|
-fn vector_pool_control(method : String, relation : Bool) -> @program.Program {
+fn vector_pool_control(reduction : String, relation : Bool) -> @program.Program {
   // Authored independently of source compilation. A dynamic assertion supplies
   // Relation member-key evidence; Vectors retains its intrinsic identity role.
   let prefix = if relation {
@@ -7,7 +7,7 @@ fn vector_pool_control(method : String, relation : Bool) -> @program.Program {
   } else {
     "{\"from\":\"candidates\",\"to_vectors\":{\"id\":\"item_id\",\"vector\":\"embedding\"},\"as\":\"members\"}"
   }
-  let body = "{\"by\":[\"label\"],\"method\":\"" + method + "\",\"output_id\":\"pooled_id\"" +
+  let body = "{\"by\":[\"label\"],\"method\":\"" + reduction + "\",\"output_id\":\"pooled_id\"" +
     (if relation { ",\"vector\":\"embedding\"" } else { "" }) + "}"
   @program.parse(
     "{\"version\":\"actql/0.1\",\"id\":\"fixture.vector_pool\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[" +
@@ -30,8 +30,8 @@ fn vector_pool_checked(program : @program.Program) -> Unit raise {
 ///|
 test "P2 independent pooling Programs use existing Relation and Vectors common owners" {
   for relation in [false, true] {
-    for method in ["sum", "mean", "max"] {
-      vector_pool_checked(vector_pool_control(method, relation))
+    for reduction in ["sum", "mean", "max"] {
+      vector_pool_checked(vector_pool_control(reduction, relation))
     }
   }
 }
@@ -39,16 +39,16 @@ test "P2 independent pooling Programs use existing Relation and Vectors common o
 ///|
 test "P2 pooling source retains argument roles and output columns across both Carriers" {
   for relation in [false, true] {
-    for method in ["sum", "mean", "max"] {
+    for reduction in ["sum", "mean", "max"] {
       let prefix = if relation {
         "FROM candidates |> ASSERT UNIQUE BY (item_id)"
       } else {
         "FROM candidates |> to_vectors(id: item_id, vector: embedding)"
       }
-      let text = "WITH members AS (" + prefix + "), pooled AS (FROM members |> pool_vectors(by: [LABEL], method: '" + method + "', output_id: pooled_id" +
+      let text = "WITH members AS (" + prefix + "), pooled AS (FROM members |> pool_vectors(by: [LABEL], method: '" + reduction + "', output_id: pooled_id" +
         (if relation { ", vector: EMBEDDING" } else { "" }) + ")), rows AS (FROM pooled |> vectors()) SELECT label, pooled_id, embedding, member_count FROM rows ORDER BY label"
       let actual = with_carrier_program(text, nearest_context()).unwrap()
-      let expected = vector_pool_control(method, relation)
+      let expected = vector_pool_control(reduction, relation)
       assert_eq(with_carrier_argument(actual, "pool_vectors"), with_carrier_argument(expected, "pool_vectors"))
       assert_eq(with_carrier_argument(actual, "vectors"), "true")
       vector_pool_checked(actual)
