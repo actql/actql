@@ -11,14 +11,15 @@ fn local_run_policy_upgrade_operation(
 ) -> String raise ClientStop {
   let operation_id = required(child, "operation-id")
   let receipt = if operation == "lookup-policy-upgrade" {
-    host
-    .lookup_run_policy_upgrade(
-      crypto,
-      settings.principal,
-      settings.connection,
+    local_policy_upgrade_result(
       operation_id,
+      host.lookup_run_policy_upgrade(
+        crypto,
+        settings.principal,
+        settings.connection,
+        operation_id,
+      ),
     )
-    .unwrap_or_else(() => stop("LocalPolicyUpgradeOriginalUnavailable"))
   } else {
     // A finite first-install profile already has its own selected original.
     // This explicit append is reserved for the unchanged legacy adoption.
@@ -26,22 +27,23 @@ fn local_run_policy_upgrade_operation(
       stop("LocalPolicyUpgradeChangedIntent")
     }
     Some(
-      host
-      .upgrade_run_policy(
-        crypto,
-        settings.principal,
-        settings.connection,
+      local_policy_upgrade_result(
         operation_id,
-        settings.read_file.unwrap_or_else(() => {
-          stop("LocalReadPolicyOriginalNotSelected")
-        }),
-        settings.run_file.unwrap_or_else(() => {
-          stop("LocalRunOriginalNotSelected")
-        }),
-        required(child, "retention-file"),
-        required(child, "store-file"),
-      )
-      .unwrap_or_else(() => stop("LocalPolicyUpgradeOriginalUnavailable")),
+        host.upgrade_run_policy(
+          crypto,
+          settings.principal,
+          settings.connection,
+          operation_id,
+          settings.read_file.unwrap_or_else(() => {
+            stop("LocalReadPolicyOriginalNotSelected")
+          }),
+          settings.run_file.unwrap_or_else(() => {
+            stop("LocalRunOriginalNotSelected")
+          }),
+          required(child, "retention-file"),
+          required(child, "store-file"),
+        ),
+      ),
     )
   }
   let value = match receipt {
@@ -77,6 +79,38 @@ fn local_run_policy_upgrade_operation(
         value.original_cid
       None =>
         "No committed Local policy upgrade for this operation. This does not authorize retry."
+    }
+  }
+}
+
+///|
+// Keep the original operation ID on unknown outcomes. This formatter neither
+// infers an absent commit nor authorizes retry, renewal or a second append.
+fn[T] local_policy_upgrade_result(
+  operation_id : String,
+  result : Result[T, @local_host.NativeClientRunJournalIssue],
+) -> T raise ClientStop {
+  match result {
+    Ok(value) => value
+    Err(issue) => {
+      let code = match issue {
+        TransactionUnknown | Fenced => "LocalPolicyUpgradeUnknown"
+        AuthorizationDenied => "LocalPolicyUpgradeAuthorizationDenied"
+        ChangedIntent | ForeignRun => "LocalPolicyUpgradeChangedIntent"
+        CapacityExceeded => "LocalPolicyUpgradeCapacityRefused"
+        CustodyLost => "LocalPolicyUpgradeOriginalUnavailable"
+        _ => "LocalPolicyUpgradeStorageFailure"
+      }
+      let identity = encode_request_json(
+        Json::object(
+          Map([
+            ("operationId", Json::string(operation_id)),
+            ("lookup", Json::string("lookup-policy-upgrade")),
+          ]),
+        ),
+        4096,
+      )
+      stop(code + " " + identity)
     }
   }
 }

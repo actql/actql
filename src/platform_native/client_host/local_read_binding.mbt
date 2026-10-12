@@ -107,9 +107,9 @@ pub fn NativeLocalHostConnection::bind_result_read_policy_for_run(
   guard selection.expiry is AcceptedRunProfile(roles) &&
     roles.profile_cid ==
     @host.client_local_run_policy_profile_cid(policy.profile) &&
-    roles.run_file == policy.files[2].name &&
-    roles.retention_file == policy.files[3].name &&
-    roles.store_file == policy.files[4].name &&
+    roles.run_file == policy.run_file.name &&
+    roles.retention_file == policy.retention_file.name &&
+    roles.store_file == policy.store_file.name &&
     selection.principal == policy.principal &&
     selection.connection == policy.connection else {
     return Err(SelectionMismatch)

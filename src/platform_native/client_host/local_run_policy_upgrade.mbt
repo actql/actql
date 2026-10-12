@@ -68,8 +68,8 @@ fn local_policy_upgrade_packet(
   let encoded = @base64.encode(payload)
   let split = encoded.length().min(4096)
   @host.client_local_original_record_body([
-    ("payload_head", encoded[:split].to_string()),
-    ("payload_tail", encoded[split:].to_string()),
+    ("payload_head", encoded[:split].to_owned()),
+    ("payload_tail", encoded[split:].to_owned()),
     ("tag", epoch_hex(tag)),
   ]).map_err(_ => CapacityExceeded)
 }
@@ -188,8 +188,11 @@ fn read_local_policy_upgrade_original(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  guard finite.expiry is AcceptedRunProfile(cid) &&
-    cid == @host.client_local_run_policy_profile_cid(profile) else {
+  guard finite.expiry is AcceptedRunProfile(roles) &&
+    roles.profile_cid == @host.client_local_run_policy_profile_cid(profile) &&
+    roles.run_file == files[1].name &&
+    roles.retention_file == files[2].name &&
+    roles.store_file == files[3].name else {
     return Err(CustodyLost)
   }
   Ok({
@@ -335,7 +338,7 @@ pub fn NativeLocalHostConnection::upgrade_run_policy(
     }
     let (count, revision) = match self.installation_custody() {
       Ok(value) => value
-      Err(_) => return Err(CustodyLost)
+      Err(issue) => return Err(local_policy_upgrade_custody_issue(issue))
     }
     match
       self.database.read(
@@ -528,7 +531,8 @@ pub fn NativeLocalHostConnection::lookup_run_policy_upgrade(
     }
     match existing {
       None => Ok(None)
-      Some(value) => local_policy_upgrade_receipt(self, value).map(Some)
+      Some(value) =>
+        local_policy_upgrade_receipt(self, value).map(value => Some(value))
     }
   })
 }
@@ -547,7 +551,8 @@ fn NativeLocalHostConnection::retained_policy_upgrade(
     self.database.read(
       "client_local_installation_originals", local_policy_upgrade_key,
     ) {
-    Ok(row) => read_local_policy_upgrade_original(self, row).map(Some)
+    Ok(row) =>
+      read_local_policy_upgrade_original(self, row).map(value => Some(value))
     Err(@sqlite.NotFound) => Ok(None)
     Err(issue) => Err(Physical(issue))
   }
@@ -577,7 +582,7 @@ fn[T] NativeLocalHostConnection::with_installation_custody(
   let checked = () => {
     match self.installation_custody() {
       Ok(_) => work()
-      Err(_) => Err(CustodyLost)
+      Err(issue) => Err(local_policy_upgrade_custody_issue(issue))
     }
   }
   if self.journal.transaction_active {
@@ -677,6 +682,8 @@ fn NativeLocalHostConnection::require_original_legacy_policy_locked(
       return Ok(())
     }
     cursor = row.key
+  } nobreak {
+    Err(CustodyLost)
   }
 }
 
@@ -699,6 +706,9 @@ fn policy_binding_from_upgrade(
     scope: upgrade.scope,
     files: upgrade.files,
     read_file: upgrade.files[0],
+    run_file: upgrade.files[1],
+    retention_file: upgrade.files[2],
+    store_file: upgrade.files[3],
     origin: Upgraded(upgrade.packet, wire),
     profile: upgrade.profile,
     read_selection_cid: cid,
@@ -716,8 +726,6 @@ pub fn NativeLocalHostConnection::bind_upgraded_run_policy(
   connection : String,
   read_file : String,
   run_file : String,
-  retention_file : String,
-  store_file : String,
 ) -> Result[NativeLocalRunPolicyBinding?, NativeClientRunJournalIssue] {
   let scope = match self.authority_scope_cid(principal, connection, crypto) {
     Ok(value) => value
@@ -743,8 +751,7 @@ pub fn NativeLocalHostConnection::bind_upgraded_run_policy(
     if upgrade.scope != scope {
       return Err(AuthorizationDenied)
     }
-    if upgrade.files.map(file => file.name) !=
-      [read_file, run_file, retention_file, store_file] {
+    if upgrade.files[0].name != read_file || upgrade.files[1].name != run_file {
       return Err(ChangedIntent)
     }
     let binding = match policy_binding_from_upgrade(self, crypto, upgrade) {
@@ -756,4 +763,18 @@ pub fn NativeLocalHostConnection::bind_upgraded_run_policy(
     }
     Ok(Some(binding))
   })
+}
+
+///|
+fn local_policy_upgrade_custody_issue(
+  issue : NativeLocalAdoptionIssue,
+) -> NativeClientRunJournalIssue {
+  match issue {
+    Physical(issue) => Physical(issue)
+    Journal(issue) => issue
+    Epoch(issue) => Epoch(issue)
+    Fenced => Fenced
+    TransactionUnknown => TransactionUnknown
+    _ => CustodyLost
+  }
 }

@@ -200,3 +200,40 @@ test "read lifetime alternative preserves exact Unicode CR LF and string values"
     is Err(_),
   )
 }
+
+///|
+test "legacy facts have one canonical correspondence independent of input order" {
+  let profile = client_local_run_policy_profile(product_common_test_originals()).unwrap()
+  let first = policy_upgrade_legacy()[0]
+  let second = {
+    ..first,
+    request_scope_cid: "sha256:" + "f".repeat(64),
+    admitted_revision: 4L,
+  }
+  let bind = records => {
+    bind_client_local_run_policy_upgrade(
+      profile,
+      policy_upgrade_old_read,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "explicit-upgrade-1",
+      policy_upgrade_files(),
+      records,
+    )
+  }
+  let forward = bind([first, second]).unwrap()
+  let reversed = bind([second, first]).unwrap()
+  assert_eq(
+    client_local_run_policy_upgrade_body(forward),
+    client_local_run_policy_upgrade_body(reversed),
+  )
+  assert_eq(client_local_run_policy_upgrade_legacy_runs(reversed), [
+    first, second,
+  ])
+  let restored = policy_upgrade_restore(
+    @utf8.decode(client_local_run_policy_upgrade_body(reversed)),
+  ).unwrap()
+  assert_eq(client_local_run_policy_upgrade_legacy_runs(restored), [
+    first, second,
+  ])
+}

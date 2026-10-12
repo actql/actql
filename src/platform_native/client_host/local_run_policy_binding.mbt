@@ -9,6 +9,9 @@ struct NativeLocalRunPolicyBinding {
   scope : String
   files : Array[NativeLocalSelectedFile]
   read_file : NativeLocalSelectedFile
+  run_file : NativeLocalSelectedFile
+  retention_file : NativeLocalSelectedFile
+  store_file : NativeLocalSelectedFile
   origin : NativeLocalRunPolicyOrigin
   profile : @host.ClientLocalRunPolicyProfile
   read_selection_cid : String
@@ -168,6 +171,9 @@ pub fn NativeLocalHostConnection::bind_run_policy_profile(
     scope,
     files,
     read_file: files[1],
+    run_file: files[2],
+    retention_file: files[3],
+    store_file: files[4],
     origin: Selected,
     profile,
     read_selection_cid: files[1].content_cid,
@@ -628,4 +634,50 @@ pub fn NativeLocalRunPolicyBinding::original_run_requires_finite_policy(
     return Err(AuthorizationDenied)
   }
   Ok(finite)
+}
+
+///|
+/// Select the finite roles declared by this exact read original. The caller's
+/// actual configured Run must agree; no other role/profile is searched for.
+pub fn NativeLocalHostConnection::bind_run_policy_profile_for_read(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  profile_file : String,
+  read_file : String,
+  run_file : String,
+) -> Result[NativeLocalRunPolicyBinding, NativeClientRunJournalIssue] {
+  let file = match local_run_policy_selected(self, read_file) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let wire = @utf8.decode(file.body) catch { _ => return Err(CustodyLost) }
+  let selection = match admit_native_local_read_selection(wire) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  guard selection.expiry is AcceptedRunProfile(roles) &&
+    roles.run_file == run_file else {
+    return Err(ChangedIntent)
+  }
+  let selected_profile = match local_run_policy_selected(self, profile_file) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if roles.profile_cid != selected_profile.content_cid ||
+    selection.principal != principal ||
+    selection.connection != connection {
+    return Err(ChangedIntent)
+  }
+  self.bind_run_policy_profile(
+    crypto,
+    principal,
+    connection,
+    profile_file,
+    read_file,
+    roles.run_file,
+    roles.retention_file,
+    roles.store_file,
+  )
 }
