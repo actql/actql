@@ -1,0 +1,6 @@
+{
+  "source": "8c0b9fd2056cdc5d618b91fe3abdbe793d32bd1d",
+  "path": "scripts/fixtures/subgraph-source-input.mjs",
+  "sha256": "a750c5c79532761dd778ff73980cb42b28236343774e20759bcbbacd33daf454",
+  "classification": "Immutable pre-cutover fixture bytes; never an accepted current source or runtime claim."
+}

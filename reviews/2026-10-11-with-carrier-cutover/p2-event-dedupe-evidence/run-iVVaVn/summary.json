@@ -1,0 +1,72 @@
+{
+  "startedAt": "2026-10-12T02:24:01.112Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Read-only exact authored files using pinned moonfmt",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import assert from'node:assert/strict';import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';for(const path of process.argv.slice(1))assert.equal(execFileSync('moonfmt',[path],{encoding:'utf8',maxBuffer:4194304}),readFileSync(path,'utf8'),path);console.log(JSON.stringify({checkedFiles:process.argv.slice(1),mismatches:[]}));",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/sga_argument_roles.mbt",
+        "src/query_program/query_script_carriers.mbt",
+        "src/query_program/query_script_inputs.mbt",
+        "src/query_program/traversal_nodes_program.mbt",
+        "src/query_syntax/event_dedupe_call_test.mbt",
+        "src/query_program/event_dedupe_source_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-12T02:24:01.173Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:24:01.377Z",
+      "endedAt": "2026-10-12T02:24:01.379Z"
+    },
+    {
+      "name": "Product and specification whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "26521e7d8",
+        "HEAD",
+        "--",
+        ".",
+        ":(exclude)reviews/**"
+      ],
+      "startedAt": "2026-10-12T02:24:01.426Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:24:01.499Z",
+      "endedAt": "2026-10-12T02:24:01.500Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "61943c9f-a657-4390-949c-47f2908282b6",
+    "pid": 15786,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T02:24:01.169Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-iVVaVn"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T02:24:01.551Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
