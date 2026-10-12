@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash, generateKeyPairSync} from 'node:crypto';
-import {mkdtemp} from 'node:fs/promises';
+import {mkdtemp, readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -20,7 +20,8 @@ import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 const cid = c => `sha256:${c.repeat(64)}`;
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
-async function originalFixture(t) {
+async function originalFixture(t, {unretained=false, retainState,
+  storeBootstrap={maxWireBytes: 4096, maxDirectoryEntries: 22}}={}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-original-resource-'));
   const control = runtimeCore(moon).publicationControl;
   const keys = generateKeyPairSync('ed25519');
@@ -33,7 +34,7 @@ async function originalFixture(t) {
   const controller = await installNodeModelContinuation({moon, control,
     namespaceId: 'scope', authorityScopeCid: cid('3'),
     now: () => '2026-10-12T00:00:00.000Z', getCheckpoints: () => selectedCp});
-  const cp = selectedCp = await installRemoteCheckpoints({root, namespaceId: 'scope',
+  const actualCp = await installRemoteCheckpoints({root, namespaceId: 'scope',
     authorityScopeCid: cid('3'), ownerPrincipal: 'owner', siteKey: 'local',
     realizationKey: 'source-free-values', environmentCid: cid('4'), contractControl: control,
     modelResumeVerifier: controller.verifier,
@@ -42,10 +43,24 @@ async function originalFixture(t) {
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: 'reviewer',
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}});
-  t.after(() => cp.close());
+  const retains = [];
+  // Physical instrumentation only: the same actual CP/Store still admits,
+  // saves and verifies bytes. This wrapper issues no receipt of its own.
+  const cp = selectedCp = Object.freeze({...actualCp,
+    async retainOriginalModelState(args) {
+      retains.push(args);
+      return retainState === undefined ? actualCp.retainOriginalModelState(args)
+        : retainState(args, actualCp);
+    }});
+  let closeFlight;
+  const closeFixture = () => closeFlight ??= cp.close();
+  t.after(closeFixture);
   t.diagnostic(`Original installed Store retained at ${root}`);
   const abort = new AbortController();
-  const f = await currentResourceFixture(moon, control, 'installed-resource', {signal: abort.signal, metadataAcquisition: {
+  const f = await currentResourceFixture(moon, control, 'installed-resource', {signal: abort.signal,
+    // Independent fresh fixture: root18 + input/state objects2 + holdings2.
+    // This Store acquisition clamp is not a normal numerical capacity grant.
+    storeBootstrap, metadataAcquisition: {
     metadata: {maxWireBytes: 4096, maxLedgerEntries: 4},
     directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
     retainedBytes: 7000n, workspaceBytes: 3000n}});
@@ -71,6 +86,8 @@ async function originalFixture(t) {
   assert.deepEqual(cut.slots.map(slot => slot.state), ['Unsent']);
   const storageBinding = await cp.observeModelOriginalStorageBinding();
   const origin = await opened.originalResourceOrigin(storageBinding);
+  if (unretained) return {root, cp, actualCp, closeFixture, selectedCp: value => {selectedCp = value;},
+    controller, f, opened, storageBinding, origin, observation, abort, retains};
   const park = f.operation.parkOriginalResourcesForStateWrite();
   const writer = f.operation.prepareOriginalCurrentStateWriter(park,
     {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 20});
@@ -89,6 +106,172 @@ const codec = () => ({quantum: 1, comparisonWork: 5,
   decode: {maxWork: 20000,
     parse: {max_input_bytes: 10000, max_nodes: 1000, max_depth: 20},
     tree: {max_nodes: 1000, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000}}});
+
+test('original save caller uses Common Writer envelope then actual Store ACK and same journal COMMIT', async t => {
+  const {root, cp, closeFixture, controller, f, opened, storageBinding, origin, retains} =
+    await originalFixture(t, {unretained: true});
+  assert.deepEqual(await originalFixtureStoreInventory(root), {root: 18, objects: 1, holdings: 1, total: 20});
+  const park = f.operation.parkOriginalResourcesForStateWrite();
+  const selectedCodec = codec(), originWire = canonicalText(origin);
+  const promise = opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec);
+  assert.strictEqual(opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec), promise);
+  assert.throws(() => opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, codec()),
+    {code: 'ModelOriginalCurrentCutBindingMismatch'});
+  selectedCodec.quantum = 0;
+  selectedCodec.decode.maxWork = 0;
+  const saved = await promise;
+  assert.deepEqual(await originalFixtureStoreInventory(root), {root: 18, objects: 2, holdings: 2, total: 22});
+  assert.ok(Object.isFrozen(saved));
+  assert.strictEqual(saved.park, park);
+  assert.equal(retains.length, 1);
+  const body = JSON.parse(retains[0].bodyWire);
+  assert.deepEqual(body.origin, origin);
+  assert.equal(body.resource_state_cid, digest(canonicalText(body.resource_state)));
+  assert.equal(body.resource_phase, 'parked');
+  assert.deepEqual(body.cut.slots.map(slot => slot.state), ['Unsent']);
+  const actual = await opened.readOriginalResourceState(park, storageBinding, saved.receipt);
+  assert.equal(actual.wire, retains[0].bodyWire);
+  assert.strictEqual(controller.verifier.originalResourceCut.current(park), park);
+  cp.journal.commitOriginalModelCurrentCut(saved.reference);
+  const request = opened.beginOriginalResourceInvalidation(saved.reference, park);
+  assert.strictEqual(controller.verifier.originalResourceCut.invalidationCurrent(request, park), request);
+  opened.completeOriginalResourceInvalidation();
+  assert.equal(cp.journal.originalModelCurrentCutOperationStatus(saved.reference).state, 'invalidated');
+  assert.equal(f.operation.originalResourceParkCurrent(park), undefined);
+  assert.equal(f.sends(), 0);
+  assert.equal(retains.length, 1);
+  assert.throws(() => opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec),
+    {code: 'ModelOriginalResourceReadUnavailable'});
+  await closeFixture();
+  assert.deepEqual(await originalFixtureStoreInventory(root), {root: 18, objects: 2, holdings: 2, total: 22});
+});
+
+// Test observation only, not a production acquisition or capacity supplier.
+// The independent expected layout is fixed; extra records must not silently
+// become part of a changed expected count or an enlarged positive ceiling.
+async function originalFixtureStoreInventory(root) {
+  const store = join(root, 'checkpoints', 'private-store');
+  const expected = ['attempts', 'clocks', 'contracts', 'deletions', 'deliveries',
+    'effect-capture-custody', 'indexes', 'manifest-reads', 'metadata-deletions',
+    'metadata-inventories', 'objects', 'physical-holding-deletions', 'physical-holdings',
+    'prepared-custody', 'prepared-schemas', 'retention-extensions', 'staging', 'store.json'];
+  const names = (await readdir(store)).sort();
+  assert.deepEqual(names, expected);
+  for (const name of expected.filter(name => !['store.json', 'objects', 'physical-holdings'].includes(name))) {
+    assert.deepEqual(await readdir(join(store, name)), []);
+  }
+  const objects = (await readdir(join(store, 'objects'))).length;
+  const holdings = (await readdir(join(store, 'physical-holdings'))).length;
+  return {root: names.length, objects, holdings, total: names.length + objects + holdings};
+}
+
+test('original save caller preserves lost Store response and never blindly saves or unpark retries', async t => {
+  let historicalReceipt;
+  const {cp, f, opened, storageBinding, origin, retains} = await originalFixture(t,
+    {unretained: true, async retainState(args, actual) {
+      historicalReceipt = await actual.retainOriginalModelState(args);
+      throw Object.assign(Error('OriginalStoreResponseLost'), {code: 'OriginalStoreResponseLost'});
+    }});
+  const park = f.operation.parkOriginalResourcesForStateWrite();
+  const selectedCodec = codec(), originWire = canonicalText(origin);
+  const promise = opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec);
+  await assert.rejects(promise, {code: 'OriginalStoreResponseLost'});
+  assert.strictEqual(opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec), promise);
+  await assert.rejects(promise, {code: 'OriginalStoreResponseLost'});
+  assert.equal(retains.length, 1);
+  assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
+  assert.equal(opened.token.available, true);
+  const actual = await cp.readOriginalModelState({runDefinition: f.runDefinition,
+    storageBinding, receipt: historicalReceipt});
+  assert.equal(actual.wire, retains[0].bodyWire);
+  assert.equal(f.sends(), 0);
+  assert.equal(opened.close(), false);
+  assert.equal(opened.token.available, true);
+});
+
+test('original save caller preserves explicit eight and one-short21 Store refusals without a cut or unpark', async t => {
+  for (const entries of [8, 21]) {
+    const {root, f, opened, storageBinding, origin, retains} = await originalFixture(t,
+      {unretained: true, storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: entries}});
+    assert.deepEqual(await originalFixtureStoreInventory(root), {root: 18, objects: 1, holdings: 1, total: 20});
+    const park = f.operation.parkOriginalResourcesForStateWrite();
+    const selectedCodec = codec(), originWire = canonicalText(origin);
+    const promise = opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec);
+    await assert.rejects(promise, {code: 'PublicationStoreBootstrapEntriesLimit'});
+    assert.strictEqual(opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec), promise);
+    assert.equal(retains.length, 1, 'real save precedes a failed reopening; never relabel it unsaved');
+    assert.deepEqual(await originalFixtureStoreInventory(root), {root: 18, objects: 2, holdings: 2, total: 22});
+    assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
+    assert.equal(opened.token.available, true);
+    assert.equal(opened.close(), false);
+    assert.equal(opened.token.available, true);
+    assert.equal(f.sends(), 0);
+  }
+});
+
+test('original save caller holds pending Store responsibility across close and cancellation', async t => {
+  let proceed;
+  const blocked = new Promise(resolve => {proceed = resolve;});
+  let markEntered;
+  const entered = new Promise(resolve => {markEntered = resolve;});
+  let promise;
+  // Drain the actual original wait before closing its fixture Host, including
+  // a failed assertion. The focused wrapper retains the same child30 budget.
+  t.after(async () => {proceed(); if (promise !== undefined) await promise.catch(() => {});});
+  let savedReceipt;
+  const {cp, f, opened, storageBinding, origin, retains, abort} = await originalFixture(t,
+    {unretained: true, async retainState(args, actual) {
+      markEntered();
+      await blocked;
+      savedReceipt = await actual.retainOriginalModelState(args);
+      return savedReceipt;
+    }});
+  const park = f.operation.parkOriginalResourcesForStateWrite();
+  promise = opened.retainOriginalResourceCurrentCut(park, storageBinding, canonicalText(origin), codec());
+  // Attach rejection handling immediately; await a real physical boundary,
+  // not a scheduling-dependent number of zero-work polls.
+  const observed = promise.then(() => undefined, error => error);
+  await Promise.race([entered, observed.then(error => {if (error !== undefined) throw error;})]);
+  assert.equal(retains.length, 1);
+  const stopped = assert.rejects(promise);
+  assert.equal(opened.close(), false);
+  assert.equal(opened.cleanupPending(), true);
+  assert.equal(opened.token.available, true);
+  abort.abort();
+  assert.equal(f.sends(), 0);
+  proceed();
+  await stopped;
+  assert.equal(retains.length, 1);
+  // A save may finish after stop. It remains historical custody, never proof
+  // of unsaved data or permission to create another Entry/transport.
+  const actual = await cp.readOriginalModelState({runDefinition: f.runDefinition,
+    storageBinding, receipt: savedReceipt});
+  assert.equal(actual.wire, retains[0].bodyWire);
+  assert.equal(opened.close(), false);
+  assert.equal(opened.token.available, true);
+});
+
+test('original save caller rejects foreign origin and exhausted Writer before Store saving', async t => {
+  for (const variant of ['origin', 'writer', 'foreign-park']) {
+    const {f, opened, storageBinding, origin, retains} = await originalFixture(t, {unretained: true});
+    const park = f.operation.parkOriginalResourcesForStateWrite();
+    const selectedCodec = codec();
+    if (variant === 'writer') selectedCodec.decode.parse.max_input_bytes = 1;
+    const originWire = canonicalText(variant === 'origin' ? {...origin, run_id: 'foreign'} : origin);
+    if (variant === 'foreign-park') {
+      assert.throws(() => opened.retainOriginalResourceCurrentCut({...park}, storageBinding, originWire, selectedCodec),
+        {code: 'ModelOriginalResourceReadUnavailable'});
+    } else {
+      const promise = opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec);
+      await assert.rejects(promise);
+      assert.strictEqual(opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec), promise);
+    }
+    assert.equal(retains.length, 0);
+    assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
+    assert.equal(f.sends(), 0);
+    assert.equal(opened.token.available, true);
+  }
+});
 
 test('opened original controller reads only its own selected Scope and fixed actual journal', async t => {
   const {cp, selectedCp, f, opened, park, storageBinding, receipt, bodyWire, observation, abort} =

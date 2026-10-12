@@ -14,6 +14,7 @@ import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
 import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
+import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -36,6 +37,27 @@ const originalKeys = ['originalRunWire', 'preparedInvocationWire', 'scopeWire',
   'providerBindingWire', 'inputArtifactWire', 'slotWires', 'expectedBoundary'];
 // Hash opaque original wires without the configuration canonicalizer's text normalization.
 const originalDigest = originals => bytesCid(Buffer.from(canonicalJson(select(originals, originalKeys))));
+function originalCurrentCodecLimits(codec) {
+  if (codec === null || typeof codec !== 'object' ||
+      Object.keys(codec).sort().join(',') !== 'comparisonWork,decode,quantum' ||
+      !Number.isSafeInteger(codec.quantum) || codec.quantum < 1 || codec.quantum > 2147483647 ||
+      !Number.isSafeInteger(codec.comparisonWork) || codec.comparisonWork < 1 ||
+      codec.comparisonWork > 2147483647) fail('ModelOriginalCurrentCodecUnavailable');
+  const decode = codec.decode;
+  const bounded = (value, fields) => value !== null && typeof value === 'object' &&
+    Object.keys(value).sort().join(',') === fields && Object.values(value).every(
+      n => Number.isSafeInteger(n) && n >= 0 && n <= 2147483647);
+  if (decode === null || typeof decode !== 'object' ||
+      Object.keys(decode).sort().join(',') !== 'maxWork,parse,tree' ||
+      !Number.isSafeInteger(decode.maxWork) || decode.maxWork < 1 || decode.maxWork > 2147483647 ||
+      !bounded(decode.parse, 'max_depth,max_input_bytes,max_nodes') ||
+      !bounded(decode.tree, 'max_depth,max_nodes,max_string_bytes,max_total_string_bytes')) {
+    fail('ModelOriginalCurrentCodecUnavailable');
+  }
+  return Object.freeze({quantum: codec.quantum, comparisonWork: codec.comparisonWork,
+    decode: Object.freeze({maxWork: decode.maxWork, parse: Object.freeze({...decode.parse}),
+      tree: Object.freeze({...decode.tree})})});
+}
 // This validates only the closed durable transport. Current Source authority,
 // typed reference admission and actual Store custody remain receiving duties.
 const checkCapturedInventory = (value, runDefinitionCid, binding) => {
@@ -477,6 +499,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     let installedJournalPort;
     let originalInvalidation;
     let originalCut;
+    let originalSave;
     function originalResourceReadCurrent(park, acquisition) {
       const originalScope = operation.originalResourceScope?.();
       if (!owner.available || originalPreparation === undefined ||
@@ -597,7 +620,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     let gateCloseAttempted = false, gateReleased = false;
     const cleanup = () => {
       owner.available = false;
-      if (gateOpening !== undefined) return false;
+      if (gateOpening !== undefined || originalSave?.pending === true) return false;
       if (gate !== undefined && !gateReleased) {
         const recover = gateCloseAttempted;
         gateCloseAttempted = true;
@@ -622,6 +645,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }
       installedJournalPort = undefined;
       originalInvalidation = undefined;
+      originalSave = undefined;
       originalPreparation = undefined;
       release(token);
       return true;
@@ -637,8 +661,79 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       beforeDefer: async () => { if (!token.available) fail('ModelFixedInputCustodyUnavailable'); },
       attachImmediate: view?.checkpointCid === null,
       ...(journalPort === undefined ? {} : {journalPort})};
-    return Object.freeze({originals, inventory, token, scope, preparedCallSet,
+    const continuationView = Object.freeze({originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
+      retainOriginalResourceCurrentCut(park, storageBinding, originWire, codec) {
+        if (originalSave !== undefined) {
+          if (originalSave.park !== park || originalSave.storageBinding !== storageBinding || originalSave.originWire !== originWire ||
+              originalSave.codec.deref() !== codec) fail('ModelOriginalCurrentCutBindingMismatch');
+          originalResourceReadCurrent(originalSave.park);
+          return originalSave.promise;
+        }
+        // This method is internal to the original opened operation. Origin DATA
+        // was selected before park by its existing checked getter; matching
+        // strings never replace the checks against the actual parked Owner.
+        if (!owner.available || checkpoints() !== cp ||
+            originalPreparation?.scope !== operation.originalResourceScope?.() ||
+            typeof originWire !== 'string' ||
+            typeof control.encodeModelOriginalResourceDocument !== 'function' ||
+            typeof cp.retainOriginalModelState !== 'function') fail('ModelOriginalCurrentCutUnavailable');
+        // The original caller already retains this actual park. Refusing a
+        // codec/envelope must not lose a freshly issued fence in a local only.
+        originalResourceReadCurrent(park);
+        // The original complete simultaneous envelope precedes this record,
+        // codec snapshots, Writer, trees, Promise and physical Store I/O.
+        const acquisition = operation.originalMetadataAcquisition(park);
+        const limits = originalCurrentCodecLimits(codec);
+        const original = originalSave = {storageBinding, originWire, codec: new WeakRef(codec),
+          park, promise: undefined, receipt: undefined, reference: undefined, pending: true};
+        original.promise = (async () => {
+          let writer;
+          try {
+            const observation = cp.journal.observeOriginalModelJournal(inventory);
+            const facts = cp.journal.originalModelJournalObservationFacts(observation);
+            const cutWire = canonicalJson(verifier.projectOriginalCurrentCut({facts}));
+            const envelope = {maxWireBytes: limits.decode.parse.max_input_bytes,
+              maxNodes: limits.decode.parse.max_nodes, maxDepth: limits.decode.parse.max_depth};
+            originalResourceReadCurrent(park, acquisition);
+            writer = operation.prepareOriginalCurrentStateWriter(park, envelope);
+            for (;;) {
+              originalResourceReadCurrent(park, acquisition);
+              const poll = operation.advanceOriginalCurrentStateWriter(park, writer, limits.quantum);
+              if (poll.kind === 'complete') break;
+              if (poll.kind !== 'continue' || poll.work < 1) fail('ModelOriginalCurrentStateWriteFailed');
+              await yieldEventLoop();
+            }
+            let stateWire = operation.finishOriginalCurrentStateWriter(park, writer);
+            operation.cancelOriginalCurrentStateWriter(writer);
+            writer = undefined;
+            const bodyWire = control.encodeModelOriginalResourceDocument(originWire,
+              stateWire, cutWire, 'parked', envelope);
+            stateWire = undefined;
+            const document = control.readModelOriginalResourceDocument(bodyWire, envelope);
+            const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+            originalResourceReadCurrent(park, acquisition);
+            control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
+              plan.runDefinition, selected.graph, originalPreparation.scope, park,
+              document, originalPreparation.nodeInstallation, storage);
+            cp.journal.reconfirmOriginalModelJournal(observation);
+            original.receipt = await cp.retainOriginalModelState({runDefinition: plan.runDefinition,
+              storageBinding, bodyWire});
+            // A late stop or lost Store response keeps the same park/custody;
+            // it cannot be reclassified as unsaved or start another attempt.
+            originalResourceReadCurrent(park, acquisition);
+            cp.journal.reconfirmOriginalModelJournal(observation);
+            original.reference = await continuationView.prepareOriginalResourceCurrentCut(
+              park, storageBinding, original.receipt, limits);
+            originalResourceReadCurrent(park, acquisition);
+            return Object.freeze({park, receipt: original.receipt, reference: original.reference});
+          } finally {
+            if (writer !== undefined) operation.cancelOriginalCurrentStateWriter(writer);
+            original.pending = false;
+          }
+        })();
+        return original.promise;
+      },
       prepareOriginalResourceCurrentCut(park, storageBinding, receipt, codec) {
         originalResourceReadCurrent(park);
         // Validate the installed runtime before Store I/O and use the original
@@ -660,27 +755,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // This is one private installation caller, not a second Resource or
         // journal state machine. Fund this record, Promise/frames and BOTH
         // Common trees through the original installation before using it.
-        if (codec === null || typeof codec !== 'object' ||
-            Object.keys(codec).sort().join(',') !== 'comparisonWork,decode,quantum' ||
-            !Number.isSafeInteger(codec.quantum) || codec.quantum < 1 || codec.quantum > 2147483647 ||
-            !Number.isSafeInteger(codec.comparisonWork) || codec.comparisonWork < 1 ||
-            codec.comparisonWork > 2147483647) fail('ModelOriginalCurrentCodecUnavailable');
-        // Check the same original envelope BEFORE this caller's first retained
-        // allocation. Copy only finite DATA limits, never authority or custody.
-        const decode = codec.decode;
-        const bounded = (value, fields) => value !== null && typeof value === 'object' &&
-          Object.keys(value).sort().join(',') === fields && Object.values(value).every(
-            n => Number.isSafeInteger(n) && n >= 0 && n <= 2147483647);
-        if (decode === null || typeof decode !== 'object' ||
-            Object.keys(decode).sort().join(',') !== 'maxWork,parse,tree' ||
-            !Number.isSafeInteger(decode.maxWork) || decode.maxWork < 1 || decode.maxWork > 2147483647 ||
-            !bounded(decode.parse, 'max_depth,max_input_bytes,max_nodes') ||
-            !bounded(decode.tree, 'max_depth,max_nodes,max_string_bytes,max_total_string_bytes')) {
-          fail('ModelOriginalCurrentCodecUnavailable');
-        }
-        const limits = Object.freeze({quantum: codec.quantum, comparisonWork: codec.comparisonWork,
-          decode: Object.freeze({maxWork: decode.maxWork, parse: Object.freeze({...decode.parse}),
-            tree: Object.freeze({...decode.tree})})});
+        const limits = originalCurrentCodecLimits(codec);
         const original = originalCut = {park, storageBinding, receipt, codec: new WeakRef(codec),
           promise: undefined, document: undefined, matched: undefined, facts: undefined,
           current() {
@@ -1037,6 +1112,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       // this continuation's responsibility until the same gate settles.
       close: cleanup, cleanup, cleanupPending,
     });
+    return continuationView;
   }
   async function open(options) {
     const ownership = {};
