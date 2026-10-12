@@ -30,6 +30,12 @@ import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 
+// Internal physical adapter primitive, not a Client read/authority entry. Its
+// caller funds the complete metadata/decode lifetime before I/O and retains
+// any existing failed-close cleanupHandle until confirmed physical close.
+// Keep the actual implementation shared with ordinary Store metadata reads.
+export {readBounded as readBoundedLocalMetadata};
+
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 // Physical holdings: Transfer material, Effect source/capture custody,
 // encrypted publication evidence, Local continuation evidence, and generated
@@ -98,14 +104,18 @@ async function writeExclusive(path, bytes) {
   }
 }
 
-async function readBounded(path, maximum, closed) {
+async function readBounded(path, maximum, closed, signal) {
   if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
+  }
+  if (signal !== undefined && !(signal instanceof AbortSignal)) {
+    fail('InvalidPublicationMetadataSignal');
   }
   // Pin the original allocation before allocating its bounded output. A
   // nonblocking open also refuses a raced-in FIFO without waiting for a writer.
   let handle;
   try {
+    signal?.throwIfAborted();
     handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
       constants.O_NONBLOCK);
   } catch (error) {
@@ -115,7 +125,9 @@ async function readBounded(path, maximum, closed) {
   let readFailure;
   let readFailed = false;
   try {
+    signal?.throwIfAborted();
     const before = await handle.stat({bigint: true});
+    signal?.throwIfAborted();
     if (!before.isFile() || before.size < 0n ||
         before.size > BigInt(maximum)) {
       fail('InvalidPublicationStoreObject');
@@ -127,25 +139,33 @@ async function readBounded(path, maximum, closed) {
     if (!sameFile(await lstat(path, {bigint: true}))) {
       fail('InvalidPublicationStoreObject');
     }
+    signal?.throwIfAborted();
     const size = Number(before.size);
     // Avoid pooled backing and growth/concatenation. The one-byte probe is a
     // separate bounded allocation; neither buffer is a byte-capacity grant.
     const bytes = Buffer.allocUnsafeSlow(size);
     let offset = 0;
     while (offset < size) {
+      signal?.throwIfAborted();
       const {bytesRead} = await handle.read(bytes, offset, size - offset, offset);
+      signal?.throwIfAborted();
       if (!Number.isSafeInteger(bytesRead) || bytesRead <= 0 ||
           bytesRead > size - offset) {
         fail('InvalidPublicationStoreObject');
       }
       offset += bytesRead;
     }
+    signal?.throwIfAborted();
     const probe = Buffer.allocUnsafeSlow(1);
     const {bytesRead} = await handle.read(probe, 0, 1, size);
-    if (bytesRead !== 0 || !sameFile(await handle.stat({bigint: true})) ||
-        !sameFile(await lstat(path, {bigint: true}))) {
-      fail('InvalidPublicationStoreObject');
-    }
+    signal?.throwIfAborted();
+    if (bytesRead !== 0) fail('InvalidPublicationStoreObject');
+    const after = await handle.stat({bigint: true});
+    signal?.throwIfAborted();
+    if (!sameFile(after)) fail('InvalidPublicationStoreObject');
+    const pathAfter = await lstat(path, {bigint: true});
+    signal?.throwIfAborted();
+    if (!sameFile(pathAfter)) fail('InvalidPublicationStoreObject');
     return bytes;
   } catch (error) {
     readFailed = true;
