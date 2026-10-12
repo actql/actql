@@ -1,0 +1,103 @@
+{
+  "startedAt": "2026-10-12T02:11:03.304Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Existing generator or independent oracle compilation-manifests",
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T02:11:03.401Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:11:03.669Z",
+      "endedAt": "2026-10-12T02:11:03.671Z"
+    },
+    {
+      "name": "Existing generator or independent oracle event-dedupe-identity-oracle",
+      "command": [
+        "node",
+        "scripts/event-dedupe-identity-oracle.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T02:11:03.743Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:11:03.813Z",
+      "endedAt": "2026-10-12T02:11:03.816Z"
+    },
+    {
+      "name": "Existing generator or independent oracle update-document-metadata",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T02:11:03.896Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:11:05.835Z",
+      "endedAt": "2026-10-12T02:11:05.838Z"
+    },
+    {
+      "name": "Existing generator or independent oracle check-actql-spec-family",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T02:11:05.924Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:11:08.067Z",
+      "endedAt": "2026-10-12T02:11:08.072Z"
+    },
+    {
+      "name": "Existing generator or independent oracle check-canonical-json",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T02:11:08.150Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:11:10.495Z",
+      "endedAt": "2026-10-12T02:11:10.499Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "76d20ce6-411e-461f-b733-f7f1b595e748",
+    "pid": 2144,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T02:11:03.387Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-5CaW0b"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T02:11:10.582Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
