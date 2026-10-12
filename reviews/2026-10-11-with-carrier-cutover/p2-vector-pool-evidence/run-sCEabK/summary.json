@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-12T01:06:49.738Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Vector pool authored role counterexamples and independent common controls",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/vector_pool_role_test.mbt",
+        "src/query_program/vector_pool_source_test.mbt",
+        "src/query_program/with_vectors_events_test.mbt"
+      ],
+      "startedAt": "2026-10-12T01:06:49.847Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:06:52.653Z",
+      "endedAt": "2026-10-12T01:06:52.655Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "71d1758b-08ef-44f8-8c25-86bd2e288627",
+    "pid": 76462,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T01:06:49.836Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-sCEabK"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T01:06:52.744Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
