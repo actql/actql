@@ -456,6 +456,8 @@ pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScop
 
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
+pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDecodingIssue]
+
 pub fn client_local_completion_free_catalog_cid() -> String
 
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
@@ -747,6 +749,8 @@ pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
 pub fn client_values_static_plan_view(PreparedClientProgram, ClientValuesCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
 
 pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
+
+pub fn decode_client_run_journal_row(Bytes) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
@@ -1917,6 +1921,10 @@ pub(all) enum ClientInteractivePlanIssue {
   Encoding
   Evidence(@run_publication.RunEvidenceValueIssue)
   Contract(@run_publication.PublicationContractIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientJournalDecodingIssue {
+  CustodyLost
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientJournalEncodingIssue {
