@@ -1878,3 +1878,28 @@ Its raw-byte limits require the assembly's simultaneous workspace reservation;
 they do not establish global memory accounting. Full saved intent/settings and
 adoption validation, the public Client assembly and actual Store ACK remain
 required beyond these metadata and physical ports.
+
+`OriginalHostBinding` supplies the same saved originals to the existing
+Common adopted/current material through a read-only SQLite snapshot. Trusted
+assembly supplies the four original Core projections, exact source/staged
+Account files, custody files and selected settings. The binding retains their
+loans and checks their exact saved bytes; it does not issue those originals or
+reconstruct their identities. The existing Common Owner still validates the
+actual singleton adoption row, Account and scope and makes operation decisions.
+
+The snapshot fences the original selected manifest/file rows at revision zero,
+their complete namespace membership, and the physical epoch key/clock row.
+Epoch observation performs no projection or clock advance. Explicit clock
+progress is observed by the next snapshot; replacement keys and backwards
+retained clocks are refused. Core, original File roots, then Store are locked
+in that order. The query reader is detached at frame exit and cannot be reused
+for protected work outside the snapshot. No fresh write transaction begins in
+this read-only frame; existing pending-write confirmation remains separate.
+
+Live close seals new work and keeps these loans until frame exit. Failed output
+cleanup retains the same current/input/workspace handles. A reserve trap without
+a returned handle retains its exact physical ticket and requires the original
+instance's actual retirement; it cannot be repeated or called complete. Closing
+this supplier does not cancel a Run, close the caller's Store/files or repair
+adoption. Actual initialization, publication ACK, public Client/runtime and
+installed-wheel acceptance remain required parts of the product assembly.

@@ -1,0 +1,265 @@
+"""Original physical Host supplier for the existing Common current/scope Owner."""
+from collections.abc import Callable
+import json
+from typing import Any, TypeVar
+
+from ._local_core import LocalCore, _Input, _Output, _Workspace
+from ._local_host_files import LocalHostFiles, _HostFile
+from ._local_storage import ByteFence, LocalByteStore, LocalStorageError, StoredBytes, _NamespaceReader
+from ._local_submission import LocalSubmissionAuthority
+
+_T = TypeVar('_T')
+
+
+class LocalHostBindingCleanupPending(RuntimeError):
+    def __init__(self, binding: 'OriginalHostBinding') -> None:
+        super().__init__('Original Local Host binding cleanup is pending')
+        self.cleanup_binding = binding
+
+
+def _body(raw: bytes) -> bytes:
+    """Unwrap Core's closed transport; do not encode/hash an original contract."""
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError('Duplicate original Core metadata field')
+            result[key] = value
+        return result
+    if type(raw) is not bytes or len(raw) > 65536:
+        raise ValueError('Original Core metadata exceeds its reserved transfer')
+    result = json.loads(raw, object_pairs_hook=pairs)
+    if (type(result) is not dict or set(result) != {'body', 'cid'}
+            or type(result['body']) is not str or type(result['cid']) is not str
+            or len(result['cid']) != 71 or not result['cid'].startswith('sha256:')
+            or any(character not in '0123456789abcdef' for character in result['cid'][7:])):
+        raise ValueError('Invalid original Core metadata transport')
+    body = result['body'].encode('utf-8')
+    if len(body) > 8192:
+        raise ValueError('Original Core custody exceeds its record bound')
+    return body
+
+
+class OriginalHostBinding:
+    """Supply original physical facts under Core -> File -> Store locking.
+
+    Only the trusted installed assembly constructs this from Core-issued
+    initialization/configuration/journal/selection projections and the original
+    pinned files. Those projections must use the same physical observations and
+    source bytes; arbitrary public SDK data cannot install this supplier. It
+    checks exact raw persisted bytes, original epoch custody and complete saved
+    settings membership. Common still verifies actual singleton adoption,
+    admits Account, derives scope and evaluates each operation independently.
+
+    This owns transfer/current/workspace loans, never a Run/Recovery state.
+    It performs no initialization, adoption, COMMIT, repair, dispatch, retry or
+    permission decision. The caller separately accounts/pins the source files
+    and retains its existing exclusive root and same Store throughout.
+    """
+
+    def __init__(self, core: LocalCore, source: LocalHostFiles, state: LocalHostFiles,
+                 account: _HostFile, staged_account: _HostFile,
+                 initialization: _HostFile, configuration: _HostFile,
+                 journal: _HostFile, selected: tuple[_HostFile, ...],
+                 expected: tuple[_Output, _Output, _Output, _Output],
+                 epoch: LocalSubmissionAuthority, *, principal: str,
+                 connection: str) -> None:
+        if (type(core) is not LocalCore or type(source) is not LocalHostFiles
+                or type(state) is not LocalHostFiles or source._store is not state._store
+                or type(epoch) is not LocalSubmissionAuthority or epoch._store is not state._store
+                or type(selected) is not tuple or len(selected) > 8
+                or type(expected) is not tuple or len(expected) != 4
+                or type(principal) is not str or type(connection) is not str
+                or not 0 < len(principal.encode('utf-8')) <= 512
+                or not 0 < len(connection.encode('utf-8')) <= 512):
+            raise ValueError('Invalid original Local Host supplier')
+        self._original = self
+        self._core = core
+        self._source = source
+        self._state = state
+        self._store = state._store
+        self._epoch = epoch
+        self._expected = expected
+        self._account = account
+        self._staged_account = staged_account
+        self._initialization = initialization
+        self._configuration = configuration
+        self._journal = journal
+        self._selected = selected
+        self._workspace: _Workspace | None = None
+        self._input: _Input | None = None
+        self._current: _Output | None = None
+        self._uncertain_ticket: int | None = None
+        self._active = False
+        self._frame_epoch: ByteFence | None = None
+        self._closing = False
+        self._fences: tuple[ByteFence, ...] = ()
+        try:
+            with core._lock, source._root._lock, state._root._lock:
+                self._physical_current()
+                if (tuple(value.name for value in selected)
+                        != tuple(sorted(set(value.name for value in selected)))
+                        or any(value.name == account.name for value in selected)):
+                    raise ValueError('Invalid original Local selected file membership')
+                for value in expected:
+                    core._owned_output(value, 'original')
+                # Bound the four simultaneous decoded metadata transports and
+                # the current input encoder before making either copy. Source
+                # pins and their original Core output loans remain separate.
+                allowance = 16 * (4 * 65536 + len(account.body) + len(journal.body)) + 8192
+                self._workspace = self._reserve(lambda: core.reserve_workspace(
+                    allowance, stopped=lambda: not self._active, cleanup=lambda: True))
+                bodies = tuple(_body(core.read_original_metadata(value)) for value in expected)
+                for actual, wanted in zip((initialization, configuration, journal), bodies[:3]):
+                    if state.original_bytes(actual) != wanted:
+                        raise ValueError('Original Local saved custody does not match Core material')
+                if source.original_bytes(account) != state.original_bytes(staged_account):
+                    raise ValueError('Original Local staged Account changed')
+                manifest = bodies[3]
+                self._fences = tuple(ByteFence(LocalByteStore.namespaced_key(namespace, key), 0, body)
+                    for namespace, key, body in (
+                        ('client_local_adoption', 'adoption', state.original_bytes(journal)),
+                        ('client_local_settings', 'manifest', manifest),
+                        *((('client_local_settings', 'file:' + value.name,
+                            source.original_bytes(value)) for value in selected)),
+                    ))
+                device, inode = self._store.observe_generation()
+                wire = json.dumps({'account': source.original_bytes(account).decode('utf-8'),
+                                   'adoption': state.original_bytes(journal).decode('utf-8'),
+                                   'device': str(device), 'inode': str(inode),
+                                   'principal': principal, 'connection': connection},
+                                  ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+                self._input = self._reserve(lambda: core.reserve_input(
+                    wire, cleanup=lambda: True, stopped=lambda _: True))
+                assert self._input is not None
+                original_input = self._input
+                self._current = self._reserve(lambda: core.reserve_host_current(
+                    original_input, store=self._store, current=self._physical_current,
+                    cleanup=lambda: not self._active))
+                self._physical_current()
+        except BaseException as failure:
+            # Keep the exact returned loans and original Core reachable even
+            # when reserve traps before returning a scalar handle.
+            raise LocalHostBindingCleanupPending(self) from failure
+
+    def _reserve(self, acquire: Callable[[], _T]) -> _T:
+        ticket = self._core._next_ticket
+        self._uncertain_ticket = ticket
+        try:
+            result = acquire()
+        except BaseException:
+            if ticket not in self._core._inputs and ticket not in self._core._released:
+                self._uncertain_ticket = None
+            raise
+        self._uncertain_ticket = None
+        return result
+
+    def _nominal(self) -> None:
+        if self._original is not self:
+            raise ValueError('Copied original Local Host supplier')
+
+    def _physical_current(self) -> None:
+        self._nominal()
+        if self._closing:
+            raise ValueError('Original Local Host supplier is closing')
+        self._source.current()
+        self._state.current()
+        for value in (self._account, *self._selected):
+            self._source.original_bytes(value)
+        for value in (self._staged_account, self._initialization,
+                      self._configuration, self._journal):
+            self._state.original_bytes(value)
+        for projection in self._expected:
+            self._core._owned_output(projection, 'original')
+        if self._active:
+            if self._frame_epoch is None:
+                raise ValueError('Original Local epoch snapshot is unavailable')
+            # The existing reader fences this exact physical row inside its
+            # transaction. Do not open a second read or rewind/advance a clock.
+        else:
+            self._epoch.observe_custody()
+
+    def _settings_inventory(self, reader: _NamespaceReader) -> None:
+        # This is the same bounded raw membership fence as Native's retained
+        # settings port, not a scope or authorization decision. Core-issued
+        # originals supply every expected name/body; nothing is discovered.
+        # Use the literal original logical names, including colons in file keys.
+        expected = {'manifest': self._fences[1].payload} | {
+            'file:' + value.name: value.body for value in self._selected}
+        cursor = ''
+        for _ in range(len(expected)):
+            found: list[tuple[str, bytes, int]] = []
+            def receive(row: tuple[str, StoredBytes] | None) -> None:
+                if row is not None:
+                    found.append((row[0], row[1].payload, row[1].generation))
+            reader.scan_after('client_local_settings', cursor, receive)
+            if (len(found) != 1 or found[0][0] not in expected
+                    or found[0][1] != expected[found[0][0]] or found[0][2] != 0):
+                raise LocalStorageError('Original Local settings inventory changed')
+            cursor = found[0][0]
+        extra: list[object] = []
+        reader.scan_after('client_local_settings', cursor, lambda row: extra.append(row) if row is not None else None)
+        if extra:
+            raise LocalStorageError('Original Local settings inventory is incomplete')
+
+    def inspect(self, consume: Callable[[_Output], object]) -> None:
+        """Run protected Core work only within the same original read snapshot.
+
+        The consumer must not begin a write transaction on this connection.
+        Original pending-write confirmation uses its existing separate caller.
+        No current reader, grant or successful result is returned as a token.
+        """
+        with self._core._lock, self._source._root._lock, self._state._root._lock:
+            self._nominal()
+            if self._active or self._current is None or not callable(consume):
+                raise ValueError('Original Local Host snapshot is unavailable')
+            self._physical_current()
+            self._frame_epoch = self._epoch.custody_fence()
+            self._active = True
+            try:
+                self._store.inspect_namespaces((*self._fences, self._frame_epoch),
+                    inspect=lambda reader: self._inspect(reader, consume),
+                    current=self._physical_current)
+            finally:
+                self._active = False
+                self._frame_epoch = None
+
+    def _inspect(self, reader: _NamespaceReader, consume: Callable[[_Output], object]) -> None:
+        assert self._current is not None
+        self._settings_inventory(reader)
+        with self._core.host_current_frame(self._current, reader):
+            self._core.bind_host_current(self._current)
+            consume(self._current)
+            self._core.validate_host_current(self._current)
+        self._settings_inventory(reader)
+
+    def close(self) -> bool:
+        """Release these loans only; preserve saved files, Store and original Run."""
+        with self._core._lock:
+            self._nominal()
+            self._closing = True
+            if self._active:
+                return False
+            if self._core._closed:
+                # Only actual original instance retirement resolves a reserve
+                # that trapped without returning a handle. Never repeat it.
+                self._current = None
+                self._input = None
+                self._workspace = None
+                self._uncertain_ticket = None
+                return True
+            if self._uncertain_ticket is not None:
+                return False
+            if self._current is not None:
+                if not self._core.close_host_current(self._current):
+                    return False
+                self._current = None
+            if self._input is not None:
+                if not self._core.close_input(self._input):
+                    return False
+                self._input = None
+            if self._workspace is not None:
+                if not self._core.close_workspace(self._workspace):
+                    return False
+                self._workspace = None
+            return True
