@@ -1,0 +1,64 @@
+{
+  "queries": {
+    "schema": {
+      "request_id": {
+        "type": "string",
+        "nullable": false
+      },
+      "embedding": {
+        "type": "vector",
+        "dimensions": 2,
+        "nullable": false
+      },
+      "note": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "rows": [
+      {
+        "request_id": "q1",
+        "embedding": [
+          1,
+          0
+        ],
+        "note": null
+      }
+    ]
+  },
+  "candidates": {
+    "schema": {
+      "item_id": {
+        "type": "string",
+        "nullable": false
+      },
+      "embedding": {
+        "type": "vector",
+        "dimensions": 2,
+        "nullable": false
+      },
+      "label": {
+        "type": "string",
+        "nullable": false
+      }
+    },
+    "rows": [
+      {
+        "item_id": "b",
+        "embedding": [
+          0,
+          1
+        ],
+        "label": "second"
+      },
+      {
+        "item_id": "a",
+        "embedding": [
+          1,
+          0
+        ],
+        "label": "first"
+      }
+    ]
+  }
+}
