@@ -2,7 +2,7 @@
 test "independent captured JOIN Program compares strict and check-only orders" {
   let program = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.checked_import_sort","stages":[{"id":"capture","inputs":{"records":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"records","filter":{"literal":true}},{"select":["id"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id"]}}},{"id":"main","inputs":{"rows":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"rows","filter":{"eq":[{"field":"id"},{"literal":1}]},"as":"chosen"},{"from":"chosen","cross_join":{"with":"rows","max_output_rows":1000000,"select":{"left_id":"left.id","id":"right.id"}},"as":"paired"},{"select":["id"]},{"sort":{"by":[{"field":"id","direction":"asc","nulls":"first"}]},"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.checked_import_sort","stages":[{"id":"capture","inputs":{"records":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"records","filter":{"literal":true}},{"select":["id"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id"]}}},{"id":"main","inputs":{"rows":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"rows","filter":{"eq":[{"field":"id"},{"literal":1}]},"as":"chosen"},{"from":"chosen","cross_join":{"with":"rows","max_output_rows":1000000,"select":{"left_id":"left.id","id":"right.id"}},"as":"paired"},{"select":["id"]},{"sort":[{"field":"id","dir":"asc","nulls":"first"}],"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -27,6 +27,7 @@ test "independent captured JOIN Program compares strict and check-only orders" {
     Ok(_) => ()
     Err(Order(stage, PipelineOrder(issue))) => fail("strict pipeline order stage \{stage}: " + @debug.to_string(issue.kind))
     Err(Order(stage, ResultOrder(issue))) => fail("strict Result order stage \{stage}: " + @debug.to_string(issue.kind))
+    Err(Pipeline(stage, issue)) => fail("strict pipeline stage \{stage}: " + @debug.to_string(issue.kind))
     Err(_) => fail("strict preparation failed at another boundary")
   }
   guard @stage_results.check_local_program(parameters, limits) is Err(Order(1, PipelineOrder(issue))) else {

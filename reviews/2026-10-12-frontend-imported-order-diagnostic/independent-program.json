@@ -84,15 +84,13 @@
           ]
         },
         {
-          "sort": {
-            "by": [
-              {
-                "field": "id",
-                "direction": "asc",
-                "nulls": "first"
-              }
-            ]
-          },
+          "sort": [
+            {
+              "field": "id",
+              "dir": "asc",
+              "nulls": "first"
+            }
+          ],
           "as": "out"
         }
       ],
