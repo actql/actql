@@ -62,6 +62,22 @@ test "check-only topology retains original capture and unresolved Result order" 
     )
     assert_eq(@pipeline.producer_target(projected), Step(1))
     assert_true(@pipeline.producer_projection(projected) is Some(_))
+    assert_true(@pipeline.producer_order(projected) is None)
+    assert_true(
+      @results.checked_input_publication(topology_stage_results(first), 0)
+      is None,
+    )
+    let pending = @results.checked_input_order_pending(
+      topology_stage_results(first),
+      0,
+    ).unwrap()
+    assert_eq(@decode.cursor_path(pending), [
+      Key("stages"),
+      Index(0),
+      Key("results"),
+      Key("source"),
+      Key("fields"),
+    ])
     assert_true(topology_local_input_at(topology, 0) is Some(_))
     assert_true(topology_local_environment(topology) is None)
     let second = topology_stage_at(topology, 1).unwrap()
