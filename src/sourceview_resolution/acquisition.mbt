@@ -72,44 +72,16 @@ pub fn check_pipeline_requests(
     for i in 0..<inputs.length() {
       acquisition_charge(b, 1)
       let input = inputs[i].input
-      let correlation = @environment.source_request_correlation(
-        input.selected.contract,
-      )
-      let mut keyed = false
-      if correlation is Some(c) {
-        let reserved : Map[String, Bool] = Map([])
-        let count = @environment.source_correlation_pair_count(c)
-        for j in 0..<count {
-          let name = @environment.source_correlation_pair_at(c, j).unwrap().request.name
+      let keyed = classify_authored_request_form(context, input, b, i)
+        is KeyedTemplate
+      if keyed {
+        if uses.entries[i].is_empty() {
+          raise AcquisitionStop(MissingKeyedConsumer(i))
+        }
+        for consumer in uses.entries[i] {
           acquisition_charge(b, 1)
-          acquisition_charge(b, name.length())
-          reserved[name] = true
-        }
-        acquisition_charge(b, input.declaration.input_name.length())
-        let fields = context.fields
-          .get((index, input.declaration.input_name))
-          .unwrap_or([])
-        let mut present = 0
-        for field in fields {
-          acquisition_charge(b, 1)
-          acquisition_charge(b, field.field_name.length())
-          if reserved.contains(field.field_name) {
-            present += 1
-          }
-        }
-        if present != 0 && present != count {
-          raise AcquisitionStop(PartialCorrelation(i))
-        }
-        if present == 0 {
-          keyed = true
-          if uses.entries[i].is_empty() {
-            raise AcquisitionStop(MissingKeyedConsumer(i))
-          }
-          for consumer in uses.entries[i] {
-            acquisition_charge(b, 1)
-            if !(consumer is JoinRight(_)) {
-              raise AcquisitionStop(InvalidKeyedConsumer(i, consumer))
-            }
+          if !(consumer is JoinRight(_)) {
+            raise AcquisitionStop(InvalidKeyedConsumer(i, consumer))
           }
         }
       }
