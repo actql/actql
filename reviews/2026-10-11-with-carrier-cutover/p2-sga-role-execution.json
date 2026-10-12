@@ -1,0 +1,651 @@
+{
+  "phase": "P2-A in progress; not public execution or complete cutover",
+  "fixedImplementationSource": "fef4bab37fa5226d85498c8a88291da5833b9e8d",
+  "fixedImplementationTree": "be144fda8ccd7c04bbee012b2833b7c3ea972ba5",
+  "p1Dependency": "b2683f7f8134b65373a642f445bd9d4fba3b07d8",
+  "ordinaryAdoption": "caeb5d7531f41b98b576c4ef65fafa23e15b4de1",
+  "executedChecks": [
+    {
+      "run": "run-5N8vu4",
+      "source": "caeb5d7531f41b98b576c4ef65fafa23e15b4de1",
+      "result": "JS6/6 syntax roles"
+    },
+    {
+      "run": "run-Q9Bsua",
+      "source": "fef4bab37fa5226d85498c8a88291da5833b9e8d",
+      "result": "JS3/3 complete independent Programs and actual common checking; five selector spellings and four exact UnknownColumn refusals"
+    },
+    {
+      "run": "run-0wFlC5",
+      "source": "fef4bab37fa5226d85498c8a88291da5833b9e8d",
+      "result": "JS6/6 strengthened syntax roles including OutputName AST"
+    },
+    {
+      "source": "46a4edbac4417fca744fa0f8cd9b3b7b4af6ac33",
+      "run": "run-BTcBWa",
+      "result": "JS4/4 full independent Programs/common checks, including nullable payload.score via existing property expression; runtime values unexecuted"
+    }
+  ],
+  "beforeFix": [
+    {
+      "run": "run-TcsS0O",
+      "source": "066b4ac4ef17c00a002605c74761ffb4a4587547",
+      "result": "JS0/6; old SGA reference/literal convention"
+    },
+    {
+      "run": "run-OSJAq9",
+      "source": "3cdeead0a5c0fcc021f518095632b3ffc4a74182",
+      "result": "JS1/3; both valid + numeric controls failed lowering"
+    },
+    {
+      "run": "run-M0gl5b",
+      "source": "f3ca0d3d91eac7a0530bf46899d3b0164bf62dad",
+      "result": "JS1/3; actual expression InvalidNumber observed in both controls"
+    }
+  ],
+  "minimumFix": "The private P2 parser preserves + numeric spelling. Its argument lowerer removes only the unary plus before invoking the existing numeric token decoder. Existing numeric laws and negative-zero/precision/finite/hex validation remain unchanged.",
+  "independentExpectation": "Two complete Program preimages are copied byte-for-byte from previously authored controls. Neither Program nor expected CID/rows/schema is generated from product output.",
+  "observedRelease": {
+    "ownersAndGroupsAbsent": true,
+    "ownLockAbsent": true,
+    "receipts": [
+      {
+        "run": "run-TcsS0O",
+        "owner": 60164,
+        "exitCode": 2,
+        "complete": false,
+        "locksReleased": true
+      },
+      {
+        "run": "run-KcOFV4",
+        "owner": 61216,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-5N8vu4",
+        "owner": 90077,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-rIOHT0",
+        "owner": 94016,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-OSJAq9",
+        "owner": 94464,
+        "exitCode": 2,
+        "complete": false,
+        "locksReleased": true
+      },
+      {
+        "run": "run-M0gl5b",
+        "owner": 96002,
+        "exitCode": 2,
+        "complete": false,
+        "locksReleased": true
+      },
+      {
+        "run": "run-vBzseI",
+        "owner": 97198,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-Q9Bsua",
+        "owner": 97866,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-0wFlC5",
+        "owner": 1404,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-LdhWKf",
+        "owner": 5111,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      },
+      {
+        "run": "run-BTcBWa",
+        "owner": 5252,
+        "exitCode": 0,
+        "complete": true,
+        "locksReleased": true
+      }
+    ]
+  },
+  "unfinished": [
+    "Current SGA text/reference fixture migration and grammar/profile/pin consistency",
+    "Complete P2-A closed signature coverage and operand resolution cases",
+    "P2-V/P2-T remaining accepted algebra surfaces",
+    "Public Local/HTTPS/five-package acceptance and runtime values/schema/refusals",
+    "Native/Wasm execution and Hosted CI"
+  ],
+  "files": [
+    {
+      "original": "_build/local-checks/attempts/run-TcsS0O/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-TcsS0O/summary.json",
+      "bytes": 1634,
+      "sha256": "04e2eaabaa0e6eeb9752c34d120990ba9ee39253ce0138893d90fe7342be83be"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-TcsS0O/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-TcsS0O/output.log",
+      "bytes": 10519,
+      "sha256": "b1d75199ddbd1703388e002eb20c9f8c5b18f1c267e536b55bdc61e20b1ec9b0"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/0001.summary.json",
+      "bytes": 630,
+      "sha256": "cf7bc54889cc9912470415bbd46f042ee747dca98f8347bca7842ee595e0d8b0"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/summary.json",
+      "bytes": 1796,
+      "sha256": "86bcc969a9c0fdf0bd6282d8065c12e715d3d89cb12d74e74d84c839ea575c68"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/001.stdout.log",
+      "bytes": 10191,
+      "sha256": "b7c4280b3590060db0fa6450527e6f2f848fdaef27baf6f7a67027e84d00384f"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/001.started.json",
+      "bytes": 803,
+      "sha256": "4c64dc8f7209e23fcfae2062f76f5d461c27c6607350f32bd63d42f05fb50c26"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/001.result.json",
+      "bytes": 986,
+      "sha256": "225da1998ec769eba41a2ee2bf4f27e008283a753915b4fe962865db14554e0b"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/0002.summary.json",
+      "bytes": 1556,
+      "sha256": "cef3cf56c8d7a96a0278589f9a9e129c3e5cd260844fed2a2956b7c48e8101a9"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/0004.summary.json",
+      "bytes": 1796,
+      "sha256": "86bcc969a9c0fdf0bd6282d8065c12e715d3d89cb12d74e74d84c839ea575c68"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-BK6ckp/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-BK6ckp/0003.summary.json",
+      "bytes": 1775,
+      "sha256": "4eea6ceccb352beeda87b03fa15a042e242709860ceb3aed6e08a3cbceec91eb"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-KcOFV4/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-KcOFV4/summary.json",
+      "bytes": 1422,
+      "sha256": "985c425d6a71c43d72fea0023bc30778d18fc20f892f07eaba8814932e6b04bb"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-KcOFV4/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-KcOFV4/output.log",
+      "bytes": 44,
+      "sha256": "d9b015c38c593df35215cd7f4dc78b49f23b6ab51a36a1d02bc12597f4bbde84"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-5N8vu4/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-5N8vu4/summary.json",
+      "bytes": 1633,
+      "sha256": "0c4d83c8eb87a6ad227bb8024054713e880c839e7c627affa380b302852b0538"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-5N8vu4/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-5N8vu4/output.log",
+      "bytes": 356,
+      "sha256": "ffcc68941506923cdc50a1bc43506021b6297fcb4ec5577975b9cb3b0fabd353"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/0001.summary.json",
+      "bytes": 630,
+      "sha256": "0b46ca6bcfa65b1661a3a84d102edbb16b6c9eb5e1c7d3d86026888a15e9cfbf"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/summary.json",
+      "bytes": 1795,
+      "sha256": "c1b2cf9e7834343cd887e39482c130c9b7b4990718c199f35d25f15205feab7e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/001.stdout.log",
+      "bytes": 38,
+      "sha256": "98566e3b0f8ddd392230312d4a93343c59922153eac8fd89fe88ef3a5e9815cd"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/001.started.json",
+      "bytes": 803,
+      "sha256": "4f2b3030677661b72681071b8c13796711135ef621138253cce992fa385737ac"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/001.result.json",
+      "bytes": 986,
+      "sha256": "10ab56ff093b248f911138b7ebed7cd9bb932e0ee6f401da6bb4fca0adb56842"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/0002.summary.json",
+      "bytes": 1556,
+      "sha256": "9c41f4889b1cf93fdbb81c25eaaa2351d2b3ecadbf978b8d7495ba90acc048aa"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/0004.summary.json",
+      "bytes": 1795,
+      "sha256": "c1b2cf9e7834343cd887e39482c130c9b7b4990718c199f35d25f15205feab7e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-gkJvk1/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-gkJvk1/0003.summary.json",
+      "bytes": 1775,
+      "sha256": "d97e5775c3a01837d5838aafd507e8ae492cbaa8e5016e900baa6e502ba6bef9"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-rIOHT0/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-rIOHT0/summary.json",
+      "bytes": 1663,
+      "sha256": "331cf46b6304a9a13592b1e6b22f5bb7398b00bb9180b0cb381ebd053812d4f5"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-rIOHT0/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-rIOHT0/output.log",
+      "bytes": 45,
+      "sha256": "37b9ce71b53427e25641d9a81ebde3687e1695cac663bdb56b92c48a83a44b18"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-OSJAq9/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-OSJAq9/summary.json",
+      "bytes": 1650,
+      "sha256": "0fa38a998cef0dff9fa98b3ea2cd454c7a44ea18ba8ad1bc32829dec56083b52"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-OSJAq9/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-OSJAq9/output.log",
+      "bytes": 1462,
+      "sha256": "c1de9a4dd644e8ef93058b097e3804e3332cc83048b9e5b6d48d7207672265bc"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/0001.summary.json",
+      "bytes": 630,
+      "sha256": "a642f9c161b0566fb5445bea2c5729a6e7dbabb96e423c618fea30a2bfdf65da"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/summary.json",
+      "bytes": 1798,
+      "sha256": "207b816f971dd4116fc79c8992dfac72f0c2b69cd1df68057db435d7dd8c932b"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/001.stdout.log",
+      "bytes": 1133,
+      "sha256": "fd7d9872ff75b034f6d222de5eeed321277089909ec223c9ee41e08f29dc67a9"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/001.started.json",
+      "bytes": 804,
+      "sha256": "a781918f0a4177e6fba4a4ce8955db73640921096d1a6d700ad28bbc06215503"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/001.result.json",
+      "bytes": 988,
+      "sha256": "693de5ba5088755ec4f9285f7b1bf2385c8a283f4b4ba44322a0e0d3fddc2fde"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/0002.summary.json",
+      "bytes": 1557,
+      "sha256": "d9a9ba47e4693572522a2fe47d42c76646dec670743d170fdb1b9e80f4d1decb"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/0004.summary.json",
+      "bytes": 1798,
+      "sha256": "207b816f971dd4116fc79c8992dfac72f0c2b69cd1df68057db435d7dd8c932b"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-6XI1rO/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-6XI1rO/0003.summary.json",
+      "bytes": 1777,
+      "sha256": "1a66dd69b914aaf090ad6a0c0a6207b6e0bb1e090d493e77733a85148b88b8cc"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-M0gl5b/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-M0gl5b/summary.json",
+      "bytes": 1650,
+      "sha256": "71f942c8fd237e41f69e8d143886fdbe55477d994554a0ab75d5810f7f9afd08"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-M0gl5b/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-M0gl5b/output.log",
+      "bytes": 858,
+      "sha256": "0557d7325f0e0a2cd69ccbaa4c901943a13976edb9961853e0eff9fa71ad29ad"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/0001.summary.json",
+      "bytes": 630,
+      "sha256": "009a22ef1ef71b4af766b2e7c20b9d732f4a1bf4f5784807fb60a937b595cccd"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/summary.json",
+      "bytes": 1795,
+      "sha256": "6efbac315109bff3ce5a3022d9a706acbbf1cd08dcc5173e4f35ee59dda9326d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/001.stdout.log",
+      "bytes": 529,
+      "sha256": "978c95775e3fd6dfdccebff9e2688321bd7d5884521e0cc5d38dd74efb52556a"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/001.started.json",
+      "bytes": 804,
+      "sha256": "ecfab0575da2727353f73b46db8433b11ec46dec8a7a4b6eef4777918d65c192"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/001.result.json",
+      "bytes": 985,
+      "sha256": "00c9006494efce63a6653ebcf0e05c6af0159e54944054c305975baec62f3962"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/0002.summary.json",
+      "bytes": 1557,
+      "sha256": "56a7919b22de71e6daf0baff9f8638a85b2686abc684e4eea32a594dcd1c06f4"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/0004.summary.json",
+      "bytes": 1795,
+      "sha256": "6efbac315109bff3ce5a3022d9a706acbbf1cd08dcc5173e4f35ee59dda9326d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-j7hGNR/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-j7hGNR/0003.summary.json",
+      "bytes": 1774,
+      "sha256": "1b64a459642685a70c5b29e9f5627f497fa92fd23182412f7166e7f8bfd4bac2"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-vBzseI/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-vBzseI/summary.json",
+      "bytes": 1663,
+      "sha256": "aaf91765a0465763ade846537f0023492bb5d617ce69e4a391c8e96804381243"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-vBzseI/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-vBzseI/output.log",
+      "bytes": 44,
+      "sha256": "2987817259f1ba9f98be0bacda42c847ea21b7cab3f3d161a9b9b2bad4ccb787"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-Q9Bsua/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-Q9Bsua/summary.json",
+      "bytes": 1649,
+      "sha256": "8f1f9fc7fa42b2aecd7b786b55f5630f61767175b498b93232a69ade0544fcd8"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-Q9Bsua/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-Q9Bsua/output.log",
+      "bytes": 357,
+      "sha256": "db08ee706157dd92edf7c11c0206cdb9cc1f0d099ef360f1da8329fff8075290"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/0001.summary.json",
+      "bytes": 630,
+      "sha256": "4121bd2251e8af48498266673f71e728ac3998334343d003d4e00a8d648df498"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/summary.json",
+      "bytes": 1797,
+      "sha256": "21a800945114022557224e92964e3cc645e1a42eb4b35c9a38115c069dea9f71"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/001.stdout.log",
+      "bytes": 38,
+      "sha256": "97372d6d024ba8fb9a214e3a9a3495ca88a0631086280e8b2271682e11ea6fb0"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/001.started.json",
+      "bytes": 804,
+      "sha256": "aadff424d4c8e465a984e150287ebaeb0c68632eaa96d55ebbf3073e8834ca5a"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/001.result.json",
+      "bytes": 988,
+      "sha256": "e8592b490dd07ee2c3392c343650dac1ec8c0f04f12b83daf18fcdeb735d1ba2"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/0002.summary.json",
+      "bytes": 1557,
+      "sha256": "b76e77a75a218bc19ddf7b9066c38cca6de6f795732fb43cabe9ba4cd74e6794"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/0004.summary.json",
+      "bytes": 1797,
+      "sha256": "21a800945114022557224e92964e3cc645e1a42eb4b35c9a38115c069dea9f71"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-PwlxS8/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-PwlxS8/0003.summary.json",
+      "bytes": 1777,
+      "sha256": "cd85d1eb986ec36e0e3d871a3c5cba7f52aa136b8d69e3704d5b700257c0e71a"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-0wFlC5/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-0wFlC5/summary.json",
+      "bytes": 1632,
+      "sha256": "9fb313b9c52d3f94417b9dd90062ba33898c1c27cad7d274f80fb739d8596c11"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-0wFlC5/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-0wFlC5/output.log",
+      "bytes": 356,
+      "sha256": "0ab55806151702ea4415ebe24ee9aa2a051d26744cc09f700732d34b05f455c6"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/0001.summary.json",
+      "bytes": 630,
+      "sha256": "e6b35db22fd43cd7ea31a05c2bcc9e9a66a7f0a2e059d71df1a6334284b25b14"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/summary.json",
+      "bytes": 1793,
+      "sha256": "dc24b3a8eb65e97a5f2d95e58bf808883bab1c45fd80ed3f35d9ca256a86e5fa"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/001.stdout.log",
+      "bytes": 38,
+      "sha256": "98566e3b0f8ddd392230312d4a93343c59922153eac8fd89fe88ef3a5e9815cd"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/001.started.json",
+      "bytes": 803,
+      "sha256": "d06cbdbd1dabd0c688c91163391ba4761da3a0786d307ec4943a8cc718762266"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/001.result.json",
+      "bytes": 984,
+      "sha256": "e3324d9e1ba3c8881c7f2cb6f7f46d56b384208f3f44daeaf1a525404b965059"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/0002.summary.json",
+      "bytes": 1556,
+      "sha256": "e192fd4aceeab05793c7cecf318e2471ded8066e850091b0a6b47f77d7e8630c"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/0004.summary.json",
+      "bytes": 1793,
+      "sha256": "dc24b3a8eb65e97a5f2d95e58bf808883bab1c45fd80ed3f35d9ca256a86e5fa"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-5aDH98/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-5aDH98/0003.summary.json",
+      "bytes": 1773,
+      "sha256": "3a5252aa905be4772b568fa464f6886b24e8e3622555b60eac1d2dc4e0ed328e"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-LdhWKf/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-LdhWKf/summary.json",
+      "bytes": 1662,
+      "sha256": "feb90c66b151e296928bf0e116d746244bcc6e49047636103ba0389062b5845e"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-LdhWKf/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-LdhWKf/output.log",
+      "bytes": 44,
+      "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-BTcBWa/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-BTcBWa/summary.json",
+      "bytes": 1648,
+      "sha256": "90ecd09cc71beb8b7d2ab11757abf8fc96f977c0d125c87a6f1523017fa3ecff"
+    },
+    {
+      "original": "_build/local-checks/attempts/run-BTcBWa/output.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/run-BTcBWa/output.log",
+      "bytes": 357,
+      "sha256": "a35046f354204aca7052a673fc41312a1744c38fcacf817e4ebf7f35098e84cb"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0001.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0001.summary.json",
+      "bytes": 630,
+      "sha256": "1a7f439a925ca1b0835aca4c27885007158b2944a9239197b20a391c44dc94f2"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/summary.json",
+      "bytes": 1796,
+      "sha256": "607030e128edfba466be4c8c7cd13ff03fcccaaf0d907263b3c75e07b2439bf3"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.stdout.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.stdout.log",
+      "bytes": 38,
+      "sha256": "68e3eed91ee5d217ff66600d731275bc52d0148ef97ff479d64faef8d2e15499"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.started.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.started.json",
+      "bytes": 804,
+      "sha256": "0713685ce400483290e7b84599c2bbd6e5ebd55af8befb9362aa9d05266fb24e"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.result.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.result.json",
+      "bytes": 987,
+      "sha256": "045b4dfe665c9d408ca563a32789e8dde760ebddd7fcb1ca4e4da35fa618444d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/001.stderr.log",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0002.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0002.summary.json",
+      "bytes": 1557,
+      "sha256": "fbc895d2c0df8764e00585cfbe765ea7f53e9019d40707637b39698b52b40e6d"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0004.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0004.summary.json",
+      "bytes": 1796,
+      "sha256": "607030e128edfba466be4c8c7cd13ff03fcccaaf0d907263b3c75e07b2439bf3"
+    },
+    {
+      "original": "_build/focused-evidence/focused-test-XwUlgy/0003.summary.json",
+      "retained": "reviews/2026-10-11-with-carrier-cutover/p2-sga-role-evidence/focused-test-XwUlgy/0003.summary.json",
+      "bytes": 1776,
+      "sha256": "f622c8144931710c7c6f209da41a7d9db1381ab663c6ae7a9ec53e7655e587ce"
+    }
+  ],
+  "propertyControl": "p2-sga-property-reference-control.json"
+}

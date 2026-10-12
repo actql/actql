@@ -11,10 +11,10 @@ fn graph_relation_join_cases() -> Array[(String, String, String, String)] {
     ("graph_diff", "{\"with\":\"g\"}", "with: g", "delta"),
     (
       "match_nodes", "{\"definition\":\"N\",\"where\":{\"literal\":true},\"fields\":[\"p\"]}",
-      "definition: 'N', where: {literal: true}, fields: ['p']", "p",
+      "definition: 'N', where: {literal: true}, fields: [`p`]", "p",
     ),
     (
-      "match_edges", "{\"definition\":\"E\",\"fields\":[\"p\"]}", "definition: 'E', fields: ['p']",
+      "match_edges", "{\"definition\":\"E\",\"fields\":[\"p\"]}", "definition: 'E', fields: [`p`]",
       "p",
     ),
   ]

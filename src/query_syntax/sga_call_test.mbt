@@ -1,7 +1,7 @@
 ///|
 test "SGA calls distinguish producer references ID values and column designations" {
   let reach = parse_sga_call(
-    "reach(start: {from: `seed rows`, id: \"node key\"}, direction: 'out', max_depth: 2)",
+    "reach(start: {from: `seed rows`, id: `node key`}, direction: 'out', max_depth: 2)",
     query_limits(),
   ).unwrap()
   assert_eq(reach.operation, "reach")
@@ -10,7 +10,7 @@ test "SGA calls distinguish producer references ID values and column designation
       "start",
       ObjectValue([
         ("from", Producer({ value: "seed rows", quoted: true, })),
-        ("id", TextValue("node key")),
+        ("id", FieldReference([{ value: "node key", quoted: true, }])),
       ]),
     ),
     ("direction", TextValue("out")),
@@ -19,12 +19,12 @@ test "SGA calls distinguish producer references ID values and column designation
   let single = parse_sga_call("reach(start: 'A')", query_limits()).unwrap()
   assert_eq(single.arguments, [("start", TextValue("A"))])
   let apply = parse_sga_call(
-    "apply_graph_delta(with: changes, field: 'delta')",
+    "apply_graph_delta(with: changes, field: `delta`)",
     query_limits(),
   ).unwrap()
   assert_eq(apply.arguments, [
     ("with", Producer({ value: "changes", quoted: false, })),
-    ("field", TextValue("delta")),
+    ("field", FieldReference([{ value: "delta", quoted: true, }])),
   ])
 }
 
@@ -70,7 +70,7 @@ test "SGA uses the complete adopted closed operation vocabulary" {
 test "SGA rejects string producer references duplicate arguments and malformed calls" {
   for
     text in [
-      "reach(start: {from: 'seeds', id: 'id'})", "traverse(start: {from: \"seeds\", id: 'id'})",
+      "reach(start: {from: 'seeds', id: `id`})", "traverse(start: {from: \"seeds\", id: `id`})",
       "shortest_path(source: {from: 'seeds'})", "shortest_path(target: {from: 'seeds'})",
       "subgraph(nodes: {from: 'selected'})", "graphs_equal(with: 'peer')", "mean_graphs(with: [first, 'second'])",
       "reach(start: {from: seeds, FROM: other})", "components(kind: 'weak', KIND: 'strong')",
@@ -126,7 +126,7 @@ test "SGA preserves decoded strings and exact numeric spelling" {
 
 ///|
 test "SGA parser shares work node depth and original source position limits" {
-  let text = "--😀\r\nreach(start: {from: seeds, id: 'id'})"
+  let text = "--😀\r\nreach(start: {from: seeds, id: `id`})"
   let call = parse_sga_call(text, query_limits()).unwrap()
   assert_eq(call.start, 8)
   assert_eq(call.end, text.length() + 2)

@@ -1,0 +1,57 @@
+{
+  "startedAt": "2026-10-12T00:11:36.750Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Remaining SGA current Core callers and unchanged independent controls",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_delta_source_test.mbt",
+        "src/query_program/subgraph_source_test.mbt",
+        "src/query_program/graph_shortest_source_test.mbt",
+        "src/query_program/traverse_hop_vocabulary_test.mbt",
+        "src/query_program/traversal_join_input_test.mbt",
+        "src/query_program/graph_relation_join_input_test.mbt",
+        "src/query_program/traversal_paths_test.mbt",
+        "src/query_program/graph_refusal_classification_test.mbt",
+        "src/query_program/graph_match_paths_integration_test.mbt",
+        "src/query_program/with_source_usage_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-12T00:11:36.865Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:12:04.028Z",
+      "endedAt": "2026-10-12T00:12:04.036Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "a37fe138-44e8-4c40-92a5-bb858f94d472",
+    "pid": 19210,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:11:36.845Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-V6sTWy"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:12:04.420Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

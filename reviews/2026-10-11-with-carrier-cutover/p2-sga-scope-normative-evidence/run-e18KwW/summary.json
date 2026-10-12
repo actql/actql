@@ -1,0 +1,88 @@
+{
+  "startedAt": "2026-10-12T00:28:03.515Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Generate compiler manifests from authored source grammar",
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T00:28:03.567Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:28:03.683Z",
+      "endedAt": "2026-10-12T00:28:03.684Z"
+    },
+    {
+      "name": "Derive independent SGA role Values preimages",
+      "command": [
+        "node",
+        "scripts/sga-signature-role-identity-oracle.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T00:28:03.731Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:28:03.766Z",
+      "endedAt": "2026-10-12T00:28:03.767Z"
+    },
+    {
+      "name": "Update existing document metadata from registered owners",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T00:28:03.816Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:28:05.067Z",
+      "endedAt": "2026-10-12T00:28:05.069Z"
+    },
+    {
+      "name": "Generate existing requirement family outputs",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-12T00:28:05.142Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:28:07.758Z",
+      "endedAt": "2026-10-12T00:28:07.761Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "7b7518a6-5745-4bdf-bada-f7c3036cdbc8",
+    "pid": 33129,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:28:03.565Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-e18KwW"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:28:07.843Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
