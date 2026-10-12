@@ -1,4 +1,4 @@
-"""Remote HTTP transport and handles for facts owned by the existing Host."""
+"""Host transports and shared handles for facts owned by the existing Owner."""
 import asyncio
 import base64
 from datetime import datetime, timezone
@@ -62,6 +62,7 @@ class AsyncClient:
         self._profile = None
         self._closed = False
         self._readers = set()
+        self._local_host = None
 
     @staticmethod
     def _valid_token(token):
@@ -85,6 +86,40 @@ class AsyncClient:
                 raise ClientError('ClientConnectionCleanupFailed',
                                   original_error=failure, cleanup_error=cleanup,
                                   cleanup_client=client) from None
+            raise
+
+    @classmethod
+    async def _connect_local(cls, host):
+        """Bind only the installed Host's existing in-process operation port.
+
+        The public factory resolves its installed runtime and original Host
+        custody. This private port does not grant execution or create an HTTP
+        endpoint/token. All responses use the same closed wire validators.
+        """
+        client = cls.__new__(cls)
+        client._selected = freeze({'mode': 'local', 'owner': 'local',
+                                   'durability': 'durable', 'consentRefs': [], 'runners': []})
+        client._local_host = host
+        client._transport = host
+        client._client_cleanup = host.aclose
+        client._responses = {}
+        client._cleanup_lock = asyncio.Lock()
+        client._response_cleanup_lock = asyncio.Lock()
+        client._profile = None
+        client._closed = False
+        client._readers = set()
+        try:
+            profile = await client._request('connect', {})
+            if not wire.negotiated(profile, 'profile', thaw(client._selected)):
+                raise ClientError('InvalidHostProfile')
+            client._profile = freeze(profile)
+            return client
+        except BaseException as failure:
+            try:
+                await client.aclose()
+            except BaseException as cleanup:
+                raise ClientError('ClientConnectionCleanupFailed', original_error=failure,
+                                  cleanup_error=cleanup, cleanup_client=client) from None
             raise
 
     @property
@@ -164,6 +199,16 @@ class AsyncClient:
     async def _open(self, operation, body):
         captured = self._body(operation, body)
         payload = wire_bytes(captured)
+        if self._local_host is not None:
+            try:
+                response = await self._local_host.open(operation, payload)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                # The original operation may already be retained. Never infer
+                # not-sent, rollback or retry from an in-process exception.
+                raise _ExchangeFailure('ClientTransportUnknown', True) from None
+            return await self._accept_response(response)
         try:
             credential = self._token() if callable(self._token) else self._token
             if inspect.isawaitable(credential):
@@ -185,6 +230,9 @@ class AsyncClient:
             raise
         except Exception:
             raise _ExchangeFailure('ClientTransportUnknown', True) from None
+        return await self._accept_response(response)
+
+    async def _accept_response(self, response):
         self._responses[response] = response.aclose
         if self._closed:
             await self._close_response(response)
