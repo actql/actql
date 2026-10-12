@@ -5,6 +5,9 @@ const files=['src/query_syntax/sga_call.mbt','src/query_syntax/sga_argument_role
 let steps;
 if(mode==='--pins') {
  steps=['compilation-manifests','update-document-metadata','check-actql-spec-family','check-canonical-json'].map(script=>({name:`Generate ${script}`,command:'node',args:[`scripts/${script}.mjs`,'--write']}));
+} else if(mode==='--oracles') {
+ steps=[{name:'Independent current Sequence grammar and Values preimages',command:'node',args:['scripts/sequence-identity-oracle.mjs','--write']},
+ {name:'Independent declared public inventory including preserved sibling cohorts',command:'node',args:['--input-type=module','-e',`import {registeredPublicQueryInventory} from './scripts/public-query-inventory.mjs';import {readFileSync,writeFileSync} from 'node:fs';const path='scripts/fixtures/public-query-inventory.json';const prior=JSON.parse(readFileSync(path,'utf8'));const current=await registeredPublicQueryInventory();writeFileSync(path,JSON.stringify({...prior,...current},null,2)+'\\n');console.log(JSON.stringify({total:current.totalCases,counts:current.counts,profiles:current.profiles}));`]}];
 } else if(mode==='--interfaces') {
  steps=[{name:'Generate changed source-role interface',command:'moon',args:['info','--target','js','src/query_syntax','src/query_program']}];
 } else if(mode==='--format') {

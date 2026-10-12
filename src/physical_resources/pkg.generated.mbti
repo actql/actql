@@ -12,6 +12,8 @@ pub fn[T] advance_funded_read_state_write(FundedReadClaim[T], T, Int) -> Origina
 
 pub fn[T] advance_original_current_state_comparison(OriginalCurrentStateComparison[T], Int) -> OriginalStateComparisonPoll
 
+pub fn[T] advance_original_current_state_comparison_with_match(OriginalCurrentStateComparison[T], Int) -> OriginalCurrentStateMatchPoll[T]
+
 pub fn advance_original_current_state_document_read(OriginalCurrentStateDocumentRead, Int) -> OriginalCurrentStateDocumentPoll
 
 pub fn[T] advance_original_current_state_write(OriginalCurrentStateWrite[T], Int) -> OriginalStateWritePoll
@@ -114,6 +116,8 @@ pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : I
 
 pub fn[T] original_current_state_comparison_current(OriginalCurrentStateComparison[T], OriginalResourcePark[T]) -> OriginalCurrentStateComparison[T]?
 
+pub fn[T] original_current_state_match_current(OriginalCurrentStateMatch[T], OriginalResourcePark[T], T) -> OriginalCurrentStateMatch[T]?
+
 pub fn[T] original_current_state_read_bounds(OriginalResourcePark[T], T) -> Result[OriginalCurrentStateReadBounds, OriginalReadIssue]
 
 pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], OriginalResourcePark[T]) -> OriginalCurrentStateWrite[T]?
@@ -129,6 +133,8 @@ pub fn[T] original_resource_park_current(OriginalResourcePark[T], T) -> Original
 pub fn[T] original_resource_park_current_for_ledger(OriginalResourcePark[T], Ledger) -> OriginalResourcePark[T]?
 
 pub fn[T] original_resource_park_origin(OriginalResourcePark[T]) -> T?
+
+pub fn[T] original_resource_park_read_capacity_covers(OriginalResourcePark[T], T, Int64, Int64) -> Bool
 
 pub fn[T] original_state_document_block_matches(FundedReadClaim[T], T, OriginalStateDocument, Int) -> Result[Bool, OriginalReadIssue]
 
@@ -171,6 +177,8 @@ pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIs
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
 pub fn retire_original_current_state_document(OriginalCurrentStateDocument) -> Unit
+
+pub fn[T] retire_original_current_state_match(OriginalCurrentStateMatch[T]) -> Unit
 
 pub fn[T] retire_original_resource_park(OriginalResourcePark[T]) -> Result[Unit, OriginalReadIssue]
 
@@ -284,6 +292,14 @@ pub enum OriginalCurrentStateDocumentPoll {
 }
 
 type OriginalCurrentStateDocumentRead
+
+type OriginalCurrentStateMatch[T]
+
+pub enum OriginalCurrentStateMatchPoll[T] {
+  CurrentMatchContinue(work~ : Int)
+  CurrentMatchComplete(OriginalCurrentStateMatch[T], work~ : Int)
+  CurrentMatchFailed(OriginalStateComparisonIssue, work~ : Int)
+}
 
 pub(all) struct OriginalCurrentStateReadBounds {
   max_reservations : Int

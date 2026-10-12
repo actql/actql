@@ -61,9 +61,20 @@ test "acquired Serialize Plan retains its complete checked policy without source
   let document =
     #|{"version":"actql/0.1","id":"acquired-content-plan","stages":[{"id":"main","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0","as":"filtered"},{"select":["id","amount"],"as":"captured"},{"assert_rows":{"unique_by":["id"]},"as":"unique"},{"serialize":{"format":"jsonl","fields":["id","amount"],"order_by":[{"id":"asc"}],"name":"out.jsonl"},"as":"attachment"}],"results":{"file":{"from":"attachment","fields":["name","content"]}}}],"results":{"file":{"from":{"stage":"main","result":"file"}}}}
   let owner = multi_source_prepared(document)
-  let bodies = prepared_client_publication_policy_bodies(
-    owner, 1000000, 100000, 100,
-  ).unwrap()
+  let bodies = match
+    prepared_client_publication_policy_bodies(owner, 1000000, 100000, 100) {
+    Ok(bodies) => bodies
+    Err(@checked.MissingUnit) =>
+      fail("original publication policy bodies: MissingUnit")
+    Err(@checked.MissingDependency) =>
+      fail("original publication policy bodies: MissingDependency")
+    Err(@checked.Encoding) =>
+      fail("original publication policy bodies: Encoding")
+    Err(@checked.ForeignBody) =>
+      fail("original publication policy bodies: ForeignBody")
+    Err(@checked.BudgetExceeded) =>
+      fail("original publication policy bodies: BudgetExceeded")
+  }
   assert_eq(
     bodies[0].1,
     prepared_client_publication_data_policy_cid(owner).unwrap(),

@@ -1,6 +1,11 @@
 # Adopted sequence source predicates
 
-Base: `7648dfc099f24e819ccaf49376cec57a45c5ea12`. This closes the existing F05
+Original private base: `7648dfc099f24e819ccaf49376cec57a45c5ea12`.
+Normally integrated main: `d879fb93ae19a314c44f5fb8e1fea1461bc3d0d5`.
+Original `e5dc5418e333ca20b77b77ac08b97db2a94e2378` preimages, receipts and
+submitted Values identity remain unchanged; the merged current Values identity
+is stored separately. Merged ranking, temporal, generator and Content/FILES
+surfaces remain in the parser, lowerer and normal public delivery. This closes the existing F05
 parser/lowerer connection for sequence while leaving original public acceptance
 and all other P2/F01–F07 scope intact. It does not add a new common Owner,
 evaluator, Source acquisition path, String predicate parser or legacy syntax.

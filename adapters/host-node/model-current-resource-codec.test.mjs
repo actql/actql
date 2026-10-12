@@ -10,6 +10,15 @@ test('actual Node original current Writer decoder and comparison keep one park a
   const f = await currentResourceFixture(moon, runtimeCore(moon).publicationControl);
   assert.notEqual(f.preparedCallSet, undefined);
   const park = f.operation.parkOriginalResourcesForStateWrite();
+  for (const bad of [0, 1.5, -1n, 9223372036854775808n, undefined]) {
+    assert.throws(() => f.operation.originalParkedReadCapacityAvailable(park, bad, 3000n),
+      {name: 'TypeError', message: 'InvalidInferOriginalParkedCapacity'});
+  }
+  for (let i = 0; i < 2; i++) {
+    assert.equal(f.operation.originalParkedReadCapacityAvailable(park, 7000n, 3000n), true);
+    assert.equal(f.operation.originalParkedReadCapacityAvailable(park, 7001n, 3000n), false);
+  }
+  assert.equal(f.operation.originalParkedReadCapacityAvailable({...park}, 7000n, 3000n), false);
   const value = f.operation.prepareOriginalCurrentStateWriter(park, {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 20});
   assert.throws(() => f.operation.finishOriginalCurrentStateWriter(park, value), {code: 'MoonBitHostFailure'});
   let writerWork = 0;

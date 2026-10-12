@@ -175,6 +175,8 @@ pub fn client_program_advance_infer_observation_verification(@model_execution.Mo
 
 pub fn client_program_advance_infer_original_current_state_comparison(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalStateComparisonPoll, @run_publication_host.ClientModelReadPreparationIssue]
 
+pub fn client_program_advance_infer_original_current_state_comparison_with_match(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalCurrentStateMatchPoll[@run_publication_host.ClientModelReadOrigin], @run_publication_host.ClientModelReadPreparationIssue]
+
 pub fn client_program_advance_infer_original_current_state_decode(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateDecode, Int) -> @client_infer_host.OriginalModelCurrentStateDecodePoll
 
 pub fn client_program_advance_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateWriter, Int) -> @physical_resources.OriginalStateWritePoll
@@ -184,6 +186,8 @@ pub fn client_program_advance_infer_root(@client_infer_host.Execution, Int) -> R
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_advance_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_allowed_effect_run_admission(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
 
@@ -877,9 +881,15 @@ pub fn client_program_infer_original_current_state_comparison_poll(@physical_res
 
 pub fn client_program_infer_original_current_state_decode_poll(@client_infer_host.OriginalModelCurrentStateDecodePoll) -> (String, Int, @client_infer_host.OriginalModelCurrentStateDecodeIssue?, @physical_resources.OriginalCurrentStateDocument?)
 
+pub fn client_program_infer_original_current_state_match_current(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
+
+pub fn client_program_infer_original_current_state_match_poll(@physical_resources.OriginalCurrentStateMatchPoll[@run_publication_host.ClientModelReadOrigin]) -> (String, Int, @physical_resources.OriginalStateComparisonIssue?, @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?)
+
 pub fn client_program_infer_original_model_invalidation_current(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn client_program_infer_original_model_resource_park_current(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]?
+
+pub fn client_program_infer_original_parked_read_capacity_available(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int64, Int64) -> Bool
 
 pub fn client_program_infer_original_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
 
@@ -1429,6 +1439,8 @@ pub fn client_program_open_source_free_local_host(@run_publication_host.Prepared
 
 pub fn client_program_open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_openai_chat_projection_issue_kind(@model_execution.OpenAIChatProjectionIssue) -> String
+
 pub fn client_program_park_infer_original_model_resources(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
 pub fn client_program_park_infer_original_model_resources_for_state_write(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
@@ -1520,6 +1532,8 @@ pub fn client_program_prepare_serialization_captured_ledger(@run_publication_hos
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
+
+pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
@@ -1668,6 +1682,10 @@ pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientR
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
 
 pub fn client_program_retire_infer_original_current_state_document(@physical_resources.OriginalCurrentStateDocument) -> Unit
+
+pub fn client_program_retire_infer_original_current_state_match(@physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> Unit
+
+pub fn client_program_retire_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Unit
 
 pub fn client_program_row_content_reference_issuer(@value_admission.ReferenceIssuer, @value_admission.ReferenceIssuer) -> @value_admission.ReferenceIssuer
 
@@ -1956,6 +1974,8 @@ pub fn client_program_start_model_content_bytes(@model_execution.ModelContentInp
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_start_openai_chat_projection(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[@model_execution.OpenAIChatProjection, @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_start_original_generated_infer_execution(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

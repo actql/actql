@@ -948,6 +948,9 @@ for (const cancellation of ['timeout', 'caller']) {
           }));
           console.log('TERM handler exits 7'); process.exit(7);
         });
+        // Keep the direct process alive even if its descendant exits before
+        // Node dispatches the direct process's queued TERM callback.
+        setInterval(()=>{}, 1000);
         const child = require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}],
           {stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
         child.once('message', () => {

@@ -6,7 +6,10 @@ pub struct SgaPredicate {
 }
 
 ///|
-pub impl Eq for SgaPredicate with fn equal(self : SgaPredicate, other : SgaPredicate) -> Bool {
+pub impl Eq for SgaPredicate with fn equal(
+  self : SgaPredicate,
+  other : SgaPredicate,
+) -> Bool {
   physical_equal(self.expression, other.expression)
 }
 

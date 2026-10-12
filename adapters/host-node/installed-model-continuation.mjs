@@ -13,6 +13,7 @@ import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
 import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
+import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -75,6 +76,17 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   const custody = new Map();
   const live = new WeakMap();
   const leases = new WeakMap();
+  // Route only the original bare park to its existing installed operation's
+  // completed Common comparison. Escaped park refs retain no new callback or
+  // Owner graph through this weak membership; the operation keeps its borrow.
+  const originalResourceCuts = new WeakMap();
+  function originalResourceCut(park) {
+    const original = originalResourceCuts.get(park)?.deref();
+    if (original?.facts === undefined || !original.current()) {
+      fail('ModelOriginalCurrentCutUnavailable');
+    }
+    return original;
+  }
   // Synchronous journal checks need the previously authenticated receipt and
   // original digest while a Run is waiting or unknown. They do not need input
   // rows, submitted programs or responses, and cannot authorize a fresh send.
@@ -274,6 +286,14 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       inspect: observation => checkpoints().originalModelStateSavedFacts(observation),
       current: observation => checkpoints().originalModelStateSavedObservationCurrent(observation),
     }),
+    originalResourceCut: Object.freeze({
+      inspect: park => originalResourceCut(park).facts,
+      current: park => {
+        const original = originalResourceCuts.get(park)?.deref();
+        return original?.facts !== undefined && original.current() ? park : undefined;
+      },
+      invalidationCurrent: (request, park) => originalResourceCut(park).invalidationCurrent(request),
+    }),
     admitImmediateEntry({decision, preparedCallSet, inventory, originals, slot, attemptIndex,
       attemptCid, attemptWire, authorityWire, at}) {
       const owner = live.get(preparedCallSet);
@@ -332,7 +352,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     sourceContinuation, retainEvidenceCopy, originalPreparation}, ownership) {
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
     const rawBinding = rawSelection === undefined ? undefined :
-      {attempted: false, complete: false, issue: undefined};
+      {attempted: false, complete: false, issue: undefined,
+        persistence: undefined, holding: undefined};
+    // Reject a known missing installation before Approval/Entry, not after
+    // consuming an attempt. Method checks are availability only: the actual
+    // Store remains this controller's selected original, never caller data.
+    if (rawBinding !== undefined &&
+        (typeof operation.ioNotification?.notify !== 'function' ||
+          ['confirmModelRawCaptureOriginals', 'confirmModelRawEvidence',
+            'prepareModelRawEvidence', 'commitPhysicalHolding'].some(name =>
+            typeof store?.[name] !== 'function'))) {
+      fail('InstalledModelRawStoreUnavailable');
+    }
     // The Host's Checkpoint installation is created after this controller.
     // Fix its actual physical identity only when the original scope is being
     // installed, never from an initial undefined value or future replacement.
@@ -445,6 +476,43 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       entries: new Map()};
     let installedJournalPort;
     let originalInvalidation;
+    let originalCut;
+    function originalResourceReadCurrent(park, acquisition) {
+      const originalScope = operation.originalResourceScope?.();
+      if (!owner.available || originalPreparation === undefined ||
+          originalScope === undefined || originalScope !== originalPreparation.scope ||
+          checkpoints() !== cp || operation.originalResourceParkCurrent(park) !== park) {
+        fail('ModelOriginalResourceReadUnavailable');
+      }
+      // Repeat the same original token's complete envelope/currentness after
+      // every physical wait, including the later Store custody recheck. A
+      // current park alone does not replace cancellation or capacity covers.
+      if (acquisition !== undefined && operation.originalMetadataAcquisition(park) !== acquisition) {
+        fail('InferOriginalMetadataAcquisitionUnavailable');
+      }
+      return originalScope;
+    }
+    async function confirmOriginalResourceStateSaved(park, storageBinding, receipt) {
+      const originalScope = originalResourceReadCurrent(park);
+      if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function') {
+        fail('InferOriginalMetadataAcquisitionUnavailable');
+      }
+      const acquisition = operation.originalMetadataAcquisition(park);
+      const saved = await cp.confirmOriginalModelStateSavedSelected({
+        runDefinition: plan.runDefinition, storageBinding, receipt,
+        identity: select(inventory, scopeKeys)}, acquisition);
+      originalResourceReadCurrent(park, acquisition);
+      const savedFacts = cp.originalModelStateSavedFacts(saved);
+      const document = control.readModelOriginalResourceDocument(savedFacts.documentWire,
+        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+      const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+      originalResourceReadCurrent(park, acquisition);
+      control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
+        plan.runDefinition, selected.graph, originalScope, park, document,
+        originalPreparation.nodeInstallation, storage);
+      originalResourceReadCurrent(park, acquisition);
+      return saved;
+    }
     function originalJournalInstallation() {
       if (originalPreparation === undefined ||
           live.get(preparedCallSet) !== owner ||
@@ -538,7 +606,20 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }
       if (gate !== undefined && !gateReleased || operation.cleanupPending()) return false;
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
+      if (originalCut !== undefined) {
+        originalResourceCuts.delete(originalCut.park);
+        if (originalCut.matched !== undefined) operation.retireOriginalCurrentStateMatch(originalCut.matched);
+        if (originalCut.document !== undefined) operation.retireOriginalCurrentStateDocument(originalCut.document);
+        originalCut = undefined;
+      }
       rawSelection = undefined;
+      if (rawBinding !== undefined) {
+        // Common's physical cleanup has already confirmed this same port's
+        // Store/SDK retirement. Drop local aliases, not durable raw custody or
+        // escaped saved receipts. A failed cleanup above retains both fields.
+        rawBinding.persistence = undefined;
+        rawBinding.holding = undefined;
+      }
       installedJournalPort = undefined;
       originalInvalidation = undefined;
       originalPreparation = undefined;
@@ -558,6 +639,131 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
+      prepareOriginalResourceCurrentCut(park, storageBinding, receipt, codec) {
+        originalResourceReadCurrent(park);
+        // Validate the installed runtime before Store I/O and use the original
+        // envelope before even limit-snapshot/validation temporary allocation.
+        if (typeof moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch !== 'function' ||
+            typeof moon.clientProgramInferOriginalCurrentStateMatchPoll !== 'function' ||
+            typeof moon.clientProgramInferOriginalCurrentStateMatchCurrent !== 'function' ||
+            typeof moon.clientProgramRetireInferOriginalCurrentStateMatch !== 'function') {
+          fail('ModelOriginalCurrentCutUnavailable');
+        }
+        const acquisition = operation.originalMetadataAcquisition(park);
+        if (originalCut !== undefined) {
+          if (originalCut.park !== park || originalCut.storageBinding !== storageBinding ||
+              originalCut.receipt !== receipt || originalCut.codec.deref() !== codec) {
+            fail('ModelOriginalCurrentCutBindingMismatch');
+          }
+          return originalCut.promise;
+        }
+        // This is one private installation caller, not a second Resource or
+        // journal state machine. Fund this record, Promise/frames and BOTH
+        // Common trees through the original installation before using it.
+        if (codec === null || typeof codec !== 'object' ||
+            Object.keys(codec).sort().join(',') !== 'comparisonWork,decode,quantum' ||
+            !Number.isSafeInteger(codec.quantum) || codec.quantum < 1 || codec.quantum > 2147483647 ||
+            !Number.isSafeInteger(codec.comparisonWork) || codec.comparisonWork < 1 ||
+            codec.comparisonWork > 2147483647) fail('ModelOriginalCurrentCodecUnavailable');
+        // Check the same original envelope BEFORE this caller's first retained
+        // allocation. Copy only finite DATA limits, never authority or custody.
+        const decode = codec.decode;
+        const bounded = (value, fields) => value !== null && typeof value === 'object' &&
+          Object.keys(value).sort().join(',') === fields && Object.values(value).every(
+            n => Number.isSafeInteger(n) && n >= 0 && n <= 2147483647);
+        if (decode === null || typeof decode !== 'object' ||
+            Object.keys(decode).sort().join(',') !== 'maxWork,parse,tree' ||
+            !Number.isSafeInteger(decode.maxWork) || decode.maxWork < 1 || decode.maxWork > 2147483647 ||
+            !bounded(decode.parse, 'max_depth,max_input_bytes,max_nodes') ||
+            !bounded(decode.tree, 'max_depth,max_nodes,max_string_bytes,max_total_string_bytes')) {
+          fail('ModelOriginalCurrentCodecUnavailable');
+        }
+        const limits = Object.freeze({quantum: codec.quantum, comparisonWork: codec.comparisonWork,
+          decode: Object.freeze({maxWork: decode.maxWork, parse: Object.freeze({...decode.parse}),
+            tree: Object.freeze({...decode.tree})})});
+        const original = originalCut = {park, storageBinding, receipt, codec: new WeakRef(codec),
+          promise: undefined, document: undefined, matched: undefined, facts: undefined,
+          current() {
+            return original.matched !== undefined && original.document !== undefined &&
+              live.get(preparedCallSet) === owner && checkpoints() === cp &&
+              operation.originalCurrentStateMatchCurrent(park, original.matched) === original.matched;
+          },
+          invalidationCurrent: request => operation.originalResourceInvalidationCurrent(park, request)};
+        originalResourceCuts.set(park, new WeakRef(original));
+        original.promise = (async () => {
+          const observation = cp.journal.observeOriginalModelJournal(inventory);
+          const journalFacts = cp.journal.originalModelJournalObservationFacts(observation);
+          const saved = await confirmOriginalResourceStateSaved(park, storageBinding, receipt);
+          originalResourceReadCurrent(park, acquisition);
+          cp.journal.reconfirmOriginalModelJournal(observation);
+          const savedFacts = cp.originalModelStateSavedFacts(saved);
+          const cut = verifier.projectOriginalCurrentCut({facts: journalFacts});
+          if (!same(savedFacts.cut, cut)) fail('ModelOriginalCurrentCutBindingMismatch');
+          let decoder, comparison;
+          try {
+            // Decode exactly THIS authenticated saved wire. An arbitrary
+            // completed match cannot be paired with another saved document.
+            decoder = operation.startOriginalCurrentStateDecode(park, savedFacts.documentWire, limits.decode);
+            for (;;) {
+              originalResourceReadCurrent(park, acquisition);
+              const poll = operation.advanceOriginalCurrentStateDecode(park, decoder, limits.quantum);
+              if (poll.kind === 'failed') fail('ModelOriginalCurrentStateDecodeFailed');
+              if (poll.kind === 'complete') {original.document = poll.document; break;}
+              if (poll.kind !== 'continue' || poll.work < 1) fail('ModelOriginalCurrentStateDecodeFailed');
+            }
+            comparison = operation.startOriginalCurrentStateComparison(park, original.document, limits.comparisonWork);
+            for (;;) {
+              originalResourceReadCurrent(park, acquisition);
+              const poll = operation.advanceOriginalCurrentStateComparisonWithMatch(park, comparison, limits.quantum);
+              if (poll.kind === 'failed') fail('ModelOriginalCurrentStateComparisonFailed');
+              if (poll.kind === 'complete') {original.matched = poll.matched; break;}
+              if (poll.kind !== 'continue' || poll.work < 1) fail('ModelOriginalCurrentStateComparisonFailed');
+            }
+            originalResourceReadCurrent(park, acquisition);
+            if (!original.current()) fail('ModelOriginalCurrentCutUnavailable');
+            cp.journal.reconfirmOriginalModelJournal(observation);
+            // Both data projections originate in existing trusted Owners.
+            // Matching strings alone never issue a park or COMMIT permission.
+            original.facts = Object.freeze({identity: savedFacts.identity,
+              phase: savedFacts.phase, cut: savedFacts.cut});
+            return cp.journal.prepareOriginalModelCurrentCut(observation,
+              {parkReceipt: park, savedReceipt: saved});
+          } catch (error) {
+            if (original.matched !== undefined) operation.retireOriginalCurrentStateMatch(original.matched);
+            if (original.document !== undefined) operation.retireOriginalCurrentStateDocument(original.document);
+            original.matched = undefined;
+            original.document = undefined;
+            original.facts = undefined;
+            throw error;
+          } finally {
+            if (decoder !== undefined) operation.cancelOriginalCurrentStateDecode(decoder);
+            if (comparison !== undefined) operation.cancelOriginalCurrentStateComparison(comparison);
+          }
+        })();
+        return original.promise;
+      },
+      async readOriginalResourceState(park, storageBinding, receipt) {
+        const originalScope = originalResourceReadCurrent(park);
+        if (typeof cp.readOriginalModelStateSelected !== 'function') {
+          fail('InferOriginalMetadataAcquisitionUnavailable');
+        }
+        // This exact installed operation supplies its own nominal acquisition.
+        // No external operation/J/callback/Bool/CID can issue this selection.
+        const acquisition = operation.originalMetadataAcquisition(park);
+        const document = await cp.readOriginalModelStateSelected({runDefinition: plan.runDefinition,
+          storageBinding, receipt}, acquisition);
+        originalResourceReadCurrent(park, acquisition);
+        // Actual Store custody is rechecked by CP. Match the twelve checked
+        // originals separately; schema/CID equality alone cannot prove them.
+        const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+        originalResourceReadCurrent(park, acquisition);
+        control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
+          plan.runDefinition, selected.graph, originalScope, park, document,
+          originalPreparation.nodeInstallation, storage);
+        originalResourceReadCurrent(park, acquisition);
+        return document;
+      },
+      confirmOriginalResourceStateSaved,
       async originalResourceOrigin(storageBinding) {
         const originalScope = operation.originalResourceScope?.();
         const installation = originalPreparation?.nodeInstallation;
@@ -635,6 +841,16 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // not demand dispatch=None become Allow or grant a subsequent send.
         operation.completeOriginalJournalInvalidation(port, receipt,
           original.reference, original.park, original.request);
+        // Retire comparison/data borrows only AFTER the original Core Owner
+        // consumed this exact committed request. Unknown/failure keeps them.
+        if (originalCut?.park === original.park) {
+          originalResourceCuts.delete(original.park);
+          if (originalCut.matched !== undefined) operation.retireOriginalCurrentStateMatch(originalCut.matched);
+          if (originalCut.document !== undefined) operation.retireOriginalCurrentStateDocument(originalCut.document);
+          originalCut.matched = undefined;
+          originalCut.document = undefined;
+          originalCut.facts = undefined;
+        }
         originalInvalidation = undefined;
         return receipt;
       },
@@ -768,7 +984,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   selectionAvailable: () => owner.available && token.available &&
                     owner.currentProvider() && rawSelection?.selectionAvailable() === true,
                   observeAccount: selected.observeAccount, observeAt: now});
-              operation.bindModelRawCapture(registration);
+              // Use this continuation's actual selected Store, not a Provider
+              // supplied CID, replacement Store or another retention Owner.
+              const persistence = createModelRawTransportPersistence({store, moon, operation,
+                registration, notify: operation.ioNotification?.notify,
+                retainHolding(value) {
+                  if (rawBinding.holding !== undefined && rawBinding.holding !== value) {
+                    fail('ModelOriginalRawHoldingChanged');
+                  }
+                  rawBinding.holding = value;
+                }});
+              rawBinding.persistence = persistence;
+              operation.bindModelRawCapture(registration, persistence);
               rawBinding.complete = true;
             } catch (error) {
               rawBinding.issue = error;

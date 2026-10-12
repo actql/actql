@@ -39,7 +39,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     // inputs cannot mint a fresh read or replace its original scope/Ledger.
     if (originalPreparation !== undefined &&
         (originalPreparation === null || typeof originalPreparation !== 'object' ||
-          Object.keys(originalPreparation).sort().join(',') !==
+          Object.keys(originalPreparation).filter(name => name !== 'metadataInstallation').sort().join(',') !==
             'compiled,control,modelExecutionBytes,modelRetainedBytes,nodeInstallation,physicalCustody,read,readExecutionBytes,readRetainedBytes,runDefinition,scope' ||
           originalPreparation.control !== control ||
           originalPreparation.compiled !== plan.compiled ||
@@ -237,6 +237,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       originalPreparation = {compiled: plan.compiled, runDefinition: plan.runDefinition,
         control, scope, read: undefined,
         nodeInstallation: originalInstallation.nodeInstallation,
+        metadataInstallation: originalInstallation,
         readRetainedBytes: originalInstallation.nodeInstallation.layout.retained_bytes,
         readExecutionBytes: originalInstallation.nodeInstallation.layout.execution_bytes,
         modelRetainedBytes: originalInstallation.modelRetainedBytes,

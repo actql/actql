@@ -164,6 +164,7 @@ fn unshared_script_sources(
       bound.push(binding.name)
     }
     match @query.producer_primary(query) {
+      Some(RelationGenerator(_)) => ()
       Some(GraphValue(mapping)) =>
         for
           path in mapping.nodes.map(node => node.producer) +
