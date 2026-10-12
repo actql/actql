@@ -12,7 +12,7 @@ struct NativeLocalProductConfigurationSession {
   intent : Bytes
   intent_generation : @filesystem.NativeFileGeneration
   intent_cid : String
-  existing_only : Bool
+  mut existing_only : Bool
   mut closed : Bool
   mut close_pending : Bool
 }
@@ -207,7 +207,9 @@ pub fn begin_native_local_product_configuration(
     intent,
     intent_generation,
     intent_cid,
-    existing_only,
+    // Only the live, successful first creation may create the selected files.
+    // A reopened intent is not proof that an absent claim was never committed.
+    existing_only: existing_only || observed_intent is Some(_),
     closed: false,
     close_pending: false,
   }
@@ -270,6 +272,10 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  let allow_creation = !self.existing_only
+  // Fence further creation before any I/O. A failed or interrupted staging
+  // attempt is not converted into permission to retry an absent original.
+  self.existing_only = true
   for index, original in self.originals {
     let claim_name = "product-original-" + index.to_string() + ".claim"
     let witness_name = "product-original-" + index.to_string() + ".custody"
@@ -286,7 +292,7 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
       Err(issue) => return Err(Filesystem(issue))
     }
     let generation = if !has_claim {
-      if self.existing_only {
+      if !allow_creation {
         return Err(CustodyLost)
       }
       for

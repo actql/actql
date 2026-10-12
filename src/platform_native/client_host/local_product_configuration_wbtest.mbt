@@ -87,7 +87,7 @@ test "product originals refuse orphaned private directory and missing original i
 }
 
 ///|
-test "product originals resume recorded untouched files but never repair missing witnesses" {
+test "product originals restore staged configuration before Host adoption without repairing witnesses" {
   let path = product_test_parent("product-parent-partial")
   let parent = @filesystem.open_private_root(path).unwrap()
   let crypto = epoch_test_crypto()
@@ -95,6 +95,7 @@ test "product originals resume recorded untouched files but never repair missing
   let session = begin_native_local_product_configuration(
     path, "product-partial", originals, crypto,
   ).unwrap()
+  session.stage_configuration().unwrap()
   assert_true(session.close())
   let restored = begin_native_local_product_configuration(
     path, "product-partial", originals, crypto,
@@ -102,7 +103,7 @@ test "product originals resume recorded untouched files but never repair missing
   restored.stage_configuration().unwrap()
   let root = parent.open_child("product-partial").unwrap()
   let generation = root.inspect_generation("config.json").unwrap()
-  root
+  parent
   .reclaim_generation(
     "product-original-0.custody",
     parent.inspect_generation("product-original-0.custody").unwrap().unwrap(),
@@ -224,4 +225,25 @@ test "product restore rejects same-byte replacement without changing the witness
     restore_native_local_product_configuration(path, "product-replaced", crypto)
     is Err(CustodyLost),
   )
+}
+
+///|
+test "reopening or repeating product staging never infers first creation from absent claims" {
+  let path = product_test_parent("product-parent-no-repair")
+  let crypto = epoch_test_crypto()
+  let originals = [("config.json", b"{}")]
+  let first = begin_native_local_product_configuration(
+    path, "product-no-repair", originals, crypto,
+  ).unwrap()
+  assert_true(first.close())
+  let reopened = begin_native_local_product_configuration(
+    path, "product-no-repair", originals, crypto,
+  ).unwrap()
+  assert_true(reopened.stage_configuration() is Err(CustodyLost))
+  assert_eq(reopened.root.inspect_generation("config.json").unwrap(), None)
+  assert_eq(
+    reopened.parent.inspect_generation("product-original-0.claim").unwrap(),
+    None,
+  )
+  assert_true(reopened.close())
 }
