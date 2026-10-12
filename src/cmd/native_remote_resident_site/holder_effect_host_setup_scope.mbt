@@ -31,6 +31,26 @@ priv struct HolderEffectHostSetupScope {
 }
 
 ///|
+/// Capacity/binding fence only, never Account/read/publication authorization.
+/// Capture the immutable original selection and actual current verifiers, not
+/// the caller's resources cells or a cached current answer.
+fn holder_effect_host_setup_binding(
+  site : @site.ExecutionSite,
+  expected_key : String,
+  expected_generation : Int,
+  expected_runtime : String,
+  current_site : () -> Bool,
+  current_runtime : () -> Bool,
+) -> () -> Bool {
+  () => {
+    current_site() &&
+    @site.site_key(site) == expected_key &&
+    @site.site_binding_current(site, expected_generation, expected_runtime) &&
+    current_runtime()
+  }
+}
+
+///|
 fn holder_effect_host_setup_profile_valid(
   profile : HolderEffectHostSetupProfile,
 ) -> Bool {
