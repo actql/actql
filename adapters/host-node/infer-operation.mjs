@@ -558,6 +558,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
     },
     cancelOriginalCurrentStateComparison: comparison => moon.clientProgramCancelInferOriginalCurrentStateComparison(comparison),
+    advanceOriginalCurrentStateComparisonWithMatch(park, comparison, quantum) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch !== 'function') {
+        throw new Error('InferOriginalCurrentMatchUnavailable');
+      }
+      if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentComparisonQuantum');
+      const poll = moon.clientProgramInferOriginalCurrentStateMatchPoll(checked(
+        moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch(active, originalScope,
+          park, comparison, quantum)));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2, matched: poll._3});
+    },
+    originalCurrentStateMatchCurrent(park, matched) {
+      if (reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramInferOriginalCurrentStateMatchCurrent !== 'function') return undefined;
+      return moon.clientProgramInferOriginalCurrentStateMatchCurrent(active, originalScope, park, matched);
+    },
+    retireOriginalCurrentStateMatch: matched => moon.clientProgramRetireInferOriginalCurrentStateMatch(matched),
     originalResourceParkCurrent(park) {
       // A pending close is not a physical stop or invalidation. Preserve the
       // original observation while Core still owns this same parked scope.

@@ -7,6 +7,7 @@ import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {currentResourceFixture} from './model-current-resource.fixture.mjs';
@@ -19,7 +20,7 @@ import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 const cid = c => `sha256:${c.repeat(64)}`;
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
-test('opened original controller reads only its own selected Scope and fixed actual journal', async t => {
+async function originalFixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-original-resource-'));
   const control = runtimeCore(moon).publicationControl;
   const keys = generateKeyPairSync('ed25519');
@@ -80,6 +81,18 @@ test('opened original controller reads only its own selected Scope and fixed act
     resource_phase: 'parked', cut});
   const receipt = await cp.retainOriginalModelState({runDefinition: f.runDefinition,
     storageBinding, bodyWire});
+  return {cp, selectedCp: value => {selectedCp = value;}, controller, f, opened, park,
+    storageBinding, receipt, bodyWire, observation, abort};
+}
+
+const codec = () => ({quantum: 1, comparisonWork: 5,
+  decode: {maxWork: 20000,
+    parse: {max_input_bytes: 10000, max_nodes: 1000, max_depth: 20},
+    tree: {max_nodes: 1000, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000}}});
+
+test('opened original controller reads only its own selected Scope and fixed actual journal', async t => {
+  const {cp, selectedCp, f, opened, park, storageBinding, receipt, bodyWire, observation, abort} =
+    await originalFixture(t);
   const document = await opened.readOriginalResourceState(park, storageBinding, receipt);
   assert.equal(document.wire, bodyWire);
   const identity = Object.fromEntries(['runId', 'runDefinitionCid', 'preparedInvocationCid',
@@ -99,18 +112,18 @@ test('opened original controller reads only its own selected Scope and fixed act
     {code: 'ModelOriginalResourceReadUnavailable'});
   await assert.rejects(opened.confirmOriginalResourceStateSaved({...park}, storageBinding, receipt),
     {code: 'ModelOriginalResourceReadUnavailable'});
-  selectedCp = {...cp};
+  selectedCp({...cp});
   await assert.rejects(opened.readOriginalResourceState(park, storageBinding, receipt),
     {code: 'InstalledModelJournalChanged'});
-  selectedCp = cp;
+  selectedCp(cp);
   const pendingRead = opened.readOriginalResourceState(park, storageBinding, receipt);
-  selectedCp = {...cp};
+  selectedCp({...cp});
   await assert.rejects(pendingRead, {code: 'InstalledModelJournalChanged'});
-  selectedCp = cp;
+  selectedCp(cp);
   const pendingSaved = opened.confirmOriginalResourceStateSaved(park, storageBinding, receipt);
-  selectedCp = {...cp};
+  selectedCp({...cp});
   await assert.rejects(pendingSaved, {code: 'InstalledModelJournalChanged'});
-  selectedCp = cp;
+  selectedCp(cp);
   const stoppedSaved = opened.confirmOriginalResourceStateSaved(park, storageBinding, receipt);
   abort.abort(new Error('OriginalMetadataReadStopped'));
   await assert.rejects(stoppedSaved, {code: 'InferOriginalMetadataAcquisitionUnavailable'});
@@ -127,5 +140,65 @@ test('opened original controller reads only its own selected Scope and fixed act
   assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
   assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved), saved);
   assert.equal(cp.originalModelStateSavedFacts(saved).documentWire, bodyWire);
+  assert.equal(f.sends(), 0);
+});
+
+test('actual original Resource match and Store ACK bind same-journal COMMIT then consume once', async t => {
+  const {cp, controller, f, opened, park, storageBinding, receipt} = await originalFixture(t);
+  const selectedCodec = codec();
+  const pending = opened.prepareOriginalResourceCurrentCut(park, storageBinding, receipt, selectedCodec);
+  assert.strictEqual(opened.prepareOriginalResourceCurrentCut(park, storageBinding, receipt, selectedCodec), pending);
+  // The private limit snapshot is immutable even if its original DATA changes
+  // during physical Store awaits; it is not a replacement capacity grant.
+  selectedCodec.quantum = 0;
+  selectedCodec.decode.maxWork = 0;
+  const reference = await pending;
+  const facts = controller.verifier.originalResourceCut.inspect(park);
+  assert.ok(Object.isFrozen(facts));
+  assert.equal(facts.identity.scopeCid, opened.scope.identity);
+  assert.equal(facts.phase, 'parked');
+  assert.strictEqual(controller.verifier.originalResourceCut.current(park), park);
+  assert.throws(() => controller.verifier.originalResourceCut.inspect({...park}),
+    {code: 'ModelOriginalCurrentCutUnavailable'});
+  assert.strictEqual(cp.journal.commitOriginalModelCurrentCut(reference), reference);
+  const request = opened.beginOriginalResourceInvalidation(reference, park);
+  assert.strictEqual(controller.verifier.originalResourceCut.invalidationCurrent(request, park), request);
+  const invalidation = opened.completeOriginalResourceInvalidation();
+  assert.equal(cp.journal.originalModelCurrentCutOperationStatus(reference).state, 'invalidated');
+  assert.equal(f.operation.originalResourceParkCurrent(park), undefined);
+  assert.equal(controller.verifier.originalResourceCut.current(park), undefined);
+  assert.throws(() => opened.completeOriginalResourceInvalidation(),
+    {code: 'ModelOriginalResourceInvalidationUnavailable'});
+  assert.ok(Object.isFrozen(invalidation));
+  assert.equal(f.sends(), 0);
+});
+
+test('actual lost invalidation COMMIT preserves original park and matched custody with no blind retry', async t => {
+  const {cp, controller, f, opened, park, storageBinding, receipt} = await originalFixture(t);
+  const reference = await opened.prepareOriginalResourceCurrentCut(park, storageBinding, receipt, codec());
+  cp.journal.commitOriginalModelCurrentCut(reference);
+  const request = opened.beginOriginalResourceInvalidation(reference, park);
+  const originalExec = DatabaseSync.prototype.exec;
+  let commits = 0;
+  DatabaseSync.prototype.exec = function(sql, ...args) {
+    const result = originalExec.call(this, sql, ...args);
+    if (sql === 'COMMIT') {commits++; throw Error('OriginalInvalidationCommitResponseLost');}
+    return result;
+  };
+  try {
+    assert.throws(() => opened.completeOriginalResourceInvalidation(),
+      error => error.code === 'CheckpointJournalCommitOutcomeUnknown' && error.outcome === 'unknown');
+  } finally {DatabaseSync.prototype.exec = originalExec;}
+  assert.equal(commits, 1);
+  assert.equal(cp.journal.originalModelCurrentCutOperationStatus(reference).state, 'unknown');
+  assert.strictEqual(controller.verifier.originalResourceCut.current(park), park);
+  assert.strictEqual(controller.verifier.originalResourceCut.invalidationCurrent(request, park), request);
+  assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
+  assert.throws(() => opened.completeOriginalResourceInvalidation(),
+    {code: 'ModelOriginalCurrentCutUnavailable'});
+  assert.equal(opened.close(), false);
+  assert.equal(opened.cleanupPending(), true);
+  assert.equal(opened.token.available, true);
+  assert.strictEqual(controller.verifier.originalResourceCut.current(park), park);
   assert.equal(f.sends(), 0);
 });
