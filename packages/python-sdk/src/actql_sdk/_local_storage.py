@@ -989,21 +989,52 @@ class LocalByteStore:
         return self._projected_attached(
             count, project, originals, before_commit=before_commit, reuse_identical=True)
 
+    def store_publication_projected_inspected(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...],
+            fences: tuple[ByteFence, ...], *,
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
+            current: Callable[[], object],
+            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+        """Borrow this same write transaction for the existing current Owner.
+
+        The trusted Host enters its original Core/File locks first and wraps
+        consume() with its existing typed-current namespace supplier. Core
+        projections and the independent publisher callback then use that exact
+        SQLite snapshot, not a prior grant/Bool. No inspection or projection can
+        acknowledge COMMIT. An attempted COMMIT failure keeps the same Store
+        Unknown and is never retried here.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local projected current inspection')
+        self._validate_metadata_fences(fences, ())
+        return self._projected_attached(
+            count, project, originals, before_commit=before_commit,
+            reuse_identical=True, fences=fences, inspect=inspect, current=current)
+
     def _projected_attached(
             self, count: int,
             project: Callable[[int, Callable[[ByteWrite], None]], object],
             originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
-            before_commit: Callable[[], object], reuse_identical: bool) -> tuple[int, ...] | None:
+            before_commit: Callable[[], object], reuse_identical: bool,
+            fences: tuple[ByteFence, ...] = (),
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object] | None = None,
+            current: Callable[[], object] | None = None) -> tuple[int, ...] | None:
         if (type(count) is not int or not 1 <= count <= self._max_records
                 or not callable(project) or not callable(before_commit)):
             raise ValueError('Invalid Local physical projection batch')
         self._validate_originals(originals, set())
-        original_keys = {fence.key for fence, _ in originals}
+        original_keys = {fence.key for fence, _ in originals} | {fence.key for fence in fences}
         with self._lock:
             self._open()
             database = self._connection
             database.execute('BEGIN IMMEDIATE')
+            commit_attempted = False
             try:
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local publication metadata changed')
                 if not self._originals_match_locked(originals):
                     database.execute('ROLLBACK')
                     return None
@@ -1085,21 +1116,66 @@ class LocalByteStore:
                     if result is not None or not delivered:
                         raise ValueError('Incomplete Local physical projection')
 
-                for ordinal in range(count):
-                    consume_ordinal(ordinal)
-                if before_commit() is not None:
-                    raise ValueError('Invalid Local physical precommit callback result')
+                consumed = complete = False
+                consumption_failure: BaseException | None = None
+
+                def consume_all() -> None:
+                    nonlocal consumed, complete, consumption_failure
+                    try:
+                        if consumed:
+                            raise ValueError('Original Local projection was already consumed')
+                        consumed = True
+                        for ordinal in range(count):
+                            consume_ordinal(ordinal)
+                        if before_commit() is not None:
+                            raise ValueError('Invalid Local physical precommit callback result')
+                        complete = True
+                    except BaseException as error:
+                        consumption_failure = error
+                        raise
+
+                if inspect is None:
+                    consume_all()
+                else:
+                    self._inspect_namespace_locked(
+                        lambda reader: inspect(reader, consume_all), fences, current)
+                if consumption_failure is not None:
+                    raise consumption_failure
+                if not complete:
+                    raise ValueError('Incomplete original Local projected inspection')
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local publication metadata changed')
                 if not self._originals_match_locked(originals):
                     database.execute('ROLLBACK')
                     return None
+                commit_attempted = True
                 database.execute('COMMIT')
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local publication metadata changed')
                 return tuple(generations)
-            except _ProjectedWriteConflict:
-                database.execute('ROLLBACK')
+            except _ProjectedWriteConflict as original:
+                try:
+                    if database.in_transaction:
+                        database.execute('ROLLBACK')
+                except BaseException as cleanup_failure:
+                    if current is not None and commit_attempted:
+                        raise LocalStorageCommitUnknown(self) from cleanup_failure
+                    raise
+                if current is not None and commit_attempted:
+                    raise LocalStorageCommitUnknown(self) from original
                 return None
-            except BaseException:
-                if database.in_transaction:
-                    database.execute('ROLLBACK')
+            except BaseException as original:
+                try:
+                    if database.in_transaction:
+                        database.execute('ROLLBACK')
+                except BaseException as cleanup_failure:
+                    if current is not None and commit_attempted:
+                        raise LocalStorageCommitUnknown(self) from cleanup_failure
+                    raise
+                if current is not None and commit_attempted:
+                    raise LocalStorageCommitUnknown(self) from original
                 raise
 
     def _exchange_write_keys(self, writes: tuple[ByteWrite, ...]) -> set[str]:
