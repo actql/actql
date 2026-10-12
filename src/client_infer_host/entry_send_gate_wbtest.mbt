@@ -8,13 +8,14 @@ fn entry_gate_fixture(
   egress : Ref[@publication_host.ClientInferEgressObservation?],
   configure? : (Execution) -> Unit = _ => (),
   limits? : Limits = standard_limits(),
+  asynchronous? : Bool = false,
 ) -> (
   Execution,
   @model.ModelPreparedCallSet,
   @publication_host.ClientInferDispatchAdmission,
   Int64,
 ) raise {
-  let active = contract_capacity_start(calls, 2, 133072L, limits~)
+  let active = contract_capacity_start(calls, 2, 133072L, limits~, asynchronous~)
   configure(active)
   require_model_call_entry(active).unwrap()
   let contract = @publication_host.client_infer_plan_graph_execution_contract(
