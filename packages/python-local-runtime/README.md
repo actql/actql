@@ -8,8 +8,11 @@ installation keeps its existing dependencies.
 This source directory is a recipe, not a shipped runtime. It contains no Wasm
 module or native library. A release producer must supply the exact committed
 source artifact and its independent build and execution receipts. The existing
-Core loader validates ABI53; an older module is not a fallback. Component
-checksums establish package integrity, not current publication permission,
+Core loader validates ABI53; an older module is not a fallback. Installed
+metadata must select standalone DuckDB `v1.4.3`; other library versions cannot
+enter this installed profile. The physical loader also checks the actual
+library version before use.
+Component checksums establish package integrity, not current publication permission,
 Run admission, durable ACK, or product acceptance.
 
 The first physical profile is macOS11 or later on arm64. The wheel uses the
