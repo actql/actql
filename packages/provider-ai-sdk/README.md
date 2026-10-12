@@ -50,6 +50,34 @@ phase payloads, output tuple and Node progress reference/callback/context overla
 must be funded before normal startup; this private integration supplies no
 numerical layout, public capability or execution permission.
 
+The private physical preflight can retain the original operation's raw binder
+before Approval. Its installed continuation supplies one actual Store persistence
+port after nominal raw registration, before returning dispatch and creating an
+Entry. Known missing Store/wake installation refuses before Approval. Registration
+pending is not a fabricated capture grant: the existing approval path must finish
+binding first. The port belongs to that exact operation and registration; copies,
+another operation and rebinding refuse. A missing binding observed after an Entry
+cannot start transport or regain the consumed attempt when a late binding arrives.
+It keeps the original Unknown/cleanup responsibility. This is the initial private
+one-Slot connection, not accepted public funding or multi-Slot raw persistence.
+
+The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
+`registerModelProviders` entry from trusted, already retained installation
+selections. It does not load packages, derive a numerical profile or reconstruct
+opaque Owners from CIDs. Missing originals or a missing consuming runtime hook
+refuse before Provider installation. Exact Task/selector/payload selection is a
+byte/string comparison; Common retains schema interpretation and validation.
+Projection, request and response bounds are distinct immutable declarations.
+The selected SDK, endpoint, generation completion basis, original raw profile,
+quantity and read selections stay with their existing Host/Model Owners.
+
+This is private assembler preparation, not the public user installation API:
+the package still has no public exports. The Host must verify actual builder,
+codec, build/lock and validator originals and supply justified complete physical
+funding before public use. Frozen objects, matching declarations and fixture
+allowances do not establish those facts. The public entry and external-package
+example remain dependent on that original installation/funding acceptance.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final
