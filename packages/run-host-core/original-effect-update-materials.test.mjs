@@ -62,9 +62,16 @@ test('the installed supplier uses the original update proof for compilation and 
 
 test('update materials refuse copied or foreign original handles and an independent foreign Request', () => {
   const original = issued();
-  const other = issued();
+  const changed = JSON.parse(document);
+  changed.stages[0].steps[0].filter.gte[1].literal = 1;
+  const other = issued(JSON.stringify(changed));
   const proof = issuePreparedEffectRunMaterials(original.allowed, original.definition, original.request);
   const root = privateRunDefinition(original.definition).cid;
+  // A separately admitted equal definition is the same content-addressed Run,
+  // not a foreign identity. Use a changed checked Program for refusal below.
+  const equivalent = issued();
+  assert.equal(issuePreparedEffectRunMaterials(original.allowed, equivalent.definition, original.request).wire,
+    proof.wire);
   assert.throws(() => issuePreparedEffectRunMaterials({...original.allowed}, original.definition, original.request),
     /ForeignRunHostHandle/u);
   assert.throws(() => issuePreparedEffectRunMaterials(original.allowed, other.definition, original.request),
