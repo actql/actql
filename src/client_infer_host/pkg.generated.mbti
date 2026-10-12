@@ -118,7 +118,11 @@ pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunE
 
 pub fn original_model_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
 
+pub fn original_model_resource_park_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]?
+
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
+
+pub fn park_original_model_resources(Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Issue]
 
 pub fn poll_issue(Poll) -> Issue?
 

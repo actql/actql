@@ -1130,6 +1130,9 @@ pub fn advance_model_execution(
   if execution.advancing {
     return Err(Session(@bounded.ConcurrentResume))
   }
+  if check_model_original_resources_mutable(execution.state) is Err(issue) {
+    return Err(issue)
+  }
   execution.advancing = true
   let observation = advance_model_execution_owned(execution, quantum)
   execution.advancing = false
@@ -1189,6 +1192,12 @@ fn advance_model_execution_owned(
       return Ok(Waiting(execution.progress, execution.work))
     }
   }
+  // A persistence observation callback may establish a resource fence while
+  // retaining its original pending save. Do not enter the kernel from that
+  // stale pre-callback check or translate the restriction into a terminal.
+  if check_model_original_resources_mutable(state) is Err(issue) {
+    return Err(issue)
+  }
   match @bounded.advance(execution.session, execution.token, quantum) {
     Err(issue) => Err(Session(issue))
     Ok(@bounded.ContinueWith(token, progress~, work~)) => {
@@ -1214,6 +1223,9 @@ fn advance_model_execution_owned(
 
 ///|
 pub fn request_model_cancel(execution : ModelExecution) -> Bool {
+  if check_model_original_resources_mutable(execution.state) is Err(_) {
+    return false
+  }
   execution.state.stop_requested = true
   if execution.state.durable_calls &&
     (
@@ -1271,6 +1283,9 @@ pub fn cleanup_model_execution(
 ) -> Result[Bool, ModelExecutionIssue] {
   if execution.advancing {
     return Err(Session(@bounded.ConcurrentResume))
+  }
+  if check_model_original_resources_mutable(execution.state) is Err(issue) {
+    return Err(issue)
   }
   execution.advancing = true
   let result = cleanup_model_execution_owned(execution)

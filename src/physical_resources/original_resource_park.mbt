@@ -23,7 +23,7 @@ struct OriginalResourcePark[T] {
 // Every resource mutator calls this BEFORE changing the same Owner. Physical
 // observations refused here stay with the original producer/journal until
 // exact cut invalidation; they must not be discarded or turned into zero.
-fn check_original_resources_mutable(
+pub fn check_original_resources_mutable(
   ledger : Ledger,
 ) -> Result[Unit, LedgerIssue] {
   if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
@@ -106,6 +106,22 @@ pub fn[T] original_resource_park_current(
   } else {
     None
   }
+}
+
+///|
+// Read a parked token against a consumer's existing actual Ledger, without
+// exposing its origin or creating a second token. This is not Model membership,
+// quiescence, journal invalidation, funding or send permission.
+pub fn[T] original_resource_park_current_for_ledger(
+  value : OriginalResourcePark[T],
+  ledger : Ledger,
+) -> OriginalResourcePark[T]? {
+  guard value.fence is Some(fence) &&
+    value.origin is Some(origin) &&
+    physical_equal(fence.identity.ledger, ledger) else {
+    return None
+  }
+  original_resource_park_current(value, origin)
 }
 
 ///|
