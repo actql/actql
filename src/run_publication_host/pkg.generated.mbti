@@ -478,7 +478,19 @@ pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccoun
 
 pub fn client_local_completion_free_catalog_cid() -> String
 
+pub fn client_local_configuration_custody_body(Bytes, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_configuration_custody_record(String, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
 pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_initialization_body(@execution_authorization.AdmittedAccountConfiguration, Bytes, Bytes, ClientLocalInitializationPhysical) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_initialization_record_body(Array[String]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_journal_custody_body(Bytes, Bytes, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_journal_custody_record(String, String, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
 pub fn client_local_original_record_body(Array[(String, String)]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
@@ -2039,6 +2051,17 @@ pub(all) enum ClientLocalAuthorityScopeIssue {
   InvalidInput
   Encoding
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalInitializationPhysical {
+  nonce : String
+  parent : (UInt64, UInt64)
+  root : (UInt64, UInt64)
+  source_root : (UInt64, UInt64)
+  source_file : String
+  source_path : String
+  source_generation : (UInt64, UInt64, Int64)
+  state_name : String
+}
 
 type ClientLocalNormalization
 
