@@ -175,8 +175,10 @@ pub fn model_execution_attempt_evidence(
   if execution.state.pending_response is Some(call) &&
     call.entry is Some(entry) &&
     entry.slot == slot &&
-    (call.usage_result is None ||
-    (call.raw_capture is Some(raw) && !raw.usage_retired)) {
+    (
+      call.usage_result is None ||
+      (call.raw_capture is Some(raw) && !raw.usage_retired)
+    ) {
     return Err(OutputIdentity)
   }
   if trace.evidence is Some(evidence) {
@@ -186,6 +188,9 @@ pub fn model_execution_attempt_evidence(
   // proof encoding cannot consume a reservation already returned to capacity.
   if execution.state.reclaimed {
     return Err(OutputIdentity)
+  }
+  if check_model_original_resources_mutable(execution.state) is Err(issue) {
+    return Err(issue)
   }
   try {
     let attempt_cid = @publication.run_evidence_value_identity(trace.attempt)

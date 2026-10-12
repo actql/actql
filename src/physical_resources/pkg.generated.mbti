@@ -38,6 +38,8 @@ pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn check_original_resources_mutable(Ledger) -> Result[Unit, LedgerIssue]
+
 pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[Unit, OriginalStateWriteIssue]
 
 pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> Result[FundedReadConsumer[T], OriginalReadIssue]
@@ -99,6 +101,8 @@ pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
 pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
 
 pub fn[T] original_resource_park_current(OriginalResourcePark[T], T) -> OriginalResourcePark[T]?
+
+pub fn[T] original_resource_park_current_for_ledger(OriginalResourcePark[T], Ledger) -> OriginalResourcePark[T]?
 
 pub fn[T] original_resource_park_origin(OriginalResourcePark[T]) -> T?
 

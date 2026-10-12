@@ -109,19 +109,23 @@ argument or certify every backend.
 | `graphs_equal`, `graph_diff` | Graph pair → Relation | [Pair rows](../../src/query_program/graph_equality_program.mbt); explicit earlier WITH peer, existing Boolean/Delta columns |
 | `subgraph` | Graph → Graph | [Subgraph calls](../../src/query_program/subgraph_script_program.mbt); existing retained Relation selector, common membership/closure rules |
 | `union_graphs`, `subtract_graphs`, `graft_graph` | Graph inputs → Graph | [Composition calls](../../src/query_program/graph_composition_program.mbt); preserve authored peer order and policies, binary subtraction and closed exact-equal graft |
+| `mean_graphs` | Explicit Graph list → Graph | [Mean generator](../../src/query_program/graph_mean_program.mbt), selected by the [binding owner](../../src/query_program/query_binding_program.mbt); preserve ordered and repeated inputs, weights, support and property strategies |
 | `apply_graph_delta` | Graph + Delta Relation → Graph | [Delta application](../../src/query_program/graph_delta_program.mbt); explicit producer and field, common Delta validation |
 
 Both WITH bodies and terminal query routing reuse these boundaries. A Relation-returning
 call creates the corresponding Relation scope; the old Graph columns do not
-remain visible. Further Graph calls after that transition are refused. A
+remain visible. Remaining operations continue through the common typed
+Relation/Carrier lowering. An operation that still requires Graph is refused
+unless an explicit conversion supplies it. A
 Graph-returning call retains the checked Graph contract until explicit rows
 or MATCH processing; it does not acquire, save, copy or select an execution
 location itself.
 
-`mean_graphs` remains adopted but unconnected in this Script frontend.
-In particular, the generator-style
-`mean_graphs` binding is not an implemented constructor. Parser vocabulary
-and historical machine-input execution are not successful public text routes.
+`mean_graphs` is connected as a generator-style WITH binding. It emits the
+authored ordinary Program operation without an implicit current input or
+pairwise reduction. The common Mean owner retains domain, definition,
+label/property extent, presence and numeric checks; source lowering does not
+establish support for every strategy, composition or execution profile.
 Wider selector acquisition, terminal quantified predicates and other pattern
 forms also retain their individually documented gaps. Do not restore the
 structural envelope or a simple-Graph conversion to pass them.
