@@ -116,6 +116,12 @@ class ContractTests(unittest.TestCase):
             if mutate == 'classification': value['report']['verdict'] = 'verified'
             with self.subTest(mutate=mutate):
                 self.assertFalse(wire.check_outcome(value))
+        for field, previous in (
+            ('reason_schema_cid', 'sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac'),
+            ('outcome_schema_cid', 'sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f'),
+        ):
+            with self.subTest(previous_base_pin=field):
+                self.assertFalse(wire.check_outcome(original | {field: previous}))
 
 
 class DiagnosticTests(unittest.TestCase):
