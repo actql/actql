@@ -27,11 +27,34 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let settling;
   let observeModelEntry;
   let modelEntryFor;
-  const durableSettlements = new Map();
+  let durableSettlements = new Map();
+  let cleanupFlight;
+
+  // Retire only this adapter's aliases after its existing physical/Core
+  // cleanup succeeds. Durable Store originals and previously transferred
+  // immutable views retain their own custody; this does not erase them or
+  // claim that GC has reclaimed their backing allocations.
+  function retireAliases() {
+    wire = '';
+    modelEvidence = undefined;
+    durableSettlements = undefined;
+    observeModelEntry = undefined;
+    modelEntryFor = undefined;
+    settling = undefined;
+    pendingHolding = undefined;
+    sourceEvidence = undefined;
+    publicationFor = undefined;
+    faultInjection = undefined;
+    operation = undefined;
+    plan = undefined;
+    control = undefined;
+    store = undefined;
+    moon = undefined;
+  }
 
   // A failed write retains its exact physical owner. Cleanup retries only
   // that write, never operation.run or the provider.
-  const cleanup = async () => {
+  const cleanupOwned = async () => {
     if (reclaimed) return true;
     if (!operation.physicalStopped()) return false;
     if (settling !== undefined) await persistSettlement();
@@ -77,21 +100,36 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     for (;;) {
       const before = operation.cleanupProgress?.();
       reclaimed = operation.cleanup();
-      if (reclaimed || operation.cleanupProgress?.() === before) return reclaimed;
+      if (reclaimed) { retireAliases(); return true; }
+      if (operation.cleanupProgress?.() === before) return false;
       // The common owner released one more physical cursor. Yield before
       // advancing cleanup again; an unchanged/pending cursor remains owned.
       await yieldEventLoop();
     }
   };
+  const cleanup = () => {
+    // Several existing parents may observe the same pending cleanup. Do not
+    // let a second await race the first owner's final alias retirement.
+    // Keep the successful flight stable; false/rejection permits retry of
+    // the same original responsibility, never persistence or dispatch anew.
+    if (cleanupFlight !== undefined) return cleanupFlight;
+    cleanupFlight = cleanupOwned().then(value => {
+      if (!value) cleanupFlight = undefined;
+      return value;
+    }, error => { cleanupFlight = undefined; throw error; });
+    return cleanupFlight;
+  };
   const custody = Object.freeze({cleanup,
     cleanupPending: () => !reclaimed,
     async close() {
+      if (reclaimed) return;
       // Stop without reclaiming: failed executions still own attempt proofs
       // that must reach private custody before the model owner is released.
       await operation.stop();
       if (!await cleanup()) throw pending();
     }});
   function retainCompleted() {
+    if (reclaimed) throw new Error('InstalledInferCaptureUnavailable');
     if (capture !== undefined) return true;
     captureOutput ??= operation.acquireOutput();
     if (captureOutput === undefined) throw new Error('InstalledInferOutputUnavailable');
@@ -129,6 +167,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }
   }
   async function persistStoppedAttempts() {
+    if (reclaimed) return;
     if (attemptsStored) return;
     await persistSourceObservation();
     const attempts = operation.stoppedAttemptCount();
@@ -216,7 +255,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     settling = undefined;
     return observed;
   }
-  const modelEvidence = [];
+  let modelEvidence = [];
   let wire = '';
   let exportComplete = false;
   persistCapture = async () => {
@@ -300,7 +339,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     captureStored = true;
   };
   return Object.freeze({custody, retainCompleted, persistStoppedAttempts,
-    modelEvidence() {return captureStored ? Object.freeze([...modelEvidence]) : undefined;},
+    modelEvidence() {return !reclaimed && captureStored ? Object.freeze([...modelEvidence]) : undefined;},
     // This immutable original is available only after the existing Store
     // commit. It conveys no read/capture permission and retains no new owner.
     evaluationBundle() {
@@ -317,7 +356,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         calls: Object.freeze(calls)});
     },
     configureModelJournal({observe, entry}) {
-      if (!durableCalls || typeof observe !== 'function' || observeModelEntry !== undefined) {
+      if (reclaimed || !durableCalls || typeof observe !== 'function' || observeModelEntry !== undefined) {
         throw new TypeError('InvalidInferModelJournal');
       }
       if (typeof entry !== 'function') throw new TypeError('InvalidInferModelEntryReader');
@@ -331,7 +370,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       });
     },
     async persistSettlement(settlement, entry) {
-      if (!durableCalls || settling !== undefined &&
+      if (reclaimed || !durableCalls || settling !== undefined &&
           (operation.settlementSlot(settling.settlement) !== operation.settlementSlot(settlement) ||
             settling.entry.attemptCid !== entry.attemptCid)) {
         throw new Error('ForeignInferSettlement');

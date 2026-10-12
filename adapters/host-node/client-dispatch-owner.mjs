@@ -449,6 +449,13 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       const inferring = held.plan.kind === 'infer';
       const serializing = held.plan.kind === 'serialization';
       const generatingContent = held.plan.serializationGraph !== undefined;
+      // Managed Compute publication cannot publish an acquisition Result.
+      // Inspect the common checked graph before reserving physical custody or
+      // capturing rows. Content and Infer have their own publication owners.
+      if (!inferring && !serializing && !generatingContent &&
+          moon.clientProgramRequiresAcquisitionResultPublication(preparedProgram)) {
+        throw new TypeError('InstalledAcquisitionResultPublicationUnsupported');
+      }
       // A checked model barrier is not a Values task. The installed Model
       // connection must consume this exact plan and transfer physical custody
       // before advancing; this supervisor still owns the one Run-start claim.
