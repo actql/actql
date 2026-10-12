@@ -1,0 +1,6 @@
+{
+  "valid.program.json": "558fadd453500b1de95b22c6ed3933c1153cdc6e4046ca668db1ffa3845ecf50",
+  "expected.json": "70949f97727cef6d8838b16155d2680ea8fc9d3b528908a53565467d75461847",
+  "flat.sql": "e3ad43424bbc844e7ef6e75e566a3907159796bd870abacbb55b394fccb7418b",
+  "original-collision.program.json": "f7e72b328c5a35aff9d4fe857dc00138b897ec524adfce9985e7a24935740c5f"
+}

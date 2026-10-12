@@ -2,6 +2,7 @@
 test "Source preparation retains known lowerer input violations for disclosure" {
   let issues : Array[@query_program.Issue] = [
     InvalidQuery,
+    GraphExpected(None),
     RangeAliasRequiresRelation,
     UnknownColumn,
     AmbiguousColumn,

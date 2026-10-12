@@ -10,7 +10,7 @@ import test from 'node:test';
 import * as runtime from
   '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js';
 import {openSqliteCheckpointJournal} from './sqlite-checkpoint-journal.mjs';
-import {upgradeCheckpointEffectSettlement} from
+import {upgradeCheckpointEffectSettlement, upgradeCheckpointModelCurrentCut} from
   '../../scripts/upgrade-checkpoint-effect-settlement.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -1844,6 +1844,7 @@ test('pre-settlement checkpoint layout is refused without altering durable recor
   journal.close();
   const prior = new DatabaseSync(journal.path);
   prior.exec('DROP TABLE resume_effect_settlements');
+  prior.exec('ALTER TABLE resume_model_scopes DROP COLUMN current_cut_link_json');
   prior.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
     .run('actql-checkpoint-journal/0.1;model-call-provenance=1', 'schema_version');
   prior.close();
@@ -1874,6 +1875,7 @@ async function priorSettlementLayout(t) {
   journal.close();
   const prior = new DatabaseSync(journal.path);
   prior.exec('DROP TABLE resume_effect_settlements');
+  prior.exec('ALTER TABLE resume_model_scopes DROP COLUMN current_cut_link_json');
   prior.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
     .run('actql-checkpoint-journal/0.1;model-call-provenance=1', 'schema_version');
   prior.close();
@@ -1895,6 +1897,13 @@ test('offline Effect settlement upgrade backs up and preserves every existing jo
   delete updated.resume_effect_settlements;
   updated.journal_metadata = updated.journal_metadata.map(row => row.replace(';effect-settlement=1', ''));
   assert.deepEqual(updated, prior);
+  // The first tool deliberately still produces its historical Effect layout.
+  // Current startup refuses it until the separate explicit offline operation.
+  assert.throws(() => open(), {code: 'UnsupportedCheckpointJournal'});
+  const cut = upgradeCheckpointModelCurrentCut({root, offline: true,
+    backupPath: join(root, 'before-model-current-cut.sqlite3')});
+  assert.equal(cut.from, result.to);
+  assert.equal(cut.to, result.to + ';model-current-cut-link=1');
   clock.ms += 1001;
   const journal = open();
   assert.equal(journal.currentResume(waiting.checkpointCid).generation, 1);

@@ -1306,11 +1306,11 @@ pub fn start_client_result_transformation(ClientResultTransformation, @execution
 
 pub fn start_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
-pub fn stop_client_model_read(ClientModelReadPreparation) -> Unit
+pub fn stop_client_model_read(ClientModelReadPreparation) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn stop_client_model_read_checked(ClientModelReadScope, ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[Unit, ClientModelReadPreparationIssue]
 
-pub fn stop_client_model_read_consumer(ClientModelReadConsumer) -> Unit
+pub fn stop_client_model_read_consumer(ClientModelReadConsumer) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn stop_client_node_model_read_state(ClientNodeModelStateWriter, ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[Unit, ClientModelReadPreparationIssue]
 

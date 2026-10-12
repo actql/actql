@@ -200,8 +200,14 @@ pub fn settle_resident_environment(
   }
   for allocation in env.allocations {
     if !@resources.shared_allocation_usage(allocation).released {
-      @resources.retire_shared_capacity(allocation)
-      @resources.release_shared_capacity(allocation) |> ignore
+      match @resources.retire_shared_capacity(allocation) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      match @resources.release_shared_capacity(allocation) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
     }
   }
   match @resources.settle_shared_capacity(env.capacity) {

@@ -34,7 +34,7 @@ fn physical_preflight_fixture(
           { tokens, cost_units: 0L, duration_ms: 500L, },
           () => {
             events.push("invoke:" + request.slot.to_string())
-            (provider.invoke)(request)
+            @model.model_provider_synchronous_invoke(provider).unwrap()(request)
           },
         ).map(value => Some(value))
       },
@@ -64,7 +64,7 @@ test "evaluation retains the invoked physical originals only while the adopted o
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
           () => {
             sent.push(rendered)
-            (provider.invoke)(request)
+            @model.model_provider_synchronous_invoke(provider).unwrap()(request)
           },
           evidence={ rendered_input: rendered, context_manifest: context, },
         ).map(value => Some(value))
@@ -105,7 +105,9 @@ test "prepared physical originals can be retained without invoking or granting a
           request,
           1000L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
-          () => (provider.invoke)(request),
+          () => {
+            @model.model_provider_synchronous_invoke(provider).unwrap()(request)
+          },
           evidence={
             rendered_input: "é\r\n" + request.slot.to_string(),
             context_manifest: "{\"unknown\":true}",
@@ -158,7 +160,9 @@ test "optional physical Evidence overflow stays missing without changing ordinar
           request,
           1L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
-          () => (provider.invoke)(request),
+          () => {
+            @model.model_provider_synchronous_invoke(provider).unwrap()(request)
+          },
           evidence={ rendered_input: "é", context_manifest: "{}", },
         ).map(value => Some(value))
       },

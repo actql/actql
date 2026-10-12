@@ -27,7 +27,7 @@ test "original early consumer rejects duplicate allocation and preserves handoff
   }
   assert_false(funded_read_consumer_available(forged, origin, 7L, 5L))
   assert_true(funded_read_consumer_origin(forged) is None)
-  stop_funded_read_consumer(forged)
+  stop_funded_read_consumer(forged).unwrap()
   assert_true(settle_funded_read_consumer(forged, true) is Err(SpentClaim))
   assert_true(funded_read_consumer_available(consumer, origin, 7L, 5L))
   assert_true(
@@ -195,7 +195,7 @@ test "original early consumer stopped pending and reclaimed cannot be borrowed a
   let consumer = claim_funded_read_preparation(claim, origin, 7L, 5L).unwrap()
   let before = ledger_usage(ledger)
   let serial = ledger.next_capacity_serial
-  stop_funded_read(claim)
+  stop_funded_read(claim).unwrap()
   assert_true(funded_read_consumer_origin(consumer) is None)
   assert_false(funded_read_consumer_available(consumer, origin, 7L, 5L))
   assert_true(

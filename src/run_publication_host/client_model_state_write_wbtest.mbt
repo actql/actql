@@ -236,7 +236,7 @@ test "checked original state Writer uses selected layout without a second descri
     None,
   ).unwrap()
   assert_eq(@resources.ledger_usage(ledger), before)
-  stop_client_model_read_consumer(consumer)
+  stop_client_model_read_consumer(consumer).unwrap()
   assert_true(
     settle_client_model_read_consumer(consumer, false)
     is Err(Resource(@resources.CleanupPending)),
