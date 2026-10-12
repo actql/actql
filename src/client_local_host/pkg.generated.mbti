@@ -67,6 +67,8 @@ pub fn client_infer_retained_input_export_rows(ClientInferRetainedInputExport) -
 
 pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
 
+pub fn client_local_values_publication_limits(@run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
+
 pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedProviderExecution
 
 pub fn client_query_residual_output(ClientQueryResidual, @execution_query.QuerySequence, @execution_query.QueryReceipt, Int, Int) -> @execution_relation.CompletedOutput?
