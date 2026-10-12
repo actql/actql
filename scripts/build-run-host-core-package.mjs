@@ -1,24 +1,21 @@
 import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {buildSync} from 'esbuild';
+import {deferredFunctionRuntime} from './deferred-function-runtime.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = join(root, '_build/js/release/build/client_values_host_abi',
   'client_values_host_abi.js');
 const destination = join(root, 'packages/run-host-core/dist',
   'client_values_host_abi.js');
-const result = buildSync({entryPoints: [source], bundle: true, minify: true,
-  write: false, format: 'esm', platform: 'neutral', target: 'es2022'});
-const bytes = result.outputFiles[0].contents;
+const bytes = deferredFunctionRuntime(source, {minify: true});
 // Reuse the existing storage-free Checkpoint bridge. The package does not
 // supply a clock, reviewer authority, persistence or another lifecycle Owner.
 const checkpointDestination = join(root, 'packages/run-host-core/dist',
   'checkpoint_runtime_node.js');
-const checkpointBytes = buildSync({entryPoints: [join(root,
-  '_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js')],
-bundle: true, minify: true, write: false, format: 'esm',
-platform: 'neutral', target: 'es2022'}).outputFiles[0].contents;
+const checkpointBytes = deferredFunctionRuntime(join(root,
+  '_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js'),
+{minify: true});
 const accessSource = readFileSync(join(root, 'adapters/host-common',
   'result-access.mjs'), 'utf8');
 const access = accessSource.replace(

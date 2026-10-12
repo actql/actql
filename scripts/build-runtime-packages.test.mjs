@@ -3,7 +3,7 @@ import {spawnSync} from 'node:child_process';
 import {copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {buildSync} from 'esbuild';
 import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
@@ -139,8 +139,8 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   for (const [name, item] of Object.entries(packages)) {
     for (const source of item.sources) {
       put(directory, `_build/js/release/build/${source}/${source.split('/').at(-1)}.js`,
-        `export const payload = ${JSON.stringify(version === name
-          ? 'actql-fixture/' + ['0', '2'].join('.') : `fixture-${source}`)};\n`);
+        `export function payload() { return ${JSON.stringify(version === name
+          ? 'actql-fixture/' + ['0', '2'].join('.') : `fixture-${source}`)}; }\n`);
     }
   }
   const wrappers = {
@@ -375,9 +375,12 @@ test('runtime preparation preserves physical cwd and output through a symlinked 
   const physicalOutput = join(physicalParent, basename(directory), output);
   const logicalOutput = join(logicalParent, basename(directory), output);
   assert.equal(realpathSync(logicalOutput), physicalOutput);
-  const expected = Buffer.from('export const payload = "fixture-remote_transfer_abi";\n');
-  assert.deepEqual(readFileSync(physicalOutput), expected);
-  assert.deepEqual(readFileSync(logicalOutput), expected);
+  assert.deepEqual(readFileSync(physicalOutput), readFileSync(logicalOutput));
+  const consumer = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import {payload} from ${JSON.stringify(pathToFileURL(physicalOutput).href)};
+     if (payload() !== 'fixture-remote_transfer_abi') throw new Error('Wrong original payload');`],
+  {encoding: 'utf8', timeout: 30000});
+  assert.equal(consumer.status, 0, consumer.stderr);
 });
 
 for (const [gate, commands] of Object.entries(expectedGates)) {
