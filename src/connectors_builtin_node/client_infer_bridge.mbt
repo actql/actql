@@ -1935,6 +1935,38 @@ pub fn client_program_admitted_model_provider(
 }
 
 ///|
+/// Provider-specific preparation reads admitted originals without dispatch.
+#export_name("clientProgramProjectOpenAIChatRequest")
+pub fn client_program_project_openai_chat_request(
+  provider : @model.AdmittedModelProvider,
+  request : @model.ModelRequest,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_frames : Int,
+  max_work : Int,
+) -> Result[
+  (String, String, String, String, String, String, String),
+  @model.OpenAIChatProjectionIssue,
+] {
+  @model.project_openai_chat_request(
+    provider, request, max_bytes, max_nodes, max_depth, max_frames, max_work,
+  )
+}
+
+///|
+#export_name("clientProgramOpenAIChatProjectionIssueKind")
+pub fn client_program_openai_chat_projection_issue_kind(
+  issue : @model.OpenAIChatProjectionIssue,
+) -> String {
+  match issue {
+    @model.ForeignRequest => "foreign_request"
+    @model.Unsupported => "unsupported"
+    @model.Limit => "limit"
+  }
+}
+
+///|
 /// The graph binds references but does not authorize a Run or a model call.
 #export_name("clientProgramInferPlanGraph")
 pub fn client_program_infer_plan_graph(

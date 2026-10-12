@@ -20,6 +20,24 @@ prompt/schema, credentials and physical-profile compatibility; this projection
 does not establish any of them. The actual fixture verifies this mapping only
 for its selected non-reasoning chat profile, not every OpenAI model.
 
+The additional private admitted-request consumer reads the closed
+`actql.openai_chat_prompt/0.1` payload, mapped input wire and strict output
+schema from Common's original admitted Provider/Task. It binds the Task,
+prompt and output-schema CIDs plus the selector before SDK preparation. Empty
+instructions are explicit and valid; missing, NULL or extra payload fields
+refuse. One separate data-text message keeps Common's exact input wire,
+including Decimal strings, without parsing it back into JavaScript values.
+The actual intercepted SDK request must match those originals and authored
+generation settings. An SDK model-dependent rewrite refuses, with no fallback.
+
+The bounded schema emitter supports a nonnullable closed Object root, plain
+Text/Number/Boolean/Array/Object children and explicit nested nullability.
+All fields are required. Unsupported constraints and other value kinds refuse
+before send rather than being weakened. This is not a language-wide ban or
+Common output validation. The convenience private request consumer uses finite
+preparation work/byte/node/depth/frame limits; it is not evidence of cooperative
+SDK JSON parsing or a funded public physical-preflight installation.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final
