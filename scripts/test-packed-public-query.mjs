@@ -828,6 +828,9 @@ try {
     const reports = ['transport-processes.json',
       ...(process.argv.includes('--two-source-only') ? [] :
         ['transport-completion.local.json', 'transport-completion.remote.json']),
+      ...((process.argv.includes('--lag-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['lag-receipts.local.json', 'lag-receipts.remote.json'] : []),
       ...((process.argv.includes('--cte-value-table-only') ||
         (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
         ? ['cte-value-table-receipts.local.json', 'cte-value-table-receipts.remote.json'] : []),

@@ -862,6 +862,9 @@ function publicQueryCohorts(inputs) {
 }
 const retainedCohorts = [];
 const cteValueTableReceipts = createCteValueTableReceipts(transport ?? 'both', writeFile);
+const lagReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'lag', version: 'actql-lag-acceptance/0.1',
+});
 const unpivotMulticolumnReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
   prefix: 'unpivot-multicolumn', version: 'actql-unpivot-multicolumn-acceptance/0.1',
 });
@@ -1186,6 +1189,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return async item => {
     recordString(mode)(item);
+    if (item.name.startsWith('lag-')) await lagReceipts.record(item, mode);
     if (item.name.startsWith('unpivot-multicolumn-')) await unpivotMulticolumnReceipts.record(item, mode);
     if (item.name.startsWith('unpivot-row-label-')) await unpivotRowLabelReceipts.record(item, mode);
     if (item.name.startsWith('from-unpivot-')) await fromUnpivotReceipts.record(item, mode);
@@ -1298,6 +1302,7 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 }
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
+  await lagReceipts.complete();
   await cteValueTableReceipts.complete();
   await fromUnpivotReceipts.complete();
   await unpivotRowLabelReceipts.complete();

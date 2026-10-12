@@ -29,6 +29,9 @@ test('Lag fixtures reach both ordinary and focused installed public consumers',(
   assert.ok(packed.includes('process.env.ACTQL_TEST_LAG_ONLY'));
   assert.ok(installer.includes("['scripts/fixtures/lag-source-input.mjs', 'lag-source-input.mjs']"));
   assert.ok(installer.includes("if (process.argv.includes('--lag-only')) return;"));
+  assert.ok(packed.includes("await lagReceipts.record(item, mode)"));
+  assert.ok(packed.includes('await lagReceipts.complete()'));
+  assert.ok(installer.includes("['lag-receipts.local.json', 'lag-receipts.remote.json']"));
 });
 
 test('Lag registration adds exactly the independent eight successes and six refusals',async()=>{
