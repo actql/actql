@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 52
+LOCAL_CORE_ABI = 53
 
 
 class LocalCoreError(RuntimeError):
@@ -467,6 +467,7 @@ _JOURNAL_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
     'inspect': ('i64 i32', 'i32'),
     'revision': ('i64 i32 i32', 'i64'),
+    'admission_length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
 _CURRENT_SIGNATURES = {
@@ -941,6 +942,38 @@ class LocalCore:
 
     def close_journal_observation(self, value: _Output) -> bool:
         return self._close_output(value, 'journal', 'close')
+
+    def read_journal_admission(self, value: _Output, reader: _NamespaceReader) -> bytes:
+        """Transfer Core's saved admission in the same original current frame.
+
+        Core retains the original validated definition/request/revision. Cached
+        transport bytes never bypass current checks or become a COMMIT ACK,
+        dispatch permit, Result or permission to resend a Submission.
+        """
+        with self._lock:
+            self._owned_output(value, 'journal')
+            callbacks = self._journal_callbacks(value.ticket)
+            if (self._closing or type(reader) is not _NamespaceReader or callbacks is None
+                    or reader.owner is not callbacks.store
+                    or callbacks.reader is not None or callbacks.failure is not None):
+                raise ValueError('Invalid original Local journal transaction loan')
+            callbacks.reader = reader
+            try:
+                # Validate before _read_output can return its physical cache.
+                length = self._call('journal', 'admission_length', value.handle)
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                if not 0 < length <= 4096:
+                    raise LocalCoreError('journal_admission_length', length)
+                result = self._read_output(value, 'journal', 'admission_length')
+                final_length = self._call('journal', 'admission_length', value.handle)
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                if final_length != length or len(result) != length:
+                    raise LocalCoreError('journal_admission_length', final_length)
+                return result
+            finally:
+                callbacks.reader = None
 
     def _publisher_callbacks(self, ticket: int) -> _PublisherCallbacks | None:
         value = self._inputs.get(ticket)
