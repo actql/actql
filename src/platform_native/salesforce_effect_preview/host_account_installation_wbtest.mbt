@@ -300,10 +300,11 @@ test "Host selected ceiling accepts exact UTF8 bytes and refuses one extra byte"
   let exact = wire + " ".repeat(ceiling - @utf8.encode(wire).length())
   // JSON whitespace does not change the independent original configuration.
   assert_eq(@utf8.encode(exact).length(), ceiling)
+  let limits = []
   let installation = install_host_account_with_read(
       Some(selected),
       limit => {
-        assert_eq(limit, ceiling)
+        limits.push(limit)
         Ok(exact)
       },
       read_ceiling=ceiling,
@@ -311,6 +312,8 @@ test "Host selected ceiling accepts exact UTF8 bytes and refuses one extra byte"
     .unwrap()
     .unwrap()
   assert_eq(installation.read_ceiling, ceiling)
+  assert_eq(limits.length(), 1)
+  assert_eq(limits[0], ceiling)
   assert_true(
     install_host_account_with_read(
       Some(selected),
@@ -375,6 +378,7 @@ test "Host current first and final reads retain the installed ceiling" {
   assert_eq(limits[1], ceiling)
   for changed_read in [1, 2] {
     let reads = [0]
+    let limits = []
     assert_false(
       host_account_current_with_read(
         installation.selected,
@@ -382,13 +386,17 @@ test "Host current first and final reads retain the installed ceiling" {
         false,
         limit => {
           reads[0] += 1
-          assert_eq(limit, ceiling)
+          limits.push(limit)
           Ok(if reads[0] == changed_read { wire + " " } else { wire })
         },
         read_ceiling=installation.read_ceiling,
       ),
     )
     assert_eq(reads[0], changed_read)
+    assert_eq(limits.length(), changed_read)
+    for limit in limits {
+      assert_eq(limit, ceiling)
+    }
   }
 }
 
@@ -404,13 +412,14 @@ test "Host bounded current failure foreign CID and revocation remain refusal" {
       Ok(wire.replace(old="\"allow\"", new="\"deny\"")),
     ] {
     let reads = [0]
+    let limits = []
     assert_false(
       host_account_current_with_read(
         selected,
         "sha256:" + "a".repeat(64),
         false,
         limit => {
-          assert_eq(limit, 32768)
+          limits.push(limit)
           reads[0] += 1
           if reads[0] == 1 {
             Ok(wire)
@@ -422,5 +431,9 @@ test "Host bounded current failure foreign CID and revocation remain refusal" {
       ),
     )
     assert_eq(reads[0], 2)
+    assert_eq(limits.length(), 2)
+    for limit in limits {
+      assert_eq(limit, 32768)
+    }
   }
 }
