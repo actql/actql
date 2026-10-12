@@ -478,6 +478,8 @@ pub fn client_local_completion_free_catalog_cid() -> String
 
 pub fn client_local_product_assets() -> ClientLocalProductAssets
 
+pub fn client_local_product_bootstrap_originals(String, String) -> Result[ClientLocalProductBootstrapOriginals, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
@@ -2033,6 +2035,12 @@ pub(all) struct ClientLocalProductAssets {
   fragment : String
   ordered : String?
   result_policy : String
+}
+
+pub(all) struct ClientLocalProductBootstrapOriginals {
+  common : ClientLocalProductCommonOriginals
+  environment : String
+  compute : String
 }
 
 pub(all) struct ClientLocalProductCommonOriginals {

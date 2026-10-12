@@ -1743,3 +1743,24 @@ Store ACK, the public Local Client, restoration and externally installed wheel
 acceptance remain separate required product connections. Default 100M fuel and
 existing capacity bounds are unchanged. Earlier private ABI modules are refused
 by the loader and installed manifest; no repository/Node/CLI fallback exists.
+
+## First-adoption bootstrap metadata
+
+The private ABI49 `actql_bootstrap_*` output calls the existing Common product
+factory with its packaged source-free assets. Its closed input contains only
+`configuration_root` and `observed_at`. The bounded output carries the five
+original Account/retention/Store/Result Policy bodies plus the original checking
+environment and the existing Compute configuration. It contains no authority
+scope, permission, adopted state, Run admission or durable acknowledgement.
+
+Reserve accounts the existing 1MiB collector and both physical copy allowances
+before the factory copies anything. The original input stays borrowed through
+producer refusal, interruption and cleanup. Raw buffer/parent close and pool
+close refuse a live bootstrap child. Output cleanup succeeds before its input
+borrow is returned; failure keeps the same handle for explicit cleanup retry.
+
+The trusted installed Host uses this metadata only for explicit first adoption.
+Reopen, attach and resume restore the saved originals and never regenerate their
+policy, expiry or identity from current defaults. Installed component selection
+remains lazy, exact-cohort and exact-ABI. Default 100M fuel, existing capacity
+bounds and independent public Local/wheel/Store-ACK acceptance are unchanged.

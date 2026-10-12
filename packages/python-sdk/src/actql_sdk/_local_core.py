@@ -14,7 +14,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 48
+LOCAL_CORE_ABI = 49
 
 
 class LocalCoreError(RuntimeError):
@@ -218,6 +218,13 @@ _RUN_SIGNATURES = {
 }
 _SUBMISSION_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+
+_BOOTSTRAP_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -535,6 +542,8 @@ class LocalCore:
                              for name, value in _RUN_SIGNATURES.items()})
             expected.update({'actql_submission_' + name: value
                              for name, value in _SUBMISSION_SIGNATURES.items()})
+            expected.update({'actql_bootstrap_' + name: value
+                             for name, value in _BOOTSTRAP_SIGNATURES.items()})
             expected.update({'actql_source_publication_' + name: value
                              for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
             expected.update({'actql_run_invocation_' + name: value
@@ -1077,6 +1086,42 @@ class LocalCore:
             value = _Output(self._identity, ticket, handle, limit, 'submission')
             self._loans[ticket] = value
             return value
+
+    def reserve_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool]) -> _Output:
+        """Borrow original root/clock bytes for first-adoption metadata only.
+
+        The existing Common factory supplies policy/engine originals. This
+        performs no adoption, writes, authority, Run admission or execution.
+        The Host must restore saved originals instead of calling this again.
+        """
+        with self._lock:
+            self._owned_input(source)
+            if self._closing or not callable(cleanup):
+                raise ValueError('Invalid Local bootstrap reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1_048_576
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'bootstrap')))
+            handle = self._call('bootstrap', 'reserve', source.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_bootstrap', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'bootstrap')
+            self._loans[ticket] = value
+            return value
+
+    def produce_bootstrap(self, value: _Output) -> None:
+        self._produce_output(value, 'bootstrap', 'produce')
+
+    def read_bootstrap(self, value: _Output) -> bytes:
+        return self._read_output(value, 'bootstrap', 'length')
+
+    def close_bootstrap(self, value: _Output) -> bool:
+        return self._close_output(value, 'bootstrap', 'close')
 
     def produce_submission_projection(self, value: _Output) -> None:
         self._produce_output(value, 'submission', 'produce')
