@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {modelOriginalStorageBindingSchema} from './model-original-storage-binding-contract.mjs';
 
 const output = 'spec/contracts/actql-run-publication.json';
 const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
@@ -468,10 +469,16 @@ export function publicationSchemas() {
       transport_eof: {type: 'boolean'}, observed_at: clone(timestamp),
     },
   );
+  schemas.model_original_storage_binding = modelOriginalStorageBindingSchema();
   return schemas;
 }
 
 export const referenceRoles = {
+  model_original_storage_binding: {
+    store_contract_cid: 'external:selected-private-store-contract',
+    store_authority_cid: 'external:store-authority',
+    key_generation_cid: 'external:installation-key-generation',
+  },
   model_raw_capture_policy: {
     run_definition_cid: 'external:run-definition',
     scope_cid: 'external:model-invocation-scope',

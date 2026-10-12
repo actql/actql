@@ -11,6 +11,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
   "actql/actql/run_publication" @publication,
   "actql/actql/program_check" @checked,
   "actql/actql/stage_syntax" @syntax,

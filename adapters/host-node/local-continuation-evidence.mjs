@@ -271,8 +271,41 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       key_id: keyId});
   };
 
+  // The installation's same private Evidence custody survives individual
+  // Store open/close operations. Never keep a closed Store's graph alive in
+  // an escaped view, or treat a copied wire/CID as this nominal custody.
+  let originalModelBinding;
+  async function observeOriginalModelBinding() {
+    return withStore(async store => {
+      const handle = await store.observeOriginalModelStorageBinding();
+      const evidence = store.originalModelStorageBindingEvidence(handle);
+      const body = JSON.parse(evidence.wire);
+      if (body.key_generation_cid !== keyId || body.private_namespace !== NAMESPACE) {
+        fail('PrivateEvidenceKeyMismatch');
+      }
+      if (originalModelBinding === undefined) {
+        originalModelBinding = {evidence, handle: Object.freeze({
+          kind: 'model-original-storage-binding', identity: evidence.identity,
+          wire: evidence.wire})};
+      } else if (evidence.wire !== originalModelBinding.evidence.wire) {
+        fail('OriginalModelStorageBindingChanged');
+      }
+      return originalModelBinding.handle;
+    });
+  }
+
   return Object.freeze({
     keyId,
+    observeOriginalModelStorageBinding: observeOriginalModelBinding,
+    async originalModelStorageBindingEvidence(handle) {
+      if (originalModelBinding === undefined || handle !== originalModelBinding.handle) {
+        fail('ForeignOriginalModelStorageBinding');
+      }
+      // This checks the actual selected Store after its admission await.
+      // Nominal origin is required first; value equality is only a fence.
+      await observeOriginalModelBinding();
+      return originalModelBinding.evidence;
+    },
 
     // The exact reference and holding of one evidence item of a continuation.
     reference,
