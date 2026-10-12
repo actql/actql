@@ -139,6 +139,17 @@ under the common failure, cancellation and budget rules. Result nullability
 is the union of operand nullability, including on empty input. BYTES overloads
 and explicit collations remain GoogleSQL coverage gaps.
 
+The adopted canonical `vector_score(left, right, metric)` scalar takes exactly
+three positional arguments. `metric` must be a decoded STRING literal equal to
+`'cosine'`, `'dot'` or `'l2'`; ordinary parentheses preserve this literal role.
+A Parameter, column, CASE, concatenation expression or folded uppercase value
+cannot select the operation. Rejections retain the authored third-argument
+range. `vector_score(..., 'l2')` returns the existing negative-distance score,
+while `VECTOR_L2_DISTANCE` below negates it. `vector_concat(first, second, ...)`
+uses the same installed lookup and existing two-or-more typed-Vector contract.
+Both canonical names are the already adopted ActQL scalar forms, not new
+GoogleSQL function claims.
+
 The adopted ActQL vector scalar forms are
 `VECTOR_COSINE_SIMILARITY(left, right)`, `VECTOR_INNER_PRODUCT(left, right)`,
 `VECTOR_L2_DISTANCE(left, right)` and `VECTOR_CONCAT(first, second, ...)`.

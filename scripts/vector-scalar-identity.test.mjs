@@ -5,10 +5,10 @@ import {vectorScalarIdentityOracle} from './vector-scalar-identity-oracle.mjs';
 const read=path=>JSON.parse(readFileSync(path,'utf8'));
 const prefix='reviews/2026-10-13-frontend-vector-scalars/preimages/';
 test('vector scalar grammar-bound identity changes retain original Values bodies and history',()=>{
-  const before=vectorScalarIdentityOracle({current:false}),after=vectorScalarIdentityOracle();
+  const before=vectorScalarIdentityOracle({current:false}),after=vectorScalarIdentityOracle({rulesPath:'reviews/2026-10-13-frontend-vector-score-literal/preimages/query-rules.md'});
   assert.deepEqual(before,read(prefix+'pre-values.json'));
   assert.deepEqual(after,read(prefix+'current-values.json'));
-  assert.deepEqual(after.grammar,read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(after.grammar,read('reviews/2026-10-13-frontend-vector-score-literal/preimages/grammar.json')); // immutable parent grammar
   assert.deepEqual(after.values_dependencies,before.values_dependencies);
   assert.deepEqual(after.program_identity,before.program_identity);
   assert.deepEqual(after.run_preimages.executable.nodes,before.run_preimages.executable.nodes);
