@@ -17,8 +17,9 @@ Original migration failures and two incorrectly authored test compilation
 failures are preserved, not relabeled as product failures or successes.
 
 This is source lowering and actual common checking, not public Host/Named Result
-execution. Remaining SGA callers, normative grammar/profile/pins, the rest of P2
-and Local/HTTPS acceptance are incomplete. No Heavy, producer or hosted CI ran.
+execution. At that earlier fixed source, remaining SGA callers and normative
+coherence were unfinished; the finite closures are recorded below. The rest of
+P2 and Local/HTTPS acceptance remain incomplete. No Heavy, producer or hosted CI ran.
 
 ## P2-A remaining caller coherence
 
@@ -35,8 +36,8 @@ identifier syntax refusal. Shared common type/domain checks remain strict.
 
 Actual Owner/group/ownlock absence was observed for all six attempts. No Host,
 Provider, producer or Heavy ran. The source parser evidence does not establish
-public Local/HTTPS results. Normative pins, remaining adapter obligations and
-the full P2/public matrix remain unfinished.
+public Local/HTTPS results. The subsequent section records normative closure;
+remaining adapter obligations and the full P2/public matrix remain unfinished.
 
 ## P2-A lexical operand scope and normative identity
 
@@ -74,6 +75,31 @@ Node83/83 evidence. All actual Owners/groups/ownlocks were absent after exit. No
 Native/Wasm execution or hosted CI ran. Complete name-admission/VecA/TEA adapter
 coverage and the full P2 public matrix remain separate unfinished boundaries.
 All eight exact guards ended and actual Owner/group/ownlock absence was checked.
+
+## P2-A OutputName admission in the original PR
+
+The private repair was normally adopted into #1572, preserving submitted
+`b99590438`, updated `1d4077105` and the genuine `943cd338d` fix ancestry.
+Only signature-defined SGA OutputName uses the existing selected reserved-word
+set. Bare SELECT/NULL reject with their exact syntax reason and authored source
+position; backtick-quoted SELECT/NULL remain identifiers. Closed schema keys,
+literal data and ProducerRef/FieldRef are not globally tightened. Ordinary
+omitted-alias behavior uses the same unchanged keyword set.
+
+[Same-source adoption evidence](p2-output-name-adoption-execution.json)
+records clean `6417df544f5ad68725c1fe5fb2bb50fd6ad84dae`: JS24/24 (the
+original seven OutputName controls, one full prepared public Source/common-check
+control and sixteen existing P2 controls), the changed canonical JS1/1,
+Node104/104 and four read-only freshness checks. Existing generators completed
+without further changes. The previous private JS7/7 and JS8/8 remain distinct
+source evidence; the pre-fix JS5/6 failure is preserved. All actual Owners,
+groups and ownlocks were absent after completion.
+
+Two normal and two refusal public cases are prepared in the existing cohort;
+the original eight public fixture modules remain byte-identical. Named Result
+values/ordered schema, pre-admission I/O counters, resend and cleanup through
+Local/HTTPS are still unexecuted. No new producer, Host, Provider, Heavy,
+Native/Wasm execution or CI was added.
 
 ## Earlier finite source
 
