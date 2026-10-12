@@ -34,6 +34,10 @@ priv struct Instance {
   run_configurations : Map[Int, StoredRunConfiguration]
   runs : Map[Int, StoredRun]
   submissions : Map[Int, StoredSubmissionProjection]
+  bootstraps : Map[Int, StoredBootstrap]
+  host_currents : Map[Int, StoredHostCurrent]
+  original_metadata : Map[Int, StoredOriginalMetadata]
+  journal_observations : Map[Int, StoredJournalObservation]
   materials : Map[Int, StoredMaterial]
   restorations : Map[Int, StoredRestoration]
   physical_starts : Map[Int, StoredPhysicalStart]
@@ -155,6 +159,10 @@ pub fn open(
         run_configurations: {},
         runs: {},
         submissions: {},
+        bootstraps: {},
+        host_currents: {},
+        original_metadata: {},
+        journal_observations: {},
         materials: {},
         restorations: {},
         physical_starts: {},
@@ -303,6 +311,16 @@ pub fn return_reader(nonce : Int64, reader : Int) -> Int {
 pub fn close(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
+  if value.bootstraps.contains(handle) ||
+    value.bootstraps.values().any(child => child.input == handle) ||
+    value.host_currents.contains(handle) ||
+    value.host_currents.values().any(child => child.input == handle) ||
+    value.original_metadata.contains(handle) ||
+    value.original_metadata.values().any(child => child.input == handle) ||
+    value.journal_observations.contains(handle) ||
+    value.journal_observations.values().any(child => child.material == handle) {
+    return -9
+  }
   let result = status(@buffers.close_buffer(value.pool, slot))
   if result == 0 {
     value.copies.remove(handle) |> ignore
@@ -335,7 +353,11 @@ pub fn close_pool(nonce : Int64) -> Int {
   value.closing = true
   // Pending Native work and its downstream consumers must retire through
   // their existing stop/cleanup boundary before the Root can be closed.
-  if !value.native_attempts.is_empty() ||
+  if !value.bootstraps.is_empty() ||
+    !value.host_currents.is_empty() ||
+    !value.original_metadata.is_empty() ||
+    !value.journal_observations.is_empty() ||
+    !value.native_attempts.is_empty() ||
     !value.computes.is_empty() ||
     !value.run_invocations.is_empty() ||
     !value.publication_preflights.is_empty() ||

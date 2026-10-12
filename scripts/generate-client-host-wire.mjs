@@ -1,3 +1,5 @@
+import {buildControlRegistry} from './interactive-run-control-contract.mjs';
+import {resolveControlSchema} from './interactive-run-control-schema.mjs';
 import {generateCheckReasonCatalog} from './generate-check-reason-catalog.mjs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
@@ -77,6 +79,15 @@ export function buildClientHostWire(registry, protocol) {
   }
   schemas.value_contract = project(
     protocol.schemas.canonical_value_contract.$defs.value_contract);
+  const interactive = buildControlRegistry();
+  // The existing Native generator admits null literals. Preserve the exact
+  // null-only branches of the resolved interactive schema as const:null.
+  const nullLiterals = value => Array.isArray(value) ? value.map(nullLiterals) :
+    value !== null && typeof value === 'object' ?
+      value.type === 'null' && Object.keys(value).length === 1 ? {const: null} :
+        Object.fromEntries(Object.entries(value).map(([key, child]) => [key, nullLiterals(child)])) : value;
+  schemas.run_plan_view = project(nullLiterals(resolveControlSchema(
+    interactive.schemas.run_plan_view, interactive)));
   const module = `// Generated from the registered Client–Host machine contract.\n` +
     `// Run: node scripts/generate-client-host-wire.mjs --write\n` +
     `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +

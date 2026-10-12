@@ -70,48 +70,26 @@ fn select_native_local_configuration(
       Some({ path, root, ownership, })
     }
   }
-  let writer = @encode.writer(8192, 128, 4) catch { _ => return Err(Encoding) }
-  let manifest = try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "files")
-    @encode.begin_array(writer)
-    for file in files {
-      @encode.begin_object(writer)
-      @encode.key(writer, "content_cid")
-      @encode.string_value(writer, file.content_cid)
-      @encode.key(writer, "device")
-      @encode.string_value(writer, file.generation.device.to_string())
-      @encode.key(writer, "inode")
-      @encode.string_value(writer, file.generation.inode.to_string())
-      @encode.key(writer, "name")
-      @encode.string_value(writer, file.name)
-      @encode.key(writer, "size")
-      @encode.string_value(writer, file.generation.size.to_string())
-      @encode.end_object(writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "managed_root")
-    match managed {
-      None => @encode.null_value(writer)
-      Some(root) => {
-        @encode.begin_object(writer)
-        @encode.key(writer, "device")
-        @encode.string_value(writer, root.ownership.device.to_string())
-        @encode.key(writer, "inode")
-        @encode.string_value(writer, root.ownership.inode.to_string())
-        @encode.key(writer, "path")
-        @encode.string_value(writer, root.path)
-        @encode.end_object(writer)
-      }
-    }
-    @encode.key(writer, "version")
-    @encode.string_value(
-      writer, "actql-native-local-configuration-selection/0.1",
-    )
-    @encode.end_object(writer)
-    @utf8.encode(@encode.finish(writer))
-  } catch {
-    _ => return Err(Encoding)
+  let original_files : Array[@host.ClientLocalOriginalConfigurationFile] = files.map(file => {
+      content_cid: file.content_cid,
+      device: file.generation.device,
+      inode: file.generation.inode,
+      name: file.name,
+      size: file.generation.size,
+    },
+  )
+  let original_managed : @host.ClientLocalOriginalManagedRoot? = managed.map(root => {
+    device: root.ownership.device,
+    inode: root.ownership.inode,
+    path: root.path,
+  })
+  let manifest = match
+    @host.client_local_configuration_selection_body(
+      original_files, original_managed,
+    ) {
+    Ok(body) => body
+    Err(@host.ConfigurationLimit) => return Err(ConfigurationLimit)
+    Err(_) => return Err(Encoding)
   }
   let manifest_cid = match local_adoption_digest(crypto, manifest) {
     Ok(value) => value
@@ -237,29 +215,19 @@ pub fn NativeLocalHostConnection::authority_scope_cid(
   connection : String,
   crypto : @crypto.Library,
 ) -> Result[String, NativeLocalAdoptionIssue] {
-  match self.check_binding() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  if principal.is_empty() ||
-    principal.length() > 512 ||
-    connection.is_empty() ||
-    connection.length() > 512 {
-    return Err(InvalidInput)
-  }
-  let body = match
-    local_adoption_record([
-      (
-        "account_configuration_cid",
-        self.session.configuration.configuration_cid(),
-      ),
-      ("adoption_cid", self.adoption_cid),
-      ("connection", connection),
-      ("principal", principal),
-      ("version", "actql-native-local-authority-scope/0.1"),
-    ]) {
+  let material = match self.adopted_current_material() {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let body = match
+    @host.client_local_adopted_authority_scope_body(
+      material,
+      self.database,
+      principal,
+      connection,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(local_current_material_issue(issue))
   }
   local_adoption_digest(crypto, body)
 }
@@ -271,9 +239,13 @@ pub fn NativeLocalHostConnection::authorize(
   self : NativeLocalHostConnection,
   request : @authorization.AccessTuple,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
-  self
-  .check_binding()
-  .map(_ => @authorization.evaluate_account(self.session.configuration, request))
+  let material = match self.adopted_current_material() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @host.client_local_adopted_account_outcome(material, self.database, request).map_err(
+    local_current_material_issue,
+  )
 }
 
 ///|
