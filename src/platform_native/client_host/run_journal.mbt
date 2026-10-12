@@ -105,111 +105,40 @@ fn run_record_body(
 fn read_run_record(
   row : @sqlite.NativeJournalValue,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  let source = match
-    @source.parse_json_bytes_preserving(row.body, {
-      max_input_bytes: 131072,
-      max_nodes: 32,
-      max_depth: 4,
-    }) {
+  let decoded = match @host.decode_client_run_journal_row(row.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let cursor = match
-    @decode.admit(source, {
-      max_nodes: 32,
-      max_depth: 4,
-      max_string_bytes: 131072,
-      max_total_string_bytes: 131072,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  guard @decode.closed_object(cursor, [
-      "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
-      "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
-      "effect_material_originals",
-    ])
-    is Ok(object) &&
-    epoch_text(object, "version") == Some("actql-native-client-run-row/0.1") &&
-    epoch_text(object, "request") is Some(request_wire) &&
-    epoch_text(object, "run_definition") is Some(definition_wire) else {
+  let request = decoded.request
+  let definition = decoded.definition
+  let physical_start_claimed = decoded.physical_start_claimed
+  if decoded.publication_policy_originals is Some(wire) &&
+    read_run_policy_originals(wire) is Err(_) {
     return Err(CustodyLost)
   }
-  let flag = key => {
-    @decode.lookup(object, key).bind(value => @decode.boolean(value).to_option())
-  }
-  guard flag("dispatch_reserved") is Some(dispatch_reserved) &&
-    flag("physical_start_claimed") is Some(physical_start_claimed) &&
-    flag("cancellation_requested") is Some(cancellation_requested) else {
+  if decoded.effect_material_originals is Some(wire) &&
+    read_effect_material_original_packet(wire) is Err(_) {
     return Err(CustodyLost)
   }
-  if physical_start_claimed && !dispatch_reserved {
-    return Err(CustodyLost)
-  }
-  let request = match
-    @host.admit_client_request_identity_record_wire(request_wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let definition = match
-    @publication.admit_publication_contract(
-      "run_definition", definition_wire, 65536, 4096, 64,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+  let checkpoint = match decoded.checkpoint {
+    None => None
+    Some(wire) =>
+      match read_checkpoint_record(wire, definition) {
+        Ok(value) => Some(value)
+        Err(_) => return Err(CustodyLost)
+      }
   }
   let record : NativeClientRunRecord = {
     request,
     definition,
-    dispatch_reserved,
+    dispatch_reserved: decoded.dispatch_reserved,
     physical_start_claimed,
-    cancellation_requested,
-    publication_binding: match @decode.lookup(object, "publication_binding") {
-      Some(value) if @decode.is_null(value) => None
-      Some(value) =>
-        match @decode.text(value) {
-          Ok(text) if text != "" && text.length() <= 4096 => Some(text)
-          _ => return Err(CustodyLost)
-        }
-      None => return Err(CustodyLost)
-    },
-    publication_policy_originals: match
-      @decode.lookup(object, "publication_policy_originals") {
-      None => None
-      Some(value) => {
-        guard @decode.text(value) is Ok(wire) &&
-          read_run_policy_originals(wire) is Ok(_) else {
-          return Err(CustodyLost)
-        }
-        Some(wire)
-      }
-    },
-    effect_material_originals: match
-      @decode.lookup(object, "effect_material_originals") {
-      None => None
-      Some(value) => {
-        guard @decode.text(value) is Ok(wire) &&
-          read_effect_material_original_packet(wire) is Ok(_) else {
-          return Err(CustodyLost)
-        }
-        Some(wire)
-      }
-    },
+    cancellation_requested: decoded.cancellation_requested,
+    publication_binding: decoded.publication_binding,
+    publication_policy_originals: decoded.publication_policy_originals,
+    effect_material_originals: decoded.effect_material_originals,
     revision: row.revision,
-    checkpoint: match @decode.lookup(object, "checkpoint") {
-      Some(value) if @decode.is_null(value) => None
-      Some(value) => {
-        let wire = match @decode.text(value) {
-          Ok(value) => value
-          Err(_) => return Err(CustodyLost)
-        }
-        match read_checkpoint_record(wire, definition) {
-          Ok(value) => Some(value)
-          Err(_) => return Err(CustodyLost)
-        }
-      }
-      None => return Err(CustodyLost)
-    },
+    checkpoint,
   }
   if record.checkpoint is Some(_) && !physical_start_claimed {
     return Err(CustodyLost)
@@ -285,20 +214,10 @@ fn run_journal_custody(
     Ok(value) => value
     _ => return Err(CustodyLost)
   }
-  let text = @utf8.decode(retained.body) catch { _ => return Err(CustodyLost) }
-  if text.is_empty() || text.length() > 4 {
-    return Err(CustodyLost)
-  }
-  let mut count = 0
-  for unit in text {
-    let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 {
-      return Err(CustodyLost)
-    }
-    count = count * 10 + digit
-  }
-  if count < 0 || count > max_records || count.to_string() != text {
-    return Err(CustodyLost)
+  let count = match
+    @host.client_journal_issuance_count(retained.body, max_records) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
   }
   let mut cursor = ""
   let mut observed = 0
