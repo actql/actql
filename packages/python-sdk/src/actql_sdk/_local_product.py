@@ -7,6 +7,7 @@ No bootstrap/profile/epoch result is an admission or execution permission.
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import hashlib
 import os
@@ -21,7 +22,9 @@ from ._local_distribution import installed_local_components, load_local_module
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
-from ._local_storage import ByteWrite, LocalStorageError
+from ._local_commit_projection import OriginalCommitProjection
+from ._local_reader_facts import OriginalReaderFacts
+from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError
 from ._values import wire_bytes
 
 _T = TypeVar('_T')
@@ -91,6 +94,10 @@ class InstalledLocalHost:
         self._result_exports: list[_ResultExport] = []
         self._result_chunks: list[_Output] = []
         self._publications: list[_Output] = []
+        self._commit_projections: list[OriginalCommitProjection] = []
+        self._reader_facts: list[OriginalReaderFacts] = []
+        self._publication_write_attempts: set[int] = set()
+        self._pending_publication_write: OriginalCommitProjection | None = None
         self._inputs: list[_Input] = []
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
@@ -732,6 +739,66 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return publication
 
+    def _store_original_commit(self, projection: OriginalCommitProjection,
+                               facts: tuple[OriginalReaderFacts, ...],
+                               originals: tuple[tuple[ByteFence, CapacityReservation], ...],
+                               publisher: _Output) -> None:
+        """Physically project the original Done chain once; no Run ACK occurs.
+
+        Payload production retains these original File/record/fact loans and
+        their separately reserved workspace. The same Core/File/current frame
+        spans every projected field and publisher stage inside the write TX.
+        Physical generations do not clear pending custody: only later original
+        full-chain lookup/adoption can acknowledge publication. A conflict or
+        Unknown never selects a new request, index, task or write attempt here.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        store = installation._store
+        if (configuration is None or not configuration.sdk or store is None
+                or type(projection) is not OriginalCommitProjection
+                or projection._core is not self._core
+                or projection._configuration != configuration.handle
+                or not any(original is projection._publication for original in self._publications)
+                or not any(original is publisher for original in self._publishers)
+                or type(facts) is not tuple or not facts
+                or any(type(fact) is not OriginalReaderFacts or fact._projection is not projection
+                       for fact in facts)):
+            raise ValueError('Foreign original Local publication commit custody')
+        with self._core._lock:
+            if (projection._publication.ticket in self._publication_write_attempts
+                    or self._pending_publication_write is not None):
+                raise LocalStorageError('Original publication write requires lookup; replay is unavailable')
+            # Retain children before the first fallible validation/transfer.
+            # A failed count or metadata fill can already hold an original loan.
+            if not any(original is projection for original in self._commit_projections):
+                self._commit_projections.append(projection)
+            for fact in facts:
+                if not any(original is fact for original in self._reader_facts):
+                    self._reader_facts.append(fact)
+            with ExitStack() as loans:
+                for fact in facts: loans.enter_context(fact.serialized())
+                counts: list[int] = []
+                def inspect_count(_: _Output) -> None:
+                    if (projection._storage_counts()[1] != len(facts)
+                            or any(fact._result != index for index, fact in enumerate(facts))):
+                        raise ValueError('Incomplete original Local Result fact inventory')
+                    for fact in facts: fact.validate()
+                    counts.append(projection.storage_count())
+                installation.binding.inspect(inspect_count)
+                def before_commit() -> None:
+                    for fact in facts: fact.before_commit(publisher)
+                with installation.binding.fenced() as fences:
+                    self._publication_write_attempts.add(projection._publication.ticket)
+                    self._pending_publication_write = projection
+                    generations = store.store_publication_projected_inspected(
+                        counts[0], projection.project_storage_entry, originals, fences,
+                        inspect=lambda reader, consume:
+                            installation.binding.inspect_reader(reader, lambda _: consume()),
+                        current=installation.binding.current, before_commit=before_commit)
+                if generations is None:
+                    raise LocalStorageError('Original publication write conflicted; lookup is required')
+
     def close(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
@@ -739,10 +806,22 @@ class InstalledLocalHost:
             self._closing = True
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
+            for projection in tuple(reversed(self._commit_projections)):
+                if not projection.close():
+                    return False
+                self._commit_projections.remove(projection)
+            for fact in tuple(reversed(self._reader_facts)):
+                if not fact.close():
+                    return False
+                self._reader_facts.remove(fact)
             for publication in tuple(reversed(self._publications)):
                 if not self._core.close_publication(publication):
                     return False
                 self._publications.remove(publication)
+                self._publication_write_attempts.discard(publication.ticket)
+                if (self._pending_publication_write is not None
+                        and self._pending_publication_write._publication is publication):
+                    self._pending_publication_write = None
             for chunk in tuple(reversed(self._result_chunks)):
                 if not self._core.close_result_chunk(chunk):
                     return False
