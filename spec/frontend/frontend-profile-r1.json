@@ -856,6 +856,9 @@
         "|> pool_vectors(by: [fields], method: string, vector: field?, output_id: name?)",
         "|> vectors()",
         "|> to_events(id: field, time: field)",
+        "|> row_window(time: field, kind: string, size: value, step: value?, offset: value?)",
+        "|> window_events(kind: string, size: value, step: value?, offset: value?)",
+        "|> watermark_events(watermark_ms: number, policy: string)",
         "|> session(by: [fields], gap: string)",
         "|> events()"
       ],

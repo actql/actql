@@ -2,15 +2,29 @@
 package "actql/actql/physical_resources"
 
 import {
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn[T] advance_original_state_comparison(OriginalStateComparison[T], Int) -> OriginalStateComparisonPoll
+
+pub fn advance_original_state_document_read(OriginalStateDocumentRead, Int) -> OriginalStateDocumentPoll
+
+pub fn[T] advance_original_state_write(OriginalStateWrite[T], Int) -> OriginalStateWritePoll
+
 pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocation, LedgerIssue]
 
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
+
+pub fn[T] cancel_original_state_comparison(OriginalStateComparison[T]) -> Unit
+
+pub fn cancel_original_state_document_read(OriginalStateDocumentRead) -> Unit
+
+pub fn[T] cancel_original_state_write(OriginalStateWrite[T]) -> Unit
 
 pub fn capacity_reservation_covers(Ledger, CapacityReservation, Int64, Int64) -> Bool
 
@@ -78,6 +92,16 @@ pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : I
 
 pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
 
+pub fn[T] original_state_document_block_matches(FundedReadClaim[T], T, OriginalStateDocument, Int) -> Result[Bool, OriginalReadIssue]
+
+pub fn original_state_document_capacity_cursor(OriginalStateDocument) -> Int??
+
+pub fn original_state_document_quantities(OriginalStateDocument) -> QuantityUsage?
+
+pub fn original_state_document_usage(OriginalStateDocument) -> LedgerUsage?
+
+pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
+
 pub fn quantity_configuration_matches(Ledger, QuantityAmounts?) -> Bool
 
 pub fn quantity_usage(Ledger) -> QuantityUsage
@@ -104,6 +128,8 @@ pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIs
 
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
+pub fn retire_original_state_document(OriginalStateDocument) -> Unit
+
 pub fn retire_shared_capacity(SharedAllocation) -> Unit
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
@@ -127,6 +153,12 @@ pub fn settle_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 pub fn shared_allocation_usage(SharedAllocation) -> SharedAllocationUsage
 
 pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
+
+pub fn[T] start_original_state_comparison(FundedReadClaim[T], T, OriginalStateDocument, Int) -> Result[OriginalStateComparison[T], OriginalStateComparisonIssue]
+
+pub fn start_original_state_document_read(@decode_core.Cursor, Int, Int, Int, Int) -> Result[OriginalStateDocumentRead, OriginalStateDocumentIssue]
+
+pub fn start_original_state_document_read_in_owned_tree(@decode_core.Cursor, Int, Int, Int, Int, @decode_core.Limits) -> Result[OriginalStateDocumentRead, OriginalStateDocumentIssue]
 
 pub fn[T] stop_funded_read(FundedReadClaim[T]) -> Unit
 
@@ -198,6 +230,57 @@ pub(all) enum OriginalReadIssue {
   SpentClaim
   CleanupPending
   Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+type OriginalStateComparison[T]
+
+pub(all) enum OriginalStateComparisonIssue {
+  InvalidBounds
+  InvalidQuantum
+  WorkLimit
+  Original(OriginalReadIssue)
+  RecordMismatch
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub enum OriginalStateComparisonPoll {
+  ComparisonContinue(work~ : Int)
+  ComparisonComplete(work~ : Int)
+  ComparisonFailed(OriginalStateComparisonIssue, work~ : Int)
+}
+
+type OriginalStateDocument
+
+pub(all) enum OriginalStateDocumentIssue {
+  InvalidBounds
+  InvalidQuantum
+  WorkLimit
+  InvalidRecord
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub enum OriginalStateDocumentPoll {
+  DocumentContinue(work~ : Int)
+  DocumentComplete(OriginalStateDocument, work~ : Int)
+  DocumentFailed(OriginalStateDocumentIssue, work~ : Int)
+}
+
+type OriginalStateDocumentRead
+
+type OriginalStateWrite[T]
+
+pub(all) enum OriginalStateWriteIssue {
+  InvalidQuantum
+  Original(OriginalReadIssue)
+  Resource(LedgerIssue)
+  Encoding
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OriginalStateWritePoll {
+  StateWriteContinue(work~ : Int)
+  StateWriteComplete(work~ : Int)
+  StateWriteFailed(OriginalStateWriteIssue, work~ : Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QuantityAmounts {
