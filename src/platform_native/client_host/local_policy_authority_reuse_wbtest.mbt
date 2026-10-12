@@ -6,6 +6,14 @@ let policy_reuse_account_original : Bytes = b"{\"version\":\"actql-execution-acc
 ///|
 // Definitions only until a matching Native fixture is allocated and executed.
 test "Native policy material is fresh per predicate and unavailable after original Host close" {
+  // The original failure was Account admission before current_for. Retain its
+  // exact typed refusal on the matching Native target; do not weaken admission.
+  assert_eq(
+    @authorization.admit_account_configuration_json(
+      @utf8.decode(policy_account_original).unwrap(),
+    ).map(_ => ()),
+    Err(@authorization.NonCanonicalOrder("$.entries[0].resource.any_of[1]")),
+  )
   let host = policy_host_fixture(
     "local-policy-reuse-closed",
     account_body=policy_reuse_account_original,
