@@ -37,9 +37,9 @@ fn bind_script_input(
   match input.source {
     StepReference => input
     GeneratedValues(source) => {
-      // Installed Values are one logical input across WITH consumers. A
-      // source-free SELECT's synthetic Unit is local to that query body.
-      let installed = context.inputs.any(known => known.name == input.name)
+      // Reuse only the original installed Input selected in this Context. A
+      // source-free Unit remains local even when its name matches an Input.
+      let installed = context.inputs.any(known => physical_equal(known, input))
       if installed && sources.bound.get(input.name) is Some(bound) {
         return bound
       }
