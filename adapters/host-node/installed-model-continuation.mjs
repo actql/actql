@@ -13,6 +13,7 @@ import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
 import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
+import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -351,7 +352,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     sourceContinuation, retainEvidenceCopy, originalPreparation}, ownership) {
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
     const rawBinding = rawSelection === undefined ? undefined :
-      {attempted: false, complete: false, issue: undefined};
+      {attempted: false, complete: false, issue: undefined,
+        persistence: undefined, holding: undefined};
+    // Reject a known missing installation before Approval/Entry, not after
+    // consuming an attempt. Method checks are availability only: the actual
+    // Store remains this controller's selected original, never caller data.
+    if (rawBinding !== undefined &&
+        (typeof operation.ioNotification?.notify !== 'function' ||
+          ['confirmModelRawCaptureOriginals', 'confirmModelRawEvidence',
+            'prepareModelRawEvidence', 'commitPhysicalHolding'].some(name =>
+            typeof store?.[name] !== 'function'))) {
+      fail('InstalledModelRawStoreUnavailable');
+    }
     // The Host's Checkpoint installation is created after this controller.
     // Fix its actual physical identity only when the original scope is being
     // installed, never from an initial undefined value or future replacement.
@@ -601,6 +613,13 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         originalCut = undefined;
       }
       rawSelection = undefined;
+      if (rawBinding !== undefined) {
+        // Common's physical cleanup has already confirmed this same port's
+        // Store/SDK retirement. Drop local aliases, not durable raw custody or
+        // escaped saved receipts. A failed cleanup above retains both fields.
+        rawBinding.persistence = undefined;
+        rawBinding.holding = undefined;
+      }
       installedJournalPort = undefined;
       originalInvalidation = undefined;
       originalPreparation = undefined;
@@ -965,7 +984,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
                   selectionAvailable: () => owner.available && token.available &&
                     owner.currentProvider() && rawSelection?.selectionAvailable() === true,
                   observeAccount: selected.observeAccount, observeAt: now});
-              operation.bindModelRawCapture(registration);
+              // Use this continuation's actual selected Store, not a Provider
+              // supplied CID, replacement Store or another retention Owner.
+              const persistence = createModelRawTransportPersistence({store, moon, operation,
+                registration, notify: operation.ioNotification?.notify,
+                retainHolding(value) {
+                  if (rawBinding.holding !== undefined && rawBinding.holding !== value) {
+                    fail('ModelOriginalRawHoldingChanged');
+                  }
+                  rawBinding.holding = value;
+                }});
+              rawBinding.persistence = persistence;
+              operation.bindModelRawCapture(registration, persistence);
               rawBinding.complete = true;
             } catch (error) {
               rawBinding.issue = error;

@@ -8,10 +8,15 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 // execution state or scheduler is inferred here. Common owns every transition.
 export function createSdkModelPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt, cleanupRaw, preparationProgress}) {
-  if (typeof fetch !== 'function' || typeof persistRaw !== 'function' ||
+  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}) {
+  const deferredRaw = rawCaptureBinder !== undefined;
+  if (typeof fetch !== 'function' ||
+      (deferredRaw ? typeof rawCaptureBinder !== 'function' ||
+        persistRaw !== undefined || cleanupRaw !== undefined ||
+        preparation !== undefined || preparationProgress === undefined
+        : typeof persistRaw !== 'function' || typeof cleanupRaw !== 'function') ||
       typeof notify !== 'function' || typeof checked !== 'function' ||
-      typeof observeAt !== 'function' || typeof cleanupRaw !== 'function' ||
+      typeof observeAt !== 'function' ||
       preparationProgress !== undefined && (preparation !== undefined ||
         typeof preparationProgress?.advance !== 'function' ||
         typeof preparationProgress?.cleanup !== 'function')) {
@@ -29,6 +34,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   let startUnknown = false;
   let preparationTerminal = false;
   let retired = false;
+  let rawBound = !deferredRaw;
   const wake = () => {
     try { notify(); } catch { /* Wake is not execution or persistence evidence. */ }
   };
@@ -69,7 +75,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     // Every attempted raw save retains its original port until cleanup,
     // including a successful save's local aliases. This does not erase the
     // parent's durable receipt/custody. Failed commit/cleanup stays pending.
-    if (saveStarted || failure !== undefined) {
+    if (saveStarted || failure !== undefined || deferredRaw && rawBound) {
       try {
         if (cleanupRaw(call) !== true) return false;
       } catch { return false; }
@@ -106,9 +112,13 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     return true;
   };
   const start = entry => {
-    if (retired || call !== undefined) return undefined;
+    // Missing installation custody is not send permission. Core keeps an
+    // already entered attempt's unknown responsibility when no call starts.
+    // This is a local data check, with no callback or await at the final gate.
+    if (retired || call !== undefined || startUnknown) return undefined;
+    if (!rawBound) { startUnknown = true; return undefined; }
     call = moon.clientProgramModelPhysicalCallForRequest(entry, request, poll, cancel, cleanup);
-    if (call === undefined) return undefined;
+    if (call === undefined) { startUnknown = true; return undefined; }
     // Exact fixed transport only, immediately after Common's final gate. No
     // await, notification, user callback or request rebuilding occurs here.
     try { startSdkTransport(preparation); }
@@ -150,6 +160,22 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     } catch { return [true, undefined]; }
     return [true, plan];
   };
+  if (deferredRaw) {
+    // The same original operation retains this private binder before its
+    // Common preflight cursor is issued. Only its installed continuation
+    // supplies the actual Store port after nominal raw registration.
+    const bound = rawCaptureBinder((registration, persistence) => {
+      if (retired || rawBound || registration === undefined ||
+          typeof persistence !== 'function' || typeof persistence.cleanup !== 'function') {
+        throw new TypeError('OriginalSdkRawBindingUnavailable');
+      }
+      persistRaw = persistence;
+      cleanupRaw = persistence.cleanup;
+      rawBound = true;
+    });
+    if (bound !== undefined) throw new TypeError('OriginalSdkRawBinderUnavailable');
+    rawCaptureBinder = undefined;
+  }
   // The pinned MoonBit JS tuple ABI is a field record, not a JS Array.
   const preflight = moon.clientProgramModelRequestPreflight(() => {
     const [terminal, physicalPlan] = advance();
