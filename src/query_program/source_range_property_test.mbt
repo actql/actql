@@ -107,26 +107,48 @@ test "ordinary range binding cannot capture private-looking input references" {
 test "ordinary range binding preserves exact unknown and bounded-work refusals" {
   assert_true(
     compile(
-      @query.parse_query("SELECT (missing).x AS value FROM pair p", syntax_limits()).unwrap(),
+      @query.parse_query(
+        "SELECT (missing).x AS value FROM pair p",
+        syntax_limits(),
+      ).unwrap(),
       pair_context(),
       construction_limits(),
-    ) is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
+    )
+    is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
   )
   // A known ordinary row receiver reaches common property typing. Its
   // missing member is not an unresolved lexical receiver.
   let missing_member = compile(
-    @query.parse_query("SELECT (p).missing AS value FROM pair p", syntax_limits()).unwrap(),
+    @query.parse_query(
+      "SELECT (p).missing AS value FROM pair p",
+      syntax_limits(),
+    ).unwrap(),
     pair_context(),
     construction_limits(),
   ).unwrap()
-  guard @check.check_parsed(missing_member, check_environment(), None, check_limits())
+  guard @check.check_parsed(
+      missing_member,
+      check_environment(),
+      None,
+      check_limits(),
+    )
     is Rejected(issue) else {
     fail("the known row must reject its missing member")
   }
   assert_true(
-    @check.diagnostic_cause(issue) is Source(SourceView(Program(Program(Pipeline(
-      _, { kind: Operation(Expression(UnknownField("missing"))), .. }
-    ))))),
+    @check.diagnostic_cause(issue)
+    is Source(
+      SourceView(
+        Program(
+          Program(
+            Pipeline(
+              _,
+              { kind: Operation(Expression(UnknownField("missing"))), .. }
+            )
+          )
+        )
+      )
+    ),
   )
   assert_true(
     compile(

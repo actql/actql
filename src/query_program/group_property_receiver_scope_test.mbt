@@ -1,5 +1,6 @@
 // Ordinary ranges shadow same-named columns, even through parentheses.
 // The object operand is the range-qualified payload column.
+
 ///|
 fn group_receiver_scope_context() -> Context {
   let seed = @wire.admit(
