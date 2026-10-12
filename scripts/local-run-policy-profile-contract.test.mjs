@@ -12,7 +12,7 @@ const vector = JSON.parse(readFileSync(new URL(
 // source-state schema tests. New unsupported keywords must fail explicitly.
 function valid(shape, value) {
   for (const keyword of Object.keys(shape)) assert.ok([
-    '$schema', '$id', 'type', 'additionalProperties', 'required', 'properties', 'const', 'pattern',
+    '$schema', '$id', 'type', 'additionalProperties', 'required', 'properties', 'const', 'pattern', 'maxLength',
   ].includes(keyword), keyword);
   if (shape.type === 'object') {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -21,7 +21,9 @@ function valid(shape, value) {
       Object.hasOwn(shape.properties, key) && valid(shape.properties[key], item));
   }
   if (Object.hasOwn(shape, 'const')) return isDeepStrictEqual(value, shape.const);
-  return shape.type === 'string' && typeof value === 'string' && new RegExp(shape.pattern).test(value);
+  return shape.type === 'string' && typeof value === 'string'
+    && (!Object.hasOwn(shape, 'pattern') || new RegExp(shape.pattern).test(value))
+    && (!Object.hasOwn(shape, 'maxLength') || [...value].length <= shape.maxLength);
 }
 const validate = value => valid(schema, value);
 
@@ -44,4 +46,24 @@ test('profile schema refuses extended lifetimes missing bindings and extra field
   }
   assert.equal(validate({...original, adoption_time: '2026-10-12T00:00:00.000Z'}), false);
   assert.equal(validate({...original, effective_data_policy_cid: 'public'}), false);
+});
+
+test('independent original packet identity and closed shape retain original bindings', () => {
+  const packetSchema = JSON.parse(readFileSync(new URL(
+    '../spec/contracts/actql-local-run-policy-original.schema.json', import.meta.url)));
+  const packet = JSON.parse(readFileSync(new URL(
+    '../reviews/2026-10-12-d-native-local-expiry-1701/original-packet-vector.json', import.meta.url)));
+  assert.equal(packet.cid, 'sha256:24d9f490b5dbb2a3db3cf499badfb521fa7d4f0ce6806ef84e97b21e38639014');
+  assert.equal('sha256:' + createHash('sha256').update(packet.body).digest('hex'), packet.cid);
+  const body = JSON.parse(packet.body);
+  assert.equal(valid(packetSchema, body), true);
+  for (const field of packetSchema.required) {
+    const missing = {...body};
+    delete missing[field];
+    assert.equal(valid(packetSchema, missing), false);
+    if (field !== 'version') assert.equal(valid(packetSchema, {...body, [field]: null}), false);
+  }
+  assert.equal(valid(packetSchema, {...body, profile_wire: 'x'.repeat(4097)}), false);
+  assert.equal(valid(packetSchema, {...body, host_adoption_cid: 'copied'}), false);
+  assert.equal(valid(packetSchema, {...body, extra: true}), false);
 });

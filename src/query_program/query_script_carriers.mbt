@@ -71,7 +71,7 @@ fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
     "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
-    "session", "events", "watermark_rows", "lag", "asof_join", "interval_join",
+    "session", "events", "watermark_rows", "lag", "asof_join", "interval_join", "merge_rankings",
   ].contains(name)
 }
 
@@ -242,6 +242,7 @@ fn lower_script_carrier_calls(
       "row_window" | "watermark_rows" => ["time"]
       "dedupe_events" => ["by"]
       "lag" => ["partition_by", "field"]
+      "merge_rankings" => ["by", "candidate", "score", "rank", "tie_break"]
       "session" =>
         if carrier is @carrier.Relation(_) {
           ["id", "time", "by"]
@@ -270,6 +271,11 @@ fn lower_script_carrier_calls(
         [
           "with", "kind", "mode", "on", "left", "right", "select", "max_output_rows",
         ]
+      "merge_rankings" =>
+        [
+          "with", "by", "candidate", "score", "rank", "score_policy", "score_contract",
+          "k", "tie_break",
+        ]
       _ => []
     }
     // Optional pool roles are preserved as authored. The common pool owner
@@ -290,6 +296,8 @@ fn lower_script_carrier_calls(
       ]
     } else if call.operation == "interval_join" {
       ["with", "kind", "mode", "on", "left", "right"]
+    } else if call.operation == "merge_rankings" {
+      ["with", "by", "candidate", "score_policy", "k"]
     } else if call.operation == "watermark_rows" {
       // The common watermark owner checks exactly one threshold source.
       // Never choose precedence or synthesize a threshold in the frontend.
@@ -309,6 +317,11 @@ fn lower_script_carrier_calls(
     let construction = { ..construction, generated: origin, }
     let body = if ["asof_join", "interval_join"].contains(call.operation) {
       script_temporal_join_body(
+        construction, call, query, input, known, context, sources, limits, steps,
+        reserved,
+      )
+    } else if call.operation == "merge_rankings" {
+      script_ranking_fusion_body(
         construction, call, query, input, known, context, sources, limits, steps,
         reserved,
       )

@@ -19,6 +19,10 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
       path == ["right", "start"] ||
       path == ["right", "end"] ||
       (path.length() == 2 && path[0] == "select")
+    "merge_rankings" =>
+      ["by", "candidate", "score", "rank", "tie_break"].any(name => {
+        path == [name]
+      })
     "reach" | "traverse" => path == ["start", "id"]
     "shortest_path" =>
       path == ["source", "id"] || path == ["target", "id"] || path == ["weight"]
