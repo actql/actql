@@ -274,7 +274,12 @@ pub fn confirm_payload_allocation(
   }
   // Pending physical CAS can be observed during close, but still needs the
   // original current authority and exact bytes; closure grants no permission.
-  if !payload_record_current(value, parent, current_configuration) {
+  if !payload_record_current(
+      value,
+      parent,
+      current_configuration,
+      pending_confirmation=true,
+    ) {
     return -32
   }
   guard input_cursor(value, slot) is Some(cursor) &&

@@ -203,7 +203,12 @@ pub fn confirm_payload_reservation(
   }
   // An uncertain physical write keeps this original child even during close.
   // Rechecking current authorization is required before resolving that write.
-  if !payload_record_current(value, parent, current_configuration) {
+  if !payload_record_current(
+      value,
+      parent,
+      current_configuration,
+      pending_confirmation=true,
+    ) {
     return -32
   }
   guard input_cursor(value, slot) is Some(cursor) &&

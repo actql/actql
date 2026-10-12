@@ -19,6 +19,22 @@ pub fn bind_quantity_capacity(
   guard active.plan is Some(plan) else {
     return Err(Model(@model.RequestIdentity))
   }
+  match original_model_quantity_capacity(plan, installed) {
+    Err(issue) => Err(issue)
+    Ok(capacity) => {
+      active.quantity_capacity = Some(capacity)
+      Ok(())
+    }
+  }
+}
+
+///|
+// Use one existing installed/contract intersection both before original read
+// and at Model binding. It creates no new quantity policy or capacity grant.
+fn original_model_quantity_capacity(
+  plan : @publication_host.ClientInferPlanGraph,
+  installed : @model.ModelQuantityCapacity,
+) -> Result[@model.ModelQuantityCapacity, Issue] {
   if installed.limits.tokens < 0L ||
     installed.limits.cost_units < 0L ||
     installed.limits.duration_ms < 0L ||
@@ -33,7 +49,7 @@ pub fn bind_quantity_capacity(
   let execution = @publication_host.client_infer_plan_graph_execution_contract(
     plan,
   )
-  active.quantity_capacity = Some({
+  Ok({
     ..installed,
     limits: {
       tokens: Int64::min(
@@ -59,7 +75,6 @@ pub fn bind_quantity_capacity(
       ),
     },
   })
-  Ok(())
 }
 
 ///|
