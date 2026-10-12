@@ -445,3 +445,187 @@ test "membership also executes through the admitted ordered row kernel" {
   membership_assert(output.rows[1][0], None)
   membership_assert(output.rows[1][1], None)
 }
+
+///|
+test "general ARRAY membership preserves strict operands and lazy children" {
+  for
+    source in [
+      "NULL IN [1 / 0]", "1 / 0 IN if(TRUE, [], [1])", "2 IN if(FALSE, [2], [1 / 0])",
+      "2 IN CASE WHEN FALSE THEN [2] ELSE [1 / 0] END", "2 IN coalesce(NULL, [1 / 0])",
+    ] {
+    assert_true(
+      run_expr("\"" + source + "\"")
+      is Err({ kind: Scalar(ArithmeticFailure), .. }),
+      msg=source,
+    )
+  }
+  for
+    source in [
+      "2 IN if(TRUE, [2], [1 / 0])", "2 IN CASE WHEN TRUE THEN [2] ELSE [1 / 0] END",
+      "2 IN coalesce([2], [1 / 0])",
+    ] {
+    membership_assert(run_expr("\"" + source + "\"").unwrap(), Some(true))
+  }
+}
+
+///|
+test "general ARRAY membership keeps NULL containers distinct from NULL elements" {
+  for
+    (source, expected) in [
+      ("2 IN coalesce(NULL, [])", Some(false)),
+      ("NULL IN if(TRUE, [], [1])", Some(false)),
+      ("2 IN if(TRUE, NULL, [1])", Some(false)),
+      ("2 IN [NULL]", None),
+      ("2 NOT IN [NULL]", None),
+      ("2 IN [NULL, 2]", Some(true)),
+    ] {
+    membership_assert(run_expr("\"" + source + "\"").unwrap(), expected)
+  }
+}
+
+///|
+test "constructed membership scans all elements with exact logical work" {
+  for source in ["1 IN [1, 2, 3]", "1 IN [2, 3, 1]"] {
+    // Relative to a literal list (14), three constructor children each add
+    // one entry, production and constructor-consumption charge: 14 + 9.
+    let exact = test_logical_budget(23L, 100L)
+    membership_assert(
+      evaluate_entries("\"" + source + "\"", exact).unwrap(),
+      Some(true),
+    )
+    assert_eq(exact.work, 23L)
+    assert_eq(exact.live, 0L)
+    let short = test_logical_budget(22L, 100L)
+    assert_true(evaluate_entries("\"" + source + "\"", short) is Err(_))
+    assert_eq(short.live, 0L)
+  }
+}
+
+///|
+test "conditional ARRAY membership cancellation releases owned roots" {
+  for advances in 1..<45 {
+    let logical = test_logical_budget(1000L, 100L)
+    let borrowed = retain_logical_value(logical, Number(9)).unwrap()
+    let frame = expression_frame(
+      lowered("\"2 IN if(TRUE, [1, 2, 3], [1 / 0])\""),
+      {},
+      [],
+      { remaining: 10000, max_frames: 100, },
+      { limit: 1000, live: 0, peak: 0, },
+      Some(expression_roots(logical, 100)),
+    ).unwrap()
+    for _ in 0..<advances {
+      match advance_expression_frame(frame) {
+        Ok(None) => ()
+        Ok(Some(value)) => {
+          membership_assert(value.value, Some(true))
+          release_logical_root(logical, value.root.unwrap()).unwrap()
+          break
+        }
+        Err(_) => fail("unexpected conditional membership failure")
+      }
+    }
+    let work = logical.work
+    close_expression_frame(frame)
+    assert_eq(logical.work, work)
+    assert_false(borrowed.released)
+    assert_eq(logical.live, 1L)
+    assert_eq(frame.workspace.live, 0)
+    release_logical_root(logical, borrowed).unwrap()
+  }
+}
+
+///|
+test "field ARRAY membership reaches the common checked evaluator" {
+  let raw = "[{\"values\":{\"schema\":{\"xs\":{\"type\":\"array\",\"nullable\":false,\"max_items\":2,\"items\":{\"type\":\"number\",\"nullable\":false}},\"ys\":{\"type\":\"array\",\"nullable\":false,\"max_items\":2,\"items\":{\"type\":\"number\",\"nullable\":false}}},\"rows\":[{\"xs\":[2],\"ys\":[7]}]},\"as\":\"seed\"},{\"derive\":{\"v\":\"2 IN if(TRUE, xs, ys)\"}}]"
+  let expression = @lower.lower_expression(bound_pipeline(raw), 1, 0, {
+    max_nodes: 100,
+    max_work: 10000,
+    max_depth: 100,
+    max_literal_nodes: 100,
+    max_literal_text_bytes: 1000,
+  }).unwrap()
+  let input = Map([
+    ("xs", run_expr("\"[2]\"").unwrap()),
+    ("ys", run_expr("\"[7]\"").unwrap()),
+  ])
+  membership_assert(
+    evaluate_expression(expression, input, [], {
+      remaining: 10000,
+      max_frames: 100,
+    }).unwrap(),
+    Some(true),
+  )
+}
+
+///|
+test "conditional ARRAY parameters preserve both bindings and evaluate selected xs" {
+  let array_type = "{\"type\":\"array\",\"nullable\":false,\"max_items\":2,\"items\":{\"type\":\"number\",\"nullable\":false}}"
+  let declarations = @parameter.read_declarations(
+    Some(input_cursor("{\"xs\":" + array_type + ",\"ys\":" + array_type + "}")),
+    { max_parameters: 2, max_nodes: 100, max_depth: 20, max_text_bytes: 1000, },
+  ).unwrap()
+  let checked = @pipeline.check(
+    input_cursor(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"seed\"},{\"derive\":{\"included\":{\"in\":[{\"literal\":2},{\"if\":[{\"literal\":true},{\"$param\":\"xs\"},{\"$param\":\"ys\"}]}]}}}]",
+    ),
+    [],
+    Some(declarations),
+    None,
+    {
+      max_steps: 10,
+      max_work: 100000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let bindings = match
+    @parameter.bind(
+      declarations,
+      Some(input_cursor("{\"xs\":[2],\"ys\":[7]}")),
+      { max_nodes: 1000, max_depth: 100, max_text_bytes: 10000, },
+    ).unwrap() {
+    Ready(values) => values
+    NeedsBindings(_) => abort("both ARRAY bindings supplied")
+  }
+  let owner = @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    Some(bindings),
+    max_parameters=2,
+    max_name_bytes=4,
+  ).unwrap()
+  let expression = @lower.lower_expression(owner, 1, 0, {
+    max_nodes: 1000,
+    max_work: 100000,
+    max_depth: 100,
+    max_literal_nodes: 1000,
+    max_literal_text_bytes: 10000,
+  }).unwrap()
+  membership_assert(
+    evaluate_expression(expression, {}, [], {
+      remaining: 10000,
+      max_frames: 100,
+    }).unwrap(),
+    Some(true),
+  )
+}
+
+///|
+test "row-dependent ARRAY constructors retain membership values" {
+  membership_assert(
+    evaluate_expression(
+      lowered("\"1 IN [id]\""),
+      Map([("id", Number(1))]),
+      [],
+      { remaining: 10000, max_frames: 100, },
+    ).unwrap(),
+    Some(true),
+  )
+}
