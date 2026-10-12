@@ -71,9 +71,9 @@ const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
 // component corpora. Match returns the same admitted identity to the existing
 // Relation selector; neither the match nor traversal changes the Graph domain.
 const matchedSeeds = seeds.replace('node_rows()',
-  "match_nodes(definition: 'N', bindings: {identity: 'id'}, where: {literal: true}, fields: ['id'])");
+  "match_nodes(definition: 'N', bindings: {identity: `id`}, where: {literal: true}, fields: [`id`])");
 const call = (mode = 'trail', minimum = 2, maximum = 2) =>
-  "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: " + minimum +
+  "traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: " + minimum +
   ', max_hops: ' + maximum + ", path_mode: '" + mode + "', emit: 'paths', max_output_rows: 10)";
 const tail = ' |> SELECT ' + fields.join(', ') + ' |> RESULT paths';
 const results = (domain, sequences) => ({paths: {columns, rows: paths(domain, sequences),
@@ -101,7 +101,7 @@ graphTraverseHopProgram.stages[0].steps[6].traverse = {
     {direction: 'out', edge_where: {literal: true}}],
   path_mode: 'trail', emit: 'paths', max_output_rows: 10,
 };
-const uppercaseHops = "TRAVERSE(START: {FROM: seeds, ID: 'element'}, " +
+const uppercaseHops = "TRAVERSE(START: {FROM: seeds, ID: `element`}, " +
   "HOPS: [{DIRECTION: 'out', EDGE_TYPES: ['R'], NODE_WHERE: {literal: true}}, " +
   "{DIRECTION: 'out', EDGE_WHERE: {literal: true}}], " +
   "PATH_MODE: 'trail', EMIT: 'paths', MAX_OUTPUT_ROWS: 10)";
@@ -129,7 +129,7 @@ export const graphTraversePathSuccesses = [
       'FROM g |> ' + call() + tail, results: results(sourceDomain, []), sourceReadCount: 0},
   {name: 'graph-traverse-paths-ordered-hops-empty-label-set', format: 'aql-text',
     text: source + seeds + 'FROM g |> ' +
-      "traverse(start: {from: seeds, id: 'element'}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'paths')" + tail,
+      "traverse(start: {from: seeds, id: `element`}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'paths')" + tail,
     results: results(sourceDomain, []), sourceReadCount: 0},
   {name: 'graph-traverse-hop-vocabulary-json-control', format: 'json',
     text: JSON.stringify(graphTraverseHopProgram), results: results(jsonDomain, trail), sourceReadCount: 0},
@@ -158,7 +158,7 @@ export const graphTraversePathSuccesses = [
 export const graphTraversePathRefusals = [
   ['unknown-selector', call().replace('from: seeds', 'from: missing')],
   ['string-selector-reference', call().replace('from: seeds', "from: 'seeds'")],
-  ['missing-selector-column', call().replace("id: 'element'", "id: 'missing'")],
+  ['missing-selector-column', call().replace("id: `element`", "id: `missing`")],
   ['missing-emission', call().replace(", emit: 'paths'", '')],
   ['unknown-emission', call().replace("emit: 'paths'", "emit: 'invented'")],
   ['parameter-emission', call().replace("emit: 'paths'", 'emit: @emission')],
@@ -174,7 +174,7 @@ for (const name of ['depth', 'node_id']) graphTraversePathRefusals.push({
   text: source + seeds + 'FROM g |> ' + call() + ' |> SELECT ' + name + ' |> RESULT paths',
 });
 graphTraversePathRefusals.push(...[
-  ['matched-missing-selector-column', call().replace("id: 'element'", "id: 'missing'") + tail],
+  ['matched-missing-selector-column', call().replace("id: `element`", "id: `missing`") + tail],
   ['matched-node-only-output', call() + ' |> SELECT depth |> RESULT paths'],
 ].map(([name, suffix]) => ({name: 'graph-traverse-paths-' + name,
   format: 'aql-text', text: source + matchedSeeds + 'FROM g |> ' + suffix})));

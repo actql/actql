@@ -96,43 +96,43 @@ export const subgraphSourceSuccesses = [
   {name: 'subgraph-json-filtered-edges', format: 'json', text: program(true, true),
     results: result(true, filteredEdges), sourceReadCount: 0},
   textCase('inline-node-subset', selected('node_key <= 2') +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false), false, nodeSubset),
+    'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(false), false, nodeSubset),
   textCase('parallel-and-induced-edges', selected('node_key <= 2') +
-    ', slice AS (FROM g |> subgraph(nodes: {from: selected, id: "id"})) FROM slice' + tail(true),
+    ', slice AS (FROM g |> subgraph(nodes: {from: selected, id: `id`})) FROM slice' + tail(true),
     true, inducedEdges),
   textCase('quoted-data-normalized-edge-predicate', selected('node_key <= 2') +
     ', `chosen ids` AS (FROM selected) , `slice` AS (FROM g |> normalize_graph() ' +
-    '|> subgraph(nodes: {from: `chosen ids`, id: "id"}, edges: {gt: [{field: "w"}, {literal: 10}]})) FROM `slice`' + tail(true),
+    '|> subgraph(nodes: {from: `chosen ids`, id: `id`}, edges: {gt: [{field: `w`}, {literal: 10}]})) FROM `slice`' + tail(true),
     true, filteredEdges),
   textCase('nullable-property', selected('node_key >= 2') +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false),
+    'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(false),
     false, [{node_key: 2, p: 20}, {node_key: 3, p: null}], {
       text: prefix.replace('SELECT 2 AS node_key, 20 AS p UNION ALL SELECT 1 AS node_key, IF(TRUE, 10, CAST(NULL AS FLOAT64)) AS p',
         'SELECT 3 AS node_key, CAST(NULL AS FLOAT64) AS p UNION ALL SELECT 2 AS node_key, 20 AS p') +
-        selected('node_key >= 2') + 'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false),
+        selected('node_key >= 2') + 'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(false),
     }),
   {...textCase('match-label-after-selection', selected('node_key <= 2') +
-    'FROM GRAPH g |> subgraph(nodes: {from: selected, id: "id"}) |> MATCH WALK (a:Node) ' +
+    'FROM GRAPH g |> subgraph(nodes: {from: selected, id: `id`}) |> MATCH WALK (a:Node) ' +
     '|> SELECT a.p AS p |> ORDER BY p |> RESULT answer', false, nodeSubset),
     results: {answer: {rows: [{p: 10}, {p: 20}], columns: [{name: 'p', contract: nullableNumber}]}}},
   textCase('empty-typed-nodes', selected('FALSE') +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false), false, []),
+    'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(false), false, []),
   textCase('empty-typed-edges', selected('FALSE') +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(true), true, []),
+    'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(true), true, []),
   textCase('induction-excludes-missing-endpoint', selected('node_key = 2') +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(true),
+    'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(true),
     true, [{edge_key: 13, w: 30}]),
   textCase('edge-predicate-parameter', selected('node_key <= 2') +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"}, edges: {gt: [{field: "w"}, @minimum]})' + tail(true),
+    'FROM g |> subgraph(nodes: {from: selected, id: `id`}, edges: {gt: [{field: `w`}, @minimum]})' + tail(true),
     true, filteredEdges, {parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 10}}),
   textCase('duplicate-selector-identities', selected('node_key <= 2').replace('selected', 'chosen') +
     ', selected AS (SELECT id FROM chosen UNION ALL SELECT id FROM chosen) ' +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(true),
+    'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(true),
     true, [{edge_key: 10, w: 10}, {edge_key: 11, w: 20}], {
       text: prefix.replace('UNION ALL SELECT 13 AS edge_key, 2 AS src_key, 2 AS dst_key, 30 AS w) ', ') ') +
         selected('node_key <= 2').replace('selected', 'chosen') +
         ', selected AS (SELECT id FROM chosen UNION ALL SELECT id FROM chosen) ' +
-        'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(true),
+        'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(true),
     }),
   {name: 'subgraph-explicit-typed-identity', format: 'aql-text',
     text: 'WITH n AS (SELECT 1 AS node_key, 7 AS p) , g AS (GRAPH ' +
@@ -145,31 +145,31 @@ export const subgraphSourceRefusals = [
   ...[
     ['missing-nodes', 'subgraph()'],
     ['empty-explicit-ids', 'subgraph(nodes: {ids: []})'],
-    ['missing-column', 'subgraph(nodes: {from: selected, id: "missing"})'],
-    ['wrong-key-type', 'subgraph(nodes: {from: selected, id: "node_key"})'],
-    ['unknown-producer', 'subgraph(nodes: {from: missing, id: "id"})'],
-    ['string-producer', 'subgraph(nodes: {from: "selected", id: "id"})'],
-    ['graph-as-relation', 'subgraph(nodes: {from: g, id: "id"})'],
-    ['nonboolean-edge-predicate', 'subgraph(nodes: {from: selected, id: "id"}, edges: {literal: 1})'],
-    ['missing-edge-property', 'subgraph(nodes: {from: selected, id: "id"}, edges: {field: "missing"})'],
-    ['extra-argument', 'subgraph(nodes: {from: selected, id: "id"}, extra: true)'],
+    ['missing-column', 'subgraph(nodes: {from: selected, id: `missing`})'],
+    ['wrong-key-type', 'subgraph(nodes: {from: selected, id: `node_key`})'],
+    ['unknown-producer', 'subgraph(nodes: {from: missing, id: `id`})'],
+    ['string-producer', 'subgraph(nodes: {from: "selected", id: `id`})'],
+    ['graph-as-relation', 'subgraph(nodes: {from: g, id: `id`})'],
+    ['nonboolean-edge-predicate', 'subgraph(nodes: {from: selected, id: `id`}, edges: {literal: 1})'],
+    ['missing-edge-property', 'subgraph(nodes: {from: selected, id: `id`}, edges: {field: `missing`})'],
+    ['extra-argument', 'subgraph(nodes: {from: selected, id: `id`}, extra: true)'],
     // This is an existing common support gap, not a permanent language limit.
     ['common-where-selector-gap', 'subgraph(nodes: {where: {literal: true}})'],
   ].map(([name, call]) => ({name: 'subgraph-' + name, format: 'aql-text',
     ...(name === 'common-where-selector-gap' ? {expectedCode: 'ClientProgramImplementationLimit'} : {}),
     text: prefix + ', selected AS (FROM g |> node_rows() |> SELECT id, node_key) FROM g |> ' + call + tail(false)})),
   {name: 'subgraph-forward-selector', format: 'aql-text', text: prefix +
-    ', slice AS (FROM g |> subgraph(nodes: {from: later, id: "id"})) , later AS (FROM g |> node_rows()) FROM slice' + tail(false)},
+    ', slice AS (FROM g |> subgraph(nodes: {from: later, id: `id`})) , later AS (FROM g |> node_rows()) FROM slice' + tail(false)},
   {name: 'subgraph-after-relation-transition', format: 'aql-text', text: prefix +
     'FROM g |> node_rows() |> subgraph(nodes: {ids: []}) |> SELECT node_key |> RESULT answer'},
   // Semantic checking succeeds; the installed task profile refuses this
   // unchanged larger source with TaskLimit before durable Run admission.
   {name: 'subgraph-task-profile-bound', format: 'aql-text', text: taskBoundSource +
-    selected('node_key <= 2') + 'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false)},
+    selected('node_key <= 2') + 'FROM g |> subgraph(nodes: {from: selected, id: `id`})' + tail(false)},
   // literal is opaque data, not a wrapper that evaluates parameter syntax.
   {name: 'subgraph-object-literal-is-not-scalar-parameter', format: 'aql-text',
     text: prefix + selected('node_key <= 2') +
-      'FROM g |> subgraph(nodes: {from: selected, id: "id"}, edges: {gt: [{field: "w"}, {literal: @minimum}]})' + tail(true),
+      'FROM g |> subgraph(nodes: {from: selected, id: `id`}, edges: {gt: [{field: `w`}, {literal: @minimum}]})' + tail(true),
     parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 10}},
   {name: 'subgraph-json-string-keys-are-not-identifiers', format: 'aql-text',
     text: 'WITH n AS (SELECT 1 AS node_key, 7 AS p) , g AS (GRAPH ' +

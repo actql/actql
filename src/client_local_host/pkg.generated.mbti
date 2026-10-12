@@ -67,6 +67,8 @@ pub fn client_infer_retained_input_export_rows(ClientInferRetainedInputExport) -
 
 pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
 
+pub fn client_local_values_publication_limits(@run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?
+
 pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedProviderExecution
 
 pub fn client_query_residual_output(ClientQueryResidual, @execution_query.QuerySequence, @execution_query.QueryReceipt, Int, Int) -> @execution_relation.CompletedOutput?
@@ -90,6 +92,8 @@ pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.Du
 pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisition.DuckDBBroadObservation, @host.BroadHostIssue]
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+
+pub fn execute_source_free_values_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, () -> Bool) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn export_client_infer_retained_input(@execution_relation.CompletedOutput, String) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
 
@@ -116,6 +120,8 @@ pub fn open_multi_captured_local_retained_host(@run_publication_host.PreparedCli
 pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn prepare_client_broad_residual(@host.BroadHostRun, Int) -> Result[ClientBroadResidual, ClientQueryResidualIssue]
 
@@ -313,6 +319,7 @@ pub struct LocalValuesExecutionFailure {
 
 pub(all) enum LocalValuesExecutionIssue {
   InvalidLimits
+  Fenced
   UnsupportedGraph
   MissingLocalModule
   Driver(@driver.LocalDispatchIssue)

@@ -3,9 +3,21 @@
 // physical record budget. This is custody, never read or egress authority.
 fn run_policy_originals_wire(
   prepared : @host.PreparedClientProgram,
+  compiled? : @host.ClientCompiledRun,
 ) -> Result[String, NativeClientRunJournalIssue] {
-  let bodies = match
-    @host.prepared_client_publication_policy_bodies(prepared, 65536, 8192, 64) {
+  let selected = match compiled {
+    Some(value) => {
+      if !@host.client_compiled_run_matches(value, prepared) {
+        return Err(ForeignRun)
+      }
+      @host.client_compiled_run_publication_policy_bodies(
+        value, 65536, 8192, 64,
+      )
+    }
+    None =>
+      @host.prepared_client_publication_policy_bodies(prepared, 65536, 8192, 64)
+  }
+  let bodies = match selected {
     Ok(value) => value
     Err(issue) => return Err(PublicationPolicy(issue))
   }
@@ -136,7 +148,7 @@ fn NativeClientRunJournal::retain_publication_policy_originals(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let wire = match run_policy_originals_wire(prepared) {
+  let wire = match run_policy_originals_wire(prepared, compiled~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

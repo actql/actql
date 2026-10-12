@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-12T00:04:27.613Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Current MATCH, traversal and Delta callers with unchanged independent Programs",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_match_rows_test.mbt",
+        "src/query_program/traversal_nodes_test.mbt",
+        "src/query_program/graph_delta_json_source_test.mbt"
+      ],
+      "startedAt": "2026-10-12T00:04:27.719Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:04:42.346Z",
+      "endedAt": "2026-10-12T00:04:42.349Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "2efe8e2f-3a3b-405d-993a-2dfa1ad12681",
+    "pid": 12780,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:04:27.710Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Ki8ZRk"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:04:42.447Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

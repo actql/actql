@@ -1578,7 +1578,7 @@ is not implicitly converted to a Relation for SQL compatibility.
 
 Arguments are named. Their role comes from the operation contract rather
 than from the content of a String: `with: target` names a producer,
-`start: "A"` is a value and `field: "delta"` designates a column. Relation
+`start: "A"` is an ID value and `field: delta` designates a column. Relation
 selectors in reach/traverse `start.from`, shortest_path `source.from` and
 `target.from`, and subgraph `nodes.from` use producer references. Bare and
 backtick producer names follow the nearest WITH resolution rules; String
@@ -1586,9 +1586,37 @@ values cannot name producers. A mean_graphs `with` list is explicit and does
 not silently acquire an additional current input. Duplicate input
 specification must be rejected rather than merged or ignored.
 
+The signature adapter keeps the following roles separate until ordinary
+Program lowering. String literals cannot substitute for reference or output
+name positions; they remain decoded data in literal and enum positions.
+
+| Role | Connected examples | Meaning |
+|---|---|---|
+| ProducerRef | `with: target`, `start: {from: seeds, ...}` | Nearest lexical WITH producer identity, without acquiring or placing data |
+| FieldRef | `start: {from: seeds, id: seeds.element}`, `field: changes.delta`, `weight: cost`, `fields: [id, payload]` | Column of the declared operand; a selector qualifier must resolve to that operand |
+| OutputName | `bindings: {identity: element, source: src, target: dst}` | Authored output identifier, without looking up an existing column |
+| Expression | `where: {gt: [{field: payload.score}, {literal: 10}]}` | Existing common field/property expression nodes, with common type and NULL checking |
+| Enum/Literal | `direction: 'out'`, `start: 'A'`, `definition: 'N'`, `label: 'Person'` | Exact decoded data, never an inferred reference |
+| ClosedRecord/List | Selector, bindings and expression records; explicit operand lists | Signature-selected leaf roles, preserving list order and repetition |
+| WholeParameter | Existing parameter-enabled operation positions | Existing common parameter contract, without a frontend replacement value |
+
+Relation selector columns in `start.id`, `source.id`, `target.id` and
+`nodes.id`, and Delta `field`, resolve against their declared Relation operand.
+`id: element` and `id: seeds.element` select the same column when `from: seeds`;
+the qualifier follows the same lexical binding as `from`, including inside a
+nested WITH. A qualifier for another producer or a missing column is rejected.
+A single column containing a dot must be one backtick-quoted name, such as
+`id: \`node.key\``. Expression `payload.score` instead lowers to a field plus
+property projection; its receiver is not searched as a global producer.
+Graph field, identity, presence, label, selector and parameter obligations
+remain with the existing common checker and execution Owner.
+
 Operation and selector vocabulary is case-insensitive. Object-valued data
 retains its own field names and decoded values. Numeric tokens retain their
-exact spelling until normal numeric admission. The same lexical, syntax,
+exact spelling until normal numeric admission. A single numeric token can have
+a unary `+` or `-`; a sign cannot apply to a parameter, parenthesized expression
+or calculation. The installed common numeric decoder retains precision,
+finite-value, hexadecimal and negative-zero admission. The same lexical, syntax,
 work and depth budgets apply to calls inside a query and a WITH body.
 
 A Graph-preserving query can bind its producer through WITH or precede a
@@ -1662,7 +1690,7 @@ Both emissions of `traverse` enter ordinary Relation processing:
 ```aql
 WITH seeds AS (FROM g |> node_rows() |> SELECT id AS element)
 FROM g
-  |> traverse(start: {from: seeds, id: 'element'}, direction: 'out',
+  |> traverse(start: {from: seeds, id: element}, direction: 'out',
               min_hops: 0, max_hops: 2, path_mode: 'trail',
               emit: 'nodes', max_output_rows: 10)
   |> SELECT start_id, node_id, depth |> ORDER BY depth |> RESULT visited

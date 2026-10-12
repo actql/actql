@@ -4,7 +4,8 @@ import {execFileSync} from 'node:child_process';
 import {existsSync, readFileSync} from 'node:fs';
 import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {occurrences, violations} from './check-owned-contract-versions.mjs';
+import {occurrences, repositoryOccurrences, violations} from './check-owned-contract-versions.mjs';
+import {assertGeneratedOwnedContracts} from './generated-owned-contracts.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -57,6 +58,10 @@ export async function buildExternalLocalNodeRuntime({inputs, destination, compil
 }
 
 function main(requested) {
+const inventory = JSON.parse(readFileSync(join(root,
+  'scripts/owned-contract-version-legacy.json'), 'utf8'));
+const source = repositoryOccurrences(root);
+assertGeneratedOwnedContracts({source, generated: [], inventory});
 for (const name of requested) {
   if (!Object.hasOwn(packages, name)) throw new Error(`Unknown runtime package: ${name}`);
 }
@@ -73,12 +78,9 @@ for (const item of entries) {
   execFileSync(process.execPath, [`scripts/${item.script}.mjs`, '--check'],
     {cwd: root, stdio: 'inherit'});
 }
-const inventory = JSON.parse(readFileSync(join(root,
-  'scripts/owned-contract-version-legacy.json'), 'utf8'));
-const rejected = violations(entries.flatMap(item => item.files.flatMap(path =>
-  occurrences(readFileSync(join(root, path), 'utf8'), path))), inventory);
-if (rejected.length) throw new Error('Generated runtime contract versions must remain at 0.1:\n' +
-  rejected.map(item => `${item.path}:${item.line}: ${item.token}`).join('\n'));
+const generated = entries.flatMap(item => item.files.flatMap(path =>
+  occurrences(readFileSync(join(root, path), 'utf8'), path)));
+assertGeneratedOwnedContracts({source, generated, inventory});
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

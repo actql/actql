@@ -183,14 +183,6 @@ fn local_submission_start(
     // Observe the original Run; never recompile its lifetime or reopen Source.
     return local_submission_lookup(host, settings, crypto, input_root, child)
   }
-  let source_file = settings.source_file.unwrap_or_else(() => {
-    stop("LocalSourceInstallationRequired")
-  })
-  let source = local_source_installation(
-    @utf8.decode(local_host_result(host.selected_configuration(source_file))) catch {
-      _ => stop("InvalidLocalSourceInstallation")
-    },
-  )
   let run_file = settings.run_file.unwrap_or_else(() => {
     stop("LocalRunInstallationRequired")
   })
@@ -228,8 +220,30 @@ fn local_submission_start(
     // Local capture/reviewer supplier is connected. Compilation is not approval.
     stop("LocalEffectAuthoritySupplierUnavailable")
   }
-  if !@source_owner.resident_source_compute_shape_supported(prepared) {
+  let source_free = @run_host.prepared_client_acquisition_count(prepared) == 0
+  if source_free &&
+    !@local_host.native_client_local_values_profile_supported(prepared) {
+    stop("LocalValuesExecutionProfileNotSupported")
+  }
+  if !source_free &&
+    !@source_owner.resident_source_compute_shape_supported(prepared) {
     stop("LocalSourceExecutionProfileNotSupported")
+  }
+  let source = if source_free {
+    None
+  } else {
+    let source_file = settings.source_file.unwrap_or_else(() => {
+      stop("LocalSourceInstallationRequired")
+    })
+    let installed = local_source_installation(
+      @utf8.decode(local_host_result(host.selected_configuration(source_file))) catch {
+        _ => stop("InvalidLocalSourceInstallation")
+      },
+    )
+    Some(installed)
+  }
+  if source_free && run.source_free is None {
+    stop("LocalValuesInstallationRequired")
   }
   // The current installed profile must genuinely have zero semantic
   // completions. No test-side lowering or fabricated empty journal is used.
@@ -267,6 +281,19 @@ fn local_submission_start(
   let compiled = @run_host.issue_client_task_compiled_run(
     prepared, compilation, scope, configuration_cid, until,
   ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
+  let compiled = if source_free {
+    let values = run.source_free.unwrap()
+    @run_host.with_client_source_free_result_policy(
+      compiled,
+      values.result_policy_cid,
+      values.result_policy_wire,
+      65536,
+      8192,
+      64,
+    ).unwrap_or_else(() => stop("LocalValuesResultPolicyNotAdmitted"))
+  } else {
+    compiled
+  }
   let definition = @run_host.issue_client_compiled_run_definition(
     compiled,
     run.namespace_id,
@@ -295,6 +322,11 @@ fn local_submission_start(
   |> ignore
   if !current() {
     stop("LocalSubmissionAuthorizationDenied")
+  }
+  if source_free {
+    local_retain_values_policy_originals(
+      host, settings, crypto, request, prepared, compiled, definition,
+    )
   }
   if settings.read_file is Some(file) {
     let read = local_read_installation_or_stop(
@@ -366,61 +398,69 @@ fn local_submission_start(
     journal
     .bind_installed_publication(request, binding, current)
     .unwrap_or_else(() => stop("LocalPublicationBindingUnavailable"))
-    guard host.authorize({
-        principal: settings.principal,
-        connection: settings.connection,
-        resource: source.source_ref,
-        operation: "read",
-      })
-      is Ok(Allow(_)) else {
-      stop("LocalSourceAuthorizationDenied")
-    }
-    let library = @duckdb.load_library(source.library_path).unwrap_or_else(() => {
-      stop("NativeLocalSourceUnavailable")
-    })
-    let configuration = (source.configuration)(
-      library,
-      managed + "/" + source.database_file,
-    )
-    let work = host
-      .open_source_work(
-        crypto,
-        settings.principal,
-        settings.connection,
-        request,
-        prepared,
-        compiled,
-        definition,
-        configuration,
-        attempt,
-        local_utc_now,
-      )
-      .unwrap_or_else(() => stop("LocalOriginalSourceWorkUnavailable"))
-    let result = try {
-      for
-        task in 1..<@strategy.graph_task_count(
-          @run_host.prepared_client_graph(prepared),
-        ) {
-        work
-        .execute_task(task)
-        .unwrap_or_else(() => stop("LocalSourceComputeUnavailable"))
-      }
-      local_publish_source(
-        work, host, run, configuration, compiled, definition, request, reference,
+    if source_free {
+      local_execute_publish_values(
+        host, settings, run, prepared, compiled, definition, request, reference,
         attempt, crypto, store, current,
       )
-    } catch {
-      issue => {
-        if !work.close() {
-          stop("LocalSourceCleanupPending")
-        }
-        raise issue
+    } else {
+      let source = source.unwrap()
+      guard host.authorize({
+          principal: settings.principal,
+          connection: settings.connection,
+          resource: source.source_ref,
+          operation: "read",
+        })
+        is Ok(Allow(_)) else {
+        stop("LocalSourceAuthorizationDenied")
       }
+      let library = @duckdb.load_library(source.library_path).unwrap_or_else(() => {
+        stop("NativeLocalSourceUnavailable")
+      })
+      let configuration = (source.configuration)(
+        library,
+        managed + "/" + source.database_file,
+      )
+      let work = host
+        .open_source_work(
+          crypto,
+          settings.principal,
+          settings.connection,
+          request,
+          prepared,
+          compiled,
+          definition,
+          configuration,
+          attempt,
+          local_utc_now,
+        )
+        .unwrap_or_else(() => stop("LocalOriginalSourceWorkUnavailable"))
+      let result = try {
+        for
+          task in 1..<@strategy.graph_task_count(
+            @run_host.prepared_client_graph(prepared),
+          ) {
+          work
+          .execute_task(task)
+          .unwrap_or_else(() => stop("LocalSourceComputeUnavailable"))
+        }
+        local_publish_source(
+          work, host, run, configuration, compiled, definition, request, reference,
+          attempt, crypto, store, current,
+        )
+      } catch {
+        issue => {
+          if !work.close() {
+            stop("LocalSourceCleanupPending")
+          }
+          raise issue
+        }
+      }
+      if !work.close() {
+        stop("LocalSourceCleanupPending")
+      }
+      result
     }
-    if !work.close() {
-      stop("LocalSourceCleanupPending")
-    }
-    result
   } catch {
     issue => {
       if !(store.close() is Ok(true)) {
@@ -525,9 +565,23 @@ fn local_publish_source(
   if !published.committed {
     stop("LocalPublicationNeedsReconciliation")
   }
+  local_run_publication_reply(
+    definition, request, reference, run, compiled, published,
+  )
+}
+
+///|
+fn local_run_publication_reply(
+  definition : @publication.PublicationContract,
+  request : @run_host.ClientRequestIdentity,
+  reference : @local_host.NativeClientSubmissionReference,
+  run : LocalRunInstallation,
+  compiled : @run_host.ClientCompiledRun,
+  published : @local_publication.NativeRunPublicationResult,
+) -> String raise ClientStop {
   let run_ref = local_original_run_reference(
     definition,
-    intent.authority_scope_cid,
+    @run_host.client_request_authority_scope_cid(request),
   )
   let submission_ref = @json.parse(
     @local_host.native_client_submission_reference_wire(reference),
@@ -542,9 +596,15 @@ fn local_publish_source(
         ("ref", run_ref),
         ("submissionRef", submission_ref),
         ("requestId", Json::string(@run_host.client_request_caller_id(request))),
-        ("runDefinitionCid", Json::string(result.scope_cid)),
+        (
+          "runDefinitionCid",
+          Json::string(@publication.publication_contract_identity(definition)),
+        ),
         ("namespaceId", Json::string(run.namespace_id)),
-        ("authorityScopeCid", Json::string(intent.authority_scope_cid)),
+        (
+          "authorityScopeCid",
+          Json::string(@run_host.client_request_authority_scope_cid(request)),
+        ),
         ("publicIndexEntryCid", Json::string(published.public_index_entry_cid)),
         (
           "publicationAttemptCid",

@@ -11,6 +11,8 @@ import sys
 from threading import RLock
 from typing import Any, Literal
 
+LOCAL_CORE_ABI = 44
+
 
 class LocalCoreError(RuntimeError):
     """An ABI failure, never permission to retry a Submission or Compute."""
@@ -388,6 +390,8 @@ _TASK_SIGNATURES = {
     'close': ('i64 i32', 'i32'),
 }
 _COMPUTE_SIGNATURES = {
+    'reserve_source_free': ('i64 i32 i32 i32', 'i32'),
+    'configure_source_free': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
     'configured': ('i64 i32', 'i32'),
@@ -577,7 +581,7 @@ class LocalCore:
                     wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != 43:
+            if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
                 raise ValueError('Unsupported Local Core ABI version')
             self._check('open', self._call('buffer', 'open', transfer_capacity,
                                         slots, 1_048_576, resources.planning_work,

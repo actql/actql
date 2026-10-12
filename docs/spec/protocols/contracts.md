@@ -1372,7 +1372,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:b27fedd2d94054bcf223452c7ece3b254bdbcb3620403347c59b04c640e2753f -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:f07e59878ec91db3fcf81b4a3bd81f21a25a63d9f0051fc0c44fc1809ed04422 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:98cabab7effed19178941d006ff89d3d6c08da0ebbc721d0a975058b4762d67c -->
 
 <a id="parameter-value-projection"></a>
@@ -2033,6 +2033,8 @@ vectors. A Connector Catalog or Host-local registration MUST NOT extend this
 set. A profile claim by itself does not authorize provider access.
 
 <a id="machine-contracts"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39 -->
 
 ## Machine contracts
 

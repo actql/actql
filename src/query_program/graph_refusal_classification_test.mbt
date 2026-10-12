@@ -20,7 +20,7 @@ test "Graph argument selector and Carrier violations are distinct from support g
       "FROM g |> graph_diff(with: g, extra: true) |> SELECT delta", "FROM g |> node_rows() |> subgraph(nodes: {ids: []}) |> SELECT node_key",
       "FROM g |> degree(direction: 'both') |> edge_rows() |> SELECT id", "FROM g |> graph_diff(with: g) |> node_rows()",
       "FROM g |> graphs_equal(with: g) |> node_rows() |> SELECT equal", "FROM g |> node_rows() |> union_graphs(with: g) |> SELECT name",
-      "FROM g |> node_rows() |> subtract_graphs(with: g) |> SELECT name", "FROM n |> match_nodes(definition: 'N', where: {literal: true}, fields: ['name'])",
+      "FROM g |> node_rows() |> subtract_graphs(with: g) |> SELECT name", "FROM n |> match_nodes(definition: 'N', where: {literal: true}, fields: [`name`])",
     ] {
     assert_true(
       classified_graph_source(graph_rows_prefix() + tail) is Err(InvalidQuery),
@@ -49,7 +49,7 @@ test "Shortest retains two explicit Relation selectors through public source com
     ", seeds AS (FROM g |> node_rows() |> SELECT id) "
   for
     tail in [
-      ", paths AS (FROM g |> shortest_path(source: {from: seeds, id: 'id'}, target: {from: seeds, id: 'id'}, selection: 'each_pair', direction: 'out', max_hops: 1)) FROM paths |> SELECT hop_count",
+      ", paths AS (FROM g |> shortest_path(source: {from: seeds, id: `id`}, target: {from: seeds, id: `id`}, selection: 'each_pair', direction: 'out', max_hops: 1)) FROM paths |> SELECT hop_count",
     ] {
     assert_true(classified_graph_source(prefix + tail) is Ok(_), msg=tail)
   }
