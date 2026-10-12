@@ -444,7 +444,22 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid(submittedSgaBody), submittedSgaCid);
   assert.equal(submittedSgaCid,
     'sha256:7c9347a89c7a097c608edbbd162631a438cd49e7e6822ac4d2a5dc800bf625eb');
-  const currentExpected = 'sha256:255ae7c2de7279c3924f3f72fbdc7303ef0fc02af42064393f646068b2f8e992';
+  // Retain the pre-Lag body under its original identity. The adopted named
+  // Lag surface changes only the two normative query-text digests.
+  const {grammar_manifest_cid: beforeLagCid, ...beforeLagBody} =
+    read('scripts/fixtures/pre-lag-values-identities.json').grammar;
+  assert.equal(beforeLagCid,
+    'sha256:255ae7c2de7279c3924f3f72fbdc7303ef0fc02af42064393f646068b2f8e992');
+  assert.equal(cid(beforeLagBody), beforeLagCid);
+  const {grammar_manifest_cid: submittedLagCid, ...submittedLagBody} =
+    read('scripts/fixtures/submitted-lag-values-identities.json').grammar;
+  const currentExpected = 'sha256:3594d643035dbef8de5da40d88d007b9a88e1f438ade3575ffcf7c1db314a2f7';
+  assert.equal(submittedLagCid, currentExpected);
+  assert.equal(cid(submittedLagBody), currentExpected);
+  assert.deepEqual(submittedLagBody, {...beforeLagBody,
+    query_text_grammar_sha256: submittedLagBody.query_text_grammar_sha256,
+    query_text_rules_sha256: submittedLagBody.query_text_rules_sha256});
+  assert.deepEqual(currentBody, submittedLagBody);
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
