@@ -13,7 +13,7 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
-from actql_sdk._local_distribution import inspect_local_components  # noqa: E402
+from actql_sdk._local_distribution import LocalComponents, inspect_local_components  # noqa: E402
 
 
 def library_target(path: Path) -> None:
@@ -73,7 +73,17 @@ def library_target(path: Path) -> None:
             raise ValueError('Installed DuckDB does not support the selected macOS11 profile')
 
 
-def prepare(artifact: Path, destination: Path) -> dict[str, object]:
+def notice_originals() -> dict[str, Path]:
+    return {
+        'LICENSE': ROOT / 'LICENSE',
+        'DUCKDB-LICENSE': ROOT / 'vendor/duckdb/1.4.3/LICENSE',
+        'MOONBIT-CORE-LICENSE': ROOT / 'packages/local-node/MOONBIT-CORE-LICENSE',
+        'MOONBIT-CORE-NOTICE': ROOT / 'packages/local-node/MOONBIT-CORE-NOTICE',
+    }
+
+
+def verify_artifact(artifact: Path) -> LocalComponents:
+    """Reuse the fixed-source, component, target and original-notice checks."""
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
         raise ValueError('Use committed clean Python Local recipe source')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
@@ -91,14 +101,15 @@ def prepare(artifact: Path, destination: Path) -> dict[str, object]:
     library_target(components.duckdb)
     # Require the official notice bytes, not merely a manifest agreeing with
     # missing or unrelated notices. Component source/hash receipts stay separate.
-    for name, original in {
-        'LICENSE': ROOT / 'LICENSE',
-        'DUCKDB-LICENSE': ROOT / 'vendor/duckdb/1.4.3/LICENSE',
-        'MOONBIT-CORE-LICENSE': ROOT / 'packages/local-node/MOONBIT-CORE-LICENSE',
-        'MOONBIT-CORE-NOTICE': ROOT / 'packages/local-node/MOONBIT-CORE-NOTICE',
-    }.items():
+    for name, original in notice_originals().items():
         if (artifact / name).read_bytes() != original.read_bytes():
             raise ValueError('Python Local notice does not match the repository notice')
+    return components
+
+
+def prepare(artifact: Path, destination: Path) -> dict[str, object]:
+    components = verify_artifact(artifact)
+    runtime = ROOT / 'packages/python-local-runtime'
     destination.mkdir()
     for name in ('pyproject.toml', 'setup.py'):
         shutil.copyfile(runtime / name, destination / name)
@@ -111,7 +122,7 @@ def prepare(artifact: Path, destination: Path) -> dict[str, object]:
         shutil.copyfile(artifact / name, target / name)
         if name.endswith('LICENSE') or name.endswith('NOTICE'):
             shutil.copyfile(artifact / name, destination / name)
-    staged = inspect_local_components(target, package_version=sdk['version'])
+    staged = inspect_local_components(target, package_version=components.package_version)
     if ((staged.source_sha, staged.package_version, staged.module_sha256,
          staged.duckdb_sha256, staged.duckdb_version) !=
             (components.source_sha, components.package_version, components.module_sha256,
@@ -129,7 +140,7 @@ def prepare(artifact: Path, destination: Path) -> dict[str, object]:
                     digest.update(block)
             members.append({'path': str(path.relative_to(destination)), 'bytes': path.stat().st_size,
                             'sha256': digest.hexdigest()})
-    receipt: dict[str, object] = {'source_sha': head, 'package_version': sdk['version'],
+    receipt: dict[str, object] = {'source_sha': components.source_sha, 'package_version': components.package_version,
         'artifact_directory': str(artifact), 'stage': str(destination), 'files': members,
         'wheel_built': False, 'runtime_executed': False, 'public_local_accepted': False}
     (destination / 'preparation.json').write_text(json.dumps(receipt, indent=2) + '\n')

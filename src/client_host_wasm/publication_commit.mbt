@@ -19,11 +19,9 @@ fn prepare_publication_commit_owner(
     record.captured is Some(captured) &&
     value.publication_preflights.get(record.preflight)
     is Some({ closing: false, preflight: Some(preflight), .. }) &&
-    value.source_publications.get(record.source) is Some({ compute, .. }) &&
-    value.computes.get(compute) is Some({ origin: Captured(attempt), .. }) &&
-    value.native_attempts.get(attempt) is Some(original) &&
-    value.native_sources.get(original.configuration) is Some(source) &&
-    value.runs.get(source.run)
+    value.run_invocations.get(record.source) is Some({ compute, .. }) &&
+    value.computes.get(compute) is Some(original_compute) &&
+    stored_compute_original_run(value, original_compute)
     is Some({ normalization: Some(normalization), .. }) else {
     return Err(())
   }

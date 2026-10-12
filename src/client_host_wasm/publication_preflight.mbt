@@ -53,7 +53,7 @@ pub fn reserve_publication_preflight(
   physical_copy_bytes : Int64,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(source)
+    value.run_invocations.get(source)
     is Some(
       { closing: false, produced: true, invocation: Some(_), compute, .. }
     ) &&
@@ -114,13 +114,12 @@ pub fn prepare_publication_preflight(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publication_preflights.get(handle) is Some(record) &&
-    value.source_publications.get(record.source)
+    value.run_invocations.get(record.source)
     is Some({ closing: false, invocation: Some(invocation), .. }) &&
-    value.computes.get(record.compute)
-    is Some({ closing: false, origin: Captured(native_attempt), .. }) &&
-    value.native_attempts.get(native_attempt) is Some(original) &&
-    value.native_sources.get(original.configuration) is Some(source) &&
-    value.runs.get(source.run) is Some({ outcome: Some(Ok(plan)), .. }) &&
+    value.computes.get(record.compute) is Some(compute) &&
+    !compute.closing &&
+    stored_compute_original_run(value, compute)
+    is Some({ outcome: Some(Ok(plan)), .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -252,7 +251,7 @@ fn stored_preflight_original_current(
   pending_confirmation? : Bool = false,
 ) -> Bool {
   guard record.preflight is Some(preflight) &&
-    value.source_publications.get(record.source) is Some(source) &&
+    value.run_invocations.get(record.source) is Some(source) &&
     source.produced &&
     value.computes.get(record.compute) is Some(compute) else {
     return false

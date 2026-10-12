@@ -21,6 +21,30 @@ priv struct StoredNativeCompute {
 }
 
 ///|
+fn stored_compute_original_run(
+  value : Instance,
+  compute : StoredNativeCompute,
+) -> StoredRun? {
+  match compute.origin {
+    Captured(attempt) => {
+      guard value.native_attempts.get(attempt) is Some(original) &&
+        value.native_sources.get(original.configuration) is Some(source) else {
+        return None
+      }
+      value.runs.get(source.run)
+    }
+    SourceFree(run, start) => {
+      guard value.physical_starts.get(start)
+        is Some({ run: original_run, outcome: Some(Ok(_)), .. }) &&
+        original_run == run else {
+        return None
+      }
+      value.runs.get(run)
+    }
+  }
+}
+
+///|
 #export_name("actql_compute_reserve")
 pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int {
   guard selected(nonce) is Some(value) &&
@@ -205,7 +229,7 @@ pub fn close_native_compute(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
-  if value.source_publications.values().any(source => source.compute == handle) {
+  if value.run_invocations.values().any(source => source.compute == handle) {
     return -9
   }
   if value.tasks.values().any(task => task.compute == handle) {
