@@ -74,19 +74,21 @@ fn PrivateEffectEvidenceCustody::retire_preparation(
 ///|
 struct LocalPreparationRawCustody {
   binding : LocalPreparationRawBinding
+  holding : String
   private_custody : PrivateEffectEvidenceCustody
 }
 
 ///|
 fn raw_preparation_terminal(
-  binding : LocalPreparationRawBinding,
+  holding : String,
+  response_limit : Int,
   bytes : Int64,
 ) -> Bytes {
   @utf8.encode(
     "[\"actql-native-local-preparation-raw-retired/0.1\",\"" +
-    binding.holding +
+    holding +
     "\",\"" +
-    binding.response_limit.to_string() +
+    response_limit.to_string() +
     "\",\"" +
     bytes.to_string() +
     "\"]",
@@ -102,6 +104,10 @@ fn prepare_local_raw_custody(
 ) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue] {
   if store.closed {
     return Err(Closed)
+  }
+  let holding = match local_raw_preparation_holding(binding) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let bytes = match local_preparation_raw_reservation_bytes(binding) {
     Ok(value) => value
@@ -121,6 +127,7 @@ fn prepare_local_raw_custody(
   }
   Ok({
     binding,
+    holding,
     private_custody: {
       store,
       crypto,
@@ -131,18 +138,22 @@ fn prepare_local_raw_custody(
       preparation: Some({
         table: "credential_raw_preparation",
         wire: binding.descriptor_wire,
-        terminal: raw_preparation_terminal(binding, bytes),
+        terminal: raw_preparation_terminal(
+          holding,
+          binding.response_limit,
+          bytes,
+        ),
       }),
       terminal: @utf8.encode(
         "[\"actql-native-local-preparation-raw-body-retired/0.1\",\"" +
-        binding.holding +
+        holding +
         "\"]",
       ),
-      capacity_key: "credential-raw:" + binding.holding,
+      capacity_key: "credential-raw:" + holding,
       table: "credential_raw_observation",
-      holding: binding.holding,
+      holding,
       kind: "credential_raw_observation",
-      semantic_cid: binding.holding,
+      semantic_cid: holding,
       wire: "",
       step_prefix: "credential-raw",
       transaction_uncertain: false,
@@ -445,8 +456,12 @@ pub fn Store::restore_local_preparation_raw_observation(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let holding = match local_raw_preparation_holding(scope) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let descriptor = match
-    self.database.read("credential_raw_preparation", scope.holding) {
+    self.database.read("credential_raw_preparation", holding) {
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }
@@ -464,7 +479,7 @@ pub fn Store::restore_local_preparation_raw_observation(
       crypto.open_private_evidence(
         key,
         "credential_raw_observation",
-        scope.holding,
+        holding,
         descriptor.body,
       ) {
       Ok(value) => value
@@ -508,7 +523,11 @@ pub fn Store::restore_local_preparation_raw_observation(
   if retired {
     if descriptor.revision != 1L ||
       descriptor.body !=
-      raw_preparation_terminal(binding, owner.reservation_bytes) {
+      raw_preparation_terminal(
+        holding,
+        binding.response_limit,
+        owner.reservation_bytes,
+      ) {
       return Err(StateCollision)
     }
     let row = match self.database.read(owner.table, owner.holding) {
@@ -557,4 +576,56 @@ pub fn Store::restore_local_preparation_raw_observation(
     }
   }
   Ok(custody)
+}
+
+///|
+// The physical Store key belongs to the Native custody using it.
+fn local_raw_preparation_holding(
+  binding : LocalPreparationRawBinding,
+) -> Result[String, NativePublicationStoreIssue] {
+  raw_observation_strings(binding.fields, 1048576).map(wire => {
+    "sha256:" + @sha.hex(@utf8.encode(wire))
+  })
+}
+
+///|
+fn local_raw_closed_strings(
+  wire : String,
+  max_bytes : Int,
+  count : Int,
+) -> Result[Array[String], NativePublicationStoreIssue] {
+  let source = match
+    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+      max_input_bytes: max_bytes,
+      max_nodes: 16,
+      max_depth: 2,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(StateCollision)
+  }
+  let cursor = match
+    @decode.admit(source, {
+      max_nodes: 16,
+      max_depth: 2,
+      max_string_bytes: max_bytes,
+      max_total_string_bytes: max_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(StateCollision)
+  }
+  let elements = match @decode.elements(cursor) {
+    Ok(value) if value.length() == count => value
+    _ => return Err(StateCollision)
+  }
+  let fields : Array[String] = []
+  for element in elements {
+    match @decode.text(element) {
+      Ok(value) => fields.push(value)
+      Err(_) => return Err(StateCollision)
+    }
+  }
+  match raw_observation_strings(fields, max_bytes) {
+    Ok(original) if original == wire => Ok(fields)
+    _ => Err(StateCollision)
+  }
 }

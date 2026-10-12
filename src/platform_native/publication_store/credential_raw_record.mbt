@@ -4,9 +4,16 @@
 priv struct LocalPreparationRawBinding {
   fields : Array[String]
   descriptor_wire : String
-  holding : String
   response_limit : Int
   max_plaintext_bytes : Int
+}
+
+///|
+pub struct NativeLocalPreparationRawObservation {
+  use_cid : String
+  status : Int
+  body : Bytes
+  body_digest : String
 }
 
 ///|
@@ -53,6 +60,7 @@ fn raw_cipher_envelope_bytes(plaintext_bytes : Int64) -> Int64 {
 }
 
 ///|
+#warnings("-unused_value")
 fn local_preparation_raw_binding(
   grant : @credential.LocalPreparationCredentialGrant,
   original_use : @credential.LocalPreparationCredentialUse,
@@ -94,10 +102,6 @@ fn local_preparation_raw_binding(
     "actql-native-local-preparation-raw-response/0.1", authority, grant_cid, use_cid,
     grant_wire, use_wire,
   ]
-  let binding_wire = match raw_observation_strings(fields, 1048576) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   let descriptor_fields = fields.map(value => value)
   descriptor_fields.push(response_limit.to_string())
   let descriptor_wire = match
@@ -121,13 +125,13 @@ fn local_preparation_raw_binding(
   Ok({
     fields,
     descriptor_wire,
-    holding: "sha256:" + @sha.hex(@utf8.encode(binding_wire)),
     response_limit: response_limit.to_int(),
     max_plaintext_bytes: max_plaintext_bytes.to_int(),
   })
 }
 
 ///|
+#warnings("-unused_value")
 fn local_preparation_raw_reservation_bytes(
   binding : LocalPreparationRawBinding,
 ) -> Result[Int64, NativePublicationStoreIssue] {
@@ -140,6 +144,7 @@ fn local_preparation_raw_reservation_bytes(
 }
 
 ///|
+#warnings("-unused_value")
 fn local_preparation_raw_record(
   binding : LocalPreparationRawBinding,
   status : Int,
@@ -157,6 +162,7 @@ fn local_preparation_raw_record(
 }
 
 ///|
+#warnings("-unused_value")
 fn restore_local_preparation_raw_record(
   wire : String,
   binding : LocalPreparationRawBinding,
@@ -214,48 +220,6 @@ fn restore_local_preparation_raw_record(
   match local_preparation_raw_record(binding, status, body) {
     Ok(original) if original == wire =>
       Ok({ use_cid: fields[3], status, body, body_digest: fields[8], })
-    _ => Err(StateCollision)
-  }
-}
-
-///|
-fn local_raw_closed_strings(
-  wire : String,
-  max_bytes : Int,
-  count : Int,
-) -> Result[Array[String], NativePublicationStoreIssue] {
-  let source = match
-    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-      max_input_bytes: max_bytes,
-      max_nodes: 16,
-      max_depth: 2,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(StateCollision)
-  }
-  let cursor = match
-    @decode.admit(source, {
-      max_nodes: 16,
-      max_depth: 2,
-      max_string_bytes: max_bytes,
-      max_total_string_bytes: max_bytes,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(StateCollision)
-  }
-  let elements = match @decode.elements(cursor) {
-    Ok(value) if value.length() == count => value
-    _ => return Err(StateCollision)
-  }
-  let fields : Array[String] = []
-  for element in elements {
-    match @decode.text(element) {
-      Ok(value) => fields.push(value)
-      Err(_) => return Err(StateCollision)
-    }
-  }
-  match raw_observation_strings(fields, max_bytes) {
-    Ok(original) if original == wire => Ok(fields)
     _ => Err(StateCollision)
   }
 }

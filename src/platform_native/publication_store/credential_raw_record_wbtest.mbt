@@ -46,14 +46,17 @@ fn raw_test_binding(limit : Int64) -> LocalPreparationRawBinding {
 test "raw binding independent preimage includes original grant and use, not response or capacity" {
   let binding = raw_test_binding(4096L)
   assert_eq(
-    binding.holding,
+    "sha256:" +
+    @sha.hex(
+      @utf8.encode(raw_observation_strings(binding.fields, 1048576).unwrap()),
+    ),
     "sha256:31b4f53329f31c997452b6f9dda6c382bcd05656e83b0fad97dfdf252ecf4ff2",
   )
   assert_eq(
     raw_observation_strings(binding.fields, 1048576).unwrap(),
     "[\"actql-native-local-preparation-raw-response/0.1\",\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"sha256:f94a8a51a980cc764a6bc45f2e10805537effe1dc89e73991d119d8986ae41d2\",\"sha256:17f393ef1ac8c8fd7d86ddb27ae3f62869b6d3391bf1a1c040b10df8169443f8\",\"{\\\"account_configuration_cid\\\":\\\"sha256:1111111111111111111111111111111111111111111111111111111111111111\\\",\\\"account_id\\\":\\\"account-a\\\",\\\"attempt_id\\\":\\\"observe-original\\\",\\\"authority_scope_cid\\\":\\\"sha256:2222222222222222222222222222222222222222222222222222222222222222\\\",\\\"connector_registration\\\":\\\"salesforce-a\\\",\\\"connector_revision\\\":\\\"salesforce-a/1\\\",\\\"expires_unix_ms\\\":\\\"2000000000000\\\",\\\"host_adoption_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"issuer_authority\\\":\\\"local-authority-a\\\",\\\"max_uses\\\":2,\\\"operation\\\":\\\"salesforce:record:observe\\\",\\\"operation_occurrence_cid\\\":\\\"sha256:3333333333333333333333333333333333333333333333333333333333333333\\\",\\\"preparation_fence_cid\\\":\\\"sha256:25682af870e2978302b45578ce9aca8d560549c3c510a073242669a5a3efbf34\\\",\\\"principal\\\":\\\"operator\\\",\\\"request_body_cid\\\":\\\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\\\",\\\"request_cid\\\":\\\"sha256:6666666666666666666666666666666666666666666666666666666666666666\\\",\\\"request_method\\\":\\\"GET\\\",\\\"request_path\\\":\\\"/services/data/v61.0/sobjects/Account/001-original\\\",\\\"resource_origin\\\":\\\"https://resource.example\\\",\\\"run_invocation_cid\\\":\\\"sha256:4444444444444444444444444444444444444444444444444444444444444444\\\",\\\"submission_scope_cid\\\":\\\"sha256:2222222222222222222222222222222222222222222222222222222222222222\\\",\\\"unit_definition_cid\\\":\\\"sha256:5555555555555555555555555555555555555555555555555555555555555555\\\",\\\"version\\\":\\\"actql-local-preparation-credential-grant/0.1\\\"}\",\"{\\\"grant_cid\\\":\\\"sha256:f94a8a51a980cc764a6bc45f2e10805537effe1dc89e73991d119d8986ae41d2\\\",\\\"use_id\\\":\\\"observe-use\\\",\\\"use_ordinal\\\":1,\\\"version\\\":\\\"actql-local-credential-use/0.1\\\"}\"]",
   )
-  assert_eq(raw_test_binding(16L).holding, binding.holding)
+  assert_eq(raw_test_binding(16L).fields, binding.fields)
 }
 
 ///|

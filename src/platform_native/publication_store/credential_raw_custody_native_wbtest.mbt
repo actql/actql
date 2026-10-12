@@ -45,7 +45,7 @@ test "Native raw descriptor and original rejected response survive saved ACK fai
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 5728L)
   assert_eq(store.capacity_usage().unwrap().reserved_objects, 2L)
   let descriptor = store.database
-    .read("credential_raw_preparation", custody.binding.holding)
+    .read("credential_raw_preparation", custody.holding)
     .unwrap()
   store.allocation_failure.val = Some(step => {
     if step == "credential-raw-after-persist-readback" {
@@ -57,20 +57,16 @@ test "Native raw descriptor and original rejected response survive saved ACK fai
   let body = @utf8.encode("e\u0301\r\n")
   assert_true(custody.persist(401, body) is Err(StateCollision))
   let saved = store.database
-    .read("credential_raw_observation", custody.binding.holding)
+    .read("credential_raw_observation", custody.holding)
     .unwrap()
   store.allocation_failure.val = None
   custody.persist(401, body).unwrap()
   assert_eq(
-    store.database
-    .read("credential_raw_observation", custody.binding.holding)
-    .unwrap().body,
+    store.database.read("credential_raw_observation", custody.holding).unwrap().body,
     saved.body,
   )
   assert_eq(
-    store.database
-    .read("credential_raw_preparation", custody.binding.holding)
-    .unwrap().body,
+    store.database.read("credential_raw_preparation", custody.holding).unwrap().body,
     descriptor.body,
   )
   assert_eq(custody.confirm().unwrap().body, body)
@@ -113,7 +109,7 @@ test "Native raw insufficient capacity and missing original reservation cannot c
   let custody = raw_native_custody(store, authority, crypto)
   assert_true(custody.reserve() is Err(Database(@sqlite.CapacityExceeded)))
   assert_true(
-    store.database.read("credential_raw_preparation", custody.binding.holding)
+    store.database.read("credential_raw_preparation", custody.holding)
     is Err(@sqlite.NotFound),
   )
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 60000L)
@@ -134,7 +130,7 @@ test "Native raw insufficient capacity and missing original reservation cannot c
   assert_true(custody.persist(200, b"original") is Err(StateCollision))
   assert_eq(store.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(
-    store.database.read("credential_raw_observation", custody.binding.holding)
+    store.database.read("credential_raw_observation", custody.holding)
     is Err(@sqlite.NotFound),
   )
   // Missing reservation is not reconstructed. Cleanup retires the same
@@ -192,4 +188,17 @@ test "Native raw descriptor cleanup failure retains original capacity across reo
   assert_true(!cleanup_only.retry_cleanup().unwrap())
   assert_eq(reopened.capacity_usage().unwrap().reserved_objects, 0L)
   reopened.close().unwrap() |> ignore
+}
+
+///|
+test "Native raw holding keeps the independent original grant and use CID" {
+  let binding = raw_test_binding(4096L)
+  assert_eq(
+    local_raw_preparation_holding(binding).unwrap(),
+    "sha256:31b4f53329f31c997452b6f9dda6c382bcd05656e83b0fad97dfdf252ecf4ff2",
+  )
+  assert_eq(
+    local_raw_preparation_holding(raw_test_binding(16L)).unwrap(),
+    local_raw_preparation_holding(binding).unwrap(),
+  )
 }
