@@ -38,14 +38,24 @@ test "independent captured JOIN Program agrees under strict and check-only prepa
     Err(_) => fail("strict preparation failed at another boundary")
   }
   let (checked, _) = @stage_results.check_local_program(parameters, limits).unwrap()
-  assert_true(physical_equal(@stage_results.topology_source(checked), parameters))
+  assert_true(
+    physical_equal(@stage_results.topology_source(checked), parameters),
+  )
   let first = @stage_results.topology_stage_at(checked, 0).unwrap()
   let inputs = @stage_results.topology_stage_results(first)
   let publication = @relation_results.checked_input_publication(inputs, 0).unwrap()
   assert_true(@pipeline.publication_strategy(publication) is CandidateKey)
   assert_true(@relation_results.checked_input_order_pending(inputs, 0) is None)
   let input = @relation_results.checked_input_at(inputs, 0).unwrap()
-  assert_true(physical_equal(@pipeline.producer_pipeline(input), @pipeline.publication_pipeline(publication)))
-  assert_eq(@pipeline.producer_target(input), @pipeline.publication_target(publication))
+  assert_true(
+    physical_equal(
+      @pipeline.producer_pipeline(input),
+      @pipeline.publication_pipeline(publication),
+    ),
+  )
+  assert_eq(
+    @pipeline.producer_target(input),
+    @pipeline.publication_target(publication),
+  )
   assert_true(@pipeline.producer_projection(input) is Some(_))
 }

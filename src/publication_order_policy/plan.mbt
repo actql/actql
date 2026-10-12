@@ -106,12 +106,25 @@ pub fn[T] decide(
   max_work~ : Int,
   max_text_bytes~ : Int,
 ) -> Result[Decision[T], Issue] {
-  match resolve(source, input, output, selected_fields, authored_order, keys, prior_order, max_work~, max_text_bytes~) {
+  match
+    resolve(
+      source,
+      input,
+      output,
+      selected_fields,
+      authored_order,
+      keys,
+      prior_order,
+      max_work~,
+      max_text_bytes~,
+    ) {
     Err(issue) => Err(issue)
-    Ok(resolved) => match resolved.decision {
-      Some(decision) => Ok(decision)
-      None => Err({ kind: UnresolvedOrder, source: resolved.pending.unwrap(), })
-    }
+    Ok(resolved) =>
+      match resolved.decision {
+        Some(decision) => Ok(decision)
+        None =>
+          Err({ kind: UnresolvedOrder, source: resolved.pending.unwrap(), })
+      }
   }
 }
 
@@ -184,7 +197,12 @@ pub fn[T] resolve(
         if selected is None {
           inherited = prior_order
           if inherited is None {
-            return Ok({ decision: None, pending: Some(source), work: max_work - b.work, text_bytes: max_text_bytes - b.text, })
+            return Ok({
+              decision: None,
+              pending: Some(source),
+              work: max_work - b.work,
+              text_bytes: max_text_bytes - b.text,
+            })
           }
         }
       }
@@ -241,7 +259,13 @@ pub fn[T] resolve(
             | Timestamp
             | ResourceRef(..)
             | ArtifactRef(..) => ()
-            _ => return Ok({ decision: None, pending: Some(source), work: max_work - b.work, text_bytes: max_text_bytes - b.text, })
+            _ =>
+              return Ok({
+                decision: None,
+                pending: Some(source),
+                work: max_work - b.work,
+                text_bytes: max_text_bytes - b.text,
+              })
           }
           charge(b, source, @schema.reference_name(field.name))
           terms.push({
@@ -262,7 +286,12 @@ pub fn[T] resolve(
       work: max_work - b.work,
       text_bytes: max_text_bytes - b.text,
     }
-    Ok({ decision: Some(decision), pending: None, work: decision.work, text_bytes: decision.text_bytes, })
+    Ok({
+      decision: Some(decision),
+      pending: None,
+      work: decision.work,
+      text_bytes: decision.text_bytes,
+    })
   } catch {
     Stop(e) => Err(e)
   }

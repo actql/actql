@@ -148,3 +148,91 @@ test "publication retains hidden authored order and charges exact shared budgets
     is Err({ kind: InvalidBody, .. }),
   )
 }
+
+///|
+test "conditional publication uses the strict ProjectedFields and Inherited plans" {
+  for body in ["[]", "[" + count_values(3, "seed") + "]"] {
+    let p = if body == "[]" {
+      @pipeline_typing.check(
+        cursor(body),
+        [("rows", schema())],
+        None,
+        None,
+        limits(),
+      ).unwrap()
+    } else {
+      @pipeline_typing.check_carriers(cursor(body), [], None, None, limits()).unwrap()
+    }
+    let target = if body == "[]" { Input(0) } else { Step(0) }
+    let projection = producer_select(p, target, "[\"id\"]")
+    let conditional = @pipeline_typing.prepare_produced_publication(
+      p,
+      target,
+      projection,
+      None,
+      limits(),
+    ).unwrap()
+    let strict = @pipeline_typing.publish_produced_input(
+      p,
+      target,
+      projection,
+      None,
+      limits(),
+    ).unwrap()
+    let prepared = @pipeline_typing.prepared_publication_order(conditional).unwrap()
+    let published = @pipeline_typing.input_publication(strict)
+    assert_eq(
+      @pipeline_typing.publication_strategy(prepared),
+      @pipeline_typing.publication_strategy(published),
+    )
+    assert_eq(
+      @pipeline_typing.publication_strategy(prepared),
+      if body == "[]" {
+        @publication.ProjectedFields
+      } else {
+        @publication.Inherited
+      },
+    )
+    assert_eq(
+      @pipeline_typing.publication_term_count(prepared),
+      @pipeline_typing.publication_term_count(published),
+    )
+    assert_true(
+      physical_equal(@pipeline_typing.publication_pipeline(prepared), p),
+    )
+    assert_true(
+      physical_equal(
+        @pipeline_typing.publication_projection(prepared),
+        projection,
+      ),
+    )
+    assert_eq(@pipeline_typing.publication_target(prepared), target)
+    assert_eq(
+      @pipeline_typing.prepared_publication_usage(conditional),
+      @pipeline_typing.published_input_usage(strict),
+    )
+    assert_true(
+      @pipeline_typing.prepared_publication_pending(conditional) is None,
+    )
+    let input = @pipeline_typing.prepared_publication_input(conditional)
+    assert_true(
+      physical_equal(
+        @pipeline_typing.order_publication(
+          @pipeline_typing.producer_order(input).unwrap(),
+        ).unwrap(),
+        prepared,
+      ),
+    )
+    if body == "[]" {
+      assert_true(@pipeline_typing.publication_prior_order(prepared) is None)
+      assert_true(@pipeline_typing.logical_order(p, target) is None)
+    } else {
+      assert_true(
+        physical_equal(
+          @pipeline_typing.publication_prior_order(prepared).unwrap(),
+          @pipeline_typing.logical_order(p, target).unwrap(),
+        ),
+      )
+    }
+  }
+}

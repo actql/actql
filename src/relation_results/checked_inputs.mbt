@@ -84,7 +84,10 @@ pub fn prepare_checked_inputs(
         results.pipeline,
         results.definitions[i].target,
         projection,
-        @decode.lookup(@decode.open_object(results.definitions[i].source).unwrap(), "order_by"),
+        @decode.lookup(
+          @decode.open_object(results.definitions[i].source).unwrap(),
+          "order_by",
+        ),
         {
           max_steps: 0,
           max_work: work,
@@ -137,17 +140,25 @@ pub fn lookup_checked_input(
   value : CheckedResultInputs,
   name : String,
 ) -> @pipeline.ProducedInput? {
-  value.results.names.get(name).map(i => @pipeline.prepared_publication_input(value.inputs[i]))
+  value.results.names
+  .get(name)
+  .map(i => @pipeline.prepared_publication_input(value.inputs[i]))
 }
 
 ///|
 /// The conditional policy plan, never a Result port or execution certificate.
-pub fn checked_input_publication(value : CheckedResultInputs, index : Int) -> @pipeline.ResultPublication? {
+pub fn checked_input_publication(
+  value : CheckedResultInputs,
+  index : Int,
+) -> @pipeline.ResultPublication? {
   value.inputs.get(index).bind(@pipeline.prepared_publication_order)
 }
 
 ///|
 /// Exact unresolved publication source retained by the common order owner.
-pub fn checked_input_order_pending(value : CheckedResultInputs, index : Int) -> @decode.Cursor? {
+pub fn checked_input_order_pending(
+  value : CheckedResultInputs,
+  index : Int,
+) -> @decode.Cursor? {
   value.inputs.get(index).bind(@pipeline.prepared_publication_pending)
 }

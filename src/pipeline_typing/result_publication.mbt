@@ -34,7 +34,10 @@ pub fn publish_produced_input(
   limits : Limits,
 ) -> Result[PublishedInput, Issue] {
   try {
-    let prepared = match prepare_produced_publication(pipeline, target, projection, authored, limits) {
+    let prepared = match
+      prepare_produced_publication(
+        pipeline, target, projection, authored, limits,
+      ) {
       Ok(prepared) => prepared
       Err(issue) => raise Stop(issue)
     }
@@ -42,7 +45,9 @@ pub fn publish_produced_input(
       fail(prepared.pending.unwrap(), UnresolvedOrder)
     }
     Ok({ input: prepared.input, publication, usage: prepared.usage, })
-  } catch { Stop(issue) => Err(issue) }
+  } catch {
+    Stop(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -155,9 +160,19 @@ pub fn prepare_produced_publication(
     }
     b.work -= resolved.work
     b.text -= resolved.text_bytes
-    let usage = { work: limits.max_work - b.work, text_bytes: limits.max_text_bytes - b.text, nodes: limits.max_nodes - b.nodes, tokens: 0, }
+    let usage = {
+      work: limits.max_work - b.work,
+      text_bytes: limits.max_text_bytes - b.text,
+      nodes: limits.max_nodes - b.nodes,
+      tokens: 0,
+    }
     guard resolved.decision is Some(decision) else {
-      return Ok({ input: projected.input, publication: None, pending: resolved.pending, usage, })
+      return Ok({
+        input: projected.input,
+        publication: None,
+        pending: resolved.pending,
+        usage,
+      })
     }
     let publication = { pipeline, target, projection, authored, decision, }
     let order : LogicalOrder = {
@@ -253,13 +268,27 @@ pub fn publication_key(value : ResultPublication) -> @evidence.KeyedRelation? {
 }
 
 ///|
-pub fn prepared_publication_input(value : PublicationPreparation) -> ProducedInput { value.input }
+pub fn prepared_publication_input(
+  value : PublicationPreparation,
+) -> ProducedInput {
+  value.input
+}
 
 ///|
-pub fn prepared_publication_usage(value : PublicationPreparation) -> Usage { value.usage }
+pub fn prepared_publication_usage(value : PublicationPreparation) -> Usage {
+  value.usage
+}
 
 ///|
-pub fn prepared_publication_order(value : PublicationPreparation) -> ResultPublication? { value.publication }
+pub fn prepared_publication_order(
+  value : PublicationPreparation,
+) -> ResultPublication? {
+  value.publication
+}
 
 ///|
-pub fn prepared_publication_pending(value : PublicationPreparation) -> @decode.Cursor? { value.pending }
+pub fn prepared_publication_pending(
+  value : PublicationPreparation,
+) -> @decode.Cursor? {
+  value.pending
+}
