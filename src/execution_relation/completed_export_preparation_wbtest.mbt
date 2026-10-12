@@ -21,6 +21,7 @@ test "completed export metadata owns incremental arrays with independent exact b
         cursor, quantum,
       ).unwrap()
       assert_true(used <= quantum)
+      assert_eq(cursor.poll_work, used)
       steps += used
       if done {
         break
@@ -88,6 +89,29 @@ test "completed export metadata one-short refuses the typed capacity or order ca
     assert_eq(cursor.workspace.live, 0)
     assert_true(completed_output_available(source))
   }
+}
+
+///|
+test "failed metadata poll preserves order and column work before reclaiming its workspace" {
+  let source = export_fixture(capture_fixture())
+  let cursor = start_completed_output_export(
+    source,
+    2,
+    stream_value_limits(),
+    { ..row_wire_limits(), max_columns: 2, max_order_work: 5, },
+    64,
+    31,
+  ).unwrap()
+  assert_true(
+    advance_completed_output_export_preparation(cursor, 64)
+    is Err(Admission(CaptureLimit)),
+  )
+  // Sixteen order frames plus the two column-reservation frames. The second
+  // reservation fails; its earlier work must not disappear with private arrays.
+  assert_eq(cursor.poll_work, 18)
+  assert_eq(cursor.workspace.live, 0)
+  assert_true(cursor.closed && cursor.stream is None)
+  assert_true(completed_output_available(source))
 }
 
 ///|

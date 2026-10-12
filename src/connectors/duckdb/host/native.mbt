@@ -27,8 +27,9 @@ pub(all) enum NativeHostIssue {
 pub fn start_native_host(
   contract : @planning.QueryTwoReceiptContract,
   requirement : @planning.QueryRequirement,
-  choice : @planning.AcquisitionChoice,
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBNativePreparation,
   ],
   nonce : String,

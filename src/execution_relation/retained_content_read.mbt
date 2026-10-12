@@ -81,19 +81,38 @@ pub fn cancel_retained_content_read(value : RetainedContentRead) -> Bool {
 }
 
 ///|
+/// Actual logical admission work owned by this reader, including a partial
+/// failed row. Cancellation and finish do not erase the cumulative counter.
+/// This observation is not content admission or completion authority.
+pub fn retained_content_read_cumulative_work(
+  value : RetainedContentRead,
+) -> Int64 {
+  let budget = value.stream.buffer.budget
+  budget.work.to_int64() + budget.external_work.to_int64()
+}
+
+///|
 /// The same typed decoder and canonical encoder as representation conversion.
 /// Canonical text batches are discarded here: the immutable source already
 /// exists, and validation must not require an additional full-body copy.
+/// An optional trusted current reissuer admits exact opaque stored references;
+/// row JSON alone never issues reference authority.
 pub fn append_retained_content_read(
   value : RetainedContentRead,
   row : String,
   limits : RetainedRowDecodeLimits,
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[Unit, RetainedContentReadIssue] {
   if !value.open {
     return Err(Closed)
   }
   let cells = match
-    decode_retained_row(value.stream.buffer.schema, row, limits) {
+    decode_retained_row(
+      value.stream.buffer.schema,
+      row,
+      limits,
+      reference_issuer?,
+    ) {
     Ok(cells) => cells
     Err(issue) => {
       cancel_retained_content_read(value) |> ignore

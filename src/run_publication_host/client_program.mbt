@@ -541,17 +541,30 @@ pub fn emit_prepared_client_task_pipeline(
     @lower.node_at(@lower.bound_preparation(owner), end_step) is Some(output) else {
     return Err(MissingOutput)
   }
+  // Selected consumers of a Content completion retain the original checked
+  // producer boundary, rather than trying to lower generation as pure Compute.
+  let mut completed_serialization = None
+  if selected is Some(step) {
+    let prepared = @lower.bound_preparation(owner)
+    for producer in 0..<step {
+      if @lower.node_at(prepared, producer) is Some(node) &&
+        @lower.payload(node) is @lower.Serialize(_) {
+        completed_serialization = Some((producer, end_step))
+      }
+    }
+  }
   emit_client_task_pipeline_prefix(
     owner,
     end_step,
     @lower.node_id(output),
     selected,
     prefix_end,
-    false,
+    selected is Some(_) && completed_serialization is None,
     limits,
     max_wire_bytes,
     max_nodes,
     max_depth,
+    completed_serialization~,
   )
 }
 
@@ -570,10 +583,41 @@ fn emit_client_task_pipeline_prefix(
   max_nodes : Int,
   max_depth : Int,
   infer_boundary? : Int? = None,
+  serialization_input? : @lower.PreparedSerialization? = None,
+  completed_serialization? : (Int, Int)? = None,
+  serialization_boundary? : Int? = None,
 ) -> Result[String, ClientTaskPipelineIssue] {
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  let prepared_sequence = if infer_boundary is Some(step) {
-    @lower.prepare_sequence_with_infer_boundary(owner, step, limits)
+  let prepared_sequence = if completed_serialization
+    is Some((producer, terminal)) {
+    guard serialization_input is None &&
+      infer_boundary is None &&
+      selected is Some(step) &&
+      producer < step &&
+      step <= terminal &&
+      end_step == step else {
+      return Err(Encoding)
+    }
+    @lower.prepare_serialization_consumer_sequence(
+      owner, producer, terminal, limits,
+    )
+  } else if serialization_input is Some(barrier) {
+    if !physical_equal(@lower.serialization_owner(barrier), owner) ||
+      @lower.serialization_step(barrier) != end_step ||
+      @pipeline.serialization_sort(@lower.serialization_checked(barrier))
+      is None ||
+      infer_boundary is Some(_) ||
+      (selected is Some(step) && step != end_step) {
+      return Err(Encoding)
+    }
+    @lower.prepare_serialization_input_sequence(barrier, limits)
+  } else if infer_boundary is Some(step) {
+    @lower.prepare_sequence_with_infer_boundary(
+      owner,
+      step,
+      limits,
+      serialization=serialization_boundary,
+    )
   } else if acquisition_prefix {
     @lower.prepare_sequence_prefix(owner, end_step, limits)
   } else {
@@ -605,7 +649,7 @@ fn emit_client_task_pipeline_prefix(
     }
     @encode.end_object(writer)
     @encode.key(writer, "steps")
-    if infer_boundary is Some(_) {
+    if infer_boundary is Some(_) || completed_serialization is Some(_) {
       guard selected is Some(step) else { return Err(Encoding) }
       emit_client_sequence_steps(
         sequence,

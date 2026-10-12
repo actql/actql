@@ -65,7 +65,7 @@ test "interval search closes both resources with owned sparse candidates and one
             ),
           )
           assert_eq(
-            @capacity.target_membership_coordinates(membership).1,
+            @capacity.target_membership_coordinates(membership).unwrap().1,
             if host_first {
               1
             } else {

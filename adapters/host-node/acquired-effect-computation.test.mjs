@@ -8,6 +8,7 @@ import {openAcquiredEffectComputation as openEffectComputation} from './acquired
 // These single-source failure fixtures stop before the compiled runtime.
 const openAcquiredEffectComputation = options => openEffectComputation({
   moon: {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectSerializationOccurrences: () => [],
     clientProgramEffectPrepareLocalQueryRequirement: () => ({$tag: 1, _0: 'selected'}),
     clientProgramQueryRequirementSourceRef: value => value}, ...options,
   sourceProfile: options.sourceProfile?.sources === undefined
@@ -24,7 +25,8 @@ test('source-free composed Model admission retains custody without opening an in
   const policyLimits = Object.freeze({maxWireBytes: 1024, maxNodes: 100, maxDepth: 8});
   await assert.rejects(openEffectComputation({
     modelController: {discover: () => []},
-    moon: {clientProgramInferPlanBoundary: () => ({_0: 0}), clientProgramEffectAcquisitionCount(actual) {
+    moon: {clientProgramInferPlanBoundary: () => ({_0: 0}),
+      clientProgramEffectSerializationOccurrences: () => [], clientProgramEffectAcquisitionCount(actual) {
       assert.equal(actual, prepared);
       return 0;
     }},

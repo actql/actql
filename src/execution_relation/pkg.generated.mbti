@@ -31,6 +31,8 @@ pub fn admit_relation_registry(@canonical_json.CanonicalValue, @canonical_json.C
 
 pub fn admit_relation_row(@relation_schema.Schema, Array[@value_admission.CheckedValue?], ValueLimits) -> Result[AdmittedRelationRow, RelationPresenceIssue]
 
+pub fn admitted_input_work(AdmittedInput) -> Int
+
 pub fn admitted_output_cell(AdmittedOutputRows, Int, Int) -> @value_admission.Value?
 
 pub fn admitted_output_charge_control_work(AdmittedOutput, Int) -> Bool
@@ -50,6 +52,8 @@ pub fn admitted_output_stream_progress(AdmittedOutputStream) -> (Int, Int, Int)?
 pub fn admitted_output_target(AdmittedOutputRows) -> @pipeline_typing.Target
 
 pub fn admitted_output_usage(AdmittedOutputRows) -> ValueUsage
+
+pub fn advance_admitted_input_row(AdmittedOutputRowCursor) -> Result[Bool, AdmittedOutputRowIssue]
 
 pub fn advance_admitted_output_preparation(AdmittedOutputPreparation, Int) -> Result[AdmittedOutputPoll, @bounded_execution.Issue]
 
@@ -87,6 +91,10 @@ pub fn advance_bounded_unpivot(BoundedUnpivotExecution, Int) -> Result[BoundedUn
 
 pub fn advance_bounded_values(BoundedValuesExecution, Int) -> Result[BoundedValuesPoll, BoundedValuesIssue]
 
+pub fn advance_cancel_completed_export_receipt(CompletedOutputExportReceipt, Int) -> Bool
+
+pub fn advance_cancel_completed_output_export(CompletedOutputExport, Int) -> Bool
+
 pub fn advance_cancel_completed_output_import(CompletedOutputImport, Int) -> Bool
 
 pub fn[T] advance_close_managed_producer_bridge(ManagedProducerBridge[T], Int) -> Bool
@@ -98,6 +106,8 @@ pub fn advance_completed_output_export_preparation(CompletedOutputExportPreparat
 pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
+
+pub fn advance_completed_result_relation_export_progress(CompletedResultRelationExportPreparation, Int) -> (Bool, Int, CompletedExportIssue?)
 
 pub fn advance_completed_table_input_relation_export(CompletedTableInputRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
@@ -121,11 +131,15 @@ pub fn advance_prepare_producer_read(ProducerReadPreparation) -> Result[Producer
 
 pub fn advance_relation_schema_identity(RelationSchemaIdentityPreparation, Int) -> Result[(Bool, Int), RelationSchemaIdentityIssue]
 
+pub fn advance_retained_output_reference_reclamation(RetainedOutputMaterial, Int) -> Bool
+
 pub fn advance_row_wire_order(RowWireOrderPreparation, Int) -> Result[(Bool, Int), RowWireIssue]
 
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
+
+pub fn anchor_completed_acquisition_input(CompletedOutput, GeneratedSequence, SuppliedRelationRead) -> CompletedOutput?
 
 pub fn anchor_completed_output_fixed_inputs(CompletedOutput, Int?, Array[FixedRelationRead]) -> CompletedOutput?
 
@@ -155,7 +169,7 @@ pub fn append_admitted_output_wire(AdmittedOutput, String, RetainedRowDecodeLimi
 
 pub fn append_completed_output_import(CompletedOutputImport, Array[@value_admission.CheckedValue]) -> Result[Unit, CompletedImportIssue]
 
-pub fn append_completed_output_import_wire(CompletedOutputImport, String, RetainedRowDecodeLimits) -> Result[Unit, CompletedImportIssue]
+pub fn append_completed_output_import_wire(CompletedOutputImport, String, RetainedRowDecodeLimits, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[Unit, CompletedImportIssue]
 
 pub fn append_completed_projection_managed_values(ManagedOutputValues, CompletedOutput, Int) -> Result[Unit, ManagedOutputValueIssue]
 
@@ -169,7 +183,7 @@ pub fn[T] append_managed_producer_bridge_wire(ManagedProducerBridge[T], String, 
 
 pub fn[T] append_managed_publication_bridge_wire(ManagedPublicationBridge[T], String, RetainedRowDecodeLimits) -> Result[Unit, ManagedProducerBridgeIssue]
 
-pub fn append_retained_content_read(RetainedContentRead, String, RetainedRowDecodeLimits) -> Result[Unit, RetainedContentReadIssue]
+pub fn append_retained_content_read(RetainedContentRead, String, RetainedRowDecodeLimits, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[Unit, RetainedContentReadIssue]
 
 pub fn append_retained_producer_scan_values(RetainedProducerScan, Array[@value_admission.CheckedValue]) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
 
@@ -377,6 +391,10 @@ pub fn carrier_managed_producer_read_matches_reference(CarrierManagedProducerRea
 
 pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierManagedProducerRead) -> Bool
 
+pub fn charge_admitted_input_external_work(AdmittedInput, Int) -> Bool
+
+pub fn cleanup_admitted_input_row(AdmittedOutputRowCursor) -> Bool
+
 pub fn cleanup_admitted_output_preparation(AdmittedOutputPreparation) -> Result[Bool, @bounded_execution.Issue]
 
 pub fn cleanup_admitted_output_row(AdmittedOutputRowCursor) -> Bool
@@ -431,6 +449,10 @@ pub fn[P] complete_trusted_output(TrustedOutputPort[P], P) -> Result[CompletedOu
 
 pub fn[P] complete_trusted_retained_output(TrustedRetainedOutputPort[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
 
+pub fn completed_acquisition_matches_captured_input(CompletedOutput, GeneratedSequence, CapturedRows) -> Bool
+
+pub fn completed_acquisition_matches_supplied_input(CompletedOutput, GeneratedSequence, SuppliedRelationRead) -> Bool
+
 pub fn completed_cell(CompletedOutput, Int, Int) -> Value?
 
 pub fn completed_column_count(CompletedOutput) -> Int
@@ -447,9 +469,15 @@ pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> Completed
 
 pub fn completed_output_available(CompletedOutput) -> Bool
 
+pub fn completed_output_export_poll_steps(CompletedOutputExport) -> Int
+
+pub fn completed_output_export_rows_complete(CompletedOutputExport) -> Result[Bool, CompletedExportIssue]
+
 pub fn completed_output_export_workspace_slots(ValueLimits, RowWireLimits) -> Int?
 
 pub fn completed_output_has_row_table(CompletedOutput) -> Bool
+
+pub fn completed_output_import_cumulative_work(CompletedOutputImport) -> Int64
 
 pub fn completed_output_matches_captured_inputs(CompletedOutput, Array[CapturedRows]) -> Bool
 
@@ -461,7 +489,11 @@ pub fn completed_output_matches_operation_inputs(CompletedOutput, Int, Array[Pro
 
 pub fn completed_output_matches_port(CompletedOutput, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
 
+pub fn completed_output_matches_serialization_sort(CompletedOutput, @lowering_relation.PreparedSerialization) -> Bool
+
 pub fn completed_output_matches_supplied_inputs(CompletedOutput, Array[SuppliedRelationRead]) -> Bool
+
+pub fn completed_output_retained_material(CompletedOutput) -> RetainedOutputMaterial?
 
 pub fn completed_output_row_wire(CompletedOutput, Int, Int, Int, Int) -> Result[String, CompletedExportIssue]
 
@@ -699,11 +731,15 @@ pub fn group_execution_supported(@lowering_relation.PreparedGroup) -> Bool
 
 pub fn group_execution_supported_with_numeric(@lowering_relation.PreparedGroup) -> Bool
 
+pub fn identify_captured_relation(CapturedRows, RowWireLimits) -> Result[LogicalRelationIdentity, RowWireIssue]
+
 pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn identify_relation_schema(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
+
+pub fn infer_completed_producer_input(@lowering_relation.BoundPrepared, Int, ProducerRead) -> CompletedOutput?
 
 pub fn infer_completion_matches_rows(CompletionPreparation, PreparedInferRows) -> Bool
 
@@ -939,6 +975,8 @@ pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typin
 
 pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, RowWireLimits, Int, capture_value_measurement? : Bool) -> Result[AdmittedOutputStream, OutputStreamIssue]
 
+pub fn prepare_bounded_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
+
 pub fn[P] prepare_carrier_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[CarrierManagedProducerRead], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
 
 pub fn[P] prepare_carrier_managed_completion_port_with_inputs(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[ManagedInputBinding], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
@@ -946,6 +984,8 @@ pub fn[P] prepare_carrier_managed_completion_port_with_inputs(ManagedExecutionPr
 pub fn prepare_carrier_managed_operation_read(@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.BoundPrepared, CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference) -> Result[CarrierManagedProducerRead, TrustedOutputIssue]
 
 pub fn prepare_carrier_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference) -> Result[CarrierManagedProducerRead, TrustedOutputIssue]
+
+pub fn prepare_completed_infer_completion(PreparedInferRows, Int) -> CompletionPreparation?
 
 pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
@@ -1015,6 +1055,8 @@ pub fn prepare_retained_producer_scan(ProducerRead, Int, ValueLimits, RowWireLim
 
 pub fn prepare_retained_relation_identity_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
 
+pub fn prepare_retained_serialization_completion(GeneratedSequence, @lowering_relation.PreparedSerialization) -> CompletionPreparation?
+
 pub fn prepare_retained_storage_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
 
 pub fn prepare_reused_managed_output_values(ManagedProducerMeasurement, ValueLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
@@ -1024,6 +1066,12 @@ pub fn[T] prepare_reused_managed_producer_measurement(Array[ManagedProducerRead[
 pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, RowWireIssue]
 
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+
+pub fn prepare_serialization_completion(CompletedOutput, @lowering_relation.PreparedSerialization) -> CompletionPreparation?
+
+pub fn prepare_serialization_consumer_segment(CompletedOutput, Int, @lowering_relation.SequenceLimits, Int, Int) -> GeneratedSequence?
+
+pub fn prepare_serialization_infer_input_segment(CompletedOutput, Int, @lowering_relation.SequenceLimits, Int, Int) -> GeneratedSequence?
 
 pub fn prepare_streamed_fixed_producer_measurement(Array[ProducerRead], @pipeline_typing.Target, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[FixedProducerMeasurement, FixedInputGuardIssue]
 
@@ -1099,6 +1147,8 @@ pub fn[P] readmit_trusted_retained_output(TrustedRetainedReadmission[P], P) -> R
 
 pub fn rebind_producer_representation(ProducerRead, CompletedOutput) -> Result[ProducerRead, ProducerReadIssue]
 
+pub fn reclaim_admitted_input(AdmittedInput, Int) -> Bool
+
 pub fn register_managed_identity_issuance_capability(ManagedIdentityDomain, ManagedIdentitySubject, ManagedResultOccurrence?, String) -> Result[ManagedIdentityIssuanceCapability, ManagedIdentityIssuanceIssue]
 
 pub fn relation_cell(@value_admission.Value?) -> RelationCell
@@ -1127,6 +1177,8 @@ pub fn request_bounded_independent_row_copy_cancel(BoundedIndependentRowCopy) ->
 
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
 
+pub fn restrict_supplied_relation_read(SuppliedRelationRead, () -> Bool) -> SuppliedRelationRead
+
 pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, Int64, () -> Bool) -> Result[RetainedOutputHandle[T], TrustedOutputIssue]
 
 pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
@@ -1146,6 +1198,8 @@ pub fn retained_completion_descriptor(RetainedCompletionEvidence) -> RetainedCom
 pub fn retained_completion_matches_output(RetainedCompletionEvidence, CompletedOutput) -> Bool
 
 pub fn retained_completion_material(RetainedCompletionEvidence, CompletedOutput) -> RetainedOutputMaterial?
+
+pub fn retained_content_read_cumulative_work(RetainedContentRead) -> Int64
 
 pub fn retained_output_matches_receipt(RetainedOutputMaterial, AdmittedOutputStreamReceipt) -> Bool
 
@@ -1195,9 +1249,15 @@ pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
+pub fn serialization_completed_producer_input(@lowering_relation.PreparedSerialization, ProducerRead) -> CompletedOutput?
+
+pub fn start_admitted_input_row(AdmittedInput, Int, (Int) -> @value_admission.Value?) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue]
+
 pub fn start_admitted_output_preparation(AdmittedOutput, Int, Int, Int, (Int, Int) -> @value_admission.Value?) -> Result[AdmittedOutputPreparation, CaptureIssue]
 
 pub fn start_admitted_output_row(AdmittedOutput, Int, (Int) -> @value_admission.Value?) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue]
+
+pub fn start_admitted_presence_input_row(AdmittedInput, Int, (Int) -> RelationCell?) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue]
 
 pub fn start_admitted_presence_output_row(AdmittedOutput, Int, (Int) -> RelationCell?) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue]
 
@@ -1293,9 +1353,15 @@ pub fn supplied_relation_read_matches_input(SuppliedRelationRead, @lowering_rela
 
 pub fn supplied_relation_read_matches_operation_input(SuppliedRelationRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
 
+pub fn supplied_relation_read_presence_cell(SuppliedRelationRead, Int, Int) -> RelationCell?
+
 pub fn supplied_relation_read_receiver(SuppliedRelationRead) -> @lowering_relation.BoundPrepared
 
 pub fn supplied_relation_read_row_count(SuppliedRelationRead) -> Int
+
+pub fn supplied_relation_read_row_wire(SuppliedRelationRead, Int, RowWireLimits) -> Result[String, RowWireIssue]
+
+pub fn supplied_relation_read_rows_identity(SuppliedRelationRead, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelationRead) -> Bool
 

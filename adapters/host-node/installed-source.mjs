@@ -21,6 +21,9 @@
 //   sourceAccess})`: the checked source, read tuple and physical binding an
 //   approval covers, without provider I/O. Exactly one checked owner is given;
 //   an Effect owner must not be rechecked as an Effect-free Program;
+// - optionally `retainedCapture(prepared)`: the checked requirement and opaque
+//   installed capacity for restoring that exact capture on the existing Run
+//   ledger. This is custody preparation, not a read grant or provider replay;
 // - `open({... , sourceAccess, signal, preparedSource})`: the acquisition. It
 //   returns the captured source ({checkedSource, identity, logicalInput,
 //   setup, capture, issueSourceEvidence, close}), which the dispatch owner
@@ -42,7 +45,8 @@ import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
-  capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
+  capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
+  capturedDuckDBPendingCapacity, capturedDuckDBRequirement} from
   './captured-duckdb-source.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -95,11 +99,14 @@ async function selectInstallation(profile, connectorTable) {
 const runtimeBundleCidOf = async runtimeUrl => `sha256:${createHash('sha256')
   .update(await readFile(runtimeUrl)).digest('hex')}`;
 
-// The connector's compiled provider bundle and the runtime identity its
-// Site binds to; a built-in binding without a provider bundle needs neither.
+// Provider compilation and Site runtime binding are independent. A JS-only
+// physical Source still binds credential grants to the actual Host runtime;
+// it must not add a dummy provider bundle merely to receive that identity.
+// A built-in binding without a Site or supplied runtime needs neither.
 async function providerRuntime(entry, runtimeUrl) {
   const bundle = providerBundleUrl(entry);
-  if (bundle === undefined) return {};
+  if (bundle === undefined) return runtimeUrl === undefined ? {}
+    : {runtimeBundleCid: await runtimeBundleCidOf(runtimeUrl)};
   return {providerMoon: await import(bundle.href),
     runtimeBundleCid: await runtimeBundleCidOf(runtimeUrl)};
 }
@@ -165,6 +172,11 @@ async function duckdbAdapter(profile, moon, {root, principalId}) {
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
+    retainedCapture(prepared) {
+      return Object.freeze({requirement: capturedDuckDBRequirement(prepared),
+        capacity: moon.clientProgramInstalledPendingDuckDBCaptureCapacity(
+          capturedDuckDBPendingCapacity(prepared))});
+    },
     ledgerCapacity(prepared) {
       const physical = capturedDuckDBPhysicalCapacity(prepared);
       const capacity = moon.clientProgramInstalledDuckDBCaptureCapacity(

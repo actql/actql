@@ -238,7 +238,7 @@ fn assertion_admitted_value(
         live,
       ).value
       |> capture
-    "artifact" => issued_artifact_value(contract, live).value |> capture
+    "artifact" => issued_content_value(contract, live).value |> capture
     _ =>
       @admitted.admit(contract, input_cursor(wire), {
         max_nodes: 100,
@@ -285,7 +285,7 @@ test "row assertions preserve every relation value payload" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -334,7 +334,7 @@ test "unique assertions compare every key domain including owned references" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]

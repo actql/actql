@@ -237,6 +237,10 @@ function relationFixture() {
     begin_reload() {assert.equal(available,false); events.push('reload');},
     append_reload(row) {restored.push(JSON.parse(row)); events.push('row');},
     finish_reload() {assert.deepEqual(restored,rows); events.push('restore');},
+    cleanup_references(steps) {
+      assert.equal(steps, 32); assert.equal(released(), true);
+      events.push('retire-references'); return true;
+    },
     finish() {assert.equal(released(),true); events.push('finish');},
   };
   const operations = {
@@ -258,10 +262,30 @@ test('Relation Store roundtrip preserves ordered missing/NULL/value rows after s
   assert.equal(Object.hasOwn(f.restored[2],'p'),false);
   assert.equal(f.restored[1].p,null);
   assert.deepEqual(f.events,['prepare','save','save','revoke-source','reload',
-    'row','row','row','restore','finish']);
+    'row','row','row','restore','retire-references','finish']);
   assert.throws(() => f.operations.output_row(0),/OriginalOutputUnavailable/);
   assert.equal(store.status().reservedBytes,0);
   assert.deepEqual(await readdir(directory),[]);
+});
+
+test('Relation snapshot retires reference roots after file release and before finish', async () => {
+  const {directory,store} = await fileFixture();
+  const f = relationFixture();
+  let advances = 0;
+  const original = f.operation.cleanup_references;
+  f.operation.cleanup_references = steps => {
+    assert.equal(store.status().reservedBytes, 0);
+    assert.equal(store.status().cleanupPending, false);
+    assert.equal(f.events.includes('finish'), false);
+    original(steps);
+    return ++advances === 3;
+  };
+  const owner = prepareLocalRelationSnapshot(f.operations, () => store, checked, undefined, moon);
+  await owner.roundtrip();
+  assert.equal(advances, 3);
+  assert.deepEqual(f.events.slice(-4), ['retire-references','retire-references',
+    'retire-references','finish']);
+  assert.deepEqual(await readdir(directory), []);
 });
 
 for (const mode of ['synchronous throw','promise rejection']) {

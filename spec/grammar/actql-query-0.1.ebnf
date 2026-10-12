@@ -1,6 +1,14 @@
 (* GoogleSQL-derived ActQL query surface. Semantic restrictions are in
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
-script        = query ;
+script        = query_body, ( [ ";" ] | ";", command_postlude, { command_postlude } ) ;
+query_body    = table_create_statement | [ with_clause ], ( sql_query | pipe_query ) ;
+(* A COMMAND postlude follows a semicolon-terminated query and references a
+   retained Result. It does not replace the existing terminal UPDATE syntax. *)
+command_postlude = "EFFECT", identifier, "COMMAND", "FROM", "RESULT", identifier,
+                   "AS", identifier, "TARGET", expression, "CONTRACT", identifier,
+                   "INPUT", "(", [ effect_input, { ",", effect_input } ], ")", ";" ;
+effect_input = identifier, "=", expression ;
+
 query         = ( table_create_statement
               | [ with_clause ], ( sql_query | pipe_query ) ), [ ";" ] ;
 (* Authored WITH bodies and ordinary parentheses are Pure. The common checker
@@ -82,8 +90,12 @@ graph_quantifier = "{", integer, "}"
                  | "{", [ integer ], ",", integer, "}" ;
 source        = table_source | unnest_source ;
 table_source  = path, [ source_alias ], [ pivot_operator | unpivot_operator ]
+              | file_list_source
               | "(", relational_body, ")",
                 [ source_alias ], [ pivot_operator | unpivot_operator ] ;
+file_list_source = "LIST_FILES", "(", path,
+                   [ ",", file_list_selector ], ")", [ source_alias ] ;
+file_list_selector = ( "paths" | "glob" ), "=>", expression ;
 source_alias  = [ "AS" ], identifier ;
 unnest_source = "UNNEST", "(", expression, ")", source_alias,
                 [ "WITH", "OFFSET", [ source_alias ] ] ;
@@ -140,7 +152,7 @@ set_matching  = set_operator, [ set_names ]
                 ( "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
                 | "CORRESPONDING", [ "BY", "(", identifier, { ",", identifier }, ")" ] ) ;
 set_part      = set_matching, sql_operand ;
-pipe_item     = relation_pipe_item | infer_operator | nearest_operator
+pipe_item     = relation_pipe_item | infer_operator | nearest_operator | serialize_operator
               | result_operator | terminal_effect | named_sga_call | graph_match ;
 (* Named SGA calls are ActQL extensions for existing logical Graph operators.
    Carrier transitions and implemented consumers are checked separately. *)
@@ -208,6 +220,15 @@ infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",
                  [ keep_clause ], "AS", identifier ;
+(* Options are static scalar values, with bound Parameters only for row/byte
+   guards. Common profile checking owns mandatory options, domains and defaults. *)
+serialize_operator = "SERIALIZE", "FORMAT", ( "CSV" | "JSONL" ),
+                     ( order_clause | "PRESERVE", "ORDER" ),
+                     "OPTIONS", "(",
+                     [ serialize_option, { ",", serialize_option } ], ")" ;
+serialize_option = ( "name" | "header" | "null_marker" | "field_delimiter"
+                   | "encoding" | "line_ending" | "max_rows" | "max_bytes" ),
+                   "=", expression ;
 nearest_operator = "NEAREST", path, "AS", identifier,
                    [ "QUERY", nearest_role_pair ],
                    [ "CANDIDATE", nearest_role_pair ], "METRIC", metric,

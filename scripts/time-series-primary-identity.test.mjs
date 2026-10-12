@@ -7,9 +7,11 @@ const read=path=>JSON.parse(readFileSync(path,'utf8'));
 test('time-series primary preserves machine contracts and complete parent identities',()=>{
   const before=read('scripts/fixtures/pre-time-series-primary-values-identities.json');
   assert.deepEqual(before,read('scripts/fixtures/submitted-nearest-join-values-identities.json'));
-  const after=timeSeriesPrimaryIdentityOracle();
+  // Retain this submitted frontend unit; later FILES grammar is checked separately.
+  const after=timeSeriesPrimaryIdentityOracle({
+    grammarPath:'reviews/2026-10-12-frontend-time-series-primary/preimages/submitted-query-grammar.ebnf',
+    rulesPath:'reviews/2026-10-12-frontend-time-series-primary/preimages/submitted-query-rules.md'});
   assert.deepEqual(after,read('scripts/fixtures/submitted-time-series-primary-values-identities.json'));
-  assert.deepEqual(after.grammar,read('spec/manifests/actql-grammar-0.1.json'));
   assert.deepEqual(after.values_dependencies,before.values_dependencies);
   assert.deepEqual(after.program_identity,before.program_identity);
   assert.deepEqual(after.grammar,{...before.grammar,query_text_rules_sha256:after.grammar.query_text_rules_sha256,

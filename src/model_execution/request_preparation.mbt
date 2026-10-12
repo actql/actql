@@ -311,8 +311,15 @@ fn advance_model_request_preparation(
       @bounded.Continue(1, 1)
     }
     InputWire(cursor) => {
-      let finished = @admitted.advance_wire_emit(cursor) catch {
-        _ => return @bounded.Failed(RequestLimit, 1, 1)
+      if state.source is Provider(_) &&
+        state.physical_preflight is None &&
+        @admitted.wire_emit_next_reference(cursor) is Some(reference) &&
+        @admitted.reference_content_metadata(reference) is Some(_) {
+        return @bounded.Failed(Content(Role), 1, 1)
+      }
+      let finished = match advance_model_input_wire(cursor) {
+        Ok(finished) => finished
+        Err(issue) => return @bounded.Failed(issue, 1, 1)
       }
       if finished {
         request.input_index += 1
@@ -320,6 +327,24 @@ fn advance_model_request_preparation(
       }
       @bounded.Continue(1, 1)
     }
+  }
+}
+
+///|
+// Request preparation borrows the original opaque Ref, including references
+// in arrays and objects, instead of treating a valid retained envelope as
+// current authority. One existing wire frame is inspected per transition;
+// reference metadata is not traversed as if it contained new input values.
+// Media admission and the physical byte plan remain separate preflight duties.
+fn advance_model_input_wire(
+  cursor : @admitted.WireEmitCursor,
+) -> Result[Bool, ModelExecutionIssue] {
+  if @admitted.wire_emit_next_reference(cursor) is Some(reference) &&
+    !@admitted.reference_available(reference) {
+    return Err(InputReferenceUnavailable)
+  }
+  Ok(@admitted.advance_wire_emit(cursor)) catch {
+    _ => Err(RequestLimit)
   }
 }
 

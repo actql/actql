@@ -17,8 +17,9 @@ pub(all) struct NativeHostLimits {
 struct NativeHostConfiguration {
   contract : @planning.QueryTwoReceiptContract
   requirement : @planning.QueryRequirement
-  choice : @planning.AcquisitionChoice
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement]
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBNativePreparation,
   ]
   limits : NativeHostLimits
@@ -30,8 +31,9 @@ struct NativeHostConfiguration {
 pub fn configure_native_host(
   contract : @planning.QueryTwoReceiptContract,
   requirement : @planning.QueryRequirement,
-  choice : @planning.AcquisitionChoice,
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBNativePreparation,
   ],
   limits : NativeHostLimits,
@@ -51,7 +53,7 @@ pub fn configured_native_host_limits(
 /// and does not change the configured candidate or execution limits.
 pub fn configured_native_host_choice(
   value : NativeHostConfiguration,
-) -> @planning.AcquisitionChoice {
+) -> @planning.AcquisitionChoice[@planning.QueryRequirement] {
   value.choice
 }
 

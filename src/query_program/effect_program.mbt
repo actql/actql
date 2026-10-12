@@ -30,49 +30,7 @@ fn lower_update_effect(
       }) {
       raise Abort(DuplicateOutput)
     }
-    let mut root = @query.expression_node(
-      expression,
-      @query.expression_root(expression),
-    ).unwrap()
-    while root.kind is Parenthesized(child) {
-      root = @query.expression_node(expression, child).unwrap()
-    }
-    // EffectValue is a field or literal. Computation belongs in the ordinary
-    // pipeline before RESULT, never in a new Effect evaluator.
-    let value = match root.kind {
-      Reference(path) => {
-        guard resolve(path) is Some(slot) else { raise Abort(UnknownColumn) }
-        construction.object([("field", construction.text(slot))])
-      }
-      Null | Boolean(_) | Number(_) | StringLiteral(_) =>
-        match
-          @expression.append(
-            expression,
-            resolve,
-            construction.builder,
-            max_work,
-          ) {
-          Ok(value) => value
-          Err(error) => raise Abort(Expression(error))
-        }
-      Unary("-" | "+", child) => {
-        guard @query.expression_node(expression, child).unwrap().kind
-          is Number(_) else {
-          raise Abort(UnsupportedEffect)
-        }
-        match
-          @expression.append(
-            expression,
-            resolve,
-            construction.builder,
-            max_work,
-          ) {
-          Ok(value) => value
-          Err(error) => raise Abort(Expression(error))
-        }
-      }
-      _ => raise Abort(UnsupportedEffect)
-    }
+    let value = append_effect_value(construction, expression, resolve, max_work)
     assignments.push((field.value, value))
   }
   construction.object([
@@ -106,4 +64,45 @@ fn lower_update_effect(
       ]),
     ),
   ])
+}
+
+///|
+// EffectValue is a field or literal. Computation belongs in the ordinary
+// pipeline before RESULT, never in a new Effect evaluator.
+fn append_effect_value(
+  construction : Construction,
+  expression : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  let mut root = @query.expression_node(
+    expression,
+    @query.expression_root(expression),
+  ).unwrap()
+  while root.kind is Parenthesized(child) {
+    root = @query.expression_node(expression, child).unwrap()
+  }
+  match root.kind {
+    Reference(path) => {
+      guard resolve(path) is Some(slot) else { raise Abort(UnknownColumn) }
+      construction.object([("field", construction.text(slot))])
+    }
+    Null | Boolean(_) | Number(_) | StringLiteral(_) =>
+      match
+        @expression.append(expression, resolve, construction.builder, max_work) {
+        Ok(value) => value
+        Err(error) => raise Abort(Expression(error))
+      }
+    Unary("-" | "+", child) => {
+      guard @query.expression_node(expression, child).unwrap().kind is Number(_) else {
+        raise Abort(UnsupportedEffect)
+      }
+      match
+        @expression.append(expression, resolve, construction.builder, max_work) {
+        Ok(value) => value
+        Err(error) => raise Abort(Expression(error))
+      }
+    }
+    _ => raise Abort(UnsupportedEffect)
+  }
 }

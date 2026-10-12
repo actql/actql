@@ -51,7 +51,7 @@ test "admission usage accounts for typed values keys vectors and decimal text" {
 
 ///|
 test "nullable reference absence carries no reference authority and costs one node" {
-  for name in ["artifact_ref", "resource_ref"] {
+  for name in ["content_ref", "resource_ref"] {
     let extra = if name == "resource_ref" {
       ",\"resource_kind\":\"record\""
     } else {

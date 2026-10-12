@@ -4,17 +4,18 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
-import {capturedDuckDBPendingCapacity, capturedDuckDBRequirement} from './captured-duckdb-source.mjs';
 
 const VERSION = 'actql-acquired-effect-continuation/0.1';
 const CAPTURE = 'actql-host-source-capture/0.1';
+const ORIGINAL_INPUT = 'actql-host-source-original-input/0.1';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const same = (left, right) => canonicalJson(left) === canonicalJson(right);
 const sourceScope = prepared => ({...prepared.occurrence,
   checkedSource: prepared.checkedSource, readTuple: prepared.readTuple,
   physicalBinding: prepared.physicalBinding, physicalPolicy: prepared.physicalPolicy});
-const bindingFor = (runDefinitionCid, scope, acquisition) => canonicalJson({
-  version: CAPTURE, run_definition_cid: runDefinitionCid, scope, acquisition});
+const bindingFor = (runDefinitionCid, scope, acquisition, sourceEvidenceWire) => canonicalJson({
+  version: CAPTURE, run_definition_cid: runDefinitionCid, scope,
+  acquisition: acquisition ?? null, source_evidence_wire: sourceEvidenceWire});
 
 export function acquiredEffectContinuation({checkpoints, moon, acquired,
   submission, declaredResults, principalId, unitId, resume, restore,
@@ -98,15 +99,25 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
   async function persistSource(state) {
     const {captured, sourceEvidenceWire, startedAt, completedAt} = state.material;
     const acquisition = captured.acquisition;
-    if (acquisition?.observation === undefined) fail('SourceCaptureObservationUnavailable');
-    const binding = bindingFor(runDefinitionCid, state.scope, acquisition);
+    // Provider-specific acquisition diagnostics are not the Source evidence
+    // owner. Every installed capture has the original issued evidence wire;
+    // bind that exact observation even when no selector diagnostic exists.
+    if (typeof sourceEvidenceWire !== 'string' || sourceEvidenceWire.length === 0) {
+      fail('SourceCaptureObservationUnavailable');
+    }
+    const binding = bindingFor(runDefinitionCid, state.scope, acquisition, sourceEvidenceWire);
     const exported = checked(moon.clientProgramExportSourceCapture(captured.capture.source(),
       captured.requirement, binding));
+    const originalRead = captured.capture.originalRead?.();
+    const originalFacts = originalRead === undefined ? undefined :
+      checked(moon.clientProgramExportSourceOriginalRead(originalRead));
     const record = {version: CAPTURE, run_definition_cid: runDefinitionCid,
-      scope: state.scope, acquisition, binding,
+      scope: state.scope, acquisition: acquisition ?? null, binding,
       requirement_cid: moon.clientProgramSourceCaptureExportRequirement(exported),
       descriptor: moon.clientProgramSourceCaptureExportDescriptor(exported),
       rows: moon.clientProgramSourceCaptureExportRows(exported),
+      ...(originalFacts === undefined ? {} : {original_input: {version: ORIGINAL_INPUT,
+        schema_cid: originalFacts._0, rows_cid: originalFacts._1, rows: originalFacts._2}}),
       source_evidence_wire: sourceEvidenceWire,
       ...(state.checkpointCid === undefined ? {} : {checkpoint_cid: state.checkpointCid}),
       capture_started_at: startedAt, capture_completed_at: completedAt};
@@ -210,13 +221,21 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     },
     restore(source, record, ledger) {
       const state = states.get(source.occurrence.task);
-      const requirement = capturedDuckDBRequirement(source.preparedSource);
-      const binding = bindingFor(runDefinitionCid, state.scope, record.acquisition);
+      const {requirement, capacity, referenceIssuer} = source.adapter.retainedCapture(source.preparedSource);
+      const binding = bindingFor(runDefinitionCid, state.scope, record.acquisition,
+        record.source_evidence_wire);
+      const input = record.original_input;
+      if (input !== undefined && (input === null || Array.isArray(input) ||
+          Object.keys(input).sort().join(',') !== 'rows,rows_cid,schema_cid,version' ||
+          input.version !== ORIGINAL_INPUT || typeof input.schema_cid !== 'string' ||
+          typeof input.rows_cid !== 'string' || !Array.isArray(input.rows) ||
+          !input.rows.every(row => typeof row === 'string'))) fail('HeldAcquisitionChanged');
       const owner = checked(moon.clientProgramRestoreSourceCapture(requirement,
         record.requirement_cid, binding, record.binding, record.descriptor,
-        record.rows, ledger, capturedDuckDBPendingCapacity(source.preparedSource),
+        record.rows, ledger, capacity,
         () => live && !signal?.aborted && currentRun() && currentClaim() &&
-          currentApproval(state.checkpointCid)));
+          currentApproval(state.checkpointCid), referenceIssuer,
+        input === undefined ? undefined : {_0: input.schema_cid, _1: input.rows_cid, _2: input.rows}));
       restorations.add(owner);
       const capturedSource = moon.clientProgramSourceCaptureSource(owner);
       if (capturedSource === undefined) fail('SourceCaptureCustodyUnavailable');
@@ -236,6 +255,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
         checkedSource: state.scope.checkedSource, occurrence: source.occurrence,
         acquisition: record.acquisition,
         capture: Object.freeze({source: () => moon.clientProgramSourceCaptureSource(owner),
+          originalRead: () => moon.clientProgramSourceCaptureOriginalRead(owner),
           retainTask: (dag, task) => checked(moon.clientProgramSourceCaptureRetainTask(owner, dag, task)),
           close}), close,
       });

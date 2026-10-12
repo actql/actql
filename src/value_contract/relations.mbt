@@ -67,7 +67,7 @@ fn compatible(a : Contract, b : Contract, relation : Relation) -> Bool {
       p == q && s == t
     (Vector(dimensions=x), Vector(dimensions=y)) => x == y
     (ResourceRef(resource_kind=x), ResourceRef(resource_kind=y)) => x == y
-    (ArtifactRef(media_type=x), ArtifactRef(media_type=y)) =>
+    (ContentRef(media_type=x), ContentRef(media_type=y)) =>
       match relation {
         Equal => x == y
         Assign => y is None || x == y
@@ -247,8 +247,8 @@ pub fn join_nullability_usage(
             })
             Object({ values: ordered, name_bytes: x.name_bytes, })
           }
-          (ArtifactRef(media_type=x), ArtifactRef(media_type=y)) =>
-            ArtifactRef(media_type=if x == y { x } else { None })
+          (ContentRef(media_type=x), ContentRef(media_type=y)) =>
+            ContentRef(media_type=if x == y { x } else { None })
           _ => a.shape
         }
         values.push({ nullable: a.nullable || b.nullable, shape, })
@@ -268,7 +268,7 @@ pub fn key_comparable(a : Contract, b : Contract) -> Bool {
     | (Timestamp, Timestamp)
     | (Date, Date)
     | (Decimal(..), Decimal(..))
-    | (ArtifactRef(..), ArtifactRef(..)) => true
+    | (ContentRef(..), ContentRef(..)) => true
     (ResourceRef(resource_kind=x), ResourceRef(resource_kind=y)) => x == y
     _ => false
   }

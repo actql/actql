@@ -34,12 +34,7 @@ pub fn issue_prepared_client_infer_compilation(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      required_profiles=[
-        (
-          "actql-infer/0.1",
-          @environment.compiler_inference_barrier_contract_cid(),
-        ),
-      ],
+      required_profiles=client_infer_required_profiles(graph),
     ) {
     Ok(value) => { plan: value, }
     Err(issue) => return Err(Plan(issue))
@@ -64,5 +59,6 @@ pub fn issue_prepared_client_infer_compilation(
     max_nodes,
     max_depth,
     infer=Some(graph),
+    serialization=graph.serialization,
   )
 }

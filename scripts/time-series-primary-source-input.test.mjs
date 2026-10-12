@@ -34,7 +34,8 @@ test('time-series public selection preserves normal registration, receipt hook a
   assert.ok(driver.includes("? ['time-series-primary-receipts.local.json', 'time-series-primary-receipts.remote.json']"));
   const read=path=>JSON.parse(readFileSync(path,'utf8'));
   const before=read('scripts/fixtures/pre-time-series-primary-public-query-inventory.json');
-  const after=read('scripts/fixtures/public-query-inventory.json');
+  // The original cohort delta is frozen; the current union has a separate full-corpus check.
+  const after=read('scripts/fixtures/submitted-time-series-primary-public-query-inventory.json');
   assert.deepEqual(after.counts,{successes:before.counts.successes+9,executionFailures:before.counts.executionFailures,refusals:before.counts.refusals+7});
   assert.equal(after.totalCases,before.totalCases+16);
   assert.deepEqual(after.repeatedFailures,before.repeatedFailures);

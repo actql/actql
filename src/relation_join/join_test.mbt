@@ -104,7 +104,7 @@ test "key domains follow KeyComparable including references and unequal decimal 
         "{\"type\":\"resource_ref\",\"resource_kind\":\"Customer\",\"nullable\":false}",
         true,
       ),
-      ("{\"type\":\"artifact_ref\",\"nullable\":true}", true),
+      ("{\"type\":\"content_ref\",\"nullable\":true}", true),
       ("{\"type\":\"date\",\"nullable\":false}", true),
       ("{\"type\":\"timestamp\",\"nullable\":false}", true),
       ("{\"type\":\"boolean\",\"nullable\":false}", true),

@@ -4,12 +4,15 @@ import {readFileSync} from 'node:fs';
 import {nearestJoinIdentityOracle} from './nearest-join-identity-oracle.mjs';
 import {signatureRoleCid} from './sga-signature-role-identity-oracle.mjs';
 const read=path=>JSON.parse(readFileSync(path,'utf8'));
-test('JOIN continuation preserves complete parent identities and changes only authored rules',()=>{
+test('Retained JOIN continuation preserves complete parent identities and changes only authored rules',()=>{
   const before=read('scripts/fixtures/pre-nearest-join-values-identities.json');
   assert.deepEqual(before,read('scripts/fixtures/submitted-nearest-continuation-values-identities.json'));
-  const after=nearestJoinIdentityOracle({grammarPath:'reviews/2026-10-12-frontend-time-series-primary/preimages/query-grammar.ebnf',rulesPath:'reviews/2026-10-12-frontend-time-series-primary/preimages/query-rules.md'});
+  // Keep the submitted rule bytes from 93101d26 when later grammar units merge.
+  // Current combined manifests are checked by the compilation manifest tests.
+  const after=nearestJoinIdentityOracle({
+    grammarPath:'reviews/2026-10-12-frontend-nearest-continuation/preimages/query-grammar.ebnf',
+    rulesPath:'reviews/2026-10-12-frontend-nearest-join-continuation/preimages/submitted-query-rules.md'});
   assert.deepEqual(after,read('scripts/fixtures/submitted-nearest-join-values-identities.json'));
-  assert.deepEqual(after.grammar,read('reviews/2026-10-12-frontend-time-series-primary/preimages/grammar-manifest.json'));
   assert.deepEqual(after.values_dependencies,before.values_dependencies);
   assert.deepEqual(after.program_identity,before.program_identity);
   assert.deepEqual(after.grammar,{...before.grammar,

@@ -61,6 +61,16 @@ pub fn supplied_relation_read_available(value : SuppliedRelationRead) -> Bool {
 }
 
 ///|
+/// Narrow a borrowed input's lifetime without replacing its exact binding or
+/// taking ownership of its backing rows. Both owners must still allow access.
+pub fn restrict_supplied_relation_read(
+  value : SuppliedRelationRead,
+  available : () -> Bool,
+) -> SuppliedRelationRead {
+  { ..value, available: fn() { (value.available)() && available() }, }
+}
+
+///|
 pub fn supplied_relation_read_same_binding(
   left : SuppliedRelationRead,
   right : SuppliedRelationRead,
@@ -138,6 +148,19 @@ pub fn supplied_relation_read_checked_cell(
     return None
   }
   @admitted.recheck_runtime_value(cell, field.contract, limits)
+}
+
+///|
+pub fn supplied_relation_read_presence_cell(
+  value : SuppliedRelationRead,
+  row : Int,
+  column : Int,
+) -> RelationCell? {
+  if supplied_relation_read_available(value) {
+    captured_presence_cell(value.rows, row, column).to_option()
+  } else {
+    None
+  }
 }
 
 ///|

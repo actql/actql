@@ -294,7 +294,7 @@ fn constructor_safe(
             cache[id] = match c.shape {
               @contract.Json
               | @contract.ResourceRef(..)
-              | @contract.ArtifactRef(..) => false
+              | @contract.ContentRef(..) => false
               _ => true
             }
           Hole => fail(source, NullTypeUnresolved)

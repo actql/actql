@@ -43,6 +43,7 @@ struct RowWireOrderPreparation {
   mut done : Bool
   mut closed : Bool
   mut advancing : Bool
+  mut poll_work : Int
 }
 
 ///|
@@ -73,6 +74,7 @@ pub fn start_row_wire_order(
     done: false,
     closed: false,
     advancing: false,
+    poll_work: 0,
   })
 }
 
@@ -159,6 +161,7 @@ pub fn advance_row_wire_order(
   if value.closed || value.advancing || quantum <= 0 {
     return Err(InvalidLayout)
   }
+  value.poll_work = 0
   guard value.names is Some(names) && names.length() == value.width else {
     cancel_row_wire_order(value) |> ignore
     return Err(InvalidLayout)
@@ -169,6 +172,7 @@ pub fn advance_row_wire_order(
   value.advancing = true
   let result = (fn() -> Result[(Bool, Int), RowWireIssue] {
     for step in 0..<quantum {
+      value.poll_work = step + 1
       match advance_row_wire_order_frame(value, names) {
         Ok(_) => ()
         Err(issue) => return Err(issue)

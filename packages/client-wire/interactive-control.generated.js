@@ -12141,6 +12141,553 @@ const schemas = {
         }
       }
     }
+  },
+  "run_plan_view": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://smooth.dev/schemas/actql-run-plan-view-0.1.json",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "run_ref",
+      "plan_view"
+    ],
+    "properties": {
+      "version": {
+        "const": "actql-run-plan-view/0.1"
+      },
+      "run_ref": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "namespaceId",
+          "authorityScopeCid",
+          "runDefinitionCid"
+        ],
+        "properties": {
+          "namespaceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "authorityScopeCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "runDefinitionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "plan_view": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://smooth.dev/schemas/actql-plan-view-0.1.json",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "compiled_plan_cid",
+          "logical_map",
+          "observation",
+          "provider_io",
+          "quantities",
+          "capabilities"
+        ],
+        "properties": {
+          "version": {
+            "const": "actql-plan-view/0.1"
+          },
+          "compiled_plan_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "logical_map": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://smooth.dev/schemas/actql-logical-map-0.1.json",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version",
+              "compiled_plan_cid",
+              "program_definition_cid",
+              "steps",
+              "self_cid"
+            ],
+            "properties": {
+              "version": {
+                "const": "actql-logical-map/0.1"
+              },
+              "compiled_plan_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "program_definition_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "step_id",
+                    "key",
+                    "names",
+                    "operator",
+                    "ports",
+                    "can_stop_before",
+                    "can_stop_after",
+                    "stop_reason"
+                  ],
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "key": {
+                      "$schema": "https://json-schema.org/draft/2020-12/schema",
+                      "$id": "https://smooth.dev/schemas/actql-logical-step-key-0.1.json",
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "version",
+                        "compiled_plan_cid",
+                        "stage_ordinal",
+                        "occurrence",
+                        "self_cid"
+                      ],
+                      "properties": {
+                        "version": {
+                          "const": "actql-logical-step-key/0.1"
+                        },
+                        "compiled_plan_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "stage_ordinal": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "occurrence": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "operation_ordinal"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "operation"
+                                },
+                                "operation_ordinal": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 2147483647
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "input_port_ordinal"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "const": "input_output"
+                                },
+                                "input_port_ordinal": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 2147483647
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "self_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    "names": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "minItems": 0,
+                      "uniqueItems": true
+                    },
+                    "operator": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "analytic",
+                            "append",
+                            "apply_graph_delta",
+                            "asof_join",
+                            "assert_rows",
+                            "calendar_bucket",
+                            "calendar_series",
+                            "components",
+                            "cross_join",
+                            "dedupe_events",
+                            "dedupe_rows",
+                            "degree",
+                            "derive",
+                            "distinct",
+                            "drop",
+                            "edge_rows",
+                            "events",
+                            "except",
+                            "filter",
+                            "graft_graph",
+                            "graph",
+                            "graph_bounds",
+                            "graph_diff",
+                            "graphs_equal",
+                            "group",
+                            "infer",
+                            "intersect",
+                            "interval_join",
+                            "join",
+                            "json_pick",
+                            "lag",
+                            "match_edges",
+                            "match_nodes",
+                            "mean_graphs",
+                            "merge_rankings",
+                            "nearest",
+                            "nest",
+                            "node_rows",
+                            "normalize_graph",
+                            "normalize_vectors",
+                            "pivot",
+                            "pool_vectors",
+                            "reach",
+                            "rename",
+                            "row_window",
+                            "score_vectors",
+                            "select",
+                            "sequence",
+                            "session",
+                            "shortest_path",
+                            "sort",
+                            "subgraph",
+                            "subtract_graphs",
+                            "take",
+                            "text_rank",
+                            "time_series",
+                            "to_events",
+                            "to_vectors",
+                            "top_k",
+                            "top_k_by",
+                            "traverse",
+                            "union_graphs",
+                            "unnest",
+                            "unpivot",
+                            "values",
+                            "vectors",
+                            "watermark_events",
+                            "watermark_rows",
+                            "window_events",
+                            "window_group"
+                          ]
+                        }
+                      ]
+                    },
+                    "ports": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "port_id",
+                          "role",
+                          "port_ordinal",
+                          "carrier",
+                          "carrier_contract_cid",
+                          "source",
+                          "can_sample",
+                          "sample_reason"
+                        ],
+                        "properties": {
+                          "port_id": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "input",
+                              "output"
+                            ]
+                          },
+                          "port_ordinal": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "carrier": {
+                            "type": "string",
+                            "enum": [
+                              "relation",
+                              "graph",
+                              "vectors",
+                              "events"
+                            ]
+                          },
+                          "carrier_contract_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "source": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "stage_ordinal",
+                                  "input_port_ordinal"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "const": "stage_input"
+                                  },
+                                  "stage_ordinal": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  },
+                                  "input_port_ordinal": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "step_id",
+                                  "output_port_id"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "const": "logical_output"
+                                  },
+                                  "step_id": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  },
+                                  "output_port_id": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "can_sample": {
+                            "type": "boolean"
+                          },
+                          "sample_reason": {
+                            "oneOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "minItems": 1
+                    },
+                    "can_stop_before": {
+                      "type": "boolean"
+                    },
+                    "can_stop_after": {
+                      "type": "boolean"
+                    },
+                    "stop_reason": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      ]
+                    }
+                  }
+                },
+                "minItems": 0
+              },
+              "self_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          },
+          "observation": {
+            "const": "static"
+          },
+          "provider_io": {
+            "const": 0
+          },
+          "quantities": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "value",
+                    "unit",
+                    "scope_cid",
+                    "basis_cid"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "exact",
+                        "bound",
+                        "estimate"
+                      ]
+                    },
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "scope_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "basis_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "unit",
+                    "reason"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "unknown"
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "minItems": 0
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "static_plan",
+              "inspect",
+              "durable_control",
+              "sample_capture",
+              "full_intermediate_retention",
+              "cost_guard",
+              "execution_batch",
+              "policy_revision_cid"
+            ],
+            "properties": {
+              "static_plan": {
+                "type": "boolean"
+              },
+              "inspect": {
+                "type": "boolean"
+              },
+              "durable_control": {
+                "type": "boolean"
+              },
+              "sample_capture": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "relation",
+                    "graph",
+                    "vectors",
+                    "events"
+                  ]
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "full_intermediate_retention": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "relation",
+                    "graph",
+                    "vectors",
+                    "events"
+                  ]
+                },
+                "minItems": 0,
+                "uniqueItems": true
+              },
+              "cost_guard": {
+                "type": "boolean"
+              },
+              "execution_batch": {
+                "type": "boolean"
+              },
+              "policy_revision_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 };
 function valid(value, schema) {
@@ -12195,7 +12742,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:0ea08057000fa5eb37b20a358442fcaf933149d859ee8842e2a9bd4629a1494d";
+export const interactiveControlRegistryCid = "sha256:3b8830bc1720c02340cc9977a092dc16395cc3ec525927ba0755cfca7615c5b9";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);
@@ -12231,3 +12778,4 @@ export const validWireSampleVectorsShape = value => valid(value, schemas.sample_
 export const validWireSampleEventsShape = value => valid(value, schemas.sample_events);
 export const validWireRunSampleShape = value => valid(value, schemas.run_sample);
 export const validWireRunViewShape = value => valid(value, schemas.run_view);
+export const validWireRunPlanViewShape = value => valid(value, schemas.run_plan_view);

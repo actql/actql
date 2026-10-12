@@ -56,9 +56,7 @@ fn window_input_proof(
   guard found else { raise ForeignOwner }
   let input = reidentify_step_graph(
     units,
-    @step_bounds.target_rows_bound(
-      @capacity.target_membership_rows(selected.input),
-    ),
+    require_step_target_rows(@capacity.target_membership_rows(selected.input)),
     remaining,
     conversion~,
   )

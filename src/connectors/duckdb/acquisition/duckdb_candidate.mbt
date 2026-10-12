@@ -36,7 +36,10 @@ pub fn duckdb_broad_candidate(
   quantities : @connector.QueryQuantities,
   max_entries : Int,
 ) -> Result[
-  @planning.PreparedAcquisition[DuckDBQueryPreparation],
+  @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
+    DuckDBQueryPreparation,
+  ],
   @planning.QueryPlanningIssue,
 ] {
   if !@connector.valid_quantity(quantities.transfer_bytes) ||

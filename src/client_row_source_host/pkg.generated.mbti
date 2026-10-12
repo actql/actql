@@ -2,14 +2,19 @@
 package "actql/actql/client_row_source_host"
 
 import {
+  "actql/actql/capacity_policy",
   "actql/actql/check_environment",
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/local",
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
+  "actql/actql/sourceview_resolution",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -21,35 +26,97 @@ pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, 
 
 pub fn accept_charged_row_run_values(RowRun, RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
 
+pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]
+
 pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
 
 pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
 
-pub fn begin_row_run(RowRun, Int, Int, Int) -> Result[Unit, RowHostIssue]
+pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]
+
+pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]
+
+pub fn advance_row_capture_cleanup(RowRun, Int) -> Result[Bool, RowHostIssue]
+
+pub fn advance_row_run_keyed_page(RowRun, Int) -> Result[RowKeyedPagePoll, RowHostIssue]
+
+pub fn advance_row_run_listing_page(RowRun, Int, Int64) -> Result[RowListingPagePoll, RowHostIssue]
+
+pub fn begin_charged_row_run_keyed_page(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]
+
+pub fn begin_charged_row_run_listing_page(RowRun, RowPageCharge, Bytes, Int64) -> Result[Unit, RowHostIssue]
+
+pub fn begin_declared_keyed_row_read(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, String, RowDeclaredView, RowPageLimits, Int, @execution_relation.ValueLimits, @sourceview_resolution.RequestLimits, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[RowSourceRead, RowSourceIssue]
+
+pub fn begin_keyed_row_page(RowSourceRead, Bytes) -> Result[Unit, RowSourceIssue]
+
+pub fn begin_keyed_row_run(RowRun, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
+
+pub fn begin_row_capture(RowRun) -> Result[Unit, RowHostIssue]
+
+pub fn begin_row_run(RowRun, Int, Int, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
+
+pub fn begin_row_run_keyed_page(RowRun, Bytes) -> Result[Unit, RowHostIssue]
+
+pub fn begin_row_run_listing_page(RowRun, Bytes, Int64) -> Result[Unit, RowHostIssue]
+
+pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]
+
+pub fn cancel_keyed_row_read(RowSourceRead) -> Bool
 
 pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
 
 pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
+pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]
+
 pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]
+
+pub fn close_restored_row_original_input(RowRestoredOriginalInput, Int) -> Bool
 
 pub fn close_row_run(RowRun) -> Unit
 
+pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]
+
 pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView
+
+pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
 
 pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]
 
-pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowHostIssue]
+pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits, classifications? : Array[@check_environment.DataClassification]?) -> Result[RowDeclaration, RowHostIssue]
 
 pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]
 
 pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
 
-pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String) -> Result[RowAcquisition, RowHostIssue]
+pub fn keyed_row_acquisition_target(RowKeyedAcquisition) -> Result[(String, Array[String]), RowHostIssue]
+
+pub fn keyed_row_capacity_bytes(RowKeyedCapacity) -> (Int64, Int64)
+
+pub fn keyed_row_capacity_matches(RowKeyedCapacity, @lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts) -> Bool
+
+pub fn keyed_row_capacity_target(RowKeyedCapacity, RowDeclaration) -> Result[(String, Array[String]), RowHostIssue]
+
+pub fn keyed_row_capture_identity(RowKeyedSourceCapture) -> Result[@execution_relation.RowWireIdentity, RowHostIssue]
+
+pub fn keyed_row_capture_matches_request(RowKeyedSourceCapture, @sourceview_resolution.KeyedRowRequest) -> Bool
+
+pub fn keyed_row_capture_read(RowKeyedSourceCapture) -> Result[@execution_relation.SuppliedRelationRead, RowHostIssue]
+
+pub fn keyed_row_read_facts(RowSourceRead) -> @sourceview_resolution.KeyedSourceFacts?
+
+pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)
+
+pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
 
 pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]
 
-pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String) -> Result[RowAcquisition, RowHostIssue]
+pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]
+
+pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]
+
+pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
 
 pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
@@ -59,15 +126,27 @@ pub fn restore_relation_row_declaration(String, String, String, String, String?)
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
+pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]
+
+pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?
+
+pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]
+
 pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
 
 pub fn row_acquisition_columns(RowAcquisition) -> Array[String]
 
 pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64
 
+pub fn row_acquisition_is_listing(RowAcquisition) -> Bool
+
+pub fn row_acquisition_request_wire(RowAcquisition) -> Result[String, RowHostIssue]
+
 pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequirement
 
 pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64
+
+pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
 pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
@@ -79,7 +158,13 @@ pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?
 
 pub fn row_observation_cid(RowObservation) -> String
 
+pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])
+
+pub fn row_original_input_capacity() -> (Int64, Int64)
+
 pub fn row_run_attempt(RowRun) -> RowAttempt
+
+pub fn row_run_listing_complete(RowRun) -> Bool
 
 pub fn row_source_columns(RowSourcePreparation) -> Array[String]
 
@@ -87,7 +172,11 @@ pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequ
 
 pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]
 
+pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
+
 pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]
+
+pub fn start_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
 
 pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
 
@@ -131,6 +220,7 @@ pub(all) enum RowDeclarationIssue {
   InvalidConnectorId
   InvalidRegistration
   InvalidView
+  InvalidAcquisition
   UnsupportedType(String)
   DuplicateName(String)
   OutputLimit
@@ -151,6 +241,7 @@ pub struct RowDeclaredView {
   fields : Array[String]
   carrier_schema_cid : String
   data_policy_cid : String
+  classification : String
 }
 
 pub(all) enum RowEvidenceIssue {
@@ -188,7 +279,32 @@ pub(all) enum RowHostIssue {
   Consumer(@execution_query.CapturedSourceIssue)
   SourceEvidence(RowSourceEvidenceIssue)
   Physical(@physical_resources.LedgerIssue)
+  Residual(@connector_sdk.FixedComputeIssue)
+  ResidualWork(@local.ManagedProviderWorkIssue)
   InvalidState
+}
+
+type RowKeyedAcquisition
+
+type RowKeyedCapacity
+
+pub(all) struct RowKeyedLimits {
+  page : RowPageLimits
+  retention : @execution_relation.ValueLimits
+  request : @sourceview_resolution.RequestLimits
+  wire : @execution_relation.RowWireLimits
+}
+
+pub enum RowKeyedPagePoll {
+  KeyedPageContinue(work~ : Int)
+  KeyedPageComplete(rows~ : Int, work~ : Int)
+}
+
+type RowKeyedSourceCapture
+
+pub enum RowListingPagePoll {
+  ListingPageContinue(work~ : Int)
+  ListingPageComplete(rows~ : Int, work~ : Int)
 }
 
 pub struct RowMapping {
@@ -219,6 +335,16 @@ pub(all) struct RowMappingSource {
 
 type RowObservation
 
+type RowOriginalCaptureExport
+
+pub(all) enum RowOriginalCaptureIssue {
+  Unavailable
+  InvalidBinding
+  Schema(@execution_relation.RelationSchemaIdentityIssue)
+  Wire(@execution_relation.RowWireIssue)
+  Admission(RowSourceIssue)
+}
+
 type RowPageCharge
 
 pub(all) struct RowPageLimits {
@@ -233,7 +359,12 @@ pub(all) struct RowRelationViewSpec {
   resource_kind : String
   schema_wire : String
   schema_cid : String
+  request_schema_wire : String?
+  facts_wire : String?
+  acquisition_wire : String?
 }
+
+type RowRestoredOriginalInput
 
 type RowRun
 
@@ -260,9 +391,24 @@ pub(all) enum RowSourceIssue {
   Presence(@execution_relation.RelationPresenceIssue)
   Capture(@execution_relation.CaptureIssue)
   Closed
+  RequestEncoding(@sourceview_resolution.RequestWireIssue)
+  ListingProtocol
+  ListingIncomplete
+  ListingLimit(String)
+  ListingLimitUnresolved(String)
+  ListingGlobInvalid
+  ListingMissingPath(String)
+  ListingConflictingResource(String)
+  KeyedOwner(@execution_query.KeyedInputRequestIssue)
+  KeyedResponse(@sourceview_resolution.KeyedRowResponseIssue)
+  KeyedIncomplete
+  KeyedCardinality
+  KeyedLimit(String)
 } derive(@debug.Debug)
 
 type RowSourcePreparation
+
+type RowSourceRead
 
 pub(all) struct RowViewSpec {
   resource : String

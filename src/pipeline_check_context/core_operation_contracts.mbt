@@ -21,6 +21,10 @@ fn operation_count_contract(
   operation : @pipeline.CheckedOperation,
 ) -> OperationCountContract {
   match operation {
+    // Its finite generation envelope is not a pure Relation count proof.
+    // Retain the common transfer root; execution is still explicitly refused
+    // until the content barrier's quantity-specific admission is connected.
+    @pipeline.Serialize(_) => ClassificationOnly
     @pipeline.Infer(_) => Acquisition
     @pipeline.Values(_) => Values
     @pipeline.Unary(_)

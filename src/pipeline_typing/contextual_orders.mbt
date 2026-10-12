@@ -7,6 +7,7 @@ pub enum ContextualOrder {
   AnalyticPosition(AnalyticPositionOrder)
   Aggregates(GroupOrders)
   NestedRows(NestOrder)
+  Serialization(SerializationOrder)
 }
 
 ///|
@@ -44,6 +45,12 @@ pub fn resolve_contextual_orders(
       work -= 1
       let entry : Array[ContextualOrder] = []
       match step.operation {
+        Serialize(_) => {
+          guard serialization_order(p, i) is Some(order) else {
+            fail(step.source, SerializeOrderUnproven)
+          }
+          entry.push(Serialization(order))
+        }
         Unary(op) | WindowGroup(op) => {
           if @relation.existing_order_requirement(op) is Some(_) {
             guard resolve_existing_input_order(p, i) is Some(order) else {

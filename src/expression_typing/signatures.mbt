@@ -12,7 +12,7 @@ fn type_name(c : @contract.Contract) -> String {
     @contract.Array(_, ..) => "array"
     @contract.Object(_) => "object"
     @contract.ResourceRef(..) => "resource_ref"
-    @contract.ArtifactRef(..) => "artifact_ref"
+    @contract.ContentRef(..) => "content_ref"
   }
 }
 

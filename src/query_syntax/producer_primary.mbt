@@ -96,6 +96,7 @@ fn QueryParser::producer_query(
     bindings: [],
     relation: [],
     source_alias: None,
+    file_listing: None,
     graph: match primary {
       RelationGenerator(_) => None
       _ => Some({ pattern: None, expectation: None, })
@@ -106,6 +107,7 @@ fn QueryParser::producer_query(
     final_operations: [],
     effect: None,
     table_effect: None,
+    commands: [],
     work: self.work,
   }
 }

@@ -55,6 +55,10 @@ pub fn dispatch_action(
     required_boolean(object, "pre_start_failure_confirmed") is Some(_) else {
     return -31
   }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
   let subject = @host.prepared_client_identity(
       @local_run.local_run_prepared(plan),
     ).program_definition_cid
@@ -147,6 +151,10 @@ pub fn confirm_physical_start(nonce : Int64, handle : Int) -> Int {
   }
   if record.invoked {
     return -33
+  }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
   }
   record.invoked = true
   guard input_cursor(value, record.borrow.slot) is Some(cursor) &&

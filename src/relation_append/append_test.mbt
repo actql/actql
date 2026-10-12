@@ -192,15 +192,15 @@ test "append recursively rejects incompatible domains and never fills missing fi
     )
   }
   let left = row(
-    "{\"x\":{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"a\"}}",
+    "{\"x\":{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"a\"}}",
   )
   let right = row(
-    "{\"x\":{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"b\"}}",
+    "{\"x\":{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"b\"}}",
   )
   let result = run(left, right)
   assert_true(
     @schema.lookup(@relation_append.output_schema(result), Unqualified("x")).unwrap().shape
-    is @contract.ArtifactRef(media_type=None),
+    is @contract.ContentRef(media_type=None),
   )
   assert_true(
     @relation_append.check(

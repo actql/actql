@@ -130,7 +130,7 @@ test "lag preserves every result domain and owned-reference lifetime" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -176,7 +176,7 @@ test "lag partitions across every key-comparable domain" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]

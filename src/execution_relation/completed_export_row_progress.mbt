@@ -1,6 +1,7 @@
 ///|
 priv enum CompletedExportRowPhase {
   Begin
+  PrepareReferenceColumns
   MeasureColumn
   MeasureName(SteppedValueMeasure)
   MeasureCell(SteppedValueMeasure)
@@ -128,7 +129,27 @@ fn advance_completed_export_row_frame(
         if !charge_node(stream.budget, 1) {
           return Err(Admission(CaptureLimit))
         }
-        cursor.phase = MeasureColumn
+        if stream.references is Some(references) {
+          if !reserve_slots(references.workspace, 1) {
+            return Err(Admission(CaptureLimit))
+          }
+          references.rows.push([])
+          cursor.phase = PrepareReferenceColumns
+        } else {
+          cursor.phase = MeasureColumn
+        }
+      }
+      PrepareReferenceColumns => {
+        let references = stream.references.unwrap()
+        let row = references.rows[stream.row]
+        if row.length() == IndexedRows::column_count(stream.rows) {
+          cursor.phase = MeasureColumn
+        } else {
+          if !reserve_slots(references.workspace, 1) {
+            return Err(Admission(CaptureLimit))
+          }
+          row.push([])
+        }
       }
       MeasureColumn =>
         if cursor.column == stream.order.columns.length() {
@@ -187,7 +208,19 @@ fn advance_completed_export_row_frame(
             }
           }
         }
-      MeasureWire(wire, writer) =>
+      MeasureWire(wire, writer) => {
+        if stream.references is Some(references) &&
+          wire.cursor is CapturedWire(captured) &&
+          @admitted.wire_emit_next_reference(captured) is Some(reference) {
+          if !@admitted.reference_available(reference) ||
+            stream.source is None ||
+            references.revoked ||
+            !reserve_slots(references.workspace, 1) {
+            return Err(Admission(InvalidCheckedRow))
+          }
+          let column = stream.order.columns[cursor.column].1
+          references.rows[stream.row][column].push(Some(reference))
+        }
         match advance_stepped_runtime_wire(wire) {
           Err(Workspace) => return Err(Admission(CaptureLimit))
           Err(Encoding(issue)) => return Err(Wire(Encoding(issue)))
@@ -218,6 +251,7 @@ fn advance_completed_export_row_frame(
             cursor.phase = MeasureColumn
           }
         }
+      }
       BeginPayload | BeginLogical => {
         let logical = cursor.phase is BeginLogical
         @encode.begin_ordered_object(
@@ -301,7 +335,11 @@ pub fn advance_completed_output_export(
   quantum : Int,
   max_workspace_slots : Int,
 ) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
-  if stream.reading || quantum <= 0 {
+  if stream.reading {
+    return Err(Closed)
+  }
+  stream.poll_steps = 0
+  if quantum <= 0 {
     return Err(Closed)
   }
   if max_workspace_slots < 0 {
@@ -342,6 +380,9 @@ pub fn advance_completed_output_export(
       if stream.source is None {
         return Err(Closed)
       }
+      // Record entry before a frame can fail and clear its private cursor.
+      // This is traversal progress, not another logical value-admission charge.
+      stream.poll_steps += 1
       match advance_completed_export_row_frame(stream, cursor) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
@@ -366,4 +407,26 @@ pub fn advance_completed_output_export(
     cancel_completed_output_export(stream)
   }
   result
+}
+
+///|
+/// Actual transitions entered by the last poll, including a failing frame.
+/// Cancellation retains this observation; the next poll resets it.
+pub fn completed_output_export_poll_steps(
+  stream : CompletedOutputExport,
+) -> Int {
+  stream.poll_steps
+}
+
+///|
+/// Constant-time completion observation; it enters no new row frame. This is
+/// not a canonical receipt or permission to release the borrowed producer.
+pub fn completed_output_export_rows_complete(
+  stream : CompletedOutputExport,
+) -> Result[Bool, CompletedExportIssue] {
+  guard stream.source is Some(source) else { return Err(Closed) }
+  if !completed_output_available(source) {
+    return Err(Unavailable)
+  }
+  Ok(stream.row == IndexedRows::row_count(stream.rows))
 }

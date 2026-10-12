@@ -52,9 +52,16 @@ pub fn guarded_relation_completed_output(
     !owner.state.cancelled &&
     owner.state.phase is Finished &&
     owner.state.output is Some(output) &&
-    @execution.completed_output_matches_supplied_inputs(output, [
-      owner.state.input,
-    ]) else {
+    (
+      @execution.completed_output_matches_supplied_inputs(output, [
+        owner.state.input,
+      ]) ||
+      @execution.completed_acquisition_matches_supplied_input(
+        output,
+        owner.state.sequence,
+        owner.state.input,
+      )
+    ) else {
     return None
   }
   Some(output)
@@ -100,7 +107,7 @@ pub fn prepare_guarded_supplied_relation(
     @execution.supplied_relation_read_matches_input(
       input,
       @execution.generated_sequence_owner(sequence),
-      0,
+      @execution.supplied_relation_read_input_index(input),
     ) else {
     return Err(@connector.InvalidLimits)
   }
@@ -321,9 +328,18 @@ fn advance_guarded_relation(
       }
       match poll {
         Complete(output, progress~, work~) => {
-          guard @execution.anchor_completed_output_supplied_inputs(output, [
-              state.input,
-            ])
+          guard (match
+              @execution.anchor_completed_output_supplied_inputs(output, [
+                state.input,
+              ]) {
+              Some(anchored) => Some(anchored)
+              None =>
+                @execution.anchor_completed_acquisition_input(
+                  output,
+                  state.sequence,
+                  state.input,
+                )
+            })
             is Some(anchored) else {
             return guarded_relation_failure(
               state,

@@ -44,11 +44,26 @@ test('substring owner rejects stale shape semantics profile membership and ident
   }
 });
 
-test('substring migration leaves the inherited fixed-arity interval dependency intact', () => {
+test('substring preserves inherited fixed-arity semantics through the Content descriptor migration', () => {
   const base=read('spec/dependencies/actql-text-time-base.json');
   const current=read('spec/contracts/actql-expressions.json');
-  assert.equal(current.inherited_text_time_profile_cid,'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc');
+  // The merged Content contract intentionally changes one embedded value
+  // descriptor, not SUBSTRING's inherited interval or fixed arity. Project
+  // exactly that reviewed change back and check the complete original pin.
+  // This is a data-only oracle, not an old runtime reader or a mutable fixture.
+  const original = structuredClone(base);
+  const refs = original.barrier_schema.$defs.value_contract.oneOf.filter(
+    item => item.properties?.type?.const === 'content_ref');
+  assert.equal(refs.length, 1);
+  refs[0].properties.type.const = 'artifact_ref';
+  original.barrier_schema_cid = cid(original.barrier_schema);
+  assert.equal(original.barrier_schema_cid,
+    'sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28');
+  assert.equal(cid(original),
+    'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc');
   assert.equal(cid(base), current.inherited_text_time_profile_cid);
+  assert.deepEqual(base.source_schema, original.source_schema);
+  assert.deepEqual(base.bound_derivation, original.bound_derivation);
   const source=base.source_schema.oneOf.find(x=>x.required?.[0]==='substring');
   assert.deepEqual(source.properties.substring.required,['value','start','length']);
   assert.ok(base.evaluation_envelope_schema.properties.operation.enum.includes('substring'));

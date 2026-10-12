@@ -1,4 +1,149 @@
 ///|
+/// Recovered Content still enters through the original Local chain's exact
+/// receiving port. Its post-generation completion must match the authenticated
+/// original Model input before the same saved call scope can resume dispatch.
+pub fn start_restored_generated_inputs(
+  run : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  binding : String,
+  descriptor_wire : String,
+  custody_available : () -> Bool,
+  limits : Limits,
+) -> Result[Execution, Issue] {
+  guard custody_available() &&
+    @publication_host.client_serialization_generation_infer_occurrence(
+      generation, run, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_serialization_generation_saved_scope_for(
+      generation, run, plan,
+    )
+    is Some(scope) &&
+    @publication_host.client_serialization_generation_capture_for(
+      generation, run, definition,
+    )
+    is Some(_) &&
+    inputs is [@local.RelationInput(read)] else {
+    return Err(CallScope(ForeignInput))
+  }
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  guard @relation.infer_completed_producer_input(owner, step, read)
+    is Some(output) else {
+    return Err(CallScope(ForeignInput))
+  }
+  let exported = match
+    @input.export_client_infer_retained_input(output, binding) {
+    Ok(value) => value
+    Err(issue) => return Err(Input(@input.RetainedInput(issue)))
+  }
+  if !custody_available() ||
+    @input.client_infer_retained_input_export_descriptor(exported) !=
+    descriptor_wire {
+    return Err(CallScope(ForeignInput))
+  }
+  start_occurrence(
+    occurrence,
+    None,
+    Physical(provider),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+    bounds => {
+      @input.start_client_completed_infer_input(
+        occurrence,
+        output,
+        bounds.mapping,
+      )
+    },
+  ).map(active => {
+    active.durable_calls = true
+    active.saved_call_scope = Some(scope)
+    active.serialized_generation = Some(generation)
+    active
+  })
+}
+
+///|
+/// Reopen the original generated-Content occurrence without a Source/encoder
+/// prefix. Generation and saved Source scope are one checked borrowed token;
+/// physical Model entry remains behind the existing durable approval owner.
+pub fn start_restored_generated_input(
+  prepared : @publication_host.PreparedClientProgram,
+  run : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  expected_binding : String,
+  saved_binding : String,
+  descriptor_wire : String,
+  rows : Array[String],
+  custody_available : () -> Bool,
+  limits : Limits,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_serialization_generation_infer_occurrence(
+      generation, run, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_infer_occurrence_matches(occurrence, prepared) &&
+    @publication_host.client_serialization_generation_saved_scope_for(
+      generation, run, plan,
+    )
+    is Some(scope) &&
+    @publication_host.client_serialization_generation_capture_for(
+      generation, run, definition,
+    )
+    is Some(evidence) else {
+    return Err(CallScope(ForeignInput))
+  }
+  start_occurrence(
+    occurrence,
+    Some(prepared),
+    Physical(provider),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+    bounds => {
+      @input.start_client_restored_serialized_infer_input(
+        prepared,
+        run,
+        definition,
+        plan,
+        occurrence,
+        evidence,
+        registry,
+        values,
+        expected_binding,
+        saved_binding,
+        descriptor_wire,
+        rows,
+        custody_available,
+        bounds.input,
+        bounds.mapping,
+        fragment_body~,
+        ordered_body~,
+      )
+    },
+  ).map(active => {
+    active.durable_calls = true
+    active.saved_call_scope = Some(scope)
+    active.serialized_generation = Some(generation)
+    active
+  })
+}
+
+///|
 /// Only the actual live Model inventory can identify the pre-INFER completion
 /// to retain. Caller-supplied rows or an equal output cannot issue this token.
 pub fn export_prepared_input(
@@ -116,6 +261,7 @@ pub fn start_restored_input(
   saved_scope? : @publication_host.ClientInferSavedCallScope? = None,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[Execution, Issue] {
   guard @publication_host.prepared_client_infer_execution_occurrence(
       prepared, step,
@@ -168,6 +314,7 @@ pub fn start_restored_input(
         bounds.mapping,
         fragment_body~,
         ordered_body~,
+        reference_issuer?,
       )
     },
     acquired_input~,
@@ -194,6 +341,8 @@ pub fn start_restored_composed_input(
   limits : Limits,
   sources? : @publication_host.ClientInferComposedSources? = None,
   saved_scope? : @publication_host.ClientInferSavedCallScope? = None,
+  reference_issuer? : @admitted.ReferenceIssuer,
+  root? : (@relation.GeneratedSequence?, @resources.Ledger)? = None,
 ) -> Result[Execution, Issue] {
   if sources is Some(value) &&
     !@publication_host.client_infer_composed_sources_matches(value, occurrence) {
@@ -231,9 +380,11 @@ pub fn start_restored_composed_input(
         custody_available,
         bounds.input,
         bounds.mapping,
+        reference_issuer?,
       )
     },
     composed_sources=sources,
+    root=root.map(value => (prefix, value.0, value.1)),
   ).map(active => {
     active.durable_calls = true
     active.saved_call_scope = saved_scope

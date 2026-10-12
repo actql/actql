@@ -917,7 +917,7 @@
                 "type": "boolean"
               },
               "type": {
-                "const": "artifact_ref"
+                "const": "content_ref"
               }
             },
             "required": [
@@ -2284,7 +2284,7 @@
     ],
     "type": "object"
   },
-  "barrier_schema_cid": "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28",
+  "barrier_schema_cid": "sha256:5adf46eaec1abafe870b04cd90c5db5b8825ecb24450ec54e5b17c1c96388c04",
   "bound_derivation": {
     "case_fold": {
       "max_output_bytes": "max_output_codepoints*4",

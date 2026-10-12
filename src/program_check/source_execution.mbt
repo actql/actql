@@ -48,6 +48,7 @@ pub struct SourceExecutionSubject {
   response_policy : SourceResponsePolicy
   response_policy_cid : String
   direct_policy : DirectSourcePolicy?
+  request_value_policy : @environment.SourceDataPolicy?
   authority : SourceReadAuthority
 }
 
@@ -69,6 +70,7 @@ struct SourceExecution {
 fn prepare_source_execution(
   identity : @context.ProgramSourceIdentity,
   budget : IdentityBudget,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
 ) -> Array[SourceExecution] raise UnitBuildFailure {
   let producer = @context.preparation_sources(
     @context.operation_profiles_preparation(
@@ -111,6 +113,10 @@ fn prepare_source_execution(
         e => raise Encoding(e)
       }
       let response_policy_cid = identity_finish(remaining, policy_writer)
+      let request_value_policy = select_request_value_policy(
+        identity, stage, input, request, response_policy, request_value_policies,
+        remaining,
+      )
       let subject = SourceExecutionSubject::{
         owner: identity,
         stage,
@@ -119,11 +125,15 @@ fn prepare_source_execution(
         source,
         response_policy,
         response_policy_cid,
+        request_value_policy,
         direct_policy: match request {
           @sourceviews.Direct(_, direct) =>
             Some(
               prepare_direct_source_policy(
-                direct, response_policy, response_policy_cid,
+                direct,
+                response_policy,
+                response_policy_cid,
+                request_value_policy~,
               ),
             )
           @sourceviews.Keyed(_, _) => None

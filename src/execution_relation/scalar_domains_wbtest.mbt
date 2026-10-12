@@ -194,10 +194,10 @@ test "reference equality is prepared in selected and lazy branches" {
 ///|
 test "artifact equality ignores compatible media restrictions" {
   let pdf = select_checked_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
   )
   let json = select_checked_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
   )
   assert_true(supported_comparison(pdf, json))
   assert_true(supported_binary_comparison(Equal, pdf, json))

@@ -637,7 +637,8 @@ fn lower_expression_measured(
       expression_fail(source, MissingCheckedBinding)
     }
     let (typed, resolved_fields) = match step.payload {
-      Infer(_) => expression_fail(step.source, MissingCheckedBinding)
+      Infer(_) | Serialize(_) =>
+        expression_fail(step.source, MissingCheckedBinding)
       Derive(op)
       | Where(op)
       | CountGroup(op)

@@ -197,6 +197,35 @@ fn validate_view_shape(
 ///|
 /// Shape only: role contracts are retained, but mode coherence, correlation,
 /// output Carrier compatibility and publisher authority remain separate.
+pub fn check_source_view_acquisition_shape(
+  source : @decode.Cursor,
+  max_work : Int,
+) -> Result[Int, SourceViewShapeIssue] {
+  if max_work < 0 {
+    return Err({ kind: InvalidLimits, source: None, })
+  }
+  // Reuse the actual generated SourceView acquisition rule. A declaration
+  // builder cannot install a second, weaker grammar for keyed fetches.
+  guard source_view_shape_rule() is SVObject(fields) else {
+    abort("generated SourceView root")
+  }
+  let budget = { left: max_work, }
+  try {
+    for (name, _, rule) in fields {
+      if name == "acquisition" {
+        validate_view_shape(source, rule, budget)
+        return Ok(max_work - budget.left)
+      }
+    }
+    abort("generated SourceView acquisition rule")
+  } catch {
+    ViewShapeStop(issue) => Err(issue)
+  }
+}
+
+///|
+/// Shape only: role contracts are retained, but mode coherence, correlation,
+/// output Carrier compatibility and publisher authority remain separate.
 pub fn check_source_view_shapes(
   values : ProtocolValueContracts,
   limits : SourceViewShapeLimits,

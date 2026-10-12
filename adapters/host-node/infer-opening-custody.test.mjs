@@ -7,6 +7,60 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
 
+for (const boundary of ['preparation', 'holding-confirmation']) {
+  test(`installed Model restoration retains original captured Content cleanup after ${boundary} failure`, async () => {
+    // Physical ports are fault doubles. This covers the actual installed
+    // composition's handoff; actual Store/Source gates have receiving fixtures.
+    const preparedProgram = {}, graph = {}, definition = 'captured-definition';
+    const plan = {kind: 'infer', inferGraph: graph,
+      runDefinition: {identity: definition, wire: '{"run_id":"captured-run"}'}};
+    const token = {available: true, snapshot: {callScopeSnapshotWire: '{"sources":[]}'}};
+    const record = {inventory: {taskIndex: 0}};
+    const original = Object.freeze({entries: []});
+    const primary = Object.assign(new Error(`Fixture${boundary}`), {code: 'FixtureCapturedRecoveryFailure'});
+    let owner, receivingAttempts = 0, childCleanups = 0, released = 0, cleanupAllowed = false;
+    const receiving = {};
+    const modelController = {discover: () => [record], prime: async () => token,
+      state: () => ({slots: []}), savedScope: () => ({}),
+      capturedContent(actual, runDefinitionCid) {
+        assert.equal(actual, token); assert.equal(runDefinitionCid, definition); return original;
+      },
+      capturedContentBinding() { return undefined; },
+      release(actual) { assert.equal(actual, token); if (token.available) { token.available = false; released++; } },
+    };
+    const runInfer = installNodeInferRun({moon: {clientProgramInferPlanBoundary: () => ({_0: 0})},
+      core: {publicationControl: {}}, selections: new Map([[preparedProgram, {graph}]]), modelController,
+      prepareKeyedRecovery: async () => {
+        if (boundary === 'preparation') throw primary;
+        return receiving;
+      },
+      runContent: {async recoverKeyed({inputToken, retainExecution}) {
+        assert.equal(inputToken, token);
+        receivingAttempts++;
+        retainExecution({cleanupPending: () => !cleanupAllowed,
+          async cleanup() { childCleanups++; return cleanupAllowed; }});
+        throw primary;
+      }}});
+    await assert.rejects(runInfer({preparedProgram, plan, store: {}, principalId: 'fixture',
+      signal: new AbortController().signal, retainExecution: value => { assert.equal(owner, undefined); owner = value; }}),
+    error => error === primary);
+    assert.ok(owner);
+    if (boundary === 'preparation') {
+      assert.equal(await owner.cleanup(), true);
+      assert.equal(receivingAttempts, 0);
+    } else {
+      assert.equal(await owner.cleanup(), false);
+      assert.equal(owner.cleanupPending(), true);
+      cleanupAllowed = true;
+      assert.equal(await owner.cleanup(), true);
+      assert.equal(receivingAttempts, 1, 'cleanup retries the retained child, never restoration or acquisition');
+      assert.equal(childCleanups, 2);
+    }
+    assert.equal(owner.cleanupPending(), false);
+    assert.equal(released, 1);
+  });
+}
+
 for (const [boundary, immediateCleanup] of [
   ...['call-entry', 'send-mask', 'quantity', 'suffix', 'preflight', 'egress'].map(name => [name, false]),
   ['quantity', true],
@@ -51,6 +105,8 @@ for (const [boundary, immediateCleanup] of [
     const control = {runDefinitionRunId: () => 'opening-run',
       runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed};
     const modelController = {discover: () => [record], prime: async () => token,
+      capturedContent(actual) { assert.equal(actual, token); return undefined; },
+      capturedContentBinding() { return undefined; },
       state: () => ({slots: []}), savedScope: () => ({}),
       release(actual) {
         assert.equal(actual, token);

@@ -12,7 +12,8 @@ struct TargetMembership {
   rows : @program.TargetRows
   consumer_visit : Int
   visit : Int
-  claim : Int
+  claim : Int?
+  input : Int?
   producer : Int
 }
 
@@ -56,10 +57,63 @@ pub fn bind_producer_target_membership(
     closure.proof_owners.get((visit, claim)) is Some(producer) else {
     return Err(InvalidClaim)
   }
-  if !physical_equal(bound, @program.target_rows_bound(rows)) {
+  if @program.target_rows_bound(rows) is None ||
+    !physical_equal(bound, @program.target_rows_bound(rows).unwrap()) {
     return Err(ForeignBound)
   }
-  Ok({ closure, rows, consumer_visit, visit, claim, producer, })
+  Ok({
+    closure,
+    rows,
+    consumer_visit,
+    visit,
+    claim: Some(claim),
+    input: None,
+    producer,
+  })
+}
+
+///|
+/// Retain an acquired Source root at its actual contextual occurrence. It is
+/// not an ordinary sparse claim slot and must not be assigned a fake index.
+pub fn bind_source_target_membership(
+  closure : ApplicationClosure,
+  rows : @program.TargetRows,
+  consumer_visit : Int,
+  producer_visit : Int,
+) -> Result[TargetMembership, TargetMembershipIssue] {
+  guard closure.entries.get(consumer_visit) is Some(consumer) &&
+    closure.entries.get(producer_visit) is Some(producer) else {
+    return Err(InvalidVisit)
+  }
+  if !physical_equal(
+      @program.target_rows_pipeline(rows),
+      checked_pipeline(consumer.sources.graph),
+    ) {
+    return Err(ForeignConsumer)
+  }
+  guard @program.target_rows_source(rows) is Some(source) &&
+    physical_equal(
+      @program.source_input_rows_pipeline(source),
+      checked_pipeline(producer.sources.graph),
+    ) else {
+    return Err(ForeignBound)
+  }
+  if @environment.file_listing_rows_policy(
+      @program.source_input_rows_limit(source),
+    )
+    is Some(policy) &&
+    @policy.cid(policy) != @policy.cid(closure.policy) {
+    return Err(ForeignBound)
+  }
+  Ok({
+    closure,
+    rows,
+    consumer_visit,
+    visit: producer_visit,
+    claim: None,
+    input: Some(@program.source_input_rows_index(source)),
+    producer: producer_visit,
+  })
 }
 
 ///|
@@ -79,6 +133,11 @@ pub fn target_membership_rows(v : TargetMembership) -> @program.TargetRows {
 
 ///|
 /// Claim-table visit, original claim index and admitted proof-owner visit.
-pub fn target_membership_coordinates(v : TargetMembership) -> (Int, Int, Int) {
-  (v.visit, v.claim, v.producer)
+pub fn target_membership_coordinates(v : TargetMembership) -> (Int, Int, Int)? {
+  v.claim.map(claim => (v.visit, claim, v.producer))
+}
+
+///|
+pub fn target_membership_input_coordinates(v : TargetMembership) -> (Int, Int)? {
+  v.input.map(input => (v.visit, input))
 }

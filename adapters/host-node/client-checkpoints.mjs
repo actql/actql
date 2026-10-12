@@ -38,6 +38,9 @@ const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
+const KEYED_SOURCE_SUBMISSION = 'actql-remote-keyed-source-submission/0.1';
+const pluralCapture = captured => [MULTI_SOURCE_SUBMISSION, KEYED_SOURCE_SUBMISSION]
+  .includes(captured.version);
 const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
 export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
 
@@ -63,26 +66,47 @@ const freezeSavedData = value => {
 // This is an installed Host-private bounded capture, not a new Run schema.
 // A plural capture is never inferred by reinterpreting the singular field.
 function acquisitionsOf(captured) {
-  if (captured.version !== MULTI_SOURCE_SUBMISSION) {
+  if (!pluralCapture(captured)) {
     if (captured.acquisitions !== undefined) fail('HeldAcquisitionChanged');
     return captured.acquisition === undefined ? [] : [captured.acquisition];
   }
+  // A keyed Source can share task 0 with its Direct prefix (Content) or
+  // occupy task 1. Retain that checked coordinate, never derive it from the
+  // acquisition's position in this two-Source inventory.
   if (captured.acquisition !== undefined ||
       !Array.isArray(captured.acquisitions) ||
       captured.acquisitions.length !== 2 ||
       captured.acquisitions.some((item, index) =>
-        item?.stage !== index || item.input !== 0 || item.task !== index ||
-        typeof item.checkedSource?.requirementCid !== 'string' ||
+        !(captured.version === KEYED_SOURCE_SUBMISSION
+          ? Number.isSafeInteger(item?.stage) && item.stage >= 0 &&
+            Number.isSafeInteger(item.input) && item.input >= 0 &&
+            (index === 0 ? item.task === 0 : item.task === 0 || item.task === 1) &&
+            (index === 0 ? typeof item.checkedSource?.requirementCid === 'string' &&
+              item.checkedSource.selectionCid === undefined
+              : typeof item.checkedSource?.selectionCid === 'string' &&
+                item.checkedSource.requirementCid === undefined &&
+                typeof item.checkedSource.programCid === 'string' &&
+                typeof item.checkedSource.parametersCid === 'string' &&
+                Number.isSafeInteger(item.checkedSource.step) && item.checkedSource.step >= 0)
+          : item?.stage === index && item.input === 0 && item.task === index &&
+            typeof item.checkedSource?.requirementCid === 'string') ||
         typeof item.checkedSource?.sourceRef !== 'string' ||
         item.readTuple?.operation !== 'read' ||
         item.physicalBinding === undefined)) {
+    fail('HeldAcquisitionChanged');
+  }
+  if (captured.version === KEYED_SOURCE_SUBMISSION &&
+      (captured.acquisitions[0].stage !== captured.acquisitions[1].stage ||
+       captured.acquisitions[0].input === captured.acquisitions[1].input)) {
     fail('HeldAcquisitionChanged');
   }
   return captured.acquisitions;
 }
 const occurrenceIdentity = occurrence => ({stage: occurrence.stage,
   input: occurrence.input, task: occurrence.task,
-  requirement_cid: occurrence.checkedSource.requirementCid});
+  ...(occurrence.checkedSource.selectionCid === undefined
+    ? {requirement_cid: occurrence.checkedSource.requirementCid}
+    : {selection_cid: occurrence.checkedSource.selectionCid})});
 const occurrenceKey = occurrence => occurrence.stage === undefined
   ? 'singular' : canonicalJson(occurrenceIdentity(occurrence));
 
@@ -300,7 +324,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   }
   function captureInventory(captured) {
     const inventory = acquisitionsOf(captured);
-    if (captured.version === MULTI_SOURCE_SUBMISSION && sources === undefined &&
+    if (pluralCapture(captured) && sources === undefined &&
         source?.sourceRef === undefined) {
       fail('HeldAcquisitionChanged');
     }
@@ -591,12 +615,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // tuple. It is not a Prepared Invocation: the formal invocation depends on
   // the later source observation and is issued by its owner after it.
   const acquisitionIntent = (requestCid, captured, occurrence) => ({
-    version: captured.version === MULTI_SOURCE_SUBMISSION
+    version: pluralCapture(captured)
       ? 'actql-remote-multi-source-acquisition-intent/0.1'
       : 'actql-remote-acquisition-intent/0.1',
     request_cid: requestCid,
     captured_submission_cid: capturedValueCid(captured),
-    ...(captured.version === MULTI_SOURCE_SUBMISSION
+    ...(pluralCapture(captured)
       ? {occurrence: occurrenceIdentity(occurrence)} : {}),
     checked_source: occurrence.checkedSource,
     read_tuple: occurrence.readTuple,
@@ -617,7 +641,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       binding,
       async describe(view) {
         const intent = acquisitionIntent(requestCid, captured, occurrence);
-        const intentCid = contentCid(intent);
+        const intentCid = capturedValueCid(intent);
         const created = now();
         const expiresAt = new Date(created + checkpointTtlMs).toISOString();
         const projection = {
@@ -644,7 +668,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             source: occurrence.checkedSource,
             read_tuple: occurrence.readTuple,
             physical_binding: occurrence.physicalBinding,
-            ...(captured.version === MULTI_SOURCE_SUBMISSION
+            ...(pluralCapture(captured)
               ? {occurrence: occurrenceIdentity(occurrence)} : {}),
           },
           displayed_authoring_context: [{principal: captured.principalId}],
@@ -660,7 +684,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           {name: 'invocation_request', wire: canonicalJson(request)},
           // The Store's prepared-invocation slot holds the acquisition
           // intent (a distinct version), never a fabricated invocation.
-          {name: 'prepared_invocation', wire: canonicalJson(intent)},
+          {name: 'prepared_invocation', wire: capturedValueWire(intent)},
           {name: 'review_projection', wire: reviewWire},
         ];
         const continuation = {
@@ -673,7 +697,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           delegated_subject: JSON.parse(JSON.stringify(view.subject)),
           answering_authorities: [...answering],
           earlier_approvals: [...earlier],
-          ...(captured.version === MULTI_SOURCE_SUBMISSION
+          ...(pluralCapture(captured)
             ? {acquisition_occurrence: occurrenceIdentity(occurrence)} : {}),
           evidence: items.map(({name, wire}) =>
             evidence.reference(prepareAttemptId, name, wire)),
@@ -688,7 +712,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           binding,
           body: {
             checkpoint_id: `${prepareAttemptId}-acquisition` +
-              (captured.version === MULTI_SOURCE_SUBMISSION
+              (pluralCapture(captured)
                 ? `-${hex(occurrenceKey(occurrence)).slice(0, 20)}` : ''),
             continuation_state_cid: continuationCid,
             subject: {kind: 'prepare_attempt',
@@ -715,7 +739,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const {configuration} = installedSource(occurrence);
     const answering = answeringAuthorities ??
       authorities.map(item => item.reviewerId);
-    const intentCid = contentCid(acquisitionIntent(requestCid, captured,
+    const intentCid = capturedValueCid(acquisitionIntent(requestCid, captured,
       occurrence));
     const deferring = await createLocalAuthorizationGate({
       accountConfiguration: configuration.accountConfiguration,
@@ -735,7 +759,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
 
   function continuedOccurrence(captured, continuation) {
     const inventory = captureInventory(captured);
-    if (captured.version !== MULTI_SOURCE_SUBMISSION) return inventory[0];
+    if (!pluralCapture(captured)) return inventory[0];
     const identity = continuation.acquisition_occurrence;
     const occurrence = identity === undefined ? undefined : inventory.find(
       item => canonicalJson(occurrenceIdentity(item)) === canonicalJson(identity));
@@ -771,7 +795,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       references.get('invocation_request'));
     const invocation = await opened.record('prepared_invocation',
       references.get('prepared_invocation'));
-    if (contentCid(invocation) !== continuation.invocation_cid ||
+    if ((continuation.boundary === 'acquisition' ? capturedValueCid(invocation)
+      : contentCid(invocation)) !== continuation.invocation_cid ||
         invocation.captured_submission_cid !== capturedValueCid(captured) ||
         invocation.request_cid !== opened.requestCid ||
         contentCid(request) !== opened.requestCid ||
@@ -781,8 +806,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
     captureInventory(captured);
     if (continuation.boundary === 'acquisition') {
       const occurrence = continuedOccurrence(captured, continuation);
-      if (occurrence === undefined || contentCid(acquisitionIntent(
-        opened.requestCid, captured, occurrence)) !== contentCid(invocation)) {
+      if (occurrence === undefined || capturedValueCid(acquisitionIntent(
+        opened.requestCid, captured, occurrence)) !== capturedValueCid(invocation)) {
         fail('HeldAcquisitionChanged');
       }
     }
@@ -1983,8 +2008,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           const captures = ledger.held('captured_input');
           if (captures.length !== 1) fail('HeldAcquisitionChanged');
           const original = await ledger.record('captured_input', captures[0]);
-          if ((captured.version === MULTI_SOURCE_SUBMISSION ||
-              original.version === MULTI_SOURCE_SUBMISSION) &&
+          if ((pluralCapture(captured) || pluralCapture(original)) &&
               capturedValueCid(acquisitionsOf(original)) !==
                 capturedValueCid(acquisitionsOf(captured))) {
             fail('HeldAcquisitionChanged');
@@ -2088,7 +2112,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       const admitted = admittedReads.get(requestId)?.get(occurrence === undefined
         ? 'singular' : occurrenceKey(occurrence));
       if (admitted === undefined || occurrence !== undefined &&
-          contentCid(occurrence) !== contentCid(admitted.acquisition)) return base;
+          capturedValueCid(occurrence) !== capturedValueCid(admitted.acquisition)) return base;
       const same = scope => ['connection', 'resource', 'operation'].every(
         key => scope?.[key] === admitted.readTuple[key]);
       const authorization = Object.freeze({

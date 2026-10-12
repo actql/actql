@@ -16,7 +16,7 @@ test "automatic keyed source selection preserves sparse claim coordinates" {
     let membership = source_producer_at(value, 0, 0).unwrap()
     let (visit, claim, producer) = @capacity.target_membership_coordinates(
       membership,
-    )
+    ).unwrap()
     assert_eq(visit, 0)
     assert_eq(claim, if host_first { 1 } else { 0 })
     assert_eq(producer, 0)

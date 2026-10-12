@@ -141,7 +141,7 @@ test "publication scans sparse claims without renumbering proof membership" {
       let candidate = publication_row_candidate_at(closed, 0).unwrap()
       let claim = if host_first { 1 } else { 0 }
       assert_eq(
-        @capacity.target_membership_coordinates(candidate.membership),
+        @capacity.target_membership_coordinates(candidate.membership).unwrap(),
         (0, claim, 0),
       )
       let closure = @capacity.target_membership_closure(candidate.membership)

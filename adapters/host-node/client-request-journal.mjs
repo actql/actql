@@ -138,6 +138,56 @@ function validateSourceInventory(wire) {
   try { value = JSON.parse(wire); } catch (cause) { fail('InvalidClientSourceInventory', cause); }
   const keys = (object, expected) => object !== null && typeof object === 'object' &&
     !Array.isArray(object) && Object.keys(object).sort().join(',') === expected.split(',').sort().join(',');
+  if (value?.version === 'actql-client-keyed-source-inventory/0.1') {
+    // The installed Connector owns the target's physical schema. The journal
+    // retains its exact data plus immutable installation binding, not another
+    // provider-name dispatcher. Semantic preparation and replay still match
+    // the original checked selections before physical start.
+    if (!keys(value, 'version,environmentCid,acquisitions') || !cid(value.environmentCid) ||
+        canonicalValueJson(value, {dataKeys: true}) !== wire ||
+        !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2) {
+      fail('InvalidClientSourceInventory');
+    }
+    const commonKeys = 'sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid';
+    // Source occurrence order is not physical task identity: a Content
+    // component can consume both original reads inside task 0. The selection
+    // CID below still binds the exact checked task, port and JOIN step.
+    for (const [index, occurrence] of value.acquisitions.entries()) {
+      const source = occurrence?.checkedSource, binding = occurrence?.installationBinding;
+      if (!keys(occurrence, 'stage,input,task,checkedSource,readTuple,physicalBinding,installationBinding') ||
+          !Number.isSafeInteger(occurrence.stage) || occurrence.stage < 0 ||
+          !Number.isSafeInteger(occurrence.input) || occurrence.input < 0 ||
+          (index === 0 ? occurrence.task !== 0 : occurrence.task !== 0 && occurrence.task !== 1) ||
+          !keys(source, commonKeys + (index === 0 ? ',requirementCid,inputContractCid,outputContractCid'
+            : ',selectionCid,programCid,parametersCid,step')) ||
+          ![source.sourceContractCid, source.carrierSchemaContractCid, source.sourceDataPolicyCid,
+            source.sourceViewContractCid, ...(index === 0
+              ? [source.requirementCid, source.inputContractCid, source.outputContractCid]
+              : [source.selectionCid, source.programCid, source.parametersCid])].every(cid) ||
+          !text(source.sourceRef) || !['public', 'internal', 'confidential', 'restricted', 'unknown']
+            .includes(source.dataClassification) ||
+          !keys(binding, 'connectorId,connectorRegistration,connectorRevision,bindingCid') ||
+          ![binding.connectorId, binding.connectorRegistration, binding.connectorRevision].every(text) ||
+          !cid(binding.bindingCid) || !keys(occurrence.readTuple, 'connection,resource,operation') ||
+          ![occurrence.readTuple.connection, occurrence.readTuple.resource].every(text) ||
+          occurrence.readTuple.operation !== 'read' || occurrence.physicalBinding === null ||
+          typeof occurrence.physicalBinding !== 'object' || Array.isArray(occurrence.physicalBinding) ||
+          Object.keys(occurrence.physicalBinding).length === 0) fail('InvalidClientSourceInventory');
+      if (index === 1) {
+        if (!Number.isSafeInteger(source.step) || source.step < 0) fail('InvalidClientSourceInventory');
+        const selection = {version: 'actql-installed-keyed-selection/0.1',
+          programCid: source.programCid, parametersCid: source.parametersCid,
+          coordinates: [occurrence.stage, occurrence.input, occurrence.task, source.step],
+          sourceFacts: [source.sourceRef, source.sourceContractCid, source.carrierSchemaContractCid,
+            source.sourceDataPolicyCid, source.dataClassification, source.sourceViewContractCid]};
+        if (`sha256:${createHash('sha256').update(canonicalValueJson(selection, {dataKeys: true})).digest('hex')}` !==
+            source.selectionCid) fail('InvalidClientSourceInventory');
+      }
+    }
+    if (value.acquisitions[0].stage !== value.acquisitions[1].stage ||
+        value.acquisitions[0].input === value.acquisitions[1].input) fail('InvalidClientSourceInventory');
+    return wire;
+  }
   if (!keys(value, 'version,environmentCid,acquisitions') ||
       value.version !== 'actql-client-source-inventory/0.1' || !cid(value.environmentCid) ||
       !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
@@ -213,14 +263,34 @@ function validateSourceInventory(wire) {
   return wire;
 }
 
+function logicalPlanOriginalShape(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).sort().join(',') === 'compiledPlanWire,planViewWire' &&
+    typeof value.compiledPlanWire === 'string' && value.compiledPlanWire !== '' &&
+    typeof value.planViewWire === 'string' && value.planViewWire !== '';
+}
+
+function assertKeyedInventoryRequest(wire, fields) {
+  if (wire === undefined) return;
+  const inventory = JSON.parse(wire);
+  if (inventory.version !== 'actql-client-keyed-source-inventory/0.1') return;
+  const selection = inventory.acquisitions[1].checkedSource;
+  if (selection.programCid !== fields.programDefinitionCid ||
+      selection.parametersCid !== fields.parameterValuesCid) {
+    fail('ClientRequestSourceInventoryMismatch');
+  }
+}
+
 function admissionEvidenceShape(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   if (Object.keys(value).some(key => !['authorization', 'prepared',
     'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
-    'valuesHostPolicyOriginal'].includes(key)) ||
+    'valuesHostPolicyOriginal', 'logicalPlanOriginal'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
+  if (value.logicalPlanOriginal !== undefined &&
+      !logicalPlanOriginalShape(value.logicalPlanOriginal)) return false;
   if (value.valuesHostPolicyOriginal !== undefined) {
     const original = value.valuesHostPolicyOriginal;
     if (original === null || typeof original !== 'object' || Array.isArray(original) ||
@@ -294,8 +364,30 @@ function retainedEvidence(row) {
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
   try {
     if (!admissionEvidenceShape(value)) fail('ClientRequestJournalCorrupt');
+    assertKeyedInventoryRequest(value.sourceInventory, {
+      programDefinitionCid: row.program_definition_cid,
+      parameterValuesCid: row.parameter_values_cid});
   } catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
+  return freezeAdmissionEvidence(value);
+}
+
+function freezeAdmissionEvidence(value) {
+  if (value.logicalPlanOriginal !== undefined) Object.freeze(value.logicalPlanOriginal);
   return Object.freeze(value);
+}
+
+function checkStoredPlanOriginal(value, definition, programCid, control, maxBytes) {
+  if (!logicalPlanOriginalShape(value) ||
+      Buffer.byteLength(value.compiledPlanWire) > maxBytes ||
+      Buffer.byteLength(value.planViewWire) > maxBytes) {
+    fail('InvalidClientRunPlanOriginal');
+  }
+  if (typeof control?.readStoredRunPlanOriginal !== 'function') {
+    fail('ClientRequestPlanEvidenceUnavailable');
+  }
+  const wire = control.readStoredRunPlanOriginal(value, definition, programCid,
+    {maxWireBytes: maxBytes, maxNodes: 4096, maxDepth: 64});
+  if (wire !== value.planViewWire) fail('InvalidClientRunPlanOriginal');
 }
 
 function retainedResultNames(row) {
@@ -334,8 +426,25 @@ function retainedRunFacts(row, publicationControl, maxWireBytes) {
       JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== row.run_definition_wire) {
     fail('ClientRequestJournalCorrupt');
   }
+  if (runAdmissionEvidence?.logicalPlanOriginal !== undefined) {
+    try { checkStoredPlanOriginal(runAdmissionEvidence.logicalPlanOriginal,
+      runDefinition, row.program_definition_cid, publicationControl, maxWireBytes); }
+    catch (cause) {
+      if (cause?.code === 'ClientRequestPlanEvidenceUnavailable') throw cause;
+      if (cause?.code === 'ClientOperationUnavailable') {
+        fail('ClientRequestPlanEvidenceUnavailable', cause);
+      }
+      if (cause instanceof TypeError || cause instanceof SyntaxError ||
+          ['InvalidClientRunPlanOriginal', 'MoonBitHostFailure',
+            'RunHostOriginalMapRejected'].includes(cause?.code)) {
+        fail('ClientRequestJournalCorrupt', cause);
+      }
+      fail('ClientRequestPlanReadUnknown', cause);
+    }
+  }
   return Object.freeze({
     runDefinition,
+    programDefinitionCid: row.program_definition_cid,
     resultNames: retainedResultNames(row),
     runAdmissionEvidence,
     cancellationRequested: row.cancellation_requested === 1,
@@ -897,6 +1006,30 @@ export function openClientRequestJournal(directory, {
   const selectRef = database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ?`);
+  const readRunDefinitionRow = (ref, requestControl) => {
+    ensureOpen();
+    if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
+        !cid(ref?.runDefinitionCid) ||
+        typeof requestControl?.clientRequestAdmitRecord !== 'function') {
+      fail('InvalidClientRunLookup');
+    }
+    try {
+      return selectRef.get(ref.namespaceId, ref.authorityScopeCid,
+        ref.runDefinitionCid);
+    } catch (error) { fail('ClientRequestLookupUnknown', error); }
+  };
+  const admitRunDefinitionRow = (row, requestControl, publicationControl) => {
+    const retained = retainedIdentity(row, requestControl);
+    if (requestControl.clientRequestScopeCid(retained) !== row.logical_request_scope_cid) {
+      fail('ClientRequestJournalCorrupt');
+    }
+    const accepted = admission(row);
+    return Object.freeze({
+      ref: accepted.ref, durability: accepted.durability,
+      revision: accepted.revision, requestId: row.caller_request_id,
+      ...retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes),
+    });
+  };
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
@@ -1267,6 +1400,7 @@ export function openClientRequestJournal(directory, {
     }
     const admissionEvidence = evidenceJson(runAdmissionEvidence,
       maxRunDefinitionWireBytes);
+    assertKeyedInventoryRequest(runAdmissionEvidence?.sourceInventory, fields);
     if (runAdmissionEvidence?.valuesHostPolicyOriginal !== undefined &&
         (typeof runDefinitionWire !== 'string' ||
          JSON.parse(runDefinitionWire).authorization_context_cid !==
@@ -1313,6 +1447,15 @@ export function openClientRequestJournal(directory, {
         assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
           runAdmissionEvidence: retainedEvidence(existing)},
           admissionEvidence === null ? undefined : JSON.parse(admissionEvidence).sourceInventory);
+        const proposedPlan = runAdmissionEvidence?.logicalPlanOriginal;
+        if (proposedPlan !== undefined) {
+          const originalPlan = retainedEvidence(existing)?.logicalPlanOriginal;
+          if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
+          if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
+              originalPlan.planViewWire !== proposedPlan.planViewWire) {
+            fail('ClientRequestPlanEvidenceMismatch');
+          }
+        }
         return Object.freeze({inserted: false, ...admission(existing),
           runAdmissionEvidence: retainedEvidence(existing),
           ...(runDefinitionWire === undefined ? {} :
@@ -1348,7 +1491,7 @@ export function openClientRequestJournal(directory, {
       }), durability: 'durable', revision, lookupExpiresAt,
       ...(runDefinitionWire === undefined ? {} : {runDefinitionWire}),
       resultNames, runAdmissionEvidence: admissionEvidence === null ? undefined :
-        Object.freeze(JSON.parse(admissionEvidence))});
+        freezeAdmissionEvidence(JSON.parse(admissionEvidence))});
     });
     if (outcome.epochRejected !== undefined) refuseEpoch(outcome.epochRejected);
     return outcome;
@@ -1622,10 +1765,38 @@ export function openClientRequestJournal(directory, {
     // transaction as the request. The caller must have obtained it from the
     // shared Run issuer; re-admission here checks identity, not authority.
     // Reattachment never reissues this identity.
-    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence,
+    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
+      // Only the existing compiler control can issue the first original. A
+      // wire copy is not an opaque compiler selection. No later transaction
+      // fills missing evidence in an already accepted Run.
+      if (runAdmissionEvidence !== null && typeof runAdmissionEvidence === 'object' &&
+          Object.hasOwn(runAdmissionEvidence, 'logicalPlanOriginal')) {
+        fail('InvalidClientRunPlanOriginal');
+      }
+      if (originalPlan !== undefined) {
+        if (typeof publicationControl.originalRunPlanAdmissionEvidence !== 'function' ||
+            !admissionEvidenceShape(runAdmissionEvidence)) fail('InvalidClientRunPlanOriginal');
+        let original;
+        try {
+          original = publicationControl.originalRunPlanAdmissionEvidence(originalPlan,
+            definition, requestControl.clientRequestProgramCid(identity), runAdmissionEvidence);
+          if (logicalPlanOriginalShape(original) &&
+              (Buffer.byteLength(original.compiledPlanWire) > maxRunDefinitionWireBytes ||
+               Buffer.byteLength(original.planViewWire) > maxRunDefinitionWireBytes)) {
+            fail('InvalidClientRunAdmissionEvidence');
+          }
+          checkStoredPlanOriginal(original, definition,
+            requestControl.clientRequestProgramCid(identity), publicationControl, maxRunDefinitionWireBytes);
+        } catch (cause) {
+          if (cause?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
+          fail('InvalidClientRunPlanOriginal', cause);
+        }
+        runAdmissionEvidence = {...runAdmissionEvidence,
+          logicalPlanOriginal: Object.freeze({...original})};
+      }
       const accepted = acceptRecord(identity, {namespaceId,
         runDefinitionCid: definition.identity,
         runDefinitionWire: definition.wire,
@@ -1671,30 +1842,43 @@ export function openClientRequestJournal(directory, {
     // Attach reads the original accepted Run Definition by its exact ref.
     // It does not infer authority from a CID alone or create another Run.
     lookupRunDefinition(ref, requestControl, publicationControl) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid) ||
-          typeof requestControl?.clientRequestAdmitRecord !== 'function') {
-        fail('InvalidClientRunLookup');
-      }
-      let row;
-      try {
-        row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
-          ref.runDefinitionCid);
-      } catch (error) { fail('ClientRequestLookupUnknown', error); }
+      const row = readRunDefinitionRow(ref, requestControl);
       if (row === undefined) return undefined;
-      const retained = retainedIdentity(row, requestControl);
-      if (requestControl.clientRequestScopeCid(retained) !==
-          row.logical_request_scope_cid) {
-        fail('ClientRequestJournalCorrupt');
-      }
-      const accepted = admission(row);
-      return Object.freeze({
-        ref: accepted.ref, durability: accepted.durability,
-        revision: accepted.revision, requestId: row.caller_request_id,
-        ...retainedRunFacts(row, publicationControl,
-          maxRunDefinitionWireBytes),
-      });
+      return admitRunDefinitionRow(row, requestControl, publicationControl);
+    },
+    // One observation frame for an already selected Run, not an authority
+    // cache. Every call reads committed storage and checks connection health.
+    // Reuse admission only for an exactly unchanged complete row, including
+    // cancellation and payload bytes; revision alone is not sufficient.
+    observeRunCancellation(ref, requestControl, publicationControl) {
+      const selected = Object.freeze({namespaceId: ref?.namespaceId,
+        authorityScopeCid: ref?.authorityScopeCid, runDefinitionCid: ref?.runDefinitionCid});
+      let previousRow;
+      let previousFacts;
+      return () => {
+        try {
+          const row = readRunDefinitionRow(selected, requestControl);
+          if (row === undefined) {
+            previousRow = previousFacts = undefined;
+            return undefined;
+          }
+          if (previousRow !== undefined &&
+              Object.keys(row).length === Object.keys(previousRow).length &&
+              Object.keys(row).every(key => row[key] === previousRow[key])) {
+            return previousFacts;
+          }
+          const facts = admitRunDefinitionRow(row, requestControl, publicationControl);
+          previousRow = row;
+          // Do not expose cached mutable nested evidence or a Definition as
+          // permission. The caller receives only the current cancellation fact.
+          previousFacts = Object.freeze({revision: facts.revision,
+            cancellationRequested: facts.cancellationRequested});
+          return previousFacts;
+        } catch (error) {
+          previousRow = previousFacts = undefined;
+          throw error;
+        }
+      };
     },
     // Recover identity and Definition from one physical journal observation.
     // This internal owner must not be projected as a Client wire response.
@@ -1748,6 +1932,7 @@ export function openClientRequestJournal(directory, {
       ensureOpen();
       assertSubmissionCustody();
       const fields = checkedIdentity(identity, requestControl);
+      assertKeyedInventoryRequest(sourceInventory, fields);
       const epochValidity = checkSubmissionBinding(fields, submission, requestControl);
       const retained = journal.resolveDefinition(identity, {namespaceId},
         requestControl, publicationControl);
@@ -1763,6 +1948,7 @@ export function openClientRequestJournal(directory, {
       }
       return journal.acceptDefinition(identity, {namespaceId, runDefinition,
         runAdmissionEvidence: issued.runAdmissionEvidence,
+        originalPlan: issued.originalPlan,
         lookupExpiresAt, resultNames: issued.resultNames ?? resultNames, submission}, requestControl, publicationControl);
     },
     // One physical transaction applies the common MoonBit start decision.

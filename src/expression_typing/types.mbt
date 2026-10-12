@@ -419,7 +419,7 @@ fn import_type(
             match value.shape {
               @contract.ResourceRef(resource_kind~) =>
                 charge(t.budget, source, resource_kind)
-              @contract.ArtifactRef(media_type=Some(media)) =>
+              @contract.ContentRef(media_type=Some(media)) =>
                 charge(t.budget, source, media)
               _ => ()
             }

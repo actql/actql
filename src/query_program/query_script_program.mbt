@@ -464,10 +464,11 @@ pub fn compile_query_script(
       let input_name = pipe_physical_name(
         reserved, "aql_script_continuation_input_",
       )
-      let split = @query.effect_result_continuation(query, {
-        value: input_name,
-        quoted: true,
-      })
+      let split = @query.effect_result_continuation(
+        query,
+        { value: input_name, quoted: true, },
+        has_postlude=@query.terminal_command_effect_count(query) > 0,
+      )
       let current = split.map(pair => pair.0).unwrap_or(query)
       let resolved_graph = if stages.is_empty() {
         current_graph
@@ -615,6 +616,21 @@ pub fn compile_query_script(
             ),
           ),
         )
+      }
+      if split is None && @query.terminal_command_effect_count(current) > 0 {
+        let commands : Array[(String, @builder.Node)] = []
+        for index in 0..<@query.terminal_command_effect_count(current) {
+          commands.push(
+            lower_command_effect(
+              construction,
+              @query.terminal_command_effect_at(current, index).unwrap(),
+              stage_context.stage_result,
+              retained,
+              limits.max_expression_work,
+            ),
+          )
+        }
+        stage_entries.push(("effects", construction.object(commands)))
       }
       stages.push(construction.object(stage_entries))
       stage_arrays.push(stage_steps)

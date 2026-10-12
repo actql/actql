@@ -19,6 +19,7 @@ pub struct ModelPhysicalRequestPlan {
   invocation : ModelPhysicalInvocation
   response_profile : @environment.ModelResponseProfile?
   evidence : ModelPhysicalRequestEvidence?
+  attachments : Array[ModelContentAdmission]
 }
 
 ///|
@@ -43,6 +44,7 @@ pub fn model_physical_request_plan(
   quantities : @resources.QuantityAmounts,
   invoke : () -> Result[ModelResponse, ModelProviderFailure],
   evidence? : ModelPhysicalRequestEvidence,
+  attachments? : Array[ModelContentAdmission] = [],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   prepare_model_physical_plan(
     request,
@@ -51,6 +53,7 @@ pub fn model_physical_request_plan(
     Synchronous(invoke),
     None,
     evidence,
+    attachments,
   )
 }
 
@@ -67,6 +70,7 @@ pub fn model_async_physical_request_plan(
   installation : @environment.ModelResponseProfileInstallation,
   start : (ModelCallEntry) -> ModelPhysicalCall?,
   evidence? : ModelPhysicalRequestEvidence,
+  attachments? : Array[ModelContentAdmission] = [],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   if @environment.model_task_kind(request.task) !=
     @environment.StructuredGenerate ||
@@ -90,6 +94,7 @@ pub fn model_async_physical_request_plan(
     Asynchronous(start),
     Some(profile),
     evidence,
+    attachments,
   )
 }
 
@@ -101,6 +106,7 @@ fn prepare_model_physical_plan(
   invocation : ModelPhysicalInvocation,
   response_profile : @environment.ModelResponseProfile?,
   evidence : ModelPhysicalRequestEvidence?,
+  attachments : Array[ModelContentAdmission],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   if wire_bytes < 0L ||
     wire_bytes > 9007199254740991L ||
@@ -120,6 +126,10 @@ fn prepare_model_physical_plan(
   }
   if quantities.tokens < generation.max_output_tokens {
     return Err(InvalidLimits)
+  }
+  match model_content_admissions_match(request, attachments, wire_bytes) {
+    Err(issue) => return Err(Content(issue))
+    Ok(_) => ()
   }
   let mut retained_evidence = evidence
   if evidence is Some(original) {
@@ -168,6 +178,7 @@ fn prepare_model_physical_plan(
     invocation,
     response_profile,
     evidence: retained_evidence,
+    attachments,
   })
 }
 
