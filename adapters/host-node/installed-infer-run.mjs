@@ -263,7 +263,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           if (continuation === undefined) {
             continuation = await modelController.open({operation, preparedCallSet: boundary.preparedCallSet,
               plan, selected, principalId, declaredResults, submission, signal,
-              existing: existingModel, inputToken: token, claim: modelClaim});
+              existing: existingModel, inputToken: token, claim: modelClaim,
+              originalPreparation});
             captureOwner.configureModelJournal({observe: continuation.observe, entry: continuation.entry});
             // Saved/unknown records first re-enter the same normal owner without
             // any fresh permission. A still-unsent slot yields Waiting again.

@@ -82,6 +82,51 @@ test('current cut exact same-journal link and committed invalidation preserve or
     {code: 'ForeignModelOriginalCutInvalidation'});
 });
 
+test('installed journal port admits only its own current original observation and committed four refs', t => {
+  const f = fixture(t);
+  const port = f.journal.installOriginalModelJournalPort(f.observation);
+  assert.ok(Object.isFrozen(port));
+  assert.deepEqual(Object.keys(port), ['kind']);
+  assert.strictEqual(f.journal.originalModelJournalPortCurrent(port), port);
+  assert.throws(() => f.journal.installOriginalModelJournalPort({...f.observation}),
+    {code: 'ForeignModelOriginalJournalObservation'});
+  assert.throws(() => f.journal.originalModelJournalPortCurrent({...port}),
+    {code: 'ForeignModelOriginalJournalPort'});
+  const op = f.prepare();
+  assert.throws(() => f.journal.originalModelJournalPortInvalidationCurrent(port, {}, op, f.park, f.request),
+    {code: 'ForeignModelOriginalCutInvalidation'});
+  f.journal.commitOriginalModelCurrentCut(op);
+  assert.throws(() => f.journal.installOriginalModelJournalPort(f.observation),
+    {code: 'ModelOriginalJournalObservationChanged'});
+  const receipt = f.journal.invalidateOriginalModelCurrentCut(op, f.request);
+  assert.strictEqual(f.journal.originalModelJournalPortInvalidationCurrent(port, receipt, op, f.park, f.request), receipt);
+  for (const [received, operation, park, request] of [[{...receipt}, op, f.park, f.request],
+    [receipt, {...op}, f.park, f.request], [receipt, op, {...f.park}, f.request],
+    [receipt, op, f.park, {...f.request}]]) {
+    assert.throws(() => f.journal.originalModelJournalPortInvalidationCurrent(port, received, operation, park, request));
+  }
+  f.journal.fenceRunCancellation({originalRunWire: input(1).modelCallSet.originalRunWire});
+  assert.throws(() => f.journal.originalModelJournalPortInvalidationCurrent(port, receipt, op, f.park, f.request),
+    {code: 'ModelOriginalCurrentCutFactsChanged'});
+});
+
+test('installed journal port rejects another journal and a closed original installation', t => {
+  const f = fixture(t), foreign = fixture(t);
+  const port = f.journal.installOriginalModelJournalPort(f.observation);
+  assert.throws(() => foreign.journal.originalModelJournalPortCurrent(port),
+    {code: 'ForeignModelOriginalJournalPort'});
+  assert.throws(() => foreign.journal.installOriginalModelJournalPort(f.observation),
+    {code: 'ForeignModelOriginalJournalObservation'});
+  const op = f.prepare(); f.journal.commitOriginalModelCurrentCut(op);
+  const receipt = f.journal.invalidateOriginalModelCurrentCut(op, f.request);
+  assert.throws(() => foreign.journal.originalModelJournalPortInvalidationCurrent(port, receipt, op, f.park, f.request),
+    {code: 'ForeignModelOriginalJournalPort'});
+  f.journal.close();
+  assert.throws(() => f.journal.originalModelJournalPortCurrent(port), {code: 'CheckpointJournalClosed'});
+  assert.throws(() => f.journal.originalModelJournalPortInvalidationCurrent(port, receipt, op, f.park, f.request),
+    {code: 'CheckpointJournalClosed'});
+});
+
 test('current cut nominal ports reject missing copied foreign Boolean and changed bindings', t => {
   const f = fixture(t);
   for (const [parkReceipt, savedReceipt] of [[undefined, f.save], [f.park, undefined],
