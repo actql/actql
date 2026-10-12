@@ -130,6 +130,35 @@ can remain live: clearing this root is not physical GC destruction.
 installed observational scratch witness and common reservation return boundary.
 It rejects changes rather than automatically rebinding hashes.
 
+The snapshot callback adds a separate driver correspondence premise. Both
+`release_owned_scratch` and the observational `scratch_released` witness must
+refuse a held callback. Cancellation that returns `false` keeps the same callback;
+`cleanup_refresh` retries it after input stop and provider cleanup, before root
+retirement. The final physical snapshot-storage predicate and common Owner
+cleanup result remain independent: an unreleased file or common cleanup failure
+cannot be reported as success after detaching the callback. The registered importer remains in the input-stop cursor even when
+snapshot cancellation has begun. Snapshot references are detached only after
+bounded reference cleanup and the original physical storage-release predicate.
+Successful finalization requires the live/restored state, absent stored/stream/
+receipt references and the original restored value, transfers that value to
+`ordinary`, and then clears the callback. Saving bytes alone is not this success.
+
+| Existing proposition | Effect of the stronger driver guard |
+| --- | --- |
+| `phase_bound` / `growth_overlap` | Numeric hypotheses and bounds are unchanged. Driver snapshot callback/referents are not silently charged to this retained chain-core component. |
+| `retired_owner_witness` | The constant 560 remains a model witness, not a statement that driver callback or physical storage has been reclaimed. |
+| Provider construction and preparation-array propositions | Existing two plus two statements and union/identity assumptions remain unchanged. |
+
+`DriverSnapshotCorrespondence` separately makes the callback-detachment and
+finalization applicability predicates explicit. The checker uses 13 independent
+Boolean reductions (including every missing finalization condition), alongside
+the original seven typed capacity consumers and their complete axiom audit.
+These reductions are not a proof of the MoonBit state machine or a new byte
+allowance. Exact source checks and negative source substitutions bind the
+predicates to the current closures; runtime refinement, physical cleanup and
+whole-lifetime capacity remain separate obligations. No numeric theorem is
+weakened by adding an unused callback assumption.
+
 The bounded Native-only diagnostic reuses the existing MATCH nodes and edges
 Host helper, including its independent rows, acquired-input two-consumer
 holding checks and false/error/retry provider. It adds synchronous borrowed
@@ -142,11 +171,12 @@ and repeated cleanup must not issue another provider call or return more credit.
 The existing Host assertions are retained verbatim.
 
 ```sh
+node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/snapshot-custody.test.mjs
 node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/driver-retirement.test.mjs
 node proofs/relation-pipeline/capacity/parent-control/driver-retirement-diagnostic.mjs
 ```
 
-Run the second command on a clean fixed HEAD, in the pinned Native environment,
+Run the Native diagnostic command on a clean fixed HEAD, in the pinned Native environment,
 through the existing bounded local guard. It selects one Native test containing
 two existing Host cases; it does not run the full Core or packed acceptance.
 In an isolated diagnostic copy, `driver-retirement-compilation.mjs` blanks

@@ -58,8 +58,34 @@ example (r : RelationCapacity.Registry) (live : Nat → Bool) :
   RelationCapacity.charge r.ids r.size (fun id => live id || live id) = RelationCapacity.charge r.ids r.size live :=
   PreparationArrays.same_storage_charge r live
 `;
+// Definitional correspondence checks are separate from the seven existing
+// capacity propositions. No callback allocation or physical-lifetime law is
+// added, and no weakened assumption is supplied to a capacity consumer.
+const snapshotPremises=`
+example : DriverSnapshotCorrespondence.callbackAfterCleanup true false = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterCleanup true true = false := rfl
+example : DriverSnapshotCorrespondence.callbackAfterCleanup false false = false := rfl
+example : DriverSnapshotCorrespondence.retirementEligible true = false := rfl
+example : DriverSnapshotCorrespondence.retirementEligible false = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨true, true, true, true, true, true, true⟩ = false := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨false, true, true, true, true, true, true⟩ = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨true, false, true, true, true, true, true⟩ = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨true, true, false, true, true, true, true⟩ = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨true, true, true, false, true, true, true⟩ = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨true, true, true, true, false, true, true⟩ = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨true, true, true, true, true, false, true⟩ = true := rfl
+example : DriverSnapshotCorrespondence.callbackAfterFinish true
+  ⟨true, true, true, true, true, true, false⟩ = true := rfl
+`;
 const result = spawnSync('lean', ['-DwarningAsError=true', '--stdin'], { encoding: 'utf8',
-  env: environment, input: array + '\n' + identities + '\n' + model + '\n' + selection + '\n' + preparation + consumers +
+  env: environment, input: array + '\n' + identities + '\n' + model + '\n' + selection + '\n' + preparation + consumers + snapshotPremises +
     names.map(n => `\n#print axioms NativeParentCore.${n}`).join('') +
     selectionNames.map(n => `\n#print axioms ProviderConstruction.${n}`).join('') +
     preparationNames.map(n => `\n#print axioms PreparationArrays.${n}`).join(''),
@@ -72,3 +98,4 @@ for (const [, axioms] of result.stdout.matchAll(/depends on axioms: \[([^\]]*)\]
 console.log('3 conditional retained parent-core propositions checked; complete parent/edge and retirement correspondence remain open');
 console.log('2 conditional provider-construction propositions checked; complete parent/pipeline capacity remains open');
 console.log('2 conditional preparation-array propositions checked; referent and whole-lifetime capacity remain open');
+console.log('13 snapshot correspondence reductions checked; not additional capacity theorems or physical cleanup evidence');
