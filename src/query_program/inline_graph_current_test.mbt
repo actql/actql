@@ -143,6 +143,6 @@ test "an inline Graph row star exposes its actual fields without a private range
       { ..fixture_context(), inputs: [], },
       construction_limits(),
     )
-    is Err(UnknownColumn),
+    is Err(Expression({ issue: @expression.UnknownReference, .. })),
   )
 }
