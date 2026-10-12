@@ -1129,11 +1129,28 @@
       ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current typed selectors, bounded shortest execution, provider and AQL admission have independent kernel/caller tests. Fixed-SHA public packed Local/HTTPS, fresh-process retained Result reads and public failure evidence remain incomplete; historical tuple-profile suites do not discharge them.",
+      "current_gap": "Current typed selectors, bounded shortest execution, provider and AQL admission have independent kernel/caller tests. Fixed-SHA public packed Local/HTTPS, fresh-process retained Result reads and public failure evidence remain incomplete; historical tuple-profile suites do not discharge them. Limited current bounded Owner resource assurance is registered separately. New-main installed acceptance remains unverified.",
       "completed_layers": [
-        "contract"
+        "contract",
+        "resources"
       ],
-      "layer_evidence": [],
+      "layer_evidence": [
+        {
+          "scope": "current_keyed_graph_owner_resource_boundaries_only",
+          "layers": [
+            "resources"
+          ],
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/query_integration/graph_shortest_wbtest.mbt",
+            "scripts/graph-public-host.test.mjs",
+            "docs/reviews/2026-09-23-local-resource-production-routes.json"
+          ],
+          "verification": "Actual current Graph boundary JS 14/14 at clean 5713e927817ba7c5f3213984e1bc6ae07604cd26, including separate direct and retained-view Reach/Shortest controls. Historical installed Local/HTTPS Host 10/10 at clean 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a includes positive-work operation cancellation; current Owner and Host barrier source are unchanged. This is not new-main package/runtime acceptance or a global physical-heap guarantee. Direct/fused public Host cancellation is not evidenced; its route lifecycle and the cancellation layer remain incomplete."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "scalar_unweighted_each_pair_vertical_slice",
@@ -1443,11 +1460,28 @@
       ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Reach uses current typed selectors, checked traversal, SGA.reachable lowering and the bounded traversal provider. Raw identities, nullable Relation starts and statically checked node predicates are connected; malformed options remain refused. Independent current tests are distinct from historical tuple evidence. Fixed-SHA matching backends, public retained Local/HTTPS, fresh-process reads and operation-wide failure/custody acceptance remain unverified.",
+      "current_gap": "Reach uses current typed selectors, checked traversal, SGA.reachable lowering and the bounded traversal provider. Raw identities, nullable Relation starts and statically checked node predicates are connected; malformed options remain refused. Independent current tests are distinct from historical tuple evidence. Fixed-SHA matching backends, public retained Local/HTTPS, fresh-process reads and operation-wide failure/custody acceptance remain unverified. Limited current bounded Owner resource assurance is registered separately. New-main installed acceptance remains unverified.",
       "completed_layers": [
-        "contract"
+        "contract",
+        "resources"
       ],
-      "layer_evidence": [],
+      "layer_evidence": [
+        {
+          "scope": "current_keyed_graph_owner_resource_boundaries_only",
+          "layers": [
+            "resources"
+          ],
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/query_integration/graph_reach_wbtest.mbt",
+            "scripts/graph-public-host.test.mjs",
+            "docs/reviews/2026-09-23-local-resource-production-routes.json"
+          ],
+          "verification": "Actual current Graph boundary JS 14/14 at clean 5713e927817ba7c5f3213984e1bc6ae07604cd26, including separate direct and retained-view Reach/Shortest controls. Historical installed Local/HTTPS Host 10/10 at clean 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a includes positive-work operation cancellation; current Owner and Host barrier source are unchanged. This is not new-main package/runtime acceptance or a global physical-heap guarantee. Direct/fused public Host cancellation is not evidenced; its route lifecycle and the cancellation layer remain incomplete."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "bounded_reach_standard_host_and_publication",
@@ -1877,11 +1911,30 @@
       ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Binary graft is connected to the current checked structural alignment and bounded exact-equal union fold with its own SGA.graft operation identity. Lists and merge policies remain rejected. Current typed checking, lowering and fold regressions are distinct from historical tuple-profile evidence. Public retained Local/HTTPS, separate-process reads and full resource/lifetime acceptance remain to be completed.",
+      "current_gap": "Binary graft is connected to the current checked structural alignment and bounded exact-equal union fold with its own SGA.graft operation identity. Lists and merge policies remain rejected. Current typed checking, lowering and fold regressions are distinct from historical tuple-profile evidence. Public retained Local/HTTPS, separate-process reads and full resource/lifetime acceptance remain to be completed. Limited current bounded Owner resource assurance is registered separately. New-main installed acceptance remains unverified.",
       "completed_layers": [
-        "contract"
+        "contract",
+        "resources",
+        "cancellation"
       ],
-      "layer_evidence": [],
+      "layer_evidence": [
+        {
+          "scope": "current_keyed_graph_owner_resource_boundaries_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/query_integration/graph_graft_wbtest.mbt",
+            "scripts/graph-public-host.test.mjs",
+            "docs/reviews/2026-09-23-local-resource-production-routes.json"
+          ],
+          "verification": "Actual current Graph boundary JS 14/14 at clean 5713e927817ba7c5f3213984e1bc6ae07604cd26, including separate direct and retained-view Reach/Shortest controls. Historical installed Local/HTTPS Host 10/10 at clean 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a includes positive-work operation cancellation; current Owner and Host barrier source are unchanged. This is not new-main package/runtime acceptance or a global physical-heap guarantee."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "standard_host_consumers_publication_and_cancellation",
@@ -2724,11 +2777,30 @@
       ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current explicit-list typed admission, exact bounded fold, configured provider and AQL generator have independent kernel/caller tests. Fixed-SHA public packed Local/HTTPS, fresh-process retained Result reads and public failure evidence remain incomplete; historical tuple-profile suites do not discharge them.",
+      "current_gap": "Current explicit-list typed admission, exact bounded fold, configured provider and AQL generator have independent kernel/caller tests. Fixed-SHA public packed Local/HTTPS, fresh-process retained Result reads and public failure evidence remain incomplete; historical tuple-profile suites do not discharge them. Limited current bounded Owner resource assurance is registered separately. New-main installed acceptance remains unverified.",
       "completed_layers": [
-        "contract"
+        "contract",
+        "resources",
+        "cancellation"
       ],
-      "layer_evidence": [],
+      "layer_evidence": [
+        {
+          "scope": "current_keyed_graph_owner_resource_boundaries_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/query_integration/graph_mean_wbtest.mbt",
+            "scripts/graph-public-host.test.mjs",
+            "docs/reviews/2026-09-23-local-resource-production-routes.json"
+          ],
+          "verification": "Actual current Graph boundary JS 14/14 at clean 5713e927817ba7c5f3213984e1bc6ae07604cd26, including separate direct and retained-view Reach/Shortest controls. Historical installed Local/HTTPS Host 10/10 at clean 463e8b27eab15f1f1ae2e739f9ce4fe4d867753a includes positive-work operation cancellation; current Owner and Host barrier source are unchanged. This is not new-main package/runtime acceptance or a global physical-heap guarantee."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "exact_support_property_laws_and_relation_bridge",
