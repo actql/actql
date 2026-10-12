@@ -33,6 +33,9 @@ fn sga_operation(name : String) -> Bool {
     | "pool_vectors"
     | "vectors"
     | "to_events"
+    | "row_window"
+    | "window_events"
+    | "watermark_events"
     | "session"
     | "events"
     | "reach"
@@ -94,7 +97,8 @@ fn carrier_call_head(token : Token) -> Bool {
     Word(name) =>
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-        "to_events", "session", "events",
+        "to_events", "row_window", "window_events", "watermark_events", "session",
+        "events",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }

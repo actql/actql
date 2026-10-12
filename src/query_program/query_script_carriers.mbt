@@ -70,7 +70,7 @@ fn script_prefix_carrier(
 fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-    "to_events", "session", "events",
+    "to_events", "row_window", "window_events", "watermark_events", "session", "events",
   ].contains(name)
 }
 
@@ -181,6 +181,7 @@ fn lower_script_carrier_calls(
       "to_vectors" => ["id", "vector"]
       "pool_vectors" => ["by", "vector"]
       "to_events" => ["id", "time"]
+      "row_window" => ["time"]
       "session" =>
         if carrier is @carrier.Relation(_) {
           ["id", "time", "by"]
@@ -194,6 +195,9 @@ fn lower_script_carrier_calls(
       "session" => fields + ["gap"]
       "score_vectors" => ["query", "metric"]
       "pool_vectors" => ["by", "vector", "method", "output_id"]
+      "row_window" => ["kind", "time", "size", "step", "offset"]
+      "window_events" => ["kind", "size", "step", "offset"]
+      "watermark_events" => ["watermark_ms", "policy"]
       _ => []
     }
     // Optional pool roles are preserved as authored. The common pool owner
@@ -201,6 +205,10 @@ fn lower_script_carrier_calls(
     // permits only an exact Vectors component-role restatement.
     let required = if call.operation == "pool_vectors" {
       ["by", "method"]
+    } else if call.operation == "row_window" {
+      ["kind", "time", "size"]
+    } else if call.operation == "window_events" {
+      ["kind", "size"]
     } else {
       allowed
     }
