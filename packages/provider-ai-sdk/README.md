@@ -38,6 +38,18 @@ Common output validation. The convenience private request consumer uses finite
 preparation work/byte/node/depth/frame limits; it is not evidence of cooperative
 SDK JSON parsing or a funded public physical-preflight installation.
 
+The additional private `createAdmittedOpenAIChatPreflight` consumes one Common
+projection-child transition per physical-preflight advance. It allocates that
+child only after the existing port validates its installation; projection
+completion retires its borrows before starting one SDK preparation. Cancellation,
+refusal and retirement failure preserve the original cleanup path without a new
+request. The resulting plan still uses the existing fixed transport/Entry/send
+gate and raw-save port. SDK initialization and JSON work remain external
+synchronous work, not a new cooperative guarantee. The child's nine fields,
+phase payloads, output tuple and Node progress reference/callback/context overlap
+must be funded before normal startup; this private integration supplies no
+numerical layout, public capability or execution permission.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final
