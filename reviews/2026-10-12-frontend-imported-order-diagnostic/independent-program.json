@@ -1,0 +1,117 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.checked_import_sort",
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "records": {
+          "carrier": "relation",
+          "schema": {
+            "id": {
+              "type": "number",
+              "nullable": false
+            }
+          },
+          "primary_key": [
+            "id"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "from": "records",
+          "filter": {
+            "literal": true
+          }
+        },
+        {
+          "select": [
+            "id"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "source": {
+          "from": "captured",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "rows": {
+          "result": {
+            "stage": "capture",
+            "result": "source"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "rows",
+          "filter": {
+            "eq": [
+              {
+                "field": "id"
+              },
+              {
+                "literal": 1
+              }
+            ]
+          },
+          "as": "chosen"
+        },
+        {
+          "from": "chosen",
+          "cross_join": {
+            "with": "rows",
+            "max_output_rows": 1000000,
+            "select": {
+              "left_id": "left.id",
+              "id": "right.id"
+            }
+          },
+          "as": "paired"
+        },
+        {
+          "select": [
+            "id"
+          ]
+        },
+        {
+          "sort": {
+            "by": [
+              {
+                "field": "id",
+                "direction": "asc",
+                "nulls": "first"
+              }
+            ]
+          },
+          "as": "out"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "out",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}
