@@ -20,6 +20,10 @@ fn[E] install_native_client_work_publication_service(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  request_authorize? : ((
+    @publication.PublicationRequestContext,
+    @native_publication.NativeRunPublicationAuthorization,
+  ) -> Bool)? = None,
 ) -> Result[
   @native_publication.NativeRunPublicationService,
   NativeClientWorkPublicationServiceIssue[E],
@@ -40,7 +44,9 @@ fn[E] install_native_client_work_publication_service(
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
-  let authority = @native_publication.install_native_run_publication_authority(fact => {
+  let authorize_original = (
+    fact : @native_publication.NativeRunPublicationAuthorization,
+  ) => {
     if fact.namespace_id != namespace_id ||
       fact.authority_scope_cid !=
       @host.client_request_authority_scope_cid(request) ||
@@ -51,7 +57,25 @@ fn[E] install_native_client_work_publication_service(
     } else {
       authorize(fact) && require_current() is Ok(_)
     }
-  })
+  }
+  let authority = match request_authorize {
+    None =>
+      @native_publication.install_native_run_publication_authority(
+        authorize_original,
+      )
+    Some(callback) =>
+      @native_publication.install_native_run_publication_context_authority(
+        authorize_original,
+        (context, fact) => {
+          if require_current() is Err(_) {
+            false
+          } else {
+            callback(context, fact) && require_current() is Ok(_)
+          }
+        },
+      )
+  }
+
   @native_publication.install_native_run_publication_service(
     store,
     authority,
