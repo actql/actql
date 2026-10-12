@@ -1,0 +1,153 @@
+{
+  "startedAt": "2026-10-12T01:44:33.657Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Independent windows role controls and retained Carrier callers",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/event_window_source_test.mbt",
+        "src/query_syntax/event_window_role_test.mbt",
+        "src/query_program/with_vectors_events_test.mbt",
+        "src/query_program/vector_pool_source_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-12T01:44:33.723Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:44:41.828Z",
+      "endedAt": "2026-10-12T01:44:41.830Z"
+    },
+    {
+      "name": "Changed grammar canonical consumer only",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/canonical_json/identity_vectors.generated_test.mbt",
+        "--filter",
+        "contract spec/manifests/actql-grammar-0.1.json#"
+      ],
+      "startedAt": "2026-10-12T01:44:41.909Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:44:43.922Z",
+      "endedAt": "2026-10-12T01:44:43.923Z"
+    },
+    {
+      "name": "Independent window and frozen predecessor vectors",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/event-window-identity.test.mjs",
+        "scripts/vector-pool-identity.test.mjs",
+        "scripts/sga-signature-role-identity.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs",
+        "scripts/compilation-manifests.test.mjs",
+        "scripts/frontend-profile.test.mjs"
+      ],
+      "startedAt": "2026-10-12T01:44:43.985Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:44:51.356Z",
+      "endedAt": "2026-10-12T01:44:51.358Z"
+    },
+    {
+      "name": "Read-only compilation-manifests",
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs"
+      ],
+      "startedAt": "2026-10-12T01:44:51.421Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:44:51.570Z",
+      "endedAt": "2026-10-12T01:44:51.572Z"
+    },
+    {
+      "name": "Read-only update-document-metadata",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs"
+      ],
+      "startedAt": "2026-10-12T01:44:51.634Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:44:53.156Z",
+      "endedAt": "2026-10-12T01:44:53.158Z"
+    },
+    {
+      "name": "Read-only check-actql-spec-family",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs"
+      ],
+      "startedAt": "2026-10-12T01:44:53.227Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:44:54.651Z",
+      "endedAt": "2026-10-12T01:44:54.652Z"
+    },
+    {
+      "name": "Read-only check-canonical-json",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs"
+      ],
+      "startedAt": "2026-10-12T01:44:54.720Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:44:56.280Z",
+      "endedAt": "2026-10-12T01:44:56.284Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "eeb81a96-8e15-4056-b760-96d6e6dd7e70",
+    "pid": 55068,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T01:44:33.712Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ljO8A0"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T01:44:56.348Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
