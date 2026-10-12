@@ -82,6 +82,6 @@ export async function currentResourceFixture(moon, control, runId = 'current-res
   operation.bindRun(control, {compiled, runDefinition});
   await operation.run();
   const preparedCallSet = operation.preparedCallSet();
-  return {operation, scope, read, graph, compiled, runDefinition, selected, originalPreparation,
+  return {operation, scope, read, graph, compiled, runDefinition, prepared, step, selected, originalPreparation,
     preparedCallSet, sends: () => sends};
 }
