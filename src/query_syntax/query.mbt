@@ -309,6 +309,12 @@ pub fn relation(query : Query) -> Array[NamePart] {
 }
 
 ///|
+// This parser/lowerer-owned source is not an authored relation or range name.
+pub fn bound_source(query : Query) -> NamePart? {
+  query.bound_source
+}
+
+///|
 pub fn positional_output(query : Query) -> Bool {
   query.positional_output
 }
