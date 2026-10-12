@@ -180,7 +180,12 @@ fn QueryParser::sga_argument(
     return ListValue(items)
   }
   if sga_field_argument(operation, path) {
-    return FieldReference(self.path())
+    let field = self.path()
+    if field.length() == 2 && sga_operand_field_argument(operation, path) {
+      let operand = self.resolve_producer([field[0]])
+      return FieldReference([operand[0], field[1]])
+    }
+    return FieldReference(field)
   }
   if sga_output_argument(operation, path) {
     return OutputName(self.name())

@@ -29,6 +29,19 @@ fn sga_output_argument(operation : String, path : Array[String]) -> Bool {
 }
 
 ///|
+// Only an operand selector qualifier denotes a lexical producer. An ordinary
+// expression receiver or a single field name stays in its declared row scope.
+fn sga_operand_field_argument(operation : String, path : Array[String]) -> Bool {
+  match operation {
+    "reach" | "traverse" => path == ["start", "id"]
+    "shortest_path" => path == ["source", "id"] || path == ["target", "id"]
+    "subgraph" => path == ["nodes", "id"]
+    "apply_graph_delta" => path == ["field"]
+    _ => false
+  }
+}
+
+///|
 // Lists retain their enclosing source role. Only the signature's expression
 // positions expose field leaves; a literal subtree is opaque authored data.
 fn sga_expression_position(operation : String, path : Array[String]) -> Bool {
