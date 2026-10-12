@@ -116,6 +116,15 @@ test "saved Core observation binds full inventory and actual rows to original SQ
     local_saved_submission_revisions(observed, rows, plan, preparation).unwrap(),
     (0L, 9L, 2L),
   )
+  let admission = local_saved_submission_admission_wire(observed, rows, plan, preparation).unwrap()
+  assert_true(admission.contains("\"namespaceId\":\"local\""))
+  assert_true(admission.contains("\"authorityScopeCid\":\"sha256:" + "b".repeat(64) + "\""))
+  assert_true(admission.has_suffix("\"durability\":\"durable\",\"revision\":0}"))
+  let foreign = submitted_rows_preparation("/*😀*/\r\nSELECT 1 AS n")
+  assert_eq(
+    local_saved_submission_admission_wire(observed, rows, plan, foreign),
+    Err(@host.CustodyLost),
+  )
   // A later physical lookup cannot mutate this original observation.
   physical[2] = ("client_runs", { ..physical[2].1, revision: 10L, })
   assert_eq(

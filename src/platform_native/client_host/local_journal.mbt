@@ -10,6 +10,7 @@ struct NativeLocalHostConnection {
   adoption_body : Bytes
   adoption_cid : String
   ownership : @filesystem.NativeFileOwnership
+  mut packaged_runtime : NativeLocalRuntimeBinding?
   mut closed : Bool
   mut database_closed : Bool
   mut session_closed : Bool
@@ -275,6 +276,7 @@ fn NativeLocalAdoptionSession::bind_journal(
     closed: false,
     database_closed: false,
     session_closed: false,
+    packaged_runtime: None,
   }
   match connected.check_binding() {
     Ok(_) => Ok(connected)
@@ -304,6 +306,10 @@ pub fn NativeLocalHostConnection::check_binding(
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.packaged_runtime is Some(binding) &&
+    binding.current.check_current() is Err(_) {
+    return Err(CustodyLost)
   }
   if self.database.transaction_fenced() {
     return Err(Fenced)

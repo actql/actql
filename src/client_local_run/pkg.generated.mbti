@@ -115,6 +115,8 @@ pub fn local_run_prepared(LocalRunPlan) -> @run_publication_host.PreparedClientP
 
 pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
 
+pub fn local_saved_submission_admission_wire(LocalSavedSubmissionObservation, LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[String, @run_publication_host.ClientSavedSubmissionViewIssue]
+
 pub fn local_saved_submission_revisions(LocalSavedSubmissionObservation, LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[(Int64, Int64, Int64), LocalSubmittedRunRowsIssue]
 
 pub fn local_source_publication_evidence(LocalSourcePublication) -> @run_publication.RunEvidenceValue

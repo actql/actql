@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as sdk from './index.mjs';
-import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
+import {checkReasonSchemaCid, checkOutcomeSchemaCid, validCheckOutcome} from '@actql/client-wire';
 import {submissionEpoch, originalSubmission, submissionAttempt} from './submission-fixture.mjs';
 
 const revision = 'rev:' + '4'.repeat(64);
@@ -119,7 +119,7 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
     const requirement = {code: 'parameter_value_required', facts: {
       parameter: 'x', expected_type: 'number', admission: {
         kind: 'parameter_declaration',
-        contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551',
+        contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947',
         contract: {nullable: false, type: 'number'},
         constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'}},
       location: {kind: 'structured', document_id: 'parameter_declarations',
@@ -168,5 +168,31 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
     assert.equal(sdk.getCheckRequirementFrontier(checked).requirements.length, 1);
     assert.equal(sdk.equalCheckRequirementFrontiers(checked, structuredClone(checked)), undefined);
     assert.equal(declarations.x.type, 'string');
+  });
+}
+
+for (const phase of ['not_accepted', 'preparation_failed']) {
+  test(`submission requirements reject the old admission pin without acquiring ${phase} facts`, async t => {
+    const {error, calls} = await fixture(t, {phase, change(checked) {
+      checked.report.verdict = 'undetermined';
+      checked.report.reasons = [];
+      checked.report.coverage.limits = [{code: 'bound_values_missing'}];
+      checked.report.requirements = [{code: 'parameter_value_required', facts: {
+        parameter: 'x', expected_type: 'number', admission: {
+          kind: 'parameter_declaration',
+          contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551',
+          contract: {nullable: false, type: 'number'},
+          constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'}}}];
+      assert.equal(validCheckOutcome(checked), false);
+      const current = structuredClone(checked);
+      current.report.requirements[0].facts.admission.contract_schema_cid =
+        'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947';
+      assert.equal(validCheckOutcome(current), true, 'Only the reviewed admission pin differs');
+    }});
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(sdk.getSubmissionOutcome(error), undefined);
+    assert.equal(sdk.getSubmissionCheckObservation(error), undefined);
+    assert.equal(sdk.getSubmissionInput(error).input.text, text);
+    assert.deepEqual(calls, ['connect', 'submit-intent']);
   });
 }
