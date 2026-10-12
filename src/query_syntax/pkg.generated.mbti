@@ -579,7 +579,6 @@ pub struct Token {
   value : Lexeme
   start : Int
   end : Int
-  annotation_compatible : Bool
   string_origin : StringLiteralOrigin?
 } derive(Eq, @debug.Debug)
 

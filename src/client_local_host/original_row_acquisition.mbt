@@ -23,7 +23,11 @@ pub fn start_client_original_row_acquisition(
 ) -> Result[@row_source_host.RowRun, ClientOriginalRowAcquisitionIssue] {
   let ledger = match
     @publication_host.borrow_client_original_row_acquisition_ledger(
-      scope, compiled, definition, plan, prepared,
+      scope,
+      compiled,
+      definition,
+      plan,
+      prepared,
       @row_source_host.row_acquisition_requirement(acquisition),
     ) {
     Ok(value) => value
