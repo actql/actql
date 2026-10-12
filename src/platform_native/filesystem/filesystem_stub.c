@@ -72,6 +72,9 @@ typedef struct {
   bool ready;
   bool eof;
   bool finished;
+  // 0: not attempted, 1: acknowledged, -1: sticky diagnostic/unconfirmed.
+  // A consumed descriptor number is never a retirement acknowledgement.
+  int32_t close_result;
 } actql_native_filesystem_reader;
 
 struct actql_native_private_file_projection {
@@ -1636,10 +1639,32 @@ int32_t actql_native_filesystem_reader_eof(
   return reader != NULL && reader->eof;
 }
 
+static int32_t actql_native_filesystem_reader_close_once(
+  actql_native_filesystem_reader *reader
+) {
+  if (reader->close_result != 0) {
+    return reader->close_result == 1 ? 0 : -1;
+  }
+  if (reader->fd < 0) return 0;
+  actql_replace_error(&reader->error, NULL);
+  int descriptor = reader->fd;
+  // Consume before close: on Linux and Darwin a reported error may follow FD
+  // retirement/reuse. Retrying the integer could close a different file.
+  reader->fd = -1;
+  reader->close_result = -1;
+  if (close(descriptor) != 0) {
+    actql_replace_errno_error(&reader->error, "close reader", errno);
+    return -1;
+  }
+  reader->close_result = 1;
+  return 0;
+}
+
 int32_t actql_native_filesystem_reader_finish(
   actql_native_filesystem_reader *reader
 ) {
   if (reader == NULL || !reader->ready) return 3;
+  if (reader->close_result < 0) return -1;
   if (reader->finished) return 0;
   if (reader->fd < 0) return 3;
   actql_replace_error(&reader->error, NULL);
@@ -1658,12 +1683,7 @@ int32_t actql_native_filesystem_reader_finish(
     actql_replace_error(&reader->error, "generation mismatch");
     return 1;
   }
-  int descriptor = reader->fd;
-  reader->fd = -1;
-  if (close(descriptor) != 0) {
-    actql_replace_errno_error(&reader->error, "close reader", errno);
-    return -1;
-  }
+  if (actql_native_filesystem_reader_close_once(reader) != 0) return -1;
   reader->finished = true;
   return 0;
 }
@@ -1671,15 +1691,8 @@ int32_t actql_native_filesystem_reader_finish(
 int32_t actql_native_filesystem_reader_close(
   actql_native_filesystem_reader *reader
 ) {
-  if (reader == NULL || reader->fd < 0) return 0;
-  actql_replace_error(&reader->error, NULL);
-  int descriptor = reader->fd;
-  reader->fd = -1;
-  if (close(descriptor) != 0) {
-    actql_replace_errno_error(&reader->error, "close reader", errno);
-    return -1;
-  }
-  return 0;
+  if (reader == NULL) return 0;
+  return actql_native_filesystem_reader_close_once(reader);
 }
 
 // Creates one directory exclusively below the root and reports its identity.
