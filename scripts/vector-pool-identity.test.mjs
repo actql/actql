@@ -9,9 +9,12 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 test('vector pooling changes only authored grammar-bound identities and retains complete SGA history', () => {
   const before = read('scripts/fixtures/pre-vector-pool-values-identities.json');
   assert.deepEqual(before, read('scripts/fixtures/submitted-sga-signature-role-values-identities.json'));
-  const expected = vectorPoolIdentityOracle();
+  const expected = vectorPoolIdentityOracle({
+    grammarPath: 'scripts/fixtures/pre-event-window-query-grammar.ebnf',
+    rulesPath: 'scripts/fixtures/pre-event-window-query-rules.md',
+  });
   assert.deepEqual(expected, read('scripts/fixtures/submitted-vector-pool-values-identities.json'));
-  assert.deepEqual(expected.grammar, read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(expected, read('scripts/fixtures/pre-event-window-values-identities.json'));
   assert.equal(before.run_preimages.run.run_definition_cid,
     'sha256:12bf2b06808781ed3ee15ce8fd7e9ad229401a075bfc69f00960899fb9ff912c');
   assert.notEqual(expected.grammar.grammar_manifest_cid, before.grammar.grammar_manifest_cid);

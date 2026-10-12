@@ -1505,7 +1505,10 @@ common contract. The installed constructor and Graph consumer connections
 are described below. Typed Pipe calls also connect `to_vectors(id: field,
 vector: field)`, `normalize_vectors()`, `score_vectors(query: value, metric:
 string)`, `pool_vectors(by: [fields], method: string, vector: field,
-output_id: name)`, `vectors()`, `to_events(id: field, time: field)`, `session(by:
+output_id: name)`, `vectors()`, `to_events(id: field, time: field)`,
+`row_window(time: field, kind: string, size: value, step: value?, offset: value?)`,
+`window_events(kind: string, size: value, step: value?, offset: value?)`,
+`watermark_events(watermark_ms: number, policy: string)`, `session(by:
 [fields], gap: string)` and `events()` to their existing common operations.
 Relation-input session additionally requires its existing `id` and `time`
 roles. Field roles resolve visible columns; they are not String values or
@@ -1529,6 +1532,26 @@ The shared checker owns nullable/key eligibility, repeated grouping fields,
 output collisions, dimensions, profile and execution-resource obligations.
 The frontend does not duplicate grouping, numeric folds or identity encoding.
 An explicit `vectors()` bridge is required before Relation projection.
+
+`row_window` and `window_events` retain the existing [window contract](language.md#event-windows),
+respectively Relation-to-Relation and Events-to-Events. `time` is a FieldRef,
+not a String or producer name. `kind` is the exact String `'fixed'` or
+`'sliding'`. Positive millisecond sizes/steps and signed offsets retain their
+authored numeric, duration String or whole Parameter representation; the
+shared owner checks the declarations and values. Sliding requires `step`.
+Fixed also admits and validates an explicit `step` without using it for
+membership. The lowerer never drops that argument or inserts an omitted step
+or offset. The common owner supplies default offset zero and retains the
+closed-open membership, clock, occurrence order, arithmetic and capacity rules.
+
+`watermark_events` preserves Events and the existing [watermark contract](language.md#event-bridges).
+Its closed arguments are a finite numeric `watermark_ms` literal, including
+negative/fractional values, and exact policy String `'mark'` or `'drop'`.
+Parameters cannot replace the threshold. The shared owner checks the Carrier,
+fresh output names and values: late means time strictly below the threshold;
+equality is not late. Both policies preserve retained identity, payload and
+relative order. Use `events()` before ordinary Relation projection. These
+source connections do not establish full TEA profile or public execution.
 
 `FROM p` preserves the resolved Carrier. `FROM GRAPH p` adds a Graph expectation;
 it does not search past a nearer Relation binding. MATCH accepts Graph with or
