@@ -23,7 +23,7 @@ struct OriginalResourcePark[T] {
 // Every resource mutator calls this BEFORE changing the same Owner. Physical
 // observations refused here stay with the original producer/journal until
 // exact cut invalidation; they must not be discarded or turned into zero.
-fn check_original_resources_mutable(
+pub fn check_original_resources_mutable(
   ledger : Ledger,
 ) -> Result[Unit, LedgerIssue] {
   if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
