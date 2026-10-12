@@ -1,0 +1,337 @@
+{
+  "original_source": "d62f4de55f98badeb37af933f6fdb0e5dbfeae22",
+  "original_record_sha256": "4b0769c76ba0ed04be64fda432f1c24d2d663008f777b589bcbe83fcb760335c",
+  "scope": [
+    {
+      "file": "query_program/window_key_receiver_reuse_test.mbt",
+      "line": 52,
+      "name": "OVER key reuse distinguishes explicit object and Relation range receivers",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/unresolved_relation_test.mbt",
+      "line": 67,
+      "name": "unrelated lowering issues do not invent a named relation witness",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/unpivot_row_label_test.mbt",
+      "line": 41,
+      "name": "UNPIVOT integer row labels refuse unsupported exact contracts",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/subgraph_public_source_test.mbt",
+      "line": 2,
+      "name": "Subgraph task-bound example passes semantic checking before task admission",
+      "status": "migrated_adopted_sga_roles"
+    },
+    {
+      "file": "query_program/source_range_property_test.mbt",
+      "line": 48,
+      "name": "ordinary range binding preserves nested nullable and same-named value receivers",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/source_range_property_test.mbt",
+      "line": 107,
+      "name": "ordinary range binding preserves exact unknown and bounded-work refusals",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/semantic_query_refusal_test.mbt",
+      "line": 2,
+      "name": "authored CTE and grouped projection violations are not lowering gaps",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/semantic_query_refusal_test.mbt",
+      "line": 56,
+      "name": "unimplemented CTE checking and theta joins remain lowering gaps",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/pipe_result_test.mbt",
+      "line": 119,
+      "name": "RESULT inside a CTE or derived query cannot publish a statement Result",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/optional_derived_alias_test.mbt",
+      "line": 149,
+      "name": "unnamed projected sources match the independent established producer Program",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/optional_derived_alias_budget_test.mbt",
+      "line": 2,
+      "name": "optional derived alias diagnostic emits the actual existing Program",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/optional_derived_alias_budget_test.mbt",
+      "line": 23,
+      "name": "named derived alias existing control uses the same predicate and limit",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/nested_query_test.mbt",
+      "line": 47,
+      "name": "derived SQL and Pipe sources have the same independent checked Program",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/nested_query_test.mbt",
+      "line": 112,
+      "name": "derived captured Pipe binds one retained source producer",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/nested_query_test.mbt",
+      "line": 233,
+      "name": "captured set CTE matches an independently authored Program",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/join_range_property_test.mbt",
+      "line": 198,
+      "name": "CTE current-range property ORDER retains ordinary Relation scope",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/join_prefilter_range_property_test.mbt",
+      "line": 89,
+      "name": "prefilter value receiver wins its same-named range without inventing a peer",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/group_property_receiver_scope_test.mbt",
+      "line": 58,
+      "name": "GROUP BY ALL keeps both range and object property keys in an independent Program",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/group_property_receiver_scope_test.mbt",
+      "line": 82,
+      "name": "grouped computed subtrees retain the object receiver boundary",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/graph_subtraction_source_test.mbt",
+      "line": 103,
+      "name": "complete public subtraction sources retain empty NULL and nonempty endpoint contracts",
+      "status": "migrated_adopted_sga_roles"
+    },
+    {
+      "file": "query_program/graph_profile_test.mbt",
+      "line": 2,
+      "name": "legacy Graph cannot silently treat a static label as a property",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/graph_match_binding_vocabulary_test.mbt",
+      "line": 2,
+      "name": "uppercase Graph node binding matches an independent complete Program",
+      "status": "migrated_adopted_sga_roles"
+    },
+    {
+      "file": "query_program/graph_match_binding_vocabulary_test.mbt",
+      "line": 24,
+      "name": "uppercase Graph edge roles retain distinct typed endpoints",
+      "status": "migrated_adopted_sga_roles"
+    },
+    {
+      "file": "query_program/graph_any_direction_test.mbt",
+      "line": 47,
+      "name": "any-direction fixed hops retain both endpoint definitions for property checking",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/full_using_scope_test.mbt",
+      "line": 2,
+      "name": "FULL USING scope agrees with a complete independent coalesced Program",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/from_unpivot_test.mbt",
+      "line": 51,
+      "name": "FROM UNPIVOT matches independent producer and consumer stages",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/from_pivot_test.mbt",
+      "line": 34,
+      "name": "FROM PIVOT matches independently authored producer stages",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/from_pivot_identity_projection_test.mbt",
+      "line": 2,
+      "name": "empty derived FROM PIVOT retains checked global count output",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/extend_range_snapshot_test.mbt",
+      "line": 80,
+      "name": "existing JOIN range refusals retain exact current invalid-input causes",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/distinct_signed_order_test.mbt",
+      "line": 116,
+      "name": "DISTINCT signed order distinguishes a range field from an explicit object receiver",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/distinct_aggregate_order_test.mbt",
+      "line": 100,
+      "name": "DISTINCT order keeps a parenthesized object receiver separate from a range",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/distinct_aggregate_expression_scope_test.mbt",
+      "line": 76,
+      "name": "DISTINCT computed order preserves operands operators literals and snapshot scope",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/cte_pipe_test.mbt",
+      "line": 2,
+      "name": "SELECT and Pipe CTE forms match an independently authored Program",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/cte_pipe_test.mbt",
+      "line": 31,
+      "name": "Pipe CTE chains retain prior scope and reject unchecked declarations",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/cte_pipe_test.mbt",
+      "line": 63,
+      "name": "captured WHERE-only and source-only CTEs bind the retained producer",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/cte_capture_predicate_test.mbt",
+      "line": 28,
+      "name": "CTE JOIN-right consumers retain the complete shared capture",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/cte_capture_predicate_test.mbt",
+      "line": 58,
+      "name": "CTE aliases shadow the outer capture in JOIN-right dependency checks",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 42,
+      "name": "query-only context refuses Graph lowering without a current definition",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1167,
+      "name": "Pipe WHERE before JOIN filters a subquery stage",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1184,
+      "name": "CTE JOIN body shares scalar projection and post-join filter lowering",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1203,
+      "name": "CTE JOIN DISTINCT publishes the deduplicated Stage Result",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1222,
+      "name": "CTE JOIN uses the same hidden ORDER and visible Result projection",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1265,
+      "name": "one CTE lowers to a shared checked Stage Result",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1349,
+      "name": "CTE chain references prior declarations without source substitution",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1373,
+      "name": "CTE branches share one checked producer and reject unchecked declarations",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1412,
+      "name": "SQL and Pipe FROM subqueries reuse the ordinary checked Stage Result",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1497,
+      "name": "named JOIN subquery reuses an earlier checked CTE result",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1516,
+      "name": "CTE join body consumes prior checked results without source replay",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/compile_test.mbt",
+      "line": 1544,
+      "name": "FULL CTE join retains keyed input identity for common closure",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_program/aggregate_member_call_reuse_test.mbt",
+      "line": 79,
+      "name": "aggregate member reuse keeps explicit object and range receivers separate",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "query_syntax/with_final_current_callers_test.mbt",
+      "line": 19,
+      "name": "WITH final graph callers parse",
+      "status": "migrated_adopted_sga_roles"
+    },
+    {
+      "file": "query_syntax/nested_query_test.mbt",
+      "line": 79,
+      "name": "nested relational query stops at its own boundary",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "source_frontend/single_join_group_test.mbt",
+      "line": 23,
+      "name": "single JOIN GROUP public input preserves raw source with derived right input",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "source_frontend/pipe_join_input_test.mbt",
+      "line": 2,
+      "name": "captured Pipe JOIN chain uses the existing shared source binding",
+      "status": "pending_current_main_diagnosis"
+    },
+    {
+      "file": "source_frontend/lower_test.mbt",
+      "line": 307,
+      "name": "unified source dependency refuses legacy Graph inputs before Program preparation",
+      "status": "pending_current_main_diagnosis"
+    }
+  ],
+  "note": "Read-only repair tracking; not an oracle or a new full-Core execution."
+}
