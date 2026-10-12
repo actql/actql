@@ -15,7 +15,7 @@ import {checkpointLimits, clientSourceFormats, validCancellationAttempt, validOp
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol,
   validOwnerObservations, ownerObservationLimits} from
   '@actql/client-wire';
-import {validWirePlanViewShape, validWireRunViewShape} from '@actql/client-wire';
+import {validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, bytesCid, canonicalJson, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {formatOperationExplanation} from './operation-formats.mjs';
@@ -2168,6 +2168,25 @@ async function connectSelected(selected, port) {
         retainOwnerObservations(answer, input,
           {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef});
         return answer;
+      },
+      // Read the immutable compiler map of this admitted Run. Never compile
+      // today's input or allocate a replacement Run for missing old evidence.
+      plan: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}));
+        if (!validClientBody('run-plan', {connection: selected.wire, ...input})) {
+          fail('InvalidRunPlanRequest');
+        }
+        const response = await runRequest('run-plan', input, signal);
+        const view = detachResponse(captureResponse(await responseValue(response, maxWireBytes)));
+        if (new TextEncoder().encode(JSON.stringify(view)).byteLength > maxWireBytes ||
+            !validWireRunPlanViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
+          fail('InvalidClientHostRunPlanView');
+        }
+        const plan = view.plan_view, map = plan.logical_map;
+        const {self_cid: observed, ...preimage} = map;
+        if (map.compiled_plan_cid !== plan.compiled_plan_cid ||
+            await contentCid(preimage) !== observed) fail('InvalidClientHostRunPlanView');
+        return freezeInput(view);
       },
       inspect: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
         const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}));

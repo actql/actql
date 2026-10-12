@@ -34,14 +34,25 @@ class PhysicalFixture:
             ('publisher_current', [i32], self.publisher_current),
             ('publisher_begin', [i32, i32], self.publisher_begin),
             ('publisher_byte', [i32, i32, i32], self.publisher_byte),
-            ('publisher_finish', [i32], self.publisher_finish)):
+            ('publisher_finish', [i32], self.publisher_finish),
+            ('journal_current', [i32], self.journal_refuse),
+            ('journal_begin', [i32, i32, i32, i32], self.journal_refuse),
+            ('journal_query_byte', [i32, i32, i32], self.journal_refuse),
+            ('journal_query', [i32], self.journal_refuse),
+            ('journal_length', [i32, i32], self.journal_refuse),
+            ('journal_byte', [i32, i32, i32], self.journal_refuse),
+            ('journal_revision', [i32], self.journal_refuse),
+            ('journal_release', [i32], self.journal_refuse)):
+
             self.linker.define_func('actql_host', name,
-                wasmtime.FuncType(params, [i32]), callback)
+                wasmtime.FuncType(params, [wasmtime.ValType.i64() if name == 'journal_revision' else i32]), callback)
         assert {(item.module, item.name) for item in self.module.imports} == {
             ('actql_host', 'input_byte'), ('actql_host', 'input_cleanup'), ('actql_host', 'reader_stop'),
             ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned'),
             ('actql_host', 'publisher_current'), ('actql_host', 'publisher_begin'),
-            ('actql_host', 'publisher_byte'), ('actql_host', 'publisher_finish')}
+            ('actql_host', 'publisher_byte'), ('actql_host', 'publisher_finish'),
+            *{('actql_host', 'journal_' + name) for name in (
+                'current', 'begin', 'query_byte', 'query', 'length', 'byte', 'revision', 'release')}}
         self.instance = self.linker.instantiate(self.store, self.module)
         self.exports = self.instance.exports(self.store)
         envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
@@ -80,6 +91,10 @@ class PhysicalFixture:
 
     def publisher_finish(self, ticket):
         return -2
+
+    def journal_refuse(self, *args):
+        # Existing unrelated physical fixtures have no original journal port.
+        return -41
 
     def cleanup(self, ticket):
         self.cleanups[ticket] = self.cleanups.get(ticket, 0) + 1
