@@ -35,19 +35,19 @@ fn load_holder_effect_host_operator(
   }
   guard selected is Some(root) else { return None }
   // No selected I/O without reviewed setup quantity and real Site capacity.
-  let binding = () => {
-    current_site() &&
-    @site.site_key(environment.site) == resources.site_key &&
-    @site.site_binding_current(
-      environment.site,
-      resources.site_generation,
-      environment.runtime_bundle_cid,
-    ) &&
-    environment.bundles.verify_active_component_binding(
-      environment.active_runtime,
-    )
-    is Ok(_)
-  }
+  // Project immutable binding facts before creating the closure. Capturing the
+  // resources object here would retain its Ref[scope] back through the scope's
+  // current predicate. Runtime/slot verifiers remain the existing Owners.
+  let bundles = environment.bundles
+  let active_runtime = environment.active_runtime
+  let binding = holder_effect_host_setup_binding(
+    environment.site,
+    resources.site_key,
+    resources.site_generation,
+    environment.runtime_bundle_cid,
+    current_site,
+    () => bundles.verify_active_component_binding(active_runtime) is Ok(_),
+  )
   guard begin_holder_effect_host_setup_scope(
       environment.site,
       // A production profile and a receiver for the original pending cleanup
