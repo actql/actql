@@ -14,21 +14,21 @@ fn physical_preflight_fixture(
     events.push("start:" + request.slot.to_string())
     let steps = Ref(0)
     Ok({
-      advance: _ => {
+      advance: () => {
         events.push("prepare:" + request.slot.to_string())
         steps.val += 1
         if steps.val < 3 {
-          return (Ok(None), 1)
+          return Ok(None)
         }
         if request.slot == fail_slot {
-          return (Err(@model.InvalidProvider), 1)
+          return Err(@model.InvalidProvider)
         }
         let bound = if foreign {
           { ..request, slot: request.slot + 1, }
         } else {
           request
         }
-        let result = @model.model_physical_request_plan(
+        @model.model_physical_request_plan(
           bound,
           wire_bytes,
           { tokens, cost_units: 0L, duration_ms: 500L, },
@@ -37,7 +37,6 @@ fn physical_preflight_fixture(
             @model.model_provider_synchronous_invoke(provider).unwrap()(request)
           },
         ).map(value => Some(value))
-        (result, 1)
       },
       cleanup: () => {
         events.push("cleanup:" + request.slot.to_string())
@@ -93,14 +92,10 @@ test "physical byte work respects quantum and the independent exact Model budget
       let blocked = Ref(true)
       let (input, active) = physical_work_fixture(calls, budget, request => {
         Ok({
-          advance: allowed => {
-            if allowed < 1 || allowed > quantum {
-              abort("preflight received a foreign quantum")
-            }
+          advance: () => {
             if bytes.val < 3 {
-              let used = allowed.min(3 - bytes.val)
-              bytes.val += used
-              return (Ok(None), used)
+              bytes.val += 1
+              return Ok(None)
             }
             let result = @model.model_physical_request_plan(
               request,
@@ -121,7 +116,7 @@ test "physical byte work respects quantum and the independent exact Model budget
                 })
               },
             ).map(value => Some(value))
-            (result, 1)
+            result
           },
           cleanup: () => !blocked.val,
         })
@@ -182,7 +177,12 @@ test "invalid physical work reports stop without dispatch and keep cleanup custo
     let calls = Ref(0)
     let blocked = Ref(true)
     let (input, active) = physical_work_fixture(calls, 100000, _ => {
-      Ok({ advance: _ => (Ok(None), reported), cleanup: () => !blocked.val, })
+      Ok(
+        @node_fixture.client_program_model_content_request_preflight(
+          _ => (Ok((false, None)), reported),
+          () => !blocked.val,
+        ),
+      )
     })
     let mut terminal = false
     for _ in 0..<2000 {
@@ -209,12 +209,14 @@ test "typed physical failure keeps consumed work through failed cleanup and retr
   let calls = Ref(0)
   let blocked = Ref(true)
   let (input, active) = physical_work_fixture(calls, 24, _ => {
+    let steps = Ref(0)
     Ok({
-      advance: allowed => {
-        if allowed < 3 {
-          abort("fixture requires three admitted work")
+      advance: () => {
+        steps.val += 1
+        if steps.val < 3 {
+          return Ok(None)
         }
-        (Err(@model.Content(@model.ContentIdentity)), 3)
+        Err(@model.Content(@model.ContentIdentity))
       },
       cleanup: () => !blocked.val,
     })
@@ -256,8 +258,8 @@ test "evaluation retains the invoked physical originals only while the adopted o
     let rendered = "é\r\n" + request.slot.to_string()
     let context = "{\"provider_internals\":\"unknown\",\"selected\":[]}"
     Ok({
-      advance: _ => {
-        let result = @model.model_physical_request_plan(
+      advance: () => {
+        @model.model_physical_request_plan(
           request,
           1000L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
@@ -267,7 +269,6 @@ test "evaluation retains the invoked physical originals only while the adopted o
           },
           evidence={ rendered_input: rendered, context_manifest: context, },
         ).map(value => Some(value))
-        (result, 1)
       },
       cleanup: () => true,
     })
@@ -300,8 +301,8 @@ test "prepared physical originals can be retained without invoking or granting a
   bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
   bind_physical_preflight(active, request => {
     Ok({
-      advance: _ => {
-        let result = @model.model_physical_request_plan(
+      advance: () => {
+        @model.model_physical_request_plan(
           request,
           1000L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
@@ -313,7 +314,6 @@ test "prepared physical originals can be retained without invoking or granting a
             context_manifest: "{\"unknown\":true}",
           },
         ).map(value => Some(value))
-        (result, 1)
       },
       cleanup: () => true,
     })
@@ -356,8 +356,8 @@ test "optional physical Evidence overflow stays missing without changing ordinar
   bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
   bind_physical_preflight(active, request => {
     Ok({
-      advance: _ => {
-        let result = @model.model_physical_request_plan(
+      advance: () => {
+        @model.model_physical_request_plan(
           request,
           1L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
@@ -366,7 +366,6 @@ test "optional physical Evidence overflow stays missing without changing ordinar
           },
           evidence={ rendered_input: "é", context_manifest: "{}", },
         ).map(value => Some(value))
-        (result, 1)
       },
       cleanup: () => true,
     })
@@ -496,7 +495,7 @@ test "typed Content preflight refusal preserves stop and pending physical cleanu
   bind_physical_preflight(active, _ => {
     starts.val += 1
     Ok({
-      advance: _ => (Err(@model.Content(@model.ContentIdentity)), 1),
+      advance: () => Err(@model.Content(@model.ContentIdentity)),
       cleanup: () => !blocked.val,
     })
   }).unwrap()

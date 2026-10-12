@@ -793,15 +793,15 @@ fn serialized_infer_fixture_physical(
     let payload = "{\"id\":2}\n{\"id\":1}\n"
     let finished = Ref(false)
     Ok({
-      advance: _ => {
+      advance: () => {
         if finished.val {
-          return (Err(@model.InvalidProvider), 1)
+          return Err(@model.InvalidProvider)
         }
         if check.val is None {
           let input = match
             @model.model_content_input(admitted, request, "document", -1) {
             Ok(Some(value)) => value
-            _ => return (Err(@model.Content(@model.Role)), 1)
+            _ => return Err(@model.Content(@model.Role))
           }
           check.val = Some(
             @model.start_model_content_byte_check(
@@ -813,7 +813,7 @@ fn serialized_infer_fixture_physical(
               () => live.val,
             ).unwrap(),
           )
-          return (Ok(None), 1)
+          return Ok(None)
         }
         // The physical fixture owns this one finite original payload. Validate
         // one ASCII byte per quantum before dispatch, charging each byte.
@@ -824,7 +824,7 @@ fn serialized_infer_fixture_physical(
           ).unwrap()
           |> ignore
           position.val += 1
-          return (Ok(None), 1)
+          return Ok(None)
         }
         let attachment = @model.finish_model_content_bytes(check.val.unwrap()).unwrap()
         finished.val = true
@@ -832,10 +832,12 @@ fn serialized_infer_fixture_physical(
           request,
           4096L,
           { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
-          () => (provider.invoke)(request),
+          () => {
+            @model.model_provider_synchronous_invoke(provider).unwrap()(request)
+          },
           attachments=[attachment],
         ).map(value => Some(value))
-        (physical, 1)
+        physical
       },
       cleanup: () => true,
     })
