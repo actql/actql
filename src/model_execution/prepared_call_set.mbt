@@ -42,6 +42,9 @@ pub fn prepared_model_call_set(
   if state.prepared_call_set is Some(value) {
     return Some(value)
   }
+  if check_model_original_resources_mutable(state) is Err(_) {
+    return None
+  }
   let prepared = { owner: execution, scope: None, }
   state.prepared_call_set = Some(prepared)
   Some(prepared)
@@ -162,6 +165,9 @@ pub fn bind_prepared_model_scope(
   value : ModelPreparedCallSet,
   scope : @publication.BoundModelInvocationScope,
 ) -> Result[Unit, ModelExecutionIssue] {
+  if check_model_original_resources_mutable(value.owner.state) is Err(issue) {
+    return Err(issue)
+  }
   guard prepared_model_current(value) &&
     prepared_model_input_artifact(value) is Some(input) else {
     return Err(RequestIdentity)
@@ -227,6 +233,9 @@ fn check_prepared_model_dispatch(
   admission : @publication_host.ClientInferDispatchAdmission,
 ) -> Result[Unit, ModelExecutionIssue] {
   let state = value.owner.state
+  if check_model_original_resources_mutable(state) is Err(issue) {
+    return Err(issue)
+  }
   guard prepared_model_current(value) &&
     state.phase is DispatchSlot &&
     state.entering is None &&
@@ -242,7 +251,9 @@ fn check_prepared_model_dispatch(
     Err(issue) => return Err(Authorization(issue))
     Ok(_) => ()
   }
-  Ok(())
+  // The authority callback may change the resource fence. Nothing mutable
+  // follows a stale pre-callback observation of that same original Ledger.
+  check_model_original_resources_mutable(state)
 }
 
 ///|
@@ -345,6 +356,9 @@ pub fn model_call_settlement_slot(value : ModelCallSettlement) -> Int? {
 /// The installed custody adapter acknowledges only after exact Store originals
 /// and the existing journal observation agree. This cannot start a send by itself.
 pub fn acknowledge_model_call_settlement(value : ModelCallSettlement) -> Bool {
+  if check_model_original_resources_mutable(value.owner.state) is Err(_) {
+    return false
+  }
   if model_call_settlement_slot(value) is None {
     return false
   }
