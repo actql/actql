@@ -237,20 +237,19 @@ pub fn NativeLocalHostConnection::authority_scope_cid(
   connection : String,
   crypto : @crypto.Library,
 ) -> Result[String, NativeLocalAdoptionIssue] {
-  match self.check_binding() {
-    Ok(_) => ()
+  let material = match self.adopted_current_material() {
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let body = match
-    @host.client_local_authority_scope_body(
-      self.session.configuration,
-      self.adoption_cid,
+    @host.client_local_adopted_authority_scope_body(
+      material,
+      self.database,
       principal,
       connection,
     ) {
     Ok(value) => value
-    Err(@host.InvalidInput) => return Err(InvalidInput)
-    Err(@host.Encoding) => return Err(Encoding)
+    Err(issue) => return Err(local_current_material_issue(issue))
   }
   local_adoption_digest(crypto, body)
 }
@@ -262,9 +261,13 @@ pub fn NativeLocalHostConnection::authorize(
   self : NativeLocalHostConnection,
   request : @authorization.AccessTuple,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
-  self
-  .check_binding()
-  .map(_ => @authorization.evaluate_account(self.session.configuration, request))
+  let material = match self.adopted_current_material() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @host.client_local_adopted_account_outcome(material, self.database, request).map_err(
+    local_current_material_issue,
+  )
 }
 
 ///|
