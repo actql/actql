@@ -37,10 +37,25 @@ fn bind_script_input(
   match input.source {
     StepReference => input
     GeneratedValues(source) => {
+      // Installed Values are one logical input across WITH consumers. A
+      // source-free SELECT's synthetic Unit is local to that query body.
+      let installed = context.inputs.any(known => known.name == input.name)
+      if installed && sources.bound.get(input.name) is Some(bound) {
+        return bound
+      }
       let name = pipe_physical_name(reserved, "aql_script_seed_")
       reserved.push(name)
       steps.push(import_script_seed(construction, source, name))
-      { ..input, name, source: StepReference, visible_fields: fields, }
+      let bound = {
+        ..input,
+        name,
+        source: StepReference,
+        visible_fields: fields,
+      }
+      if installed {
+        sources.bound[input.name] = bound
+      }
+      bound
     }
     Captured(declaration) => {
       if sources.bound.get(input.name) is Some(bound) {
