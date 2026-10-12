@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-10-12T01:41:35.574Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format authored event window connection and controls",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/event_window_source_test.mbt",
+        "src/query_syntax/event_window_role_test.mbt",
+        "src/query_program/query_script_carriers.mbt",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/sga_argument_roles.mbt"
+      ],
+      "startedAt": "2026-10-12T01:41:35.675Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:41:35.959Z",
+      "endedAt": "2026-10-12T01:41:35.961Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "9f8ad49f-01c6-42f5-9eb7-2b573e090a65",
+    "pid": 53093,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T01:41:35.661Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-iHIilO"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T01:41:36.045Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
