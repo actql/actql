@@ -149,6 +149,12 @@ fn lower_script_join_relation(
   let right = selected_join_input(query, part, scoped, limits)
   let left_fields = columns(left)
   let right_fields = columns(right)
+  let values_bound = if left.source is GeneratedValues(_) &&
+    right.source is GeneratedValues(_) {
+    Some(values_join_output_bound(part, left, right, limits))
+  } else {
+    None
+  }
   // A single installed JOIN keeps both Source ports in the same original
   // Stage, as the standalone SQL lowering does. Its leading WHERE and full
   // projection are the existing Direct capture prefix, not another Source
@@ -199,6 +205,7 @@ fn lower_script_join_relation(
     right_from=bound_right.name,
     step_bindings=bindings,
     capture_left~,
+    values_bound~,
   )
   steps.append(body)
   {
