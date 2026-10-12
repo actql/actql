@@ -41,9 +41,9 @@ test "JSON source Delta preserves its independent complete Program" {
         parsed,
         { ..fixture_context(), inputs: [], },
         construction_limits(),
-      ) is Err(UnknownColumn),
+      )
+      is Err(UnknownColumn),
       msg=field,
     )
   }
-
 }
