@@ -369,6 +369,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       currentProvider: () => selected.currentProvider?.() !== false && binding.identity === inventory.providerBindingCid,
       entries: new Map()};
     let installedJournalPort;
+    let originalInvalidation;
     function originalJournalInstallation() {
       if (originalPreparation === undefined ||
           live.get(preparedCallSet) !== owner ||
@@ -464,6 +465,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
       rawSelection = undefined;
       installedJournalPort = undefined;
+      originalInvalidation = undefined;
       originalPreparation = undefined;
       release(token);
       return true;
@@ -525,6 +527,41 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // before its once-only consume. This saved observation does not add an
         // INFER Allow prerequisite to cleanup/unpark or permit Model sending.
         return observed;
+      },
+      beginOriginalResourceInvalidation(reference, park) {
+        originalJournalInstallation();
+        if (originalInvalidation !== undefined || !owner.available ||
+            operation.originalResourceParkCurrent(park) !== park ||
+            cp.journal.originalModelCurrentCutOperationStatus(reference).state !== 'linked') {
+          fail('ModelOriginalResourceInvalidationUnavailable');
+        }
+        const observation = cp.journal.originalModelCurrentCutObservation(reference);
+        const facts = cp.journal.originalModelJournalObservationFacts(observation);
+        if (!same(select(facts.identity, scopeKeys), select(inventory, scopeKeys))) {
+          fail('ModelOriginalJournalInstallationChanged');
+        }
+        // Keep this exact outstanding request even when the following COMMIT
+        // fails or is unknown. No replacement intent or approval is issued.
+        const request = operation.beginOriginalResourceInvalidation(park);
+        originalInvalidation = {reference, park, request, receipt: undefined};
+        return request;
+      },
+      completeOriginalResourceInvalidation() {
+        const original = originalInvalidation;
+        const port = originalJournalInstallation();
+        if (original === undefined || !owner.available ||
+            operation.originalResourceInvalidationCurrent(original.park, original.request) !== original.request) {
+          fail('ModelOriginalResourceInvalidationUnavailable');
+        }
+        const receipt = original.receipt ??= cp.journal.invalidateOriginalModelCurrentCut(
+          original.reference, original.request);
+        // The fixed FFI authenticates this same actual port and all four refs,
+        // then synchronously rechecks Core lifecycle and consumes once. It does
+        // not demand dispatch=None become Allow or grant a subsequent send.
+        operation.completeOriginalJournalInvalidation(port, receipt,
+          original.reference, original.park, original.request);
+        originalInvalidation = undefined;
+        return receipt;
       },
       hasResponseReconciliation: unreconciled.size > 0,
       evaluationInventory() {

@@ -171,6 +171,8 @@ pub fn client_program_append_captured_source_identity_scan(@execution_query.Capt
 
 pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
 
+pub fn client_program_begin_infer_original_model_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
+
 pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
 
 pub fn client_program_bind_compiled_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientEffectCompiledRunIssue]
@@ -370,6 +372,8 @@ pub fn client_program_compiled_run_result_transformation(@run_publication_host.C
 pub fn client_program_compiled_run_source_free_result_policy(@run_publication_host.ClientCompiledRun) -> (String, String, String)?
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_complete_infer_original_journal_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, OriginalModelJournalReference, OriginalModelJournalReference, OriginalModelJournalReference, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, @model_execution.ModelExecutionIssue]
 
@@ -754,6 +758,8 @@ pub fn client_program_infer_occurrence_coordinates(@run_publication_host.ClientI
 pub fn client_program_infer_occurrence_model_task_cid(@run_publication_host.ClientInferOccurrence) -> String?
 
 pub fn client_program_infer_occurrence_target_name(@run_publication_host.ClientInferOccurrence) -> String?
+
+pub fn client_program_infer_original_model_invalidation_current(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn client_program_infer_original_model_resource_park_current(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]?
 
@@ -3295,6 +3301,8 @@ pub(all) enum ClientSourcePreparationIssue {
   Frontend(@source_frontend.Issue)
   ArrayProfile(@source_frontend.ArrayProfileIssue)
 }
+
+type OriginalModelJournalReference
 
 type StrategyHostManagedResultImport
 

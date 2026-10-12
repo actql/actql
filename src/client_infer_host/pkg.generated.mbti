@@ -34,6 +34,8 @@ pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptE
 
 pub fn begin_original_model_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelExecutionLimits, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, Issue]
 
+pub fn begin_original_model_resource_invalidation(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], Issue]
+
 pub fn bind_compute_suffix(Execution, @execution_relation.GeneratedSequence) -> Result[Unit, Issue]
 
 pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, InvocationBindingIssue]
@@ -80,6 +82,8 @@ pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
 pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool) -> @local.ManagedProvider
 
+pub fn consume_original_model_resource_invalidation(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, Issue]
+
 pub fn evaluation_request(Execution, Int) -> (@model_execution.ModelRequest, @model_execution.ModelPhysicalRequestEvidence)?
 
 pub fn execution_quantity_usage(Execution) -> @physical_resources.QuantityUsage?
@@ -113,6 +117,8 @@ pub fn model_cleanup_progress(Execution) -> Int
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
 pub fn original_model_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
+
+pub fn original_model_resource_invalidation_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn original_model_resource_park_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]?
 

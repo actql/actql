@@ -87,3 +87,58 @@ pub fn original_model_resource_park_current(
     plan,
   )
 }
+
+///|
+// The original Execution supplies its checked Run/plan; this does not accept
+// replacement origin data or require dispatch admission during approval wait.
+pub fn begin_original_model_resource_invalidation(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+) -> Result[@publication_host.ClientModelResourceInvalidationRequest, Issue] {
+  guard original_model_resource_park_current(active, scope, park) is Some(_) &&
+    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    return Err(InvalidAdvance)
+  }
+  @publication_host.begin_client_model_resource_invalidation(
+    park, scope, bound.compiled, bound.definition, plan,
+  ).map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
+}
+
+///|
+pub fn original_model_resource_invalidation_current(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  request : @publication_host.ClientModelResourceInvalidationRequest,
+) -> @publication_host.ClientModelResourceInvalidationRequest? {
+  guard original_model_resource_park_current(active, scope, park) is Some(_) &&
+    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    return None
+  }
+  @publication_host.client_model_resource_invalidation_current(
+    request, park, scope, bound.compiled, bound.definition, plan,
+  )
+}
+
+///|
+// Internal transition AFTER the actual installed journal's nominal four-ref
+// check. No callback/await occurs between this final currentness and consume.
+// The Node boundary must authenticate that actual journal, never export this
+// inner transition by itself. Fence removal is not Model send permission.
+pub fn consume_original_model_resource_invalidation(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  request : @publication_host.ClientModelResourceInvalidationRequest,
+) -> Result[Unit, Issue] {
+  guard original_model_resource_invalidation_current(
+      active, scope, park, request,
+    ) is Some(_) && active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
+    return Err(InvalidAdvance)
+  }
+  @publication_host.consume_client_model_resource_invalidation(
+    request, park, scope, bound.compiled, bound.definition, plan,
+  ).map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
+}
