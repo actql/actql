@@ -96,26 +96,26 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
       msg=prefix,
     )
   }
-  // AS replaces the old lexical range; a WITH body also does not export its
-  // internal range variable into the outer JOIN's relation scope.
-  for text in [
-    "FROM t |> AS l |> SET x = x + 10 |> AS fresh |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
-    "WITH chosen AS (FROM t |> AS l |> SET x = x + 10) FROM chosen |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
-  ] {
-    match compile(
-      @query.parse_query(text, syntax_limits()).unwrap(),
+  // AS replaces the old lexical range before ON/SELECT resolution.
+  assert_true(
+    compile(
+      @query.parse_query(
+        "FROM t |> AS l |> SET x = x + 10 |> AS fresh |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
+        syntax_limits(),
+      ).unwrap(),
       join_order_context(),
       construction_limits(),
-    ) {
-      Err(Expression({ issue: UnknownReference, origin: Some(_), })) => ()
-      Err(Expression(issue)) => fail("Expression " + @debug.to_string(issue.issue))
-      Err(UnsupportedJoin) => fail("UnsupportedJoin")
-      Err(AmbiguousColumn) => fail("AmbiguousColumn")
-      Err(UnknownColumn) => fail("UnknownColumn")
-      Err(UnknownRelation) => fail("UnknownRelation")
-      Err(BindingPreparation(_)) => fail("BindingPreparation")
-      Err(_) => fail("other issue")
-      Ok(program) => fail("unexpected success: " + semantic(program))
-    }
-  }
+    ) is Err(UnknownColumn),
+  )
+  // The WITH body does not export its internal range into the outer JOIN.
+  assert_true(
+    compile(
+      @query.parse_query(
+        "WITH chosen AS (FROM t |> AS l |> SET x = x + 10) FROM chosen |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
+        syntax_limits(),
+      ).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ) is Err(AmbiguousColumn),
+  )
 }

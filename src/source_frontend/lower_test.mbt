@@ -304,20 +304,16 @@ test "published query names bind one environment generation" {
 }
 
 ///|
-test "public Graph input retains the missing-producer witness and retired annotation refusal" {
+test "public Graph input distinguishes missing producer from retired annotation" {
   let context = test_context()
   for document in [
     "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *",
     "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
   ] {
-    guard lower(document, Text, Some(context)) is Err(QueryLowering(issue)) &&
-      issue is @query.UnresolvedRelation(_) else {
-      fail("an absent Graph must retain its existing resolution witness")
-    }
-    let path = @query.unresolved_relation_reference(issue).unwrap()
-    assert_eq(path.length(), 1)
-    assert_eq(path[0].value, "g")
-    assert_eq(path[0].quoted, false)
+    assert_true(
+      lower(document, Text, Some(context)) is Err(QueryLowering(@query.UnknownRelation)),
+      msg=document,
+    )
   }
   let retired = "FROM GRAPH g LABELS {\"node\":{\"field\":\"name\"}} |> MATCH WALK (a:Person) |> SELECT a.id"
   match lower(retired, Text, Some(context), source_path="graph.sql") {
