@@ -2621,18 +2621,6 @@ fn holder_checkpoint(resources : HolderOutputResources) -> (String) -> Unit {
 }
 
 ///|
-/// Closes output resources when no output was produced, so nothing can be
-/// owned by them.
-fn close_holder_output_resources(resources : HolderOutputResources) -> Unit {
-  // The CLI supplies no funded Host profile until it can retain a pending
-  // close carrier. Do not send such a carrier through Unit/CommandStop exit.
-  ignore(resources.transfer_journal.close())
-  ignore(resources.store.close())
-  ignore(resources.transfer.close())
-  ignore(resources.control.close())
-}
-
-///|
 /// After execution the holder keeps its output and serves the Coordinator's
 /// output operations, relayed by the control process over the holder's
 /// standard input. When the output is released, or the control process is
@@ -2721,7 +2709,7 @@ fn serve_holder_output(
   }
   let mut serving = true
   while serving {
-    match @slot.native_read_holder_input(2097152) {
+    match read_holder_lifetime_input() {
       InputEnded => {
         report("holder-control-gone", [("request_cid", identity)])
         serving = false
@@ -3720,10 +3708,6 @@ fn serve_holder_output(
       @slot.native_wait_milliseconds(250)
     }
   }
-  while store.close() is Err(_) {
-    report("cleanup-pending", [("step", "store"), ("request_cid", identity)])
-    @slot.native_wait_milliseconds(250)
-  }
   if order.length() > 1 {
     let state = @site.site_status(environment.site)
     report("retained-holder-settled", [
@@ -3736,9 +3720,8 @@ fn serve_holder_output(
       ("reserved_execution_bytes", state[8].to_string()),
     ])
   }
-  ignore(transfer_journal.close())
-  ignore(transfer.close())
-  ignore(control.close())
+  // The caller retains the same resources for checked Host -> ordinary ->
+  // environment/process-hold -> slot closure. No close result is discarded here.
 }
 
 ///|
@@ -4157,10 +4140,10 @@ fn run_holder(
   ) catch {
     CommandStop(issue) => {
       if proven_unstarted {
-        close_holder_output_resources(resources)
-        close_site_environment(environment)
-        ignore(slot.close())
-        stop(issue)
+        let closed = retain_pending_holder_cleanup(
+          resources, environment, slot, issue,
+        )
+        stop(closed.original_failure)
       }
       // Deny evidence access while retaining the original journal and passing
       // existing work to its normal restoration/unknown/cleanup Owners. This
@@ -4344,7 +4327,6 @@ fn run_holder(
         }
         None => ()
       }
-      close_holder_output_resources(resources)
       match issue {
         Ordinary(Runtime(@runtime.StartClaimLost(_)))
         | Ordinary(Runtime(@runtime.StartCancelled))
@@ -4362,10 +4344,14 @@ fn run_holder(
       wait_ms = holder_effect_installation_backoff(wait_ms)
     }
   }
-  close_site_environment(environment)
-  ignore(slot.close())
+  let closed = retain_pending_holder_cleanup(
+    resources,
+    environment,
+    slot,
+    "execute exited with " + code.to_string(),
+  )
   if code != 0 {
-    stop("execute exited with " + code.to_string())
+    stop(closed.original_failure)
   }
 }
 
