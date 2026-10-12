@@ -28,7 +28,7 @@ const sourceTemplate = loadResourceAccountingSources({
   root, manifest: manifestTemplate, routes: routesTemplate,
 });
 const currentPartialGraphOperations = ['shortest_path', 'reach', 'graft_graph', 'mean_graphs'];
-const currentPartialGraphErrors = currentPartialGraphOperations.map(operation =>
+const currentPartialGraphErrors = ['shortest_path', 'reach'].map(operation =>
   `SGA ${operation}: resource layers are incomplete`);
 
 // Refusal counterfixtures are explicit synthetic source snapshots. The current
@@ -1152,15 +1152,24 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 test('resource gate preserves incomplete current Graph resource layers', () => {
   const result = evaluate(undefined, undefined, ['--check-summary']);
   assert.deepEqual(result.errors, currentPartialGraphErrors);
-  assert.match(result.output, /68 operations, 5 implementation profiles, 68 production routes mapped, 0 typed pre-execution refusals \(not execution success\), 68 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(result.output, /68 operations, 5 implementation profiles, 68 production routes mapped, 0 typed pre-execution refusals \(not execution success\), 68 with operation-specific boundary records, 66 with four-role boundary evidence, 66 with full work\/workspace assurance, 120 with path-scoped work\/workspace evidence, 2 with selected-only assurance; full boundary completion is not asserted/);
   const coverage = sourceTemplate[join(root, manifestTemplate.inventories.families)].json;
   for (const operation of currentPartialGraphOperations) {
     const entry = coverage.operations.find(entry => entry.operation === operation);
     assert.equal(entry.status, 'partial');
-    assert.deepEqual(entry.completed_layers, ['contract']);
+    assert.ok(entry.completed_layers.includes('resources'));
     const route = routesTemplate.routes.find(entry => entry.operation === operation);
-    assert.equal(route.path_assurance, undefined);
-    assert.equal(route.resource_assurance, undefined);
+    if (['reach', 'shortest_path'].includes(operation)) {
+      assert.equal(entry.completed_layers.includes('cancellation'), false);
+      assert.equal(route.path_assurance.entrypoint, undefined);
+      assert.equal(route.resource_assurance.entrypoint, undefined);
+      assert.ok(route.path_assurance.selected_entrypoint);
+      assert.ok(route.resource_assurance.selected_entrypoint);
+    } else {
+      assert.ok(entry.completed_layers.includes('cancellation'));
+      assert.ok(route.path_assurance.entrypoint);
+      assert.ok(route.resource_assurance.entrypoint);
+    }
   }
 });
 
@@ -1174,7 +1183,8 @@ for (const operation of currentPartialGraphOperations) {
         assert.ok(result.errors.some(error => error.startsWith(`SGA ${operation}:`) &&
           (error.includes(`${field} must bind a production source`) ||
             error.includes(`missing ${field} production source`))), `${operation}/${field}`);
-        assert.ok(result.errors.includes(`SGA ${operation}: resource layers are incomplete`));
+        assert.equal(result.errors.includes(`SGA ${operation}: resource layers are incomplete`),
+          ['reach', 'shortest_path'].includes(operation));
       }
     }
     assert.match(run(undefined, routes => {
@@ -1196,6 +1206,35 @@ test('current Graph route fixtures cannot borrow another operation or omit a rol
         detach(routes.routes.find(value => value.operation === operation).boundary_tests[0]);
       }), new RegExp(`SGA ${operation}: current ${role} fixture is missing or detached`, 'u'));
     }
+  }
+});
+
+test('current Graph strict accounting retains the unsupported direct Host boundaries', () => {
+  const result = evaluate(undefined, undefined, ['--require-boundary-complete', '--check-summary']);
+  assert.deepEqual(result.errors, [
+    'SGA shortest_path: entrypoint boundary assurance is missing',
+    'SGA shortest_path: entrypoint work/workspace assurance is missing',
+    'SGA reach: entrypoint boundary assurance is missing',
+    'SGA reach: entrypoint work/workspace assurance is missing',
+    ...currentPartialGraphErrors,
+  ]);
+  for (const operation of ['reach', 'shortest_path']) {
+    const route = routesTemplate.routes.find(entry => entry.operation === operation);
+    const direct = route.boundary_tests.at(-1);
+    assert.match(direct.fixture, /direct entrypoint retains exact work workspace and private cancellation$/u);
+    assert.notEqual(direct.role, route.path_assurance.selected_entrypoint.exact_limit);
+  }
+});
+
+test('current Graph registered lifecycle cannot lose its actual public operation barrier', () => {
+  const file = join(root, 'scripts/graph-public-host.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+      'await cancelled.cancel()', 'await cancelled.status()')})});
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  for (const operation of currentPartialGraphOperations) {
+    assert.ok(result.errors.some(error => error.startsWith(`SGA ${operation}: missing environment fixture`)));
   }
 });
 
