@@ -571,3 +571,26 @@ pub fn close_result_export(nonce : Int64, handle : Int) -> Int {
   value.result_exports.remove(handle) |> ignore
   0
 }
+
+///|
+/// Select the original Named Result's completed producer in Core. Python never
+/// supplies a task number, copied completion flag or substitute Result mapping.
+#export_name("actql_result_reserve_from_compute")
+pub fn reserve_result_from_compute(nonce : Int64, compute : Int, result : Int, current_configuration : Int) -> Int {
+  guard selected(nonce) is Some(value) && !value.closing && !value.runtime_closing &&
+    value.computes.get(compute) is Some({ closing: false, host: Some(host), origin: SourceFree(_, _), .. }) &&
+    value.run_configurations.get(current_configuration) is Some(current) &&
+    compute_publication_preflight(value, compute) is Some((_, preflight)) else { return -2 }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  if !stored_preflight_current(value, preflight, current.account) { return -32 }
+  guard @strategy.graph_result_task(@strategy.captured_dag_graph(@local_run.local_compute_run(host)), result) is Some(task) else { return -2 }
+  for handle, record in value.tasks {
+    if record.compute == compute && record.task == task {
+      return reserve_result_export(nonce, handle, result)
+    }
+  }
+  -2
+}

@@ -146,7 +146,8 @@ pub fn prepare_publication_preflight(
     Err(code) => return code
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) else { return -31 }
-  let input = match publication_preflight_input(value, compute, original_run, plan, cursor) {
+  let input = match
+    publication_preflight_input(value, compute, original_run, plan, cursor) {
     Ok(input) => input
     Err(code) => return code
   }
@@ -322,4 +323,30 @@ pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
     value.copies.remove(handle) |> ignore
   }
   result
+}
+
+///|
+/// Original checked inventory size, not a caller subset or publication result.
+#export_name("actql_publication_preflight_result_count")
+pub fn publication_preflight_result_count(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    !value.closing &&
+    !value.runtime_closing &&
+    value.publication_preflights.get(handle)
+    is Some({ preflight: Some(preflight), .. } as record) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  if !stored_preflight_current(value, record, current.account) {
+    return -32
+  }
+  @local_run.local_publication_preflight_count(preflight)
 }
