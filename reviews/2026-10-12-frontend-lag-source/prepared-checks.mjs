@@ -19,7 +19,7 @@ const inventoryRunner = `import {readFileSync,writeFileSync} from 'node:fs'; imp
 const formatRunner = `import assert from 'node:assert/strict'; import {readFileSync} from 'node:fs'; import {spawnSync} from 'node:child_process'; const write=process.argv[1]==='write'; for(const file of process.argv.slice(2)){const result=spawnSync('moonfmt',write?['-w',file]:[file],{encoding:'utf8'}); assert.equal(result.status,0,result.stderr); if(!write)assert.equal(result.stdout,readFileSync(file,'utf8'),file);} console.log('Pinned changed-file formatter verified');`;
 const steps = inventory ? [{name:'Independent declared public inventory',command:'node',args:['--input-type=module','-e',inventoryRunner]}]
   : normative ? generators.map(name => ({name: name,command:'node',args:['scripts/'+name+'.mjs','--write']}))
-  : freshness ? generators.filter(name=>name!=='lag-identity-oracle').map(name=>({name:name,command:'node',args:['scripts/'+name+'.mjs']}))
+  : freshness ? [...generators.filter(name=>name!=='lag-identity-oracle').map(name=>({name:name,command:'node',args:['scripts/'+name+'.mjs']})), {name:'Read-only six changed MoonBit files',command:'node',args:['--input-type=module','-e',formatRunner,'check','src/query_program/lag_source_test.mbt','src/query_syntax/lag_call_test.mbt','src/query_program/query_script_carriers.mbt','src/query_syntax/sga_call.mbt','src/query_syntax/sga_argument_roles.mbt','src/run_publication_host/client_values_run_materials_wbtest.mbt']}]
   : nodeTests ? [{name:'Independent focused Node cases',command:'node',args:['--input-type=module','-e',runner,'node',...files]}]
   : format
   ? [{name:'Pinned explicit source formatting',command:'node',args:['--input-type=module','-e',formatRunner,write?'write':'check',...files]}]
