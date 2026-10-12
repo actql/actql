@@ -1,6 +1,18 @@
 import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
 const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});';
 const steps = process.argv.includes('--info') ? [{name:'Generate actual changed SGA syntax interfaces',command:'moon',args:['info','--target','js','src/query_syntax','src/query_program']}]
+ : process.argv.includes('--normative-write') ? [
+ {name:'Generate compiler manifests from authored source grammar',command:'node',args:['scripts/compilation-manifests.mjs','--write']},
+ {name:'Derive independent SGA role Values preimages',command:'node',args:['scripts/sga-signature-role-identity-oracle.mjs','--write']},
+ {name:'Update existing document metadata from registered owners',command:'node',args:['scripts/update-document-metadata.mjs','--write']},
+ {name:'Generate existing requirement family outputs',command:'node',args:['scripts/check-actql-spec-family.mjs','--write']},
+ {name:'Generate existing canonical vectors from registered inputs',command:'node',args:['scripts/check-canonical-json.mjs','--write']}]
+ : process.argv.includes('--normative-node') ? [{name:'Independent role grammar and complete Values identities',command:'node',args:['--input-type=module','-e',runner,'node','scripts/sga-signature-role-identity.test.mjs','scripts/sga-query-call-contract.test.mjs','scripts/compilation-manifests.test.mjs','scripts/client-values-run-materials-vector.test.mjs','scripts/frontend-profile.test.mjs']}]
+ : process.argv.includes('--normative-readonly') ? [
+ {name:'Read-only compiler manifest freshness',command:'node',args:['scripts/compilation-manifests.mjs']},
+ {name:'Read-only document metadata freshness',command:'node',args:['scripts/update-document-metadata.mjs']},
+ {name:'Read-only registered family freshness',command:'node',args:['scripts/check-actql-spec-family.mjs']},
+ {name:'Read-only canonical generated input freshness',command:'node',args:['scripts/check-canonical-json.mjs']}]
  : process.argv.includes('--operand-scope') ? [{name:'Qualified SGA operand scope and independent Program controls',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/query_syntax/producer_scope_wbtest.mbt','src/query_program/sga_role_lowering_test.mbt']}]
  : process.argv.includes('--operand-format') ? [{name:'Format only SGA operand scope adapter and controls',command:'moon',args:['fmt','src/query_syntax/sga_argument_roles.mbt','src/query_syntax/sga_call.mbt','src/query_syntax/producer_scope_wbtest.mbt']}]
  : process.argv.includes('--syntax-callers') ? [{name:'SGA syntax roles, lexical producer scope and current public Source callers',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/query_syntax/sga_call_test.mbt','src/query_syntax/producer_scope_wbtest.mbt','src/query_syntax/graph_match_binding_vocabulary_test.mbt','src/query_syntax/traverse_hop_vocabulary_test.mbt','src/query_syntax/with_remaining_public_callers_test.mbt']}]
