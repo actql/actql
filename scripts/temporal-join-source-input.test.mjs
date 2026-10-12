@@ -21,7 +21,7 @@ test('temporal public selector preserves ordinary registration and actual receip
   const acceptance=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
   const consumer=readFileSync('scripts/test-packed-public-query.mjs','utf8');
   for(const symbol of ['temporalJoinSourceSuccesses','temporalJoinSourceRefusals']) assert.ok(acceptance.includes('scopeInputs.'+(symbol.endsWith('Successes')?'successes':'refusals')+'.push(...'+symbol+')'));
-  assert.ok(acceptance.includes('--temporal-join-only')); assert.ok(consumer.includes('--temporal-join-only'));
+  assert.ok(acceptance.includes('ACTQL_TEST_TEMPORAL_JOIN_ONLY')); assert.ok(consumer.includes('--temporal-join-only'));
   assert.ok(consumer.includes("['scripts/fixtures/temporal-join-source-input.mjs', 'temporal-join-source-input.mjs']"));
   assert.ok(consumer.includes('temporal-join-receipts.local.json'));
 });

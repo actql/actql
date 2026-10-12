@@ -1232,11 +1232,11 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:24dad21faf6ee8a041c915e84470344ffa6f7d217496f7bc9576726857430e80");
+    "sha256:27ac74c102ae7ea415df0defe191ec2c5fe45b3f0cb97a454bd34cfab1c19d88");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:058cbc71b89aef4e386f068a59a11846d300d31b1e2296f9c7e72eabb6bc54db");
+    "sha256:bfcf30b1572739c99ed2df69da524ee97bda076738602a08dcfbc85c2cc5f0bb");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:8ccee23026314f5ceed119b36551f88d69faa9718f88f815f6049e8fd15d86de");
+    "sha256:837af4bc14374bccf3ac0df13f570f6600f290769abdaae72e1eaf19f895798e");
   assert.equal(current.run.run_definition_cid,
     "sha256:e5e9824a9953a96a6e5a5c85106efcc275f2384b8e247d68b8cf0049bb346d41");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
