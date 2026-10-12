@@ -2,8 +2,11 @@
 fn graph_event_continuation(text : String) -> @program.Program raise {
   match with_carrier_program(text, { ..pair_context(), inputs: [], }) {
     Ok(program) => program
-    Err(InvalidQuery) => fail("Actual InvalidQuery discarded a supported Events tail")
-    Err(_) => fail("The existing Graph row and Events owners must receive the full tail")
+    Err(InvalidQuery) =>
+      fail("Actual InvalidQuery discarded a supported Events tail")
+    Err(UnsupportedGraph) => fail("Actual UnsupportedGraph")
+    Err(UnsupportedProjection) => fail("Actual UnsupportedProjection")
+    Err(issue) => with_demand_program(Err(issue))
   }
 }
 
@@ -35,14 +38,27 @@ fn graph_event_control() -> @program.Program {
 test "Graph node rows preserve a flat Events tail" {
   let prefix = "WITH source_rows AS (SELECT 1 AS node_key, 0 AS occurred_ms), g AS (GRAPH (NODE TABLES (source_rows AS N KEY (node_key) PROPERTIES (node_key, occurred_ms)))) "
   let actual = graph_event_continuation(
-    prefix + "FROM g |> node_rows() |> to_events(id: node_key, time: occurred_ms) |> events() |> SELECT node_key, occurred_ms",
+    prefix +
+    "FROM g |> node_rows() |> to_events(id: node_key, time: occurred_ms) |> events() |> SELECT node_key, occurred_ms",
   )
   let control = graph_event_control()
   for operation in ["node_rows", "to_events", "events"] {
-    assert_eq(with_carrier_argument(actual, operation), with_carrier_argument(control, operation))
+    assert_eq(
+      with_carrier_argument(actual, operation),
+      with_carrier_argument(control, operation),
+    )
   }
-  guard @check.check_parsed_with_evidence(actual, graph_event_environment(), None, [], graph_rows_check_limits()) is Checked(_) else {
-    fail("the unchanged common owners must check the complete Graph/Events tail")
+  guard @check.check_parsed_with_evidence(
+      actual,
+      graph_event_environment(),
+      None,
+      [],
+      graph_rows_check_limits(),
+    )
+    is Checked(_) else {
+    fail(
+      "the unchanged common owners must check the complete Graph/Events tail",
+    )
   }
 }
 
@@ -50,10 +66,59 @@ test "Graph node rows preserve a flat Events tail" {
 test "Graph row bridge and intermediate WITH keep the same Events operations" {
   let prefix = "WITH source_rows AS (SELECT 1 AS node_key, 0 AS occurred_ms), g AS (GRAPH (NODE TABLES (source_rows AS N KEY (node_key) PROPERTIES (node_key, occurred_ms)))), "
   let actual = graph_event_continuation(
-    prefix + "event_values AS (FROM g |> node_rows() |> to_events(id: node_key, time: occurred_ms)), event_rows AS (FROM event_values |> events()) SELECT node_key, occurred_ms FROM event_rows",
+    prefix +
+    "event_values AS (FROM g |> node_rows() |> to_events(id: node_key, time: occurred_ms)), event_rows AS (FROM event_values |> events()) SELECT node_key, occurred_ms FROM event_rows",
   )
   let control = graph_event_control()
   for operation in ["node_rows", "to_events", "events"] {
-    assert_eq(with_carrier_argument(actual, operation), with_carrier_argument(control, operation))
+    assert_eq(
+      with_carrier_argument(actual, operation),
+      with_carrier_argument(control, operation),
+    )
+  }
+}
+
+///|
+test "independent Graph Events machine Program reaches the common checker" {
+  match
+    @check.check_parsed_with_evidence(
+      graph_event_control(),
+      graph_event_environment(),
+      None,
+      [],
+      graph_rows_check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+    NeedsInputs(_) =>
+      fail("the independent VALUES control has no external input")
+  }
+}
+
+///|
+// A separate key-role-only control isolates the continuation from the common
+// projection collision. It does not replace either original F02 source/control.
+test "Graph Events continuation works when the key is not repeated as a property" {
+  let actual = graph_event_continuation(
+    "WITH source_rows AS (SELECT 1 AS node_key, 0 AS occurred_ms), g AS (GRAPH (NODE TABLES (source_rows AS N KEY (node_key) PROPERTIES (occurred_ms)))) FROM GRAPH g |> node_rows() |> to_events(id: node_key, time: occurred_ms) |> events() |> SELECT node_key, occurred_ms",
+  )
+  for operation in ["node_rows", "to_events", "events"] {
+    assert_eq(
+      with_carrier_argument(actual, operation),
+      with_carrier_argument(graph_event_control(), operation),
+    )
+  }
+  match
+    @check.check_parsed_with_evidence(
+      actual,
+      graph_event_environment(),
+      None,
+      [],
+      graph_rows_check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+    NeedsInputs(_) =>
+      fail("the independent source-free control has no external input")
   }
 }

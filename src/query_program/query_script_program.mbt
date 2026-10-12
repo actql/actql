@@ -95,6 +95,8 @@ fn lower_script_relation(
         graphs~,
         retained~,
         positional_set_output~,
+        continuation=Some((context, sources)),
+        allow_nonrelation~,
       )
     }
     raise Abort(UnsupportedGraph)
@@ -205,6 +207,7 @@ fn lower_script_relation_term(
       retained~,
       positional_set_output~,
       set_head~,
+      continuation=Some((context, sources)),
     )
   }
   if @query.graph_query(query) is Some(_) {
@@ -462,6 +465,7 @@ pub fn compile_query_script(
           known=stage_known,
           graphs~,
           retained=Some(retained),
+          continuation=Some((stage_context, stage_sources)),
         )
       } else if @query.graph_query(current) is Some(_) && !graph_row_set {
         lower_script_keyed_graph_query(
