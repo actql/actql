@@ -112,7 +112,9 @@ fn copy_sga_argument(argument : SgaArgument) -> SgaArgument {
     ObjectValue(fields) =>
       ObjectValue(fields.map(field => (field.0, copy_sga_argument(field.1))))
     FieldMapValue(fields) =>
-      FieldMapValue(fields.map(field => (field.0.copy(), copy_sga_argument(field.1))))
+      FieldMapValue(
+        fields.map(field => (field.0.copy(), copy_sga_argument(field.1))),
+      )
     ListValue(items) => ListValue(items.map(copy_sga_argument))
     other => other
   }
@@ -216,7 +218,8 @@ fn QueryParser::sga_argument(
     // and cannot select an existing producer, including inside explicit lists.
     return Producer(self.resolve_producer([self.name()])[0])
   }
-  if token.value == Symbol(123) && operation == "dedupe_events" &&
+  if token.value == Symbol(123) &&
+    operation == "dedupe_events" &&
     path == ["order_by"] {
     return self.sga_order_argument(operation, depth + 1)
   }
@@ -279,7 +282,8 @@ fn QueryParser::sga_order_argument(
       raise QueryAbort("Duplicate SGA argument", at)
     }
     self.symbol(58)
-    let value = if key.length() == 1 && ascii_upper(key[0].value) == "FIELD" &&
+    let value = if key.length() == 1 &&
+      ascii_upper(key[0].value) == "FIELD" &&
       (self.peek().value is Word(_) || self.peek().value is QuotedName(_)) {
       self.node()
       FieldReference(self.path())

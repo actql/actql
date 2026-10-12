@@ -70,7 +70,8 @@ fn script_prefix_carrier(
 fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-    "to_events", "row_window", "window_events", "watermark_events", "dedupe_events", "session", "events",
+    "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
+    "session", "events",
   ].contains(name)
 }
 
@@ -149,20 +150,36 @@ fn script_carrier_order(
   limits : Limits,
 ) -> @builder.Node raise Abort {
   match argument {
-    ListValue(items) => construction.array(items.map(item => {
-      script_carrier_order(construction, item, query, input, sources, known, limits)
-    }))
-    FieldMapValue(fields) => construction.object(fields.map(field => {
-      (script_carrier_field_name(field.0, query, input, sources),
-        script_traversal_argument(construction, field.1, known, limits))
-    }))
-    ObjectValue(fields) => construction.object(fields.map(field => {
-      (field.0, if field.0 == "field" {
-        script_carrier_field(construction, field.1, query, input, sources)
-      } else {
-        script_traversal_argument(construction, field.1, known, limits)
-      })
-    }))
+    ListValue(items) =>
+      construction.array(
+        items.map(item => {
+          script_carrier_order(
+            construction, item, query, input, sources, known, limits,
+          )
+        }),
+      )
+    FieldMapValue(fields) =>
+      construction.object(
+        fields.map(field => {
+          (
+            script_carrier_field_name(field.0, query, input, sources),
+            script_traversal_argument(construction, field.1, known, limits),
+          )
+        }),
+      )
+    ObjectValue(fields) =>
+      construction.object(
+        fields.map(field => {
+          (
+            field.0,
+            if field.0 == "field" {
+              script_carrier_field(construction, field.1, query, input, sources)
+            } else {
+              script_traversal_argument(construction, field.1, known, limits)
+            },
+          )
+        }),
+      )
     _ => script_traversal_argument(construction, argument, known, limits)
   }
 }
@@ -277,8 +294,17 @@ fn lower_script_carrier_calls(
               input,
               sources,
             )
-          } else if call.operation == "dedupe_events" && argument.0 == "order_by" {
-            script_carrier_order(construction, argument.1, query, input, sources, known, limits)
+          } else if call.operation == "dedupe_events" &&
+            argument.0 == "order_by" {
+            script_carrier_order(
+              construction,
+              argument.1,
+              query,
+              input,
+              sources,
+              known,
+              limits,
+            )
           } else {
             script_traversal_argument(construction, argument.1, known, limits)
           }
