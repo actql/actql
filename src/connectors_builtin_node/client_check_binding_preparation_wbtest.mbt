@@ -29,6 +29,28 @@ fn binding_check_report(text : String, format : String) -> String {
 }
 
 ///|
+test "Source request preparation refuses partial forms without misclassifying budgets or foreign owners" {
+  let cases : Array[(@query_program.BindingPreparationIssue, String?, String?)] = [
+    (SourceRequestForm(PartialCorrelation), None, Some("invalid")),
+    (SourceRequestForm(WorkLimit), None, Some("undetermined")),
+    (SourceRequestForm(InvalidLimits), Some("check_context_invalid"), None),
+    (SourceRequestForm(ForeignRequests), None, Some("undetermined")),
+  ]
+  for (issue, failure, verdict) in cases {
+    let findings : Array[CheckFinding] = []
+    assert_eq(
+      check_binding_preparation_findings(findings, issue, BoundInput),
+      failure,
+    )
+    match verdict {
+      None => assert_eq(findings.length(), 0)
+      Some(expected) => assert_eq(check_verdict(findings), expected)
+    }
+    assert_true(!findings.iter().any(finding => finding is Unresolved(_)))
+  }
+}
+
+///|
 test "public check retains the common unused WITH arithmetic input violation" {
   for format in ["sql", "aql-text"] {
     let report = binding_check_report(

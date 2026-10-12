@@ -1,5 +1,5 @@
 ///|
-fn join_pipe_limit_tail_expected(
+fn staged_join_pipe_limit_tail_expected(
   tail : String,
   fields : String,
 ) -> @program.Program {
@@ -10,6 +10,34 @@ fn join_pipe_limit_tail_expected(
     tail +
     (
       #|],"results":{"rows":{"from":"aql_join_result","fields":
+    ) +
+    fields +
+    (
+      #|}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
+// Build the complete current topology from the original named Values and
+// unchanged authored continuation. Binding names follow the installed seed
+// roles; no compiler output is used to generate this control.
+fn join_pipe_limit_tail_expected(
+  tail : String,
+  fields : String,
+) -> @program.Program raise {
+  check_staged_values_join_oracle(
+    staged_join_pipe_limit_tail_expected(tail, fields),
+  )
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"aql_script_seed_2"},{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":1},{"k":2}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_2","join":{"with":"aql_script_seed_3","kind":"inner","on":[{"left":"x","right":"k"}],"max_output_rows":10,"select":{"id":"left.x","amount":"left.y"}},"as":"aql_join_output_5"},{"from":"aql_join_output_5","sort":[{"field":"id","dir":"asc","nulls":"first"}],"as":"aql_join_sorted_11"},{"from":"aql_join_sorted_11","take":{"count":1,"offset":1},"as":"aql_join_taken_12"},
+    ) +
+    shared_values_specialized_tail_oracle(tail) +
+    (
+      #|],"results":{"rows":{"from":"aql_join_result_14","fields":
     ) +
     fields +
     (
