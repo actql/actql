@@ -98,8 +98,8 @@ export const pipeDistinctSuccesses = [
     + '|> SELECT `CURRENT`.`AMOUNT` AS amount |> ORDER BY amount NULLS LAST'),
   success('sql-headed-tail', 'SELECT amount, id FROM records |> DISTINCT '
     + '|> ORDER BY amount DESC NULLS LAST, id', {format: 'sql', expected: allRows, columns: allColumns}),
-  success('data-shared-set', 'DATA copied = FROM records |> SELECT amount '
-    + '|> UNION ALL (FROM records |> SELECT amount) |> DISTINCT; FROM copied |> ORDER BY amount NULLS LAST'),
+  success('data-shared-set', 'WITH copied AS (FROM records |> SELECT amount '
+    + '|> UNION ALL (FROM records |> SELECT amount) |> DISTINCT) FROM copied |> ORDER BY amount NULLS LAST'),
   success('cte-distinct-body', 'WITH chosen AS (FROM records AS original |> DROP id |> DISTINCT '
     + '|> SELECT original.amount AS amount) SELECT amount FROM chosen ORDER BY amount NULLS LAST', {format: 'sql'}),
   success('join-prefix-surviving-range', 'FROM records AS original |> SET id = 0 |> DISTINCT '

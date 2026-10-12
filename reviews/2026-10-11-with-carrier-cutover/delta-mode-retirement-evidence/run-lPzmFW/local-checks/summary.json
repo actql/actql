@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-11T21:47:28.599Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "WITH Delta typed JSON independent Programs bounded path modes and common refusals",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_delta_source_test.mbt",
+        "src/query_program/graph_delta_json_source_test.mbt",
+        "src/query_program/bounded_graph_modes_test.mbt"
+      ],
+      "startedAt": "2026-10-11T21:47:28.678Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-11T21:47:30.926Z",
+      "endedAt": "2026-10-11T21:47:30.928Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "9a9b7e6b-46bc-4ecb-991f-3c6921afa7ab",
+    "pid": 95783,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T21:47:28.673Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-lPzmFW"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T21:47:31.000Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

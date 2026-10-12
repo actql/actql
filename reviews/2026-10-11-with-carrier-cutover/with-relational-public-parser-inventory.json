@@ -1,0 +1,1169 @@
+{
+  "origin": "Changed independently authored success texts; parser execution only.",
+  "cases": [
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-sql",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-quoted-pipe",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY (@`KEY`) DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-nullable-scalar",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-column-name-collision",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @NAME DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-object-member",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((@`CFG`)).`rank` DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-nullable-object",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((@`CFG`)).`rank` DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-nullable-member",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((@`CFG`)).`rank` DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-filtered-argument",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' WHERE id <= 2 ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-typed-empty",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-distinct-same-parameter",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(DISTINCT @label, '|' ORDER BY @LABEL) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-order-parameter",
+      "key": "aggregateOrderParameterSuccesses",
+      "name": "aggregate-order-parameter-distinct-null-parameter",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(DISTINCT @`LABEL`, '|' ORDER BY (@label)) AS names"
+    },
+    {
+      "module": "aggregate-property",
+      "key": "aggregatePropertySuccesses",
+      "name": "aggregate-property-sql",
+      "text": "WITH objects AS (SELECT 2 AS id, 'A' AS bucket, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, 'A' AS bucket, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, 'A' AS bucket, @c AS payload, @oc AS other UNION ALL SELECT 5 AS id, 'A' AS bucket, @d AS payload, @od AS other UNION ALL SELECT 6 AS id, 'A' AS bucket, @e AS payload, @oe AS other UNION ALL SELECT 4 AS id, 'B' AS bucket, @f AS payload, @of AS other) SELECT bucket, COUNT(payload.score) AS n, COUNT(DISTINCT payload.score) AS d, COUNTIF(payload.score >= 20) AS h, SUM(payload.score) AS s, AVG(payload.score) AS a, MIN(payload.score) AS lo, MAX(payload.score) AS hi FROM objects GROUP BY bucket ORDER BY bucket"
+    },
+    {
+      "module": "aggregate-property",
+      "key": "aggregatePropertySuccesses",
+      "name": "aggregate-property-pipe",
+      "text": "WITH objects AS (SELECT 2 AS id, 'A' AS bucket, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, 'A' AS bucket, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, 'A' AS bucket, @c AS payload, @oc AS other UNION ALL SELECT 5 AS id, 'A' AS bucket, @d AS payload, @od AS other UNION ALL SELECT 6 AS id, 'A' AS bucket, @e AS payload, @oe AS other UNION ALL SELECT 4 AS id, 'B' AS bucket, @f AS payload, @of AS other) FROM objects |> AGGREGATE COUNT(payload.score) AS n, COUNT(DISTINCT payload.score) AS d, COUNTIF(payload.score >= 20) AS h, SUM(payload.score) AS s, AVG(payload.score) AS a, MIN(payload.score) AS lo, MAX(payload.score) AS hi GROUP BY bucket |> SELECT bucket, n, d, h, s, a, lo, hi |> ORDER BY bucket"
+    },
+    {
+      "module": "aggregate-property",
+      "key": "aggregatePropertySuccesses",
+      "name": "aggregate-property-qualified-computed",
+      "text": "WITH objects AS (SELECT 2 AS id, 'A' AS bucket, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, 'A' AS bucket, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, 'A' AS bucket, @c AS payload, @oc AS other UNION ALL SELECT 5 AS id, 'A' AS bucket, @d AS payload, @od AS other UNION ALL SELECT 6 AS id, 'A' AS bucket, @e AS payload, @oe AS other UNION ALL SELECT 4 AS id, 'B' AS bucket, @f AS payload, @of AS other) SELECT bucket, COUNT(`objects`.`payload`.`score` + 1) AS n, SUM(objects.payload.score + 1) AS s FROM objects GROUP BY bucket ORDER BY bucket"
+    },
+    {
+      "module": "aggregate-property",
+      "key": "aggregatePropertySuccesses",
+      "name": "aggregate-property-pipe-receiver-snapshot",
+      "text": "WITH objects AS (SELECT 2 AS id, 'A' AS bucket, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, 'A' AS bucket, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, 'A' AS bucket, @c AS payload, @oc AS other UNION ALL SELECT 5 AS id, 'A' AS bucket, @d AS payload, @od AS other UNION ALL SELECT 6 AS id, 'A' AS bucket, @e AS payload, @oe AS other UNION ALL SELECT 4 AS id, 'B' AS bucket, @f AS payload, @of AS other) FROM objects AS before |> SET payload = other |> AGGREGATE COUNT(payload.score) AS current_count, COUNT(before.payload.score) AS original_count"
+    },
+    {
+      "module": "aggregate-property",
+      "key": "aggregatePropertySuccesses",
+      "name": "aggregate-property-empty-global",
+      "text": "WITH objects AS (SELECT 2 AS id, 'A' AS bucket, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, 'A' AS bucket, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, 'A' AS bucket, @c AS payload, @oc AS other UNION ALL SELECT 5 AS id, 'A' AS bucket, @d AS payload, @od AS other UNION ALL SELECT 6 AS id, 'A' AS bucket, @e AS payload, @oe AS other UNION ALL SELECT 4 AS id, 'B' AS bucket, @f AS payload, @of AS other) SELECT COUNT(payload.score) AS n, SUM(payload.score) AS s, AVG(payload.score) AS a, MIN(payload.score) AS lo FROM objects WHERE FALSE"
+    },
+    {
+      "module": "aggregate-property",
+      "key": "aggregatePropertySuccesses",
+      "name": "aggregate-property-select-sibling-alias",
+      "text": "WITH objects AS (SELECT 2 AS id, 'A' AS bucket, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, 'A' AS bucket, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, 'A' AS bucket, @c AS payload, @oc AS other UNION ALL SELECT 5 AS id, 'A' AS bucket, @d AS payload, @od AS other UNION ALL SELECT 6 AS id, 'A' AS bucket, @e AS payload, @oe AS other UNION ALL SELECT 4 AS id, 'B' AS bucket, @f AS payload, @of AS other) SELECT COUNT(payload.score) AS payload, COUNT(other.score) AS other FROM objects"
+    },
+    {
+      "module": "aggregate-property",
+      "key": "aggregatePropertySuccesses",
+      "name": "aggregate-property-over-common-argument",
+      "text": "WITH objects AS (SELECT 2 AS id, 'A' AS bucket, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, 'A' AS bucket, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, 'A' AS bucket, @c AS payload, @oc AS other UNION ALL SELECT 5 AS id, 'A' AS bucket, @d AS payload, @od AS other UNION ALL SELECT 6 AS id, 'A' AS bucket, @e AS payload, @oe AS other UNION ALL SELECT 4 AS id, 'B' AS bucket, @f AS payload, @of AS other) SELECT id, COUNT(payload.score) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running FROM objects ORDER BY id"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-positive-qualified-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY +((before.payload).score) NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-current-and-snapshot",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS current, STRING_AGG(name, '|' ORDER BY -before.payload.score NULLS LAST, id) AS previous"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-input-over-sibling",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(*) AS payload, STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-direct-column",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY -id NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-nested-signs",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY -(-payload.score) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-nulls-first",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY -payload.score NULLS FIRST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-filtered-argument",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' WHERE id <= 2 ORDER BY -payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-masked-argument",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(IF(id / (id - id) = 0, name, name), '|' WHERE FALSE ORDER BY -payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-keyed-array",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(id IGNORE NULLS ORDER BY -payload.score NULLS LAST, id) AS ids"
+    },
+    {
+      "module": "aggregate-signed-order",
+      "key": "aggregateSignedOrderSuccesses",
+      "name": "aggregate-signed-order-nullable-parameter",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY -@key NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "analytic-order",
+      "key": "analyticOrderSuccesses",
+      "name": "analytic-order-nullable-property-input",
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other) SELECT id, payload.score AS original_score, other AS payload, ROW_NUMBER() OVER (ORDER BY payload.score + 1 NULLS LAST, id) AS pos FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-expression",
+      "key": "analyticPartitionExpressionSuccesses",
+      "name": "analytic-partition-expression-receiver-reuse-nullable-object",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b WHEN id = 3 THEN @c ELSE @e END AS payload, @d AS other FROM records WHERE id > 0) SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing'), COALESCE((objects.payload).`BUCKET`, 'missing') ORDER BY id) AS pos, RANK() OVER (PARTITION BY COALESCE((payload).bucket, 'missing') ORDER BY id DESC) AS ranking FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-expression",
+      "key": "analyticPartitionExpressionSuccesses",
+      "name": "analytic-partition-expression-receiver-reuse-distinct-object",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b WHEN id = 3 THEN @c ELSE @e END AS payload, @d AS other FROM records WHERE id > 0) SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing'), COALESCE((objects.payload).`BUCKET`, 'missing') ORDER BY id) AS pos, RANK() OVER (PARTITION BY COALESCE(other.bucket, 'missing') ORDER BY id DESC) AS ranking FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-expression",
+      "key": "windowKeyReceiverSuccesses",
+      "name": "analytic-partition-expression-receiver-reuse-nullable-object",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b WHEN id = 3 THEN @c ELSE @e END AS payload, @d AS other FROM records WHERE id > 0) SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing'), COALESCE((objects.payload).`BUCKET`, 'missing') ORDER BY id) AS pos, RANK() OVER (PARTITION BY COALESCE((payload).bucket, 'missing') ORDER BY id DESC) AS ranking FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-expression",
+      "key": "windowKeyReceiverSuccesses",
+      "name": "analytic-partition-expression-receiver-reuse-distinct-object",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b WHEN id = 3 THEN @c ELSE @e END AS payload, @d AS other FROM records WHERE id > 0) SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing'), COALESCE((objects.payload).`BUCKET`, 'missing') ORDER BY id) AS pos, RANK() OVER (PARTITION BY COALESCE(other.bucket, 'missing') ORDER BY id DESC) AS ranking FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-property",
+      "key": "analyticPartitionPropertySuccesses",
+      "name": "analytic-partition-property-sql-null-keys",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) SELECT id, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS pos FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-property",
+      "key": "analyticPartitionPropertySuccesses",
+      "name": "analytic-partition-property-pipe-quoted-shared-keys",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) FROM objects |> SELECT id, ROW_NUMBER() OVER (PARTITION BY objects.payload.`bucket`, objects.payload.`bucket` ORDER BY objects.payload.`bucket`, id) AS pos, RANK() OVER (PARTITION BY objects.payload.`bucket`, objects.payload.`bucket` ORDER BY objects.payload.`bucket`, id) AS ranking |> ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-property",
+      "key": "analyticPartitionPropertySuccesses",
+      "name": "analytic-partition-property-select-alias-collision",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) SELECT id, other AS payload, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS pos FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-property",
+      "key": "analyticPartitionPropertySuccesses",
+      "name": "analytic-partition-property-pipe-current-and-snapshot",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS current |> ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-property",
+      "key": "analyticPartitionPropertySuccesses",
+      "name": "analytic-partition-property-typed-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) SELECT id, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS pos FROM objects ORDER BY id"
+    },
+    {
+      "module": "analytic-partition-property",
+      "key": "analyticPartitionPropertySuccesses",
+      "name": "analytic-partition-property-existing-direct-column",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) FROM objects |> SELECT id, payload.bucket AS bucket |> SELECT id, ROW_NUMBER() OVER (PARTITION BY bucket ORDER BY id) AS pos |> ORDER BY id"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-group-function-key",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT x || y AS value, COUNT(*) AS n FROM pieces GROUP BY CONCAT(x,y) ORDER BY value NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-group-operator-key",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT CONCAT(x,y) AS value, COUNT(*) AS n FROM pieces GROUP BY x || y ORDER BY value NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-group-quoted",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT `concat`((pieces.x),y) AS value, COUNT(*) AS n FROM pieces GROUP BY (x) || (pieces.y) ORDER BY value NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-group-limit-offset",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT CONCAT(x,y) AS value, COUNT(*) AS n FROM pieces GROUP BY x || y ORDER BY value NULLS LAST LIMIT 1 OFFSET 1"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-group-empty",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT x || y AS value, COUNT(*) AS n FROM pieces GROUP BY CONCAT(x,y) ORDER BY value NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-distinct-function-selected",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT DISTINCT CONCAT(x,y) AS value FROM pieces ORDER BY x || y NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-distinct-operator-selected",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT DISTINCT x || y AS value FROM pieces ORDER BY CONCAT(x,y) NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-distinct-pipe-function",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) FROM pieces |> SELECT DISTINCT CONCAT(x,y) AS value |> ORDER BY x || y NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-distinct-pipe-operator",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) FROM pieces |> SELECT DISTINCT x || y AS value |> ORDER BY `concat`(pieces.x,y) NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-distinct-empty",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT DISTINCT CONCAT(x,y) AS value FROM pieces ORDER BY x || y NULLS LAST"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-output-alias-receiver",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT id, CONCAT(x,y) AS original, y AS x FROM pieces ORDER BY x || y NULLS LAST, id"
+    },
+    {
+      "module": "concat-expression-reuse",
+      "key": "concatReuseSuccesses",
+      "name": "concat-reuse-qualified-input-receiver",
+      "text": "WITH pieces AS (SELECT id, CASE WHEN amount = 2 THEN 'z' ELSE 'a' END AS x, CASE WHEN amount IS NULL THEN CAST(NULL AS STRING) WHEN amount = 2 THEN 'a' ELSE 'z' END AS y FROM records WHERE id > 0) SELECT id, CONCAT(x,y) AS original, y AS x FROM pieces ORDER BY pieces.x || y NULLS LAST, id"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-distinct-explicit",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) SELECT DISTINCT payload.score AS score FROM objects ORDER BY (payload).score NULLS LAST"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-distinct-qualified",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) SELECT DISTINCT (payload).score AS score FROM objects ORDER BY objects.payload.score NULLS LAST"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-distinct-quoted",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) SELECT DISTINCT ((payload)).`SCORE` AS score FROM objects ORDER BY payload.score NULLS LAST"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-distinct-pipe",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) FROM objects AS active |> SELECT DISTINCT active.payload.score AS score |> ORDER BY (payload).score NULLS LAST"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-distinct-computed",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) SELECT DISTINCT payload.score + 1 AS score FROM objects ORDER BY (payload).score + 1 NULLS LAST"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-distinct-limited",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) SELECT DISTINCT (payload).score AS score FROM objects ORDER BY objects.payload.score NULLS LAST LIMIT 2 OFFSET 1"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-distinct-empty",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) SELECT DISTINCT payload.score AS score FROM objects ORDER BY (payload).score NULLS LAST"
+    },
+    {
+      "module": "distinct-order",
+      "key": "distinctOrderSuccesses",
+      "name": "order-receiver-ordinary-reuse",
+      "text": "WITH objects AS (SELECT id, amount AS score, CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload FROM records WHERE id > 0) SELECT payload.score AS score FROM objects ORDER BY (payload).score NULLS LAST"
+    },
+    {
+      "module": "group-order-range-alias",
+      "key": "groupOrderRangeAliasSuccesses",
+      "name": "group-order-range-alias-dotted-shadow",
+      "text": "WITH objects AS (SELECT amount AS score FROM records WHERE id > 0) SELECT score AS bucket, CASE WHEN score IS NULL THEN @nil WHEN score = 10 THEN @low ELSE @high END AS payload, COUNT(*) AS n FROM objects AS payload GROUP BY score ORDER BY payload.score NULLS LAST"
+    },
+    {
+      "module": "group-order-range-alias",
+      "key": "groupOrderRangeAliasSuccesses",
+      "name": "group-order-range-alias-explicit-object-control",
+      "text": "WITH objects AS (SELECT amount AS score FROM records WHERE id > 0) SELECT score AS bucket, CASE WHEN score IS NULL THEN @nil WHEN score = 10 THEN @low ELSE @high END AS payload, COUNT(*) AS n FROM objects AS payload GROUP BY score ORDER BY (payload).score NULLS LAST"
+    },
+    {
+      "module": "group-order-range-alias",
+      "key": "groupOrderRangeAliasSuccesses",
+      "name": "group-order-range-alias-quoted-shadow",
+      "text": "WITH objects AS (SELECT amount AS score FROM records WHERE id > 0) SELECT score AS bucket, CASE WHEN score IS NULL THEN @nil WHEN score = 10 THEN @low ELSE @high END AS payload, COUNT(*) AS n FROM objects AS payload GROUP BY score ORDER BY `PAYLOAD`.`score` NULLS LAST"
+    },
+    {
+      "module": "group-order-range-alias",
+      "key": "groupOrderRangeAliasSuccesses",
+      "name": "group-order-range-alias-qualified-input-control",
+      "text": "WITH objects AS (SELECT amount AS score FROM records WHERE id > 0) SELECT score AS bucket, CASE WHEN score IS NULL THEN @nil WHEN score = 10 THEN @low ELSE @high END AS payload, COUNT(*) AS n FROM objects AS original GROUP BY score ORDER BY original.score NULLS LAST"
+    },
+    {
+      "module": "group-order-range-alias",
+      "key": "groupOrderRangeAliasSuccesses",
+      "name": "group-order-range-alias-empty-typed",
+      "text": "WITH objects AS (SELECT amount AS score FROM records WHERE id > 0) SELECT score AS bucket, CASE WHEN score IS NULL THEN @nil WHEN score = 10 THEN @low ELSE @high END AS payload, COUNT(*) AS n FROM objects AS payload GROUP BY score ORDER BY payload.score NULLS LAST"
+    },
+    {
+      "module": "group-property-receiver",
+      "key": "groupPropertyReceiverSuccesses",
+      "name": "group-property-receiver-inferred-both-keys",
+      "text": "WITH objects AS (SELECT amount AS score, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS payload FROM records WHERE id > 0) SELECT payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL ORDER BY input_score, object_score"
+    },
+    {
+      "module": "group-property-receiver",
+      "key": "groupPropertyReceiverSuccesses",
+      "name": "group-property-receiver-explicit-both-keys",
+      "text": "WITH objects AS (SELECT amount AS score, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS payload FROM records WHERE id > 0) SELECT payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score, (payload).score ORDER BY input_score, object_score"
+    },
+    {
+      "module": "group-property-receiver",
+      "key": "groupPropertyReceiverSuccesses",
+      "name": "group-property-receiver-quoted-object-receiver",
+      "text": "WITH objects AS (SELECT amount AS score, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS payload FROM records WHERE id > 0) SELECT payload.score AS input_score, ((payload)).`SCORE` AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL ORDER BY input_score, object_score"
+    },
+    {
+      "module": "group-property-receiver",
+      "key": "groupPropertyReceiverSuccesses",
+      "name": "group-property-receiver-computed-both-keys",
+      "text": "WITH objects AS (SELECT amount AS score, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS payload FROM records WHERE id > 0) SELECT payload.score + 1 AS input_score, (payload).score + 1 AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL ORDER BY input_score, object_score"
+    },
+    {
+      "module": "group-property-receiver",
+      "key": "groupPropertyReceiverSuccesses",
+      "name": "group-property-receiver-having-grouped-object",
+      "text": "WITH objects AS (SELECT amount AS score, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS payload FROM records WHERE id > 0) SELECT payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL HAVING object_score > 20 ORDER BY input_score, object_score"
+    },
+    {
+      "module": "group-property-receiver",
+      "key": "groupPropertyReceiverSuccesses",
+      "name": "group-property-receiver-empty-typed-result",
+      "text": "WITH objects AS (SELECT amount AS score, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS payload FROM records WHERE id > 0) SELECT payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL ORDER BY input_score, object_score"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-sql",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT payload.score, id FROM objects ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-member-case",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT payload.SCORE AS score, id FROM objects ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-member-case-quoted",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT `objects`.`payload`.`SCORE` AS score, id FROM objects ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-member-case-computed",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT COALESCE(payload, payload).SCORE AS score, id FROM objects ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-pipe",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) FROM objects |> SELECT payload.score, id |> ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-qualified-quoted",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT `objects`.`payload`.`score`, id FROM objects ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-nested-nullable",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT payload.inner.risk, id FROM objects ORDER BY id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-member-case-nested",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT payload.INNER.RISK AS risk, id FROM objects ORDER BY id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-typed-empty",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT payload.score, id FROM objects WHERE FALSE ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-select-input-snapshot",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT payload.score, other AS payload, id FROM objects ORDER BY score NULLS LAST, id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-current-and-snapshot",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) FROM objects AS before |> SET payload = other |> SELECT before.payload.score AS original, payload.score, id |> ORDER BY id"
+    },
+    {
+      "module": "implicit-property",
+      "key": "implicitPropertySuccesses",
+      "name": "implicit-property-authored-identifier",
+      "text": "WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) SELECT `ID`, payload.score FROM objects ORDER BY `ID`"
+    },
+    {
+      "module": "membership-expression-reuse",
+      "key": "membershipReuseSuccesses",
+      "name": "membership-reuse-output-alias-receiver",
+      "text": "WITH pieces AS (SELECT id, amount = 2 AS needle, amount = 1 AS other FROM records WHERE id > 0) SELECT id, needle IN (TRUE) AS original, other AS needle FROM pieces ORDER BY needle IN UNNEST([TRUE]) NULLS LAST, id"
+    },
+    {
+      "module": "membership-expression-reuse",
+      "key": "membershipReuseSuccesses",
+      "name": "membership-reuse-qualified-input-receiver",
+      "text": "WITH pieces AS (SELECT id, amount = 2 AS needle, amount = 1 AS other FROM records WHERE id > 0) SELECT id, needle IN (TRUE) AS original, other AS needle FROM pieces ORDER BY pieces.needle IN UNNEST([TRUE]) NULLS LAST, id"
+    },
+    {
+      "module": "negated-predicate-reuse",
+      "key": "negatedPredicateReuseSuccesses",
+      "name": "negated-predicate-reuse-output-alias-receiver",
+      "text": "WITH pieces AS (SELECT id, amount, IF(amount = 1, NULL, 1) AS other FROM records WHERE id > 0) SELECT id, amount IS NOT NULL AS original, other AS amount FROM pieces ORDER BY NOT (amount IS NULL), id"
+    },
+    {
+      "module": "negated-predicate-reuse",
+      "key": "negatedPredicateReuseSuccesses",
+      "name": "negated-predicate-reuse-qualified-input-receiver",
+      "text": "WITH pieces AS (SELECT id, amount, IF(amount = 1, NULL, 1) AS other FROM records WHERE id > 0) SELECT id, amount IS NOT NULL AS original, other AS amount FROM pieces ORDER BY NOT (pieces.amount IS NULL), id"
+    },
+    {
+      "module": "scalar-alias-group",
+      "key": "scalarAliasGroupSuccesses",
+      "name": "group-ordinal-scalar-alias-sql-group-key",
+      "text": "WITH texts AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS name FROM records WHERE id > 0) SELECT CHAR_LENGTH(name) AS width, COUNT(*) + CHARACTER_LENGTH(texts.name) AS total FROM texts GROUP BY CHAR_LENGTH(name) ORDER BY width NULLS LAST"
+    },
+    {
+      "module": "scalar-alias-group",
+      "key": "scalarAliasGroupSuccesses",
+      "name": "group-ordinal-scalar-alias-quoted-aliases",
+      "text": "WITH texts AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS name FROM records WHERE id > 0) SELECT `CHARACTER_LENGTH`(name) AS width, COUNT(*) + `CHAR_LENGTH`(texts.name) AS total FROM texts GROUP BY `CHAR_LENGTH`(name) ORDER BY width NULLS LAST"
+    },
+    {
+      "module": "scalar-alias-group",
+      "key": "scalarAliasGroupSuccesses",
+      "name": "group-ordinal-scalar-alias-pipe-key",
+      "text": "WITH texts AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS name FROM records WHERE id > 0) FROM texts |> AGGREGATE COUNT(*) AS n GROUP BY CHAR_LENGTH(name) AS width |> SELECT width, n + width AS total |> ORDER BY width NULLS LAST |> RESULT answer"
+    },
+    {
+      "module": "scalar-alias-group",
+      "key": "scalarAliasGroupSuccesses",
+      "name": "group-ordinal-scalar-alias-typed-empty",
+      "text": "WITH texts AS (SELECT id, CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS name FROM records WHERE id > 0) SELECT CHAR_LENGTH(name) AS width, COUNT(*) + CHARACTER_LENGTH(texts.name) AS total FROM texts GROUP BY CHAR_LENGTH(name) ORDER BY width NULLS LAST"
+    },
+    {
+      "module": "qualify",
+      "key": "qualifySuccesses",
+      "name": "qualify-qualified-object-does-not-demand-alias",
+      "text": "WITH objects AS (SELECT 2 AS id, @a AS payload UNION ALL SELECT 1 AS id, @b AS payload UNION ALL SELECT 3 AS id, @c AS payload) SELECT 1 / (id - 1) AS objects, ROW_NUMBER() OVER (ORDER BY id) AS n FROM objects QUALIFY objects.id > 1 AND objects.payload.score > 5 ORDER BY n"
+    },
+    {
+      "module": "pipe-pivot",
+      "key": "pipePivotSuccesses",
+      "name": "pipe-pivot-count-star-data",
+      "text": "WITH counts AS ((SELECT CAST(NULL AS FLOAT64) AS n,'A' AS axis UNION ALL SELECT CAST(NULL AS FLOAT64),'A' UNION ALL SELECT 1,'A') |> PIVOT(COUNT(*) FOR axis IN('A')) |> ORDER BY n NULLS LAST) FROM counts |> SELECT n, A |> ORDER BY n NULLS LAST"
+    },
+    {
+      "module": "pipe-distinct",
+      "key": "pipeDistinctSuccesses",
+      "name": "pipe-distinct-data-shared-set",
+      "text": "WITH copied AS (FROM records |> SELECT amount |> UNION ALL (FROM records |> SELECT amount) |> DISTINCT) FROM copied |> ORDER BY amount NULLS LAST"
+    },
+    {
+      "module": "order-window",
+      "key": "orderWindowSuccesses",
+      "name": "order-window-set-private-data-binding",
+      "text": "WITH combined AS (SELECT * FROM UNNEST(@items) e UNION ALL SELECT * FROM UNNEST(@items) e ORDER BY ROW_NUMBER() OVER (ORDER BY id) DESC) FROM combined |> SELECT * |> RESULT answer"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-parenthesized-receiver",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-parenthesized-qualified-receiver",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((before.payload)).`score` NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-parenthesized-range-collision",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) , colliding AS (SELECT id, name, payload, other, other.score AS score FROM objects) SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM colliding AS payload"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-parenthesized-receiver-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-pipe-qualified",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY `before`.`payload`.`score` NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-per-call-opposite-order",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names, STRING_AGG(name, '|' ORDER BY payload.score DESC NULLS FIRST, id) AS reverse FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-current-and-snapshot",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-input-over-sibling",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(*) AS payload, STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-filtered-input",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects WHERE name != 'c' AND id <= 2"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-empty-global",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-default-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-default-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects |> AGGREGATE STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-explicit-empty-delimiter",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-default-filter",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name WHERE id <= 2 ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-default-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-default-all-null",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-delimiter-chunks-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '' /* separator */ \"|\" '''''' ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-delimiter-chunks-pipe-raw",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects |> AGGREGATE STRING_AGG(name, r'\\n' '\\r' ORDER BY payload.score NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-delimiter-chunks-decomposed",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, 'e' '\\u0301' WHERE id > 0 ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-keyed-array",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(id IGNORE NULLS ORDER BY payload.score NULLS LAST, id) AS ids"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-sql",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-quoted-pipe",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY (@`KEY`) DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-nullable-scalar",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-column-name-collision",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @NAME DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-object-member",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((@`CFG`)).`rank` DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-nullable-object",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((@`CFG`)).`rank` DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-nullable-member",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((@`CFG`)).`rank` DESC NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-filtered-argument",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' WHERE id <= 2 ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-typed-empty",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY @key DESC NULLS LAST, id) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-distinct-same-parameter",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) SELECT STRING_AGG(DISTINCT @label, '|' ORDER BY @LABEL) AS names FROM labels"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-order-parameter-distinct-null-parameter",
+      "text": "WITH labels AS (SELECT id, CASE WHEN id = 1 THEN 'z' WHEN id = 2 THEN 'a' WHEN id = 3 THEN 'm' ELSE NULL END AS name FROM records WHERE id > 0) FROM labels |> AGGREGATE STRING_AGG(DISTINCT @`LABEL`, '|' ORDER BY (@label)) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-grouped-delimiter-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, (('' /* separator */ '|')) ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-grouped-delimiter-pipe-raw",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects |> AGGREGATE STRING_AGG(name, ((r'\\n' '\\r')) ORDER BY payload.score NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-property-order",
+      "key": "aggregatePropertyOrderSuccesses",
+      "name": "aggregate-property-order-grouped-delimiter-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, ('|') ORDER BY payload.score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY COALESCE(payload.score, 0) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-quoted-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS t |> AGGREGATE STRING_AGG(name, '|' ORDER BY `IFNULL`((t.payload).score, 0) NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-searched-case",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY CASE WHEN id = 1 THEN 0 ELSE payload.score END NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-nested-if",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY IF(payload.score IS NULL, other.score, -payload.score) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-computed-receiver",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY COALESCE(payload, other).score NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-per-call-orders",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS names, STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0) DESC, id) AS reverse FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-current-and-snapshot",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS current, STRING_AGG(name, '|' ORDER BY IFNULL(before.payload.score, 0), id) AS previous"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-filtered-argument",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' WHERE id <= 2 ORDER BY COALESCE(payload.score, 0) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-masked-argument",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(IF(id / (id - id) = 0, name, name), '|' WHERE FALSE ORDER BY COALESCE(payload.score, 0) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY COALESCE(payload.score, 0) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-typed-parameter",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY COALESCE(payload.score, @fallback) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-distinct-same-argument",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(DISTINCT IFNULL(name, 'missing'), '|' ORDER BY IFNULL(name, 'missing')) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-is-null",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IS NULL NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-comparison-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS t |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((t.payload)).`SCORE` > 15 NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-not",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY NOT (payload.score > 15) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-and",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY (payload.score > 15) AND id != 3 NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-or",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY (payload.score > 15) OR id = 3 NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-unknown",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY (payload.score > 15) IS UNKNOWN NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IS NULL NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-masked",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(IF(id / (id - id) = 0, name, name), '|' WHERE FALSE ORDER BY payload.score IS NULL NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-per-call",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IS NULL, id) AS names, STRING_AGG(name, '|' ORDER BY payload.score IS NULL DESC, id) AS reverse FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-current-and-snapshot",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score > 15 NULLS LAST, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score > 15 NULLS LAST, id) AS previous"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-parameter",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY id = @selected NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-input-over-sibling",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(*) AS payload, STRING_AGG(name, '|' ORDER BY payload.score IS NULL, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-predicate-keyed-array",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(id IGNORE NULLS ORDER BY payload.score IS NULL, id) AS ids"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-null-list",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IN (20, NULL) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-in-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS t |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((t.payload)).`SCORE` IN (20, 20) NULLS LAST, id) AS names"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-not-in",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NOT IN (20) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-unnest",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IN UNNEST(ARRAY[20, NULL]) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-empty-list",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NOT IN UNNEST([]) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-between",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score BETWEEN 5 AND 15 NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-not-between",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NOT BETWEEN 5 AND 15 NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-null-safe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IS NOT DISTINCT FROM 20 NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-null-safe-null",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IS DISTINCT FROM NULL NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-current-and-snapshot",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score IN (25, 30) NULLS LAST, id) AS previous"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-parameter",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score IN (@wanted, NULL) NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-masked",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(IF(id / (id - id) = 0, name, name), '|' WHERE FALSE ORDER BY payload.score BETWEEN 5 AND 15 NULLS LAST, id) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-membership-keyed-array",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(id IGNORE NULLS ORDER BY payload.score IN (20) NULLS LAST, id) AS ids"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-distinct-qualified-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(DISTINCT IFNULL(name, 'missing'), '|' ORDER BY IFNULL(objects.name, 'missing')) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-distinct-quoted-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> AGGREGATE STRING_AGG(DISTINCT IFNULL(name, 'missing'), '|' ORDER BY IFNULL(`o`.`NAME`, 'missing')) AS names"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-distinct-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(DISTINCT IFNULL(name, 'missing'), '|' ORDER BY IFNULL(objects.name, 'missing')) AS names FROM objects"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-qualified-shared-key",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY IFNULL(name, 'missing')) AS names, STRING_AGG(name, '|' ORDER BY IFNULL(o.name, 'missing') DESC) AS reverse FROM objects AS o"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-distinct-case-qualified",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(DISTINCT CASE WHEN id = 3 THEN 'third' ELSE IFNULL(name, 'missing') END, '|' ORDER BY CASE WHEN o.id = 3 THEN 'third' ELSE IFNULL(o.name, 'missing') END) AS names FROM objects AS o"
+    },
+    {
+      "module": "aggregate-conditional-order",
+      "key": "aggregateConditionalOrderSuccesses",
+      "name": "aggregate-conditional-order-distinct-member-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT IFNULL((payload).score, 0) IGNORE NULLS ORDER BY IFNULL((o.payload).`SCORE`, 0) DESC) AS ids"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-selected-property",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(payload.score) AS n FROM objects HAVING COUNT((objects.payload).`SCORE`) > 0"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-filtered-property",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(payload.score WHERE payload.score > 10) AS n FROM objects HAVING COUNT((payload).score WHERE (objects.payload).`SCORE` > 10) > 0"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-empty-global",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(payload.score) AS n FROM objects HAVING COUNT((payload).score) = 0"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-alias-null-contrast",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(payload.score) AS n, @p3 AS payload FROM objects HAVING COUNT((payload).score) > 0"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-qualified-input-contrast",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(payload.score) AS n, @p3 AS payload FROM objects HAVING COUNT((objects.payload).score) > 0"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-range-object-contrast",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) , colliding AS (SELECT id, payload, other.score AS score FROM objects) SELECT COUNT((payload).score) AS n FROM colliding AS payload HAVING COUNT(payload.score) > 3"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-distinct-contrast",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(payload.score) AS n FROM objects HAVING COUNT(DISTINCT (payload).score) = 2"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-filter-contrast",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT COUNT(payload.score WHERE payload.score > 10) AS n FROM objects HAVING COUNT((payload).score WHERE payload.score > 20) > 0"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-ordered-collection",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects HAVING STRING_AGG(name, '|' ORDER BY (objects.payload).`SCORE` NULLS LAST, id) = 'b|b|a|c'"
+    },
+    {
+      "module": "aggregate-member-call-reuse",
+      "key": "aggregateMemberCallSuccesses",
+      "name": "aggregate-member-call-order-contrast",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) SELECT STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS names FROM objects HAVING STRING_AGG(name, '|' ORDER BY (objects.payload).score DESC NULLS FIRST, id) = 'c|a|b|b'"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-qualified-pipe",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT -payload.score IGNORE NULLS ORDER BY -o.payload.score) AS items"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-parenthesized-property",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT -(payload).score IGNORE NULLS ORDER BY -o.payload.`SCORE`) AS items"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-sql",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) , keyed AS (FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 ) SELECT ARRAY_AGG(DISTINCT -payload.score IGNORE NULLS ORDER BY -k.payload.score) AS items FROM keyed AS k"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-descending",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT -o.payload.score IGNORE NULLS ORDER BY -((payload)).score DESC NULLS LAST) AS items"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-positive-qualified",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT +payload.score IGNORE NULLS ORDER BY +o.payload.score) AS items"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-nested-signs",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT -(-payload.score) IGNORE NULLS ORDER BY -(-o.payload.score)) AS items"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-direct-id",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT -id IGNORE NULLS ORDER BY -o.id DESC) AS items"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-filtered",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT -payload.score IGNORE NULLS WHERE id = 1 ORDER BY -o.payload.score) AS items"
+    },
+    {
+      "module": "distinct-signed-order",
+      "key": "distinctSignedOrderSuccesses",
+      "name": "distinct-signed-order-empty",
+      "text": "WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS o |> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4 |> AGGREGATE ARRAY_AGG(DISTINCT -payload.score IGNORE NULLS ORDER BY -o.payload.score) AS items"
+    }
+  ]
+}

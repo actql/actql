@@ -42,8 +42,8 @@ export const setCorrespondingSuccesses = [
   success('pipe-explicit-inner', 'FROM records |> WHERE id > 1 |> SELECT id, amount, 10 AS left_only '
     + '|> INNER UNION ALL CORRESPONDING (FROM records |> WHERE id <= 2 |> SELECT amount, id, 20 AS right_only)'
     + '|> ORDER BY amount NULLS LAST, id', {format: 'aql-text'}),
-  success('data-by-case', 'DATA combined = ' + left + ' UNION ALL CORRESPONDING BY (`AMOUNT`, ID) ' + right
-    + '; FROM combined |> ORDER BY AMOUNT NULLS LAST, ID', {format: 'aql-text',
+  success('data-by-case', 'WITH combined AS (' + left + ' UNION ALL CORRESPONDING BY (`AMOUNT`, ID) ' + right
+    + ') FROM combined |> ORDER BY AMOUNT NULLS LAST, ID', {format: 'aql-text',
       expected: expected.map(row => ({AMOUNT: row.amount, ID: row.id})),
       columns: [{name: 'AMOUNT', contract: {...number, nullable: true}}, {name: 'ID', contract: number}]}),
   success('pipe-strict-by', 'FROM records |> WHERE id > 1 |> SELECT id, amount '
@@ -95,13 +95,13 @@ setCorrespondingSuccesses.push(
   positional('json-control', JSON.stringify(positionalProgram), {format: 'json'}),
   positional('duplicate-aliases', 'SELECT 0 AS a, 0 AS b UNION ALL '
     + 'SELECT 1 AS x, CAST(NULL AS FLOAT64) AS `X` ORDER BY a, b NULLS LAST'),
-  positional('scoped-current-and-original', 'DATA n = SELECT 1 AS x; '
+  positional('scoped-current-and-original', 'WITH n AS (SELECT 1 AS x) '
     + 'FROM n |> SELECT 0 AS a, 0 AS b |> UNION ALL (FROM n AS original '
     + '|> SET x = x + 1 |> SELECT original.x AS x, x AS `X`) |> ORDER BY a, b',
     {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 2}],
       columns: [{name: 'a', contract: number}, {name: 'b', contract: number}]}),
-  positional('typed-empty', 'DATA e = SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE '
-    + 'UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE; '
+  positional('typed-empty', 'WITH e AS (SELECT 0 AS a, CAST(NULL AS FLOAT64) AS b WHERE FALSE '
+    + 'UNION ALL SELECT 1 AS x, CAST(NULL AS FLOAT64) AS x WHERE FALSE) '
     + 'FROM e |> ORDER BY a, b', {format: 'aql-text', expected: []}),
   positional('shared-source', 'SELECT 0 AS a, 0 AS b UNION ALL '
     + 'SELECT id AS repeated, amount AS repeated FROM records WHERE id > 0 ORDER BY a, b NULLS LAST',
@@ -138,7 +138,7 @@ export const positionalAggregateProgram = {version: 'actql/0.1', id: 'fixture.ag
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const aggregateText = 'SELECT 0 AS a, 0 AS b UNION ALL '
   + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n';
-const aggregateQualify = 'DATA r = SELECT 1 AS x; SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL '
+const aggregateQualify = 'WITH r AS (SELECT 1 AS x) SELECT 0 AS a, 0 AS b, 0 AS c UNION ALL '
   + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS n, '
   + 'ROW_NUMBER() OVER (ORDER BY r.x) AS rn FROM r GROUP BY r.x QUALIFY ';
 const aggregate = (name, text, extra = {}) => positional('aggregate-' + name, text,
@@ -146,13 +146,13 @@ const aggregate = (name, text, extra = {}) => positional('aggregate-' + name, te
 setCorrespondingSuccesses.push(
   aggregate('json-control', JSON.stringify(positionalAggregateProgram), {format: 'json'}),
   aggregate('distinct-count-inputs', aggregateText + ' ORDER BY a, b'),
-  aggregate('data-case-aliases', 'DATA combined = SELECT 0 AS a, 0 AS b UNION ALL '
-    + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS `N`; '
+  aggregate('data-case-aliases', 'WITH combined AS (SELECT 0 AS a, 0 AS b UNION ALL '
+    + 'SELECT COUNT(*) AS n, COUNT(CAST(NULL AS FLOAT64)) AS `N`) '
     + 'FROM combined |> ORDER BY a, b', {format: 'aql-text'}),
   aggregate('empty-global', aggregateText + ' WHERE FALSE ORDER BY a, b',
     {expected: [{a: 0, b: 0}, {a: 0, b: 0}]}),
   aggregate('explicit-having-call', aggregateText + ' HAVING COUNT(*) > 0 ORDER BY a, b'),
-  aggregate('qualified-input-having', 'DATA r = SELECT 1 AS x; '
+  aggregate('qualified-input-having', 'WITH r AS (SELECT 1 AS x) '
     + aggregateText + ' FROM r AS n GROUP BY n.x HAVING n.x > 0 ORDER BY a, b',
     {format: 'aql-text'}),
   aggregate('undemanded-qualify-aliases', aggregateQualify + 'r.x > 0 AND rn = 1 ORDER BY a, b, c',
@@ -191,18 +191,18 @@ const window = (name, text, extra = {}) => positional('window-' + name, text,
   {columns: aggregateColumns, expected: windowRows, ...extra});
 setCorrespondingSuccesses.push(
   window('json-control', JSON.stringify(positionalWindowProgram), {format: 'json'}),
-  window('opposing-orders', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+  window('opposing-orders', 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) '
     + windowHead + ' ORDER BY a, b', {format: 'aql-text'}),
-  window('different-functions', 'DATA r = SELECT 1 AS x UNION ALL SELECT 1 AS x; '
+  window('different-functions', 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 1 AS x) '
     + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x) AS n, '
     + 'RANK() OVER (ORDER BY x) AS n FROM r ORDER BY a, b',
     {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 1}, {a: 2, b: 1}]}),
-  window('aggregate-functions', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+  window('aggregate-functions', 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) '
     + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT SUM(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n, '
     + 'COUNT(x) OVER (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS n FROM r ORDER BY a, b',
     {format: 'aql-text', expected: [{a: 0, b: 0}, {a: 1, b: 1}, {a: 3, b: 2}],
       columns: [{name: 'a', contract: {...number, nullable: true}}, {name: 'b', contract: number}]}),
-  window('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+  window('typed-empty', 'WITH r AS (SELECT 1 AS x WHERE FALSE) '
     + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT '
     + 'ROW_NUMBER() OVER (ORDER BY x) AS n, ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r '
     + 'ORDER BY a, b', {format: 'aql-text', expected: []}),
@@ -214,7 +214,7 @@ setCorrespondingSuccesses.push(
 setCorrespondingRefusals.push(...[
   {name: 'window-ambiguous-qualify', text: windowHead + ' QUALIFY n > 0'},
   {name: 'window-private-qualify', text: windowHead + ' QUALIFY aql_analytic_output_3 > 0'},
-].map(item => ({...item, text: 'DATA r = SELECT 1 AS x; ' + item.text,
+].map(item => ({...item, text: 'WITH r AS (SELECT 1 AS x) ' + item.text,
   name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
   expectedCode: 'ClientProgramInvalidInput'})));
 
@@ -225,17 +225,17 @@ const anonymousAnalyticHead = 'SELECT 0 AS a, 0 AS b UNION ALL SELECT '
 const anonymousAnalytic = (name, text, extra = {}) => positional('anonymous-analytic-' + name, text,
   {columns: aggregateColumns, expected: windowRows, ...extra});
 setCorrespondingSuccesses.push(
-  anonymousAnalytic('opposing-orders', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+  anonymousAnalytic('opposing-orders', 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) '
     + anonymousAnalyticHead + ' ORDER BY a, b', {format: 'aql-text'}),
-  anonymousAnalytic('scoped-pipe', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+  anonymousAnalytic('scoped-pipe', 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) '
     + 'SELECT 0 AS a, 0 AS b |> UNION ALL (FROM r |> AS original |> SET x = -x '
     + '|> SELECT ROW_NUMBER() OVER (ORDER BY original.x), ROW_NUMBER() OVER (ORDER BY x)) '
     + '|> ORDER BY a, b', {format: 'aql-text'}),
-  anonymousAnalytic('named-qualify', 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; '
+  anonymousAnalytic('named-qualify', 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) '
     + 'SELECT 0 AS a, 0 AS b UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x), '
     + 'ROW_NUMBER() OVER (ORDER BY x DESC) AS n FROM r QUALIFY n > 0 ORDER BY a, b',
     {format: 'aql-text'}),
-  anonymousAnalytic('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+  anonymousAnalytic('typed-empty', 'WITH r AS (SELECT 1 AS x WHERE FALSE) '
     + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL SELECT ROW_NUMBER() OVER (ORDER BY x), '
     + 'ROW_NUMBER() OVER (ORDER BY x DESC) FROM r ORDER BY a, b',
     {format: 'aql-text', expected: []}),
@@ -248,14 +248,14 @@ setCorrespondingRefusals.push(...[
   {name: 'anonymous-analytic-private-slot', field: 'aql_analytic_output_1'},
   {name: 'anonymous-analytic-private-projection', field: 'aql_set_anonymous_3'},
 ].map(item => ({name: 'set-corresponding-refuse-' + item.name, format: 'aql-text',
-  text: 'DATA r = SELECT 1 AS x; ' + anonymousAnalyticHead + ' QUALIFY ' + item.field + ' > 0',
+  text: 'WITH r AS (SELECT 1 AS x) ' + anonymousAnalyticHead + ' QUALIFY ' + item.field + ' > 0',
   expectedCode: 'ClientProgramInvalidInput'})));
 
 // Parentheses preserve operand ownership and ordinal values. These results
 // are authored from the same two input rows as the independent JSON control.
 const parenthesized = (name, text, extra = {}) => positional('parenthesized-' + name,
   text, {format: 'aql-text', columns: aggregateColumns, expected: windowRows, ...extra});
-const parenthesizedInput = 'DATA r = SELECT 1 AS x UNION ALL SELECT 2 AS x; ';
+const parenthesizedInput = 'WITH r AS (SELECT 1 AS x UNION ALL SELECT 2 AS x) ';
 setCorrespondingSuccesses.push(
   parenthesized('scoped-windows', parenthesizedInput + 'SELECT 0 AS a, 0 AS b UNION ALL '
     + '(FROM r |> AS original |> SET x = x + 10 |> SELECT '
@@ -279,23 +279,23 @@ setCorrespondingSuccesses.push(
     + '((SELECT ROW_NUMBER() OVER (ORDER BY id), ROW_NUMBER() OVER (ORDER BY id DESC) '
     + 'FROM records)) ORDER BY a, b',
     {format: 'sql', sourceRows: [{id: 2, amount: 20}, {id: 1, amount: 10}], sourceReadSessionCount: 1}),
-  parenthesized('typed-empty', 'DATA r = SELECT 1 AS x WHERE FALSE; '
+  parenthesized('typed-empty', 'WITH r AS (SELECT 1 AS x WHERE FALSE) '
     + 'SELECT 0 AS a, 0 AS b WHERE FALSE UNION ALL (SELECT '
     + 'ROW_NUMBER() OVER (ORDER BY x), ROW_NUMBER() OVER (ORDER BY x DESC) FROM r) '
     + 'ORDER BY a, b', {expected: []}),
 );
 setCorrespondingRefusals.push(
   {name: 'set-corresponding-refuse-parenthesized-by-name', format: 'aql-text',
-    text: 'DATA r = SELECT 1 AS x; SELECT 0 AS a UNION ALL BY NAME '
+    text: 'WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL BY NAME '
       + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r)',
     expectedCode: 'ClientProgramImplementationLimit'},
   {name: 'set-corresponding-refuse-parenthesized-authored-cte', format: 'aql-text',
-    text: 'DATA r = SELECT 1 AS x; WITH hidden AS '
+    text: 'WITH r AS (SELECT 1 AS x), hidden AS '
       + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r) '
       + 'SELECT 0 AS a UNION ALL (SELECT * FROM hidden)',
     expectedCode: 'ClientProgramImplementationLimit'},
   {name: 'set-corresponding-refuse-parenthesized-private-qualify', format: 'aql-text',
-    text: 'DATA r = SELECT 1 AS x; SELECT 0 AS a UNION ALL '
+    text: 'WITH r AS (SELECT 1 AS x) SELECT 0 AS a UNION ALL '
       + '(SELECT ROW_NUMBER() OVER (ORDER BY x) FROM r QUALIFY aql_analytic_output_1 > 0)',
     expectedCode: 'ClientProgramInvalidInput'},
 );

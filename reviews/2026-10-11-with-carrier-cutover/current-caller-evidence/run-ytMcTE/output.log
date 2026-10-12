@@ -1,0 +1,526 @@
+TAP version 13
+# Subtest: DISTINCT aggregate order obligations distinguish multiplicity and input snapshots
+ok 1 - DISTINCT aggregate order obligations distinguish multiplicity and input snapshots
+  ---
+  duration_ms: 3.900583
+  type: 'test'
+  ...
+# Subtest: normal packed acceptance and selected cohort share DISTINCT aggregate order cases
+ok 2 - normal packed acceptance and selected cohort share DISTINCT aggregate order cases
+  ---
+  duration_ms: 32.480833
+  type: 'test'
+  ...
+# Subtest: Mean independent oracle preserves explicit sample occurrences and nullable numeric output
+ok 3 - Mean independent oracle preserves explicit sample occurrences and nullable numeric output
+  ---
+  duration_ms: 1.889958
+  type: 'test'
+  ...
+# Subtest: Mean public acceptance reuses the existing fresh-process retained cohort reader
+ok 4 - Mean public acceptance reuses the existing fresh-process retained cohort reader
+  ---
+  duration_ms: 50.464
+  type: 'test'
+  ...
+# Subtest: Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input
+ok 5 - Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input
+  ---
+  duration_ms: 0.749167
+  type: 'test'
+  ...
+# Subtest: Mean asymmetric controls distinguish sample port order from producer order
+ok 6 - Mean asymmetric controls distinguish sample port order from producer order
+  ---
+  duration_ms: 0.857417
+  type: 'test'
+  ...
+# Subtest: Graph member source counterexamples retain independently authored rows and contracts
+ok 7 - Graph member source counterexamples retain independently authored rows and contracts
+  ---
+  duration_ms: 70.726
+  type: 'test'
+  ...
+# Subtest: quoted path calls preserve duplicate parallel-edge occurrences and the common traversal
+ok 8 - quoted path calls preserve duplicate parallel-edge occurrences and the common traversal
+  ---
+  duration_ms: 1.899833
+  type: 'test'
+  ...
+# Subtest: Graph nullable, empty and unknown-member cases retain their separate obligations
+ok 9 - Graph nullable, empty and unknown-member cases retain their separate obligations
+  ---
+  duration_ms: 0.378708
+  type: 'test'
+  ...
+# Subtest: Graph member fixtures remain in the normal public acceptance consumer
+ok 10 - Graph member fixtures remain in the normal public acceptance consumer
+  ---
+  duration_ms: 7.498791
+  type: 'test'
+  ...
+# Subtest: grouped Graph binding fixtures retain independent identity and multiplicity controls
+ok 11 - grouped Graph binding fixtures retain independent identity and multiplicity controls
+  ---
+  duration_ms: 1.351
+  type: 'test'
+  ...
+# Subtest: grouped Graph binding refusals preserve closed roles and post-projection scope
+ok 12 - grouped Graph binding refusals preserve closed roles and post-projection scope
+  ---
+  duration_ms: 1.149833
+  type: 'test'
+  ...
+# Subtest: quoted Graph identity calls retain the authored predicate value and typed empty output
+ok 13 - quoted Graph identity calls retain the authored predicate value and typed empty output
+  ---
+  duration_ms: 0.708292
+  type: 'test'
+  ...
+# Subtest: subtraction expectations distinguish binary removal, property retention and endpoint closure
+ok 14 - subtraction expectations distinguish binary removal, property retention and endpoint closure
+  ---
+  duration_ms: 77.816917
+  type: 'test'
+  ...
+# Subtest: normal corpus and narrow subtraction run retain the same installed public driver
+ok 15 - normal corpus and narrow subtraction run retain the same installed public driver
+  ---
+  duration_ms: 13.903084
+  type: 'test'
+  ...
+# Subtest: nearest member public controls retain independent values and complete column contracts
+ok 16 - nearest member public controls retain independent values and complete column contracts
+  ---
+  duration_ms: 54.006833
+  type: 'test'
+  ...
+# Subtest: nearest source keeps authored member spelling and explicit unknown-member refusal
+ok 17 - nearest source keeps authored member spelling and explicit unknown-member refusal
+  ---
+  duration_ms: 16.387875
+  type: 'test'
+  ...
+# Subtest: ordinary packed acceptance includes both optional Effect pairs
+ok 18 - ordinary packed acceptance includes both optional Effect pairs
+  ---
+  duration_ms: 5.664042
+  type: 'test'
+  ...
+# Subtest: JSON pair differs only by the terminal Effect
+ok 19 - JSON pair differs only by the terminal Effect
+  ---
+  duration_ms: 2.90775
+  type: 'test'
+  ...
+# Subtest: text pair shares exact submitted bytes up to the terminal Effect
+ok 20 - text pair shares exact submitted bytes up to the terminal Effect
+  ---
+  duration_ms: 1.205166
+  type: 'test'
+  ...
+# Subtest: binding preserves authored inputs and rejects malformed text MappingRefs
+ok 21 - binding preserves authored inputs and rejects malformed text MappingRefs
+  ---
+  duration_ms: 48.745584
+  type: 'test'
+  ...
+# Subtest: independent expected rows, type order and replay counts retain NULL and one write
+ok 22 - independent expected rows, type order and replay counts retain NULL and one write
+  ---
+  duration_ms: 0.277917
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent source-graph-member-input contract
+ok 23 - WITH final caller retains complete independent source-graph-member-input contract
+  ---
+  duration_ms: 13.683375
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent graph-delta-json-source contract
+ok 24 - WITH final caller retains complete independent graph-delta-json-source contract
+  ---
+  duration_ms: 37.54475
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent nearest-public-input contract
+ok 25 - WITH final caller retains complete independent nearest-public-input contract
+  ---
+  duration_ms: 34.49075
+  type: 'test'
+  ...
+# Subtest: WITH final caller retains complete independent pipe-join-input contract
+ok 26 - WITH final caller retains complete independent pipe-join-input contract
+  ---
+  duration_ms: 3.916333
+  type: 'test'
+  ...
+# Subtest: WITH optional Effect preserves complete original terminal body two-source-without-effect.aql
+ok 27 - WITH optional Effect preserves complete original terminal body two-source-without-effect.aql
+  ---
+  duration_ms: 0.888208
+  type: 'test'
+  ...
+# Subtest: WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template
+ok 28 - WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template
+  ---
+  duration_ms: 0.28625
+  type: 'test'
+  ...
+# Subtest: WITH Python ABI fixture changes only the binding wrapper
+ok 29 - WITH Python ABI fixture changes only the binding wrapper
+  ---
+  duration_ms: 1.040125
+  type: 'test'
+  ...
+# Subtest: WITH Graph snapshot keeps original oracle and consumer assertions
+not ok 30 - WITH Graph snapshot keeps original oracle and consumer assertions
+  ---
+  duration_ms: 5.349125
+  type: 'test'
+  location: '/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs:45:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    ... Skipped lines
+    
+      "import assert from 'node:assert/strict';\n" +
+        "import {generateKeyPairSync} from 'node:crypto';\n" +
+        "import {mkdir, mkdtemp, readFile, readdir} from 'node:fs/promises';\n" +
+        "import {createServer} from 'node:https';\n" +
+        "import {userInfo} from 'node:os';\n" +
+    ...
+        'WITH n AS (SELECT 1 AS id)\n' +
+    +   ' , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst\n' +
+    -   ', e AS (SELECT 10 AS key, 1 AS src, 1 AS dst\n' +
+        '  UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)\n' +
+    +   ' , g AS (GRAPH (\n' +
+    -   ', g AS (GRAPH (\n' +
+        '  NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)\n' +
+        '  EDGE TABLES (e AS E KEY (key)\n' +
+        '    SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N\n' +
+        '    LABEL R NO PROPERTIES)\n' +
+        '))\n' +
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: |-
+    import assert from 'node:assert/strict';
+    import {generateKeyPairSync} from 'node:crypto';
+    import {mkdir, mkdtemp, readFile, readdir} from 'node:fs/promises';
+    import {createServer} from 'node:https';
+    import {userInfo} from 'node:os';
+    import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+    import test from 'node:test';
+    import {canonicalText} from './check-canonical-json.mjs';
+    
+    const packed = process.env.ACTQL_GRAPH_PACKED === '1';
+    const {connect} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');
+    const {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed
+      ? new URL('./adapters/host-node/embedded-local.mjs', import.meta.resolve('@actql/local-node'))
+      : '../adapters/host-node/embedded-local.mjs');
+    const scratch = new URL(packed ? './source-snapshot-state/'
+      : '../_build/graph-source-snapshot/', import.meta.url);
+    await mkdir(scratch, {recursive: true});
+    
+    // Authored source and oracle: two independently keyed self-loops allow exactly
+    // two ordered TRAIL paths of length two. Neither parser output nor a product
+    // snapshot encoder is used to construct this expectation.
+    const source = `
+    WITH n AS (SELECT 1 AS id)
+    , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst
+      UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)
+    , g AS (GRAPH (
+      NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)
+      EDGE TABLES (e AS E KEY (key)
+        SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N
+        LABEL R NO PROPERTIES)
+    ))
+    FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node)
+      |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths
+    `;
+    const expectedRows = [{depth: 2}, {depth: 2}];
+    const expectedColumns = [{name: 'depth', contract: {type: 'number', nullable: false}}];
+    
+    for (const mode of ['local', 'remote']) {
+      test(`authored Graph source preserves parallel edges through snapshot and ${mode} Result`,
+        {timeout: 60_000}, async t => {
+          const directory = await mkdtemp(new URL(`${mode}-`, scratch));
+          const events = [];
+          const completed = new Map();
+          const waiters = new Map();
+          const keys = generateKeyPairSync('ed25519');
+          const authorization = [REDACTED]
+            accountConfiguration: canonicalText({
+              version: 'actql-execution-account-config/0.1', account_id: 'source-snapshot-owner',
+              entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true},
+                connection: {all: true}, resource: {all: true}, operation: {all: true}, exclusions: []}],
+            }),
+            hostKey: {keyId: 'source-snapshot-host',
+              privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+            reviewers: [{keyId: 'source-snapshot-reviewer', reviewerId: 'source-snapshot-reviewer',
+              principalId: userInfo().username,
+              publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+            faultInjection(name, detail) {
+              events.push(name);
+              if (name === 'computed') {
+                completed.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);
+                waiters.get(detail.ref.runDefinitionCid)?.();
+              }
+            },
+          };
+          let client;
+          if (mode === 'local') {
+            client = await connectEmbeddedLocal({mode, owner: 'local', installation: {directory, authorization}});
+          } else {
+            const host = await openInstalledRemoteHttpHost({directory, authorization,
+              authenticate: header => header === 'Bearer [REDACTED]' ? userInfo().username : undefined});
+            t.after(() => host.close());
+            let material;
+            if (packed) {
+              const read = name => readFile(new URL(`./tls/${name}`, import.meta.url));
+              material = {ca: await read('ca.crt'), siteKey: await read('site.key'),
+                siteCertificate: await read('site.crt')};
+            } else {
+              const {certificates} = await import('../adapters/site-node/https-agent-harness.mjs');
+              material = await certificates(await mkdtemp(new URL('tls-', scratch)));
+            }
+            const previousCAs = getCACertificates('default');
+            setDefaultCACertificates([...previousCAs, material.ca.toString('utf8')]);
+            t.after(() => setDefaultCACertificates(previousCAs));
+            const server = createServer({key: material.siteKey, cert: material.siteCertificate}, host.handler);
+            await new Promise((resolve, reject) => {
+              server.once('error', reject);
+              server.listen(0, '127.0.0.1', resolve);
+            });
+            t.after(async () => {
+              server.closeAllConnections();
+              await new Promise(resolve => server.close(resolve));
+            });
+            client = await connect({mode, endpoint: `https://127.0.0.1:${server.address().port}/`,
+              token: '[REDACTED]'});
+          }
+          t.after(() => client.close());
+          const requestId = `source-snapshot-${mode}`;
+          const run = await client.startSource(source, {format: 'aql-text', requestId});
+          assert.equal((await run.wait()).status, 'succeeded');
+          assert.deepEqual(await run.result('paths').all(), expectedRows);
+          assert.deepEqual((await run.result('paths').describe()).columns, expectedColumns);
+          if (!completed.has(run.ref.runDefinitionCid)) {
+            await new Promise((resolve, reject) => {
+              const timer = setTimeout(() => {
+                waiters.delete(run.ref.runDefinitionCid);
+                reject(new Error('SourceSnapshotCompletionNotObserved'));
+              }, 15_000);
+              waiters.set(run.ref.runDefinitionCid, () => {clearTimeout(timer); resolve();});
+            });
+          }
+          const snapshots = completed.get(run.ref.runDefinitionCid);
+          assert.equal(snapshots.length, 1, 'one constructed Graph is saved and restored by the existing owner');
+          const [snapshot] = snapshots;
+          assert.match(snapshot.cid, /^sha256:[0-9a-f]{64}$/u);
+          assert.ok(snapshot.bytes > 0);
+          assert.equal(snapshot.verifiedReadBytes, snapshot.bytes);
+          assert.equal(snapshot.sourceReleased, true);
+          assert.equal(snapshot.restored, true);
+          assert.equal(snapshot.temporaryBodyReclaimed, true);
+          assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+          const beforeReuse = events.length;
+          assert.deepEqual(await (await client.attach(run.ref)).result('paths').all(), expectedRows);
+          assert.deepEqual((await client.startSource(source, {format: 'aql-text', requestId})).ref, run.ref);
+          assert.equal(events.length, beforeReuse, 'read/attach/request reuse dispatches no new work');
+          assert.equal(completed.size, 1);
+          t.diagnostic('Authored source → ordinary Host → saved/restored Graph → TRAIL Named Result; no independent exact snapshot CID claim');
+        });
+    }
+    
+  actual: |-
+    import assert from 'node:assert/strict';
+    import {generateKeyPairSync} from 'node:crypto';
+    import {mkdir, mkdtemp, readFile, readdir} from 'node:fs/promises';
+    import {createServer} from 'node:https';
+    import {userInfo} from 'node:os';
+    import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+    import test from 'node:test';
+    import {canonicalText} from './check-canonical-json.mjs';
+    
+    const packed = process.env.ACTQL_GRAPH_PACKED === '1';
+    const {connect} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');
+    const {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed
+      ? new URL('./adapters/host-node/embedded-local.mjs', import.meta.resolve('@actql/local-node'))
+      : '../adapters/host-node/embedded-local.mjs');
+    const scratch = new URL(packed ? './source-snapshot-state/'
+      : '../_build/graph-source-snapshot/', import.meta.url);
+    await mkdir(scratch, {recursive: true});
+    
+    // Authored source and oracle: two independently keyed self-loops allow exactly
+    // two ordered TRAIL paths of length two. Neither parser output nor a product
+    // snapshot encoder is used to construct this expectation.
+    const source = `
+    WITH n AS (SELECT 1 AS id)
+     , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst
+      UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)
+     , g AS (GRAPH (
+      NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)
+      EDGE TABLES (e AS E KEY (key)
+        SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N
+        LABEL R NO PROPERTIES)
+    ))
+    FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node)
+      |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths
+    `;
+    const expectedRows = [{depth: 2}, {depth: 2}];
+    const expectedColumns = [{name: 'depth', contract: {type: 'number', nullable: false}}];
+    
+    for (const mode of ['local', 'remote']) {
+      test(`authored Graph source preserves parallel edges through snapshot and ${mode} Result`,
+        {timeout: 60_000}, async t => {
+          const directory = await mkdtemp(new URL(`${mode}-`, scratch));
+          const events = [];
+          const completed = new Map();
+          const waiters = new Map();
+          const keys = generateKeyPairSync('ed25519');
+          const authorization = [REDACTED]
+            accountConfiguration: canonicalText({
+              version: 'actql-execution-account-config/0.1', account_id: 'source-snapshot-owner',
+              entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true},
+                connection: {all: true}, resource: {all: true}, operation: {all: true}, exclusions: []}],
+            }),
+            hostKey: {keyId: 'source-snapshot-host',
+              privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+            reviewers: [{keyId: 'source-snapshot-reviewer', reviewerId: 'source-snapshot-reviewer',
+              principalId: userInfo().username,
+              publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+            faultInjection(name, detail) {
+              events.push(name);
+              if (name === 'computed') {
+                completed.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);
+                waiters.get(detail.ref.runDefinitionCid)?.();
+              }
+            },
+          };
+          let client;
+          if (mode === 'local') {
+            client = await connectEmbeddedLocal({mode, owner: 'local', installation: {directory, authorization}});
+          } else {
+            const host = await openInstalledRemoteHttpHost({directory, authorization,
+              authenticate: header => header === 'Bearer [REDACTED]' ? userInfo().username : undefined});
+            t.after(() => host.close());
+            let material;
+            if (packed) {
+              const read = name => readFile(new URL(`./tls/${name}`, import.meta.url));
+              material = {ca: await read('ca.crt'), siteKey: await read('site.key'),
+                siteCertificate: await read('site.crt')};
+            } else {
+              const {certificates} = await import('../adapters/site-node/https-agent-harness.mjs');
+              material = await certificates(await mkdtemp(new URL('tls-', scratch)));
+            }
+            const previousCAs = getCACertificates('default');
+            setDefaultCACertificates([...previousCAs, material.ca.toString('utf8')]);
+            t.after(() => setDefaultCACertificates(previousCAs));
+            const server = createServer({key: material.siteKey, cert: material.siteCertificate}, host.handler);
+            await new Promise((resolve, reject) => {
+              server.once('error', reject);
+              server.listen(0, '127.0.0.1', resolve);
+            });
+            t.after(async () => {
+              server.closeAllConnections();
+              await new Promise(resolve => server.close(resolve));
+            });
+            client = await connect({mode, endpoint: `https://127.0.0.1:${server.address().port}/`,
+              token: '[REDACTED]'});
+          }
+          t.after(() => client.close());
+          const requestId = `source-snapshot-${mode}`;
+          const run = await client.startSource(source, {format: 'aql-text', requestId});
+          assert.equal((await run.wait()).status, 'succeeded');
+          assert.deepEqual(await run.result('paths').all(), expectedRows);
+          assert.deepEqual((await run.result('paths').describe()).columns, expectedColumns);
+          if (!completed.has(run.ref.runDefinitionCid)) {
+            await new Promise((resolve, reject) => {
+              const timer = setTimeout(() => {
+                waiters.delete(run.ref.runDefinitionCid);
+                reject(new Error('SourceSnapshotCompletionNotObserved'));
+              }, 15_000);
+              waiters.set(run.ref.runDefinitionCid, () => {clearTimeout(timer); resolve();});
+            });
+          }
+          const snapshots = completed.get(run.ref.runDefinitionCid);
+          assert.equal(snapshots.length, 1, 'one constructed Graph is saved and restored by the existing owner');
+          const [snapshot] = snapshots;
+          assert.match(snapshot.cid, /^sha256:[0-9a-f]{64}$/u);
+          assert.ok(snapshot.bytes > 0);
+          assert.equal(snapshot.verifiedReadBytes, snapshot.bytes);
+          assert.equal(snapshot.sourceReleased, true);
+          assert.equal(snapshot.restored, true);
+          assert.equal(snapshot.temporaryBodyReclaimed, true);
+          assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+          const beforeReuse = events.length;
+          assert.deepEqual(await (await client.attach(run.ref)).result('paths').all(), expectedRows);
+          assert.deepEqual((await client.startSource(source, {format: 'aql-text', requestId})).ref, run.ref);
+          assert.equal(events.length, beforeReuse, 'read/attach/request reuse dispatches no new work');
+          assert.equal(completed.size, 1);
+          t.diagnostic('Authored source → ordinary Host → saved/restored Graph → TRAIL Named Result; no independent exact snapshot CID claim');
+        });
+    }
+    
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs:50:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 29
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 288.563
+ACTQL_TEST_CASE {"name":"DISTINCT aggregate order obligations distinguish multiplicity and input snapshots","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-aggregate-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal packed acceptance and selected cohort share DISTINCT aggregate order cases","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-aggregate-order-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean independent oracle preserves explicit sample occurrences and nullable numeric output","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean public acceptance reuses the existing fresh-process retained cohort reader","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean AQL oracle uses a generator, not a Pipe left operand or implicit current input","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Mean asymmetric controls distinguish sample port order from producer order","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph member source counterexamples retain independently authored rows and contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"quoted path calls preserve duplicate parallel-edge occurrences and the common traversal","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph nullable, empty and unknown-member cases retain their separate obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Graph member fixtures remain in the normal public acceptance consumer","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped Graph binding fixtures retain independent identity and multiplicity controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped Graph binding refusals preserve closed roles and post-projection scope","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"quoted Graph identity calls retain the authored predicate value and typed empty output","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"subtraction expectations distinguish binary removal, property retention and endpoint closure","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-subtraction-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"normal corpus and narrow subtraction run retain the same installed public driver","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-subtraction-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"nearest member public controls retain independent values and complete column contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/nearest-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"nearest source keeps authored member spelling and explicit unknown-member refusal","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/nearest-member-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary packed acceptance includes both optional Effect pairs","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"JSON pair differs only by the terminal Effect","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"text pair shares exact submitted bytes up to the terminal Effect","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"binding preserves authored inputs and rejects malformed text MappingRefs","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent expected rows, type order and replay counts retain NULL and one write","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent source-graph-member-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent graph-delta-json-source contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent nearest-public-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH final caller retains complete independent pipe-join-input contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH optional Effect preserves complete original terminal body two-source-without-effect.aql","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH optional Effect preserves complete original terminal body two-source-with-effect.aql.template","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Python ABI fixture changes only the binding wrapper","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph snapshot keeps original oracle and consumer assertions","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs","passed":false,"skipped":false,"todo":false,"failureType":"testCodeFailure","errorCode":"ERR_ASSERTION","errorMessage":"Expected values to be strictly equal:\n+ actual - expected\n... Skipped lines\n\n  \"import assert from 'node:assert/strict';\\n\" +\n    \"import {generateKeyPairSync} from 'node:crypto';\\n\" +\n    \"import {mkdir, mkdtemp, readFile, readdir} from 'node:fs/promises';\\n\" +\n    \"import {createServer} from 'node:https';\\n\" +\n    \"import {userInfo} from 'node:os';\\n\" +\n...\n    'WITH n AS (SELECT 1 AS id)\\n' +\n+   ' , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst\\n' +\n-   ', e AS (SELECT 10 AS key, 1 AS src, 1 AS dst\\n' +\n    '  UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst)\\n' +\n+   ' , g AS (GRAPH (\\n' +\n-   ', g AS (GRAPH (\\n' +\n    '  NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES)\\n' +\n    '  EDGE TABLES (e AS E KEY (key)\\n' +\n    '    SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N\\n' +\n    '    LABEL R NO PROPERTIES)\\n' +\n    '))\\n' +\n","operator":"strictEqual"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":65.748291,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/distinct-aggregate-order-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":4,"failed":0,"passed":4,"cancelled":0,"skipped":0,"todo":0,"topLevel":4,"suites":0},"duration_ms":64.152666,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-mean-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":7,"failed":0,"passed":7,"cancelled":0,"skipped":0,"todo":0,"topLevel":7,"suites":0},"duration_ms":93.992042,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-member-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":100.965625,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-subtraction-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":80.527833,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/nearest-member-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":76.190833,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/two-source-optional-effect.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":false,"counts":{"tests":8,"failed":1,"passed":7,"cancelled":0,"skipped":0,"todo":0,"topLevel":8,"suites":0},"duration_ms":112.547834,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-final-current-callers.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":false,"counts":{"tests":30,"failed":1,"passed":29,"cancelled":0,"skipped":0,"todo":0,"topLevel":30,"suites":0},"duration_ms":288.563}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-final-current-callers.test.mjs","scripts/graph-member-source-input.test.mjs","scripts/graph-mean-source-input.test.mjs","scripts/graph-subtraction-source-input.test.mjs","scripts/distinct-aggregate-order-source-input.test.mjs","scripts/nearest-member-source-input.test.mjs","scripts/two-source-optional-effect.test.mjs"]: process failed (1); counts={"tests":30,"passed":29,"failed":1,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-ow7OBT

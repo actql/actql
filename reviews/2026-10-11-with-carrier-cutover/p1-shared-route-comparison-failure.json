@@ -1,0 +1,26 @@
+{
+  "source": "c59c5d7c3feee84f66265ff6417872bf06fbedf0",
+  "run": "run-sILpwg",
+  "focused": "focused-test-E2JpHq",
+  "tests": 4,
+  "passed": 2,
+  "failed": 2,
+  "exit_code": 2,
+  "failures": [
+    "Raw JSON object order differs only at match_nodes.label; use existing metadata-stripped complete Program emission, retaining all ordered arrays and independent expected Program",
+    "Nearer Relation shadowing Graph enters lower_script_relation_term Graph syntax refusal UnsupportedGraph; exact UnknownRelation assertion was an incorrectly authored reason"
+  ],
+  "expected_program_and_rows_unchanged": true,
+  "owner_and_group_absent": 19353,
+  "locks_released": true,
+  "original": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-sILpwg/summary.json",
+      "sha256": "b4bcf7cc99d3344ef124ac3f6ee9c1261e0dd193969afa3e858261185d4befed"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-sILpwg/output.log",
+      "sha256": "225f33c4bcf2947b41a60d46c8c03a788d292bcae0ac532f79aeef45efb2bb3e"
+    }
+  ]
+}

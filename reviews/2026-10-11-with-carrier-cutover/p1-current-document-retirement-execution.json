@@ -1,0 +1,147 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Current architecture and Graph domain prose use WITH binding terminology. Pure constructor domain, key/identity/provenance, machine JSON/YAML and history unchanged. No product execution change.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-current-document-original-preimages.json",
+  "old_language_document_cid": "sha256:742c980b55b23d01cbf8fe921b0d457d294ce5e70adac259800871c6abd059b6",
+  "new_language_document_cid": "sha256:37883cacc5e3cea26bc0c1d7c24ec9810269d1449d5318b3b5ef2bd93ce25dcb",
+  "identity_effect": "Four language normative document import CIDs change; Program/Unit/ResultPlan/Run/grammar and common contracts do not change. Requirement IDs/fingerprints and generated requirement registry unchanged.",
+  "unexecuted": [
+    "Host Local/HTTPS",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-vk6jxg",
+      "source": "c47d5af1e61d637abe3bdf8e91403afec0631307",
+      "tree": "6eba39470aee0aec4f40f1621a7645e650550a09",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 9171,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "scripts/update-document-metadata.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs",
+          "--write"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-vk6jxg/local-checks/output.log",
+          "sha256": "ae0d0cbe60691930972628cd8144a52f3db4a8032e02c89c4f02b196a188899a"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-vk6jxg/local-checks/summary.json",
+          "sha256": "30c4d2b06cb7b17941c4d0ca9fe01b564e0aad56d19b6bcd9ed1a19ba9fb5f8b"
+        }
+      },
+      "generator": "Actual metadata and family generators completed; only four spec-family normative references changed"
+    },
+    {
+      "run": "run-AfEVIH",
+      "source": "914597f67bd9d428217be83ea48cba499ba9e2f3",
+      "tree": "eed1d356f6cc1659b5a6c3567ac567849ad6ee0f",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 9396,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"node\",process.argv.slice(1),{cwd:process.cwd()});",
+          "--",
+          "scripts/spec-family-imports.test.mjs"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/local-checks/output.log",
+          "sha256": "dffc0cd4dae5ea28b8c0d5c63dc194a7a013113b4a59bea81489b39b05424aee"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/local-checks/summary.json",
+          "sha256": "650676e06dd6ce15914882f6b18d6883dfa9d3287cdacbca65d048d0055e0812"
+        },
+        "focused-test-lVO14V/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/0001.summary.json",
+          "sha256": "a7805c4c19279f94d9fe3fcd45e5c3b4bac0315a632c2604115402a65854ad33"
+        },
+        "focused-test-lVO14V/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/0002.summary.json",
+          "sha256": "33b7e4b7a04d71602eab1aa145bf7868c39cc887bf9b98137845433265939348"
+        },
+        "focused-test-lVO14V/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/0003.summary.json",
+          "sha256": "ed15266d10dc2c5e67b3e115e45a11824865e5e49d886800a90b678d71d3ca05"
+        },
+        "focused-test-lVO14V/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/0004.summary.json",
+          "sha256": "9b6317358e5dea3d2ac271d6b6cc00a721d680be1520acb5f5cad72a63837a79"
+        },
+        "focused-test-lVO14V/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/001.result.json",
+          "sha256": "17c1d3cccf486517fd53eaaa1b17248b0618c21bc450d8d14144858e528bfcb1"
+        },
+        "focused-test-lVO14V/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/001.started.json",
+          "sha256": "4438a210d4b362715b798a38cdb1d5fa6632a104e488b5cbda50e07fe8b3ab56"
+        },
+        "focused-test-lVO14V/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-lVO14V/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/001.stdout.log",
+          "sha256": "b21e0cd16d68a6c3c5246023c8a21fe3bbd7c06ebe42570856bd5044c5f523b1"
+        },
+        "focused-test-lVO14V/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/current-document-retirement-evidence/run-AfEVIH/focused-test-lVO14V/summary.json",
+          "sha256": "9b6317358e5dea3d2ac271d6b6cc00a721d680be1520acb5f5cad72a63837a79"
+        }
+      },
+      "actual_node_counts": {
+        "tests": 3,
+        "passed": 3,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "actual_family": {
+        "documents": 10,
+        "requirements": 1521,
+        "document_imports": 23,
+        "machine_imports": 318,
+        "informative_references": 52,
+        "conformance": false
+      },
+      "freshness": "metadata changes[]; requirement family read-only passes"
+    }
+  ]
+}

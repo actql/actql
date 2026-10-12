@@ -1,0 +1,27 @@
+{
+  "source": "4e7ea69bbfec52223043d1b4fe7ea22afa5b631f",
+  "run": "run-fV0lyW",
+  "focused": "focused-test-3cdIJg",
+  "exit_code": 1,
+  "tests_executed": 0,
+  "failure": "The new diagnostic helper read ProducerOrderIssue.kind rather than its retained issue.kind; the test compiler rejected the helper. No product runtime outcome was observed.",
+  "termination": {
+    "owner": 45549,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-fV0lyW/summary.json",
+      "sha256": "cb2f02432dfa326d161613563a51cde349ca11d973d5b06e5b40e51d9b9be2a5"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-fV0lyW/output.log",
+      "sha256": "886fe7a8a4051fe047f5f658c15284ebcf1110f1de54e9455c3fb4543cf6bc6b"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-3cdIJg/summary.json",
+      "sha256": "12fadbba2d4c4770c29bb81910274767faea1a2cf07a0986bc78ccc5c6b1d464"
+    }
+  ]
+}

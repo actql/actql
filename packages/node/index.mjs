@@ -25,9 +25,14 @@ async function localProvider() {
 
 export async function connect(options, stringOptions) {
   if (typeof options === 'string') return connectHost(options, stringOptions);
-  if (stringOptions !== undefined) throw new ClientError('InvalidConnectionOptions');
-  if ((options?.mode === 'local' || options?.mode === 'hybrid' &&
-      options?.owner === 'local') && options.endpoint === undefined) {
+  const hint = "For embedded Local, use open() without a Host or token. For Remote, use connect({mode: 'remote', endpoint: 'https://host.example/', token: getAccessToken}).";
+  if (stringOptions !== undefined) throw new ClientError('InvalidConnectionOptions', {hint});
+  let embeddedLocal;
+  try {
+    embeddedLocal = (options?.mode === 'local' || options?.mode === 'hybrid' &&
+      options?.owner === 'local') && options.endpoint === undefined;
+  } catch { throw new ClientError('InvalidConnectionOptions', {hint}); }
+  if (embeddedLocal) {
     // Detach this new Host-only value before lazy provider loading. Admission
     // stays with the installed Host; connected Remote loads no Local module.
     try {

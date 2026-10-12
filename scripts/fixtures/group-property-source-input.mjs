@@ -17,11 +17,11 @@ const parameterDeclarations = {a: payload, b: payload, c: payload,
 const parameters = {a: {score: 10}, b: {score: 20}, c: null,
   d: {score: 20}, e: {score: null}, oa: {score: 100}, ob: {score: 200},
   oc: {score: 300}, od: {score: 400}, oe: {score: 500}};
-const source = 'DATA objects = SELECT 2 AS id, @a AS payload, @oa AS other '
+const source = 'WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other '
   + 'UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other '
   + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other '
   + 'UNION ALL SELECT 4 AS id, @d AS payload, @od AS other '
-  + 'UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other; ';
+  + 'UNION ALL SELECT 5 AS id, @e AS payload, @oe AS other) ';
 const expected = [{score: null, n: 2}, {score: 10, n: 1}, {score: 20, n: 2}];
 const columns = [{name: 'score', contract: {...number, nullable: true}},
   {name: 'n', contract: number}];
@@ -97,8 +97,8 @@ export const groupedImplicitPropertyNameSuccesses = [
       columns: [{name: 'id', contract: number}, columns[0], columns[1],
         {name: 'rank', contract: number}]}),
   text('implicit-grouped-cte',
-    'WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) '
-      + 'SELECT score, n FROM summary ORDER BY score'),
+    '(WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) '
+      + 'SELECT score, n FROM summary ORDER BY score)'),
   text('implicit-grouped-join',
     'SELECT l.payload.score, COUNT(*) AS n FROM objects AS l JOIN objects AS r '
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY l.payload.score ORDER BY score'),
@@ -137,8 +137,8 @@ const havingImplicitJson = {version: 'actql/0.1', id: 'fixture.having_implicit_a
     {select: [{score: 'key'}, 'n'], as: 'summary'},
   ], results: {rows: {from: 'summary', fields: ['score', 'n']}}},
 ], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-const havingCollisionSource = 'DATA colliding = SELECT 1 AS id, 100 AS score, @a AS payload '
-  + 'UNION ALL SELECT 2 AS id, 0 AS score, @b AS payload; ';
+const havingCollisionSource = 'WITH colliding AS (SELECT 1 AS id, 100 AS score, @a AS payload '
+  + 'UNION ALL SELECT 2 AS id, 0 AS score, @b AS payload) ';
 const havingCollisionRows = [
   {id: 1, score: 100, payload: {score: 10}},
   {id: 2, score: 0, payload: {score: 20}},
@@ -175,8 +175,8 @@ export const groupHavingImplicitAliasSuccesses = [
     'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING COUNT(score) > 1 ORDER BY score',
     {expected: havingImplicitRows}),
   text('having-implicit-cte',
-    'WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) '
-      + 'SELECT score, n FROM summary ORDER BY score', {expected: havingImplicitRows}),
+    '(WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) '
+      + 'SELECT score, n FROM summary ORDER BY score)', {expected: havingImplicitRows}),
   text('having-implicit-join',
     'SELECT l.payload.score, COUNT(*) AS n FROM objects AS l JOIN objects AS r '
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY score HAVING score > 10 ORDER BY score',
@@ -261,8 +261,8 @@ export const pipeAggregateOrderSuccesses = [
       columns: [{name: 'first', contract: {...number, nullable: true}},
         {name: 'second', contract: {...number, nullable: true}}, {name: 'n', contract: number}]}),
   {name: 'group-property-shorthand-aggregate-only-suffix', format: 'aql-text',
-    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x '
-      + 'UNION ALL SELECT 3 AS x UNION ALL SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+    text: 'WITH samples AS (SELECT 2 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x '
+      + 'UNION ALL SELECT 3 AS x UNION ALL SELECT 2 AS x UNION ALL SELECT 1 AS x) '
       + 'FROM samples |> AGGREGATE COUNT(*) AS n DESC GROUP BY x',
     expected: [{x: 2, n: 3}, {x: 1, n: 2}, {x: 3, n: 1}],
     columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
@@ -370,7 +370,7 @@ export const sqlGroupedSubexpressionSuccesses = [
     'SELECT objects.payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects JOIN objects AS matched ON objects.id = matched.id MAX_OUTPUT_ROWS 10 GROUP BY objects.payload.score + 1 ORDER BY bucket',
     {expected: sqlGroupedRows, columns: sqlGroupedColumns}),
   text('sql-subexpression-cte-input',
-    'WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket',
+    '(WITH summary AS (SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects GROUP BY payload.score + 1) SELECT bucket, n FROM summary ORDER BY bucket)',
     {expected: sqlGroupedRows, columns: sqlGroupedColumns}),
   text('sql-subexpression-empty-keyed',
     'SELECT payload.score + 1 AS bucket, COUNT(*) + (objects.payload.score + 1) AS n FROM objects WHERE FALSE GROUP BY payload.score + 1 ORDER BY bucket',
@@ -438,16 +438,16 @@ export const havingGroupedSubexpressionSuccesses = [
     'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects WHERE FALSE GROUP BY payload.score + 1 HAVING n + (payload.score + 1) > 12 ORDER BY bucket',
     {expected: [], columns: havingGroupedColumns}),
   {name: 'group-property-having-subexpression-negative-alias', format: 'aql-text',
-    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+    text: 'WITH samples AS (SELECT 2 AS x UNION ALL SELECT 1 AS x) '
       + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x HAVING x + 1 > 0 ORDER BY x',
     expected: [], columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
   {name: 'group-property-having-subexpression-positive-input', format: 'aql-text',
-    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+    text: 'WITH samples AS (SELECT 2 AS x UNION ALL SELECT 1 AS x) '
       + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x HAVING samples.x + 1 > 0 ORDER BY x',
     expected: [{x: -2, n: 1}, {x: -1, n: 1}],
     columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
   {name: 'group-property-having-subexpression-private-looking-input', format: 'aql-text',
-    text: 'DATA samples = SELECT 100 AS aql_having_aggregate_0; '
+    text: 'WITH samples AS (SELECT 100 AS aql_having_aggregate_0) '
       + 'SELECT COUNT(*) AS n FROM samples GROUP BY aql_having_aggregate_0 + 1 HAVING COUNT(*) + 1 > 10',
     expected: [], columns: [{name: 'n', contract: number}], sourceReadCount: 0},
 ];
@@ -466,8 +466,8 @@ export const havingGroupedSubexpressionRefusals = [
 // key alone instead would reverse these rows. The Program is hand-authored.
 const orderGroupedRows = [{bucket: 3, n: 1}, {bucket: 2, n: 4}];
 const orderGroupedColumns = [{name: 'bucket', contract: number}, {name: 'n', contract: number}];
-const orderGroupedSource = 'DATA samples = SELECT 1 AS x UNION ALL SELECT 2 AS x '
-  + 'UNION ALL SELECT 1 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 1 AS x; ';
+const orderGroupedSource = 'WITH samples AS (SELECT 1 AS x UNION ALL SELECT 2 AS x '
+  + 'UNION ALL SELECT 1 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 1 AS x) ';
 const orderGroupedJson = {version: 'actql/0.1', id: 'fixture.order_grouped_subexpression', stages: [
   {id: 'main', inputs: {}, steps: [
     {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}, {x: 1}, {x: 1}, {x: 1}]}, as: 'samples'},
@@ -513,7 +513,7 @@ export const orderGroupedSubexpressionSuccesses = [
       + 'MAX_OUTPUT_ROWS 10 GROUP BY l.payload.score + 1 ORDER BY n - (l.payload.score + 1) NULLS FIRST',
     {expected: orderPropertyRows, columns: havingGroupedColumns}),
   text('order-subexpression-implicit-member-alias',
-    'DATA shaped = SELECT id AS score, other AS payload FROM objects; '
+    ', shaped AS (SELECT id AS score, other AS payload FROM objects) '
       + 'SELECT (payload).score, COUNT(*) AS n FROM shaped GROUP BY (payload).score, score + 1 ORDER BY score + 1',
     {expected: [{score: 100, n: 1}, {score: 200, n: 1}, {score: 300, n: 1}, {score: 400, n: 1}, {score: 500, n: 1}],
       columns: [{name: 'score', contract: number}, {name: 'n', contract: number}]}),
@@ -522,11 +522,11 @@ export const orderGroupedSubexpressionSuccesses = [
       + 'ORDER BY n + (objects.payload.score + 1)',
     {expected: [], columns: havingGroupedColumns}),
   {name: 'group-property-order-subexpression-negative-alias', format: 'aql-text',
-    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+    text: 'WITH samples AS (SELECT 2 AS x UNION ALL SELECT 1 AS x) '
       + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x ORDER BY x + 1',
     expected: [{x: -2, n: 1}, {x: -1, n: 1}], columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
   {name: 'group-property-order-subexpression-qualified-scalar-input', format: 'aql-text',
-    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+    text: 'WITH samples AS (SELECT 2 AS x UNION ALL SELECT 1 AS x) '
       + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x ORDER BY samples.x + 1',
     expected: [{x: -1, n: 1}, {x: -2, n: 1}], columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
 ];

@@ -20,7 +20,7 @@ test "FULL joined-row scope retains explicit checked identity premises" {
   }
   let generated = compile_query_script(
     @query.parse_query_script(
-      "DATA lefts = FROM t |> ASSERT UNIQUE BY (x); DATA rights = FROM r |> ASSERT UNIQUE BY (k); SELECT * FROM lefts AS t FULL JOIN rights AS r ON t.x = r.k MAX_OUTPUT_ROWS 10 ORDER BY k NULLS LAST",
+      "WITH lefts AS (FROM t |> ASSERT UNIQUE BY (x)), rights AS (FROM r |> ASSERT UNIQUE BY (k)) SELECT * FROM lefts AS t FULL JOIN rights AS r ON t.x = r.k MAX_OUTPUT_ROWS 10 ORDER BY k NULLS LAST",
       syntax_limits(),
     ).unwrap(),
     join_order_context(),

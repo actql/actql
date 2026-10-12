@@ -36,8 +36,8 @@ const success = (name, text, expected, columns = groupedColumns, extra = {}) => 
 const groupSql = sql('amount IN (1,2,2)', 'records.amount IN UNNEST([1,2,2])', true);
 const parameterSql = sql('amount IN UNNEST(ARRAY[((@p)),2,2,NULL])',
   'amount IN ((@p),2,2,NULL)', true);
-const prefix = 'DATA pieces = SELECT id, amount = 2 AS needle, amount = 1 AS other '
-  + 'FROM records WHERE id > 0; ';
+const prefix = 'WITH pieces AS (SELECT id, amount = 2 AS needle, amount = 1 AS other '
+  + 'FROM records WHERE id > 0) ';
 const collisionSql = ordered => prefix + 'SELECT id, needle IN (TRUE) AS original, other AS needle '
   + `FROM pieces ORDER BY ${ordered} NULLS LAST, id`;
 const collisionColumns = [{name: 'id', contract: number},

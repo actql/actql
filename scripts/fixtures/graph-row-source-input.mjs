@@ -8,11 +8,11 @@ const nodeResults = {nodes: {rows: [
   {node_key: 1, p: null, labels: ['Owner', 'Person']},
   {node_key: 2, p: 7, labels: ['Owner', 'Person']},
 ], columns: nodeColumns}};
-const nodeData = 'DATA n = SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p; ';
-const nodeMapping = 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p))); ';
-const nodeSource = nodeData + nodeMapping;
-const edgeData = 'DATA n = SELECT 1 AS node_key; DATA e = SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key; ';
-const edgeMapping = 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES)); ';
+const nodeBindings = 'WITH n AS (SELECT 2 AS node_key, 7 AS p UNION ALL SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p), ';
+const nodeMapping = 'g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p) LABEL Owner PROPERTIES (p)))) ';
+const nodeSource = nodeBindings + nodeMapping;
+const edgeBindings = 'WITH n AS (SELECT 1 AS node_key), e AS (SELECT 11 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key UNION ALL SELECT 10 AS edge_key, 7 AS part, 1 AS src_key, 1 AS dst_key), ';
+const edgeMapping = 'g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) ';
 const edgeResults = {edges: {rows: [
   {part: 7, edge_key: 10, labels: ['R']}, {part: 7, edge_key: 11, labels: ['R']},
 ], columns: [number('part'), number('edge_key'), labels]}};
@@ -55,26 +55,26 @@ export const graphRowSourceSuccesses = [
     'FROM g |> node_rows() |> SELECT node_key, p, labels |> WHERE node_key > 0 |> ORDER BY node_key |> RESULT nodes',
     results: nodeResults, sourceReadCount: 0},
   {name: 'graph-edge-rows-json-control', format: 'json', text: edgeProgram, results: edgeResults, sourceReadCount: 0},
-  {name: 'graph-edge-rows-composite-parallel-data', format: 'aql-text', text: edgeData + edgeMapping +
-    'DATA `rows` = FROM `g` |> EDGE_ROWS() |> SELECT part, edge_key, labels; FROM `rows` |> ORDER BY edge_key |> RESULT edges',
+  {name: 'graph-edge-rows-composite-parallel-data', format: 'aql-text', text: edgeBindings + edgeMapping +
+    ' , `rows` AS (FROM `g` |> EDGE_ROWS() |> SELECT part, edge_key, labels) FROM `rows` |> ORDER BY edge_key |> RESULT edges',
     results: edgeResults, sourceReadCount: 0},
   {name: 'graph-node-rows-typed-empty', format: 'aql-text', text:
-    'DATA n = SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p WHERE FALSE; ' + nodeMapping +
+    'WITH n AS (SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p WHERE FALSE), ' + nodeMapping +
     'FROM g |> node_rows() |> SELECT node_key, p, labels |> RESULT nodes',
     results: {nodes: {rows: [], columns: nodeColumns}}, sourceReadCount: 0},
 ];
-const conditional = 'DATA n = SELECT 1 AS node_key, 7 AS p; DATA m = SELECT 2 AS other_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p), m AS M KEY (other_key) LABEL Company NO PROPERTIES)); ';
+const conditional = 'WITH n AS (SELECT 1 AS node_key, 7 AS p), m AS (SELECT 2 AS other_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p), m AS M KEY (other_key) LABEL Company NO PROPERTIES))) ';
 export const graphRowSourceRefusals = [
   {name: 'graph-row-conditional-property', format: 'aql-text', text: conditional + 'FROM g |> node_rows() |> SELECT p'},
   {name: 'graph-row-conditional-is-not-null', format: 'aql-text', text: conditional + 'FROM g |> node_rows() |> WHERE p IS NOT NULL |> SELECT id'},
-  {name: 'graph-row-carrier-mismatch', format: 'aql-text', text: nodeData + 'FROM n |> node_rows() |> SELECT node_key'},
+  {name: 'graph-row-carrier-mismatch', format: 'aql-text', text: nodeBindings + 'FROM n |> node_rows() |> SELECT node_key'},
   {name: 'graph-row-unknown-property', format: 'aql-text', text: nodeSource + 'FROM g |> node_rows() |> SELECT missing'},
 ];
 
 // Definition selection proves p's presence only within N. Label selection
 // includes both N and M, retaining nullable p and Conditional q separately.
-const selectedData = "DATA n = SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; ";
-const selectedMapping = 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q))); ';
+const selectedBindings = "WITH n AS (SELECT 2 AS key, 7 AS p UNION ALL SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p), m AS (SELECT 3 AS key, 9 AS p, 'company' AS q), ";
+const selectedMapping = 'g AS (GRAPH (NODE TABLES (n AS N KEY (key) LABEL Person PROPERTIES (p), m AS M KEY (key) LABEL PERSON PROPERTIES (p) LABEL Company PROPERTIES (q)))) ';
 const selectedSteps = [
   {values: {schema: {key: {type: 'number', nullable: false}, p: {type: 'number', nullable: true}},
     rows: [{key: 2, p: 7}, {key: 1, p: null}]}, as: 'n'},
@@ -104,13 +104,13 @@ const edgeSelectedControl = JSON.parse(edgeProgram);
 edgeSelectedControl.stages[0].steps[3].edge_rows = {definition: 'E'};
 graphRowSourceSuccesses.push(
   {name: 'graph-node-definition-json-control', format: 'json', text: selectedProgram({definition: 'N'}), results: selectedResult(selectedRows), sourceReadCount: 0},
-  {name: 'graph-node-definition-source', format: 'aql-text', text: selectedData + selectedMapping + "FROM g |> node_rows(definition: 'n')" + selectedTail, results: selectedResult(selectedRows), sourceReadCount: 0},
+  {name: 'graph-node-definition-source', format: 'aql-text', text: selectedBindings + selectedMapping + "FROM g |> node_rows(definition: 'n')" + selectedTail, results: selectedResult(selectedRows), sourceReadCount: 0},
   {name: 'graph-node-label-json-control', format: 'json', text: selectedProgram({label: 'person'}), results: selectedResult([...selectedRows, {key: 3, p: 9}]), sourceReadCount: 0},
-  {name: 'graph-node-label-source', format: 'aql-text', text: selectedData + selectedMapping + 'FROM g |> node_rows(label: "pErSoN")' + selectedTail, results: selectedResult([...selectedRows, {key: 3, p: 9}]), sourceReadCount: 0},
+  {name: 'graph-node-label-source', format: 'aql-text', text: selectedBindings + selectedMapping + 'FROM g |> node_rows(label: "pErSoN")' + selectedTail, results: selectedResult([...selectedRows, {key: 3, p: 9}]), sourceReadCount: 0},
   {name: 'graph-edge-definition-json-control', format: 'json', text: JSON.stringify(edgeSelectedControl), results: edgeResults, sourceReadCount: 0},
-  {name: 'graph-edge-definition-source', format: 'aql-text', text: edgeData + edgeMapping + 'FROM `g` |> edge_rows(definition: "e") |> SELECT part, edge_key, labels |> ORDER BY edge_key |> RESULT edges', results: edgeResults, sourceReadCount: 0},
-  {name: 'graph-edge-label-source', format: 'aql-text', text: edgeData + edgeMapping + "DATA rows = FROM g |> edge_rows(label: 'r') |> SELECT part, edge_key, labels; FROM rows |> ORDER BY edge_key |> RESULT edges", results: edgeResults, sourceReadCount: 0},
-  {name: 'graph-node-definition-empty', format: 'aql-text', text: "DATA n = SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p WHERE FALSE; DATA m = SELECT 3 AS key, 9 AS p, 'company' AS q; " + selectedMapping + "FROM g |> node_rows(definition: 'N')" + selectedTail, results: selectedResult([]), sourceReadCount: 0},
+  {name: 'graph-edge-definition-source', format: 'aql-text', text: edgeBindings + edgeMapping + 'FROM `g` |> edge_rows(definition: "e") |> SELECT part, edge_key, labels |> ORDER BY edge_key |> RESULT edges', results: edgeResults, sourceReadCount: 0},
+  {name: 'graph-edge-label-source', format: 'aql-text', text: edgeBindings + edgeMapping + ", rows AS (FROM g |> edge_rows(label: 'r') |> SELECT part, edge_key, labels) FROM rows |> ORDER BY edge_key |> RESULT edges", results: edgeResults, sourceReadCount: 0},
+  {name: 'graph-node-definition-empty', format: 'aql-text', text: "WITH n AS (SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p WHERE FALSE), m AS (SELECT 3 AS key, 9 AS p, 'company' AS q), " + selectedMapping + "FROM g |> node_rows(definition: 'N')" + selectedTail, results: selectedResult([]), sourceReadCount: 0},
 );
 for (const [name, tail] of [
   ['unknown-definition', "node_rows(definition: 'missing') |> SELECT id"],
@@ -121,7 +121,7 @@ for (const [name, tail] of [
   ['label-conditional-property', "node_rows(label: 'Person') |> SELECT q"],
   ['label-conditional-predicate', "node_rows(label: 'Person') |> WHERE q IS NOT NULL |> SELECT key"],
 ]) graphRowSourceRefusals.push({name: `graph-row-${name}`, format: 'aql-text',
-  text: (name === 'wrong-kind' ? edgeData + edgeMapping : selectedData + selectedMapping) + 'FROM g |> ' + tail});
+  text: (name === 'wrong-kind' ? edgeBindings + edgeMapping : selectedBindings + selectedMapping) + 'FROM g |> ' + tail});
 
 // A Graph Bridge establishes a Relation before ordinal set alignment. Neither
 // the bridge nor the anonymous scalar expression adds a public source name.
@@ -151,10 +151,10 @@ const setControl = (edges = false) => program('fixture.graph_rows.positional_set
   {from: 'left', append: {with: 'right'}},
   {sort: [{field: 'value', dir: 'asc', nulls: 'first'}], as: 'selected'},
 ], setFields, 'values');
-const nodeSetHead = 'DATA combined = FROM n |> SELECT p AS value |> UNION ALL ';
+const nodeSetHead = ', combined AS (FROM n |> SELECT p AS value |> UNION ALL ';
 const nodeSetOperand = "(FROM g |> node_rows(definition: 'N') |> SELECT p + 1)";
-const setTail = '; FROM combined |> ORDER BY value |> RESULT values';
-const edgeSetHead = 'DATA combined = FROM e |> SELECT edge_key AS value |> UNION ALL ';
+const setTail = ') FROM combined |> ORDER BY value |> RESULT values';
+const edgeSetHead = ', combined AS (FROM e |> SELECT edge_key AS value |> UNION ALL ';
 const edgeSetOperand = "(FROM g |> edge_rows(definition: 'E') |> SELECT edge_key + 1)";
 for (const [name, text, rows, extra] of [
   ['node-set-json-control', setControl(), nodeSetRows, {format: 'json'}],
@@ -162,11 +162,11 @@ for (const [name, text, rows, extra] of [
   ['node-set-anonymous', nodeSource + nodeSetHead + nodeSetOperand + setTail, nodeSetRows],
   ['node-set-unselected', nodeSource + nodeSetHead + nodeSetOperand.replace("definition: 'N'", '') + setTail, nodeSetRows],
   ['node-set-head', nodeSource + "FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1) |> ORDER BY value", nodeSetRows, {results: {answer: {rows: nodeSetRows, columns: [number('value', true)]}}}],
-  ['node-set-data-head', nodeSource + "DATA combined = FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1)" + setTail, nodeSetRows],
+  ['node-set-data-head', nodeSource + ", combined AS (FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1)" + setTail, nodeSetRows],
   ['edge-set-json-control', setControl(true), edgeSetRows, {format: 'json'}],
-  ['edge-set-named', edgeData + edgeMapping + edgeSetHead + edgeSetOperand.replace('edge_key + 1)', 'edge_key + 1 AS other)') + setTail, edgeSetRows],
-  ['edge-set-anonymous', edgeData + edgeMapping + edgeSetHead + edgeSetOperand + setTail, edgeSetRows],
-  ['node-set-empty', 'DATA n = SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p WHERE FALSE; ' + nodeMapping
+  ['edge-set-named', edgeBindings + edgeMapping + edgeSetHead + edgeSetOperand.replace('edge_key + 1)', 'edge_key + 1 AS other)') + setTail, edgeSetRows],
+  ['edge-set-anonymous', edgeBindings + edgeMapping + edgeSetHead + edgeSetOperand + setTail, edgeSetRows],
+  ['node-set-empty', 'WITH n AS (SELECT 1 AS node_key, CAST(NULL AS FLOAT64) AS p WHERE FALSE), ' + nodeMapping
     + nodeSetHead + nodeSetOperand + setTail, []],
 ]) graphRowSourceSuccesses.push({name: 'graph-row-' + name, format: 'aql-text', text,
   sourceReadCount: 0, results: setResults(rows), ...extra,

@@ -7,9 +7,9 @@ test "WITH selects either query head and keeps Pipe CTE operations" {
       "WITH chosen AS (FROM orders |> WHERE id > 1 |> SELECT id) FROM chosen |> SELECT id;",
     ] {
     let query = parse_query(text, query_limits()).unwrap()
-    assert_eq(cte_count(query), 1)
-    let body = cte_at(query, 0).unwrap().query
-    assert_eq(cte_count(body), 0)
+    assert_eq(query_binding_count(query), 1)
+    let body = query_binding_at(query, 0).unwrap().query
+    assert_eq(query_binding_count(body), 0)
     assert_eq(relation(body), [{ value: "orders", quoted: false, }])
     assert_eq(operation_count(body), 2)
     assert_true(operation_at(body, 0) is Some(Where(_)))
@@ -23,7 +23,7 @@ test "WITH selects either query head and keeps Pipe CTE operations" {
 test "Pipe CTE count and work are charged once in the original source" {
   let text = "WITH first AS (FROM orders |> SELECT id), second AS (FROM first |> WHERE id > 1) FROM second |> SELECT id"
   let query = parse_query(text, { ..query_limits(), max_cte_count: 2, }).unwrap()
-  assert_eq(cte_count(query), 2)
+  assert_eq(query_binding_count(query), 2)
   assert_true(
     parse_query(text, { ..query_limits(), max_cte_count: 1, }) is Err(_),
   )
@@ -54,5 +54,5 @@ test "Pipe CTE stops at its own delimiter and excludes INFER" {
     "WITH c AS (FROM orders |> SELECT id |> ORDER BY id DESC |> LIMIT 2) FROM c |> SELECT id",
     query_limits(),
   ).unwrap()
-  assert_eq(operation_count(cte_at(query, 0).unwrap().query), 3)
+  assert_eq(operation_count(query_binding_at(query, 0).unwrap().query), 3)
 }

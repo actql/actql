@@ -10,12 +10,12 @@ const rows = [{id: 2, payload: {score: 10}}, {id: 1, payload: {score: 20}},
 const declarations = {a: payload, b: payload, c: payload, d: payload};
 const parameters = {a: {score: 10}, b: {score: 20}, c: null, d: {score: null}};
 const columns = [{name: 'id', contract: number}];
-const data = 'DATA objects = SELECT 2 AS id, @a AS payload '
+const data = 'WITH objects AS (SELECT 2 AS id, @a AS payload '
   + 'UNION ALL SELECT 1 AS id, @b AS payload '
   + 'UNION ALL SELECT 3 AS id, @c AS payload '
-  + 'UNION ALL SELECT 4 AS id, @d AS payload; ';
-const mapping = 'DATA g = PROPERTY GRAPH (NODE TABLES '
-  + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); ';
+  + 'UNION ALL SELECT 4 AS id, @d AS payload) ';
+const mapping = ', g AS (GRAPH (NODE TABLES '
+  + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload)))) ';
 const tail = (pattern, selection = 'a.id', output = 'id') =>
   `FROM GRAPH g |> MATCH WALK ${pattern} |> SELECT ${selection} AS ${output}`
   + ` |> ORDER BY ${output} |> RESULT matched`;

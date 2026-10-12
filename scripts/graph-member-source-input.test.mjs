@@ -16,7 +16,7 @@ test('Graph member source counterexamples retain independently authored rows and
     assert.ok(item, suffix);
     assert.deepEqual(item.results.matched, {rows: expected, columns});
     assert.equal(item.sourceReadCount, 0);
-    assert.match(item.text, /PROPERTY GRAPH/);
+    assert.match(item.text, /GRAPH \(/);
     assert.match(item.text, /ORDER BY id \|> RESULT matched$/);
   }
   const control = JSON.parse(successes.find(item => item.format === 'json').text);

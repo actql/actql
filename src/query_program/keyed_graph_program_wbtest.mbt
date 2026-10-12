@@ -9,7 +9,7 @@ fn keyed_script(text : String) -> Result[@program.Program, Issue] {
 
 ///|
 test "keyed properties reuse canonical spelling across labels of one definition" {
-  let prefix = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id))); "
+  let prefix = "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id)))) "
   for pattern in ["(a:secondary WHERE `Id` = 1)", "(a WHERE `Id` = 1)"] {
     let body = mapping_semantic(
       keyed_script(
@@ -26,7 +26,7 @@ test "keyed properties reuse canonical spelling across labels of one definition"
 
 ///|
 test "keyed node predicates resolve properties without replacing label membership" {
-  let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
+  let prefix = "WITH n AS (SELECT 1 AS id, 'Company' AS entity_type), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type)))) "
   for
     constraint in [
       "WHERE entity_type = 'Company'", "WHERE `a`.`ENTITY_TYPE` = 'Company'", "{entity_type: 'Company'}",
@@ -50,7 +50,7 @@ test "keyed node predicates resolve properties without replacing label membershi
 
 ///|
 test "keyed source node labels are membership and NODE_ID is the full identity slot" {
-  let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
+  let prefix = "WITH n AS (SELECT 1 AS id, 'Company' AS entity_type), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type)))) "
   let actual = keyed_script(
     prefix + "FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.id",
   ).unwrap()
@@ -58,7 +58,7 @@ test "keyed source node labels are membership and NODE_ID is the full identity s
   // the unrelated Company property is preserved and never used as the label.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":"Company"}}},{"select":[{"id":"aql_query_expr_0"},{"entity_type":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"entity_type","to":"entity_type"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","label":"Person","where":{"literal":true},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","entity_type"]},"as":"aql_keyed_seeds_3"},{"from":"aql_keyed_seeds_3","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":"Company"}}},{"select":[{"id":"aql_query_expr_0"},{"entity_type":"aql_query_expr_1"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"entity_type","to":"entity_type"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","match_nodes":{"definition":"N","label":"Person","where":{"literal":true},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","entity_type"]},"as":"aql_keyed_seeds_3"},{"from":"aql_keyed_seeds_3","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     mapping_limits().program,
     format=Json,
@@ -91,7 +91,7 @@ test "keyed source path modes lower to the existing traversal with full identity
   // Two independent edge definitions share the endpoints. The existing
   // same-definition parallel-edge fixture is retained separately. This
   // test verifies source ownership/mode lowering, not path execution counts.
-  let prefix = "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, e AS F KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); "
+  let prefix = "WITH n AS (SELECT 1 AS id), e AS (SELECT 10 AS key, 1 AS src, 1 AS dst), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, e AS F KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES))) "
   for
     (mode, wire) in [
       ("WALK", "walk"),
@@ -127,7 +127,7 @@ test "keyed source path modes lower to the existing traversal with full identity
 
 ///|
 test "keyed source refuses internal Graph star and unadapted identity binding" {
-  let prefix = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); "
+  let prefix = "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id)))) "
   assert_true(
     keyed_script(prefix + "FROM GRAPH g |> MATCH WALK (a)")
     is Err(UnsupportedProjection),
@@ -153,8 +153,8 @@ test "keyed source refuses internal Graph star and unadapted identity binding" {
   }
   assert_eq(@origin.kind(origin), @origin.Authored)
   let span = @origin.span(origin)
-  assert_eq(span.start_byte, 150)
-  assert_eq(span.end_byte, 170)
+  assert_eq(span.start_byte, 141)
+  assert_eq(span.end_byte, 161)
   assert_true(
     keyed_script(
       prefix +
@@ -163,10 +163,11 @@ test "keyed source refuses internal Graph star and unadapted identity binding" {
     is Err(UnsupportedGraph),
   )
   assert_true(
-    keyed_script(
+    @query.parse_query_script(
       prefix +
       "FROM GRAPH g LABELS {\"node\":{\"field\":\"id\"}} |> MATCH WALK (a:Node) |> SELECT a.id",
+      mapping_syntax_limits(),
     )
-    is Err(UnsupportedGraph),
+    is Err({ issue: @query.Syntax("Graph LABELS annotation is retired"), .. }),
   )
 }

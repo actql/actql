@@ -1,27 +1,19 @@
 ///|
-// This is a bounded, nonexecuted type probe. Retain the preceding Stages and
-// their real Result definitions, so the common owner resolves imports against
-// the same admitted Source as the current prefix. A separate empty Relation
-// supplies only the probe's structural Result; its Carrier is never returned,
-// published or copied into the user's Program.
+// Check the actual unfinished source without a synthetic Unit or Result. Real
+// capture definitions, imports and Catalog/local input ownership are retained;
+// the returned Carrier does not close publication or value/profile obligations.
 fn MemberResolution::source_prefix_carrier(
   self : MemberResolution,
   stages : Array[@wire.Cursor],
   stage_index : Int,
   steps : Array[@wire.Cursor],
   catalog : @environment.SourceRequestContracts,
-  names : Map[String, @carrier.Carrier?],
   model_tasks : @environment.ModelTasks?,
 ) -> @carrier.Carrier? raise Abort {
   if self.probe_refused {
     return None
   }
   let at = steps[steps.length() - 1]
-  let mut probe_name = "aql_member_type_probe"
-  while names.contains(probe_name) {
-    self.spend(at, 1)
-    probe_name += "_"
-  }
   let allowance = self.work
   self.work = 0
   let caps : @builder.Limits = {
@@ -71,9 +63,6 @@ fn MemberResolution::source_prefix_carrier(
       ),
     )
   }
-  let text = fn(value : String) -> @builder.Node raise Abort {
-    add(@builder.String(value))
-  }
   let imported = fn(cursor : @wire.Cursor) -> @builder.Node raise Abort {
     construct(
       @builder.import_source(build, self.source, cursor, replace_text=at => {
@@ -83,34 +72,7 @@ fn MemberResolution::source_prefix_carrier(
       }),
     )
   }
-  let probe_field = probe_name + "_unit"
-  let probe_steps = []
-  for step in steps {
-    probe_steps.push(imported(step))
-  }
-  probe_steps.push(
-    object([
-      (
-        "values",
-        object([
-          (
-            "schema",
-            object([
-              (
-                probe_field,
-                object([
-                  ("type", text("boolean")),
-                  ("nullable", add(@builder.Bool(false))),
-                ]),
-              ),
-            ]),
-          ),
-          ("rows", add(@builder.Array([]))),
-        ]),
-      ),
-      ("as", text(probe_name)),
-    ]),
-  )
+  let prefix_steps = steps.map(imported)
   let current = stages[stage_index]
   let stage_fields : Array[@builder.Field] = []
   for index in 0..<@wire.object_length(current).unwrap() {
@@ -126,27 +88,15 @@ fn MemberResolution::source_prefix_carrier(
   }
   stage_fields.push({
     key: "steps",
-    value: add(@builder.Array(probe_steps)),
+    value: add(@builder.Array(prefix_steps)),
     origin: generated,
   })
-  stage_fields.push({
-    key: "results",
-    value: object([
-      (
-        "probe",
-        object([
-          ("from", text(probe_name)),
-          ("fields", add(@builder.Array([text(probe_field)]))),
-        ]),
-      ),
-    ]),
-    origin: generated,
-  })
-  let probe_stages = []
+  stage_fields.push({ key: "results", value: object([]), origin: generated, })
+  let prefix_stages = []
   for prior in stages[:stage_index] {
-    probe_stages.push(imported(prior))
+    prefix_stages.push(imported(prior))
   }
-  probe_stages.push(add(@builder.Object(stage_fields)))
+  prefix_stages.push(add(@builder.Object(stage_fields)))
   let root = @builder.cursor(self.source)
   let root_fields : Array[@builder.Field] = []
   for index in 0..<@wire.object_length(root).unwrap() {
@@ -162,43 +112,23 @@ fn MemberResolution::source_prefix_carrier(
   }
   root_fields.push({
     key: "stages",
-    value: add(@builder.Array(probe_stages)),
+    value: add(@builder.Array(prefix_stages)),
     origin: generated,
   })
-  root_fields.push({
-    key: "results",
-    value: object([
-      (
-        "probe",
-        object([
-          (
-            "from",
-            object([
-              ("stage", text(member_text(current, "id").unwrap())),
-              ("result", text("probe")),
-            ]),
-          ),
-        ]),
-      ),
-    ]),
-    origin: generated,
-  })
+  root_fields.push({ key: "results", value: object([]), origin: generated, })
   let copy = member_construct(
     @builder.finish(build, add(@builder.Object(root_fields))),
   )
   self.work = allowance - @builder.usage(copy).nodes
   // Admission scans the copied structure before Source declarations are read.
   self.spend(at, @builder.usage(copy).nodes)
-  let program = match
-    @program.admit_generated_source(copy, self.limits.program) {
+  let prefix = match
+    @program.admit_generated_prefix(copy, self.limits.program) {
     Ok(value) => value
-    Err(_) => {
-      self.defer_refusal()
-      return None
-    }
+    Err(issue) => raise Abort(Admission(issue))
   }
   let source = match
-    @stage_parameters.prepare(program, {
+    @stage_parameters.prepare_prefix(prefix, {
       max_parameters: self.work,
       max_nodes: self.limits.source.tree.max_nodes.min(self.work),
       max_text_bytes: self.limits.source.tree.max_total_string_bytes.min(
@@ -218,10 +148,7 @@ fn MemberResolution::source_prefix_carrier(
           origin: @builder.origin(self.source, at),
         }),
       )
-    Err(_) => {
-      self.defer_refusal()
-      return None
-    }
+    Err(issue) => raise Abort(BindingPreparation(Declarations(issue)))
   }
   let declaration_usage = @parameters.declaration_usage(
     @stage_parameters.declarations(source),
@@ -243,15 +170,12 @@ fn MemberResolution::source_prefix_carrier(
       max_order_keys=self.work,
     ) {
     Ok(value) => value
-    Err(_) => {
-      self.defer_refusal()
-      return None
-    }
+    Err(issue) => raise Abort(BindingPreparation(SourceRegistration(issue)))
   }
   // This owner's reported work includes registration and local-input prefixes;
   // bill that aggregate once, rather than discarding or double-billing it.
-  let (wiring, used) = match
-    @check_context.prepare_sourceview_program(
+  let (checked, used) = match
+    @check_context.check_sourceview_program(
       views,
       locals,
       {
@@ -279,21 +203,19 @@ fn MemberResolution::source_prefix_carrier(
           origin: @builder.origin(self.source, at),
         }),
       )
-    Err(_) => {
-      self.defer_refusal()
-      return None
-    }
+    Err(issue) => raise Abort(BindingPreparation(SourceProgram(issue)))
   }
   self.spend(at, used.work)
-  let stage = @stage_results.stage_port_source(
-    @stage_results.wiring_stage_at(wiring, stage_index).unwrap(),
+  let topology = @check_context.sourceview_checked_topology(checked)
+  let stage = @stage_results.topology_stage_source(
+    @stage_results.topology_stage_at(topology, stage_index).unwrap(),
   )
   let pipeline = @pipeline_parameters.pipeline(
     @stage_parameters.collection(stage),
   )
-  // Read the real final prefix step, never the following structural helper.
+  // Read the actual last prefix step; no structural helper was added.
   @pipeline.carrier_at(
     pipeline,
-    @pipeline.Step(@pipeline.step_count(pipeline) - 2),
+    @pipeline.Step(@pipeline.step_count(pipeline) - 1),
   )
 }

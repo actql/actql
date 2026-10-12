@@ -10,14 +10,14 @@ const parameterDeclarations = {a: payload, b: payload, c: payload,
   oa: other, ob: other, oc: other};
 const parameters = {a: {score: 10}, b: {score: 20}, c: null,
   oa: {score: 30}, ob: {score: 5}, oc: {score: 15}};
-const data = 'DATA objects = SELECT 2 AS id, @a AS payload, @oa AS other '
+const binding = 'WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other '
   + 'UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other '
-  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other; ';
+  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other) ';
 const id = {name: 'id', contract: number};
 const previous = {name: 'previous', contract: nullableNumber};
 const previousRows = [{id: 1, previous: null}, {id: 2, previous: 20}, {id: 3, previous: 10}];
 const textCase = (name, tail, expected = previousRows, extra = {}) => ({
-  name: 'analytic-property-' + name, hostProfile: 'analytic-property', format: 'aql-text', text: data + tail,
+  name: 'analytic-property-' + name, hostProfile: 'analytic-property', format: 'aql-text', text: binding + tail,
   parameterDeclarations, parameters, expected, columns: [id, previous],
   sourceReadCount: 0, ...extra,
 });
@@ -107,5 +107,5 @@ export const analyticPropertyRefusals = [
   'SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects',
   'SELECT LAG(payload.score, -1) OVER (ORDER BY id) AS previous FROM objects',
 ].map((tail, index) => ({name: 'analytic-property-invalid-' + index, hostProfile: 'analytic-property',
-  format: 'aql-text', text: data + tail, parameterDeclarations, parameters,
+  format: 'aql-text', text: binding + tail, parameterDeclarations, parameters,
   ...(index === 5 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));

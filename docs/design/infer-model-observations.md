@@ -51,9 +51,17 @@ capture/settlement and authenticated Store Owners establish durable custody and
 replay. Current dispatch/egress Owners establish authority; metadata and
 structural completeness cannot grant it.
 
-The current installed synchronous writer continues to emit its exact 0.1
-generation observation. Registering a 0.2 structural reader does not connect
-an async provider or make Decision execution supported. The new writer, private
-physical port and ordinary public transport adoption are separate consuming
-changes that must preserve the same original Owners, retired cursor backing,
-Slot-to-success indirection, output uses and pending cleanup responsibility.
+The historical synchronous response carrier emits its exact 0.1 generation
+observation. The private current response Owner emits the adopted 0.2 body only
+from its retained physical response or an admitted original saved observation.
+Replay compares two current records by their complete canonical identity; an
+original historical record retains its exact bytes and identity. Unknown usage
+remains absent observation, and metadata grants no execution authority.
+
+The owned-version inventory registers only reviewed schema, vector, writer,
+replay and caller contexts of this specific compatibility decision. A new or
+changed context still requires review; it cannot inherit a file-wide exception.
+These consuming changes do not establish ordinary public transport adoption or
+Decision execution support. Physical installation must preserve the same
+original Owners, retired cursor backing, Slot-to-success indirection, output
+uses and pending cleanup responsibility.
