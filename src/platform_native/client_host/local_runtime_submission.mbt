@@ -40,6 +40,14 @@ pub fn NativeLocalHostConnection::require_packaged_runtime_upgrade(
 }
 
 ///|
+/// A transaction-observed admission is a lookup instruction, not permission to
+/// execute or to replace the original Run's assets.
+pub(all) enum NativeLocalRuntimeSubmission {
+  Accepted
+  Pending(@host.ClientLocalProductAssets?)
+}
+
+///|
 /// A genuinely unaccepted original intent may use current admitted assets.
 /// Accepted requests must use lookup; no old preparation is recompiled here.
 pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(
@@ -47,9 +55,9 @@ pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(
   reference : NativeClientSubmissionReference,
   preparation : NativeClientSubmittedPreparation,
   max_work : Int,
-) -> Result[@host.ClientLocalProductAssets?, NativeClientRunJournalIssue] {
+) -> Result[NativeLocalRuntimeSubmission, NativeClientRunJournalIssue] {
   guard self.packaged_runtime is Some(binding) && binding.pair is Some(pair) else {
-    return Ok(None)
+    return Ok(Pending(None))
   }
   let current = () => {
     local_runtime_binding_current(self, binding) &&
@@ -84,10 +92,15 @@ pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(
       Ok(Some(value)) => value
       _ => return Err(CustodyLost)
     }
-    if original.run_admission is Some(_) ||
-      @host.client_submitted_intent_cid(original.intent) !=
+    if @host.client_submitted_intent_cid(original.intent) !=
       preparation.intent_cid {
       return Err(ChangedIntent)
+    }
+    if original.run_admission is Some(_) {
+      if !current() {
+        return Err(AuthorizationDenied)
+      }
+      return Ok(Accepted)
     }
     guard preparation.preparation is Computation(prepared) else {
       return Err(UnsupportedPreparation)
@@ -112,6 +125,6 @@ pub fn NativeLocalHostConnection::packaged_runtime_assets_for_submission(
     if !current() {
       return Err(AuthorizationDenied)
     }
-    Ok(Some(assets))
+    Ok(Pending(Some(assets)))
   })
 }

@@ -246,8 +246,10 @@ fn local_submission_start(
   }
   let run = match
     host.packaged_runtime_assets_for_submission(reference, preparation, 1000) {
-    Ok(None) => run
-    Ok(Some(assets)) => {
+    Ok(Accepted) =>
+      return local_submission_lookup(host, settings, crypto, input_root, child)
+    Ok(Pending(None)) => run
+    Ok(Pending(Some(assets))) => {
       let installed = run.source_free.unwrap_or_else(() => {
         stop("LocalValuesInstallationRequired")
       })
