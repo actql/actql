@@ -569,6 +569,20 @@ class LocalByteStore:
         generations = self.compare_exchange_many_attached((write,), ((original, capacity),))
         return None if generations is None else generations[0]
 
+    def compare_exchange_attached_inspected(
+            self, write: ByteWrite, original: ByteFence,
+            capacity: CapacityReservation, fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection, current: Callable[[], object]) -> int | None:
+        """CAS original allocation metadata under payload/capacity/current fences."""
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid original Local attached CAS inspection')
+        self._validate_fences(fences, (write,))
+        originals = ((original, capacity),)
+        self._validate_originals(originals, {write.key})
+        result = self._compare_exchange_many((write,), capacity=None,
+            originals=originals, fences=fences, inspect=inspect, current=current)
+        return None if result is None else result[0]
+
     def compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
                               capacity: CapacityReservation | None = None) -> tuple[int, ...] | None:
         """Install all opaque writes in one physical transaction or none.

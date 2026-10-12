@@ -21,6 +21,8 @@ from typing import Any, TypeVar
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, load_local_module
+from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption,
+    LocalAreaAcquisitionError, LocalFileAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
@@ -49,6 +51,14 @@ class _PayloadCustody:
     capacity: CapacityReservation | None = None
     reservation: _Output | None = None
     writing: _Output | None = None
+    allocation: _Output | None = None
+    allocation_row: ByteFence | None = None
+    allocation_attempts: set[int] | None = None
+    area: _AllocationArea | None = None
+    origin: LocalFileRoot | None = None
+    physical: _PayloadFile | None = None
+    names: _Output | None = None
+    adoption: _NameAdoption | None = None
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -1106,6 +1116,248 @@ class InstalledLocalHost:
             self._observe_original_payload_transition(held, child,
                 lambda source: self._core.confirm_payload_writing(child, source, configuration.handle))
 
+    def _prepare_original_allocation(self, held: _PayloadCustody, kind: int) -> None:
+        """Supply actual allocation row/identity to the original Core child."""
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            store = installation._store
+            if store is None or held.row is None or held.capacity is None:
+                raise ValueError('Original allocation physical fences are unavailable')
+            if held.allocation is not None:
+                raise LocalStorageError('Original allocation child is retained; observe it before continuing')
+            if held.writing is not None:
+                if not self._core.close_payload_writing(held.writing):
+                    raise LocalProductCleanupPending(self)
+                self._payload_transition_attempts.discard(held.writing.ticket)
+                held.writing = None
+            child = self._reserve(lambda: self._core.reserve_payload_allocation(record, kind, cleanup=lambda: True))
+            held.allocation = child
+            def consume(actual: StoredBytes | None) -> None:
+                packet: dict[str, Any] = {
+                    'store_authority_cid': held.store_authority,
+                    'namespace': 'publication_payload_allocation',
+                    'material_generation_cid': held.generation,
+                    'physical_revision': None if actual is None else str(actual.generation),
+                    'allocation_body': None if actual is None else actual.payload.decode('utf-8'),
+                }
+                if kind == 2:
+                    if held.area is None or installation._results is None:
+                        raise ValueError('Original allocation area acquisition is unavailable')
+                    identity = installation._results.observe_area(held.area)
+                    packet.update(device=str(identity.device), inode=str(identity.inode))
+                source = self._copy(wire_bytes(packet))  # type: ignore[no-untyped-call]
+                self._core.produce_payload_allocation(child, source, configuration.handle)
+                if not self._core.close_input(source):
+                    raise LocalProductCleanupPending(self)
+                self._inputs.remove(source)
+            with installation.binding.fenced() as metadata:
+                store.inspect_bounded_record_inspected(
+                    store.namespaced_key('publication_payload_allocation', held.generation), 65536,
+                    (*metadata, held.row), inspect=lambda reader, take:
+                        installation.binding.inspect_reader(reader, lambda _: take()),
+                    consume=consume, current=installation.binding.current)
+
+    def _save_original_allocation(self, held: _PayloadCustody) -> None:
+        """Forward the original Core allocation CAS under original capacity/current."""
+        with self._core._lock:
+            installation, configuration, _ = self._payload_original(held)
+            store = installation._store
+            child = held.allocation
+            if store is None or child is None or held.row is None or held.capacity is None:
+                raise ValueError('Original allocation CAS custody is unavailable')
+            if held.allocation_attempts is None:
+                held.allocation_attempts = set()
+            if child.ticket in held.allocation_attempts:
+                raise LocalStorageError('Original allocation CAS requires lookup; replay is unavailable')
+            projected: list[dict[str, Any]] = []
+            installation.binding.inspect(lambda _: projected.append(_object(
+                self._core.read_payload_allocation(child, configuration.handle), 65536)))
+            packet = projected[0]
+            fields = {'store_authority_cid', 'namespace', 'material_generation_cid',
+                      'expected_revision', 'previous_body', 'allocation_body'}
+            if (set(packet) != fields or any(type(packet[key]) is not str for key in
+                    ('store_authority_cid', 'namespace', 'material_generation_cid', 'allocation_body'))):
+                raise ValueError('Invalid original Core allocation transport')
+            generation = packet['expected_revision']
+            previous = packet['previous_body']
+            if (previous is not None and type(previous) is not str
+                    or (generation is None) != (previous is None)):
+                raise ValueError('Invalid original nullable allocation transport')
+            if generation is not None:
+                if (type(generation) is not str or not generation.isascii() or not generation.isdecimal()
+                        or len(generation) > 19 or str(int(generation)) != generation
+                        or int(generation) >= 2**63 - 1):
+                    raise ValueError('Invalid original physical allocation generation')
+            write = ByteWrite(store.namespaced_key(packet['namespace'], packet['material_generation_cid']),
+                              None if generation is None else int(generation), packet['allocation_body'].encode('utf-8'))
+            with installation.binding.fenced() as metadata:
+                def inspect(reader: Any) -> None:
+                    installation.binding.inspect_reader(reader, lambda _:
+                        self._core.begin_payload_allocation(child, configuration.handle))
+                held.allocation_attempts.add(child.ticket)
+                result = store.compare_exchange_attached_inspected(write, held.row, held.capacity,
+                    metadata, inspect=inspect, current=installation.binding.current)
+            if result is None:
+                raise LocalStorageError('Original allocation CAS conflicted; lookup is required')
+            self._observe_original_allocation(held)
+
+    def _observe_original_allocation(self, held: _PayloadCustody) -> None:
+        """Core revalidates actual same-Store allocation bytes, including pending close."""
+        with self._core._lock:
+            installation, configuration, _ = self._payload_original(held, pending_confirmation=True)
+            store = installation._store
+            child = held.allocation
+            if (store is None or child is None or held.allocation_attempts is None
+                    or child.ticket not in held.allocation_attempts or held.row is None):
+                raise ValueError('Original allocation observation is unavailable')
+            observed: list[ByteFence] = []
+            key = store.namespaced_key('publication_payload_allocation', held.generation)
+            def consume(actual: StoredBytes | None) -> None:
+                if actual is None:
+                    raise LocalStorageError('Original allocation row is unavailable; custody remains pending')
+                source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                    'store_authority_cid': held.store_authority,
+                    'namespace': 'publication_payload_allocation',
+                    'material_generation_cid': held.generation,
+                    'physical_revision': str(actual.generation),
+                    'allocation_body': actual.payload.decode('utf-8'),
+                }))
+                self._core.confirm_payload_allocation(child, source, configuration.handle)
+                if not self._core.close_input(source):
+                    raise LocalProductCleanupPending(self)
+                self._inputs.remove(source)
+                observed.append(ByteFence(key, actual.generation, actual.payload))
+            with installation.binding.fenced() as metadata:
+                store.inspect_bounded_record_inspected(key, 65536, (*metadata, held.row),
+                    inspect=lambda reader, take:
+                        installation.binding.inspect_reader(reader, lambda _: take()),
+                    consume=consume, current=installation.binding.current)
+            held.allocation_row = observed[0]
+
+    def _close_original_allocation_child(self, held: _PayloadCustody) -> None:
+        if held.allocation is not None:
+            if not self._core.close_payload_allocation(held.allocation):
+                raise LocalProductCleanupPending(self)
+            if held.allocation_attempts is not None:
+                held.allocation_attempts.discard(held.allocation.ticket)
+            held.allocation = None
+
+    def _acquire_original_payload_file(self, held: _PayloadCustody) -> None:
+        """Persist/confirm allocation before exclusive physical acquisition.
+
+        Failure retains the original area/writer and never repeats mkdir/open.
+        Current permission is rechecked around physical IO; failed cleanup keeps
+        the same handles and durable capacity. No Source/Compute is reexecuted.
+        """
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            root = installation._results
+            if root is None or held.area is not None or held.physical is not None:
+                raise ValueError('Original payload physical acquisition is unavailable')
+            self._prepare_original_allocation(held, 1)
+            self._save_original_allocation(held)
+            assert held.allocation_row is not None
+            name = held.allocation_row.payload.decode('utf-8')
+            def acquire(_: _Output) -> None:
+                try:
+                    held.area = root.create_area(name)
+                except LocalAreaAcquisitionError as failure:
+                    held.area = failure.original_area
+                    raise
+            installation.binding.inspect(acquire)
+            self._close_original_allocation_child(held)
+            self._prepare_original_allocation(held, 2)
+            self._save_original_allocation(held)
+            self._close_original_allocation_child(held)
+            assert held.area is not None
+            installation.binding.inspect(lambda _: self._open_original_payload_area(held, root))
+            assert held.origin is not None
+            origin = held.origin
+            def writer(_: _Output) -> None:
+                try:
+                    held.physical = origin.create_writer('payload', held.maximum)
+                except LocalFileAcquisitionError as failure:
+                    held.physical = failure.original_file
+                    raise
+            installation.binding.inspect(writer)
+            assert held.physical is not None
+            identity = origin.observe(held.physical).identity
+            child = self._reserve(lambda: self._core.reserve_payload_writing(record, 2, cleanup=lambda: True))
+            held.writing = child
+            source = self._copy(wire_bytes({
+                'store_authority_cid': held.store_authority, 'material_generation_cid': held.generation,
+                'device': str(identity.device), 'inode': str(identity.inode),
+            }))
+            installation.binding.inspect(lambda _:
+                self._core.produce_payload_writing(child, source, configuration.handle))
+            if not self._core.close_input(source):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(source)
+            self._save_original_payload_transition(held, child,
+                lambda: self._core.read_payload_writing(child, configuration.handle),
+                lambda: self._core.begin_payload_writing(child, configuration.handle))
+            self._observe_original_payload_writing(held)
+
+    def _retry_original_area_sync(self, held: _PayloadCustody) -> None:
+        """Finish durability of the same acquired area, never create another."""
+        with self._core._lock:
+            installation, configuration, _ = self._payload_original(held)
+            root = installation._results
+            child = held.allocation
+            if root is None or held.area is None or child is None:
+                raise ValueError('Original pending area custody is unavailable')
+            area = held.area
+            def sync(_: _Output) -> None:
+                self._core.read_payload_allocation(child, configuration.handle)
+                root.sync_area_creation(area)
+            installation.binding.inspect(sync)
+
+    def _stage_original_payload_file(self, held: _PayloadCustody) -> None:
+        """Use original Core names and the existing same-handle link cursor."""
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            root = installation._results
+            origin, physical = held.origin, held.physical
+            if root is None or origin is None or physical is None or held.names is not None:
+                raise ValueError('Original Owned payload staging custody is unavailable')
+            child = self._reserve(lambda: self._core.reserve_payload_names(record, cleanup=lambda: True))
+            held.names = child
+            names: list[dict[str, Any]] = []
+            def prepare(_: _Output) -> None:
+                self._core.produce_payload_names(child, configuration.handle)
+                names.append(_object(self._core.read_payload_names(child, configuration.handle), 1024))
+            installation.binding.inspect(prepare)
+            packet = names[0]
+            if (set(packet) != {'staging_name', 'object_name', 'material_generation_cid',
+                               'store_authority_cid', 'record_revision', 'request_cid'}
+                    or any(type(value) is not str for value in packet.values())):
+                raise ValueError('Invalid original Core payload names transport')
+            def adopt(_: _Output) -> None:
+                self._core.read_payload_names(child, configuration.handle)
+                held.adoption = origin.begin_adoption(physical, root, packet['staging_name'])
+            installation.binding.inspect(adopt)
+            self._advance_original_payload_staging(held)
+
+    def _advance_original_payload_staging(self, held: _PayloadCustody) -> None:
+        """Retry only the original name cursor under freshly checked current."""
+        with self._core._lock:
+            installation, configuration, _ = self._payload_original(held)
+            origin, child, cursor = held.origin, held.names, held.adoption
+            if origin is None or child is None or cursor is None:
+                raise ValueError('Original staging cursor is unavailable')
+            def advance(_: _Output) -> None:
+                self._core.read_payload_names(child, configuration.handle)
+                origin.advance_adoption(cursor)
+                self._core.read_payload_names(child, configuration.handle)
+            installation.binding.inspect(advance)
+            if not origin.close_adoption(cursor):
+                raise LocalProductCleanupPending(self)
+            held.adoption = None
+
+    def _open_original_payload_area(self, held: _PayloadCustody, root: LocalFileRoot) -> None:
+        assert held.area is not None
+        held.origin = root.open_area(held.area)
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],
@@ -1185,6 +1437,16 @@ class InstalledLocalHost:
                 if (held.record is not None and held.record.ticket in self._payload_capacity_attempts
                         and held.capacity is None):
                     return False
+                if held.names is not None:
+                    if not self._core.close_payload_names(held.names):
+                        return False
+                    held.names = None
+                if held.allocation is not None:
+                    if not self._core.close_payload_allocation(held.allocation):
+                        return False
+                    if held.allocation_attempts is not None:
+                        held.allocation_attempts.discard(held.allocation.ticket)
+                    held.allocation = None
                 if held.writing is not None:
                     if not self._core.close_payload_writing(held.writing):
                         return False
@@ -1195,6 +1457,30 @@ class InstalledLocalHost:
                         return False
                     self._payload_transition_attempts.discard(held.reservation.ticket)
                     held.reservation = None
+                if held.adoption is not None:
+                    if held.physical is not None:
+                        # Name work pins the writer after physical stop. Stop
+                        # its original descriptor before retiring that cursor.
+                        held.physical.root.close_writer(held.physical)
+                        if held.physical.descriptor is not None:
+                            return False
+                    if held.origin is None or not held.origin.close_adoption(held.adoption):
+                        return False
+                    held.adoption = None
+                if held.physical is not None:
+                    if not held.physical.root.close_writer(held.physical):
+                        return False
+                    held.physical = None
+                if held.origin is not None:
+                    if not held.origin.close():
+                        return False
+                    held.origin = None
+                if held.area is not None:
+                    if self._installation is None or self._installation._results is None:
+                        return False
+                    if not self._installation._results.close_area(held.area):
+                        return False
+                    held.area = None
                 if held.record is not None:
                     if not self._core.close_payload_record(held.record):
                         return False
