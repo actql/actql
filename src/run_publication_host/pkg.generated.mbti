@@ -62,6 +62,10 @@ pub fn admit_client_retained_task_route(@remote_site_protocol.RemoteInputBinding
 
 pub fn admit_client_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientRunMaterials, ClientRunMaterialsIssue]
 
+pub fn admit_client_submission_epoch_token(String) -> Result[ClientSubmissionEpochToken, ClientSubmissionEpochTokenIssue]
+
+pub fn admit_client_submission_reference_record(String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
+
 pub fn admit_client_submitted_run_admission_wire(String) -> Result[(ClientRequestIdentity, String, Int64), ClientSubmittedRunRecordIssue]
 
 pub fn admit_client_task_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue]
@@ -458,6 +462,8 @@ pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, Clie
 
 pub fn client_local_completion_free_catalog_cid() -> String
 
+pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_model_raw_capture_matches(ClientModelRawCaptureRegistration, ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope) -> Bool
@@ -609,6 +615,20 @@ pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLim
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
+
+pub fn client_submission_epoch_token_body(ClientSubmissionEpochToken) -> @logical_request_scope.SubmissionEpoch
+
+pub fn client_submission_epoch_token_tag(ClientSubmissionEpochToken) -> Bytes
+
+pub fn client_submission_epoch_token_wire(ClientSubmissionEpochToken) -> String
+
+pub fn client_submission_reference_matches_request(ClientSubmissionReferenceRecord, ClientRequestIdentity) -> Bool
+
+pub fn client_submission_reference_record_epoch(ClientSubmissionReferenceRecord) -> ClientSubmissionEpochToken
+
+pub fn client_submission_reference_record_request_id(ClientSubmissionReferenceRecord) -> String
+
+pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) -> String
 
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
@@ -1063,6 +1083,8 @@ pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIde
 pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRunStartIssue]
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
+
+pub fn prepare_client_submission_reference_record(ClientSubmissionEpochToken, String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
 
 pub fn prepare_client_submitted_intent(String, Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
 
@@ -1925,6 +1947,14 @@ pub(all) struct ClientLocalProductAssets {
   result_policy : String
 }
 
+pub(all) struct ClientLocalProductCommonOriginals {
+  account : Bytes
+  retention_dependencies : Bytes
+  retention_policy : Bytes
+  store : Bytes
+  result_policy : Bytes
+}
+
 pub(all) enum ClientLocalProductConfigurationIssue {
   InvalidLocation
   InvalidObservationTime
@@ -2440,6 +2470,30 @@ pub(all) enum ClientStageOwnerIssue {
   MissingStageIdentity(Int)
   Lowering(@lowering_relation.Issue)
   Binding(@lowering_relation.BindingIssue)
+}
+
+pub struct ClientSubmissionEpochToken {
+  body : @logical_request_scope.SubmissionEpoch
+  authority_scope_cid : String
+  tag : Bytes
+  wire : String
+}
+
+pub(all) enum ClientSubmissionEpochTokenIssue {
+  Unverifiable
+  Identity(@logical_request_scope.SubmissionIdentityIssue)
+}
+
+pub struct ClientSubmissionReferenceRecord {
+  epoch : ClientSubmissionEpochToken
+  request_id : String
+  wire : String
+}
+
+pub(all) enum ClientSubmissionReferenceRecordIssue {
+  InvalidReference
+  Encoding
+  Epoch(ClientSubmissionEpochTokenIssue)
 }
 
 type ClientSubmittedIntent derive(Eq, @debug.Debug)
