@@ -10,7 +10,7 @@ test "Native policy material is fresh per predicate and unavailable after origin
   // exact typed refusal on the matching Native target; do not weaken admission.
   assert_eq(
     @authorization.admit_account_configuration_json(
-      @utf8.decode(policy_account_original).unwrap(),
+      @utf8.decode(policy_account_original),
     ).map(_ => ()),
     Err(@authorization.NonCanonicalOrder("$.entries[0].resource.any_of[1]")),
   )
