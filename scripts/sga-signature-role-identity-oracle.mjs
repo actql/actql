@@ -22,16 +22,21 @@ const reseal = (value, field, changes) => {
   return {...next, [field]: signatureRoleCid(next)};
 };
 
-export function signatureRoleIdentityOracle() {
-  const before = read('scripts/fixtures/pre-sga-signature-role-values-identities.json');
+export function signatureRoleIdentityOracle({
+  beforePath = 'scripts/fixtures/pre-sga-signature-role-values-identities.json',
+  grammarPath = 'spec/grammar/actql-query-0.1.ebnf',
+  rulesPath = 'docs/spec/query-text.md',
+  sourceRevision = 'authored-sga-signature-roles',
+} = {}) {
+  const before = read(beforePath);
   const {grammar_manifest_cid: beforeCid, ...oldGrammar} = before.grammar;
   assert.equal(signatureRoleCid(oldGrammar), beforeCid);
   // The operation/Program/expression contracts and all Values dependencies are
   // unchanged in this frontend-only unit. Only the two source grammar inputs
   // are rehashed from authored bytes, before consulting any generated pin.
   const grammarBody = {...oldGrammar,
-    query_text_grammar_sha256: sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')),
-    query_text_rules_sha256: sha(readFileSync('docs/spec/query-text.md'))};
+    query_text_grammar_sha256: sha(readFileSync(grammarPath)),
+    query_text_rules_sha256: sha(readFileSync(rulesPath))};
   const grammar = {...grammarBody, grammar_manifest_cid: signatureRoleCid(grammarBody)};
   const old = before.run_preimages;
   const template = reseal(old.template, 'bound_invocation_template_cid', {
@@ -45,7 +50,7 @@ export function signatureRoleIdentityOracle() {
   const run = reseal(old.run, 'run_definition_cid', {
     compiled_plan_cid: compiled.compiled_plan_cid,
     invocation_template_cid: template.bound_invocation_template_cid});
-  return {...before, source_revision: 'authored-sga-signature-roles', prepared: false,
+  return {...before, source_revision: sourceRevision, prepared: false,
     grammar, run_preimages: {template, executable, compiled, run}};
 }
 

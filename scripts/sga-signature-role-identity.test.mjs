@@ -8,10 +8,13 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 
 test('SGA role syntax retains the complete predecessor and independently changes grammar-bound Run identity', () => {
   const before = read('scripts/fixtures/pre-sga-signature-role-values-identities.json');
-  const expected = signatureRoleIdentityOracle();
+  const expected = signatureRoleIdentityOracle({
+    grammarPath: 'scripts/fixtures/pre-vector-pool-query-grammar.ebnf',
+    rulesPath: 'scripts/fixtures/pre-vector-pool-query-rules.md',
+  });
   const submitted = read('scripts/fixtures/submitted-sga-signature-role-values-identities.json');
   assert.deepEqual(submitted, expected);
-  assert.deepEqual(expected.grammar, read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(expected, read('scripts/fixtures/pre-vector-pool-values-identities.json'));
   assert.equal(before.run_preimages.run.run_definition_cid,
     'sha256:1b65662553b0ec3d4e55ec07eff0f9060b7a8ad6860466712cfb68576bc8d76a');
   assert.notEqual(expected.grammar.grammar_manifest_cid, before.grammar.grammar_manifest_cid);

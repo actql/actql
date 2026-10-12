@@ -1,0 +1,68 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-rlxfpt",
+  "revision": "849cce220da85ff951c289e2cddf14f1f08147d6",
+  "source": {
+    "revision": "849cce220da85ff951c289e2cddf14f1f08147d6",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T01:26:22.860Z",
+  "endedAt": "2026-10-12T01:26:29.628Z",
+  "status": "passed",
+  "complete": true,
+  "commands": [
+    {
+      "id": "001",
+      "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "args": [
+        "--test",
+        "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+        "scripts/vector-pool-identity.test.mjs",
+        "scripts/sga-signature-role-identity.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs",
+        "scripts/compilation-manifests.test.mjs",
+        "scripts/frontend-profile.test.mjs",
+        "scripts/vector-pool-source.test.mjs"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "849cce220da85ff951c289e2cddf14f1f08147d6",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-12T01:26:23.069Z",
+      "endedAt": "2026-10-12T01:26:29.623Z",
+      "elapsedMs": 6550.95125,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 0,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 81,
+        "passed": 81,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}
