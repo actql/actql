@@ -44,7 +44,7 @@ pub fn NativeLocalHostConnection::install_effect_reviewer(
   NativeLocalEffectReviewerBindingIssue,
 ] {
   guard configuration_file is Some(file) &&
-    self.session.settings.files.length() <= 6 else {
+    self.session.settings.files.length() <= 8 else {
     return Err(ReviewerUnavailable)
   }
   let bytes = match self.selected_configuration(file) {
@@ -99,8 +99,9 @@ struct NativeLocalAuthenticatedEffectReviewer {
 }
 
 ///|
-/// An explicit selected original only, within the CLI's existing six-file
-/// installation bound. None never discovers or enables a Reviewer. This
+/// An explicit selected original only. The CLI selects at most six installation
+/// files; configuration and Check Environment use the Host's eight-file bound.
+/// None never discovers or enables a Reviewer. This
 /// issues no Resolution, Host attestation, resume claim or credential.
 pub fn NativeLocalHostConnection::bind_effect_reviewer(
   self : NativeLocalHostConnection,
