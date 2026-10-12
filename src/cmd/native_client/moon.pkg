@@ -9,6 +9,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/run_publication" @publication,
   "actql/actql/run_publication_host" @run_host,
+  "actql/actql/client_local_host" @local_values,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/platform_native/client_host" @local_host,
   "actql/actql/platform_native/credential_resource" @raw_resource,
