@@ -84,6 +84,15 @@ fn charge(
 }
 
 ///|
+/// A bounded policy resolution. Pending order is not permission to consume rows.
+pub struct Resolution[T] {
+  decision : Decision[T]?
+  pending : @decode.Cursor?
+  work : Int
+  text_bytes : Int
+}
+
+///|
 /// Derive a conditional policy plan from supplied, previously admitted facts.
 /// Only the owning checker may bind this plan to authoritative source evidence.
 pub fn[T] decide(
@@ -97,6 +106,29 @@ pub fn[T] decide(
   max_work~ : Int,
   max_text_bytes~ : Int,
 ) -> Result[Decision[T], Issue] {
+  match resolve(source, input, output, selected_fields, authored_order, keys, prior_order, max_work~, max_text_bytes~) {
+    Err(issue) => Err(issue)
+    Ok(resolved) => match resolved.decision {
+      Some(decision) => Ok(decision)
+      None => Err({ kind: UnresolvedOrder, source: resolved.pending.unwrap(), })
+    }
+  }
+}
+
+///|
+/// Resolve the same policy while retaining an unavailable order as an obligation.
+/// Only the owning checker may bind this plan to authoritative source evidence.
+pub fn[T] resolve(
+  source : @decode.Cursor,
+  input : @schema.Schema,
+  output : @schema.Schema,
+  selected_fields : Array[String],
+  authored_order : Array[AuthoredTerm]?,
+  keys : @evidence.KeySet?,
+  prior_order : T?,
+  max_work~ : Int,
+  max_text_bytes~ : Int,
+) -> Result[Resolution[T], Issue] {
   try {
     if max_work < 0 || max_text_bytes < 0 {
       fail(source, InvalidLimits)
@@ -152,7 +184,7 @@ pub fn[T] decide(
         if selected is None {
           inherited = prior_order
           if inherited is None {
-            fail(source, UnresolvedOrder)
+            return Ok({ decision: None, pending: Some(source), work: max_work - b.work, text_bytes: max_text_bytes - b.text, })
           }
         }
       }
@@ -209,7 +241,7 @@ pub fn[T] decide(
             | Timestamp
             | ResourceRef(..)
             | ArtifactRef(..) => ()
-            _ => fail(source, UnresolvedOrder)
+            _ => return Ok({ decision: None, pending: Some(source), work: max_work - b.work, text_bytes: max_text_bytes - b.text, })
           }
           charge(b, source, @schema.reference_name(field.name))
           terms.push({
@@ -222,14 +254,15 @@ pub fn[T] decide(
         ProjectedFields
       }
     }
-    Ok({
+    let decision = {
       strategy,
       terms,
       inherited,
       key: selected,
       work: max_work - b.work,
       text_bytes: max_text_bytes - b.text,
-    })
+    }
+    Ok({ decision: Some(decision), pending: None, work: decision.work, text_bytes: decision.text_bytes, })
   } catch {
     Stop(e) => Err(e)
   }
