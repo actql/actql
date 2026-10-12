@@ -25,7 +25,18 @@ export async function loadReference(root, reference = referenceRevision) {
     return {start, end};
   };
   const previous = bytes.toString('utf8'), old = span(previous), current = span(candidate);
-  let code = candidate.slice(0, current.start) + previous.slice(old.start, old.end) + candidate.slice(current.end);
+  // The old traversal used a single reviewed configuration kind. Compare
+  // traversal in the same current finite policy context, including the
+  // separate JS foreign-library descriptor; keep all old traversal code.
+  const oldPolicy = `      if (reviewedPackageConfiguration({path: manifest, digest, target, toolchainDigest}))
+        configurations.push({path: manifest, digest, target, toolchainDigest, review: packageConfigurationReview});`;
+  const currentPolicy = `      const review = packageConfigurationReviewFor({path: manifest, digest, target, toolchainDigest});
+      if (review)
+        configurations.push({path: manifest, digest, target, toolchainDigest, review});`;
+  let traversal = previous.slice(old.start, old.end);
+  assert.equal(traversal.split(oldPolicy).length, 2, 'Unexpected reference policy boundary');
+  traversal = traversal.replace(oldPolicy, currentPolicy);
+  let code = candidate.slice(0, current.start) + traversal + candidate.slice(current.end);
   for (const [relative, path] of [['../bounded-session/action-inputs.mjs', 'proofs/bounded-session/action-inputs.mjs'],
     ['./package-configurations.mjs', 'proofs/ci-evidence/package-configurations.mjs']]) {
     const from = `from '${relative}'`;

@@ -1,0 +1,10 @@
+{
+  "body": "{\"current_manifest_sha256\":\"c1f23c08fce191f9fb6b08a7d3a377d04b6ae297b9fe13204420faa38f491306\",\"current_source_sha\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"evidence_cid\":\"sha256:8bdf483589d04809f0e2e198708adc8335b38179f332e58d25a8a09497633a22\",\"original_manifest_sha256\":\"80731853b15f4d600ef391b3778c734bc40bfb6caed246c0c145916b419e49bd\",\"original_source_sha\":\"109564ef9a4f8241096292843b875d4c81fbb6f3\",\"platform\":\"darwin-arm64\",\"profile\":\"primitive-scalar-values\",\"version\":\"actql-native-local-scalar-runtime-pair/0.1\"}",
+  "cid": "sha256:00df605c2c1173cdbd982bd7b54107df020de33f57b28d121c58c7daccc67090",
+  "bytes": 523,
+  "evidence_cid": "sha256:8bdf483589d04809f0e2e198708adc8335b38179f332e58d25a8a09497633a22",
+  "evidence_bytes": 6234,
+  "exact_difference_cid": "sha256:27000ca0c23e0a1578be465972b9e8ed5ed7006f980a834c26456edf32212349",
+  "current_manifest_sha256": "c1f23c08fce191f9fb6b08a7d3a377d04b6ae297b9fe13204420faa38f491306",
+  "note": "Independent Python source/fixture oracle. Synthetic current manifest; physical/adoption/installed success is not asserted."
+}
