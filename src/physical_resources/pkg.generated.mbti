@@ -130,6 +130,8 @@ pub fn[T] original_resource_park_current_for_ledger(OriginalResourcePark[T], Led
 
 pub fn[T] original_resource_park_origin(OriginalResourcePark[T]) -> T?
 
+pub fn[T] original_resource_park_read_capacity_covers(OriginalResourcePark[T], T, Int64, Int64) -> Bool
+
 pub fn[T] original_state_document_block_matches(FundedReadClaim[T], T, OriginalStateDocument, Int) -> Result[Bool, OriginalReadIssue]
 
 pub fn original_state_document_capacity_cursor(OriginalStateDocument) -> Int??

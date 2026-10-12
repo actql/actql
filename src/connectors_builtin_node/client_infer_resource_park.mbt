@@ -19,3 +19,17 @@ pub fn client_program_infer_original_model_resource_park_current(
 ) -> @publication_host.ClientModelResourcePark? {
   @infer_host.original_model_resource_park_current(active, scope, park)
 }
+
+///|
+#export_name("clientProgramInferOriginalParkedReadCapacityAvailable")
+pub fn client_program_infer_original_parked_read_capacity_available(
+  active : @infer_host.Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  @infer_host.original_model_parked_read_capacity_available(
+    active, scope, park, retained_bytes, execution_bytes,
+  )
+}
