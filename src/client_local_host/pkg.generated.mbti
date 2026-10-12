@@ -91,6 +91,8 @@ pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisitio
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
+pub fn execute_source_free_values_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, () -> Bool) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+
 pub fn export_client_infer_retained_input(@execution_relation.CompletedOutput, String) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
 
 pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue]
@@ -313,6 +315,7 @@ pub struct LocalValuesExecutionFailure {
 
 pub(all) enum LocalValuesExecutionIssue {
   InvalidLimits
+  Fenced
   UnsupportedGraph
   MissingLocalModule
   Driver(@driver.LocalDispatchIssue)
