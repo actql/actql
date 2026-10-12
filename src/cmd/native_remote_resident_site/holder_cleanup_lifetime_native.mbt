@@ -90,6 +90,33 @@ fn retry_holder_cleanup_custody(original : HolderCleanupCustody) -> Bool {
 }
 
 ///|
+/// Capacity/current-binding projection for the original private channel only.
+/// It grants no Account read/publication/Effect permission. Before detachment
+/// the same reservation is in the original scope; afterwards it is forwarded.
+fn holder_cleanup_caller_read_current(
+  resources : HolderOutputResources,
+) -> Bool {
+  match
+    (
+      resources.effect_host_caller_operation,
+      resources.effect_host_caller_current,
+    ) {
+    (Some(operation), Some(current)) =>
+      @site.site_operation_available(operation) && current()
+    (None, None) =>
+      match resources.effect_host_setup.val {
+        Some(scope) =>
+          scope.caller_operation is Some(operation) &&
+          @site.site_operation_available(operation) &&
+          scope.current_binding is Some(current) &&
+          current()
+        None => false
+      }
+    _ => false
+  }
+}
+
+///|
 /// Real receiver for an existing pending holder, with no synthetic executed
 /// value. The same process keeps resources, environment and inherited slot;
 /// no CommandStop/process-hold/slot release is reached while close is pending.
@@ -98,7 +125,7 @@ fn retain_pending_holder_cleanup(
   environment : SiteEnvironment,
   slot : @slot.NativeExecutorSlot,
   original_failure : String,
-) -> HolderCleanupCustody {
+) -> Unit {
   let original : HolderCleanupCustody = {
     resources,
     environment,
@@ -113,28 +140,117 @@ fn retain_pending_holder_cleanup(
     report("cleanup-pending", [("step", "holder-signal-install")])
     ignore(park_holder_cleanup_unconfirmed_ffi())
   }
-  retain_holder_cleanup_lifetime(
-    original,
-    retry_holder_cleanup_custody,
-    () => {
-      match read_holder_lifetime_input() {
-        InputLine(line) =>
-          if holder_cleanup_progress_frame(line) {
-            CleanupProgress
-          } else {
-            // Cancel/recovery frames cannot restart Source or mint an ACK here.
-            CleanupOther
-          }
-        InputEnded | InputInvalid => CleanupInputEnded
+  ignore(
+    retain_holder_cleanup_lifetime(
+      original,
+      retry_holder_cleanup_custody,
+      () => {
+        // A missing profile/reservation is not a free read grant. Keep custody
+        // through signal observation instead of allocating another input frame.
+        guard holder_cleanup_caller_read_current(resources) else {
+          return CleanupInputEnded
+        }
+        match read_holder_lifetime_input() {
+          InputLine(line) =>
+            if !holder_cleanup_caller_read_current(resources) {
+              CleanupInputEnded
+            } else if holder_cleanup_progress_frame(line) {
+              CleanupProgress
+            } else {
+              // Cancel/recovery frames cannot restart Source or mint an ACK here.
+              CleanupOther
+            }
+          InputEnded | InputInvalid => CleanupInputEnded
+        }
+      },
+      wait_holder_cleanup_lifetime_signal,
+      (custody, control_ended) => {
+        report("cleanup-pending", [
+          ("step", "holder-lifetime"),
+          ("close_step", custody.step.val.to_string()),
+          ("control_ended", control_ended.to_string()),
+        ])
+      },
+    ),
+  )
+}
+
+///|
+/// This helper returns only the original reservation. Its inner receiver has
+/// ended: the new carrier/Ref and its callbacks/report frames cannot escape.
+/// The original run_holder frame must also end before the reservation returns.
+fn finish_holder_cleanup_lifetime(
+  resources : HolderOutputResources,
+  environment : SiteEnvironment,
+  slot : @slot.NativeExecutorSlot,
+  original_failure : String,
+) -> @site.SiteOperation? {
+  retain_pending_holder_cleanup(resources, environment, slot, original_failure)
+  resources.effect_host_caller_current = None
+  let operation = resources.effect_host_caller_operation
+  resources.effect_host_caller_operation = None
+  operation
+}
+
+///|
+/// Private command-flow handoff only, not Run status, custody issuance or ACK.
+priv enum HolderCommandClose {
+  HolderCommandClosed(@site.SiteOperation?)
+  HolderCommandFailed(@site.SiteOperation?, String)
+}
+
+///|
+fn settle_holder_caller_reservation(operation : @site.SiteOperation?) -> Unit {
+  if operation is Some(original) {
+    // No Reader reopen, recurring timer or replacement reservation. A failure
+    // retains this exact nominal operation and only waits for another event.
+    while !@site.settle_site_operation(original) {
+      wait_holder_cleanup_lifetime_signal()
+    }
+  }
+}
+
+///|
+/// Called only after run_holder returned, so its installed/scope/output aliases
+/// and the entire receiver frame have ended. Matching consumes the private
+/// handoff. Normal completion waits for settlement; a failed diagnostic keeps
+/// that responsibility through the existing terminal consumer instead.
+/// This is a lifetime boundary, never a promise of GC or RSS reclamation.
+#owned(closed)
+fn finish_holder_command(
+  closed : HolderCommandClose,
+) -> HolderTerminalFailure? raise CommandStop {
+  match closed {
+    HolderCommandClosed(operation) =>
+      settle_holder_caller_reservation(operation)
+    HolderCommandFailed(operation, failure) =>
+      match operation {
+        Some(original) => return Some({ operation: original, failure, })
+        None => stop(failure)
       }
-    },
-    wait_holder_cleanup_lifetime_signal,
-    (custody, control_ended) => {
-      report("cleanup-pending", [
-        ("step", "holder-lifetime"),
-        ("close_step", custody.step.val.to_string()),
-        ("control_ended", control_ended.to_string()),
-      ])
-    },
+  }
+  None
+}
+
+///|
+/// The same nominal operation and diagnostic cross only the private command
+/// caller boundary. This is not a persisted Run outcome or a cleanup Owner.
+priv struct HolderTerminalFailure {
+  operation : @site.SiteOperation
+  failure : String
+}
+
+///|
+/// The existing terminal abort does not return. Preserve the original funded
+/// operation through its diagnostic consumption; no settlement ACK is inferred
+/// from returning the private command handoff or from process termination.
+fn consume_holder_terminal_failure(
+  operation : @site.SiteOperation,
+  failure : String,
+) -> Unit {
+  retain_holder_terminal_reservation(
+    operation,
+    () => abort("actql-native-remote-resident-site: " + failure),
+    original => settle_holder_caller_reservation(Some(original)),
   )
 }
