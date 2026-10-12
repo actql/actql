@@ -25,5 +25,8 @@ const steps=process.argv.includes('--fixture-only')
       'scripts/vector-pool-identity.test.mjs','scripts/sga-signature-role-identity.test.mjs',
       'scripts/client-values-run-materials-vector.test.mjs','scripts/compilation-manifests.test.mjs',
       'scripts/frontend-profile.test.mjs','scripts/public-query-profiles.test.mjs']},
-    ...generators.filter(name=>name!=='event-dedupe-identity-oracle').map(name=>({name:'Read-only '+name,command:'node',args:['scripts/'+name+'.mjs']}))];
+    ...generators.filter(name=>name!=='event-dedupe-identity-oracle').map(name=>({name:'Read-only '+name,command:'node',args:['scripts/'+name+'.mjs']})),
+    {name:'Read-only changed authored MoonBit formatting',command:'moon',args:['fmt','--check',...product,...files,
+      'src/run_publication_host/client_values_run_materials_wbtest.mbt']},
+    {name:'Product and specification whitespace',command:'git',args:['diff','--check','26521e7d8','HEAD','--','.',':(exclude)reviews/**']}];
 process.exitCode=await runLocalCheck({root:process.cwd(),heavy:false,timeoutSeconds:60,graceSeconds:5,steps});
