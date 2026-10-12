@@ -79,12 +79,23 @@ fn local_result_stream(
         settings.connection,
       )
     Some(policy) =>
-      host.bind_result_read_policy_for_run(
-        policy,
-        selected.submission,
-        selected.request,
-        @env.now().to_double(),
-      )
+      if policy
+        .original_run_requires_finite_policy(selected.request)
+        .unwrap_or_else(() => stop("LocalRunPolicyOriginalUnavailable")) {
+        host.bind_result_read_policy_for_run(
+          policy,
+          selected.submission,
+          selected.request,
+          @env.now().to_double(),
+        )
+      } else {
+        host.bind_result_read_policy(
+          crypto,
+          file,
+          settings.principal,
+          settings.connection,
+        )
+      }
   }
   let binding = match binding_result {
     Ok(value) => value
