@@ -134,13 +134,24 @@ fn copy_sga_call(call : SgaCall) -> SgaCall {
 ///|
 /// Consume a lowered Graph prefix exactly once. Relational compilation cannot
 /// silently ignore a Graph call; the caller must first emit every prefix step.
-pub fn after_graph_calls(query : Query) -> Query {
+pub fn after_graph_calls(
+  query : Query,
+  current_source? : NamePart? = None,
+) -> Query {
   let mut count = 0
   while count < query.operations.length() &&
         query.operations[count] is GraphCall(_) {
     count += 1
   }
-  { ..query, operations: query.operations[count:].to_owned(), }
+  {
+    ..query,
+    bound_source: if query.relation.is_empty() && current_source is Some(_) {
+      current_source
+    } else {
+      query.bound_source
+    },
+    operations: query.operations[count:].to_owned(),
+  }
 }
 
 ///|
