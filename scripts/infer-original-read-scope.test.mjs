@@ -266,3 +266,26 @@ test('original read retirement requires explicit physical cleanup and refuses du
   assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
     f.compiled, f.definition, f.graph, scope, true), true);
 });
+
+test('original read stop authenticates its own scope before physical cleanup', () => {
+  const f = original();
+  const {scope, read, selected} = admittedOriginalRead(f);
+  const otherScope = f.control.beginCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, bootstrap);
+  assert.throws(() => f.control.stopCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, otherScope, read), ownerRefusal);
+  f.control.claimCheckedClientInferNodePreparationLayout(
+    f.compiled, f.definition, f.graph, read, selected);
+  f.control.stopCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, scope, read);
+  assert.throws(() => f.control.claimCheckedClientInferNodePreparationLayout(
+    f.compiled, f.definition, f.graph, read, selected), ownerRefusal);
+  assert.throws(() => f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, read, false), ownerRefusal);
+  f.control.settleCheckedClientInferOriginalReadPreparation(
+    f.compiled, f.definition, f.graph, read, true);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, otherScope, true), true);
+});

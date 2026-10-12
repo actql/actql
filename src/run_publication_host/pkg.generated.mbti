@@ -1204,6 +1204,8 @@ pub fn start_result_publication_export(@execution_relation.CompletedOutput, @exe
 
 pub fn stop_client_model_read(ClientModelReadPreparation) -> Unit
 
+pub fn stop_client_model_read_checked(ClientModelReadScope, ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[Unit, ClientModelReadPreparationIssue]
+
 pub fn stop_client_model_read_consumer(ClientModelReadConsumer) -> Unit
 
 pub fn submission_epoch_cid(@logical_request_scope.SubmissionEpoch) -> String

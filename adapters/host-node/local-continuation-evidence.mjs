@@ -318,10 +318,23 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
           fail('InvalidEvidenceReadLimit');
         }
         const current = await readLedger(prepareAttemptId);
+        if (current === undefined) fail('ContinuationEvidenceNotHeld');
+        sameKey(current);
+        if (current.request_cid !== ledger.request_cid) {
+          fail('ContinuationRequestMismatch');
+        }
         const entry = current?.holdings.find(item => item.name === name &&
           item.semantic_cid === semanticCid);
         if (entry === undefined) fail('ContinuationEvidenceNotHeld');
         sameKey(entry);
+        // Same payload bytes do not merge two continuations' custody. Reuse
+        // the original holding derivation before opening the physical Store;
+        // the semantic CID and a mutable metadata entry are not its authority.
+        if (!NAMES.includes(name) ||
+            !/^sha256:[0-9a-f]{64}$/u.test(semanticCid) ||
+            entry.holding_cid !== holdingCidOf(prepareAttemptId, name, semanticCid)) {
+          fail('ContinuationEvidenceNotHeld');
+        }
         if (entry.state !== 'held') fail('ContinuationEvidenceRetired');
         const stored = await withStore(async store => {
           if (maxBytes !== undefined) {
