@@ -20,8 +20,10 @@ fn lower_script_graph_match_rows(
       }
       let names = []
       for field in selected {
-        guard field is TextValue(name) else { raise Abort(UnsupportedGraph) }
-        names.push(name)
+        guard field is FieldReference(path) && path.length() == 1 else {
+          raise Abort(UnsupportedGraph)
+        }
+        names.push(path[0].value)
       }
       fields = Some(names)
     }

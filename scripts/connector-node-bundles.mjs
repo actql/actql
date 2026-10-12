@@ -388,7 +388,10 @@ if (hasClientProgramBridge) {
   }
   dependencies.set('actql/actql/query_program', 'query_program');
   dependencies.set('actql/actql/query_syntax', 'query_syntax');
-  dependencies.set('actql/actql/parameter_binding', 'parameter_binding');
+  if (existsSync(join(sourceRoot, bridgePackage, 'client_check.mbt')) ||
+      existsSync(join(sourceRoot, bridgePackage, 'client_check_program.mbt'))) {
+    dependencies.set('actql/actql/parameter_binding', 'parameter_binding');
+  }
   if (existsSync(join(sourceRoot, bridgePackage, 'client_check_program.mbt'))) {
     dependencies.set('actql/actql/stage_parameters', 'stage_parameters');
     dependencies.set('actql/actql/sourceview_input', 'sourceview_input');

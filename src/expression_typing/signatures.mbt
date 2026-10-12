@@ -280,7 +280,40 @@ fn infer(
     )
   }
   match tag {
-    "substring" => {
+    "split" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let mut nullable = input.nullable
+      if node.children.get(1) is Some(delimiter) {
+        nullable = require_type(t, nodes, delimiter, "string").nullable ||
+          nullable
+      }
+      guard input.shape is @contract.Text(limits) else {
+        fail(source, TypeMismatch("string"))
+      }
+      // Parts are contiguous scalar sequences of the input and may be empty.
+      // Even an empty input has one part. A nonempty delimiter can add a final
+      // empty part; never carry an input minimum into an element contract.
+      let maximum = match (limits.max_codepoints, limits.max_utf8_bytes) {
+        (Some(a), Some(b)) => Some(a.min(b))
+        (Some(a), None) | (None, Some(a)) => Some(a)
+        (None, None) => None
+      }
+      let max_items = match maximum {
+        Some(n) if n < 9007199254740991L => Some(n + 1L)
+        _ => None
+      }
+      let item = @contract.string_contract(
+        nullable=false,
+        max_codepoints=limits.max_codepoints,
+        max_utf8_bytes=limits.max_utf8_bytes,
+      ).unwrap()
+      typed(
+        t,
+        @contract.array_contract(item, nullable~, max_items~).unwrap(),
+        source,
+      )
+    }
+    "substring" | "left" | "right" => {
       let input = require_type(t, nodes, node.children[0], "string")
       let mut nullable = input.nullable
       for i in 1..<node.children.length() {
@@ -301,6 +334,63 @@ fn infer(
         ).unwrap(),
         source,
       )
+    }
+    "reverse" =>
+      // Reordering scalars preserves every admitted scalar/UTF-8 length bound.
+      typed(t, require_type(t, nodes, node.children[0], "string"), source)
+    "translate" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let source_set = require_type(t, nodes, node.children[1], "string")
+      let target_set = require_type(t, nodes, node.children[2], "string")
+      guard input.shape is @contract.Text(limits) else {
+        fail(source, TypeMismatch("string"))
+      }
+      // One scalar maps to at most one scalar, but may expand UTF-8 bytes.
+      // Deletion drops minima; no authored operand is evaluated during typing.
+      typed(
+        t,
+        @contract.string_contract(
+          nullable=input.nullable || source_set.nullable || target_set.nullable,
+          max_codepoints=limits.max_codepoints,
+        ).unwrap(),
+        source,
+      )
+    }
+    "instr" => {
+      let mut nullable = false
+      for i, child in node.children {
+        nullable = require_type(
+            t,
+            nodes,
+            child,
+            if i < 2 {
+              "string"
+            } else {
+              "number"
+            },
+          ).nullable ||
+          nullable
+      }
+      primitive(t, NumberType, nullable, source)
+    }
+    "repeat" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let count = require_type(t, nodes, node.children[1], "number")
+      // A dynamic count can expand the value or make it empty. Do not infer
+      // output limits by evaluating or duplicating the authored count child.
+      primitive(t, StringType, input.nullable || count.nullable, source)
+    }
+    "lpad" | "rpad" => {
+      let input = require_type(t, nodes, node.children[0], "string")
+      let length = require_type(t, nodes, node.children[1], "number")
+      let mut nullable = input.nullable || length.nullable
+      if node.children.get(2) is Some(pattern) {
+        nullable = require_type(t, nodes, pattern, "string").nullable ||
+          nullable
+      }
+      // Runtime lengths may exceed every input bound. Do not evaluate authored
+      // children, preserve a false input ceiling or invent a padding ceiling.
+      primitive(t, StringType, nullable, source)
     }
     "#null" => put(t, Hole, true, source)
     "typed_literal" => {
@@ -538,6 +628,8 @@ fn infer(
     | "ltrim"
     | "rtrim"
     | "len"
+    | "byte_length"
+    | "unicode"
     | "concat"
     | "concat_strict"
     | "replace"
@@ -552,7 +644,7 @@ fn infer(
       }
       primitive(
         t,
-        if tag == "len" || tag == "strpos" {
+        if ["len", "byte_length", "unicode", "strpos"].contains(tag) {
           NumberType
         } else if ["contains", "like", "starts_with", "ends_with"].contains(tag) {
           BooleanType
@@ -563,12 +655,45 @@ fn infer(
         source,
       )
     }
+    "chr" => {
+      let nullable = arguments(t, nodes, node, "number")
+      typed(
+        t,
+        @contract.string_contract(
+          nullable~,
+          max_codepoints=Some(1L),
+          max_utf8_bytes=Some(4L),
+        ).unwrap(),
+        source,
+      )
+    }
     "sqrt"
+    | "cbrt"
+    | "sin"
+    | "cos"
+    | "tan"
+    | "asin"
+    | "acos"
+    | "atan"
+    | "sinh"
+    | "cosh"
+    | "tanh"
+    | "asinh"
+    | "acosh"
+    | "atanh"
+    | "pow"
+    | "atan2"
+    | "exp"
+    | "ln"
+    | "log"
+    | "log10"
     | "floor"
     | "abs"
     | "sign"
     | "round"
     | "trunc"
+    | "greatest"
+    | "least"
     | "safe_negate"
     | "safe_div"
     | "safe_divide"

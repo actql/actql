@@ -4,6 +4,11 @@
 fn retained_holder_upload_original_review(
   work : @effect_provider.NativeResidentEffectReview,
   journal_path : String,
+  store : @store.Store,
+  publication : @effect_provider.NativeResidentEffectReviewPublication,
+  context : @resident.ResidentEffectReviewInputContext,
+  journal : @dispatch_journal.Journal,
+  authority : String,
 ) -> Unit raise {
   let required = name => @env.get_env_var(name).unwrap()
   let http = @http.load_library(required("ACTQL_TEST_NATIVE_HTTP_LIBRARY")).unwrap()
@@ -102,12 +107,42 @@ fn retained_holder_upload_original_review(
   assert_true(
     work.upload_review_projection(client, report_url, url, () => {
       reads.val += 1
-      reads.val < 5
+      reads.val < 9
     })
     is Err(Review(_)),
   )
-  assert_eq(reads.val, 5)
-  work.upload_review_projection(client, report_url, url, () => true).unwrap()
+  assert_eq(reads.val, 9)
+  let target_reads = Ref(0)
+  let configured = {
+    ..publication,
+    access: (_, _) => {
+      target_reads.val += 1
+      abort("confirmed review repeated a Provider observation")
+    },
+  }
+  assert_true(
+    work.publish_review(store, client, configured, () => false)
+    is Err(ReadAuthorityDenied),
+  )
+  // Changed retry crypto custody cannot replace the original report or send
+  // another Checkpoint. Its first retention configuration remains authoritative.
+  assert_true(
+    work.publish_review(
+      store,
+      client,
+      { ..configured, key: Bytes::make(32, 255), },
+      () => true,
+    )
+    is Err(EvidencePersistence(Unavailable)),
+  )
+  let published = work
+    .publish_review(store, client, configured, () => true)
+    .unwrap()
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(published),
+    @remote.remote_effect_checkpoint_report_json(before_report),
+  )
+  assert_eq(target_reads.val, 0)
   let (after_report, after_wire) = work
     .review_projection(() => true, 65536)
     .unwrap()
@@ -116,5 +151,104 @@ fn retained_holder_upload_original_review(
     @remote.remote_effect_checkpoint_report_identity(after_report),
     @remote.remote_effect_checkpoint_report_identity(before_report),
   )
+  // Readback uses the genuine original consumer context, not the live Review
+  // factory. Its original Accepted report performs no additional report send;
+  // only the same confirmed review bytes are retried through the same uploader.
+  let before_restore = store.capacity_usage().unwrap().reserved_bytes
+  let restore_upload = authorize => {
+    @effect_provider.upload_native_resident_original_review_projection(
+      context,
+      journal,
+      store,
+      authority,
+      publication.crypto,
+      publication.key,
+      publication.limits,
+      client,
+      report_url,
+      url,
+      authorize,
+    )
+  }
+  assert_true(
+    restore_upload(() => false) is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_true(
+    @effect_provider.upload_native_resident_original_review_projection(
+      context,
+      journal,
+      store,
+      retained_compute_cid("f"),
+      publication.crypto,
+      publication.key,
+      publication.limits,
+      client,
+      report_url,
+      url,
+      () => true,
+    )
+    is Err(OriginalReview(Store(StateCollision))),
+  )
+  let original_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      original_reads.val += 1
+      original_reads.val < 5
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(original_reads.val, 5)
+  // Both original reads allow, but current permission fails after the journal
+  // confirmation and prepared body, immediately before the artifact send.
+  let send_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      send_reads.val += 1
+      send_reads.val < 8
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(send_reads.val, 8)
+  // Artifact save can outlive disclosure authority. Keep its original report
+  // and bytes, but do not turn remote success into current completion permission.
+  let save_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      save_reads.val += 1
+      save_reads.val < 9
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(save_reads.val, 9)
+  // The last journal read must not turn an earlier Allow into current success.
+  // The remote artifact is retained even when this final fence refuses it.
+  let final_reads = Ref(0)
+  assert_true(
+    restore_upload(() => {
+      final_reads.val += 1
+      final_reads.val < 12
+    })
+    is Err(OriginalReview(EvidenceDenied)),
+  )
+  assert_eq(final_reads.val, 12)
+  restore_upload(() => true).unwrap()
+  let (restored_report, restored_wire) = context
+    .read_original_review_projection(
+      journal,
+      store,
+      authority,
+      publication.crypto,
+      publication.key,
+      publication.limits,
+      () => true,
+    )
+    .unwrap()
+  assert_eq(restored_wire, before_wire)
+  assert_eq(
+    @remote.remote_effect_checkpoint_report_json(restored_report),
+    @remote.remote_effect_checkpoint_report_json(before_report),
+  )
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_restore)
+  assert_eq(target_reads.val, 0)
   assert_true(client.close())
 }

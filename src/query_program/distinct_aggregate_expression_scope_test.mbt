@@ -96,7 +96,7 @@ test "DISTINCT computed order preserves operands operators literals and snapshot
   assert_true(
     compile(
       @query.parse_query(
-        "SELECT ARRAY_AGG(DISTINCT IFNULL((payload).score, 0) IGNORE NULLS ORDER BY IFNULL(payload.score, 0)) AS items FROM objects AS payload",
+        "SELECT ARRAY_AGG(DISTINCT IFNULL((payload.payload).score, 0) IGNORE NULLS ORDER BY IFNULL(payload.score, 0)) AS items FROM objects AS payload",
         syntax_limits(),
       ).unwrap(),
       group_receiver_scope_context(),

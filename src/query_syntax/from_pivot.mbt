@@ -6,18 +6,21 @@ fn QueryParser::from_pivot_source(
   self : QueryParser,
   relation : Array[NamePart],
   input_alias : NamePart?,
-  ctes : Array[CtePart],
-) -> (Array[NamePart], NamePart?, Array[CtePart]) raise QueryAbort {
+  bindings : Array[QueryBinding],
+  implicit_source_alias? : Bool = false,
+) -> (Array[NamePart], NamePart?, Array[QueryBinding], Bool) raise QueryAbort {
   if !self.has("PIVOT") {
-    return (relation, input_alias, ctes)
+    return (relation, input_alias, bindings, implicit_source_alias)
   }
   let clause = self.pivot_clause()
   let output_alias = self.optional_source_alias()
   let bound = self.bind_query({
     source: self.source,
+    primary: None,
+    implicit_source_alias,
     positional_output: false,
     bound_source: None,
-    ctes,
+    bindings,
     relation,
     source_alias: input_alias,
     graph: None,
@@ -28,7 +31,8 @@ fn QueryParser::from_pivot_source(
     final_operations: [],
     effect: None,
     table_effect: None,
+    commands: [],
     work: self.work,
   })
-  (bound.relation, output_alias, bound.ctes)
+  (bound.relation, output_alias, bound.bindings, false)
 }

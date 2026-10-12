@@ -1,12 +1,12 @@
 name: CI
 
-# Draft PRs run preparation; Ready PRs run normal required coverage.
-# Main integration is manual at release/milestone boundaries.
-# Integration branches use their PR; a working branch is checked on demand:
+# Local targeted tests and coordinator review precede merge. Hosted integration
+# follows main pushes only after public visibility AND explicit opt-in.
+# Working branches and performance remain explicit on-demand checks:
 #   gh workflow run CI --ref <branch> [-f native_macos=true]
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       packed_query_evidence_probe:
@@ -27,14 +27,19 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
-  cancel-in-progress: ${{ !inputs.performance_matrix }}
+  # Keep the active main integration; GitHub retains only the latest pending run.
+  # Branch and performance groups cannot cancel normal main integration.
+  cancel-in-progress: ${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}
 
+# Missing switch, private/unknown visibility, or missing repository data fails closed.
+# This guard is repeated on every job, including always() aggregates and reusable
+# workflow entry points, so skipped admission cannot itself allocate a runner.
 jobs:
   select-targets:
     permissions:
       contents: read
       actions: read
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -54,16 +59,16 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/ci-targets.mjs
   packed-query-evidence-probe:
-    if: github.event_name == 'workflow_dispatch' && inputs.packed_query_evidence_probe
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (github.event_name == 'workflow_dispatch' && inputs.packed_query_evidence_probe) }}
     uses: ./.github/workflows/packed-query-evidence-probe.yml
   performance-matrix:
-    if: github.event_name == 'workflow_dispatch' && inputs.performance_matrix && !inputs.packed_query_evidence_probe
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (github.event_name == 'workflow_dispatch' && inputs.performance_matrix && !inputs.packed_query_evidence_probe) }}
     uses: ./.github/workflows/performance-matrix.yml
   # Admission checks complete before any normal runtime/proof runner starts.
   # Actual retained history is checked before installing the build toolchain.
   preflight:
     needs: [select-targets]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -117,14 +122,14 @@ jobs:
         run: node scripts/check-moonbit-api.mjs
       - name: Verify admission checks did not change tracked files
         run: git diff --exit-code
-      - name: Reject superseded revisions before fan-out
+      - name: Admit the fixed main revision or reject superseded working revisions
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-preflight.mjs
   # Remaining independent lint diagnostics run after mandatory admission.
   lint:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -182,7 +187,7 @@ jobs:
         run: node scripts/check-node-without-duckdb.mjs
   focused-tests:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && (needs.select-targets.outputs.profile == 'focused-tests' || needs.select-targets.outputs.profile == 'draft-focused') }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && (needs.select-targets.outputs.profile == 'focused-tests' || needs.select-targets.outputs.profile == 'draft-focused') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -215,7 +220,7 @@ jobs:
   # before. A target never shares a runner or _build with another.
   core:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     name: core (${{ matrix.target }})
     strategy:
       fail-fast: false
@@ -255,7 +260,7 @@ jobs:
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -335,7 +340,7 @@ jobs:
   # Fixed four-part plan: no matrix, shared mutable root or result reuse.
   pipeline-mutations:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -391,7 +396,7 @@ jobs:
           if-no-files-found: warn
   pipeline-mutations-rest:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -447,7 +452,7 @@ jobs:
           if-no-files-found: warn
   pipeline-capacity:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -503,7 +508,7 @@ jobs:
           if-no-files-found: warn
   pipeline-capacity-mutants:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -555,7 +560,7 @@ jobs:
           if-no-files-found: warn
   pipeline-validation:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
@@ -583,7 +588,7 @@ jobs:
         id: bind
         run: node proofs/relation-pipeline/ci-parts.mjs validation
   pipeline-evidence:
-    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
       !(needs.pipeline-mutations.result == 'skipped' && needs.pipeline-mutations-rest.result == 'skipped' &&
         needs.pipeline-capacity.result == 'skipped' && needs.pipeline-capacity-mutants.result == 'skipped' &&
         needs.pipeline-validation.result == 'skipped') }}
@@ -691,7 +696,7 @@ jobs:
   # Host, authorization, Checkpoint and retained-state owners.
   host:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -737,7 +742,7 @@ jobs:
   # Consumers retain fresh installs and private target/native build outputs.
   client-packages:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
@@ -766,7 +771,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   client-distribution:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -787,7 +792,7 @@ jobs:
           TMPDIR: ${{ github.workspace }}/_build
         run: npm run check:distribution-client
   client-packed:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -861,7 +866,7 @@ jobs:
   # These source-backed checks need no packed artifact or other Client job.
   client-salesforce:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -892,7 +897,7 @@ jobs:
   # Preserve the existing required Client result, including failed, cancelled
   # or unexpectedly skipped producers/consumers. No acceptance runs here.
   client:
-    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
       !(needs.client-packages.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-salesforce.result == 'skipped') }}
     needs: [client-packages, client-distribution, client-packed, client-salesforce]
     runs-on: ubuntu-24.04
@@ -916,7 +921,7 @@ jobs:
   # Native storage, publication and control, and the Native retained path.
   native:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -980,7 +985,7 @@ jobs:
   # dependency failed. The macOS job may be skipped only where it is not
   # scheduled (see its condition).
   check:
-    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     needs: [select-targets, preflight, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests]
     runs-on: ubuntu-24.04
@@ -993,7 +998,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Require merge verification (Draft awaits ready_for_review)
+      - name: Require every selected integration obligation
         env:
           RESULTS: ${{ toJSON(needs) }}
           CI_PLAN: ${{ needs.select-targets.outputs.plan }}
@@ -1035,7 +1040,7 @@ jobs:
           if-no-files-found: error
   spec:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -1074,7 +1079,7 @@ jobs:
   native-macos:
     needs: [select-targets, preflight]
     if: >-
-      ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+      ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-14
     timeout-minutes: 20
@@ -1109,7 +1114,7 @@ jobs:
             npm run check:native-http-client
   native-separated-network:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -1145,7 +1150,7 @@ jobs:
         run: npm run check:native-separated-network
   workers:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -1179,7 +1184,7 @@ jobs:
         run: npm test --prefix adapters/workers
   connector-addition:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1219,7 +1224,7 @@ jobs:
           retention-days: 14
   duckdb-node:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

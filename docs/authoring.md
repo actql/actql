@@ -41,21 +41,20 @@ read authority independently of approval authority. Human export presets create
 explicit new artifacts and do not alter canonical CSV silently.
 
 This guide covers the canonical source syntax used by people and coding agents.
-It focuses on writing a Program that passes `actql check`; compiler and AoA
-implementation details are in the language specification.
+Use the public SDK `client.check()` for input diagnostics and `client.aql()` or
+`client.start()` for execution through an installed Host. Public `client.plan()`
+and Run `inspect()` are authorized reads where the Host exposes those
+capabilities; unavailable evidence must remain unknown. Submission accepts a
+Program/source, not a saved explanation or Plan, and performs its own checks.
 
-Use `check` for static validation, `explain` for a non-executing description of
-an execution request, and `run` for execution. `explain` and `run` share
-parameters, opaque bindings, local inputs, environment flags, and repeatable
-`--deliver result=format:file` selections. Never invent estimates when statistics
-are absent. `run` checks again and accepts a Program, not a saved explanation or
-Plan. To inspect concrete Effects, use `--stop-before commit` and continue the
-same Run through its Checkpoint; reads and inference may already incur costs.
-Retry delivery with `result`, not by rerunning successful Effects.
-For destination requests, read the JSON response's `run` and `delivery_status`
-separately: a nonzero delivery exit can still contain a successful Run.
-Completed deliveries are not resent by status polling. `--source-state-in`
-is shared by explain/run; explain only describes its unverified locator.
+The current [Native CLI guide](cli.md) uses `aql`/`start`, explicit saved
+Submission/Run references, `wait` and bounded `read`. Its source Local `check`
+entry returns preparation metadata, not a public diagnostic report. The
+`check --connectors`, `explain`, `run`, `approve`, `result`, and `op` commands
+in the [target CLI design](design/cli-target-experience.md) are not current
+installed command instructions. Use the SDK's separately authorized Checkpoint
+API for review and answers; retry Result delivery as an explicit read operation,
+not by rerunning successful Effects.
 
 Check resolves the required algebra, acquisition and Artifact profiles before
 execution. HTTP transport and Run Graph are separate companion protocols.
@@ -437,9 +436,10 @@ values; all bare values are rejected with a deterministic explicit repair.
 
 The Connector Mapping Contract—not the author—defines target schema,
 writable fields, conversions, and the exact permissions for the selected
-effect/write-field set. `actql check --connectors connectors.json --json` reports the
-resolved mapping-contract CID and authority summary. Required permissions are
-checked Plan facts, not authoring vocabulary.
+effect/write-field set. Its resolved contract and required permissions are
+checked Plan facts, not authoring vocabulary. Inspect only the evidence exposed
+by the installed Host; the Native CLI does not provide a `check --connectors`
+command or manufacture missing authority facts.
 The value is always typed-qualified, such as
 `mapping:crm.opportunity.v1`; in `mapping: mapping:crm.opportunity.v1`, the
 left token is the field and the right prefix is the contract namespace.
@@ -522,10 +522,11 @@ Less-common relation shapes are still regular one-operation steps:
 
 `watermark_rows` handles event-time lateness; it is not a latest-row-per-key
 operator. Unknown parameter diagnostics include the operation signature and
-all allowed keys. `actql op show` exposes the same operation information.
+all allowed keys. The language specification and Grammar Manifest define the
+operation vocabulary; the Native CLI has no `op show` command.
 
-ActQL accepts only the canonical operation name shown by authoring tooling or
-`actql op show`. For example, write `filter`, `select`, `sort`, `take`, `group`,
+ActQL accepts only the canonical operation name in the language specification
+and Grammar Manifest. For example, write `filter`, `select`, `sort`, `take`, `group`,
 `reach`, and `nearest`; do not substitute SQL, DataFrame, or English synonyms.
 A retired or merely similar word never executes. Check may return a complete
 replacement when the intended canonical spelling is unambiguous.
@@ -772,7 +773,8 @@ ActQL never guesses:
 Use the exact declared operation spelling. Bare `search` and `dedupe` are
 unknown operations and are rejected, not interpreted as ambiguity requests.
 
-The complete normative operation inventory is exposed by `actql op
-list/show/search` and the Grammar Manifest. Discovery distinguishes language
+The normative operation inventory is defined by the language specification
+and Grammar Manifest. The proposed CLI `op list/show/search` surface is not
+implemented by the current Native executable. Discovery distinguishes language
 vocabulary from supported execution profiles. The full language rules are
 in the [specification family](spec/README.md).

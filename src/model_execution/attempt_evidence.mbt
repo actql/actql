@@ -169,6 +169,16 @@ pub fn model_execution_attempt_evidence(
     execution.state.attempts.get(slot) is Some(trace) else {
     return Err(OutputIdentity)
   }
+  // A stopped kernel does not imply that an entered physical call has stopped
+  // reporting usage. Do not freeze NULL accounting before that original poll
+  // has reached a terminal observation; cleanup retains and drains it instead.
+  if execution.state.pending_response is Some(call) &&
+    call.entry is Some(entry) &&
+    entry.slot == slot &&
+    (call.usage_result is None ||
+    (call.raw_capture is Some(raw) && !raw.usage_retired)) {
+    return Err(OutputIdentity)
+  }
   if trace.evidence is Some(evidence) {
     return Ok(evidence)
   }

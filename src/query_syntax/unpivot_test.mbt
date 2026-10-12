@@ -16,10 +16,12 @@ test "Pipe UNPIVOT preserves the NULL modifier columns and fresh range" {
       fail("UNPIVOT must remain an authored operation")
     }
     assert_eq(clause.include_nulls, include_nulls)
-    assert_eq(clause.value_column.value, "amount")
+    assert_eq(clause.value_columns[0].value, "amount")
     assert_eq(clause.name_column.value, "month name")
-    assert_eq(clause.columns.map(column => column.value), ["Jan", "feb"])
-    assert_true(clause.columns[0].quoted)
+    assert_eq(clause.column_sets.map(columns => columns[0].value), [
+      "Jan", "feb",
+    ])
+    assert_true(clause.column_sets[0][0].quoted)
     assert_true(
       operation_at(query, 1) is Some(Alias({ value: "reshaped", .. })),
     )
@@ -43,7 +45,7 @@ test "UNPIVOT does not reinterpret expressions qualified columns or unsupported 
     text in [
       "FROM rows |> UNPIVOT(v FOR k IN ())", "FROM rows |> UNPIVOT(v FOR k IN (x + 1))",
       "FROM rows |> UNPIVOT(v FOR k IN (rows.x))", "FROM rows |> UNPIVOT(v FOR k IN (x AS alias))",
-      "FROM rows |> UNPIVOT((v,w) FOR k IN ((x,y)))", "FROM rows |> UNPIVOT NULLS (v FOR k IN (x))",
+      "FROM rows |> UNPIVOT NULLS (v FOR k IN (x))",
     ] {
     assert_true(
       parse_query(text, query_limits()) is Err({ issue: Syntax(_), .. }),
@@ -59,8 +61,8 @@ test "UNPIVOT row labels preserve decoded literals and omitted labels" {
       "FROM rows |> UNPIVOT(v FOR k IN(x AS 'first',x \"second\",y))", "SELECT * FROM rows UNPIVOT(v FOR k IN(x AS 'first',x \"second\",y))",
     ] {
     let query = parse_query(source, query_limits()).unwrap()
-    let body = if cte_count(query) == 1 {
-      cte_at(query, 0).unwrap().query
+    let body = if query_binding_count(query) == 1 {
+      query_binding_at(query, 0).unwrap().query
     } else {
       query
     }

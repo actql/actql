@@ -3,11 +3,11 @@
 import {aggregatePropertyOrderProgram, aggregatePropertyOrderArrayProgram,
   aggregatePropertyOrderSuccesses} from './aggregate-property-order-source-input.mjs';
 const base = aggregatePropertyOrderSuccesses.find(item => item.name === 'aggregate-property-order-sql');
-const data = 'DATA objects = SELECT id, '
+const data = 'WITH objects AS (SELECT id, '
   + "CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, "
   + 'CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, '
   + 'CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other '
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const negative = {negate: {property: {name: 'score', value: {field: 'payload'}}}};
 export const aggregateSignedOrderProgram = {
   ...aggregatePropertyOrderProgram, id: 'fixture.aggregate_signed_order',

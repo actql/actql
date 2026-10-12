@@ -1,27 +1,52 @@
 ///|
-/// DATA names are logical producer bindings. Parsing does not acquire, save,
-/// materialize or split an execution task.
-pub(all) enum DataExpression {
-  RelationQuery(Query)
-  Graph(GraphConstructor)
-  NamedGraphCall(SgaCall)
-}
-
-///|
-pub(all) struct DataDeclaration {
-  name : NamePart
-  value : DataExpression
-  start : Int
-  end : Int
-}
-
-///|
+// One query-expression owner for every public SQL/Pipe producer binding.
+// This wrapper neither adds declarations nor reparses the original source.
 struct QueryScript {
-  source : Tokens
-  declarations : Array[DataDeclaration]
   query : Query
-  commands : Array[CommandEffectClause]
-  work : Int
+}
+
+///|
+pub fn script_query(script : QueryScript) -> Query {
+  script.query
+}
+
+///|
+pub fn script_document(script : QueryScript) -> @origin.Document {
+  query_document(script.query)
+}
+
+///|
+pub fn script_work(script : QueryScript) -> Int {
+  query_work(script.query)
+}
+
+///|
+pub fn parse_query_script(
+  text : String,
+  limits : QueryLimits,
+  source_path? : String = "<query>",
+) -> Result[QueryScript, Diagnostic] {
+  parse_query(text, limits, source_path~).map(single_query_script)
+}
+
+///|
+pub fn single_query_script(query : Query) -> QueryScript {
+  { query, }
+}
+
+///|
+pub fn terminal_command_effect_count(query : Query) -> Int {
+  query.commands.length()
+}
+
+///|
+pub fn terminal_command_effect_at(
+  query : Query,
+  index : Int,
+) -> CommandEffectClause? {
+  query.commands
+  .get(index)
+  .map(clause => { ..clause, input: clause.input.copy(), })
 }
 
 ///|
@@ -32,11 +57,13 @@ pub(all) struct CommandEffectClause {
   target : Expression
   contract : NamePart
   input : Array[(NamePart, Expression)]
+  start : Int
+  end : Int
 }
 
 ///|
 pub fn command_effect_count(script : QueryScript) -> Int {
-  script.commands.length()
+  terminal_command_effect_count(script_query(script))
 }
 
 ///|
@@ -44,9 +71,7 @@ pub fn command_effect_at(
   script : QueryScript,
   index : Int,
 ) -> CommandEffectClause? {
-  script.commands
-  .get(index)
-  .map(clause => { ..clause, input: clause.input.copy(), })
+  terminal_command_effect_at(script_query(script), index)
 }
 
 ///|
@@ -54,6 +79,7 @@ fn QueryParser::command_effect_clause(
   self : QueryParser,
 ) -> CommandEffectClause raise QueryAbort {
   self.node()
+  let start = self.peek().start
   self.keyword("EFFECT")
   let name = self.name()
   self.keyword("COMMAND")
@@ -73,7 +99,7 @@ fn QueryParser::command_effect_clause(
     while true {
       self.node()
       let field = self.name()
-      if input.any(entry => same_cte_name(entry.0, field)) {
+      if input.any(entry => same_binding_name(entry.0, field)) {
         raise QueryAbort("Duplicate COMMAND input field", self.peek().start)
       }
       self.symbol(61)
@@ -84,139 +110,7 @@ fn QueryParser::command_effect_clause(
       ignore(self.advance())
     }
   }
+  let end = self.peek().end
   self.symbol(41)
-  { name, result, result_alias, target, contract, input, }
-}
-
-///|
-pub fn data_declaration_count(script : QueryScript) -> Int {
-  script.declarations.length()
-}
-
-///|
-pub fn data_declaration_at(
-  script : QueryScript,
-  index : Int,
-) -> DataDeclaration? {
-  script.declarations.get(index)
-}
-
-///|
-pub fn script_query(script : QueryScript) -> Query {
-  script.query
-}
-
-///|
-pub fn script_document(script : QueryScript) -> @origin.Document {
-  script.source.document
-}
-
-///|
-pub fn script_work(script : QueryScript) -> Int {
-  script.work
-}
-
-///|
-pub fn parse_query_script(
-  text : String,
-  limits : QueryLimits,
-  source_path? : String = "<query>",
-) -> Result[QueryScript, Diagnostic] {
-  if [limits.max_syntax_nodes, limits.max_cte_count, limits.max_work].any(n => {
-      n < 0 || n == 2147483647
-    }) {
-    return Err({ issue: InvalidLimits, span: None, })
-  }
-  let source = match tokenize(text, limits.lexical, source_path~) {
-    Ok(source) => source
-    Err(error) => return Err(error)
-  }
-  let parser : QueryParser = {
-    source,
-    limits,
-    index: 0,
-    work: 0,
-    expression_nodes: 0,
-    syntax_nodes: 0,
-    source_depth: 0,
-    synthetic_sources: 0,
-    cte_scopes: [],
-  }
-  try {
-    let declarations : Array[DataDeclaration] = []
-    while parser.has("DATA") {
-      parser.node()
-      let start = parser.peek().start
-      parser.keyword("DATA")
-      if declarations.length() >= limits.max_cte_count {
-        raise QueryAbort("DATA declaration count limit", start)
-      }
-      let name_at = parser.peek().start
-      let name = parser.name()
-      if declarations.any(declaration => same_cte_name(declaration.name, name)) {
-        raise QueryAbort("Duplicate DATA name", name_at)
-      }
-      parser.symbol(61)
-      let value = if parser.has("PROPERTY") {
-        DataExpression::Graph(parser.graph())
-      } else if sga_call_head(parser.peek()) {
-        DataExpression::NamedGraphCall(parser.sga_call())
-      } else {
-        // Use the same query-expression parser and original token stream.
-        // A retained declaration is not an externally exported Result.
-        DataExpression::RelationQuery(
-          parser.query(cte_body=true, graph_data_body=true),
-        )
-      }
-      let end = parser.peek().end
-      parser.symbol(59)
-      declarations.push({ name, value, start, end, })
-    }
-    let query = parser.query()
-    let commands : Array[CommandEffectClause] = []
-    if parser.peek().value == Symbol(59) {
-      ignore(parser.advance())
-      while parser.has("EFFECT") {
-        if query.effect is Some(_) || query.table_effect is Some(_) {
-          raise QueryAbort(
-            "Conflicting terminal Effect declarations",
-            parser.peek().start,
-          )
-        }
-        let at = parser.peek().start
-        let clause = parser.command_effect_clause()
-        if commands.any(previous => same_cte_name(previous.name, clause.name)) {
-          raise QueryAbort("Duplicate Effect name", at)
-        }
-        commands.push(clause)
-        parser.symbol(59)
-      }
-      if parser.peek().value == Symbol(59) {
-        raise QueryAbort("Expected end of one query", parser.peek().start)
-      }
-    }
-    parser.end()
-    Ok({ source, declarations, query, commands, work: parser.work, })
-  } catch {
-    QueryExpression(error) => Err(error)
-    QueryAbort(message, at) =>
-      Err({
-        issue: Syntax(message),
-        span: Some(
-          @origin.span(@origin.range(source.document, at, at).unwrap()),
-        ),
-      })
-  }
-}
-
-///|
-// Preserve the original parsed query and source owner, without reparsing text.
-pub fn single_query_script(query : Query) -> QueryScript {
-  {
-    source: query.source,
-    declarations: [],
-    query,
-    commands: [],
-    work: query.work,
-  }
+  { name, result, result_alias, target, contract, input, start, end, }
 }

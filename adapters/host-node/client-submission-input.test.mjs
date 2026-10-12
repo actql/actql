@@ -226,7 +226,7 @@ for (const entrance of ['local', 'https']) {
           // Independently assembled current Values Program semantics and
           // Definition preimages include the current expression contract closure.
           assert.equal(stored[0].program_definition_cid,
-            'sha256:9c014cd1596a6ef690baf3cc4a5e9c1fd639d72571b13dee96dda8a3ae3f872f');
+            'sha256:37178cc710dc10c9cc576a90a64a5765497ec2c28f5a170994a03a55298c03a4');
           assert.equal(stored[0].dispatch_reserved, 0);
           assert.equal(stored[0].physical_start_reserved, 0);
         }

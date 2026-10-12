@@ -16,16 +16,21 @@ fn QueryParser::unpivot_clause(
     false
   }
   self.symbol(40)
-  let value_column = self.name()
+  let value_columns = self.unpivot_column_set()
   self.keyword("FOR")
   let name_column = self.name()
   self.keyword("IN")
   self.symbol(40)
-  let columns : Array[NamePart] = []
+  let column_sets : Array[Array[NamePart]] = []
   let row_labels : Array[UnpivotRowLabel?] = []
   while true {
-    self.node()
-    columns.push(self.name())
+    let columns = self.unpivot_column_set()
+    if columns.length() != value_columns.length() {
+      raise QueryAbort(
+        "UNPIVOT input sets must match the number of output value columns", start,
+      )
+    }
+    column_sets.push(columns)
     let explicit = self.has("AS")
     if explicit {
       self.keyword("AS")
@@ -38,13 +43,11 @@ fn QueryParser::unpivot_clause(
       match node.kind {
         StringLiteral(value) => Some(TextLabel(value))
         Number(value) => {
-          for index in 0..<value.length() {
-            if value[index] < '0' || value[index] > '9' {
-              raise QueryAbort(
-                "UNPIVOT row alias requires a String or integer literal",
-                node.start,
-              )
-            }
+          guard exact_integer_literal(value) is Some(_) else {
+            raise QueryAbort(
+              "UNPIVOT row alias requires a String or integer literal",
+              node.start,
+            )
           }
           Some(IntegerLabel(value))
         }
@@ -72,5 +75,28 @@ fn QueryParser::unpivot_clause(
       start,
     )
   }
-  { columns, row_labels, value_column, name_column, include_nulls, }
+  { column_sets, row_labels, value_columns, name_column, include_nulls, }
+}
+
+///|
+fn QueryParser::unpivot_column_set(
+  self : QueryParser,
+) -> Array[NamePart] raise QueryAbort {
+  let grouped = self.peek().value == Symbol(40)
+  if grouped {
+    self.symbol(40)
+  }
+  let columns : Array[NamePart] = []
+  while true {
+    self.node()
+    columns.push(self.name())
+    if !grouped || self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  if grouped {
+    self.symbol(41)
+  }
+  columns
 }

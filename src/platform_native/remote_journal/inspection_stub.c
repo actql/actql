@@ -25,6 +25,7 @@ typedef struct {
   int count;
   int ready;
   int absent;
+  int limit_exceeded;
   char error[256];
 } actql_journal_inspection;
 
@@ -118,13 +119,15 @@ static void inspection_finalize(void *value) {
   free(owner->copy);
 }
 
-void *actql_journal_inspection_open(moonbit_bytes_t path, int32_t length) {
+static void *inspection_open_bounded(
+    moonbit_bytes_t path, int32_t length, int64_t max_snapshot_bytes) {
   actql_journal_inspection *owner = moonbit_make_external_object(
     inspection_finalize, sizeof(actql_journal_inspection));
   memset(owner, 0, sizeof(*owner));
   owner->descriptors[0] = owner->descriptors[1] = -1;
   owner->output_descriptor = -1;
-  if (length <= 0 || memchr(path, 0, (size_t)length) != NULL) {
+  if (max_snapshot_bytes < 0 || length <= 0 ||
+      memchr(path, 0, (size_t)length) != NULL) {
     inspection_error(owner, "invalid inspection path");
     return owner;
   }
@@ -153,6 +156,7 @@ void *actql_journal_inspection_open(moonbit_bytes_t path, int32_t length) {
     return owner;
   }
   const char *paths[] = {owner->source, owner->wal};
+  int64_t snapshot_bytes = 0;
   for (int index = 0; index < 2; index++) {
     int descriptor = open(paths[index], O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     if (descriptor < 0) {
@@ -168,6 +172,12 @@ void *actql_journal_inspection_open(moonbit_bytes_t path, int32_t length) {
       inspection_error(owner, "invalid inspection source");
       return owner;
     }
+    if (owner->identities[index].st_size > max_snapshot_bytes - snapshot_bytes) {
+      owner->limit_exceeded = 1;
+      inspection_error(owner, "inspection snapshot capacity exceeded");
+      return owner;
+    }
+    snapshot_bytes += owner->identities[index].st_size;
   }
   const char *temporary = getenv("TMPDIR");
   if (temporary == NULL || temporary[0] == 0) temporary = "/tmp";
@@ -251,6 +261,21 @@ void *actql_journal_inspection_open(moonbit_bytes_t path, int32_t length) {
   }
   owner->ready = 1;
   return owner;
+}
+
+// Keep existing Coordinator admission behavior; new Local callers explicitly
+// bound the combined DB/WAL copy before any scratch file is created.
+void *actql_journal_inspection_open(moonbit_bytes_t path, int32_t length) {
+  return inspection_open_bounded(path, length, INT64_MAX);
+}
+
+void *actql_journal_inspection_open_bounded(
+    moonbit_bytes_t path, int32_t length, int64_t max_snapshot_bytes) {
+  return inspection_open_bounded(path, length, max_snapshot_bytes);
+}
+
+int32_t actql_journal_inspection_limit_exceeded(actql_journal_inspection *owner) {
+  return owner->limit_exceeded;
 }
 
 int32_t actql_journal_inspection_ready(actql_journal_inspection *owner) {

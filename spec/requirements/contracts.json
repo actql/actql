@@ -1214,7 +1214,51 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/model-task.product-e2cfca5b7129",
-      "statement_sha256": "e2cfca5b7129196554a124ba5051ec8fd36a7fa750e943ff2e90d6677b5e0021",
+      "statement_sha256": "847462f80e945663d0042c9bba87ff1ea0a6adaca01fca79301b5b96ae254a24",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task.decision-discriminator",
+      "statement_sha256": "4acf03829df23863c88c531d92a6edd78aa59f80610b8d35fb79a85d7b789328",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task.decision-contract-binding",
+      "statement_sha256": "ae6269788fd64677f6f15b65e6921ec39955ed2f2abe7089ad2057b5b0345a7b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task.decision-original-values",
+      "statement_sha256": "b5fc2926699fc1a77c910947054bb7f8b1534444db85e670279f7db38e5ec7aa",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-task",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-task.decision-physical-profile",
+      "statement_sha256": "8a2b7591fbce6b6dc536d6ea44dcd3af0de6d2a661f861113545c69f15a2059e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -1488,6 +1532,61 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/model-response-observation.exact-version-compatibility",
+      "statement_sha256": "c89cfcbb68a290612c6a63fc0560e1b74d0400bffe9ce2b3c5cc26eb9cad74ea",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-call-slot-identity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-observation.refuse-mixed-versions",
+      "statement_sha256": "b103e537a749746182ca987a1be7d25fed41b3ca65cede255b07310991fd386e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-call-slot-identity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-observation.defined-unknown-and-provenance",
+      "statement_sha256": "22c09320f4619ef045ca99a076e594bda40ca58b7a8b03076fb6319add0a7507",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-call-slot-identity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-observation.opaque-metadata",
+      "statement_sha256": "14614f87cb5877afa4ff4963232ba71433cfb012bf94827eb0883c1312531b88",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-call-slot-identity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-observation.original-replay",
+      "statement_sha256": "4b4a7dabd39b1fb22a6e5bce5bf738ab31f4e0c659bc367e86f9a62a74535a98",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-call-slot-identity",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/model-call-slot-identity.preimage",
       "statement_sha256": "9a8b5fbcaecd359b7bb19df12cbf0e3173a02bff47efa04c69d33b6b18c9c6b8",
       "status": "pending",
@@ -1616,6 +1715,50 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-profile.body",
+      "statement_sha256": "ea3b3b7cb67ca9bd9a8caebfdf2bdf1d17f0f5b74bc7ec0456637375dd50d24e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-response-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-profile.installation",
+      "statement_sha256": "5f8e84cd2dacfeece59c5b7bddf47aa553a043ca68ce3165212d3e88e2a20d47",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-response-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-profile.completion",
+      "statement_sha256": "12f3813af08b193a09e8841d5e956927c77cecb1626a25122664e38119beea0d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-response-profile",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-response-profile.bounds",
+      "statement_sha256": "4087eb1874cf77d9c5bd73a2f6df5ff6056f3831f8a064322481a01ff80ab2e7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-response-profile",
         "kind": "prose"
       }
     },
@@ -2303,7 +2446,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "fe69f29fdd01549bbd4c2be7f433c6fa8f86be0d1ae99aba9975f1843893a686",
+      "statement_sha256": "5c3f0337d0c25e91079eac26e57b729c06006418f15435f5c16d6e114fcd3fed",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

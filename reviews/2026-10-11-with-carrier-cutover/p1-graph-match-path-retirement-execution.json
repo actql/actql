@@ -1,0 +1,205 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Retire current DATA Graph match, normalize and traversal-path caller sources into WITH/GRAPH while preserving independent complete common Programs, Graph sharing, selector input, path fields/order, explicit bounds and authored refusal causes. No product common Graph change.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-graph-match-path-original-callers.json",
+  "static_refusal_correction": "with-graph-match-path-static-refusal-correction.json",
+  "unexecuted": [
+    "Host Local/HTTPS Named Result execution",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm runtime",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-YOtjJy",
+      "source": "1d331a57b2029954394451eca10e4d53f5c6e9d0",
+      "tree": "4e90accda5f3152b79253e367b8a8c389e273b2a",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 71755,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_match_rows_test.mbt",
+          "src/query_program/sga_script_test.mbt",
+          "src/query_program/traversal_paths_test.mbt",
+          "src/query_program/graph_match_paths_integration_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "focused-test-zrd2oc/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/0001.summary.json",
+          "sha256": "d7a511c82e9af42b348aedfa3249e75832ac3e891f26fd20d7b1fca735379427"
+        },
+        "focused-test-zrd2oc/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/0002.summary.json",
+          "sha256": "e54b7958bb39d80d847d3b0264a242897da47ffe01726d801a8cbca1ce42cebc"
+        },
+        "focused-test-zrd2oc/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/0003.summary.json",
+          "sha256": "8c630d5d41153983283c26fa9d953bdf88626646306f46fe892ab4c5ab9c107c"
+        },
+        "focused-test-zrd2oc/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/0004.summary.json",
+          "sha256": "54f50fcf91005db839dd8c416ae279660140ffe6c644c80b0fb572af13e020ae"
+        },
+        "focused-test-zrd2oc/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/001.result.json",
+          "sha256": "d9f8bea071097b1a4b8c6997d26f12d40177651f525044a0c3c70dfd1c1199b2"
+        },
+        "focused-test-zrd2oc/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/001.started.json",
+          "sha256": "55f0b7adcda9b4fe3eae5de16a90a3689c786be382a7bd3173a07d7259cb845d"
+        },
+        "focused-test-zrd2oc/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-zrd2oc/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/001.stdout.log",
+          "sha256": "d5acce473f67e4975492690316c9b54f91ea77453f8728cc4701df9a375043df"
+        },
+        "focused-test-zrd2oc/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/focused-test-zrd2oc/summary.json",
+          "sha256": "54f50fcf91005db839dd8c416ae279660140ffe6c644c80b0fb572af13e020ae"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/output.log",
+          "sha256": "22d01f758d69cbf97e1248a3deece5d22594825db705fee7e04b04fab12bc566"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-YOtjJy/summary.json",
+          "sha256": "33bdd56268c165287a0c8cdce82ad600c34f4b6e5693eb2d7912525613324413"
+        }
+      },
+      "actual_js": {
+        "tests": 17,
+        "passed": 14,
+        "failed": 3
+      },
+      "failure": "Three malformed controls required an invalid Program to be returned before separate checking. Current common static checking refuses it earlier; retain the full failure and assert independently traced GraphMatch/InvalidBody causes at the compile boundary."
+    },
+    {
+      "run": "run-HqlNP7",
+      "source": "3ad132f1c3ac430f5552b5769d35c0b109325d1a",
+      "tree": "4b77df3ea5660ab5cd200f79c75f1bbeb9e1ffe5",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 73960,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_match_rows_test.mbt",
+          "src/query_program/sga_script_test.mbt",
+          "src/query_program/traversal_paths_test.mbt",
+          "src/query_program/graph_match_paths_integration_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-HqlNP7/output.log",
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-HqlNP7/summary.json",
+          "sha256": "4c3341ca3f330e99dac449899ba464c8408e0d0c53f4ed57fb1ad4d68693d463"
+        }
+      },
+      "formatter": "Completed; only graph_match_rows_test.mbt whitespace changed in the subsequent style commit."
+    },
+    {
+      "run": "run-2JFUCh",
+      "source": "1cc82ea3389c1cba21002620e06b5fdadc6a24d9",
+      "tree": "8ae216747953eaffb4040699d584ae6ecd714d6e",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 74126,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_match_rows_test.mbt",
+          "src/query_program/sga_script_test.mbt",
+          "src/query_program/traversal_paths_test.mbt",
+          "src/query_program/graph_match_paths_integration_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "focused-test-8mdoXT/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/0001.summary.json",
+          "sha256": "1bd0b442d4192c112712cfe05170146f9874b1c26ea8e8c80f6ba525b826853b"
+        },
+        "focused-test-8mdoXT/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/0002.summary.json",
+          "sha256": "afd022f64fe8e7d989fd31aaa1ebd63d079d0f674a315ff85a849e634c77adca"
+        },
+        "focused-test-8mdoXT/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/0003.summary.json",
+          "sha256": "4b521c27b60449acb03e82febefe53e38e3b526f2f5601c6f8a96e6b12b7fa84"
+        },
+        "focused-test-8mdoXT/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/0004.summary.json",
+          "sha256": "1c6dbbc7868910d99af60cb47ab4f11d695963c799749ca0e0619ad58fcc701c"
+        },
+        "focused-test-8mdoXT/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/001.result.json",
+          "sha256": "a0f69c3b4995145ce344042191360c03dd92a0f2aa45a6ea75810674339157a9"
+        },
+        "focused-test-8mdoXT/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/001.started.json",
+          "sha256": "d8c25ca1e469554ea5658f733bf0640f5890ad7eb0b3a57d0ff5e1d33a9ab50d"
+        },
+        "focused-test-8mdoXT/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-8mdoXT/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/001.stdout.log",
+          "sha256": "b28f3b8e4d471a65d42128a3bc856cea2eb1a5f113adb1c3f790d6750a89ba8d"
+        },
+        "focused-test-8mdoXT/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/focused-test-8mdoXT/summary.json",
+          "sha256": "1c6dbbc7868910d99af60cb47ab4f11d695963c799749ca0e0619ad58fcc701c"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/output.log",
+          "sha256": "df22a2066428a88e324ec11fe7493068fc36d63b2d651411b2772a5c04d89850"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-match-path-retirement-evidence/run-2JFUCh/summary.json",
+          "sha256": "ffef587ba23e4da048205d2ef39f0f6356cf2e245af66c38082d67ffe8733969"
+        }
+      },
+      "actual_js": {
+        "tests": 17,
+        "passed": 17,
+        "failed": 0
+      }
+    }
+  ]
+}

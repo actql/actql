@@ -117,13 +117,12 @@ pub fn client_program_model_request_preflight(
   cleanup : () -> Bool,
 ) -> @model.ModelRequestPreflight {
   {
-    advance: _ => {
-      let result = match advance() {
+    advance: () => {
+      match advance() {
         (false, None) => Ok(None)
         (true, Some(plan)) => Ok(Some(plan))
         _ => Err(@model.InvalidProvider)
       }
-      (result, 1)
     },
     cleanup,
   }
@@ -143,15 +142,18 @@ pub fn client_program_model_content_request_preflight(
   cleanup : () -> Bool,
 ) -> @model.ModelRequestPreflight {
   {
-    advance: quantum => {
-      let (progress, work) = advance(quantum)
+    advance: () => {
+      let (progress, work) = advance(1)
+      if work != 1 {
+        return Err(@model.InvalidProvider)
+      }
       let result = match progress {
         Err(issue) => Err(@model.Content(issue))
         Ok((false, None)) => Ok(None)
         Ok((true, Some(plan))) => Ok(Some(plan))
         _ => Err(@model.InvalidProvider)
       }
-      (result, work)
+      result
     },
     cleanup,
   }
@@ -690,6 +692,50 @@ pub fn client_program_start_generated_infer_inputs(
 }
 
 ///|
+#export_name("clientProgramStartOriginalGeneratedInferExecution")
+pub fn client_program_start_original_generated_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  graph : @publication_host.ClientInferPlanGraph,
+  provider : @model.ModelProvider,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_original_generated(
+    prepared, compiled, generation, graph, provider,
+    @infer_host.standard_limits(), definition, consumer,
+    read_retained_bytes, read_execution_bytes, model_retained_bytes, model_execution_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramStartOriginalGeneratedInferInputs")
+pub fn client_program_start_original_generated_infer_inputs(
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  graph : @publication_host.ClientInferPlanGraph,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_original_generated_inputs(
+    compiled, generation, graph, inputs, provider,
+    @infer_host.standard_limits(), definition, consumer,
+    read_retained_bytes, read_execution_bytes, model_retained_bytes, model_execution_bytes,
+  )
+}
+
+///|
 /// Replay has no physical provider and prepares the normal input again.
 #export_name("clientProgramStartInferReplay")
 pub fn client_program_start_infer_replay(
@@ -857,6 +903,235 @@ pub fn client_program_bind_infer_run(
   definition : @publication.PublicationContract,
 ) -> Result[Unit, @infer_host.InvocationBindingIssue] {
   @infer_host.bind_run(active, compiled, definition)
+}
+
+///|
+/// Private installed original-read connection, before any prefix advance.
+/// Grants do not establish an adopted physical profile or send permission.
+#export_name("clientProgramBindInferOriginalPreparation")
+pub fn client_program_bind_infer_original_preparation(
+  active : @infer_host.Execution,
+  read : @publication_host.ClientModelReadPreparation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_original_model_preparation(
+    active, read, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+/// Private installation probe before allocating Node operation/IO controls.
+/// The complete envelope must already be reserved by the original Run owner.
+#export_name("clientProgramInferOriginalPreparationAvailable")
+pub fn client_program_infer_original_preparation_available(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  @infer_host.original_model_preparation_available(
+    read, compiled, definition, graph, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+/// Private original-Run bootstrap. The installation supplies justified limits;
+/// this moves the same Common Model Ledger before read, without exposing it.
+#export_name("clientProgramBeginInferOriginalReadScope")
+pub fn client_program_begin_infer_original_read_scope(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  quantity_capacity : @model.ModelQuantityCapacity?,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[@publication_host.ClientModelReadScope, @infer_host.Issue] {
+  @infer_host.begin_original_model_read_scope(
+    compiled,
+    definition,
+    graph,
+    @infer_host.standard_limits().model,
+    quantity_capacity,
+    retained_bytes,
+    execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+  )
+}
+
+///|
+/// The same scoped original Ledger admits the installed complete read envelope.
+/// C's original binding/layout issuer supplies the opaque result, not Node.
+#export_name("clientProgramPrepareInferNodeReadLayout")
+pub fn client_program_prepare_infer_node_read_layout(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+) -> Result[
+  @publication_host.ClientModelReadPreparation,
+  @publication_host.ClientModelPreparationLayoutIssue,
+] {
+  @publication_host.prepare_client_node_model_read_layout(
+    scope, compiled, definition, graph, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
+  )
+}
+
+///|
+/// The original owning Run keeps the scope even if no read was admitted.
+/// The acknowledgement is a separate physical-cleanup fact, not read failure.
+#export_name("clientProgramFinishInferOriginalReadScope")
+pub fn client_program_finish_infer_original_read_scope(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, @publication_host.ClientModelReadPreparationIssue] {
+  @publication_host.finish_client_model_read_scope(
+    scope, compiled, definition, graph, original_run_cleanup_complete,
+  )
+}
+
+///|
+/// Settle the same stopped or unused read after its own physical cleanup.
+/// Physical read cleanup is not the final acknowledgement for all Run children.
+#export_name("clientProgramSettleInferOriginalReadPreparation")
+pub fn client_program_settle_infer_original_read_preparation(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  physical_cleanup_complete : Bool,
+) -> Result[Unit, @publication_host.ClientModelReadPreparationIssue] {
+  @publication_host.settle_client_model_read_checked(
+    read, compiled, definition, graph, physical_cleanup_complete,
+  )
+}
+
+///|
+/// Stop the same scope's read without observing physical cleanup or settling.
+#export_name("clientProgramStopInferOriginalReadPreparation")
+pub fn client_program_stop_infer_original_read_preparation(
+  scope : @publication_host.ClientModelReadScope,
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[Unit, @publication_host.ClientModelReadPreparationIssue] {
+  @publication_host.stop_client_model_read_checked(
+    scope, read, compiled, definition, graph,
+  )
+}
+
+///|
+/// Claim the original funded read once before Node IO/control allocation.
+#export_name("clientProgramClaimInferOriginalPreparation")
+pub fn client_program_claim_infer_original_preparation(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  @publication_host.ClientModelReadConsumer,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, graph, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+/// Private trusted Node layout selection, before any operation/IO allocation.
+/// The original Resource Owner issues the same one-shot consumer. This is not
+/// a physical-layout proof, a numerical default, or Model dispatch authority.
+#export_name("clientProgramClaimInferNodePreparationLayout")
+pub fn client_program_claim_infer_node_preparation_layout(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+) -> Result[
+  @publication_host.ClientModelReadConsumer,
+  @publication_host.ClientModelPreparationLayoutIssue,
+] {
+  @publication_host.claim_client_node_model_preparation_layout(
+    read, compiled, definition, graph, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
+  )
+}
+
+///|
+/// Recheck original funding before the ordinary bounded input/Execution start.
+/// This private caller does not install a public asynchronous capability.
+#export_name("clientProgramStartOriginalInferExecution")
+pub fn client_program_start_original_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  fragment : String,
+  ordered : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  // Even the installed limits/config projection follows the funded probe.
+  if !@publication_host.client_model_read_consumer_available(
+      consumer, compiled, definition, graph, read_retained_bytes, read_execution_bytes,
+    ) {
+    return Err(
+      @infer_host.OriginalCapacity(
+        @publication_host.Read(
+          @publication_host.Resource(@resources.ChangedOriginalState),
+        ),
+      ),
+    )
+  }
+  @infer_host.start_original_model_preparation(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    @infer_host.standard_limits(),
+    compiled,
+    definition,
+    graph,
+    consumer,
+    read_retained_bytes,
+    read_execution_bytes,
+    model_retained_bytes,
+    model_execution_bytes,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
 }
 
 ///|
@@ -2598,6 +2873,17 @@ pub fn client_program_infer_call_entry_originals(
   value : @model.ModelCallEntry,
 ) -> (Int, String, String, String)? {
   @model.model_call_entry_originals(value)
+}
+
+///|
+/// A trusted installed journal reports actual persistence of these originals.
+/// This nominal saved observation does not authorize dispatch after an await.
+#export_name("clientProgramAcknowledgeSavedInferCallEntry")
+pub fn client_program_acknowledge_saved_infer_call_entry(
+  entry : @model.ModelCallEntry,
+  prepared : @model.ModelPreparedCallSet,
+) -> @model.ModelCallEntryAcknowledgement? {
+  @model.acknowledge_saved_model_call_entry(entry, prepared)
 }
 
 ///|

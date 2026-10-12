@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/platform_native/filesystem",
 }
 
 import {
@@ -12,6 +13,8 @@ options(
   "native-stub": [ "http_client_stub.c" ],
   targets: {
     "http_client_native.mbt": [ "native" ],
+    "local_preparation_native.mbt": [ "native" ],
+    "local_preparation_unsupported.mbt": [ "not", "native" ],
     "http_client_wbtest.mbt": [ "native" ],
     "http_client_unsupported.mbt": [ "not", "native" ],
     "http_client_unsupported_wbtest.mbt": [ "not", "native" ],

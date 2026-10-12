@@ -135,9 +135,7 @@ export function generatedContentCommandSource({preserveOrder = false, format = '
     |> SERIALIZE FORMAT CSV ${preserveOrder ? 'PRESERVE ORDER' : 'ORDER BY name'}
        OPTIONS (name = 'approved.csv', header = TRUE, null_marker = r'\N',
                 max_rows = 1, max_bytes = 32)`;
-  return (format === 'sql'
-    ? `WITH destinations AS (${destination}), attachment AS (${attachment}) `
-    : `DATA destinations = ${destination}; DATA attachment = ${attachment}; `) +
+  return `WITH destinations AS (${destination}), attachment AS (${attachment}) ` +
     String.raw`SELECT d.destination AS destination, a.name AS name, a.content AS content
     FROM attachment AS a JOIN destinations AS d ON a.name = d.name MAX_OUTPUT_ROWS 1
     |> RESULT r;

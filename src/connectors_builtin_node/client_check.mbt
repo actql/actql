@@ -410,8 +410,14 @@ fn check_source_findings(
         // authored origin. Explain that failure without manufacturing a span.
         QueryLowering(UnknownColumn) =>
           findings.push(ExpressionViolation("unknown_reference", None))
+        QueryLowering(BindingPreparation(issue)) =>
+          if check_binding_preparation_findings(findings, issue, scope)
+            is Some(failure) {
+            return Failed(failure)
+          }
         QueryLowering(
           InvalidQuery
+          | RangeAliasRequiresRelation
           | AmbiguousRelation
           | AmbiguousColumn
           | DuplicateOutput
@@ -996,6 +1002,60 @@ fn check_operation_scalar_finding(
       }
   }
   Some(OperationScalarViolation(name, domain, location))
+}
+
+///|
+// Binding preparation checks the original generated topology before demand
+// elimination. Reuse its typed common cause and classifier; generated cursors
+// cannot acquire authored SQL positions or disclose private Catalog metadata.
+fn check_binding_preparation_findings(
+  findings : Array[CheckFinding],
+  issue : @query_program.BindingPreparationIssue,
+  scope : @program_check.CheckScope,
+) -> String? {
+  let diagnostic = match issue {
+    Declarations(error) => @program_check.source_declarations_diagnostic(error)
+    SourceDeclarations(error) =>
+      @program_check.source_registration_diagnostic(
+        @context.source_declaration_diagnostic_issue(error),
+      )
+    SourceRegistration(error) =>
+      @program_check.source_registration_diagnostic(error)
+    SourceProgram(error) =>
+      @program_check.source_context_diagnostic(
+        @context.source_program_diagnostic_issue(error),
+      )
+    LocalProgram(error) =>
+      @program_check.source_context_diagnostic(
+        @context.local_program_diagnostic_issue(error),
+      )
+    MissingSourceCatalog(_) => {
+      findings.push(Unresolved("source_resolution"))
+      return None
+    }
+    Demand(WorkLimit) => {
+      findings.push(Limit("analysis_budget_exhausted"))
+      return None
+    }
+    Demand(ForeignStage | InvalidRange | MissingImport) =>
+      return Some("check_internal")
+  }
+  match @program_check.diagnostic_category(diagnostic) {
+    InvalidInput =>
+      if @program_check.diagnostic_undeclared_parameter(diagnostic)
+        is Some(name) &&
+        name.length() <= 256 {
+        findings.push(UndeclaredParameter(name, None))
+      } else {
+        findings.push(check_program_finding(diagnostic, None, None, None, None))
+      }
+    MissingInput => check_missing_input_findings(findings, diagnostic, scope)
+    UnsupportedImplementation => findings.push(Limit("implementation_limit"))
+    CompileLimit => findings.push(Limit("analysis_budget_exhausted"))
+    UnclassifiedFailure => findings.push(Limit("check_unclassified"))
+    InvalidConfiguration => return Some("check_context_invalid")
+  }
+  None
 }
 
 ///|

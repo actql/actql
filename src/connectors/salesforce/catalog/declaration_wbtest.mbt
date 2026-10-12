@@ -496,14 +496,14 @@ test "declared use is checked before I/O against the Site and the rules" {
   assert_eq(
     check_execution_write(update, {
       ..current,
-      binding: { ..binding, site_generation: 5, },
+      binding: SiteCatalog({ ..binding, site_generation: 5, }),
     }),
     Err(ForeignDeclaration),
   )
   assert_eq(
     check_execution_write(update, {
       ..current,
-      binding: { ..binding, org_id: "00D000000000002EAA", },
+      binding: SiteCatalog({ ..binding, org_id: "00D000000000002EAA", }),
     }),
     Err(ForeignDeclaration),
   )
@@ -511,11 +511,11 @@ test "declared use is checked before I/O against the Site and the rules" {
   assert_true(
     check_execution_write(update, {
       ..current,
-      binding: {
+      binding: SiteCatalog({
         ..binding,
         dispatch_request_cid: "sha256:" + "e".repeat(64),
         sync_occurrence: "sync-b",
-      },
+      }),
     })
     is Ok(_),
   )

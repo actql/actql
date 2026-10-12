@@ -9,6 +9,7 @@ priv struct StoredRunConfiguration {
   context_cid : String
   policy_cid : String
   run_namespace : String
+  source_free_result_policy : (String, String)?
 }
 
 ///|
@@ -23,6 +24,7 @@ priv struct StoredRun {
   mut restoration : Int?
   mut physical_start_reserved : Bool
   mut native_source_reserved : Bool
+  mut source_free_compute_reserved : Bool
   mut normalization : @local_run.LocalRunNormalization?
   mut outcome : Result[@local_run.LocalRunPlan, @local_run.LocalRunIssue]?
 }
@@ -52,7 +54,7 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
   guard input_cursor(value, slot) is Some(cursor) &&
     @decode.closed_object(cursor, [
       "account", "principal", "connection", "resource", "operation", "authority_scope_cid",
-      "context_cid", "policy_cid", "namespace",
+      "context_cid", "policy_cid", "namespace", "source_free_result_policy",
     ])
     is Ok(object) &&
     required_text(object, "account") is Some(account_wire) &&
@@ -66,6 +68,24 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
     required_text(object, "namespace") is Some(run_namespace) &&
     @authorization.admit_account_configuration_json(account_wire) is Ok(account) else {
     return -30
+  }
+  // The installed Host supplies the genuine policy original. This field is
+  // not a publisher grant; Source-backed Runs keep their checked Source policy.
+  guard @decode.required(object, "source_free_result_policy")
+    is Ok(policy_cursor) else {
+    return -30
+  }
+  let source_free_result_policy = if @decode.is_null(policy_cursor) {
+    None
+  } else {
+    guard @decode.closed_object(policy_cursor, ["cid", "body"]) is Ok(original) &&
+      required_text(original, "cid") is Some(cid) &&
+      required_text(original, "body") is Some(body) &&
+      @host.admit_source_free_result_policy_body(cid, body, 65536, 8192, 64)
+      is Ok(_) else {
+      return -30
+    }
+    Some((cid, body))
   }
   let handle = value.next_handle
   let borrow = match
@@ -83,6 +103,7 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
     context_cid,
     policy_cid,
     run_namespace,
+    source_free_result_policy,
   }
   value.next_handle += 1
   handle
@@ -101,7 +122,7 @@ pub fn reserve_run(
   guard selected(nonce) is Some(value) &&
     value.run_configurations.contains(configuration) &&
     value.preparations.get(preparation) is Some(prepared) &&
-    prepared.outcome is Some(Ok(_)) &&
+    stored_preparation_input(prepared) is Some(_) &&
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
@@ -125,6 +146,7 @@ pub fn reserve_run(
     restoration: None,
     physical_start_reserved: false,
     native_source_reserved: false,
+    source_free_compute_reserved: false,
     normalization: None,
     outcome: None,
   }
@@ -141,7 +163,7 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
     value.runs.get(handle) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     value.preparations.get(record.preparation) is Some(preparation) &&
-    preparation.outcome is Some(Ok(input)) else {
+    stored_preparation_input(preparation) is Some(input) else {
     return -2
   }
   if record.restoration is Some(_) {
@@ -180,26 +202,43 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
       return 0
     }
   }
-  let prepare = if @host.prepared_client_acquisition_count(prepared) == 0 {
-    @local_run.prepare_source_free_local_run
-  } else {
-    @local_run.prepare_captured_source_local_run
-  }
   record.outcome = Some(
-    prepare(
-      input,
-      configuration.authority_scope_cid,
-      caller_request_id,
-      permit,
-      configuration.account,
-      configuration.tuple,
-      configuration.context_cid,
-      configuration.policy_cid,
-      configuration.run_namespace,
-      run_id,
-      created_at,
-      valid_until,
-    ),
+    if @host.prepared_client_acquisition_count(prepared) == 0 {
+      match configuration.source_free_result_policy {
+        None => Err(@local_run.Admission(@host.InvalidResultPolicy))
+        Some(original_policy) =>
+          @local_run.prepare_source_free_local_publication_run(
+            input,
+            configuration.authority_scope_cid,
+            caller_request_id,
+            permit,
+            configuration.account,
+            configuration.tuple,
+            configuration.context_cid,
+            configuration.policy_cid,
+            configuration.run_namespace,
+            run_id,
+            created_at,
+            valid_until,
+            original_policy,
+          )
+      }
+    } else {
+      @local_run.prepare_captured_source_local_run(
+        input,
+        configuration.authority_scope_cid,
+        caller_request_id,
+        permit,
+        configuration.account,
+        configuration.tuple,
+        configuration.context_cid,
+        configuration.policy_cid,
+        configuration.run_namespace,
+        run_id,
+        created_at,
+        valid_until,
+      )
+    },
   )
   0
 }
@@ -213,7 +252,7 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
     value.runs.get(handle) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     value.preparations.get(record.preparation) is Some(preparation) &&
-    preparation.outcome is Some(Ok(input)) &&
+    stored_preparation_input(preparation) is Some(input) &&
     value.restorations.get(materials) is Some(restoration) &&
     restoration.outcome is Some(Ok(restored)) &&
     restoration.expected_definition_cid is Some(definition_cid) else {
@@ -317,7 +356,19 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     value.run_configurations.get(handle) is Some(record) else {
     return -2
   }
-  if value.submissions.values().any(record => record.configuration == handle) ||
+  if value.computes
+    .values()
+    .any(compute => compute.current_configuration == Some(handle)) ||
+    value.materials
+    .values()
+    .any(material => {
+      material.submission is Some(submission) &&
+      submission.current_configuration == handle
+    }) ||
+    value.submissions.values().any(record => record.configuration == handle) ||
+    value.publishers
+    .values()
+    .any(publisher => publisher.configuration == handle) ||
     value.tasks.values().any(task => task.current_configuration == handle) ||
     value.runs.values().any(run => run.configuration == handle) ||
     value.physical_starts

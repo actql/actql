@@ -14,8 +14,7 @@ pub fn local_component(
     active.advancing ||
     !(active.phase is Input) ||
     active.work != 0L ||
-    active.local_component_bound ||
-    active.root_reservation is Some(_) {
+    active.local_component_bound {
     return Err(InvalidAdvance)
   }
   active.local_component_bound = true
@@ -29,6 +28,7 @@ pub fn local_component(
         }
         let total = match poll {
           Continue(work~)
+          | AwaitIo(work~)
           | Waiting(work~)
           | Settling(_, work~)
           | Complete(_, work~)
@@ -42,6 +42,9 @@ pub fn local_component(
         charged.val = total
         match poll {
           Continue(_) => Ok(@local.managed_provider_continue(delta, delta))
+          // This installed managed profile does not admit persistence polls.
+          // Never disguise I/O suspension as a checkpoint or zero-work loop.
+          AwaitIo(_) => Err(project_issue(InvalidAdvance))
           Waiting(_) => Ok(@local.managed_provider_waiting(delta, delta))
           Settling(slot, ..) =>
             Ok(@local.managed_provider_settling(slot, delta, delta))

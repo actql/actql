@@ -19,7 +19,7 @@ pub(all) enum ClientSerializationOutputIssue {
 pub fn complete_client_serialization_output(
   input : ClientSerializationInput,
   candidate : @publication.GeneratedContentReference,
-  content : @admitted.CheckedValue,
+  content : @values.CheckedValue,
   available : () -> Bool,
   limits : @execution.ValueLimits,
   max_name_bytes : Int,
@@ -39,11 +39,11 @@ pub fn complete_client_serialization_output(
     generated.row_count == input.rows else {
     return Err(GenerationIncomplete)
   }
-  guard content.value is @admitted.Reference(reference) &&
-    @admitted.reference_available(reference) &&
-    @admitted.reference_identity_cid(reference) ==
+  guard content.value is @values.Reference(reference) &&
+    @values.reference_available(reference) &&
+    @values.reference_identity_cid(reference) ==
     @publication.generated_content_reference_identity(candidate) &&
-    @admitted.reference_wire(reference) ==
+    @values.reference_wire(reference) ==
     @publication.generated_content_reference_wire(candidate) else {
     return Err(ForeignReference)
   }
@@ -83,27 +83,27 @@ pub fn complete_client_serialization_output(
     @execution.cancel_admitted_output(stream) |> ignore
     return Err(Admission(@execution.CaptureLimit))
   }
-  let values : Array[@admitted.CheckedValue] = []
+  let values : Array[@values.CheckedValue] = []
   for index in 0..<5 {
     let contract = @schema.field_contract(
       @schema.field_at(schema, index).unwrap(),
     )
     let value = match index {
       0 =>
-        @admitted.recheck_runtime_value(content.value, contract, {
+        @values.recheck_runtime_value(content.value, contract, {
           max_nodes: 1,
           max_text_bytes: 0,
           max_depth: 0,
         })
-      1 => @admitted.checked_text_value(generated.media_type, contract)
-      2 => @admitted.checked_text_value(generated.name, contract)
+      1 => @values.checked_text_value(generated.media_type, contract)
+      2 => @values.checked_text_value(generated.name, contract)
       3 =>
-        @admitted.checked_number_value(
+        @values.checked_number_value(
           generated.row_count.to_double(),
           contract,
         )
       _ =>
-        @admitted.checked_number_value(
+        @values.checked_number_value(
           generated.size_bytes.to_double(),
           contract,
         )
@@ -135,7 +135,7 @@ pub fn complete_client_serialization_output(
       5,
       max_name_bytes,
       fn(_ : Unit) {
-        if available() && @admitted.reference_available(reference) {
+        if available() && @values.reference_available(reference) {
           Some(rows)
         } else {
           None

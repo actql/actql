@@ -1,0 +1,20 @@
+{
+  "source": "0b219a9abbe44aa67c3789484a4474538d6dd1cc",
+  "run": "run-fQCCOQ",
+  "focused": "focused-test-sdoVXR",
+  "result": "Test compilation failed because Diagnostic does not implement Eq; no runtime cases executed. Correct only the new retired-head assertion to an exact Ok(false) pattern.",
+  "exit_code": 1,
+  "counts": null,
+  "original": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-fQCCOQ/summary.json",
+      "sha256": "8c936beb804a7a50a304df34e350f7ef3c0c3fd7d31693e11e67ce3aea763bec"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-fQCCOQ/output.log",
+      "sha256": "581ccbdaada64dcfd804cb875cca54840d3938a15a1ba411ff7fbec454d25070"
+    }
+  ],
+  "owner_absent": 15936,
+  "locks_released": true
+}

@@ -333,6 +333,16 @@ pub fn parameter_slots_work(ParameterSlots) -> Int
 
 pub fn parameters(CheckedPipeline) -> @parameter_binding.Declarations?
 
+pub fn prepare_produced_publication(CheckedPipeline, Target, @relation_typing.CheckedOperation, @decode_core.Cursor?, Limits) -> Result[PublicationPreparation, Issue]
+
+pub fn prepared_publication_input(PublicationPreparation) -> ProducedInput
+
+pub fn prepared_publication_order(PublicationPreparation) -> ResultPublication?
+
+pub fn prepared_publication_pending(PublicationPreparation) -> @decode_core.Cursor?
+
+pub fn prepared_publication_usage(PublicationPreparation) -> Usage
+
 pub fn produced_input(CheckedPipeline, Target) -> ProducedInput?
 
 pub fn producer_order(ProducedInput) -> LogicalOrder?
@@ -837,6 +847,8 @@ pub struct ProducerOrderIssue {
   pipeline : CheckedPipeline
   issue : Issue
 }
+
+type PublicationPreparation
 
 type PublishedInput
 

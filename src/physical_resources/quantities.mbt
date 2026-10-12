@@ -72,6 +72,16 @@ pub fn quantity_usage(ledger : Ledger) -> QuantityUsage {
 }
 
 ///|
+// Read-only installation consistency for an already configured original
+// Ledger. This configures nothing and grants no remaining quantity capacity.
+pub fn quantity_configuration_matches(
+  ledger : Ledger,
+  limits : QuantityAmounts?,
+) -> Bool {
+  ledger.quantity_limits == limits
+}
+
+///|
 fn check_quantity_reservation(
   ledger : Ledger,
   amount : QuantityAmounts?,

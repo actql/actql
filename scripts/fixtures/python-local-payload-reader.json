@@ -1,0 +1,15 @@
+{
+  "description": "Independent prepared original Core Sealed record/final name -> bounded physical reader -> existing Core Buffer borrow and cleanup. The prior fixed Result preimage is retained. No payload-value verifier, Store installation, publisher or public Local success claim. Matching module unexecuted.",
+  "object_name": "payload-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "payload": "[{\"next\":5}]",
+  "byte_count": 12,
+  "physical_digest": "sha256:eb9a6cfb7dc9e43152fefb085f2004515b205c9b084ac6fbc785958eb3d8138d",
+  "max_chunk_bytes": 5,
+  "offsets": [0, 5, 10],
+  "cases": [
+    "original_confirmed_sealed_names_and_current_context_precede_readonly_open",
+    "bounded_original_final_bytes_transfer_without_source_or_compute_replay",
+    "same_chunk_retained_until_original_core_borrow_stop_and_buffer_cleanup",
+    "physical_eof_and_same_handle_retirement_preserve_original_store_capacity"
+  ]
+}

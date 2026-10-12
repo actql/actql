@@ -1,9 +1,16 @@
 ///|
-/// Invocation custody around the existing captured Compute Host. Native
-/// completion is not activation, task success or Result publication.
+/// Invocation custody around existing captured and source-free Compute Hosts.
+/// Configuration is not activation, task success or Result publication.
+priv enum ComputeOrigin {
+  Captured(Int)
+  SourceFree(Int, Int)
+}
+
+///|
 priv struct StoredNativeCompute {
-  attempt : Int
+  origin : ComputeOrigin
   borrow : @buffers.BufferBorrow
+  mut current_configuration : Int?
   mut invoked : Bool
   mut pending : Bool
   mut closing : Bool
@@ -11,6 +18,30 @@ priv struct StoredNativeCompute {
   mut host : @local_run.LocalComputeHost?
   mut start : @local_run.LocalComputeStart?
   mut capture : @native_host.NativeHostSourceCapture?
+}
+
+///|
+fn stored_compute_original_run(
+  value : Instance,
+  compute : StoredNativeCompute,
+) -> StoredRun? {
+  match compute.origin {
+    Captured(attempt) => {
+      guard value.native_attempts.get(attempt) is Some(original) &&
+        value.native_sources.get(original.configuration) is Some(source) else {
+        return None
+      }
+      value.runs.get(source.run)
+    }
+    SourceFree(run, start) => {
+      guard value.physical_starts.get(start)
+        is Some({ run: original_run, outcome: Some(Ok(_)), .. }) &&
+        original_run == run else {
+        return None
+      }
+      value.runs.get(run)
+    }
+  }
 }
 
 ///|
@@ -41,8 +72,9 @@ pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int 
     Ok(borrow) => borrow
   }
   value.computes[handle] = {
-    attempt,
+    origin: Captured(attempt),
     borrow,
+    current_configuration: None,
     invoked: false,
     pending: false,
     closing: false,
@@ -61,7 +93,8 @@ pub fn reserve_native_compute(nonce : Int64, attempt : Int, input : Int) -> Int 
 pub fn configure_native_compute(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.computes.get(handle) is Some(record) &&
-    value.native_attempts.get(record.attempt) is Some(original) &&
+    record.origin is Captured(attempt) &&
+    value.native_attempts.get(attempt) is Some(original) &&
     original.outcome is Some(Ok(native)) &&
     original.observation is Some(observation) &&
     value.native_sources.get(original.configuration)
@@ -196,7 +229,7 @@ pub fn close_native_compute(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
-  if value.source_publications.values().any(source => source.compute == handle) {
+  if value.run_invocations.values().any(source => source.compute == handle) {
     return -9
   }
   if value.tasks.values().any(task => task.compute == handle) {

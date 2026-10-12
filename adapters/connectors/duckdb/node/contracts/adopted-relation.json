@@ -1,8 +1,8 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:e852d9c65f228bda8e1930fd49622d7930e216de6c2cbe86a7f497d0b0762aab",
+  "registry_cid": "sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041",
   "values_cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7",
-  "fragment_cid": "sha256:b759daac13703d21b02028dd0e9f39af3d231d7c6cb9ae2b6f64dc2abc734864",
+  "fragment_cid": "sha256:1e327eb9f007372c835c82f8c2e17b3ad7feed8bf45ddee035340892d973cbeb",
   "graph_cid": "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282",
   "registry": {
     "REL.select": {
@@ -38,7 +38,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:72595e1cb60d8282b27f98400c65740bc7b6a56f895434d74b46366135d0d797"
+          "cid": "sha256:85595efff53323afd08f33d88559d3b988525613bd08c43125c85e6e74762a5e"
         }
       }
     },
@@ -488,7 +488,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:b759daac13703d21b02028dd0e9f39af3d231d7c6cb9ae2b6f64dc2abc734864"
+        "cid": "sha256:1e327eb9f007372c835c82f8c2e17b3ad7feed8bf45ddee035340892d973cbeb"
       }
     }
   },
@@ -1504,12 +1504,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:2c9bc3db665a731e476510065c346af51f517d64d58be070c66d19bc30bfc2fe"
+        "cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:afb2959f03f85843731d53e0558fa27319c4b13f5c6214998dc8eb25f220e65b"
+        "cid": "sha256:e07531aa4e844069941baae63c624996db3c0d5ed4a2eddfb26b7030816da542"
       }
     },
     "params_schema": {

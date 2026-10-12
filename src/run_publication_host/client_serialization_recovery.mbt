@@ -103,7 +103,7 @@ pub fn readmit_client_serialization_generation_evidence(
   derivation : @publication.RunEvidenceValue,
   generation : @publication.RunEvidenceValue,
   candidate : @publication.StoredGeneratedContentReference,
-  content : @admitted.CheckedValue,
+  content : @values.CheckedValue,
 ) -> Result[
   @publication.BoundContentGeneration,
   ClientSerializationGenerationIssue,

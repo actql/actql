@@ -145,3 +145,59 @@ pub fn issue_client_effect_source_free_invocation(
     max_depth,
   )
 }
+
+///|
+/// The Local Values occurrence uses the Host's admitted Result policy original,
+/// never a Source installation or an unrelated Model egress CID. Compilation
+/// alternatives are selected by their actual common-owner type, not fallback.
+pub fn issue_client_compiled_local_values_invocation(
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  if check_client_compiled_run_definition(value, definition) is Err(_) ||
+    prepared_client_acquisition_count(value.owner) != 0 ||
+    prepared_client_uses_graph_carrier(value.owner) ||
+    @strategy.graph_program_has_effects(value.owner.graph) ||
+    !client_compiled_run_infers(value).is_empty() {
+    return Err(@publication.RunEvidenceReferenceMismatch("local_values_run"))
+  }
+  let bodies = match
+    client_compiled_run_publication_policy_bodies(
+      value, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err(
+        @publication.RunEvidenceReferenceMismatch("local_values_policy"),
+      )
+  }
+  guard bodies.length() > 0 && bodies[0].0 == "data_policy" else {
+    return Err(@publication.RunEvidenceReferenceMismatch("local_values_policy"))
+  }
+  match value.compilation {
+    Values(compilation) =>
+      issue_client_values_source_free_invocation(
+        compilation,
+        bodies[0].1,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      )
+    Tasks(compilation) =>
+      issue_client_task_source_free_invocation(
+        compilation,
+        bodies[0].1,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      )
+    Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("local_values_run"))
+  }
+}

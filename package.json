@@ -81,7 +81,7 @@
     "check:timestamp-pattern": "node scripts/check-timestamp-pattern.mjs",
     "generate:timestamp-pattern": "node scripts/check-timestamp-pattern.mjs --write",
     "generate:expression-typing": "node scripts/check-expression-typing.mjs --write",
-    "check:expression-syntax": "node scripts/round-precision-reference.mjs && node --test scripts/round-precision-reference.test.mjs && node --test scripts/round-precision-expression-contract.test.mjs && node scripts/substring-expression-contract.mjs && node --test scripts/substring-expression-contract.test.mjs && node scripts/google-scalar-expression-contract.mjs && node --test scripts/google-scalar-expression-contract.test.mjs && node scripts/abs-expression-contract.mjs && node --test scripts/abs-expression-contract.test.mjs && node scripts/typed-json-literal-contract.mjs && node scripts/typed-json-literal-vectors.mjs && node --test scripts/typed-json-literal-contract.test.mjs && node scripts/check-expression-syntax.mjs && node --test scripts/expression-syntax.test.mjs",
+    "check:expression-syntax": "node scripts/round-precision-reference.mjs && node --test scripts/round-precision-reference.test.mjs && node --test scripts/round-precision-expression-contract.test.mjs && node scripts/substring-expression-contract.mjs && node --test scripts/substring-expression-contract.test.mjs && node scripts/google-scalar-expression-contract.mjs && node --test scripts/google-scalar-expression-contract.test.mjs scripts/finite-math-expression-history.test.mjs scripts/number-extrema-expression-contract.test.mjs scripts/number-extrema-expression-history.test.mjs && node scripts/pad-sides-expression-contract.mjs && node --test scripts/pad-sides-expression-contract.test.mjs scripts/pad-sides-normative-registration.test.mjs scripts/pad-sides-expression-history.test.mjs && node scripts/split-expression-contract.mjs && node --test scripts/split-expression-contract.test.mjs scripts/split-normative-registration.test.mjs scripts/split-expression-history.test.mjs && node scripts/unicode-scalars-expression-contract.mjs && node --test scripts/unicode-scalars-expression-contract.test.mjs scripts/unicode-scalars-normative-registration.test.mjs scripts/unicode-scalars-expression-history.test.mjs && node scripts/repeat-reverse-expression-contract.mjs && node --test scripts/repeat-reverse-expression-contract.test.mjs scripts/repeat-reverse-normative-registration.test.mjs scripts/repeat-reverse-expression-history.test.mjs && node scripts/cbrt-expression-contract.mjs && node --test scripts/cbrt-expression-contract.test.mjs scripts/cbrt-normative-registration.test.mjs scripts/cbrt-expression-history.test.mjs && node scripts/direct-trig-expression-contract.mjs && node --test scripts/direct-trig-expression-contract.test.mjs scripts/direct-trig-normative-registration.test.mjs scripts/direct-trig-expression-history.test.mjs scripts/direct-trig-oracles.test.mjs && node scripts/translate-instr-expression-contract.mjs && node --test scripts/translate-instr-expression-contract.test.mjs scripts/translate-instr-normative-registration.test.mjs scripts/translate-instr-expression-history.test.mjs && node scripts/abs-expression-contract.mjs && node --test scripts/abs-expression-contract.test.mjs && node scripts/typed-json-literal-contract.mjs && node scripts/typed-json-literal-vectors.mjs && node --test scripts/typed-json-literal-contract.test.mjs && node scripts/check-expression-syntax.mjs && node --test scripts/expression-syntax.test.mjs",
     "generate:expression-syntax": "node scripts/check-expression-syntax.mjs --write",
     "check:expression-text": "node scripts/check-expression-text.mjs && node --test scripts/expression-text.test.mjs",
     "generate:expression-text": "node scripts/check-expression-text.mjs --write",
@@ -95,7 +95,7 @@
     "generate:value-admission": "node scripts/check-value-admission.mjs --write",
     "check:value-contracts": "node scripts/check-value-contracts.mjs",
     "generate:value-contracts": "node scripts/check-value-contracts.mjs --write",
-    "check:canonical": "node scripts/model-call-slot-contract.mjs && node scripts/model-slot-observation-contract.mjs && node scripts/model-attempt-evidence-contract.mjs && node scripts/model-invocation-scope-contract.mjs && node scripts/model-dependency-contract.mjs && node scripts/check-canonical-json.mjs && node scripts/typed-json-stage-vectors.mjs && node scripts/check-stage-semantics.mjs && node scripts/result-import-interface.mjs && node --test scripts/model-call-slot-contract.test.mjs scripts/model-slot-observation-contract.test.mjs scripts/model-attempt-evidence-contract.test.mjs scripts/model-invocation-scope-contract.test.mjs scripts/model-dependency-contract.test.mjs scripts/canonical-json.test.mjs scripts/effect-literal-key-vectors.test.mjs scripts/local-contract-closure.test.mjs scripts/result-import-interface.test.mjs scripts/execution-account-config.test.mjs scripts/checkpoint-resolution-signatures.test.mjs",
+    "check:canonical": "node scripts/model-response-profile-contract.mjs && node scripts/model-response-profile-vectors.mjs && node scripts/model-call-slot-contract.mjs && node scripts/model-slot-observation-contract.mjs && node scripts/model-attempt-evidence-contract.mjs && node scripts/model-invocation-scope-contract.mjs && node scripts/model-dependency-contract.mjs && node scripts/check-canonical-json.mjs && node scripts/typed-json-stage-vectors.mjs && node scripts/check-stage-semantics.mjs && node scripts/result-import-interface.mjs && node --test scripts/model-response-profile-contract.test.mjs scripts/model-call-slot-contract.test.mjs scripts/model-slot-observation-contract.test.mjs scripts/model-attempt-evidence-contract.test.mjs scripts/model-invocation-scope-contract.test.mjs scripts/model-dependency-contract.test.mjs scripts/canonical-json.test.mjs scripts/effect-literal-key-vectors.test.mjs scripts/local-contract-closure.test.mjs scripts/result-import-interface.test.mjs scripts/execution-account-config.test.mjs scripts/checkpoint-resolution-signatures.test.mjs",
     "generate:canonical": "node scripts/check-canonical-json.mjs --write",
     "check:encoding": "node scripts/check-json-encoding.mjs && node --test scripts/json-encoding.test.mjs",
     "generate:encoding": "node scripts/check-json-encoding.mjs --write",
@@ -124,15 +124,32 @@
     "generate:relation-join": "node scripts/check-relation-join.mjs --write",
     "check:remote-site-wire": "node --test scripts/remote-site-wire.test.mjs",
     "build:runtime-packages": "node scripts/build-runtime-packages.mjs",
-    "precheck:salesforce-site": "node scripts/build-runtime-packages.mjs run-host-core"
+    "precheck:salesforce-site": "node scripts/build-runtime-packages.mjs run-host-core",
+    "check:historical-json": "node scripts/historical-json-archive.mjs check && node --test scripts/historical-json.test.mjs",
+    "precheck:expression-syntax": "npm run check:historical-json"
   },
   "devDependencies": {
     "@actql/client-wire": "file:packages/client-wire",
+    "@actql/explorer-ui": "file:packages/explorer-ui",
+    "@actql/sdk": "file:packages/sdk",
+    "@hono/node-server": "2.1.4",
     "esbuild": "0.28.1",
     "github-slugger": "2.0.0",
+    "hono": "4.13.13",
     "remark-parse": "11.0.0",
     "typescript": "5.9.3",
     "unified": "11.0.5",
-    "yaml": "2.9.0"
+    "yaml": "2.9.0",
+    "@base-ui/react": "1.8.0",
+    "@xyflow/react": "12.12.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "vite": "8.3.2",
+    "tailwindcss": "4.3.3",
+    "lucide-react": "1.51.0"
   }
 }

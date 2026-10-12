@@ -336,14 +336,14 @@ pub fn start_client_serialization_completed_row(
       }
       if field.presence == @schema.Required {
         match @execution.completed_cell(input, row, column) {
-          Some(Null) => @publication.ContentPresent(@admitted.null_value())
+          Some(Null) => @publication.ContentPresent(@values.null_value())
           Some(Number(number)) =>
-            match @admitted.number_value(number) {
+            match @values.number_value(number) {
               Some(value) => @publication.ContentPresent(value)
               None => @publication.ContentInputUnavailable
             }
           Some(Boolean(boolean)) =>
-            @publication.ContentPresent(@admitted.boolean_value(boolean))
+            @publication.ContentPresent(@values.boolean_value(boolean))
           Some(Text(text)) => @publication.ContentText(text)
           Some(Captured(value)) => @publication.ContentPresent(value)
           None => @publication.ContentInputUnavailable

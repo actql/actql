@@ -1,10 +1,291 @@
-# Native Client transport CLI
+# Native Client CLI
 
 `actql-native-client` is a Node-free native binary that uses the public
-Client–Host HTTP protocol over mTLS. It uses the existing bounded native
-HTTPS adapter. It does not load a Local kernel or a Cloud SDK, and it does not
-implement Run admission or retry itself. The selected Host must provide the
-corresponding operations.
+Client–Host HTTP protocol over mTLS. Remote operations use the existing bounded
+native HTTPS adapter; the selected Host owns Run admission and retry. The source
+candidate also provides explicit embedded Local preparation through the common
+checker. Local execution and operations remain unfinished; preparation does not
+admit a Run or establish authorization.
+
+## Embedded Local preparation
+
+Select `--mode local`, `--config-root` and `--config-file` explicitly. The
+configuration selects a bounded Check Environment original and its evidence
+bundle CID. `check --program-file <file> --format <format>` prepares the input
+through the existing Native frontend/checker. External parameter declarations
+are allowed only for `aql-text` and `sql`; parameter values remain separate.
+Remote endpoint and authentication flags are refused in this mode.
+
+Human output states that no Run was admitted. `check --json` returns
+`kind: prepared`; it is not a verified public diagnostics report. Unsupported
+inputs or operations are refused. Source alias discovery,
+Local Run commands, Checkpoint answers and cross-process Local Run recovery
+are not completed by this preparation entry. The source fixtures are in
+`scripts/fixtures/native-local-cli`; current source changes do not establish
+fresh installed-artifact acceptance by themselves.
+
+The focused developer acceptance command
+`node scripts/test-native-cli-local-install.mjs <fixed-CLI-RC>` installs the
+existing `actql` launcher and matching platform artifact into an external npm
+prefix using the fixed-artifact private registry. It reuses the Native ingress
+cases with the installed launcher, checks exact source/artifact identity, and
+retains command and nonzero-test evidence. It does not require an SDK RC or
+run the Remote acceptance campaign. Its scope is preparation, value preservation
+and refusal; Local Run, approval and process recovery remain separate unfinished
+requirements. Run this through the existing heavy guard after preparing a
+clean-source Native CLI RC with the existing artifact/release producers.
+
+## Explicit Local Host adoption
+
+The source candidate adds `adopt`, `connect` and `new-submission` in explicit
+Local mode. These connect the existing account, adoption, journal and Submission
+epoch Owners; they do not yet execute or publish a Local Run. Installed-artifact
+acceptance for these commands is separate from the earlier preparation fixture.
+
+`adopt --json` explicitly finalizes a private Host. `connect --json` opens only
+the same retained Host and refuses absent state or unfinished initialization;
+it never initializes keys or repairs missing originals. Both return account and
+adoption identities, without a Run or Provider grant. The human form says that
+no Run has been admitted. `new-submission --request-id <nonce>` returns the
+existing epoch/nonce reference only when the selected execution account permits
+the `principal × connection × run × submit` tuple. A reference is not acceptance
+or Provider read/apply authority. No-match and delegated permission are refused
+in this first slice.
+
+`lookup-submission --submission-ref-file <file>` opens the retained Host and
+authenticates the saved original epoch/nonce through its existing journal. The
+reference file is read from the explicitly selected configuration root. Current
+account permission for the same submit scope is required; the reference itself
+grants no authority. Lookup never prepares, acquires or executes a Program, and
+does not replace an expired epoch. Its Local CLI JSON has
+`kind: local_submission_lookup` and the exact `submissionRef`; `history:
+unresolved` is not evidence of nonexecution or permission to resubmit. Retained
+records expose `preparing` or `ready` admission facts with exact decimal
+revisions. A ready admission is not an execution outcome or published Result.
+This source connection does not yet complete Local submit/attach execution or
+establish fixed-artifact process acceptance.
+
+The next source candidate connects `start` and `aql` to the same original
+Submission journal, ordinary frontend/compiler, Native Source/Compute Work,
+original Local normalization audit and Native Result publication Store. It is
+not yet verified using a fresh CLI artifact. This profile requires one
+explicitly installed Source, a supported linear Effect-free Program, explicit
+view/no semantic completions, and selected Run/retention originals. Effect
+execution, Result read and full process recovery remain unfinished.
+
+Input is durably recorded before preparation. A rejected preparation can be
+looked up as the same retained submission; it is never treated as absent or as
+permission to replace its input. An already-admitted submission returns the
+original lookup facts without recompilation, a new Run or another acquisition.
+`ready` still means admission only. A retained admission resolves the same
+original Run definition into the common closed Run reference and separately
+observes its control revision; neither comes from current Run settings or
+from the admission revision. This reference is not an execution or read grant.
+`local_run_published` is emitted only after
+the original Store confirms publication and temporary Source/Compute cleanup
+and Store close succeed; it is not a Result delivery receipt or read grant.
+The selected Result retention original supplies the Run validity ceiling.
+Current submit and Source read authority are independent. A publication error
+retains original Store materials for reconciliation rather than deleting them
+or opening another Source. Pending cleanup is reported as incomplete.
+
+The source candidate also connects Local `lookup-cancellation` to the existing
+original-operation journal. Provide both `--submission-ref-file` and
+`--ref-file`, together with the original `--cancel-id` and
+`--expected-revision`. The Host authenticates the original Submission, resolves
+its retained admitted Run, requires an exact Run-reference match and rechecks
+current `principal × connection × run × cancel` authority. Submit permission
+does not supply cancel authority. Remote mode refuses the Local-only Submission
+binding; the existing Remote request and wire remain unchanged.
+
+The Local reply has `kind: local_cancellation_lookup`, the exact `ref` and
+`cancelRef`, and `history: unresolved` or `retained`. A retained record projects
+only its original `action` and exact decimal `recordedControlRevision`; this is
+not a new Run-control snapshot. An unresolved history certifies neither refusal
+nor absence of side effects, physical stop or resource release. Lookup does not
+issue a cancellation, reopen payloads, load a Provider, recompile or resubmit.
+The Host must close successfully before stdout publishes the reply.
+
+Local `cancel` accepts the same original bindings and additionally requires
+`--operation-attempt-id`. It opens the original existing Store without format
+or database initialization and passes its real publication observer to the
+existing cancellation journal. That Owner atomically records the request and
+its original witness. The reply has `kind: local_cancellation_operation` and
+the same original-record fields as lookup. `invocationRef` correlates this CLI
+invocation; it is not an independent durable invocation refusal certificate.
+Reusing the original cancellation identity returns its immutable original
+record. A distinct operation against an already-requested Run records
+`already_requested`; it does not rewrite the earlier operation.
+
+After entering the cancellation transaction, an unconfirmed result or later
+close failure reports `LocalCancellationUnknown` with the exact original
+`cancel-ref` and `lookup=lookup-cancellation`. The reason can describe a local
+conflict or cleanup failure, but is not a durable refusal certificate or
+permission to resubmit. Lookup uses the original Submission, Run, cancel ID
+and revision; it does not need to reopen the Store or replay Source/Compute.
+Store and Host close must both succeed before a successful stdout reply.
+
+Cancellation acceptance is not confirmation of physical stop, terminal Run
+state or resource release. Physical-stop/cleanup restoration and actual
+fresh-artifact cancellation CLI acceptance remain unfinished. The process
+fixtures include discarded stdout after a real exited command; that case is
+not a pre/post-commit fault injection. These fixtures are defined and checked
+for syntax separately from runtime acceptance.
+
+Local `lookup-preparation-raw` observes one retained Preparation credential use.
+It requires `--submission-ref-file`, `--ref-file`, `--grant-ref-file`,
+`--operation-cid` and `--use-id`. The grant reference must match the original
+admitted request, and current Account permissions must independently allow the
+original Run and saved target resource to be read. The existing Host reader
+verifies original grant/target/use and Store custody. It needs neither a live
+Work nor an HTTP client, secret or the original issuer's issue permission.
+
+The bounded JSON reply reports the original use outcome/status and the retained
+raw response status, byte count and digest. It does not include the raw body,
+request or credential configuration; Result stdout settings do not authorize
+raw-body export. A claimed/unknown use remains claimed/unknown when retained
+response bytes exist. Missing or invalid originals, unavailable raw bytes,
+expired/revoked permission and cleanup failure refuse; none cause another GET,
+grant use or new execution. Store and Host close precede successful stdout.
+This command is source-connected; fresh-artifact exited-process CLI acceptance
+is still required and is not established by compiler-only fixtures.
+
+Local `delivery-attempt` observes only the original saved read attempt. Supply
+`--submission-ref-file`, `--ref-file`, `--result-name`, `--purpose` and
+`--attempt-id`. The trusted account must explicitly permit both the current
+`principal × connection × run × read` and
+`principal × connection × result/<name> × read` tuples. Submit or cancel
+permission is not Result read authority. Local-only purpose and Submission
+options are refused in Remote mode before transport setup.
+
+The existing original-Submission Owner authenticates the exact admitted Run
+and original Store custody. The Result access Owner rechecks current lookup
+authority before and after reading metadata. This lookup service does not
+provide read admission, delivery or receipt hooks and cannot issue/consume a
+grant or reopen payload. `history: unresolved` supplies no replay permission.
+A retained reply contains the original `attempt`, optional latest `record` and
+optional `hostReleaseReceipt`; missing records/receipts are explicit NULL.
+These independently obtained facts are not an atomic Run snapshot. Store and
+Host close must succeed before the reply is published. Actual retained-attempt
+CLI acceptance and the new read admission path remain unfinished; the defined
+process fixtures are not fresh-artifact execution evidence.
+
+Local `checkpoint-state --submission-ref-file <file> --ref-file <file>` reads
+only the original accepted Submission's retained Checkpoint metadata. Current
+adopted Host/Account `run × read` authority is required again on every lookup.
+The reply binds the exact original Submission and Run reference; an admitted
+Run without a Checkpoint returns `checkpoint: null`, while unresolved history,
+missing admission or lost Run custody refuses. It never starts a replacement.
+
+The Checkpoint object contains its original CID, the exact decimal-string Run
+control revision, retained Checkpoint Owner state and `cancellationRequested`.
+The latter is an accepted request, not confirmation of physical stop,
+cancelled settlement or cleanup. This metadata is not an atomic snapshot of
+all Owners. Lookup does not read Preview bodies, resolve/approve/reject a
+Checkpoint, claim resume, open Result payload or issue credentials. It is
+Local-only; Remote mode refuses before transport. The source and typed callers
+are connected, but Native runtime and exited-process CLI acceptance remain
+unexecuted and this command does not complete the approval path.
+
+An optional `native.local.read_file` selects a separate closed
+`actql-config/0.1` file with `native.result_read` settings. It must also occur
+in the existing finite `installation_files` selection. The existing exclusive
+adoption Owner retains and rechecks its exact bytes and physical generation;
+replacing even a valid selected original is refused rather than silently
+adopted. Run settings, Source Policy and Account contracts are unchanged.
+
+Read settings explicitly name `enabled`, `principal`, `connection`, literal
+`result_names`, existing `formats`, `purpose`, `sink: "stdout"`, original
+`data_policy_cids`, and finite `max_bytes`, `max_uses`, `expires_at`. Missing,
+unknown, duplicate or excessive fields are refused. Admission of these settings
+is not current read permission, a grant or validation of the referenced Policy
+originals. The payload admission/issuer and original Policy connection remain
+unfinished. Missing read settings do not disable the independent metadata-only
+`delivery-attempt` lookup.
+
+In addition to the preparation settings, the selected `actql-config/0.1`
+document requires `account_config` (one file name in the selected private root)
+and `native.local`:
+
+```json
+{
+  "account_id": "operator",
+  "principal": "operator",
+  "connection": "cli",
+  "state_parent": "/absolute/private/state-parent",
+  "state_name": "host",
+  "managed_root": "/absolute/private/managed-root",
+  "sqlite_library": "/absolute/path/to/installed/sqlite-library",
+  "signature_library": "/absolute/path/to/installed/crypto-library",
+  "submission_ttl_ms": 60000,
+  "journal_record_limit": 8,
+  "journal_snapshot_bytes": 8388608,
+  "installation_files": ["source-installation.json"]
+}
+```
+
+The configuration, state parent and managed root must be explicitly selected
+private directories. Physical library paths must name the installed platform
+runtimes; this candidate has not yet closed their standard Local distribution
+packaging. The CLI rejects an untrusted configuration root before loading these
+libraries. The three limits are explicit: TTL is at most one day, record count
+at most 1024, and snapshot bytes at most 512 MiB. `state_dir`, if supplied, must
+equal `state_parent + "/" + state_name` exactly.
+
+The config file and Check Environment original are durably bound with the
+account and managed-root identity. Optional `installation_files` explicitly
+selects up to six additional originals in the same private configuration root,
+each bounded to 64 KiB. Names must be distinct single components and cannot
+repeat the account, config or environment file. The same adoption transaction
+stores their exact bytes and generations; reconnect cannot replace or repair
+them. Selecting an original is custody only: it does not install a Source or
+Policy, prove a normalization journal, or grant Provider access. Changing selected content, replacing a
+source file even with identical bytes, or losing custody refuses reconnection.
+No missing original is repaired from current source files. Source/Result,
+original Run recovery, typed Direct Local credentials and approval-backed
+Effect remain the following execution slices.
+
+An optional `native.local.source_file` names one of the explicitly selected
+`installation_files`. Its bounded `actql-config/0.1` document contains only
+`version` and `native.source`. The Source settings decoder admits the closed
+physical binding, contract originals, Ledger/dispatch/search/import limits and
+estimate profiles into the existing Native Source/Compute configuration types.
+It does not load DuckDB, open a Source database or grant read permission. All
+numeric settings are explicit; physical byte budgets are at most 512 MiB, and
+unknown keys, missing required values, fractional limits and escaping DB names
+are refused before Host initialization. The DB name is one component under the
+adopted managed root; the execution connection must separately validate that
+physical binding and current Source authority before opening it.
+
+The input example `scripts/fixtures/native-local-cli/source-installation.json`
+reuses the existing Native Source contract originals. Its library placeholder
+must be replaced with the explicitly selected actual library in a test-owned
+configuration before adoption. `source-program.json` authors an explicit `v`
+Source View, then filter/select in acquisition and Compute; the independent
+expectation is one `answer` row `{id: 3}`. Explicit selection avoids pretending
+that the existing sole-view semantic completion has an empty normalization
+journal. These are input/expectation fixtures for the next public execution
+connection, not evidence that CLI Source/Result execution has already passed.
+
+An optional `native.local.run_file` also names a selected installation original.
+Its closed `native.run` configuration selects the namespace, a single Store
+component beneath the adopted managed root, Store authority, explicit Store
+capacity/object/record limits, a bounded Result payload allowance, and complete
+`retention_policy_wire`. The existing Result Retention contract validator checks
+that original including its self CID; the CLI does not issue a replacement CID
+for altered bytes. Each configured byte allowance is capped at 512 MiB, and the
+Result allowance cannot exceed Store capacity. Existing aggregate capacity
+checks remain required at execution. Configuration adoption preserves these exact bytes
+and generations without opening a Store or issuing a read grant. Execution and
+read authorization, Source Policy compatibility, retention applicability and
+Run lifetime still require their existing Owners when this configuration is used.
+
+`run-installation.json` is an independently authored synthetic configuration
+admission fixture. Its retention/metadata/clock reference identities are test
+inputs, not evidence of resolved execution dependencies or a completed public
+read. A successful `adopt` or `connect` cannot certify publication readiness.
+
+## Remote transport
 
 Build with the pinned MoonBit toolchain using `moon build --target native
 --release src/cmd/native_client`. The resulting binary is
@@ -71,12 +352,14 @@ embedded Local providers. The mTLS fixture in
 `scripts/test-native-client.mjs` uses a mock Host. The mock verifies request
 shape and response handling; it does not prove Host frontend admission or a
 native end-to-end Program Run. `scripts/test-native-sga-public-source.mjs`
-separately exercises authored DATA / GRAPH queries through an installed
+separately exercises authored WITH / GRAPH queries through an installed
 public HTTPS Host and Named Results. Its machine-Program control remains distinct
 from source execution. Run the focused installed acceptance with
 `node scripts/test-packed-public-query.mjs --graph-native-only`; see the
 [fixed-source acceptance record](../../../docs/reviews/2026-10-03-native-graph-source-acceptance.md)
 for independent rows, descriptions, refusal counters and its coverage limits.
+That historical record covers its fixed predecessor grammar; current WITH
+acceptance requires execution against the new source and package cohort.
 
 A held submission prints the validated request control reply as JSON. It has
 no Run reference: `lookup-submission --submission-ref-file <file>` observes the same intent

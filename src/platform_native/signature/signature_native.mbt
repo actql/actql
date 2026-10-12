@@ -49,8 +49,137 @@ extern "C" fn verify_ed25519_ffi(
 ) -> Int = "actql_native_signature_verify_ed25519"
 
 ///|
+#borrow(library, private_key, message)
+extern "C" fn sign_ed25519_ffi(
+  library : Library,
+  private_key : Bytes,
+  private_key_length : Int,
+  message : Bytes,
+  message_length : Int,
+) -> Bytes = "actql_native_signature_sign_ed25519"
+
+///|
+/// Physical crypto only, over the exact bytes selected by the existing
+/// Checkpoint/preimage Owner. This does not acquire a key, authorize signing,
+/// issue a Resolution, or persist a credential use. Trusted assembly separately
+/// supplies its purpose-specific original key custody and current authority.
+/// The result uses the verification adapter's unpadded base64url transport.
+pub fn Library::sign_ed25519(
+  self : Library,
+  private_key_pem : Bytes,
+  message : Bytes,
+) -> Result[String, NativeSignatureIssue] {
+  if private_key_pem.length() == 0 ||
+    private_key_pem.length() > 16384 ||
+    message.length() > 1048576 {
+    return Err(InvalidInput)
+  }
+  let result = sign_ed25519_ffi(
+    self,
+    private_key_pem,
+    private_key_pem.length(),
+    message,
+    message.length(),
+  )
+  if result.length() == 0 {
+    return Err(Signing("signature result unavailable"))
+  }
+  match result[0] {
+    0 if result.length() == 65 =>
+      Ok(
+        @base64.encode(result[1:])
+        .replace_all(old="+", new="-")
+        .replace_all(old="/", new="_")
+        .replace_all(old="=", new=""),
+      )
+    2 => Err(InvalidInput)
+    3 => Err(InvalidPrivateKey("private key decode rejected"))
+    4 => Err(UnsupportedKey("private key is not Ed25519"))
+    _ => Err(Signing("Ed25519 signing failed"))
+  }
+}
+
+///|
 fn library_message(library : Library) -> String {
   @utf8.decode_lossy(library_error_ffi(library))
+}
+
+///|
+#borrow(library)
+extern "C" fn random_bytes_ffi(library : Library, length : Int) -> Bytes = "actql_native_signature_random_bytes"
+
+///|
+#borrow(library, key, message)
+extern "C" fn hmac_sha256_ffi(
+  library : Library,
+  key : Bytes,
+  key_length : Int,
+  message : Bytes,
+  message_length : Int,
+) -> Bytes = "actql_native_signature_hmac_sha256"
+
+///|
+#borrow(library, expected, supplied)
+extern "C" fn equal_tag_ffi(
+  library : Library,
+  expected : Bytes,
+  supplied : Bytes,
+) -> Int = "actql_native_signature_equal_tag"
+
+///|
+/// Physical randomness for retained Host keys and nonces. This does not create
+/// an epoch, admission fact, credential or permission by itself.
+pub fn Library::random_bytes(
+  self : Library,
+  length : Int,
+) -> Result[Bytes, NativeSignatureIssue] {
+  if length < 1 || length > 4096 {
+    return Err(InvalidInput)
+  }
+  let result = random_bytes_ffi(self, length)
+  if result.length() != length {
+    return Err(Verification("secure random generation failed"))
+  }
+  Ok(result)
+}
+
+///|
+/// Authenticate exact bytes using the explicitly selected crypto library.
+/// The common Owner chooses the canonical body and its authority scope.
+pub fn Library::hmac_sha256(
+  self : Library,
+  key : Bytes,
+  message : Bytes,
+) -> Result[Bytes, NativeSignatureIssue] {
+  if key.length() < 1 || key.length() > 4096 || message.length() > 1048576 {
+    return Err(InvalidInput)
+  }
+  let tag = hmac_sha256_ffi(self, key, key.length(), message, message.length())
+  if tag.length() != 32 {
+    return Err(Verification("HMAC-SHA-256 authentication failed"))
+  }
+  Ok(tag)
+}
+
+///|
+pub fn Library::verify_hmac_sha256(
+  self : Library,
+  key : Bytes,
+  message : Bytes,
+  tag : Bytes,
+) -> Result[Bool, NativeSignatureIssue] {
+  if tag.length() != 32 {
+    return Err(InvalidInput)
+  }
+  let expected = match self.hmac_sha256(key, message) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match equal_tag_ffi(self, expected, tag) {
+    0 => Ok(true)
+    1 => Ok(false)
+    _ => Err(Verification("constant-time tag comparison unavailable"))
+  }
 }
 
 ///|

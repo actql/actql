@@ -13,9 +13,21 @@ priv struct TextArgumentsState {
 ///|
 priv enum TextFunctionKind {
   TextLength
+  TextByteLength
+  TextUnicode
+  TextChr
+  TextReverse
+  TextRepeat
   TextStrpos
+  TextTranslate
+  TextInstr
   TextReplace
+  TextSplit
   TextSubstring
+  TextLeft
+  TextRight
+  TextLPad
+  TextRPad
   TextUpper
   TextLower
   TextTrim
@@ -29,11 +41,27 @@ fn is_trim_text_function(kind : TextFunctionKind) -> Bool {
 }
 
 ///|
+fn is_slice_text_function(kind : TextFunctionKind) -> Bool {
+  kind == TextSubstring ||
+  kind == TextLeft ||
+  kind == TextRight ||
+  is_pad_text_function(kind)
+}
+
+///|
+fn is_pad_text_function(kind : TextFunctionKind) -> Bool {
+  kind == TextLPad || kind == TextRPad
+}
+
+///|
 priv struct TextFunctionState {
   expression : @lower.Expression
   roots : Array[ExpressionRootLease?]
   kind : TextFunctionKind
   null_result : Bool
+  chr_scalar : Char?
+  repetitions : Int
+  mut repetitions_remaining : Int
   input : String
   search : String
   mut replacement : String
@@ -53,10 +81,20 @@ priv struct TextFunctionState {
   mut preceding_cased : Bool
   mut probing_sigma : Bool
   mut probe_position : Int
+  instr_position : Double
+  instr_occurrence : Double
+  mut instr_phase : Int
+  mut instr_remaining : Int
+  mut translate_validated : Bool
+  mut translate_outer : Int
+  mut translate_inner : Int
   trim_explicit : Bool
   mut substring_phase : Int
   mut substring_start : Int64
   mut substring_end : Int64
+  mut padding : Int64
+  mut padding_remaining : Int64
+  mut padding_position : Int
   mut trim_scanning : Bool
   mut trim_start : Int
   mut trim_end : Int
@@ -75,9 +113,79 @@ fn start_text_function(
   for i, value in values {
     match value {
       Null => null_result = true
-      Text(_) if kind != TextSubstring || i == 0 => ()
-      Number(_) if kind == TextSubstring && i > 0 => ()
+      Text(_) if kind != TextChr &&
+        (
+          (
+            !is_slice_text_function(kind) &&
+            kind != TextRepeat &&
+            kind != TextInstr
+          ) ||
+          (kind == TextInstr && i < 2) ||
+          i == 0 ||
+          (is_pad_text_function(kind) && i == 2)
+        ) => ()
+      Number(_) if kind == TextChr ||
+        (kind == TextInstr && i >= 2) ||
+        (kind == TextSubstring && i > 0) ||
+        ((is_slice_text_function(kind) || kind == TextRepeat) && i == 1) => ()
       _ => return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+  }
+  fn text(value : Value) -> String {
+    match value {
+      Text(text) => text
+      _ => ""
+    }
+  }
+  let input = text(values[0])
+  let repeat_count = if kind == TextRepeat && !null_result {
+    // Count uses the existing finite integral Number domain. Validate before
+    // any narrowing and before the empty-input shortcut, including negatives.
+    guard values[1] is Number(number) &&
+      @scalar.read_integer_number(number) is Some(count) &&
+      count >= 0.0 else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    count
+  } else {
+    0.0
+  }
+  let chr_scalar = if kind == TextChr && !null_result {
+    // Validate the complete Number before narrowing; no host conversion may
+    // wrap a fraction, non-finite value, surrogate or out-of-range code point.
+    guard values[0] is Number(number) &&
+      @scalar.read_integer_number(number) is Some(point) &&
+      point >= 0.0 &&
+      point <= 1114111.0 &&
+      !(point >= 55296.0 && point <= 57343.0) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if point == 0.0 {
+      None
+    } else {
+      Some(point.to_int().unsafe_to_char())
+    }
+  } else {
+    None
+  }
+  let mut instr_position = 1.0
+  let mut instr_occurrence = 1.0
+  if kind == TextInstr && !null_result {
+    if values.get(2) is Some(value) {
+      guard value is Number(number) &&
+        @scalar.read_integer_number(number) is Some(position) &&
+        position != 0.0 else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      instr_position = position
+    }
+    if values.get(3) is Some(value) {
+      guard value is Number(number) &&
+        @scalar.read_integer_number(number) is Some(occurrence) &&
+        occurrence > 0.0 else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      instr_occurrence = occurrence
     }
   }
   let mut substring_start = 0L
@@ -97,11 +205,43 @@ fn start_text_function(
       substring_end = length
     }
   }
+  if is_slice_text_function(kind) && kind != TextSubstring && !null_result {
+    guard values[1] is Number(number) &&
+      @scalar.read_safe_integer(number) is Some(length) &&
+      length >= 0L else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    substring_start = if kind == TextRight { -length } else { 1L }
+    substring_end = length
+    if is_pad_text_function(kind) && values.get(2) is Some(Text("")) {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+  }
   if !reserve_slots(workspace, 2) {
     return Err({ kind: WorkspaceLimit, expression, })
   }
+  let repetitions = if kind == TextRepeat &&
+    !null_result &&
+    !input.is_empty() &&
+    repeat_count > 0.0 {
+    // A nonempty repetition must fit the exact UTF-16 workspace and builder
+    // representation. Divide integers first so float rounding cannot admit an
+    // overflowing product. Only this resource-derived bound permits narrowing;
+    // enormous valid counts for an empty String require no count-sized work.
+    let maximum = (workspace.limit - workspace.live).min(1073741823) /
+      input.length()
+    if repeat_count > maximum.to_double() {
+      return Err({ kind: WorkspaceLimit, expression, })
+    }
+    repeat_count.to_int()
+  } else {
+    0
+  }
   let output_root = if kind != TextLength &&
+    kind != TextByteLength &&
+    kind != TextUnicode &&
     kind != TextStrpos &&
+    kind != TextInstr &&
     !null_result &&
     scope is Some(scope) {
     let budget = scope.budget
@@ -134,38 +274,50 @@ fn start_text_function(
   } else {
     None
   }
-  fn text(value : Value) -> String {
-    match value {
-      Text(text) => text
-      _ => ""
-    }
-  }
-  let input = text(values[0])
   Ok({
     expression,
     roots,
     kind,
     null_result,
+    chr_scalar,
+    repetitions,
+    repetitions_remaining: repetitions,
     input,
-    search: if kind == TextReplace ||
+    search: if is_pad_text_function(kind) {
+      if values.get(2) is Some(pattern) {
+        text(pattern)
+      } else {
+        " "
+      }
+    } else if kind == TextReplace ||
       kind == TextStrpos ||
+      kind == TextTranslate ||
+      kind == TextInstr ||
       (is_trim_text_function(kind) && values.length() == 2) {
       text(values[1])
     } else {
       ""
     },
-    replacement: if kind == TextReplace {
+    replacement: if kind == TextReplace || kind == TextTranslate {
       text(values[2])
     } else {
       ""
     },
     output_root,
-    reserved: if kind == TextReplace || kind == TextSubstring {
+    reserved: if kind == TextReplace ||
+      kind == TextTranslate ||
+      kind == TextInstr ||
+      kind == TextRepeat ||
+      is_slice_text_function(kind) {
       values.length() * 3 + 3
     } else {
       2
     },
-    position: 0,
+    position: if kind == TextReverse {
+      input.length()
+    } else {
+      0
+    },
     matched: 0,
     emitting: false,
     emission: 0,
@@ -179,14 +331,24 @@ fn start_text_function(
     preceding_cased: false,
     probing_sigma: false,
     probe_position: 0,
+    instr_position,
+    instr_occurrence,
+    instr_phase: 0,
+    instr_remaining: 0,
+    translate_validated: false,
+    translate_outer: 0,
+    translate_inner: 0,
     trim_explicit: is_trim_text_function(kind) && values.length() == 2,
-    substring_phase: if kind == TextSubstring {
+    substring_phase: if is_slice_text_function(kind) {
       1
     } else {
       0
     },
     substring_start,
     substring_end,
+    padding: 0L,
+    padding_remaining: 0L,
+    padding_position: 0,
     trim_scanning: is_trim_text_function(kind),
     trim_start: if kind == TextRTrim {
       0
@@ -209,7 +371,7 @@ fn text_function_scalar(text : String, offset : Int) -> (Char, Int, Int, Int)? {
     return None
   }
   let unit = text[offset].to_int()
-  if unit >= 0xd800 && unit <= 0xdbff {
+  let scalar = if unit >= 0xd800 && unit <= 0xdbff {
     if offset + 1 >= text.length() {
       return None
     }
@@ -217,47 +379,79 @@ fn text_function_scalar(text : String, offset : Int) -> (Char, Int, Int, Int)? {
     if trailing < 0xdc00 || trailing > 0xdfff {
       return None
     }
-    let scalar = 0x10000 + ((unit - 0xd800) << 10) + trailing - 0xdc00
-    return Some((scalar.unsafe_to_char(), offset + 2, 4, 4))
-  }
-  if unit >= 0xdc00 && unit <= 0xdfff {
+    (0x10000 + ((unit - 0xd800) << 10) + trailing - 0xdc00).unsafe_to_char()
+  } else if unit >= 0xdc00 && unit <= 0xdfff {
     return None
+  } else {
+    unit.unsafe_to_char()
   }
-  let width = if unit < 0x80 { 1 } else if unit < 0x800 { 2 } else { 3 }
-  let wire = if unit == 34 ||
-    unit == 92 ||
-    unit == 8 ||
-    unit == 9 ||
-    unit == 10 ||
-    unit == 12 ||
-    unit == 13 {
+  let (units, width, wire) = text_function_scalar_widths(scalar)
+  Some((scalar, offset + units, width, wire))
+}
+
+///|
+/// Forward/reverse decoding and CHR share UTF-16, UTF-8 and JSON widths.
+/// CHR's zero special case is handled before this scalar-only measurement.
+fn text_function_scalar_widths(scalar : Char) -> (Int, Int, Int) {
+  let point = scalar.to_int()
+  let width = if point < 0x80 {
+    1
+  } else if point < 0x800 {
     2
-  } else if unit < 32 {
+  } else if point < 0x10000 {
+    3
+  } else {
+    4
+  }
+  let wire = if point == 34 ||
+    point == 92 ||
+    point == 8 ||
+    point == 9 ||
+    point == 10 ||
+    point == 12 ||
+    point == 13 {
+    2
+  } else if point < 32 {
     6
   } else {
     width
   }
-  Some((unit.unsafe_to_char(), offset + 1, width, wire))
+  (if point < 0x10000 { 1 } else { 2 }, width, wire)
 }
 
 ///|
-fn append_text_function_scalar(
-  state : TextFunctionState,
+fn text_function_previous_scalar(
   text : String,
-  offset : Int,
-) -> Result[Int, EvalIssue] {
-  let expression = state.expression
-  guard text_function_scalar(text, offset) is Some((scalar, next, width, wire)) else {
-    return Err({ kind: Scalar(InvalidOperand), expression, })
+  end : Int,
+) -> (Char, Int, Int, Int)? {
+  if end <= 0 || end > text.length() {
+    return None
   }
+  let last = text[end - 1].to_int()
+  let start = if last >= 0xdc00 && last <= 0xdfff { end - 2 } else { end - 1 }
+  match text_function_scalar(text, start) {
+    Some((scalar, next, width, wire)) if next == end =>
+      Some((scalar, start, width, wire))
+    _ => None
+  }
+}
+
+///|
+fn append_text_function_codepoint(
+  state : TextFunctionState,
+  scalar : Char,
+  units : Int,
+  width : Int,
+  wire : Int,
+) -> Result[Unit, EvalIssue] {
+  let expression = state.expression
   if state.building {
     guard state.builder is Some(builder) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
     builder.write_char(scalar)
   } else {
-    if next - offset > 1073741823 - state.units ||
-      wire > 2147483647 - state.bytes {
+    if units > 1073741823 - state.units || wire > 2147483647 - state.bytes {
       return Err({ kind: WorkspaceLimit, expression, })
     }
     if state.output_root is Some(root) {
@@ -274,11 +468,27 @@ fn append_text_function_scalar(
         Ok(_) => ()
       }
     }
-    state.units += next - offset
+    state.units += units
     state.bytes += wire
     state.weight += width.to_int64()
   }
-  Ok(next)
+  Ok(())
+}
+
+///|
+fn append_text_function_scalar(
+  state : TextFunctionState,
+  text : String,
+  offset : Int,
+) -> Result[Int, EvalIssue] {
+  guard text_function_scalar(text, offset) is Some((scalar, next, width, wire)) else {
+    return Err({ kind: Scalar(InvalidOperand), expression: state.expression, })
+  }
+  match
+    append_text_function_codepoint(state, scalar, next - offset, width, wire) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(next)
+  }
 }
 
 ///|
@@ -292,9 +502,19 @@ fn advance_text_function(
   if state.null_result {
     return Ok(Some(Null))
   }
+  if state.kind == TextInstr {
+    return advance_instr_function(state)
+  }
+  if state.kind == TextTranslate && !state.translate_validated {
+    return advance_translate_validation(state)
+  }
   if state.substring_phase == 1 {
     if state.position == state.input.length() {
       let count = state.count.to_int64()
+      if is_pad_text_function(state.kind) {
+        state.padding = (state.substring_end - count).max(0L)
+        state.padding_remaining = state.padding
+      }
       let position = state.substring_start
       let start = if position > 0L {
         (position - 1L).min(count)
@@ -335,6 +555,22 @@ fn advance_text_function(
     }
     state.position = next
     state.count += 1
+    return Ok(None)
+  }
+  // Repeat only one pattern scalar per charged poll. Both the exact sizing
+  // pass and construction pass use this cursor; no repeated string is ever
+  // allocated before its logical bytes and workspace have been admitted.
+  if state.padding_remaining > 0L &&
+    (state.kind == TextLPad || state.position == state.trim_end) {
+    state.padding_position = match
+      append_text_function_scalar(state, state.search, state.padding_position) {
+      Ok(next) => next
+      Err(issue) => return Err(issue)
+    }
+    state.padding_remaining -= 1L
+    if state.padding_position == state.search.length() {
+      state.padding_position = 0
+    }
     return Ok(None)
   }
   if state.trim_scanning {
@@ -381,16 +617,49 @@ fn advance_text_function(
     state.position = next
     return Ok(None)
   }
-  if state.kind == TextLength {
+  if state.kind == TextLength || state.kind == TextByteLength {
     if state.position == state.input.length() {
-      return Ok(Some(Number(state.count.to_double())))
+      return Ok(
+        Some(
+          Number(
+            if state.kind == TextLength {
+              state.count.to_double()
+            } else {
+              (state.weight - 1L).to_double()
+            },
+          ),
+        ),
+      )
     }
     guard text_function_scalar(state.input, state.position)
-      is Some((_, next, _, _)) else {
+      is Some((_, next, width, _)) else {
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
     state.position = next
     state.count += 1
+    // Int64 keeps the exact byte count even when UTF-8 exceeds the number of
+    // admitted UTF-16 code units. Every increment remains one charged poll.
+    state.weight += width.to_int64()
+    return Ok(None)
+  }
+  if state.kind == TextUnicode {
+    if state.input.is_empty() {
+      return Ok(Some(Number(0.0)))
+    }
+    guard text_function_scalar(state.input, 0) is Some((scalar, _, _, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    return Ok(Some(Number(scalar.to_int().to_double())))
+  }
+  if state.kind == TextChr &&
+    state.position == 0 &&
+    state.chr_scalar is Some(scalar) {
+    let (units, width, wire) = text_function_scalar_widths(scalar)
+    match append_text_function_codepoint(state, scalar, units, width, wire) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    state.position = 1
     return Ok(None)
   }
   if state.kind == TextStrpos {
@@ -453,8 +722,25 @@ fn advance_text_function(
     state.emission = 0
     return Ok(None)
   }
-  let end = if is_trim_text_function(state.kind) || state.kind == TextSubstring {
+  if state.kind == TextRepeat &&
+    state.position == state.input.length() &&
+    state.repetitions_remaining > 1 {
+    state.repetitions_remaining -= 1
+    state.position = 0
+    return Ok(None)
+  }
+  let end = if state.kind == TextReverse ||
+    (state.kind == TextRepeat && state.repetitions == 0) {
+    0
+  } else if is_trim_text_function(state.kind) ||
+    is_slice_text_function(state.kind) {
     state.trim_end
+  } else if state.kind == TextChr {
+    if state.chr_scalar is Some(_) {
+      1
+    } else {
+      0
+    }
   } else {
     state.input.length()
   }
@@ -483,16 +769,43 @@ fn advance_text_function(
     state.allocated = state.units
     state.builder = Some(StringBuilder(size_hint=state.units * 2))
     state.building = true
-    state.position = if is_trim_text_function(state.kind) ||
-      state.kind == TextSubstring {
+    state.position = if state.kind == TextReverse {
+      state.input.length()
+    } else if is_trim_text_function(state.kind) ||
+      is_slice_text_function(state.kind) {
       state.trim_start
     } else {
       0
     }
     state.matched = 0
+    state.repetitions_remaining = state.repetitions
+    state.padding_remaining = state.padding
+    state.padding_position = 0
     state.preceding_cased = false
     state.probing_sigma = false
     state.probe_position = 0
+    return Ok(None)
+  }
+  if state.kind == TextTranslate {
+    return advance_translate_scalar(state)
+  }
+  if state.kind == TextReverse {
+    guard text_function_previous_scalar(state.input, state.position)
+      is Some((scalar, previous, width, wire)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    match
+      append_text_function_codepoint(
+        state,
+        scalar,
+        state.position - previous,
+        width,
+        wire,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    state.position = previous
     return Ok(None)
   }
   if state.kind == TextUpper || state.kind == TextLower {
@@ -536,7 +849,7 @@ fn advance_text_function(
     }
     return Ok(None)
   }
-  if is_trim_text_function(state.kind) || state.kind == TextSubstring {
+  if is_trim_text_function(state.kind) || is_slice_text_function(state.kind) {
     state.position = match
       append_text_function_scalar(state, state.input, state.position) {
       Ok(next) => next

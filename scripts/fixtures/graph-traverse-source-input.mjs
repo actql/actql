@@ -38,9 +38,9 @@ const columns = [
 ];
 const result = (domain, empty = false) => ({nodes: {columns,
   rows: empty ? [] : [{start_id: identity(domain), node_id: identity(domain), depth: 0}]}});
-const source = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
-const seeds = 'DATA seeds = FROM g |> node_rows() |> SELECT id AS element; ';
-const call = "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10)";
+const source = 'WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
+const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
+const call = "traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10)";
 const tail = ' |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT nodes';
 const json = JSON.stringify({version: 'actql/0.1', id: 'fixture.traverse_nodes',
   stages: [{id: 'main', inputs: {}, steps: [
@@ -59,11 +59,11 @@ export const graphTraverseSourceSuccesses = [
     results: result(jsonDomain), sourceReadCount: 0},
   {name: 'graph-traverse-nodes-data-selector', format: 'aql-text', text: source + seeds + 'FROM g |> ' + call + tail,
     results: result(sourceDomain), sourceReadCount: 0},
-  {name: 'graph-traverse-nodes-empty-hop-labels', format: 'aql-text', text: source + seeds + 'DATA visited = FROM g |> ' +
-    "traverse(start: {from: seeds, id: 'element'}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'nodes') |> SELECT start_id, node_id, depth; FROM visited |> ORDER BY depth |> RESULT nodes",
+  {name: 'graph-traverse-nodes-empty-hop-labels', format: 'aql-text', text: source + seeds + ', visited AS (FROM g |> ' +
+    "traverse(start: {from: seeds, id: `element`}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'nodes') |> SELECT start_id, node_id, depth) FROM visited |> ORDER BY depth |> RESULT nodes",
     results: result(sourceDomain, true), sourceReadCount: 0},
   {name: 'graph-traverse-nodes-empty-selector', format: 'aql-text', text: source +
-    'DATA seeds = FROM g |> node_rows() |> WHERE node_key > 1 |> SELECT id AS element; FROM g |> ' + call + tail,
+    ', seeds AS (FROM g |> node_rows() |> WHERE node_key > 1 |> SELECT id AS element) FROM g |> ' + call + tail,
     results: result(sourceDomain, true), sourceReadCount: 0},
   {name: 'graph-traverse-nodes-quoted-data-selector', format: 'aql-text', text: source + seeds.replace('seeds', '`seed set`') +
     'FROM g |> ' + call.replace('from: seeds', 'from: `seed set`').replace("'trail'", "'acyclic'") + tail,
@@ -72,7 +72,7 @@ export const graphTraverseSourceSuccesses = [
 export const graphTraverseSourceRefusals = [
   ['unknown-selector', call.replace('from: seeds', 'from: missing')],
   ['string-selector-reference', call.replace('from: seeds', "from: 'seeds'")],
-  ['missing-selector-column', call.replace("id: 'element'", "id: 'missing'")],
+  ['missing-selector-column', call.replace("id: `element`", "id: `missing`")],
   ['unknown-emission', call.replace("emit: 'nodes'", "emit: 'invented'")],
   ['invalid-hop-bound', call.replace('max_hops: 1', 'max_hops: 0')],
   ['invalid-path-mode', call.replace("'trail'", "'invented'")],

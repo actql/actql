@@ -11,19 +11,25 @@ import {
   "actql/actql/execution_authorization",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/logical_request_scope",
   "actql/actql/physical_host",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/program_check",
+  "actql/actql/publication_payload",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
 }
 
 // Values
+pub fn authorize_local_compute_configuration(LocalRunPlan, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Unit, LocalComputeIssue]
+
 pub fn authorize_local_native_source(LocalNativeSourceConfiguration, @execution_authorization.AdmittedAccountConfiguration) -> Result[@execution_authorization.DispatchAuthorization, LocalNativeSourceIssue]
 
 pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Result[LocalComputeStart, LocalComputeIssue]
+
+pub fn check_local_publication_preflight(LocalPublicationIntent, LocalRunInvocation, @execution_authorization.AdmittedAccountConfiguration, Array[@run_publication.PublicationContract]) -> Result[LocalPublicationPreflight, LocalPublicationIntentIssue]
 
 pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
@@ -33,23 +39,35 @@ pub fn configure_local_native_source(LocalRunPlan, Int, Int, String, String, Str
 
 pub fn configure_source_free_local_compute(LocalRunPlan, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
+pub fn configure_source_free_local_compute_on_ledger(LocalRunPlan, @physical_resources.Ledger, String, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
+
 pub fn confirm_local_compute_start(LocalComputeHost, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[LocalComputeStart, LocalComputeIssue]
 
 pub fn confirm_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[LocalRunPhysicalStart, LocalRunIssue]
 
 pub fn export_local_run_materials(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[String, LocalRunIssue]
 
+pub fn install_local_preflight_publisher_port(LocalPublicationPreflight, String, @execution_authorization.AdmittedAccountConfiguration, () -> @execution_authorization.AdmittedAccountConfiguration, () -> Bool, (@run_publication.PublicationPublisherAuthorization) -> Bool) -> Result[@run_publication.PublicationPublisherPort, @run_publication.PublicationPublisherIssue]
+
+pub fn issue_local_preflight_result_publication(LocalPublicationPreflight, Int, @run_publication_host.PublicationOutputExport, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalPublicationIntentIssue]
+
+pub fn issue_local_preflight_sealed_result_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalPublicationPayloadIssue]
+
 pub fn issue_local_result_durable_binding(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
 
-pub fn issue_local_result_publication(LocalComputeHost, LocalSourceInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalResultPublicationIssue]
+pub fn issue_local_result_publication(LocalComputeHost, LocalRunInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalResultPublicationIssue]
 
-pub fn issue_local_run_manifest(LocalComputeHost, LocalSourceInvocation, Array[LocalResultPublication], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalRunManifest, LocalResultPublicationIssue]
+pub fn issue_local_run_manifest(LocalComputeHost, LocalRunInvocation, Array[LocalResultPublication], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalRunManifest, LocalResultPublicationIssue]
 
 pub fn issue_local_run_normalization(LocalRunPlan) -> Result[LocalRunNormalization, LocalRunNormalizationIssue]
 
 pub fn issue_local_run_receipt(LocalRunManifest, LocalRunNormalization, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
 
-pub fn issue_local_source_invocation(LocalComputeHost, LocalSourcePublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, Int, Int) -> Result[LocalSourceInvocation, LocalResultPublicationIssue]
+pub fn issue_local_source_free_invocation(LocalComputeHost, LocalComputeStart, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalRunInvocation, LocalResultPublicationIssue]
+
+pub fn issue_local_source_invocation(LocalComputeHost, LocalSourcePublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, Int, Int) -> Result[LocalRunInvocation, LocalResultPublicationIssue]
+
+pub fn issue_source_free_local_run_invocation(LocalRunPlan) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn local_compute_producers(LocalComputeHost) -> Array[Int]
 
@@ -59,15 +77,31 @@ pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @hos
 
 pub fn local_native_source_requirement(LocalNativeSourceConfiguration) -> @query_planning.QueryRequirement
 
+pub fn local_preflight_result_schema_field(LocalPublicationPreflight, Int, LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, LocalResultSchemaField) -> Result[String, LocalResultSchemaIssue]
+
+pub fn local_publication_intent_contracts(LocalPublicationIntent) -> (@run_publication.PublicationContract, @run_publication.PublicationContract)
+
+pub fn local_publication_intent_inventory(LocalPublicationIntent) -> @run_publication.CheckedPublicationInventory
+
+pub fn local_publication_preflight_contracts(LocalPublicationPreflight) -> (@run_publication.PublicationContract, @run_publication.PublicationContract)
+
+pub fn local_publication_preflight_count(LocalPublicationPreflight) -> Int
+
 pub fn local_result_publication_contracts(LocalResultPublication) -> Array[@run_publication.PublicationContract]
 
 pub fn local_run_admission(LocalRunPlan) -> @run_publication.RunPublicationAdmission
 
 pub fn local_run_compilation(LocalRunPlan) -> @run_publication_host.ClientTaskCompilation
 
+pub fn local_run_compiled(LocalRunPlan) -> @run_publication_host.ClientCompiledRun
+
 pub fn local_run_definition(LocalRunPlan) -> @run_publication.PublicationContract
 
 pub fn local_run_definition_cid(LocalRunPlan) -> String
+
+pub fn local_run_invocation_contract(LocalRunInvocation) -> @run_publication.PublicationContract
+
+pub fn local_run_invocation_observation(LocalRunInvocation) -> @run_publication.RunEvidenceValue
 
 pub fn local_run_manifest_contract(LocalRunManifest) -> @run_publication.PublicationContract
 
@@ -79,21 +113,31 @@ pub fn local_run_prepared(LocalRunPlan) -> @run_publication_host.PreparedClientP
 
 pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
 
-pub fn local_source_invocation_contract(LocalSourceInvocation) -> @run_publication.PublicationContract
-
-pub fn local_source_invocation_observation(LocalSourceInvocation) -> @run_publication.RunEvidenceValue
-
 pub fn local_source_publication_evidence(LocalSourcePublication) -> @run_publication.RunEvidenceValue
 
 pub fn local_source_publication_logical(LocalSourcePublication) -> @run_publication.RunEvidenceValue
 
+pub fn local_submitted_run_rows(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[(String, String, Bytes, Bytes, Bytes), LocalSubmittedRunRowsIssue]
+
 pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn prepare_local_preflight_commit_candidate(LocalPublicationPreflight, LocalRunManifest, LocalRunNormalization, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, @execution_authorization.AdmittedAccountConfiguration, LocalPublicationIntentLimits, Int) -> Result[(@run_publication.PublicationContract, @run_publication.PublicationCommitPreparation), LocalPublicationIntentIssue]
+
+pub fn prepare_local_preflight_payload_replay(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRequest, @execution_authorization.AdmittedAccountConfiguration) -> Result[@run_publication_host.PublicationOutputReplay, LocalPublicationPayloadIssue]
+
+pub fn prepare_local_preflight_payload_request(LocalPublicationPreflight, Int, LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int64) -> Result[@publication_payload.PublicationPayloadRequest, LocalPublicationPayloadIssue]
+
+pub fn prepare_local_publication_intent(LocalRunPlan, String, String, String, String, String, String, String?, String, LocalPublicationIntentLimits) -> Result[LocalPublicationIntent, LocalPublicationIntentIssue]
 
 pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Bool, LocalRunIssue]
 
 pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
 
 pub fn prepare_local_source_publication(LocalNativeSourceConfiguration, LocalComputeHost, @host.NativeHostSourceCapture, @execution_authorization.AdmittedAccountConfiguration, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[LocalSourcePublicationPreparation, LocalSourcePublicationIssue]
+
+pub fn prepare_local_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
+
+pub fn prepare_source_free_local_publication_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String, (String, String)) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
@@ -107,7 +151,9 @@ pub fn restore_source_free_local_run(@client_local_preparation.LocalPreparedInpu
 
 pub fn restore_source_free_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[LocalRunPlan, LocalRunIssue]
 
-pub fn reuse_local_result_publication(LocalResultPublication, LocalComputeHost, LocalSourceInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalResultPublicationIssue]
+pub fn reuse_local_preflight_result_publication(LocalPublicationPreflight, Int, LocalResultPublication, @run_publication_host.PublicationOutputExport, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalPublicationIntentIssue]
+
+pub fn reuse_local_result_publication(LocalResultPublication, LocalComputeHost, LocalRunInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalResultPublicationIssue]
 
 pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
 
@@ -119,7 +165,13 @@ pub fn start_local_result_publication_snapshot(LocalResultPublication, @executio
 
 pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
 
+pub fn validate_local_preflight_commit_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, LocalResultCommitBindingIssue]
+
+pub fn validate_local_publication_preflight_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
+
 pub fn validate_local_result_publication_current(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalResultPublicationIssue]
+
+pub fn validate_local_saved_submitted_rows(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, String, Int64, Bytes, String, Int64, Bytes) -> Result[Unit, LocalSubmittedRunRowsIssue]
 
 // Errors
 
@@ -146,6 +198,11 @@ pub struct LocalComputeStart {
   host : LocalComputeHost
 }
 
+pub enum LocalInvocationOrigin {
+  Captured(LocalSourcePublication)
+  SourceFree(LocalComputeStart)
+}
+
 pub struct LocalNativeSourceConfiguration {
   plan : LocalRunPlan
   requirement : @query_planning.QueryRequirement
@@ -165,9 +222,45 @@ pub(all) enum LocalNativeSourceIssue {
   Host(@host.NativeHostIssue)
 }
 
+type LocalPublicationIntent
+
+pub(all) enum LocalPublicationIntentIssue {
+  MissingResult
+  InventoryLimit
+  Inventory(@run_publication.PublicationInventoryIssue)
+  Contract(@run_publication.PublicationCommitIssuanceIssue)
+  ForeignCompute
+  AuthorizationMismatch
+  Source(LocalNativeSourceIssue)
+  UnavailableSource
+  PreflightMismatch
+  ComputeAlreadyStarted
+  ResultPublication(LocalResultPublicationIssue)
+  CommitCandidate(@run_publication.PublicationCommitIssuanceIssue)
+}
+
+pub(all) struct LocalPublicationIntentLimits {
+  max_results : Int
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) enum LocalPublicationPayloadIssue {
+  Preflight(LocalPublicationIntentIssue)
+  Output(@run_publication_host.PublicationOutputPayloadIssue)
+}
+
+type LocalPublicationPreflight
+
+pub(all) enum LocalResultCommitBindingIssue {
+  Payload(LocalPublicationPayloadIssue)
+  BindingMismatch
+}
+
 pub struct LocalResultPublication {
   host : LocalComputeHost
-  invocation : LocalSourceInvocation
+  invocation : LocalRunInvocation
   output : @run_publication_host.PublicationOutputExport
   definition : @run_publication.PublicationContract
   artifact : @run_publication.PublicationContract
@@ -191,6 +284,24 @@ pub(all) enum LocalResultPublicationIssue {
   Output(@run_publication_host.PublicationOutputExportIssue)
 }
 
+pub(all) enum LocalResultSchemaField {
+  Identity
+  Wire
+}
+
+pub(all) enum LocalResultSchemaIssue {
+  Preflight(LocalPublicationIntentIssue)
+  Output(@run_publication_host.PublicationOutputExportIssue)
+}
+
+pub struct LocalRunInvocation {
+  host : LocalComputeHost
+  origin : LocalInvocationOrigin
+  observation : @run_publication.RunEvidenceValue
+  invocation : @run_publication.PublicationContract
+  data_policy_cid : String
+}
+
 pub(all) enum LocalRunIssue {
   AuthorizationMismatch
   UnsupportedCapability
@@ -205,7 +316,7 @@ pub(all) enum LocalRunIssue {
 
 pub struct LocalRunManifest {
   host : LocalComputeHost
-  invocation : LocalSourceInvocation
+  invocation : LocalRunInvocation
   results : Array[LocalResultPublication]
   manifest : @run_publication.PublicationContract
 }
@@ -230,18 +341,12 @@ pub struct LocalRunPlan {
   prepared : @run_publication_host.PreparedClientProgram
   request : @run_publication_host.ClientRequestIdentity
   compilation : @run_publication_host.ClientTaskCompilation
+  compiled : @run_publication_host.ClientCompiledRun
   admission : @run_publication.RunPublicationAdmission
   definition : @run_publication.PublicationContract
   account_id : String
   tuple : @execution_authorization.AccessTuple
   execution_context_cid : String
-}
-
-pub struct LocalSourceInvocation {
-  source : LocalSourcePublication
-  observation : @run_publication.RunEvidenceValue
-  invocation : @run_publication.PublicationContract
-  data_policy_cid : String
 }
 
 pub struct LocalSourcePublication {
@@ -273,6 +378,26 @@ pub fn LocalSourcePublicationPreparation::advance(Self, Int) -> Result[(Bool, In
 pub fn LocalSourcePublicationPreparation::cancel(Self) -> Bool
 pub fn LocalSourcePublicationPreparation::finish(Self, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[LocalSourcePublication, LocalSourcePublicationIssue]
 pub fn LocalSourcePublicationPreparation::work(Self) -> Int64
+
+pub struct LocalSubmittedRunRows {
+  plan : LocalRunPlan
+  preparation : @client_local_preparation.LocalSubmittedPreparation
+  reference : @run_publication_host.ClientSubmissionReferenceRecord
+  preparing : Bytes
+  run : Bytes
+  submitted : Bytes
+}
+
+pub(all) enum LocalSubmittedRunRowsIssue {
+  ForeignPreparation
+  ForeignReference
+  AuthorizationMismatch
+  Epoch(@logical_request_scope.SubmissionIdentityIssue)
+  EpochNotAdmissible(@logical_request_scope.SubmissionEpochValidity)
+  Binding(@run_publication_host.ClientRunBindingIssue)
+  CustodyLost
+  Encoding(@run_publication_host.ClientJournalEncodingIssue)
+}
 
 // Type aliases
 

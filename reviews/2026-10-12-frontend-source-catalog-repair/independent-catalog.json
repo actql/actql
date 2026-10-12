@@ -1,0 +1,741 @@
+{
+  "environment": {
+    "version": "actql-check-environment/0.1",
+    "contract_registry": [
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-2",
+        "version": "fixture",
+        "kind": "carrier_facts",
+        "body": {},
+        "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-1",
+        "version": "fixture",
+        "kind": "carrier_schema",
+        "body": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "id": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        },
+        "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-0",
+        "version": "fixture",
+        "kind": "request_schema",
+        "body": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        },
+        "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-3",
+        "version": "fixture",
+        "kind": "pushdown",
+        "body": {},
+        "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-4",
+        "version": "fixture",
+        "kind": "data_policy",
+        "body": {
+          "version": "actql-source-data-policy/0.1",
+          "classification": "unknown",
+          "source_ref": "connector://crm/main/records#v"
+        },
+        "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+      }
+    ],
+    "connector_catalogs": [
+      {
+        "schema": "actql.connector_catalog/0.1",
+        "connector_id": "crm/main",
+        "connector_version": "fixture",
+        "contracts": [
+          {
+            "schema": "actql.contract/0.1",
+            "id": "member-2",
+            "version": "fixture",
+            "kind": "carrier_facts",
+            "body": {},
+            "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+          },
+          {
+            "schema": "actql.contract/0.1",
+            "id": "member-3",
+            "version": "fixture",
+            "kind": "pushdown",
+            "body": {},
+            "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+          },
+          {
+            "schema": "actql.contract/0.1",
+            "id": "member-4",
+            "version": "fixture",
+            "kind": "data_policy",
+            "body": {
+              "version": "actql-source-data-policy/0.1",
+              "classification": "unknown",
+              "source_ref": "connector://crm/main/records#v"
+            },
+            "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+          },
+          {
+            "schema": "actql.contract/0.1",
+            "id": "member-1",
+            "version": "fixture",
+            "kind": "carrier_schema",
+            "body": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {
+                "id": {
+                  "type": "number",
+                  "nullable": false
+                }
+              }
+            },
+            "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+          },
+          {
+            "schema": "actql.contract/0.1",
+            "id": "member-0",
+            "version": "fixture",
+            "kind": "request_schema",
+            "body": {
+              "type": "object",
+              "nullable": false,
+              "additional_properties": false,
+              "fields": {}
+            },
+            "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+          }
+        ],
+        "source_views": [
+          {
+            "schema": "actql.source_view/0.1",
+            "connector_id": "crm/main",
+            "connector_version": "fixture",
+            "resource_kind": "record",
+            "view_id": "v",
+            "view_version": "fixture",
+            "acquisition": {
+              "kind": "scan",
+              "authority": "read_metadata",
+              "request_schema": {
+                "id": "member-0",
+                "version": "fixture",
+                "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+              },
+              "default_mode": "snapshot",
+              "modes": [
+                {
+                  "mode": "snapshot",
+                  "bounded": true
+                }
+              ]
+            },
+            "output": {
+              "carrier": "relation",
+              "schema": {
+                "id": "member-1",
+                "version": "fixture",
+                "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+              },
+              "facts": {
+                "id": "member-2",
+                "version": "fixture",
+                "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+              },
+              "data_policy": {
+                "id": "member-4",
+                "version": "fixture",
+                "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+              }
+            },
+            "pushdown": {
+              "contract": {
+                "id": "member-3",
+                "version": "fixture",
+                "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+              },
+              "operations": []
+            },
+            "request_processing": {
+              "mutates_business_state": false
+            },
+            "contract_cid": "sha256:78cffc445d46c9bcd0d7d5b7223332587fab9fedbc69f85c88cb6588ff554143"
+          }
+        ],
+        "commands": [],
+        "catalog_cid": "sha256:1a93d68f947af00ba389e9d18601b4d3d9ca34d6af94b320f199a9a6dfe2eeff"
+      }
+    ],
+    "source_views": [
+      {
+        "schema": "actql.source_view/0.1",
+        "connector_id": "crm/main",
+        "connector_version": "fixture",
+        "resource_kind": "record",
+        "view_id": "v",
+        "view_version": "fixture",
+        "acquisition": {
+          "kind": "scan",
+          "authority": "read_metadata",
+          "request_schema": {
+            "id": "member-0",
+            "version": "fixture",
+            "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+          },
+          "default_mode": "snapshot",
+          "modes": [
+            {
+              "mode": "snapshot",
+              "bounded": true
+            }
+          ]
+        },
+        "output": {
+          "carrier": "relation",
+          "schema": {
+            "id": "member-1",
+            "version": "fixture",
+            "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+          },
+          "facts": {
+            "id": "member-2",
+            "version": "fixture",
+            "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+          },
+          "data_policy": {
+            "id": "member-4",
+            "version": "fixture",
+            "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+          }
+        },
+        "pushdown": {
+          "contract": {
+            "id": "member-3",
+            "version": "fixture",
+            "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+          },
+          "operations": []
+        },
+        "request_processing": {
+          "mutates_business_state": false
+        },
+        "contract_cid": "sha256:78cffc445d46c9bcd0d7d5b7223332587fab9fedbc69f85c88cb6588ff554143"
+      }
+    ],
+    "schema_snapshots": [],
+    "mapping_contracts": [],
+    "command_contracts": [],
+    "connector_capabilities": [],
+    "model_task_contracts": [],
+    "host_policy_profile": {},
+    "evidence_bundle_cid": "sha256:b1d539c9bc23f85f9a717f5ed953dc2c3aa3803373f723289757eed4462408f4"
+  },
+  "independentPreimages": {
+    "contracts": [
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-0",
+        "version": "fixture",
+        "kind": "request_schema",
+        "body": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {}
+        }
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-1",
+        "version": "fixture",
+        "kind": "carrier_schema",
+        "body": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "id": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        }
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-2",
+        "version": "fixture",
+        "kind": "carrier_facts",
+        "body": {}
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-3",
+        "version": "fixture",
+        "kind": "pushdown",
+        "body": {}
+      },
+      {
+        "schema": "actql.contract/0.1",
+        "id": "member-4",
+        "version": "fixture",
+        "kind": "data_policy",
+        "body": {
+          "version": "actql-source-data-policy/0.1",
+          "classification": "unknown",
+          "source_ref": "connector://crm/main/records#v"
+        }
+      }
+    ],
+    "sourceView": {
+      "schema": "actql.source_view/0.1",
+      "connector_id": "crm/main",
+      "connector_version": "fixture",
+      "resource_kind": "record",
+      "view_id": "v",
+      "view_version": "fixture",
+      "acquisition": {
+        "kind": "scan",
+        "authority": "read_metadata",
+        "request_schema": {
+          "id": "member-0",
+          "version": "fixture",
+          "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+        },
+        "default_mode": "snapshot",
+        "modes": [
+          {
+            "mode": "snapshot",
+            "bounded": true
+          }
+        ]
+      },
+      "output": {
+        "carrier": "relation",
+        "schema": {
+          "id": "member-1",
+          "version": "fixture",
+          "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+        },
+        "facts": {
+          "id": "member-2",
+          "version": "fixture",
+          "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+        },
+        "data_policy": {
+          "id": "member-4",
+          "version": "fixture",
+          "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+        }
+      },
+      "pushdown": {
+        "contract": {
+          "id": "member-3",
+          "version": "fixture",
+          "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+        },
+        "operations": []
+      },
+      "request_processing": {
+        "mutates_business_state": false
+      }
+    },
+    "catalog": {
+      "schema": "actql.connector_catalog/0.1",
+      "connector_id": "crm/main",
+      "connector_version": "fixture",
+      "contracts": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-2",
+          "version": "fixture",
+          "kind": "carrier_facts",
+          "body": {},
+          "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-3",
+          "version": "fixture",
+          "kind": "pushdown",
+          "body": {},
+          "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-4",
+          "version": "fixture",
+          "kind": "data_policy",
+          "body": {
+            "version": "actql-source-data-policy/0.1",
+            "classification": "unknown",
+            "source_ref": "connector://crm/main/records#v"
+          },
+          "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-1",
+          "version": "fixture",
+          "kind": "carrier_schema",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-0",
+          "version": "fixture",
+          "kind": "request_schema",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {}
+          },
+          "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+        }
+      ],
+      "source_views": [
+        {
+          "schema": "actql.source_view/0.1",
+          "connector_id": "crm/main",
+          "connector_version": "fixture",
+          "resource_kind": "record",
+          "view_id": "v",
+          "view_version": "fixture",
+          "acquisition": {
+            "kind": "scan",
+            "authority": "read_metadata",
+            "request_schema": {
+              "id": "member-0",
+              "version": "fixture",
+              "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+            },
+            "default_mode": "snapshot",
+            "modes": [
+              {
+                "mode": "snapshot",
+                "bounded": true
+              }
+            ]
+          },
+          "output": {
+            "carrier": "relation",
+            "schema": {
+              "id": "member-1",
+              "version": "fixture",
+              "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+            },
+            "facts": {
+              "id": "member-2",
+              "version": "fixture",
+              "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+            },
+            "data_policy": {
+              "id": "member-4",
+              "version": "fixture",
+              "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+            }
+          },
+          "pushdown": {
+            "contract": {
+              "id": "member-3",
+              "version": "fixture",
+              "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+            },
+            "operations": []
+          },
+          "request_processing": {
+            "mutates_business_state": false
+          },
+          "contract_cid": "sha256:78cffc445d46c9bcd0d7d5b7223332587fab9fedbc69f85c88cb6588ff554143"
+        }
+      ],
+      "commands": []
+    },
+    "environment": {
+      "version": "actql-check-environment/0.1",
+      "contract_registry": [
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-2",
+          "version": "fixture",
+          "kind": "carrier_facts",
+          "body": {},
+          "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-1",
+          "version": "fixture",
+          "kind": "carrier_schema",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          },
+          "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-0",
+          "version": "fixture",
+          "kind": "request_schema",
+          "body": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {}
+          },
+          "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-3",
+          "version": "fixture",
+          "kind": "pushdown",
+          "body": {},
+          "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+        },
+        {
+          "schema": "actql.contract/0.1",
+          "id": "member-4",
+          "version": "fixture",
+          "kind": "data_policy",
+          "body": {
+            "version": "actql-source-data-policy/0.1",
+            "classification": "unknown",
+            "source_ref": "connector://crm/main/records#v"
+          },
+          "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+        }
+      ],
+      "connector_catalogs": [
+        {
+          "schema": "actql.connector_catalog/0.1",
+          "connector_id": "crm/main",
+          "connector_version": "fixture",
+          "contracts": [
+            {
+              "schema": "actql.contract/0.1",
+              "id": "member-2",
+              "version": "fixture",
+              "kind": "carrier_facts",
+              "body": {},
+              "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "member-3",
+              "version": "fixture",
+              "kind": "pushdown",
+              "body": {},
+              "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "member-4",
+              "version": "fixture",
+              "kind": "data_policy",
+              "body": {
+                "version": "actql-source-data-policy/0.1",
+                "classification": "unknown",
+                "source_ref": "connector://crm/main/records#v"
+              },
+              "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "member-1",
+              "version": "fixture",
+              "kind": "carrier_schema",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {
+                  "id": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              },
+              "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+            },
+            {
+              "schema": "actql.contract/0.1",
+              "id": "member-0",
+              "version": "fixture",
+              "kind": "request_schema",
+              "body": {
+                "type": "object",
+                "nullable": false,
+                "additional_properties": false,
+                "fields": {}
+              },
+              "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+            }
+          ],
+          "source_views": [
+            {
+              "schema": "actql.source_view/0.1",
+              "connector_id": "crm/main",
+              "connector_version": "fixture",
+              "resource_kind": "record",
+              "view_id": "v",
+              "view_version": "fixture",
+              "acquisition": {
+                "kind": "scan",
+                "authority": "read_metadata",
+                "request_schema": {
+                  "id": "member-0",
+                  "version": "fixture",
+                  "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+                },
+                "default_mode": "snapshot",
+                "modes": [
+                  {
+                    "mode": "snapshot",
+                    "bounded": true
+                  }
+                ]
+              },
+              "output": {
+                "carrier": "relation",
+                "schema": {
+                  "id": "member-1",
+                  "version": "fixture",
+                  "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+                },
+                "facts": {
+                  "id": "member-2",
+                  "version": "fixture",
+                  "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+                },
+                "data_policy": {
+                  "id": "member-4",
+                  "version": "fixture",
+                  "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+                }
+              },
+              "pushdown": {
+                "contract": {
+                  "id": "member-3",
+                  "version": "fixture",
+                  "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+                },
+                "operations": []
+              },
+              "request_processing": {
+                "mutates_business_state": false
+              },
+              "contract_cid": "sha256:78cffc445d46c9bcd0d7d5b7223332587fab9fedbc69f85c88cb6588ff554143"
+            }
+          ],
+          "commands": [],
+          "catalog_cid": "sha256:1a93d68f947af00ba389e9d18601b4d3d9ca34d6af94b320f199a9a6dfe2eeff"
+        }
+      ],
+      "source_views": [
+        {
+          "schema": "actql.source_view/0.1",
+          "connector_id": "crm/main",
+          "connector_version": "fixture",
+          "resource_kind": "record",
+          "view_id": "v",
+          "view_version": "fixture",
+          "acquisition": {
+            "kind": "scan",
+            "authority": "read_metadata",
+            "request_schema": {
+              "id": "member-0",
+              "version": "fixture",
+              "cid": "sha256:e73bfa7a6b921c43e087f7d199e5fa714671e920eb4ea361ecab141cfa85d5f7"
+            },
+            "default_mode": "snapshot",
+            "modes": [
+              {
+                "mode": "snapshot",
+                "bounded": true
+              }
+            ]
+          },
+          "output": {
+            "carrier": "relation",
+            "schema": {
+              "id": "member-1",
+              "version": "fixture",
+              "cid": "sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759"
+            },
+            "facts": {
+              "id": "member-2",
+              "version": "fixture",
+              "cid": "sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7"
+            },
+            "data_policy": {
+              "id": "member-4",
+              "version": "fixture",
+              "cid": "sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b"
+            }
+          },
+          "pushdown": {
+            "contract": {
+              "id": "member-3",
+              "version": "fixture",
+              "cid": "sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc"
+            },
+            "operations": []
+          },
+          "request_processing": {
+            "mutates_business_state": false
+          },
+          "contract_cid": "sha256:78cffc445d46c9bcd0d7d5b7223332587fab9fedbc69f85c88cb6588ff554143"
+        }
+      ],
+      "schema_snapshots": [],
+      "mapping_contracts": [],
+      "command_contracts": [],
+      "connector_capabilities": [],
+      "model_task_contracts": [],
+      "host_policy_profile": {}
+    }
+  }
+}

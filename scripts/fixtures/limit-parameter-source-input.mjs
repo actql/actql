@@ -40,17 +40,27 @@ export const limitParameterSuccesses = [
   success('offset-past-end', sql, {parameters: {count: 1, skip: 8}, expected: []}),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
   success('cte-body', 'WITH chosen AS (SELECT amount, id FROM records WHERE id > 0 ORDER BY id LIMIT @count OFFSET @skip) SELECT amount, id FROM chosen ORDER BY id'),
-  success('set-final', 'DATA selected = SELECT amount, id FROM records WHERE id > 0; '
+  success('set-final', 'WITH selected AS (SELECT amount, id FROM records WHERE id > 0) '
     + 'SELECT amount, id FROM selected UNION ALL SELECT amount, id FROM selected ORDER BY id LIMIT @count OFFSET @skip',
     {format: 'aql-text', expected: [{amount: null, id: 1}, {amount: 20, id: 2}]}),
-  success('join-final', 'DATA selected = SELECT amount, id FROM records WHERE id > 0; '
-    + 'DATA keys = SELECT 1 AS id UNION ALL SELECT 2 AS id UNION ALL SELECT 3 AS id; '
+  success('join-final', 'WITH selected AS (SELECT amount, id FROM records WHERE id > 0) '
+    + ', keys AS (SELECT 1 AS id UNION ALL SELECT 2 AS id UNION ALL SELECT 3 AS id) '
     + 'SELECT l.amount AS amount, l.id AS id FROM selected AS l JOIN keys AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id LIMIT @count OFFSET @skip',
     {format: 'aql-text'}),
   success('case-insensitive-sql', sql.replace('@count', '@COUNT').replace('@skip', '@Skip')),
   success('quoted-parameter-names', sql.replace('@count', '@`COUNT`').replace('@skip', '@`\\x53kip`')),
   success('exact-declaration-spelling', sql, {parameterDeclarations: {COUNT: number, SKIP: number},
     parameters: {COUNT: 2, SKIP: 1}}),
+  success('grouped-sql-bindings', sql.replace('@count', '((@count))').replace('@skip', '(@skip)')),
+  success('grouped-pipe-different-bindings', 'FROM records |> WHERE id > 0 |> SELECT amount, id |> ORDER BY id |> LIMIT (@count) OFFSET ((@skip))',
+    {format: 'aql-text', parameters: {count: 1, skip: 2}, expected: [{amount: 30, id: 3}]}),
+  success('grouped-zero-offset-null-and-duplicates', sql.replace('@count', '(@count)').replace('@skip', '(0)'),
+    {parameterDeclarations: {count: number}, parameters: {count: 4},
+      expected: [{amount: null, id: 1}, ...expected, {amount: 30, id: 3}]}),
+  success('grouped-literal-operands', sql.replace('@count', '((2))').replace('@skip', '(1)'),
+    {parameterDeclarations: undefined, parameters: undefined}),
+  success('grouped-typed-empty', sql.replace('@count', '((@count))').replace('@skip', '(@skip)'),
+    {sourceRows: [], expected: []}),
 ];
 export const limitParameterRefusals = [
   {name: 'undeclared', parameterDeclarations: undefined, parameters: undefined},
@@ -66,6 +76,12 @@ export const limitParameterRefusals = [
   {name: 'nullable-offset', parameterDeclarations: {count: number, skip: nullableNumber},
     parameters: {count: 1, skip: null}},
   {name: 'row-operand', text: sql.replace('@count', 'id')},
+  {name: 'grouped-row-operand', text: sql.replace('@count', '(id)'), expectedCode: 'ClientProgramRejected'},
+  {name: 'grouped-arithmetic', text: sql.replace('@count', '(@count + 1)'), expectedCode: 'ClientProgramRejected'},
+  {name: 'grouped-zero-count', text: sql.replace('@count', '((0))'), expectedCode: 'ClientProgramRejected'},
+  {name: 'grouped-overflow', text: sql.replace('@skip', '(9007199254740992)'), expectedCode: 'ClientProgramRejected'},
+  {name: 'grouped-null-binding', text: sql.replace('@count', '(@count)'),
+    parameterDeclarations: {count: nullableNumber, skip: number}, parameters: {count: null, skip: 1}},
 ].map(item => ({format: 'sql', text: sql,
   parameterDeclarations: declarations, parameters: {count: 2, skip: 1}, ...item,
   name: 'limit-parameter-refuse-' + item.name}));

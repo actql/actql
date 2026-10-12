@@ -1,0 +1,2 @@
+[actql/actql] test query_program/with_expansion_public_fixture_test.mbt:371 ("WITH public expansion joined-unnest-star-acquired-data") failed: src/query_program/with_expansion_public_fixture_test.mbt:416:7-416:35@actql/actql FAILED: Catalog output Order
+Total tests: 15, passed: 14, failed: 1.

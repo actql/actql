@@ -10,6 +10,9 @@ priv struct HolderTaskCustody {
   process_hold : Ref[@bundle.NativeActiveRuntimeBinding?]
   mut executed : @resident_host.ResidentExecuted?
   mut effect_producer : @resident_host.ResidentEffectProducerExecuted?
+  mut effect_review : @effect_review.NativeResidentEffectReview?
+  mut effect_catalog_review : HolderEffectCatalogReviewCustody?
+  mut effect_review_cleanup : @resident_host.ResidentEffectReviewInputContext?
   mut restoration : @resident_host.ResidentCompletedAttempt?
   mut restoration_cleanup : @runtime.NativeRemoteRuntime?
   mut restoration_failed : Bool
@@ -37,6 +40,9 @@ fn new_holder_task_custody(
     process_hold: Ref(None),
     executed,
     effect_producer,
+    effect_review: None,
+    effect_catalog_review: None,
+    effect_review_cleanup: None,
     restoration: None,
     restoration_cleanup: None,
     restoration_failed: false,
@@ -210,6 +216,11 @@ fn close_holder_task(
   if !holder_completed_restoration_settled(task, environment.journal) {
     return false
   }
+  // Review owns separate semantic pins and an export. Retiring it must
+  // precede its original consumer, receiver and producer Runtime cleanup.
+  if !close_holder_effect_review(task) {
+    return false
+  }
   if task.handoff is Some((_, handoff)) {
     while handoff.reclaim() is Err(_) {
       report("consumer-release-pending", [("reason", "receiver-cleanup")])
@@ -257,6 +268,19 @@ fn close_holder_task(
       control_ended,
     ) {
     return false
+  }
+  // The consumer's own opaque close and the actual Resource/Review/receiver
+  // cleanup above precede this stamp retirement. Do not wait for producer
+  // Released: its CapturedDAG Ledger still funds the exact consumer charge.
+  if task.consumer is Some(owner) && owner.has_initial_catalog_use_custody() {
+    guard task.producer_identity is Some(producer_identity) &&
+      tasks.get(producer_identity) is Some(producer) &&
+      producer.effect_producer is Some(original) else {
+      return false
+    }
+    if !owner.cleanup_initial_catalog_use(environment.journal, original) {
+      return false
+    }
   }
   // Clear only after every existing Owner confirmed cleanup. An uncertain
   // release keeps the same reference and responsibility for the next retry.

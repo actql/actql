@@ -43,10 +43,10 @@ pub fn start_client_keyed_file_locator(
   }
   guard @acquisition.keyed_row_request_field(request.request, "resource")
     is Some(resource) &&
-    resource.value is @admitted.Reference(reference) &&
+    resource.value is @values.Reference(reference) &&
     @acquisition.keyed_row_request_field(request.request, "version")
     is Some(version) &&
-    version.value is @admitted.Text(version) &&
+    version.value is @values.Text(version) &&
     @query.start_captured_file_locator(
       source,
       read,

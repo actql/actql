@@ -183,6 +183,8 @@ pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_re
 
 pub fn effect_program_completion_free_inventory(EffectProgramStaticCandidate) -> Result[CompletionFreeInventory, CompletionFreeInventoryIssue]
 
+pub fn effect_program_local_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
+
 pub fn effect_program_run_admission(EffectProgramRunCandidate) -> @run_publication.RunPublicationAdmission
 
 pub fn effect_program_run_definition(EffectProgramRunCandidate) -> @run_publication.PublicationContract
@@ -356,6 +358,10 @@ pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, Che
 pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
 
 pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]
+
+pub fn local_update_completion_free_inventory_matches(LocalUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
+
+pub fn local_update_completion_free_inventory_work(LocalUpdateCompletionFreeInventory) -> Int
 
 pub fn nest_limits_claim(NestLimits, NestResourceScope) -> @capacity_witness.LimitClaim
 
@@ -565,6 +571,10 @@ pub fn source_catalog_owner(PreparedSourceCatalog) -> CheckEnvironment
 
 pub fn source_catalog_usage(PreparedSourceCatalog) -> SourceCatalogUsage
 
+pub fn source_context_diagnostic(@pipeline_check_context.SourceViewContextIssue) -> CheckDiagnostic
+
+pub fn source_declarations_diagnostic(@stage_parameters.Issue) -> CheckDiagnostic
+
 pub fn source_egress_axis_at(SourceExecution, Int) -> SourceEgressAxis?
 
 pub fn source_egress_axis_count(SourceExecution) -> Int
@@ -590,6 +600,8 @@ pub fn source_execution_prerequisite_count(SourceExecution) -> Int
 pub fn source_execution_subject(SourceExecution) -> SourceExecutionSubject
 
 pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceIdentity
+
+pub fn source_registration_diagnostic(@pipeline_check_context.SourceRegistrationIssue) -> CheckDiagnostic
 
 pub fn template_checked_capacity(TemplateCheckedProgram) -> @check_environment.Capacity
 
@@ -1131,6 +1143,8 @@ pub(all) enum LocalDependencyBodyKind {
   SourceViewContract(Int)
   RegistryContract(Int)
 } derive(Eq, @debug.Debug)
+
+type LocalUpdateCompletionFreeInventory
 
 pub struct NestInputProof {
   membership : @capacity_graph_preflight.TargetMembership

@@ -68,15 +68,15 @@ test('pending flags preserve unknown absence independently of unsupported capabi
   }
 });
 
-test('legacy consumer and original RunState schema remain unchanged', () => {
+test('legacy RunState identity and consumer remain unchanged as registries expand', () => {
   const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
   assert.equal(registry.artifact_schema_cids.run_state,
     'sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30');
   assert.equal(hash(registry.artifact_schemas.run_state), registry.artifact_schema_cids.run_state);
-  assert.equal(registry.registry_cid,
-    'sha256:9733edd2e52626c724b1fa00ee705c4b82b57bec07c23de128d7c95ceedd9c46');
-  assert.equal(registry.artifact_registry_cid,
-    'sha256:d19722c3db238fad39d5b1e3b85ed6c88ae4bc18a946bbad7b74647075cd9491');
+  // Aggregate identities cover every current member. New Model/Plan contracts
+  // may change them while the independent original RunState pin stays exact.
+  assert.equal(registry.registry_cid, hash(registry.schemas));
+  assert.equal(registry.artifact_registry_cid, hash(registry.artifact_schemas));
   assert.ok(validRunStateShape(legacyState));
   assert.equal(validRunStateShape({...legacyState, status: 'paused'}), false);
   assert.equal(validRunStateShape({...legacyState, previous_stop_reason: 'entry'}), false);

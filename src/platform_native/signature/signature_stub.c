@@ -250,6 +250,67 @@ bool actql_native_signature_sha256_ready(actql_native_sha256 *hash) {
   return hash != NULL && hash->context != NULL && !hash->closed;
 }
 
+/* Resolve custody primitives only when used. Signature verification retains
+ * its existing library requirements, and no substitute is used on failure. */
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_signature_random_bytes(
+  actql_native_signature_library *library, int32_t length
+) {
+  typedef int (*random_fn)(unsigned char *, int);
+  random_fn random = NULL;
+  if (library == NULL || library->dynamic_library == NULL ||
+      length < 1 || length > 4096 ||
+      !actql_load_symbol(library, (void **)&random, "RAND_bytes")) {
+    return moonbit_make_bytes_raw(0);
+  }
+  moonbit_bytes_t result = moonbit_make_bytes_raw(length);
+  if (random(result, length) != 1) {
+    /* Failed randomness must never escape as key material. */
+    memset(result, 0, (size_t)length);
+    moonbit_decref(result);
+    return moonbit_make_bytes_raw(0);
+  }
+  return result;
+}
+
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_signature_hmac_sha256(
+  actql_native_signature_library *library,
+  moonbit_bytes_t key, int32_t key_length,
+  moonbit_bytes_t message, int32_t message_length
+) {
+  typedef unsigned char *(*hmac_fn)(const EVP_MD *, const void *, int,
+    const unsigned char *, size_t, unsigned char *, unsigned int *);
+  hmac_fn hmac = NULL;
+  if (library == NULL || library->dynamic_library == NULL ||
+      key_length < 1 || key_length > 4096 ||
+      message_length < 0 || message_length > 1048576 ||
+      !actql_load_symbol(library, (void **)&hmac, "HMAC")) {
+    return moonbit_make_bytes_raw(0);
+  }
+  unsigned char tag[32];
+  unsigned int length = 0;
+  if (hmac(library->evp_sha256(), key, key_length, message,
+      (size_t)message_length, tag, &length) == NULL || length != sizeof(tag)) {
+    return moonbit_make_bytes_raw(0);
+  }
+  moonbit_bytes_t result = moonbit_make_bytes_raw(32);
+  memcpy(result, tag, 32);
+  return result;
+}
+
+MOONBIT_FFI_EXPORT
+int32_t actql_native_signature_equal_tag(
+  actql_native_signature_library *library,
+  moonbit_bytes_t expected, moonbit_bytes_t supplied
+) {
+  typedef int (*compare_fn)(const void *, const void *, size_t);
+  compare_fn compare = NULL;
+  if (library == NULL || library->dynamic_library == NULL ||
+      !actql_load_symbol(library, (void **)&compare, "CRYPTO_memcmp")) return 2;
+  return compare(expected, supplied, 32) == 0 ? 0 : 1;
+}
+
 MOONBIT_FFI_EXPORT
 bool actql_native_signature_sha256_update(
   actql_native_sha256 *hash,
@@ -362,6 +423,67 @@ int32_t actql_native_signature_verify_ed25519(
     ? "signature verification failed"
     : "signature verification initialization failed");
   return 5;
+}
+
+/* No password prompt, external key retrieval or caller-selected file path.
+ * Private key bytes have already been selected by the owning assembly. */
+static int actql_signing_no_password(char *buffer, int size, int writing, void *data) {
+  (void)buffer; (void)size; (void)writing; (void)data;
+  return 0;
+}
+
+/* Resolve signing symbols only for signing. Existing verification, hashing
+ * and Store users retain their original library-loading requirements. */
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t actql_native_signature_sign_ed25519(
+  actql_native_signature_library *library,
+  moonbit_bytes_t private_key,
+  int32_t private_key_length,
+  moonbit_bytes_t message,
+  int32_t message_length
+) {
+  moonbit_bytes_t result = moonbit_make_bytes_raw(1);
+  result[0] = 2;
+  if (library == NULL || library->dynamic_library == NULL ||
+      private_key_length <= 0 || private_key_length > 16384 ||
+      message_length < 0 || message_length > 1048576 ||
+      memchr(private_key, 0, (size_t)private_key_length) != NULL) return result;
+  actql_pem_read_bio_pubkey_fn read_private = NULL;
+  actql_evp_digest_verify_init_fn sign_init = NULL;
+  typedef int (*sign_fn)(EVP_MD_CTX *, unsigned char *, size_t *,
+                         const unsigned char *, size_t);
+  sign_fn sign = NULL;
+  result[0] = 5;
+  if (!actql_load_symbol(library, (void **)&read_private, "PEM_read_bio_PrivateKey") ||
+      !actql_load_symbol(library, (void **)&sign_init, "EVP_DigestSignInit") ||
+      !actql_load_symbol(library, (void **)&sign, "EVP_DigestSign")) return result;
+  BIO *bio = library->bio_new_mem_buf(private_key, private_key_length);
+  if (bio == NULL) return result;
+  EVP_PKEY *key = read_private(bio, NULL, actql_signing_no_password, NULL);
+  library->bio_free(bio);
+  if (key == NULL) { result[0] = 3; return result; }
+  if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
+    library->evp_pkey_free(key);
+    result[0] = 4;
+    return result;
+  }
+  EVP_MD_CTX *context = library->evp_md_ctx_new();
+  if (context == NULL) { library->evp_pkey_free(key); return result; }
+  unsigned char signature[ACTQL_ED25519_SIGNATURE_BYTES];
+  size_t length = sizeof(signature);
+  int initialized = sign_init(context, NULL, NULL, NULL, key);
+  int signed_message = initialized == 1
+    ? sign(context, signature, &length, message, (size_t)message_length) : 0;
+  library->evp_md_ctx_free(context);
+  library->evp_pkey_free(key);
+  if (signed_message == 1 && length == sizeof(signature)) {
+    moonbit_decref(result);
+    result = moonbit_make_bytes_raw(1 + ACTQL_ED25519_SIGNATURE_BYTES);
+    result[0] = 0;
+    memcpy(result + 1, signature, sizeof(signature));
+  }
+  memset(signature, 0, sizeof(signature));
+  return result;
 }
 
 /* Private evidence uses the same AES-256-GCM algorithm and AAD as the existing

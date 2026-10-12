@@ -82,7 +82,7 @@ export function generatedContentModelProviders({root, task, expected, sourceWire
     quantityCapacity: {limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
       perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
     observeEgress: () => ({_0: 'internal', _1: 'fixture-region', _2: false, _3: false}),
-    physicalPreflight(request, admittedProvider) {
+    physicalPreflight(request, ioNotification, rawCaptureBinder, admittedProvider) {
       try {
         onPrepare();
         const input = checked(moon.clientProgramModelContentInput(admittedProvider, request, 'document', -1));

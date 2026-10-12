@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {mkdtemp, open, rm} from 'node:fs/promises';
@@ -7,6 +7,18 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {inspect} from 'node:util';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
+import {setImmediate as yieldEventLoop} from 'node:timers/promises';
+import {prepareOriginalOpenAIChatRequest} from
+  '../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
+import {createSdkModelPreflight} from '../packages/provider-ai-sdk/_internal/model-port.mjs';
+import {createModelRawTransportPersistence} from '../adapters/host-node/infer-raw-capture.mjs';
+import {createInferIoNotification} from '../adapters/host-node/infer-io-notification.mjs';
+import {installModelProviders} from '../adapters/host-node/installed-model.mjs';
+import {installNodeModelContinuation} from '../adapters/host-node/installed-model-continuation.mjs';
+import {installRemoteCheckpoints} from '../adapters/host-node/client-checkpoints.mjs';
+import {openNodeInferCaptureCustody} from '../adapters/host-node/infer-capture-custody.mjs';
 
 import * as moon from
   '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -101,6 +113,402 @@ const checked = value => {
   assert.equal(value?.$tag, 1, inspect(value, {depth: 3}));
   return value._0;
 };
+
+async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = false,
+  rawFailure) {
+  // Private connection evidence: actual Common preparation/binding/codec and
+  // actual SDK/HTTP/Store. Installation applicability, funding coefficients
+  // remain explicit fixture assumptions. The synchronous case uses a Bool
+  // fixture; the journal case uses the installed controller and real SQLite.
+  // Neither case establishes standard Host admission or full-phase funding.
+  const now = () => '2026-10-02T00:00:00.000Z';
+  const directory = await mkdtemp(join(tmpdir(), 'actql-common-sdk-raw-'));
+  const root = cid({fixture: 'original SDK connection'});
+  const control = runtimeCore(moon).publicationControl;
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: root, capacityBytes: 1024 * 1024, maxObjectBytes: 16384,
+    maxObjects: 40, maxContractNodes: 1024, maxContractDepth: 20,
+    privateEvidenceKey: Buffer.alloc(32, 7)}, createPublicationContractControlFixture());
+  t.after(async () => { await store.close(); await rm(directory, {recursive: true}); });
+  const wire = '{"id":"original-sdk-response","model":"reported-model","choices":' +
+    '[{"index":0,"message":{"role":"assistant","content":"{\\"reason\\":null,\\"risk\\":\\"high\\"}"},' +
+    '"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":2},"opaque":"é\\r\\n"}\r\n';
+  let fetches = 0, requests = 0, entrySaves = 0, commitResponsesLost = 0;
+  let savedBundleReads = 0;
+  const server = createServer((request, response) => {
+    requests++;
+    const chunks = [];
+    let bytes = 0;
+    request.on('data', chunk => {
+      bytes += chunk.length;
+      if (bytes > 1000) { request.destroy(); return; }
+      chunks.push(chunk);
+    });
+    request.on('end', () => {
+      assert.equal(request.method, 'POST');
+      assert.equal(request.url, '/v1/chat/completions');
+      const sent = JSON.parse(Buffer.concat(chunks));
+      assert.equal(sent.messages[0].content, 'hello');
+      assert.equal(sent.temperature, 0);
+      assert.equal(sent.top_p, 1);
+      assert.equal(sent.max_tokens, 32);
+      assert.equal(sent.seed, -7);
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(wire);
+    });
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(async () => {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  });
+  const endpoint = `http://127.0.0.1:${server.address().port}/v1/chat/completions`;
+  const profileBody = structuredClone(JSON.parse(readFileSync(new URL(
+    '../portability/corpus/model-response-profiles.json', import.meta.url))).cases[0].body);
+  const bytesCid = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const builderCid = bytesCid(readFileSync(new URL(
+    '../packages/provider-ai-sdk/_internal/original-openai-chat.mjs', import.meta.url)));
+  const validatorCid = bytesCid(readFileSync(new URL(
+    '../src/model_execution/chat_envelope_decode.mbt', import.meta.url)));
+  const lockCid = bytesCid(readFileSync(new URL(
+    '../packages/provider-ai-sdk/package-lock.json', import.meta.url)));
+  profileBody.adapter = {...profileBody.adapter,
+    builder_id: 'fixture/actual-openai-chat', build_artifact_cid: builderCid,
+    sdk: {package: '@ai-sdk/openai', version: '4.0.91', interface: 'v4', lock_artifact_cid: lockCid}};
+  profileBody.operation.endpoint = endpoint;
+  // Do not broaden the existing Host's 1000-byte request envelope.
+  profileBody.limits.request_bytes = 1000;
+  profileBody.completion.validator_artifact_cid = validatorCid;
+  const profile = control.readInstalledModelResponseProfile(
+    canonicalText({...profileBody, self_cid: cid(profileBody)}), cid(profileBody),
+    {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20, maxMembers: 100, maxWork: 100000});
+  const installation = {builder_id: profileBody.adapter.builder_id,
+    builder_revision: '1', codec_id: profileBody.adapter.codec_id, codec_revision: '1',
+    build_artifact_cid: builderCid, sdk: {package_name: '@ai-sdk/openai',
+      version: '4.0.91', interface: 'v4', lock_artifact_cid: lockCid},
+    endpoint, http_method: 'POST', streaming: false,
+    validator_id: profileBody.completion.validator_id, validator_revision: '1',
+    validator_artifact_cid: validatorCid, completion_basis: 'generation_finish'};
+  const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+  assert.ok(prepared);
+  let egressAdmission;
+  const graph = scopedInferGraph(prepared, task, {}, execution => {
+    egressAdmission = checked(moon.clientProgramAdmitInferEgress(prepared, 2,
+      execution, () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false})));
+  });
+  const policy = {executionContextCid: root, hostPolicyCid: root,
+    expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
+  const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', policy, graph);
+  const runDefinition = control.defineCheckedClientCompiledRun(compiled,
+    {namespaceId: 'original-sdk', runId: 'one-row', createdAt: now(), validUntil: policy.expiresAt});
+  const plan = {compiled, runDefinition};
+  const accountConfiguration = canonicalText({
+    version: 'actql-execution-account-config/0.1', account_id: 'original-sdk-account',
+    entries: [{entry_id: 'model-policy', outcome: 'allow', principal: {all: true},
+      connection: {all: true}, resource: {all: true},
+      operation: {any_of: ['infer', 'model_raw_capture']}, exclusions: []}]});
+  const account = moon.executionAuthorizationAdmit(accountConfiguration);
+  const accountFacts = JSON.parse(moon.executionAuthorizationAccountJson(account));
+  assert.equal(accountFacts.state, 'admitted');
+  const originals = ['retention_contract', 'metadata_retention_policy', 'clock_contract']
+    .map(kind => {
+      const body = {name: `original-sdk-${kind}`, version: 'actql-installed-local-policy/0.1'};
+      return {kind, cid: cid(body), wire: canonicalText(body)};
+    });
+  originals.push(resultDataPolicy);
+  for (const original of originals) await store.putSemantic(original.wire, original.cid);
+  const typed = originals.map(original => checked(moon.clientProgramAdmitEffectDependencyBody(
+    original.kind, original.cid, original.wire, 16384, 1024, 20)));
+  const rawCaptureSelection = {profile, installation, probability: undefined,
+    retention: typed[0], metadata: typed[1], clock: typed[2], data: typed[3],
+    selectedAt: now(), availableUntil: '2026-10-02T01:00:00.000Z',
+    deleteBy: '2026-10-02T02:00:00.000Z',
+    extensionCeilingAt: '2026-10-02T02:00:00.000Z',
+    metadataDeleteBy: '2026-10-02T03:00:00.000Z',
+    selectionAvailable: () => rawFailure !== 'registration'};
+  const io = createInferIoNotification();
+  let sdk, persistence, checkpoints, continuation, captureOwner;
+  let rawBindings = 0;
+  const retained = [];
+  const physical = installModelProviders(moon, () => [{providerId: 'models/fixture',
+    invoke: () => assert.fail('the original async plan must not invoke the synchronous provider'),
+    validatePrompt: () => true, entryPersistence: 'async', rawCaptureSelection,
+    quantityCapacity: {limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+      perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
+    physicalPreflight(request, originalIo, retainRawBinder) {
+      assert.equal(originalIo, io, 'same original operation, not a provider-global context');
+      assert.equal(sdk, undefined, 'one physical preflight for this one-row Program');
+      const originalText = JSON.parse(moon.clientProgramModelRequestInput(request, 'text'));
+      const preparation = prepareOriginalOpenAIChatRequest({moon, request,
+        modelSelector: 'fixture-risk-model', modelId: 'gpt-4.1-nano',
+        baseURL: endpoint.slice(0, -'/chat/completions'.length), apiKey: 'fixture-only',
+        maxRequestBytes: 1000, maxHeaderBytes: 4096, maxHeaders: 16, notify: io.notify,
+        prompt: [{role: 'user', content: [{type: 'text', text: originalText}]}],
+        responseFormat: {type: 'json'}});
+      sdk = createSdkModelPreflight({moon, request, preparation, profile, installation,
+        quantities: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+        fetch(...args) {
+          if (journalAck) {
+            const entry = continuation.entry(0);
+            assert.equal(entry.state, 'EnteredUnknown', 'durable Entry precedes transport');
+            assert.equal(checkpoints.journal.readModelCalls(continuation.inventory)
+              .slots[0].state, 'EnteredUnknown');
+          }
+          fetches++;
+          return fetch(...args);
+        },
+        responseLimits: {maxBytes: 2048, maxChunkBytes: 512, maxChunks: 16,
+          maxHeaderBytes: 256, observedHeaders: ['content-type']},
+        persistRaw: (call, raw) => persistence(call, raw),
+        cleanupRaw: call => persistence === undefined || persistence.cleanup(call),
+        notify: io.notify, checked(result) {
+          if (result?.$tag !== 1) t.diagnostic(`physical plan: ${inspect(result, {depth: 5})}`);
+          return checked(result);
+        }, observeAt: now});
+      retainRawBinder(registration => {
+        rawBindings++;
+        if (rawFailure === 'binder') throw new Error('FixtureRawBinderRefused');
+        persistence = createModelRawTransportPersistence({store, moon, registration,
+          retainHolding: original => retained.push(original), notify: originalIo.notify});
+      });
+      return sdk.preflight;
+    }}]).get('models/fixture');
+  const operation = openNodeInferOperation({moon, preparedProgram: prepared,
+    step: 2, graph, registry, values, fragment, ordered, provider: physical.provider, quantum: 1,
+    durableCalls: true, ioNotification: io, quantityCapacity: physical.quantityCapacity,
+    physicalPreflight: physical.physicalPreflight});
+  t.after(() => operation.close());
+  operation.bindRun(control, plan);
+  const runOriginal = async phase => {
+    try { return await operation.run(); }
+    catch (error) {
+      t.diagnostic(`${phase}: ${inspect(error.cause, {depth: 5})}`);
+      throw error;
+    }
+  };
+  const waiting = await runOriginal('prepare original call');
+  assert.equal(waiting.status, 'waiting');
+  assert.equal(fetches, 0);
+  const facts = operation.preparedFacts(waiting.preparedCallSet);
+  const boundary = moon.clientProgramInferPlanBoundary(graph);
+  const providerBinding = control.sealRunEvidence('model_provider_binding', canonicalText({
+    version: 'actql-model-provider-binding/0.1', provider_id: facts.providerId,
+    installation_revision_cid: builderCid, configuration_contract_cid: cid(profileBody),
+    configuration_cid: root}), {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
+  const expectedBoundary = {unit_id: facts.unitId, task_index: boundary._0,
+    strategy_revision: boundary._2, inference_barrier_cid: boundary._3,
+    account_id: accountFacts.account_id, configuration_cid: accountFacts.configuration_cid,
+    entry_id: 'model-policy', principal: 'fixture-principal', connection: facts.providerId,
+    resource: facts.modelTaskCid, context_cid: root, installation_revision_cid: builderCid,
+    configuration_contract_cid: cid(profileBody), provider_configuration_cid: root};
+  const input = control.admitRunEvidence('model_input_artifact', facts.inputArtifactWire,
+    {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
+  const scope = control.sealRunEvidence('model_invocation_scope', canonicalText({
+    version: 'actql-model-invocation-scope/0.1', run_definition_cid: runDefinition.identity,
+    task_index: boundary._0, strategy_revision: boundary._2,
+    inference_barrier_cid: boundary._3, input_artifact_cid: input.identity,
+    model_call_slot_cids: facts.slotWires.map(w => control.admitRunEvidence('model_call_slot', w,
+      {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20}).identity),
+    provider_binding_cid: providerBinding.identity,
+    authorization_context: {account_id: accountFacts.account_id,
+      configuration_cid: accountFacts.configuration_cid, entry_id: 'model-policy',
+      principal: 'fixture-principal', connection: facts.providerId, resource: facts.modelTaskCid,
+      operation: 'infer', boundary: 'activation', context_cid: root}}),
+  {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
+  let bound, dispatch;
+  if (journalAck) {
+    const controller = await installNodeModelContinuation({moon, control, store,
+      storeAuthorityCid: root, namespaceId: 'original-sdk', authorityScopeCid: root,
+      now, getCheckpoints: () => checkpoints});
+    const keys = generateKeyPairSync('ed25519');
+    checkpoints = await installRemoteCheckpoints({root: join(directory, 'checkpoints'),
+      namespaceId: 'original-sdk', authorityScopeCid: root,
+      ownerPrincipal: 'fixture-principal', siteKey: 'local', realizationKey: 'original-sdk',
+      environmentCid: root, contractControl: control, modelResumeVerifier: controller.verifier,
+      now: () => Date.parse(now()), authorization: {accountConfiguration,
+        resumeAfterAnswer: false,
+        reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: 'fixture-principal',
+          publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+        hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}});
+    t.after(() => checkpoints.close());
+    continuation = await controller.open({operation,
+      preparedCallSet: waiting.preparedCallSet, plan, principalId: 'fixture-principal',
+      selected: {graph, step: 2, providerBinding, observeAccount: () => account,
+        currentProvider: () => true, egressAdmission, entryPersistence: 'async',
+        rawCaptureSelection: physical.rawCaptureSelection},
+      declaredResults: ['answer'], submission: {fixture: 'original-sdk-journal'}});
+    if (rawFailure !== undefined) {
+      let refusal;
+      await assert.rejects(continuation.authorize(), error => {
+        refusal = error;
+        return rawFailure === 'binder' ? error.message === 'FixtureRawBinderRefused'
+          : error.code === 'MoonBitHostFailure';
+      });
+      await assert.rejects(continuation.authorize(), error => error === refusal);
+      assert.equal(rawBindings, rawFailure === 'binder' ? 1 : 0);
+      assert.equal(fetches, 0);
+      assert.equal(requests, 0);
+      assert.equal(continuation.entry(0), undefined);
+      assert.equal(checkpoints.journal.readModelCalls(continuation.inventory).slots[0].state, 'Unsent');
+      assert.equal(continuation.close(), false, 'original operation still owes cleanup');
+      await assert.rejects(operation.close(), {code: 'ClientDispatchCleanupPending'});
+      assert.equal(operation.cleanupPending(), true, 'SDK preparation still owes retirement');
+      // Retry only the original cleanup after SDK cancellation settles. This
+      // bounded fixture observes retirement; it never reauthorizes or sends.
+      for (let turn = 0; turn < 16 && operation.cleanupPending(); turn++) {
+        await yieldEventLoop();
+        operation.cleanup();
+      }
+      assert.equal(continuation.cleanup(), true);
+      assert.equal(continuation.cleanupPending(), false);
+      assert.equal(operation.cleanupPending(), false);
+      assert.equal(fetches, 0);
+      return;
+    }
+    assert.deepEqual(await continuation.authorize(), {status: 'dispatch'});
+    assert.deepEqual(await continuation.authorize(), {status: 'dispatch'});
+    assert.equal(rawBindings, 1, 'same continuation binds raw physical custody once');
+    assert.equal(fetches, 0);
+    assert.equal(checkpoints.journal.readModelCalls(continuation.inventory).slots[0].state, 'Unsent');
+    captureOwner = openNodeInferCaptureCustody({moon, control, operation, plan,
+      store, storeAuthorityCid: root, durableCalls: true, captureOnly: true,
+      faultInjection(boundary) {
+        if (loseCommitResponse && boundary === 'infer_model_settlement_committed' &&
+            commitResponsesLost === 0) {
+          commitResponsesLost++;
+          throw new Error('FixtureSettlementCommitResponseLost');
+        }
+      }});
+    captureOwner.configureModelJournal({observe: continuation.observe, entry: continuation.entry});
+  } else {
+    bound = operation.bindModelScope(control, plan, waiting.preparedCallSet,
+      {scope, provider: providerBinding, expectedBoundary});
+    dispatch = operation.bindModelDispatch(control, plan, waiting.preparedCallSet, bound,
+      {account, principalId: 'fixture-principal', at: now(), observeAccount: () => account,
+        observeAt: now, enterCall() { entrySaves++; return true; }});
+    // Historical synchronous Bool fixture remains separate from the actual
+    // installed continuation and its durable SQLite Entry path above.
+    const rawPolicy = control.issueCheckedClientInferRawCapturePolicy(compiled, runDefinition, dispatch, bound,
+      {...rawCaptureSelection, storeAuthorityCid: root});
+    const registration = control.registerCheckedClientInferRawCapture(compiled, runDefinition, dispatch, bound,
+      {policy: rawPolicy, profile, installation, account, at: now(), storeAuthorityCid: root,
+        selectionAvailable: () => true, observeAccount: () => account, observeAt: now});
+    operation.bindModelRawCapture(registration);
+  }
+  const settled = await runOriginal('dispatch and save original raw');
+  assert.equal(settled.status, 'settling');
+  assert.equal(fetches, 1);
+  assert.equal(requests, 1);
+  assert.equal(entrySaves, journalAck ? 0 : 1);
+  assert.equal(retained.length, 1);
+  const {semanticCid, holdingCid, wire: rawWire, contentCid, byteCount} = retained[0].holding.binding;
+  const saved = await store.confirmModelRawEvidence({semanticCid, holdingCid,
+    wire: rawWire, contentCid, byteCount});
+  assert.deepEqual(saved.bytes, Buffer.from(wire));
+  if (journalAck) {
+    const entry = continuation.entry(0);
+    if (loseCommitResponse) {
+      await assert.rejects(captureOwner.persistSettlement(settled.settlement, entry),
+        /FixtureSettlementCommitResponseLost/u);
+      assert.equal(checkpoints.journal.readModelCalls(continuation.inventory).slots[0].state,
+        'SavedSuccess', 'lost reply does not erase the durable settlement');
+      assert.equal(fetches, 1);
+    }
+    await captureOwner.persistSettlement(settled.settlement, entry);
+    const slot = checkpoints.journal.readModelCalls(continuation.inventory).slots[0];
+    assert.equal(slot.state, 'SavedSuccess');
+    assert.equal(slot.attempts.length, 1);
+    assert.equal(slot.attempts[0].attemptCid, entry.attemptCid);
+    for (let read = 0; read < 2; read++) {
+      assert.equal((await continuation.observe(entry)).state, 'SavedSuccess');
+      const original = await continuation.evaluationInventory().readBundle(0);
+      assert.equal(original.cid, slot.attempts[0].settlement.evidence.model_capture_bundle.cid);
+      assert.equal(JSON.parse(original.wire).version, 'actql-model-capture-bundle/0.2');
+      savedBundleReads++;
+      assert.equal(fetches, 1, 'Store re-verification does not dispatch');
+    }
+  } else operation.acknowledgeSettlement(settled.settlement);
+  const completed = await runOriginal('complete original output');
+  assert.deepEqual(await inferExportRows(prepared, completed),
+    [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+  const evidence = JSON.parse(moon.strategyRunEvidenceJson(operation.invocationEvidence(0)));
+  assert.equal(evidence.version, 'actql-model-invocation-evidence/0.2');
+  assert.equal(evidence.provider_reported_model_id, 'reported-model');
+  assert.equal(evidence.provider_request_id, 'original-sdk-response');
+  assert.equal(evidence.input_tokens, 3);
+  assert.equal(evidence.output_tokens, 2);
+  assert.equal(evidence.raw_response_artifact_cid, retained[0].holding.binding.semanticCid);
+  if (journalAck) {
+    captureOwner.retainCompleted();
+    await captureOwner.custody.close();
+    assert.equal(continuation.close(), true);
+    assert.equal(continuation.cleanupPending(), false);
+  } else await operation.close();
+  assert.equal(operation.cleanupPending(), false);
+  assert.equal(fetches, 1);
+  await store.retirePhysicalHolding(retained[0].holding.binding.holdingCid);
+  t.diagnostic(JSON.stringify({originalEntrySaves: entrySaves,
+    actualFetchStarts: fetches, loopbackRequests: requests,
+    confirmedRawBytes: saved.bytes.byteLength, inputTokens: evidence.input_tokens,
+    outputTokens: evidence.output_tokens, originalCleanupPending: operation.cleanupPending(),
+    entryPersistence: journalAck ? 'actual-sqlite' : 'sync-bool-fixture',
+    commitResponsesLost, savedBundleReads}));
+}
+
+test('ordinary Program joins original Common Entry and raw receipt to pinned SDK and Store',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, false));
+test('ordinary Program joins actual journal ACK and capture to pinned SDK and Store',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, true));
+test('ordinary Program joins durable capture after a lost settlement commit response without resend',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, true, true));
+test('installed raw registration refusal retains original cleanup and never enters or sends',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, true, false, 'registration'));
+test('installed raw physical binder refusal is fixed once with original cleanup and zero send',
+  {timeout: 10000}, t => originalSdkStoreConnection(t, true, false, 'binder'));
+
+test('original Node layout control preserves nominal compiled and definition domains before claim', () => {
+  const claims = [];
+  const consumingMoon = {...moon,
+    clientProgramClaimInferNodePreparationLayout(...args) {
+      claims.push(args);
+      return moon.clientProgramClaimInferNodePreparationLayout(...args);
+    }};
+  const control = runtimeCore(consumingMoon).publicationControl;
+  const foreign = runtimeCore(moon).publicationControl;
+  const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+  const graph = scopedInferGraph(prepared);
+  const root = cid({fixture: 'original Node layout'});
+  const policy = {executionContextCid: root, hostPolicyCid: root,
+    expiresAt: '2099-01-01T00:00:00.000Z', resultDataPolicy};
+  const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', policy, graph);
+  const definition = control.defineCheckedClientCompiledRun(compiled,
+    {namespaceId: 'layout', runId: 'one', createdAt: '2026-10-02T00:00:00.000Z',
+      validUntil: policy.expiresAt});
+  const foreignCompiled = foreign.prepareCheckedClientCompiledRun(prepared, 'infer', policy, graph);
+  const foreignDefinition = foreign.defineCheckedClientCompiledRun(foreignCompiled,
+    {namespaceId: 'layout', runId: 'foreign', createdAt: '2026-10-02T00:00:00.000Z',
+      validUntil: policy.expiresAt});
+  const selected = {layout: undefined, installation: undefined,
+    runtimeArtifactCid: root, layoutArtifactCid: root, probability: undefined};
+  assert.throws(() => control.claimCheckedClientInferNodePreparationLayout(
+    foreignCompiled, definition, graph, undefined, selected), /Foreign Client compiled Infer preparation/u);
+  assert.throws(() => control.claimCheckedClientInferNodePreparationLayout(
+    compiled, foreignDefinition, graph, undefined, selected), /Foreign publication contract/u);
+  assert.equal(claims.length, 0, 'foreign wrappers do not reach the original claim');
+  // The real Core reads the optional layout first and returns Unavailable;
+  // this negative fixture supplies no original read token or capacity grant.
+  assert.throws(() => control.claimCheckedClientInferNodePreparationLayout(
+    compiled, definition, graph, undefined, selected), error => error.code === 'MoonBitHostFailure');
+  assert.equal(claims.length, 1);
+  assert.notEqual(claims[0][1], compiled, 'consume the original nominal compiled Run, not its JS view');
+  assert.notEqual(claims[0][2], definition, 'consume the original nominal definition, not its JS view');
+  assert.equal(claims[0][3], graph);
+  assert.throws(() => control.startCheckedClientInferOriginalPreparation(
+    foreignCompiled, definition, prepared, 2, graph), /Foreign Client compiled Infer preparation/u);
+  assert.throws(() => control.startCheckedClientInferOriginalPreparation(
+    compiled, foreignDefinition, prepared, 2, graph), /Foreign publication contract/u);
+});
 
 test('bounded Infer admission fixtures match their existing checked owners', () => {
   execFileSync(process.execPath, ['scripts/infer-host-fixtures.mjs'],

@@ -2,6 +2,7 @@
 pub(all) enum NativeResidentEffectReviewPreparationIssue {
   Unavailable
   Normalization(@host.ClientEffectNormalizationIssue)
+  Catalog(NativeResidentEffectCatalogPolicyIssue)
   Result(@resident.ResidentEffectResultCaptureIssue)
   Review(NativeResidentEffectReviewIssue)
 }
@@ -45,6 +46,7 @@ pub fn prepare_native_resident_effect_review_from_context(
 ] {
   guard context.matches_holder(holder, journal) &&
     context.retention_matches(policy.retention) &&
+    context.source_binding_cid(journal) == Some(policy.source_binding_cid) &&
     context.facts(journal) is Some(facts) else {
     return reject_resident_effect_review_context(context, Unavailable)
   }
@@ -126,6 +128,7 @@ pub fn prepare_native_resident_effect_review_from_original_materials(
   NativeResidentEffectReviewPreparationFailure,
 ] {
   guard context.matches_holder(holder, journal) &&
+    context.source_binding_cid(journal) == Some(policy.source_binding_cid) &&
     context.facts(journal) is Some(facts) else {
     return reject_resident_effect_review_context(context, Unavailable)
   }

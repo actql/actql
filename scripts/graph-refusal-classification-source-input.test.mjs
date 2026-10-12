@@ -1,9 +1,18 @@
+import {graphAnyDirectionRefusals as historicalgraphAnyDirectionRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-any-direction-source-input.mjs';
+import {graphAbbreviatedRefusals as historicalgraphAbbreviatedRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-abbreviated-edge-source-input.mjs';
+import {graphQuantifierFormsRefusals as historicalgraphQuantifierFormsRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-quantifier-forms-source-input.mjs';
+import {graphEdgePredicateRefusals as historicalgraphEdgePredicateRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-edge-predicate-source-input.mjs';
+import {graphHopNodePredicateRefusals as historicalgraphHopNodePredicateRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-hop-node-predicate-source-input.mjs';
+import {graphDifferenceSourceRefusals as historicalgraphDifferenceSourceRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-difference-source-input.mjs';
+import {graphEqualitySourceRefusals as historicalgraphEqualitySourceRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-equality-source-input.mjs';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {graphSourceRefusals} from './fixtures/graph-source-input.mjs';
 import {subgraphSourceRefusals} from './fixtures/subgraph-source-input.mjs';
+import {subgraphSourceRefusals as historicalSubgraphRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-subgraph-source-input.mjs';
 import {graphAnyDirectionRefusals} from './fixtures/graph-any-direction-source-input.mjs';
 import {graphAbbreviatedRefusals} from './fixtures/graph-abbreviated-edge-source-input.mjs';
 import {graphQuantifierFormsRefusals} from './fixtures/graph-quantifier-forms-source-input.mjs';
@@ -44,19 +53,26 @@ const originals = [
   ['graph-equality-extra-argument', '1aec74bc5fd9a9ccee77380876878bfa64926d6600f1a9af43818461a73d85a7', false],
   ['graph-equality-graph-call-after-transition', '2460ffb2a2bab8d2a1a3345ec1efd8c162329f85999137cfa524eb93dff44f83', false],
 ];
+// Retired authored sources remain immutable evidence, not accepted callers.
+const historicalCore = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-core-source-input.json', import.meta.url), 'utf8'));
+const historicalRows = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-row-source-input.json', import.meta.url), 'utf8'));
+const historicalOperations = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-operation-source-input.json', import.meta.url), 'utf8'));
 const cases = new Map([
-  ...graphSourceRefusals,
-  ...subgraphSourceRefusals,
-  ...graphAnyDirectionRefusals,
-  ...graphAbbreviatedRefusals,
-  ...graphQuantifierFormsRefusals,
-  ...graphEdgePredicateRefusals,
-  ...graphHopNodePredicateRefusals,
-  ...graphRowSourceRefusals,
-  ...graphDiagnosticSourceRefusals,
-  ...graphDifferenceSourceRefusals,
-  ...graphEqualitySourceRefusals,
+  ...historicalCore.graph.refusals,
+  ...historicalSubgraphRefusals.map(item => ({...item,
+    ...(item.name === 'subgraph-common-where-selector-gap' ? {expectedCode:'ClientProgramImplementationLimit'} : {})})),
+  ...historicalgraphAnyDirectionRefusals,
+  ...historicalgraphAbbreviatedRefusals,
+  ...historicalgraphQuantifierFormsRefusals,
+  ...historicalgraphEdgePredicateRefusals,
+  ...historicalgraphHopNodePredicateRefusals,
+  ...historicalRows.refusals,
+  ...historicalOperations.groups.diagnostics.refusals,
+  ...historicalgraphDifferenceSourceRefusals,
+  ...historicalgraphEqualitySourceRefusals,
 ].map(item => [item.name, item]));
+
+const currentCases = new Map([...graphSourceRefusals,...subgraphSourceRefusals,...graphAnyDirectionRefusals,...graphAbbreviatedRefusals,...graphQuantifierFormsRefusals,...graphEdgePredicateRefusals,...graphHopNodePredicateRefusals,...graphRowSourceRefusals,...graphDiagnosticSourceRefusals,...graphDifferenceSourceRefusals,...graphEqualitySourceRefusals].map(item=>[item.name,item]));
 
 test('only independently proven Graph support gaps gain exact implementation-limit expectations', () => {
   assert.equal(originals.filter(([, , gap]) => gap).length, 10);
@@ -66,8 +82,67 @@ test('only independently proven Graph support gaps gain exact implementation-lim
     const {expectedCode, ...input} = item;
     assert.equal(createHash('sha256').update(encodeRetainedFixture(input)).digest('hex'),
       originalDigest, name + ': preserve the complete original authored input');
-    if (gap) assert.equal(expectedCode, 'ClientProgramImplementationLimit', name);
-    else assert.equal(Object.hasOwn(item, 'expectedCode'), false,
+    const current = currentCases.get(name);
+    assert.ok(current,name);
+    if (gap) assert.equal(current.expectedCode, 'ClientProgramImplementationLimit', name);
+    else assert.equal(Object.hasOwn(current, 'expectedCode'), false,
       name + ': malformed input retains its original rejection policy');
+  }
+});
+
+test('WITH Graph row refusals preserve their existing rejection policy', () => {
+  assert.equal(graphRowSourceRefusals.length, historicalRows.refusals.length);
+  for (const current of graphRowSourceRefusals) {
+    const previous = historicalRows.refusals.find(input => input.name === current.name);
+    const {text: oldText, ...oldPolicy} = previous;
+    const {text, ...policy} = current;
+    assert.deepEqual(policy, oldPolicy);
+    assert.notEqual(text, oldText);
+    assert.ok(text.startsWith('WITH '));
+    assert.ok(!/\bDATA\b|PROPERTY GRAPH/.test(text));
+  }
+});
+
+test('WITH Graph core refusals preserve independent rejection policy', () => {
+  assert.equal(graphSourceRefusals.length, historicalCore.graph.refusals.length);
+  for (const current of graphSourceRefusals) {
+    const previous = historicalCore.graph.refusals.find(item => item.name === current.name);
+    const {text: oldText, ...oldPolicy} = previous;
+    const {text, ...policy} = current;
+    assert.deepEqual(policy, oldPolicy, current.name);
+    if (current.name === 'data-sql-format') {
+      assert.equal(text, oldText, 'retain explicit rejection of the retired entry');
+    } else {
+      assert.notEqual(text, oldText, current.name);
+      assert.ok(text.startsWith('WITH '), current.name);
+      assert.ok(!/\bDATA\b|PROPERTY GRAPH/.test(text), current.name);
+    }
+  }
+});
+
+
+test('WITH diagnostic refusals retain complete input policy', () => {
+  for (const current of graphDiagnosticSourceRefusals) {
+    const {text: oldText, ...oldPolicy} = historicalOperations.groups.diagnostics.refusals.find(item => item.name === current.name);
+    const {text, ...policy} = current;
+    assert.deepEqual(policy, oldPolicy);
+    assert.notEqual(text, oldText);
+    assert.ok(text.startsWith('WITH '));
+  }
+});
+
+// A historical digest never becomes a digest of the migrated current caller.
+// The input grammar changes; the independent refusal policy does not.
+test('current subgraph callers retain the independently pinned refusal policy',()=>{
+  for(const name of ['subgraph-common-where-selector-gap','subgraph-after-relation-transition']){
+    const current=subgraphSourceRefusals.find(item=>item.name===name);
+    const old=historicalSubgraphRefusals.find(item=>item.name===name);
+    assert.ok(current&&old,name);
+    assert.notEqual(current.text,old.text);
+    assert.ok(current.text.startsWith('WITH '));
+    assert.equal(current.expectedCode,name==='subgraph-common-where-selector-gap'?'ClientProgramImplementationLimit':undefined);
+    const {text:currentText,expectedCode:currentCode,...currentInput}=current;
+    const {text:oldText,expectedCode:oldCode,...oldInput}=old;
+    assert.deepEqual(currentInput,oldInput);
   }
 });

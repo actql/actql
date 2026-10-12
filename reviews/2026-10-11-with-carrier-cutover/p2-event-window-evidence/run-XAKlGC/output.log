@@ -1,0 +1,9 @@
+Error: [4018]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/event_window_source_test.mbt:66:19 ]
+    │
+ 66 │     Err(issue) => raise issue
+    │                   ─────┬─────  
+    │                        ╰─────── Type @actql/actql/stage_results.LocalProgramIssue is not an error type
+────╯
+["moon","test","--target","js","src/query_program/event_window_source_test.mbt"]: process failed (1); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-lkPuI2

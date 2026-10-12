@@ -325,42 +325,15 @@ pub fn lower(
     Json => Ok({ document, format: @program.Json, program: None, })
     Yaml => Ok({ document, format: @program.Yaml, program: None, })
     Text | Sql => {
-      let script = match
-        parse_selected_query_script(document, format, source_path~) {
+      let parsed = match parse_query(document, format, source_path~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
       guard context is Some(context) else { return Err(MissingQueryContext) }
-      // DATA constructors lower to the sole definition-keyed Program owner.
-      // A bare external Graph alias still lacks admitted definition provenance;
-      // never reinterpret it through the retired tuple-Graph source route.
-      if @syntax.data_declaration_count(script) == 0 &&
-        @syntax.graph_query(@syntax.script_query(script)) is Some(_) {
-        return Err(QueryLowering(@query.UnsupportedGraph))
-      }
-      let program = if @syntax.data_declaration_count(script) > 0 ||
-        @syntax.command_effect_count(script) > 0 {
-        match
-          @query.compile_query_script(
-            script,
-            context,
-            query_limits(),
-            table_writes~,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(QueryLowering(issue))
-        }
-      } else {
-        match
-          @query.compile(
-            @syntax.script_query(script),
-            context,
-            query_limits(),
-            table_writes~,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(QueryLowering(issue))
-        }
+      let program = match
+        @query.compile(parsed, context, query_limits(), table_writes~) {
+        Ok(value) => value
+        Err(issue) => return Err(QueryLowering(issue))
       }
       emit(program)
     }

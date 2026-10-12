@@ -29,8 +29,8 @@ test('uppercase and quoted binding sources retain their own named fields and emp
   const node = cases.get('graph-match-node-uppercase-binding');
   const edge = cases.get('graph-match-edge-quoted-bindings');
   const empty = cases.get('graph-match-node-quoted-binding-empty');
-  assert.ok(node.text.includes("BINDINGS: {IDENTITY: 'Element'}"));
-  assert.ok(edge.text.includes("`Source`: 'Source', `Target`: 'Target'"));
+  assert.ok(node.text.includes("BINDINGS: {IDENTITY: `Element`}"));
+  assert.ok(edge.text.includes("`Source`: `Source`, `Target`: `Target`"));
   assert.deepEqual(node.results, cases.get('graph-match-node-binding-independent-json').results);
   assert.deepEqual(edge.results, cases.get('graph-match-edge-binding-independent-json').results);
   assert.deepEqual(empty.results.matched.rows, []);
@@ -73,6 +73,6 @@ test('each typed endpoint selector identifies a different original node and dedu
     assert.deepEqual(steps[3].match_edges.bindings, {source: 'Source', target: 'Target'});
     assert.deepEqual(steps[4].subgraph, {nodes: {from: 'endpoints', id: role}});
     assert.deepEqual(steps[5].match_nodes, {definition: 'N', where: {literal: true}, fields: ['p', 'node_key']});
-    assert.ok(source.text.includes("BINDINGS: {SOURCE: 'Source', `Target`: 'Target'}"));
+    assert.ok(source.text.includes("BINDINGS: {SOURCE: `Source`, `Target`: `Target`}"));
   }
 });

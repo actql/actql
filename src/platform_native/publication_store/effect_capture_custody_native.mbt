@@ -6,14 +6,17 @@ priv struct PrivateEffectEvidenceCustody {
   store : Store
   crypto : @signature.Library
   key : Bytes
-  envelope : Bytes
+  mut envelope : Bytes
+  reservation_bytes : Int64
+  reservation_objects : Int64
+  preparation : PrivateEvidencePreparation?
   terminal : Bytes
   capacity_key : String
   table : String
   holding : String
   kind : String
   semantic_cid : String
-  wire : String
+  mut wire : String
   step_prefix : String
   mut transaction_uncertain : Bool
 }
@@ -53,6 +56,9 @@ fn prepare_private_effect_custody(
     crypto,
     key: owned_key,
     envelope,
+    reservation_bytes: envelope.length().to_int64(),
+    reservation_objects: 1L,
+    preparation: None,
     terminal: @utf8.encode(terminal),
     capacity_key: step_prefix + ":" + holding,
     table,
@@ -333,7 +339,15 @@ fn PrivateEffectEvidenceCustody::read(
     }
     return Ok((row, true))
   }
-  if row.revision != 0L || row.body.length() != self.envelope.length() {
+  if row.revision != 0L ||
+    (
+      self.preparation is None &&
+      row.body.length().to_int64() != self.reservation_bytes
+    ) ||
+    (
+      self.preparation is Some(_) &&
+      row.body.length().to_int64() > self.reservation_bytes
+    ) {
     return Err(StateCollision)
   }
   let plain = match
@@ -371,6 +385,11 @@ fn PrivateEffectEvidenceCustody::persist(
     Err(issue) => return Err(Database(issue))
   }
   let operation = () => {
+    match self.confirm_preparation() {
+      Ok(false) => ()
+      Ok(true) => return Err(RecoveryRequired)
+      Err(issue) => return Err(issue)
+    }
     match self.read() {
       Ok((_, true)) => return Err(RecoveryRequired)
       Ok((_, false)) => ()
@@ -381,11 +400,12 @@ fn PrivateEffectEvidenceCustody::persist(
       db.reserve_capacity_in_transaction(
         "publication_payload",
         self.capacity_key,
-        self.envelope.length().to_int64(),
-        1L,
+        self.reservation_bytes,
+        self.reservation_objects,
         self.store.capacity_bytes,
         self.store.max_objects,
       ) {
+      Ok(true) if self.preparation is Some(_) => return Err(StateCollision)
       Ok(_) => ()
       Err(issue) => return Err(Database(issue))
     }
@@ -427,11 +447,13 @@ fn PrivateEffectEvidenceCustody::persist(
     }
   }
   observe(self.store, self.step_prefix + "-persisted")
-  match self.read() {
-    Ok((_, false)) => Ok(())
-    Ok((_, true)) => Err(RecoveryRequired)
-    Err(issue) => Err(issue)
-  }
+  allocation_prepare(self.store, self.step_prefix + "-after-persist-readback", () => {
+    match self.read() {
+      Ok((_, false)) => Ok(())
+      Ok((_, true)) => Err(RecoveryRequired)
+      Err(issue) => Err(issue)
+    }
+  })
 }
 
 ///|
@@ -482,6 +504,10 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
     Ok((_, false)) => return Err(CleanupPending)
     Err(issue) => return Err(issue)
   }
+  match self.retire_preparation() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match
     allocation_prepare(
       self.store,
@@ -491,8 +517,8 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
         .release_capacity(
           "publication_payload",
           self.capacity_key,
-          self.envelope.length().to_int64(),
-          1L,
+          self.reservation_bytes,
+          self.reservation_objects,
         )
         .map_err(issue => Database(issue))
       },
@@ -506,7 +532,7 @@ fn PrivateEffectEvidenceCustody::retry_cleanup(
 fn PrivateEffectEvidenceCustody::reserved_bytes(
   self : PrivateEffectEvidenceCustody,
 ) -> Int64 {
-  self.envelope.length().to_int64()
+  self.reservation_bytes
 }
 
 ///|
@@ -649,6 +675,78 @@ pub fn Store::restore_effect_checkpoint_custody(
     }
   }
   Ok(custody)
+}
+
+///|
+/// Read the original persisted continuation without candidate body bytes.
+/// The caller selects the sealed Checkpoint from trusted original custody;
+/// Store authority, AEAD role/CID, digest and final paired readback remain
+/// mandatory. Unlike an unfinished-persist continuation, missing/retired
+/// records cannot produce a confirmed handle. This grants no disclosure or
+/// resume permission and makes no Store write or capacity reservation.
+pub fn Store::restore_confirmed_effect_checkpoint_custody(
+  self : Store,
+  checkpoint : @checkpoint.SealedCheckpoint,
+  store_authority : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if store_authority != self.authority_cid {
+    return Err(StateCollision)
+  }
+  guard checkpoint.checkpoint.subject is @checkpoint.RunUnit(..) &&
+    checkpoint.checkpoint.kind == @checkpoint.EffectSet else {
+    return Err(InvalidConfiguration)
+  }
+  let holding = checkpoint.checkpoint_cid
+  let row = match self.database.read("effect_continuation_custody", holding) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  let terminal = "{\"checkpoint_cid\":\"" +
+    holding +
+    "\",\"cleanup_complete\":true}"
+  if row.body == @utf8.encode(terminal) {
+    if row.revision != 0L && row.revision != 1L {
+      return Err(StateCollision)
+    }
+    return Err(RecoveryRequired)
+  }
+  if row.revision != 0L {
+    return Err(StateCollision)
+  }
+  let plain = match
+    crypto.open_private_evidence(
+      key,
+      "continuation_record",
+      checkpoint.checkpoint.continuation_state_cid,
+      row.body,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PrivateEvidence(issue))
+  }
+  let original_wire = match
+    original_effect_checkpoint_continuation(
+      checkpoint,
+      plain,
+      self.max_record_bytes.to_int64(),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let custody = match
+    self.restore_effect_checkpoint_custody(
+      checkpoint, original_wire, store_authority, crypto, key,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Recheck both original records after decryption/preparation. Partial writes
+  // and concurrent retirement stay unconfirmed; no replacement persist runs.
+  custody.confirm().map(_ => custody)
 }
 
 ///|

@@ -1,0 +1,203 @@
+TAP version 13
+# Subtest: WITH remaining callers retain complete independent computed-object-property inventory
+ok 1 - WITH remaining callers retain complete independent computed-object-property inventory
+  ---
+  duration_ms: 21.503083
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent distinct-aggregate-order inventory
+ok 2 - WITH remaining callers retain complete independent distinct-aggregate-order inventory
+  ---
+  duration_ms: 2.713666
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent distinct-array-reference-key inventory
+ok 3 - WITH remaining callers retain complete independent distinct-array-reference-key inventory
+  ---
+  duration_ms: 0.59775
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent full-join-scope inventory
+ok 4 - WITH remaining callers retain complete independent full-join-scope inventory
+  ---
+  duration_ms: 2.5075
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-abbreviated-edge inventory
+ok 5 - WITH remaining callers retain complete independent graph-abbreviated-edge inventory
+  ---
+  duration_ms: 5.009209
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-any-direction inventory
+ok 6 - WITH remaining callers retain complete independent graph-any-direction inventory
+  ---
+  duration_ms: 3.156958
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-delta inventory
+ok 7 - WITH remaining callers retain complete independent graph-delta inventory
+  ---
+  duration_ms: 3.432459
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-difference inventory
+ok 8 - WITH remaining callers retain complete independent graph-difference inventory
+  ---
+  duration_ms: 6.601583
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-edge-predicate inventory
+ok 9 - WITH remaining callers retain complete independent graph-edge-predicate inventory
+  ---
+  duration_ms: 2.594541
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-equality inventory
+ok 10 - WITH remaining callers retain complete independent graph-equality inventory
+  ---
+  duration_ms: 1.206583
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-graft inventory
+ok 11 - WITH remaining callers retain complete independent graph-graft inventory
+  ---
+  duration_ms: 2.256042
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-hop-node-predicate inventory
+ok 12 - WITH remaining callers retain complete independent graph-hop-node-predicate inventory
+  ---
+  duration_ms: 1.628833
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-match inventory
+ok 13 - WITH remaining callers retain complete independent graph-match inventory
+  ---
+  duration_ms: 2.736625
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-mean inventory
+ok 14 - WITH remaining callers retain complete independent graph-mean inventory
+  ---
+  duration_ms: 1.42175
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-projection-property inventory
+ok 15 - WITH remaining callers retain complete independent graph-projection-property inventory
+  ---
+  duration_ms: 3.036292
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-property-predicate inventory
+ok 16 - WITH remaining callers retain complete independent graph-property-predicate inventory
+  ---
+  duration_ms: 3.029459
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-reach inventory
+ok 17 - WITH remaining callers retain complete independent graph-reach inventory
+  ---
+  duration_ms: 2.478958
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-relation-join inventory
+ok 18 - WITH remaining callers retain complete independent graph-relation-join inventory
+  ---
+  duration_ms: 2.161167
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-subtraction inventory
+ok 19 - WITH remaining callers retain complete independent graph-subtraction inventory
+  ---
+  duration_ms: 2.72825
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-traverse-path inventory
+ok 20 - WITH remaining callers retain complete independent graph-traverse-path inventory
+  ---
+  duration_ms: 5.472292
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent graph-union inventory
+ok 21 - WITH remaining callers retain complete independent graph-union inventory
+  ---
+  duration_ms: 1.283959
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent group-property inventory
+ok 22 - WITH remaining callers retain complete independent group-property inventory
+  ---
+  duration_ms: 21.637
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent group-select-scope inventory
+ok 23 - WITH remaining callers retain complete independent group-select-scope inventory
+  ---
+  duration_ms: 2.074333
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent join-property inventory
+ok 24 - WITH remaining callers retain complete independent join-property inventory
+  ---
+  duration_ms: 4.667334
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent limit-parameter inventory
+ok 25 - WITH remaining callers retain complete independent limit-parameter inventory
+  ---
+  duration_ms: 5.903917
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent subgraph inventory
+ok 26 - WITH remaining callers retain complete independent subgraph inventory
+  ---
+  duration_ms: 4.709209
+  type: 'test'
+  ...
+# Subtest: WITH remaining callers retain complete independent traversal-join inventory
+ok 27 - WITH remaining callers retain complete independent traversal-join inventory
+  ---
+  duration_ms: 2.122875
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 272.878458
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent computed-object-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent distinct-aggregate-order inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent distinct-array-reference-key inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent full-join-scope inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-abbreviated-edge inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-any-direction inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-delta inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-difference inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-edge-predicate inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-equality inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-graft inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-hop-node-predicate inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-match inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-mean inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-projection-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-property-predicate inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-reach inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-relation-join inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-subtraction inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-traverse-path inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent graph-union inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent group-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent group-select-scope inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent join-property inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent limit-parameter inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent subgraph inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH remaining callers retain complete independent traversal-join inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":27,"failed":0,"passed":27,"cancelled":0,"skipped":0,"todo":0,"topLevel":27,"suites":0},"duration_ms":156.178625,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-remaining-public-fixtures.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":27,"failed":0,"passed":27,"cancelled":0,"skipped":0,"todo":0,"topLevel":27,"suites":0},"duration_ms":272.878458}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-remaining-public-fixtures.test.mjs"]: executed; counts={"tests":27,"passed":27,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-o3be7z

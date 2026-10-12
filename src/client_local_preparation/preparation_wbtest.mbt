@@ -40,7 +40,7 @@ let program : String =
 test "structured and AQL inputs preserve the checked DAG and Result inventory" {
   let environment = environment()
   let context = bind_local_input_context(environment, [], "python.local.text").unwrap()
-  let text = "DATA seed = SELECT 1 AS n; FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer"
+  let text = "WITH seed AS (SELECT 1 AS n) FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer"
   // The structured input has two Units; the query script has one Unit with
   // several steps. Physical segmentation belongs to the existing DAG Owner.
   for

@@ -68,6 +68,7 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(native.success,true);
     assert.equal(native.module_sha256,digest);
     assert.equal(native.cases.length,14);
+    assert.equal(native.publication_preflight_cases.length,4);
     assert.equal(native.source_publication_cases.length,11);
     assert.equal(native.result_publication_cases.length,11);
     assert.equal(native.explicit_authored_view,true);
@@ -99,6 +100,7 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(native.success,true);
     assert.equal(native.module_sha256,digest);
     assert.equal(native.cases.length,14);
+    assert.equal(native.publication_preflight_cases.length,4);
     assert.equal(native.source_publication_cases.length,11);
     const invocationEvidence={};
     if(invocationBoundary){
@@ -113,6 +115,7 @@ if(process.argv.includes('--build-and-consume')){
       assert.equal(explicit.explicit_authored_view,true);
       assert.equal(explicit.normalization_completion_free,true);
       assert.equal(explicit.cases.length,14);
+      assert.equal(explicit.publication_preflight_cases.length,4);
       assert.equal(explicit.source_publication_cases.length,11);
       Object.assign(invocationEvidence,{material,explicit});
     }

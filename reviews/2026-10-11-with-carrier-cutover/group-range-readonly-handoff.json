@@ -1,0 +1,326 @@
+{
+  "requested_by": "Root integration review of #1474; read-only existing-owner diagnosis, not another compatibility feature",
+  "author_sha": "147e2777187f3a283c891208c7b969b09e9cc388",
+  "published_main_observed": "861cdb6a6432d87fb73f8ae733c8850bb895a9aa",
+  "status": "Source inspection and independent authored expectations only; Root runtime observations remain Root evidence",
+  "source": {
+    "docs/spec/query-text.md": {
+      "author_blob": "704a0a1f24d6c7141ea191b6e697389b83bfa00e",
+      "published_main_blob": "855aab7fc4886b5ad061dd82ee582461799e7e24",
+      "sha256": "56e3ff76c717e21966b49d29a57fab1f410aa7173d9321609bb58e3082c59d7d"
+    },
+    "src/query_program/group_property_receiver_scope_test.mbt": {
+      "author_blob": "2577004903f6916f7fb4431548050b6a65239b59",
+      "published_main_blob": "2577004903f6916f7fb4431548050b6a65239b59",
+      "sha256": "99c4e05b09049d589bc5613ffc7be96ffc3a6e1f639060c5f1081e28bb380782"
+    },
+    "src/query_program/query_group_all.mbt": {
+      "author_blob": "56fb2c1dbccf5321c0c7f47c6d0600cb35032aa7",
+      "published_main_blob": "56fb2c1dbccf5321c0c7f47c6d0600cb35032aa7",
+      "sha256": "ee993e1e1d5fbeea44523213c46fa9e0c85026f00d0e7bb4e7892cc4dfca331f"
+    },
+    "src/query_program/query_grouped_expression.mbt": {
+      "author_blob": "4677192cae6a18664dc69ae4a1c021259ad6d2a3",
+      "published_main_blob": "4677192cae6a18664dc69ae4a1c021259ad6d2a3",
+      "sha256": "943709bbffd531378e67d8376f66ce65845819acfdfeb460639f0a88a0f347c5"
+    },
+    "src/query_program/pipe_range_property.mbt": {
+      "author_blob": "93c2d0651d92331e0da432ab4cd82ff78c09604d",
+      "published_main_blob": "93c2d0651d92331e0da432ab4cd82ff78c09604d",
+      "sha256": "51df646a190a29a14938ce5cae2ffd1baa4ea4383d69c2850c24b6b1f96846d8"
+    },
+    "src/query_program/range_name_precedence_test.mbt": {
+      "author_blob": "2fe77deea7c486d4915a09fddfaf6c8b47688cd0",
+      "published_main_blob": "2fe77deea7c486d4915a09fddfaf6c8b47688cd0",
+      "sha256": "6be13cb7857ee39fb2cd1ea8215b0450ccc97305f16aa66c1bff462a3ffa3ed5"
+    },
+    "src/query_program/range_expression_scope.mbt": {
+      "author_blob": "c1903bf28f1f9de5785da83738993a8455fe1978",
+      "published_main_blob": "c1903bf28f1f9de5785da83738993a8455fe1978",
+      "sha256": "9cd47ef7d14871620c3815c7d392c097489defa77c490998850cab20521ec536"
+    },
+    "src/query_program/compile.mbt": {
+      "author_blob": "29fdbc2057521becc197a387fbd3dffcc75d46c4",
+      "published_main_blob": "29fdbc2057521becc197a387fbd3dffcc75d46c4",
+      "sha256": "1f97fcf459a11129945807eb4da3f7f295123592a4fcf655c1da7df0295ed5b1"
+    }
+  },
+  "meaning": "An ordinary input range payload shadows a same-named object column. Parentheses do not switch the receiver. payload.score and (payload).score both read the flat score slot. A genuine object-column contrast is payload.payload.score.",
+  "cases": [
+    {
+      "source": "SELECT payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
+      "expected_program": {
+        "version": "actql/0.1",
+        "id": "fixture.group_same_range_forms",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "id": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "score": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "payload": {
+                      "type": "object",
+                      "nullable": true,
+                      "fields": {
+                        "score": {
+                          "type": "number",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  },
+                  "rows": [
+                    {
+                      "id": 1,
+                      "score": 10,
+                      "payload": {
+                        "score": 20
+                      }
+                    },
+                    {
+                      "id": 2,
+                      "score": 10,
+                      "payload": {
+                        "score": 30
+                      }
+                    },
+                    {
+                      "id": 3,
+                      "score": 20,
+                      "payload": null
+                    }
+                  ]
+                },
+                "as": "objects"
+              },
+              {
+                "from": "objects",
+                "group": {
+                  "by": [
+                    "score"
+                  ],
+                  "aggregates": {
+                    "n": {
+                      "fn": "count"
+                    }
+                  }
+                }
+              },
+              {
+                "select": [
+                  {
+                    "input_score": "score"
+                  },
+                  {
+                    "object_score": "score"
+                  },
+                  "n"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "out",
+                "fields": [
+                  "input_score",
+                  "object_score",
+                  "n"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      },
+      "expected_rows": [
+        {
+          "input_score": 10,
+          "object_score": 10,
+          "n": 2
+        },
+        {
+          "input_score": 20,
+          "object_score": 20,
+          "n": 1
+        }
+      ],
+      "trace": [
+        "query_group_all.inferred_group_keys calls group_reference_parts for Property receiver.",
+        "group_reference_parts returns ([payload],[score]); normalize tries resolving only [payload].",
+        "resolve_column suppresses a bare ordinary range as a scalar field; scope_expression_slot has the same priority rule.",
+        "The resulting UnknownReference can reject valid grouped range-property syntax.",
+        "The old independent fixture instead expects a property on field payload and two keys; this expectation conflicts with the current range-priority contract."
+      ]
+    },
+    {
+      "source": "SELECT ((payload).score + 1) * 2 AS object_next, COUNT(*) AS n FROM objects AS payload GROUP BY (payload).score + 1",
+      "expected_program": {
+        "version": "actql/0.1",
+        "id": "fixture.group_computed_range_subtree",
+        "stages": [
+          {
+            "id": "main",
+            "inputs": {},
+            "steps": [
+              {
+                "values": {
+                  "schema": {
+                    "id": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "score": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "payload": {
+                      "type": "object",
+                      "nullable": true,
+                      "fields": {
+                        "score": {
+                          "type": "number",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  },
+                  "rows": [
+                    {
+                      "id": 1,
+                      "score": 10,
+                      "payload": {
+                        "score": 20
+                      }
+                    },
+                    {
+                      "id": 2,
+                      "score": 10,
+                      "payload": {
+                        "score": 30
+                      }
+                    },
+                    {
+                      "id": 3,
+                      "score": 20,
+                      "payload": null
+                    }
+                  ]
+                },
+                "as": "objects"
+              },
+              {
+                "from": "objects",
+                "derive": {
+                  "key": {
+                    "add": [
+                      {
+                        "field": "score"
+                      },
+                      {
+                        "literal": 1
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "group": {
+                  "by": [
+                    "key"
+                  ],
+                  "aggregates": {
+                    "n": {
+                      "fn": "count"
+                    }
+                  }
+                }
+              },
+              {
+                "derive": {
+                  "object_next": {
+                    "mul": [
+                      {
+                        "field": "key"
+                      },
+                      {
+                        "literal": 2
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "select": [
+                  "object_next",
+                  "n"
+                ],
+                "as": "out"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "out",
+                "fields": [
+                  "object_next",
+                  "n"
+                ]
+              }
+            }
+          }
+        ],
+        "results": {
+          "answer": {
+            "from": {
+              "stage": "main",
+              "result": "rows"
+            }
+          }
+        }
+      },
+      "expected_rows": [
+        {
+          "object_next": 22,
+          "n": 2
+        },
+        {
+          "object_next": 42,
+          "n": 1
+        }
+      ],
+      "trace": [
+        "Computed grouping-key generation uses append_expression and bind_range_property_expression, which can bind (payload).score to range score.",
+        "The later grouped-subtree reuse proof uses same_group_expression_in_scopes/group_reference_parts instead.",
+        "Its receiver identity resolves only [payload], which fails; identical authored subtrees therefore fail the proof.",
+        "Fallback evaluation after GROUP cannot recover the removed input score, so UnknownReference is a plausible first refusal."
+      ]
+    }
+  ],
+  "comparison": "Multiset; neither source declares ORDER BY. Numeric selected keys and COUNT are non-null under the existing contracts.",
+  "implementation_owner": "Root for this integration; B changes no product/test/author branch",
+  "guardrails": [
+    "No weakening of alias-first ORDER or receiver/type/NULL checks.",
+    "Do not restore an input object merely because one computed property key survived GROUP.",
+    "Use existing original-scope range/property binding in proof and GROUP BY ALL inference; do not infer identity solely from flattened spelling.",
+    "Keep genuine nullable object controls, using a qualified object column or a noncolliding range.",
+    "All authored Programs/checker/runtime/public results here remain unexecuted."
+  ],
+  "product_execution": 0
+}

@@ -15,14 +15,14 @@ pub fn file_list_selector(query : Query) -> FileListSelector? {
 ///|
 fn QueryParser::file_listing_source(
   self : QueryParser,
-) -> (Array[NamePart], NamePart?, Array[CtePart], FileListSelector?) raise QueryAbort {
+) -> (Array[NamePart], NamePart?, Array[QueryBinding], Bool, FileListSelector?) raise QueryAbort {
   self.keyword("LIST_FILES")
   self.symbol(40)
   let at = self.peek().start
   if !(self.peek().value is Word(_) || self.peek().value is QuotedName(_)) {
     raise QueryAbort("FileSourceNameMustBeStatic", at)
   }
-  // Deliberately do not resolve a DATA/CTE producer into an installed Source.
+  // Deliberately do not resolve a WITH producer into an installed Source.
   let relation = self.path()
   if self.peek().value != Symbol(44) && self.peek().value != Symbol(41) {
     raise QueryAbort("FileSourceNameMustBeStatic", at)
@@ -57,5 +57,5 @@ fn QueryParser::file_listing_source(
   }
   // One exclusive selector; never silently drop a second or unknown argument.
   self.symbol(41)
-  (relation, self.optional_source_alias(), [], Some(selector))
+  (relation, self.optional_source_alias(), [], false, Some(selector))
 }

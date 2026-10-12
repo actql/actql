@@ -1,0 +1,7 @@
+Error: [4031]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_rows_test.mbt:155:23 ]
+     │
+ 155 │     ) is Err({ issue: WrongQueryForm, .. }),
+     │                       ───────┬──────  
+     │                              ╰──────── The type @actql/actql/query_syntax.Issue does not have the constructor WrongQueryForm.
+─────╯

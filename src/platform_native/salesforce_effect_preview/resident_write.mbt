@@ -48,7 +48,7 @@ struct NativeResidentEffectApprovedRow {
   key : @effect.EffectDispatchKey
   basis : @effect.EffectLedgerBasis
   request : @catalog.SingleWriteRequest
-  observation : @catalog.TargetObservation
+  observation : @catalog.TargetObservation?
   limits : NativeResidentEffectWriteLimits
   mut dispatching : @effect.EffectLedgerEntry?
   mut raw : @journal.NativeEffectSavedResponse?
@@ -69,6 +69,36 @@ fn[T] write_checked(
   match result {
     Ok(value) => value
     Err(issue) => raise WriteFailed(issue)
+  }
+}
+
+///|
+/// Choose the physical verb only from an admitted Catalog request and the
+/// checked Preview guard. This does not establish approval, current authority
+/// or a Ledger claim; the sender must establish all of those separately.
+fn native_resident_effect_row_method(
+  request : @catalog.SingleWriteRequest,
+  observed_version : String?,
+  preview_version : String?,
+) -> Result[@http.NativeHttpMethod, NativeResidentEffectWriteIssue] {
+  match @catalog.single_write_request_kind(request) {
+    @catalog.SingleCreate =>
+      if @catalog.single_write_request_method(request) == "POST" &&
+        observed_version is None &&
+        preview_version is None {
+        Ok(@http.Post)
+      } else {
+        Err(ForeignRequest)
+      }
+    @catalog.SingleUpdateById(_) =>
+      if @catalog.single_write_request_method(request) == "PATCH" &&
+        observed_version is Some(_) &&
+        observed_version == preview_version {
+        Ok(@http.Patch)
+      } else {
+        Err(ForeignRequest)
+      }
+    _ => Err(ForeignRequest)
   }
 }
 
@@ -128,7 +158,7 @@ priv struct NativeResidentEffectRowContext {
   key : @effect.EffectDispatchKey
   basis : @effect.EffectLedgerBasis
   request : @catalog.SingleWriteRequest
-  observation : @catalog.TargetObservation
+  observation : @catalog.TargetObservation?
 }
 
 ///|
@@ -142,10 +172,37 @@ fn NativeResidentEffectReview::row_context(
   ] raise NativeEffectWriteFailure {
     guard self.captured is Some(capture) &&
       self.targets is Some(targets) &&
-      targets.length() == 1 &&
       capture.preview.keys.length() == 1 &&
       self.retention_configuration is Some(_) else {
       return Err(Unavailable)
+    }
+    let (request, observation, origin) = if self.created_targets
+      is Some(created) {
+      guard targets.is_empty() &&
+        created.requests.length() == 1 &&
+        created.matches(
+          self.consumer,
+          self.materials,
+          self.inputs,
+          self.policy.stage,
+          self.policy.effect_id,
+          self.policy.result_index,
+        ) &&
+        @catalog.single_write_request_kind(created.requests[0])
+        is @catalog.SingleCreate else {
+        return Err(ForeignRequest)
+      }
+      // Create has no observe use or physical existing target. The exact
+      // original Catalog binding supplies its origin, never a later grant.
+      let origin = write_checked(
+        native_resident_catalog_create_origin(self.policy.catalog.binding),
+      )
+      (created.requests[0], None, origin)
+    } else {
+      guard targets.length() == 1 && self.uses.length() == 1 else {
+        return Err(Unavailable)
+      }
+      (targets[0].0, Some(targets[0].2), self.uses[0].scope.resource_origin)
     }
     let scope = write_checked(
       @host.prepared_client_effect_request_scope(
@@ -171,18 +228,39 @@ fn NativeResidentEffectReview::row_context(
       @publication.effect_preview_row_count(preview, 0) != Some(1) {
       return Err(ForeignRequest)
     }
-    let request = targets[0].0
     guard @publication.effect_preview_row_intended_value_wire(preview, 0, 0) ==
       Some(@catalog.single_write_request_value(request)) &&
       @publication.effect_preview_row_correlation_wire(preview, 0, 0)
-      is Some(correlation) &&
-      @catalog.single_write_request_matches_preview_row_target(
-        request,
-        correlation,
-        self.policy.observation_limits.max_identity_bytes,
-      )
-      is Ok(true) else {
+      is Some(correlation) else {
       return Err(ForeignRequest)
+    }
+    if observation is None {
+      let after = "{\"state\":\"present\",\"value\":" +
+        @catalog.single_write_request_value(request) +
+        "}"
+      let inventory = write_checked(
+        @publication.derive_effect_create_row_inventory(
+          [after],
+          1,
+          self.policy.preview_limits.max_wire_bytes,
+          self.policy.preview_limits.max_nodes,
+          self.policy.preview_limits.max_depth,
+        ).map_err(_ => ForeignRequest),
+      )
+      guard inventory.length() == 1 &&
+        inventory[0].1 == correlation &&
+        @publication.effect_preview_row_guard_version_cid(preview, 0, 0) is None else {
+        return Err(ForeignRequest)
+      }
+    } else {
+      guard @catalog.single_write_request_matches_preview_row_target(
+          request,
+          correlation,
+          self.policy.observation_limits.max_identity_bytes,
+        )
+        is Ok(true) else {
+        return Err(ForeignRequest)
+      }
     }
     // The Preview was completed by this same holder using these exact requests,
     // current mapping, target observations and Provider footprints.
@@ -207,7 +285,6 @@ fn NativeResidentEffectReview::row_context(
     )
     let binding = bindings[0][0]
     let dispatch = @resident.resident_retained_consumer_request(self.holder)
-    let origin = self.uses[0].scope.resource_origin
     let request_cid = write_checked(
       @catalog.single_write_request_cid(
         request,
@@ -265,7 +342,7 @@ fn NativeResidentEffectReview::row_context(
       key: binding.key,
       basis,
       request,
-      observation: targets[0].2,
+      observation,
     })
   })() catch {
     WriteFailed(issue) => Err(issue)
@@ -338,7 +415,7 @@ pub fn NativeResidentEffectReview::restore_row_custody(
 }
 
 ///|
-/// Prepare the first bounded single-record update from this holder's actual
+/// Prepare a bounded single-record create or update from this holder's actual
 /// checked Preview. No request, membership or claim identity is caller-issued.
 pub fn NativeResidentEffectReview::prepare_approved_row(
   self : NativeResidentEffectReview,
@@ -479,10 +556,17 @@ pub fn NativeResidentEffectApprovedRow::send(
       scope.dispatch_request_cid,
     ) ||
     @catalog.recheck_single_write_request(self.request, owner.policy.catalog)
-    is Err(_) ||
-    @publication.effect_preview_row_guard_version_cid(self.preview, 0, 0) !=
-    Some(@catalog.target_observation_version_cid(self.observation)) {
+    is Err(_) {
     return Err(ForeignRequest)
+  }
+  let http_verb = match
+    native_resident_effect_row_method(
+      self.request,
+      self.observation.map(@catalog.target_observation_version_cid),
+      @publication.effect_preview_row_guard_version_cid(self.preview, 0, 0),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   guard @catalog.single_write_request_cid(
       self.request,
@@ -522,7 +606,7 @@ pub fn NativeResidentEffectApprovedRow::send(
         access.grant,
         access.use_id,
         access.scope,
-        @http.Patch,
+        http_verb,
         @catalog.single_write_request_path(self.request),
         @utf8.encode(@catalog.single_write_request_body(self.request)),
         () => self.current(),

@@ -1,8 +1,7 @@
 ///|
-// Graph names select an existing Graph value. The label field is a local
-// query annotation, never a Graph identity or entity-type declaration.
+// Graph names select an existing Graph value. Pattern labels retain Graph-owned
+// membership; no query-local property annotation can redefine it.
 pub(all) struct GraphQuery {
-  label_field : String?
   pattern : GraphPattern?
 }
 
@@ -60,41 +59,6 @@ fn QueryParser::graph_symbol(
   if token.value != Symbol(value) {
     raise QueryAbort("Expected graph delimiter", token.start)
   }
-}
-
-///|
-fn QueryParser::graph_text(self : QueryParser) -> String raise QueryAbort {
-  let token = self.advance()
-  match token.value {
-    Text(value) if token.annotation_compatible => value
-    _ => raise QueryAbort("Expected Graph LABELS string", token.start)
-  }
-}
-
-///|
-fn QueryParser::graph_labels(self : QueryParser) -> String? raise QueryAbort {
-  if !self.has("LABELS") {
-    return None
-  }
-  self.keyword("LABELS")
-  self.node()
-  self.graph_symbol(123)
-  if self.graph_text() != "node" {
-    raise QueryAbort("GRAPH_NODE_LABEL_MAPPING_REQUIRED", self.peek().start)
-  }
-  self.graph_symbol(58)
-  self.graph_symbol(123)
-  if self.graph_text() != "field" {
-    raise QueryAbort("GRAPH_NODE_LABEL_MAPPING_REQUIRED", self.peek().start)
-  }
-  self.graph_symbol(58)
-  let field = self.graph_text()
-  if field == "" {
-    raise QueryAbort("GRAPH_NODE_LABEL_MAPPING_REQUIRED", self.peek().start)
-  }
-  self.graph_symbol(125)
-  self.graph_symbol(125)
-  Some(field)
 }
 
 ///|

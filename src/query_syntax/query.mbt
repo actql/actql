@@ -123,9 +123,9 @@ pub(all) enum QueryOperation {
 
 ///|
 pub(all) struct UnpivotClause {
-  columns : Array[NamePart]
+  column_sets : Array[Array[NamePart]]
   row_labels : Array[UnpivotRowLabel?]
-  value_column : NamePart
+  value_columns : Array[NamePart]
   name_column : NamePart
   include_nulls : Bool
 }
@@ -220,20 +220,30 @@ pub(all) struct JoinPart {
 }
 
 ///|
-pub(all) struct CtePart {
+pub(all) enum QueryBindingOrigin {
+  // Authored name and original UTF-8 byte range, before physical scope binding.
+  AuthoredWith(NamePart, Int, Int)
+  RelationalContinuation
+} derive(Eq, Debug)
+
+///|
+pub(all) struct QueryBinding {
   name : NamePart
   query : Query
-  // Internal Pipe continuation, not an authored CTE export.
+  origin : QueryBindingOrigin
+  // Applies only to a relational continuation, never an authored WITH body.
   carry_ranges : Bool
 }
 
 ///|
 struct Query {
   source : Tokens
+  primary : ProducerPrimary?
+  implicit_source_alias : Bool
   // Parser-owned operand roles; generated names do not establish either role.
   positional_output : Bool
   bound_source : NamePart?
-  ctes : Array[CtePart]
+  bindings : Array[QueryBinding]
   relation : Array[NamePart]
   source_alias : NamePart?
   file_listing : FileListSelector?
@@ -244,17 +254,18 @@ struct Query {
   final_operations : Array[QueryOperation]
   effect : UpdateEffectClause?
   table_effect : TableEffectClause?
+  commands : Array[CommandEffectClause]
   work : Int
 }
 
 ///|
-pub fn cte_count(query : Query) -> Int {
-  query.ctes.length()
+pub fn query_binding_count(query : Query) -> Int {
+  query.bindings.length()
 }
 
 ///|
-pub fn cte_at(query : Query, index : Int) -> CtePart? {
-  query.ctes.get(index)
+pub fn query_binding_at(query : Query, index : Int) -> QueryBinding? {
+  query.bindings.get(index)
 }
 
 ///|
@@ -333,7 +344,6 @@ pub fn starts_query(
         keyword(first, "SELECT") ||
         keyword(first, "WITH") ||
         keyword(first, "FROM") ||
-        keyword(first, "DATA") ||
         keyword(first, "CREATE") ||
         first.value == Symbol(40),
       )
@@ -454,8 +464,9 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
       Some(
         Unpivot({
           ..clause,
-          columns: clause.columns.copy(),
+          column_sets: clause.column_sets.map(columns => columns.copy()),
           row_labels: clause.row_labels.copy(),
+          value_columns: clause.value_columns.copy(),
         }),
       )
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
@@ -600,7 +611,7 @@ priv struct QueryParser {
   mut syntax_nodes : Int
   mut source_depth : Int
   mut synthetic_sources : Int
-  cte_scopes : Array[Array[(NamePart, NamePart)]]
+  binding_scopes : Array[Array[(NamePart, NamePart)]]
 }
 
 ///|
@@ -637,26 +648,26 @@ pub fn same_relation_name(left : NamePart, right : NamePart) -> Bool {
 ///|
 // A CTE is a query-local alias, not a published Source View path. Backticks
 // quote its syntax without changing case-insensitive alias resolution.
-fn same_cte_name(left : NamePart, right : NamePart) -> Bool {
+fn same_binding_name(left : NamePart, right : NamePart) -> Bool {
   ascii_upper(left.value) == ascii_upper(right.value)
 }
 
 ///|
-fn QueryParser::resolve_cte(
+fn QueryParser::resolve_producer(
   self : QueryParser,
   relation : Array[NamePart],
 ) -> Array[NamePart] raise QueryAbort {
   if relation.length() != 1 {
     return relation
   }
-  let mut scope = self.cte_scopes.length() - 1
+  let mut scope = self.binding_scopes.length() - 1
   while scope >= 0 {
-    let bindings = self.cte_scopes[scope]
+    let bindings = self.binding_scopes[scope]
     let mut index = bindings.length() - 1
     while index >= 0 {
       self.spend(1)
       let (authored, producer) = bindings[index]
-      if same_cte_name(relation[0], authored) {
+      if same_binding_name(relation[0], authored) {
         return [producer]
       }
       index -= 1
@@ -805,7 +816,7 @@ fn same_set_column_list(
     (Some(left), Some(right)) =>
       left.length() == right.length() &&
       left
-      .mapi((index, name) => same_cte_name(name, right[index]))
+      .mapi((index, name) => same_binding_name(name, right[index]))
       .all(value => value)
     _ => false
   }
@@ -885,7 +896,7 @@ fn QueryParser::aggregate_expression(
       syntax_nodes: 0,
       source_depth: 0,
       synthetic_sources: serial[0],
-      cte_scopes: [],
+      binding_scopes: [],
     }
     if !parser.aggregate_head() {
       return Ok(None)
@@ -931,9 +942,9 @@ fn QueryParser::aggregate_expression(
 ///|
 fn QueryParser::source_name(
   self : QueryParser,
-) -> (Array[NamePart], NamePart?) raise QueryAbort {
+) -> (Array[NamePart], NamePart?, Bool) raise QueryAbort {
   let relation = self.path()
-  let resolved = self.resolve_cte(relation)
+  let resolved = self.resolve_producer(relation)
   let explicit_alias = self.optional_source_alias()
   let source_alias = if explicit_alias is None &&
     resolved[0].value != relation[0].value {
@@ -941,7 +952,7 @@ fn QueryParser::source_name(
   } else {
     explicit_alias
   }
-  (resolved, source_alias)
+  (resolved, source_alias, explicit_alias is None && source_alias is Some(_))
 }
 
 ///|
@@ -968,18 +979,19 @@ fn QueryParser::optional_source_alias(
 ///|
 fn QueryParser::query_source(
   self : QueryParser,
-) -> (Array[NamePart], NamePart?, Array[CtePart], FileListSelector?) raise QueryAbort {
+) -> (Array[NamePart], NamePart?, Array[QueryBinding], Bool, FileListSelector?) raise QueryAbort {
   if self.has("LIST_FILES") {
     return self.file_listing_source()
   }
   if self.peek().value != Symbol(40) {
-    let (relation, source_alias) = self.source_name()
-    let (relation, source_alias, ctes) = self.from_postfix_source(
+    let (relation, source_alias, implicit_source_alias) = self.source_name()
+    let (relation, source_alias, bindings, implicit_source_alias) = self.from_postfix_source(
       relation,
       source_alias,
       [],
+      implicit_source_alias~,
     )
-    return (relation, source_alias, ctes, None)
+    return (relation, source_alias, bindings, implicit_source_alias, None)
   }
   let inner = self.parenthesized()
   let source_alias = self.optional_source_alias()
@@ -990,23 +1002,23 @@ fn QueryParser::query_source(
       { ..inner, operations: inner.operations + [Alias(result_range)], },
       carry_ranges=true,
     )
-    let (relation, source_alias, ctes) = self.from_postfix_source(
+    let (relation, source_alias, bindings, implicit_source_alias) = self.from_postfix_source(
       bound.relation,
       None,
-      bound.ctes,
+      bound.bindings,
     )
-    return (relation, source_alias, ctes, None)
+    return (relation, source_alias, bindings, implicit_source_alias, None)
   }
   // An explicit alias creates one projected range. Without it, preserve the
   // inner query's current names/ranges through the existing continuation scope.
   let carry_ranges = source_alias is None && query_output_carries_ranges(inner)
   let bound = self.bind_query(inner, carry_ranges~)
-  let (relation, source_alias, ctes) = self.from_postfix_source(
+  let (relation, source_alias, bindings, implicit_source_alias) = self.from_postfix_source(
     bound.relation,
     source_alias,
-    bound.ctes,
+    bound.bindings,
   )
-  (relation, source_alias, ctes, None)
+  (relation, source_alias, bindings, implicit_source_alias, None)
 }
 
 ///|
@@ -1017,16 +1029,25 @@ fn QueryParser::bind_query(
 ) -> Query raise QueryAbort {
   self.node()
   let generated = self.fresh_producer("aql_query_source_")
-  let ctes = inner.ctes +
-    [{ name: generated, query: { ..inner, ctes: [], }, carry_ranges, }]
-  if ctes.length() > self.limits.max_cte_count {
+  let bindings = inner.bindings +
+    [
+      {
+        name: generated,
+        query: { ..inner, bindings: [], },
+        origin: RelationalContinuation,
+        carry_ranges,
+      },
+    ]
+  if bindings.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
   {
     source: self.source,
+    primary: None,
+    implicit_source_alias: false,
     positional_output: false,
     bound_source: Some(generated),
-    ctes,
+    bindings,
     relation: [generated],
     source_alias: None,
     file_listing: None,
@@ -1037,6 +1058,7 @@ fn QueryParser::bind_query(
     final_operations: [],
     effect: None,
     table_effect: None,
+    commands: [],
     work: self.work,
   }
 }
@@ -1083,7 +1105,7 @@ fn QueryParser::parenthesized(self : QueryParser) -> Query raise QueryAbort {
   if self.advance().value != Symbol(40) {
     raise QueryAbort("Expected query opening parenthesis", self.peek().start)
   }
-  let inner = self.query(cte_body=true)
+  let inner = self.query(context=PureQuery)
   self.source_depth -= 1
   if self.advance().value != Symbol(41) {
     raise QueryAbort("Expected query closing parenthesis", self.peek().start)
@@ -1096,21 +1118,21 @@ fn QueryParser::mark_positional_output(
   self : QueryParser,
   query : Query,
 ) -> Query raise QueryAbort {
-  let ctes = query.ctes.copy()
+  let bindings = query.bindings.copy()
   // Only an internal identity binding exports the same operand values.
   // Authored CTEs and transformed continuations retain their own scopes.
   if query.operations.is_empty() && query.bound_source is Some(bound) {
-    for index in 0..<ctes.length() {
+    for index in 0..<bindings.length() {
       self.spend(1)
-      if same_cte_name(ctes[index].name, bound) {
-        ctes[index] = {
-          ..ctes[index],
-          query: self.mark_positional_output(ctes[index].query),
+      if same_binding_name(bindings[index].name, bound) {
+        bindings[index] = {
+          ..bindings[index],
+          query: self.mark_positional_output(bindings[index].query),
         }
       }
     }
   }
-  { ..query, ctes, positional_output: true, }
+  { ..query, bindings, positional_output: true, }
 }
 
 ///|
@@ -1143,7 +1165,7 @@ fn QueryParser::sql_operand(
 ///|
 fn QueryParser::join_part(
   self : QueryParser,
-) -> (JoinPart, Array[CtePart]) raise QueryAbort {
+) -> (JoinPart, Array[QueryBinding]) raise QueryAbort {
   self.node()
   let kind = if self.has("INNER") {
     self.keyword("INNER")
@@ -1173,7 +1195,7 @@ fn QueryParser::join_part(
     "inner"
   }
   self.keyword("JOIN")
-  let (relation, source_alias, ctes, file_listing) = self.query_source()
+  let (relation, source_alias, bindings, _, file_listing) = self.query_source()
   if kind == "cross" {
     return (
       {
@@ -1186,7 +1208,7 @@ fn QueryParser::join_part(
         pre_join_filter: None,
         max_output_rows: self.join_bound(),
       },
-      ctes,
+      bindings,
     )
   }
   if self.has("ON") {
@@ -1203,7 +1225,7 @@ fn QueryParser::join_part(
         pre_join_filter: None,
         max_output_rows: self.join_bound(),
       },
-      ctes,
+      bindings,
     )
   }
   self.keyword("USING")
@@ -1233,7 +1255,7 @@ fn QueryParser::join_part(
       pre_join_filter: None,
       max_output_rows: self.join_bound(),
     },
-    ctes,
+    bindings,
   )
 }
 
@@ -1278,20 +1300,7 @@ fn QueryParser::optional_output_alias(
   }
   match self.peek().value {
     QuotedName(_) => Some(self.name())
-    Word(value) if ![
-        "ALL", "AND", "ANY", "ARRAY", "AS", "ASC", "ASSERT_ROWS_MODIFIED", "AT",
-        "BETWEEN", "BY", "CASE", "CAST", "COLLATE", "CONTAINS", "CREATE", "CROSS",
-        "CUBE", "CURRENT", "DEFAULT", "DEFINE", "DESC", "DISTINCT", "ELSE", "END",
-        "ENUM", "ESCAPE", "EXCEPT", "EXCLUDE", "EXISTS", "EXTRACT", "FALSE", "FETCH",
-        "FOLLOWING", "FOR", "FROM", "FULL", "GRAPH_TABLE", "GROUP", "GROUPING", "GROUPS",
-        "HASH", "HAVING", "IF", "IGNORE", "IN", "INNER", "INTERSECT", "INTERVAL",
-        "INTO", "IS", "JOIN", "LATERAL", "LEFT", "LIKE", "LIMIT", "LOOKUP", "MERGE",
-        "NATURAL", "NEW", "NO", "NOT", "NULL", "NULLS", "OF", "ON", "OR", "ORDER",
-        "OUTER", "OVER", "PARTITION", "PRECEDING", "PROTO", "QUALIFY", "RANGE", "RECURSIVE",
-        "RESPECT", "RIGHT", "ROLLUP", "ROWS", "SELECT", "SET", "SOME", "STRUCT",
-        "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE", "UNBOUNDED", "UNION", "UNNEST",
-        "USING", "WHEN", "WHERE", "WINDOW", "WITH", "WITHIN",
-      ].contains(upper_ascii(value)) => Some(self.name())
+    Word(value) if !query_reserved_word(value) => Some(self.name())
     _ => None
   }
 }
@@ -1617,22 +1626,21 @@ fn QueryParser::frame_boundary(
     self.keyword("ROW")
     return CurrentRow
   }
-  if self.peek().value is Parameter(name) {
-    ignore(self.advance())
-    if self.has("PRECEDING") {
-      self.keyword("PRECEDING")
-      return PrecedingParameter(self.source.identifier(name))
-    }
-    self.keyword("FOLLOWING")
-    return FollowingParameter(self.source.identifier(name))
-  }
-  let distance = self.safe_integer(false)
-  if self.has("PRECEDING") {
+  // Keep the integer/whole-Parameter role after bounded transparent wrappers.
+  // Boundary direction remains authored syntax, including zero distances.
+  let distance = self.limit_integer(true)
+  let preceding = if self.has("PRECEDING") {
     self.keyword("PRECEDING")
-    Preceding(distance)
+    true
   } else {
     self.keyword("FOLLOWING")
-    Following(distance)
+    false
+  }
+  match (distance, preceding) {
+    (Integer(value), true) => Preceding(value)
+    (Integer(value), false) => Following(value)
+    (BoundParameter(name), true) => PrecedingParameter(name)
+    (BoundParameter(name), false) => FollowingParameter(name)
   }
 }
 
@@ -1713,15 +1721,19 @@ fn QueryParser::aggregate(
   let delimiter = if function_name == "STRING_AGG" {
     if self.peek().value == Symbol(44) {
       ignore(self.advance())
-      guard self.peek().value is Text(_) else {
+      guard self.peek().value is Text(_) || self.peek().value == Symbol(40) else {
         raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
       }
-      // Literal chunks use the ordinary expression parser's decoding,
-      // separation, origins and budgets. Computed delimiters remain outside
-      // this profile; the common aggregate still receives one String value.
+      // Literal chunks and their grouping use the ordinary expression parser's
+      // decoding, separation, origins and budgets. Computed delimiters remain
+      // outside this profile; the common aggregate receives one String value.
       let expression = self.expression()
-      match
-        expression_node(expression, expression_root(expression)).unwrap().kind {
+      let mut root = expression_root(expression)
+      while expression_node(expression, root).unwrap().kind
+            is Parenthesized(child) {
+        root = child
+      }
+      match expression_node(expression, root).unwrap().kind {
         StringLiteral(value) => Some(value)
         _ =>
           raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
@@ -1940,19 +1952,24 @@ fn QueryParser::safe_integer(
     Numeric(text) => text
     _ => raise QueryAbort("Expected safe integer literal", token.start)
   }
-  let mut result = 0L
-  for unit in text {
+  self.safe_integer_text(text, token.start, zero_allowed)
+}
+
+///|
+fn QueryParser::safe_integer_text(
+  self : QueryParser,
+  text : String,
+  start : Int,
+  zero_allowed : Bool,
+) -> Int64 raise QueryAbort {
+  for _ in 0..<text.length() {
     self.spend(1)
-    let digit = unit.to_int() - 48
-    if digit < 0 ||
-      digit > 9 ||
-      result > (9007199254740991L - digit.to_int64()) / 10L {
-      raise QueryAbort("Integer literal exceeds safe range", token.start)
-    }
-    result = result * 10L + digit.to_int64()
+  }
+  guard exact_integer_literal(text) is Some(result) else {
+    raise QueryAbort("Integer literal exceeds safe range", start)
   }
   if !zero_allowed && result == 0L {
-    raise QueryAbort("Expected positive integer literal", token.start)
+    raise QueryAbort("Expected positive integer literal", start)
   }
   result
 }
@@ -1975,7 +1992,26 @@ fn QueryParser::limit_integer(
   self : QueryParser,
   zero_allowed : Bool,
 ) -> QueryInteger raise QueryAbort {
-  if self.peek().value is Parameter(name) {
+  if self.peek().value == Symbol(40) || self.peek().value == Symbol(43) {
+    // Grouping and numeric unary plus preserve an integer or Parameter slot.
+    // Use the bounded expression parser, never evaluate constant calls,
+    // arithmetic or row references in the Frontend.
+    let expression = self.expression()
+    let mut root = expression_root(expression)
+    while true {
+      match expression_node(expression, root).unwrap().kind {
+        Parenthesized(child) | Unary("+", child) => root = child
+        _ => break
+      }
+    }
+    let node = expression_node(expression, root).unwrap()
+    match node.kind {
+      Number(text) =>
+        Integer(self.safe_integer_text(text, node.start, zero_allowed))
+      ParameterReference(name) => BoundParameter(name)
+      _ => raise QueryAbort("Expected integer literal or parameter", node.start)
+    }
+  } else if self.peek().value is Parameter(name) {
     ignore(self.advance())
     BoundParameter(self.source.identifier(name))
   } else {
@@ -2105,22 +2141,27 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       replacements: [],
     })
   let operations : Array[QueryOperation] = []
-  let (initial_relation, initial_alias, initial_ctes, initial_file_listing) = if self.has(
-      "FROM",
-    ) {
+  let (
+    initial_relation,
+    initial_alias,
+    initial_ctes,
+    initial_implicit_alias,
+    initial_file_listing,
+  ) = if self.has("FROM") {
     self.keyword("FROM")
     if self.has("UNNEST") {
       operations.push(self.unnest_source())
-      ([], None, [], None)
+      ([], None, [], false, None)
     } else {
       self.query_source()
     }
   } else {
-    ([], None, [], None)
+    ([], None, [], false, None)
   }
   let mut relation = initial_relation
   let mut source_alias = initial_alias
-  let mut ctes = initial_ctes
+  let mut implicit_source_alias = initial_implicit_alias
+  let mut bindings = initial_ctes
   let mut file_listing = initial_file_listing
   let joins : Array[JoinPart] = []
   while (!relation.is_empty() || !operations.is_empty()) && self.starts_join() {
@@ -2135,11 +2176,13 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       let expanded = self.bind_query(
         {
           source: self.source,
+          primary: None,
+          implicit_source_alias,
           positional_output: false,
           bound_source: None,
           relation,
           source_alias,
-          ctes,
+          bindings,
           file_listing,
           graph: None,
           joins: joins.copy(),
@@ -2148,13 +2191,15 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
           final_operations: [],
           effect: None,
           table_effect: None,
+          commands: [],
           work: self.work,
         },
         carry_ranges=true,
       )
       relation = expanded.relation
       source_alias = expanded.source_alias
-      ctes = expanded.ctes
+      implicit_source_alias = expanded.implicit_source_alias
+      bindings = expanded.bindings
       file_listing = expanded.file_listing
       joins.clear()
       operations.clear()
@@ -2162,7 +2207,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     let (part, join_ctes) = self.join_part()
     joins.push(part)
     for cte in join_ctes {
-      ctes.push(cte)
+      bindings.push(cte)
     }
   }
 
@@ -2300,9 +2345,11 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   }
   {
     source: self.source,
+    primary: None,
+    implicit_source_alias,
     positional_output: false,
     bound_source: None,
-    ctes,
+    bindings,
     relation,
     source_alias,
     file_listing,
@@ -2313,6 +2360,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     final_operations: [],
     effect: None,
     table_effect: None,
+    commands: [],
     work: self.work,
   }
 }
@@ -2320,11 +2368,10 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 ///|
 fn QueryParser::query(
   self : QueryParser,
-  cte_body? : Bool = false,
-  graph_data_body? : Bool = false,
+  context? : QueryContext = StatementQuery,
 ) -> Query raise QueryAbort {
   if self.has("CREATE") {
-    if cte_body {
+    if context != StatementQuery {
       raise QueryAbort(
         "Table write is not allowed in a declaration body",
         self.peek().start,
@@ -2332,10 +2379,15 @@ fn QueryParser::query(
     }
     let clause = self.table_create_clause(None)
     self.keyword("AS")
-    // Direct CTAS computation is top-level. Parentheses do not turn it into
-    // an ordinary CTE or introduce another acquisition/execution owner.
-    let parentheses = self.peek().value == Symbol(40)
+    // Only a whole outer pair is Compute. Other grouped primaries remain Pure
+    // and keep their following set, ORDER/LIMIT or Pipe continuation.
+    let parentheses = self.ctas_whole_wrapper()
     if parentheses {
+      if self.source_depth >= 32 {
+        raise QueryAbort("Subquery depth limit", self.peek().start)
+      }
+      self.node()
+      self.source_depth += 1
       self.symbol(40)
     }
     if self.has("CREATE") {
@@ -2344,9 +2396,10 @@ fn QueryParser::query(
         self.peek().start,
       )
     }
-    let body = self.query()
+    let body = self.query(context=ComputeQuery)
     if parentheses {
       self.symbol(41)
+      self.source_depth -= 1
     }
     if body.effect is Some(_) || body.table_effect is Some(_) {
       raise QueryAbort(
@@ -2356,10 +2409,10 @@ fn QueryParser::query(
     }
     return { ..body, table_effect: Some(clause), work: self.work, }
   }
-  let ctes : Array[CtePart] = []
+  let bindings : Array[QueryBinding] = []
   let scope : Array[(NamePart, NamePart)] = []
-  let nested_scope = !self.cte_scopes.is_empty()
-  self.cte_scopes.push(scope)
+  let nested_scope = !self.binding_scopes.is_empty()
+  self.binding_scopes.push(scope)
   if self.has("WITH") {
     self.keyword("WITH")
     if self.has("RECURSIVE") {
@@ -2367,22 +2420,24 @@ fn QueryParser::query(
     }
     while true {
       self.node()
-      if ctes.length() >= self.limits.max_cte_count {
+      if bindings.length() >= self.limits.max_cte_count {
         raise QueryAbort("CTE count limit", self.peek().start)
       }
+      let binding_start = self.peek().start
       let name = self.name()
-      if scope.any(binding => same_cte_name(binding.0, name)) {
+      if scope.any(binding => same_binding_name(binding.0, name)) {
         raise QueryAbort("Duplicate CTE name", self.peek().start)
       }
       self.keyword("AS")
       let body = self.parenthesized()
-      for nested in body.ctes {
-        if ctes.length() >= self.limits.max_cte_count {
+      let binding_end = self.source.tokens[self.index - 1].end
+      for nested in body.bindings {
+        if bindings.length() >= self.limits.max_cte_count {
           raise QueryAbort("CTE count limit", self.peek().start)
         }
-        ctes.push(nested)
+        bindings.push(nested)
       }
-      if ctes.length() >= self.limits.max_cte_count {
+      if bindings.length() >= self.limits.max_cte_count {
         raise QueryAbort("CTE count limit", self.peek().start)
       }
       // Bind only after the body: non-recursive declarations can see earlier
@@ -2395,9 +2450,10 @@ fn QueryParser::query(
         name
       }
       scope.push((name, producer))
-      ctes.push({
+      bindings.push({
         name: producer,
-        query: { ..body, ctes: [], },
+        query: { ..body, bindings: [], },
+        origin: AuthoredWith(name, binding_start, binding_end),
         carry_ranges: false,
       })
       if self.peek().value != Symbol(44) {
@@ -2407,27 +2463,31 @@ fn QueryParser::query(
     }
   }
   let term = if self.has("FROM") {
-    self.pipe(cte_body~, graph_data_body~)
+    self.pipe(context~)
+  } else if self.has("GRAPH") {
+    self.producer_query(GraphValue(self.graph()))
+  } else if self.has("MEAN_GRAPHS") {
+    self.producer_query(GraphGenerator(self.sga_call()))
   } else {
     self.sql()
   }
   let term = if self.peek().value == Pipe {
-    self.pipe_tail(term, cte_body~)
+    self.pipe_tail(term, context~)
   } else {
     term
   }
-  let all_ctes = ctes + term.ctes
+  let all_ctes = bindings + term.bindings
   if all_ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
-  ignore(self.cte_scopes.pop())
-  { ..term, ctes: all_ctes, work: self.work, }
+  ignore(self.binding_scopes.pop())
+  { ..term, bindings: all_ctes, work: self.work, }
 }
 
 ///|
 fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let mut term = self.sql_operand()
-  let ctes = term.ctes.copy()
+  let bindings = term.bindings.copy()
   let sets : Array[SetPart] = []
   let mut set_spelling : (String, String, Bool, Bool, Array[NamePart]?)? = None
   while self.has("UNION") ||
@@ -2486,8 +2546,8 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
         )
     }
     let right = self.sql_operand(positional_output=!by_name, set_operand=true)
-    for cte in right.ctes {
-      ctes.push(cte)
+    for cte in right.bindings {
+      bindings.push(cte)
     }
     sets.push({
       kind,
@@ -2496,7 +2556,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       inner_by_name,
       sql_chain: true,
       by_name_columns,
-      right: { ..right, ctes: [], },
+      right: { ..right, bindings: [], },
     })
   }
   let tail : Array[QueryOperation] = []
@@ -2579,40 +2639,45 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   if sets.is_empty() {
     { ..term, operations: term.operations + tail, work: self.work, }
   } else {
-    { ..term, ctes, sets, final_operations: tail, work: self.work, }
+    { ..term, bindings, sets, final_operations: tail, work: self.work, }
   }
 }
 
 ///|
 fn QueryParser::pipe(
   self : QueryParser,
-  cte_body? : Bool = false,
-  graph_data_body? : Bool = false,
+  context? : QueryContext = StatementQuery,
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
-  let (relation, source_alias, ctes, file_listing) = if self.has("GRAPH") {
-    if cte_body && !graph_data_body {
-      raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
-    }
+  let (relation, source_alias, bindings, implicit_source_alias, file_listing) = if self.has(
+      "GRAPH",
+    ) {
     self.keyword("GRAPH")
-    let relation = self.path()
-    let label_field = self.graph_labels()
-    graph = Some({ label_field, pattern: None, })
-    (relation, None, [], None)
+    let relation = self.resolve_producer(self.path())
+    if self.has("LABELS") {
+      raise QueryAbort("Graph LABELS annotation is retired", self.peek().start)
+    }
+    // Preserve authored row aliases for Carrier-specific static checking,
+    // just as marker-free FROM does. The marker grants no row scope.
+    let source_alias = self.optional_source_alias()
+    graph = Some({ pattern: None, })
+    (relation, source_alias, [], false, None)
   } else if self.has("UNNEST") {
     operations.push(self.unnest_source())
-    ([], None, [], None)
+    ([], None, [], false, None)
   } else {
     self.query_source()
   }
   self.pipe_tail(
     {
       source: self.source,
+      primary: None,
+      implicit_source_alias,
       positional_output: false,
       bound_source: None,
-      ctes,
+      bindings,
       relation,
       source_alias,
       file_listing,
@@ -2623,9 +2688,10 @@ fn QueryParser::pipe(
       final_operations: [],
       effect: None,
       table_effect: None,
+      commands: [],
       work: self.work,
     },
-    cte_body~,
+    context~,
   )
 }
 
@@ -2634,12 +2700,12 @@ fn QueryParser::pipe(
 fn QueryParser::pipe_tail(
   self : QueryParser,
   input : Query,
-  cte_body? : Bool = false,
+  context? : QueryContext = StatementQuery,
 ) -> Query raise QueryAbort {
   let relation = input.relation
   let source_alias = input.source_alias
   let file_listing = input.file_listing
-  let ctes = input.ctes.copy()
+  let bindings = input.bindings.copy()
   let mut graph = input.graph
   let joins = input.joins.copy()
   let operations = input.operations.copy()
@@ -2647,6 +2713,7 @@ fn QueryParser::pipe_tail(
   let final_operations = input.final_operations.copy()
   let mut effect = input.effect
   let mut table_effect = input.table_effect
+  let commands = input.commands.copy()
   while self.peek().value == Pipe {
     if effect is Some(_) || table_effect is Some(_) {
       raise QueryAbort("EFFECT must be terminal", self.peek().start)
@@ -2673,9 +2740,11 @@ fn QueryParser::pipe_tail(
       ) {
       let producer : Query = {
         source: self.source,
+        primary: input.primary,
+        implicit_source_alias: input.implicit_source_alias,
         positional_output: input.positional_output,
         bound_source: input.bound_source,
-        ctes,
+        bindings,
         relation,
         source_alias,
         file_listing,
@@ -2686,9 +2755,41 @@ fn QueryParser::pipe_tail(
         final_operations,
         effect: None,
         table_effect: None,
+        commands: [],
         work: self.work,
       }
-      return self.pipe_tail(self.bind_query(producer), cte_body~)
+      return self.pipe_tail(self.bind_query(producer), context~)
+    }
+    // A typed Carrier call consumes the current relational prefix. Reuse the
+    // checked producer continuation rather than sending a later GraphCall to
+    // the ordinary Relation lowerer or discarding that prefix's operations.
+    if carrier_call_head(next) &&
+      operations.any(operation => !(operation is GraphCall(_))) {
+      let producer : Query = {
+        source: self.source,
+        primary: input.primary,
+        implicit_source_alias: input.implicit_source_alias,
+        positional_output: input.positional_output,
+        bound_source: input.bound_source,
+        bindings,
+        relation,
+        source_alias,
+        file_listing,
+        graph,
+        joins,
+        operations,
+        sets,
+        final_operations,
+        effect: None,
+        table_effect: None,
+        commands: [],
+        work: self.work,
+      }
+      self.spend(operations.length())
+      return self.pipe_tail(
+        self.bind_query(producer, carry_ranges=pipe_join_range_input(producer)),
+        context~,
+      )
     }
     if pipe_join_head(next) &&
       !self.starts_correlated_unnest(lookahead_offset=1) &&
@@ -2698,9 +2799,11 @@ fn QueryParser::pipe_tail(
       !(operations.length() == 1 && operations[0] is Where(_)) {
       let producer : Query = {
         source: self.source,
+        primary: input.primary,
+        implicit_source_alias: input.implicit_source_alias,
         positional_output: input.positional_output,
         bound_source: input.bound_source,
-        ctes,
+        bindings,
         relation,
         source_alias,
         file_listing,
@@ -2711,6 +2814,7 @@ fn QueryParser::pipe_tail(
         final_operations,
         effect: None,
         table_effect: None,
+        commands: [],
         work: self.work,
       }
       self.spend(operations.length())
@@ -2724,14 +2828,14 @@ fn QueryParser::pipe_tail(
         let bound = self.bind_query({ ..producer, operations: body_operations, })
         return self.pipe_tail(
           { ..bound, source_alias: current_range, },
-          cte_body~,
+          context~,
         )
       } else if pipe_join_range_input(producer) {
         // Continue the same logical row with its immutable ranges. An
         // authored CTE/subquery still exports only its projected columns.
         return self.pipe_tail(
           self.bind_query(producer, carry_ranges=true),
-          cte_body~,
+          context~,
         )
       }
     }
@@ -2749,21 +2853,16 @@ fn QueryParser::pipe_tail(
       match graph {
         Some(current) if current.pattern is None => {
           let pattern = self.graph_match()
-          // Syntax preserves a label. Its owner is resolved by lowering:
-          // graphs carry label membership themselves; the legacy
-          // property-mapping profile requires its explicit annotation.
-          graph = Some({ ..current, pattern: Some(pattern), })
+          // The resolved Graph owns label membership, independently of
+          // ordinary property values and optional FROM GRAPH spelling.
+          graph = Some({ pattern: Some(pattern), })
         }
         Some(_) =>
           raise QueryAbort(
             "GRAPH_PATTERN_UNSUPPORTED_SHAPE: a second MATCH needs a separate Graph input",
             self.peek().start,
           )
-        None =>
-          raise QueryAbort(
-            "GRAPH_PATTERN_GRAPH_SOURCE_REQUIRED",
-            self.peek().start,
-          )
+        None => graph = Some({ pattern: Some(self.graph_match()), })
       }
     } else if self.has("UNION") ||
       self.has("INTERSECT") ||
@@ -2814,7 +2913,7 @@ fn QueryParser::pipe_tail(
         raise QueryAbort("Subquery depth limit", self.peek().start)
       }
       self.source_depth += 1
-      let parsed = self.query(cte_body=true)
+      let parsed = self.query(context=PureQuery)
       self.source_depth -= 1
       let right = if !parsed.sets.is_empty() {
         self.bind_query(
@@ -2827,8 +2926,8 @@ fn QueryParser::pipe_tail(
       } else {
         parsed
       }
-      for cte in right.ctes {
-        ctes.push(cte)
+      for cte in right.bindings {
+        bindings.push(cte)
       }
       if self.advance().value != Symbol(41) {
         raise QueryAbort(
@@ -2843,7 +2942,7 @@ fn QueryParser::pipe_tail(
         inner_by_name,
         sql_chain: false,
         by_name_columns,
-        right: { ..right, ctes: [], },
+        right: { ..right, bindings: [], },
       })
     } else if self.starts_correlated_unnest() {
       if !sets.is_empty() {
@@ -2878,7 +2977,7 @@ fn QueryParser::pipe_tail(
       let (part, join_ctes) = self.join_part()
       joins.push({ ..part, pre_join_filter, })
       for cte in join_ctes {
-        ctes.push(cte)
+        bindings.push(cte)
       }
     } else if self.has("WHERE") {
       self.keyword("WHERE")
@@ -3156,6 +3255,12 @@ fn QueryParser::pipe_tail(
         final_operations.push(operation)
       }
     } else if self.has("RESULT") {
+      if context == PureQuery {
+        raise QueryAbort(
+          "RESULT is not allowed in a producer body",
+          self.peek().start,
+        )
+      }
       self.keyword("RESULT")
       operations.push(RetainResult(self.name()))
     } else if self.has("ASSERT") {
@@ -3171,7 +3276,7 @@ fn QueryParser::pipe_tail(
       self.symbol(41)
       operations.push(AssertUnique(keys))
     } else if self.has("EFFECT") {
-      if cte_body {
+      if context != StatementQuery {
         raise QueryAbort(
           "EFFECT is not allowed in a declaration body",
           self.peek().start,
@@ -3187,7 +3292,7 @@ fn QueryParser::pipe_tail(
         effect = Some(self.update_effect_clause())
       }
     } else if self.has("CREATE") {
-      if cte_body {
+      if context != StatementQuery {
         raise QueryAbort(
           "Table write is not allowed in a declaration body",
           self.peek().start,
@@ -3195,7 +3300,7 @@ fn QueryParser::pipe_tail(
       }
       table_effect = Some(self.table_create_clause(None))
     } else if self.has("INFER") {
-      if cte_body {
+      if context == PureQuery {
         raise QueryAbort(
           "INFER is not allowed in a CTE body",
           self.peek().start,
@@ -3215,17 +3320,16 @@ fn QueryParser::pipe_tail(
       raise QueryAbort("Unknown Pipe operation", self.peek().start)
     }
   }
-  if graph is Some(current) && current.pattern is None {
-    raise QueryAbort("GRAPH_PATTERN_MATCH_REQUIRED", self.peek().start)
-  }
-  if ctes.length() > self.limits.max_cte_count {
+  if bindings.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
   {
     source: self.source,
+    primary: input.primary,
+    implicit_source_alias: input.implicit_source_alias,
     positional_output: input.positional_output,
     bound_source: input.bound_source,
-    ctes,
+    bindings,
     relation,
     source_alias,
     file_listing,
@@ -3236,6 +3340,7 @@ fn QueryParser::pipe_tail(
     final_operations,
     effect,
     table_effect,
+    commands,
     work: self.work,
   }
 }
@@ -3359,7 +3464,7 @@ fn QueryParser::nearest_clause(
   self : QueryParser,
 ) -> NearestClause raise QueryAbort {
   self.keyword("NEAREST")
-  let relation = self.resolve_cte(self.path())
+  let relation = self.resolve_producer(self.path())
   self.keyword("AS")
   let candidate_alias = self.name()
   self.keyword("QUERY")
@@ -3419,12 +3524,36 @@ pub fn parse_query(
     syntax_nodes: 0,
     source_depth: 0,
     synthetic_sources: 0,
-    cte_scopes: [],
+    binding_scopes: [],
   }
   try {
     let query = parser.query()
+    let commands : Array[CommandEffectClause] = []
+    if parser.peek().value == Symbol(59) {
+      ignore(parser.advance())
+      while parser.has("EFFECT") {
+        if query.effect is Some(_) || query.table_effect is Some(_) {
+          raise QueryAbort(
+            "Conflicting terminal Effect declarations",
+            parser.peek().start,
+          )
+        }
+        let at = parser.peek().start
+        let clause = parser.command_effect_clause()
+        if commands.any(previous => {
+            same_binding_name(previous.name, clause.name)
+          }) {
+          raise QueryAbort("Duplicate Effect name", at)
+        }
+        commands.push(clause)
+        parser.symbol(59)
+      }
+      if parser.peek().value == Symbol(59) {
+        raise QueryAbort("Expected end of one query", parser.peek().start)
+      }
+    }
     parser.end()
-    Ok({ ..query, work: parser.work, })
+    Ok({ ..query, commands, work: parser.work, })
   } catch {
     QueryExpression(error) => Err(error)
     QueryAbort(message, at) =>
@@ -3472,7 +3601,12 @@ pub fn effect_result_continuation(
   input : NamePart,
   has_postlude? : Bool = false,
 ) -> (Query, Query)? {
-  if (!has_postlude && query.effect is None && query.table_effect is None) ||
+  if (
+      !has_postlude &&
+      query.commands.is_empty() &&
+      query.effect is None &&
+      query.table_effect is None
+    ) ||
     !query.sets.is_empty() ||
     !query.final_operations.is_empty() {
     return None
@@ -3487,6 +3621,7 @@ pub fn effect_result_continuation(
           operations: Array::makei(index + 1, i => query.operations[i]),
           effect: None,
           table_effect: None,
+          commands: [],
         }
         let tail = {
           ..query,
@@ -3495,7 +3630,7 @@ pub fn effect_result_continuation(
           file_listing: None,
           graph: None,
           joins: [],
-          ctes: [],
+          bindings: [],
           operations: Array::makei(query.operations.length() - index - 1, i => {
             query.operations[index + 1 + i]
           }),

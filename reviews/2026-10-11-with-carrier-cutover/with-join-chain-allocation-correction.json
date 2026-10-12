@@ -1,0 +1,20 @@
+{
+  "failed_source": "e873a5835373e3e397804d9c6a5cdd4a98a3a159",
+  "failed_run": "run-64GyOU",
+  "actual_js": {
+    "tests": 14,
+    "passed": 11,
+    "failed": 3
+  },
+  "allocation_correction": "The Pipe parser bind_query hoists its prefix as RelationalContinuation before the enclosing authored paired binding. query_binding_program recursively lowers these inner bindings first. With no context inputs, left cte0/seed1 and right cte2/seed3 reserve four names. The Pipe prefix reserves cte4, then enclosing paired reserves cte5. The complete independent controls therefore rename prefix cte5 to cte4; JOIN slots and operations are unchanged. This is derived from query_syntax/query.mbt bind_query and lower_script_bindings recursion, not generated from test output.",
+  "remaining_refusal_probe": "The displaced alias test still expects AmbiguousColumn and now reports specific actual rejection or incorrect acceptance. Do not classify it until actual observation and existing resolution rules are inspected.",
+  "unchanged": [
+    "Values rows and schemas",
+    "SET x+10",
+    "ON keys",
+    "column order and alias meaning",
+    "max_output_rows 10",
+    "hidden sort slots",
+    "existing resource ceilings"
+  ]
+}

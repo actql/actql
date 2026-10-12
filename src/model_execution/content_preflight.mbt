@@ -60,16 +60,16 @@ pub struct ModelContentAdmission {
 }
 
 ///|
-fn model_content_text(value : @identity.CanonicalValue?) -> String? {
+fn model_content_text(value : @canonical.CanonicalValue?) -> String? {
   match value {
-    Some(@identity.String(text)) => Some(text)
+    Some(@canonical.String(text)) => Some(text)
     _ => None
   }
 }
 
 ///|
-fn model_content_integer(value : @identity.CanonicalValue?) -> Int64? {
-  guard value is Some(@identity.Number(number)) &&
+fn model_content_integer(value : @canonical.CanonicalValue?) -> Int64? {
+  guard value is Some(@canonical.Number(number)) &&
     number >= 0.0 &&
     number <= 9007199254740991.0 &&
     number.to_int64().to_double() == number else {
@@ -135,7 +135,7 @@ pub fn model_content_input(
   if !@admitted.reference_available(reference) {
     return Err(ReferenceUnavailable)
   }
-  let get = name => @identity.object_field(metadata, name)
+  let get = name => @canonical.object_field(metadata, name)
   guard model_content_text(get("content_cid")) is Some(content_cid) &&
     valid_cid(content_cid) &&
     model_content_integer(get("size_bytes")) is Some(size_bytes) &&
@@ -144,7 +144,7 @@ pub fn model_content_input(
     valid_cid(policy_cid) &&
     model_content_text(get("media_type")) == Some(media) &&
     model_content_text(get("capture_authority")) == Some("read_content") &&
-    get("truncated") is Some(@identity.Bool(false)) else {
+    get("truncated") is Some(@canonical.Bool(false)) else {
     return Err(Metadata)
   }
   let input = {

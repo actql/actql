@@ -43,6 +43,7 @@ pub struct SingleAttemptModelDependencies {
   retry : ModelDependency
   backoff : ModelDependency
   media : Array[ModelDependency]
+  decision : DecisionContract?
 }
 
 ///|
@@ -291,7 +292,7 @@ pub fn read_single_attempt_model_dependencies(
       remaining_work,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(remaining) => remaining_work = remaining
   }
   // Validate every body before reporting a supported-profile limitation.
   for value in admitted {
@@ -299,12 +300,38 @@ pub fn read_single_attempt_model_dependencies(
       return Err(UnsupportedPolicy(value.kind))
     }
   }
+  let decision = if task.kind == Decision {
+    match
+      read_decision_contract(task, admitted[0], {
+        max_questions: limits.max_nodes,
+        max_options: limits.max_nodes,
+        max_levels: limits.max_nodes,
+        max_name_bytes: limits.max_bytes,
+        max_work: remaining_work,
+      }) {
+      Ok(value) => Some(value)
+      Err(issue) =>
+        return Err(
+          Body(ModelPrompt, {
+            kind: if issue.kind == DecisionIssueKind::WorkLimit {
+              WorkLimit
+            } else {
+              InvalidDecision(issue.kind)
+            },
+            source: issue.source,
+          }),
+        )
+    }
+  } else {
+    None
+  }
   Ok({
     execution,
     prompt: admitted[0],
     retry: admitted[1],
     backoff: admitted[2],
     media: media_dependencies,
+    decision,
   })
 }
 
@@ -317,7 +344,7 @@ fn validate_model_media_roles(
   dependencies : Array[ModelDependency],
   limits : Limits,
   max_work : Int,
-) -> Result[Unit, ModelDependencyIssue] {
+) -> Result[Int, ModelDependencyIssue] {
   guard input.shape is @value_contract.Object(fields) else {
     return Err(
       Body(ModelPrompt, { kind: InvalidObjectContract, source: None, }),
@@ -432,7 +459,7 @@ fn validate_model_media_roles(
   for (role, _) in roles {
     return Err(MediaRole(role, UnknownRole))
   }
-  Ok(())
+  Ok(remaining)
 }
 
 ///|
@@ -516,6 +543,13 @@ pub fn single_attempt_model_media(
     }
   }
   None
+}
+
+///|
+pub fn single_attempt_model_decision(
+  value : SingleAttemptModelDependencies,
+) -> DecisionContract? {
+  value.decision
 }
 
 ///|

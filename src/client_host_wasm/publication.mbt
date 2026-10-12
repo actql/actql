@@ -3,6 +3,7 @@
 /// One reserved output retains the exact Source and all declared Result pins.
 priv struct StoredPublication {
   source : Int
+  preflight : Int
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
   mut results : Array[Int]
@@ -28,9 +29,27 @@ priv struct StoredPublication {
   mut commit_input : Int?
   mut commit_borrow : @buffers.BufferBorrow?
   mut commit : @publication.PublicationCommitPreparation?
+  mut commit_view : @publication.PublicationCommitReadView?
+  mut commit_index : @publication.PublicationContract?
   mut commit_progress : (Bool, Int)?
   mut commit_failed : Bool
   mut commit_finished : Bool
+  mut observation_input : Int?
+  mut observation_borrow : @buffers.BufferBorrow?
+  mut observation_publisher : Int?
+  mut observation : PublicationCommitObservation?
+  mut observation_progress : (Bool, Int)?
+  mut observation_index : @publication.PublicationContract?
+  mut observation_failed : Bool
+  mut observation_checked : Bool
+  mut observation_closing : Bool
+  mut lookup_input : Int?
+  mut lookup_borrow : @buffers.BufferBorrow?
+  mut lookup_publisher : Int?
+  mut lookup_index : @publication.PublicationContract?
+  mut lookup_identity : String?
+  mut lookup_failed : Bool
+  mut lookup_closing : Bool
 }
 
 ///|
@@ -43,8 +62,15 @@ pub fn reserve_publication(
   physical_copy_bytes : Int64,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(source)
-    is Some({ closing: false, produced: true, invocation: Some(_), .. }) &&
+    value.run_invocations.get(source)
+    is Some(
+      { closing: false, produced: true, invocation: Some(_), compute, .. }
+    ) &&
+    compute_publication_preflight(value, compute) is Some((preflight, prepared)) &&
+    prepared.source == source &&
+    !prepared.closing &&
+    prepared.produced &&
+    prepared.preflight is Some(_) &&
     value.copies.get(input) is Some((input_slot, physical)) else {
     return -2
   }
@@ -76,6 +102,7 @@ pub fn reserve_publication(
   })
   value.publications[handle] = {
     source,
+    preflight,
     borrow,
     slot,
     results: [],
@@ -101,9 +128,27 @@ pub fn reserve_publication(
     commit_input: None,
     commit_borrow: None,
     commit: None,
+    commit_view: None,
+    commit_index: None,
     commit_progress: None,
     commit_failed: false,
     commit_finished: false,
+    observation_input: None,
+    observation_borrow: None,
+    observation_publisher: None,
+    observation: None,
+    observation_progress: None,
+    observation_index: None,
+    observation_failed: false,
+    observation_checked: false,
+    observation_closing: false,
+    lookup_input: None,
+    lookup_borrow: None,
+    lookup_publisher: None,
+    lookup_index: None,
+    lookup_identity: None,
+    lookup_failed: false,
+    lookup_closing: false,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -115,15 +160,24 @@ fn publication_current(
   value : Instance,
   record : StoredPublication,
   account : @authorization.AdmittedAccountConfiguration,
+  pending_confirmation? : Bool = false,
 ) -> Bool {
-  guard value.source_publications.get(record.source)
-    is Some({ closing: false, compute, .. }) &&
-    value.computes.get(compute) is Some({ closing: false, .. }) else {
+  guard value.run_invocations.get(record.source) is Some(source) &&
+    value.computes.get(source.compute) is Some(compute) &&
+    value.publication_preflights.get(record.preflight) is Some(preflight) &&
+    preflight.source == record.source &&
+    stored_preflight_current(value, preflight, account, pending_confirmation~) else {
+    return false
+  }
+  if !pending_confirmation && (source.closing || compute.closing) {
     return false
   }
   for result in record.results {
-    guard value.result_exports.get(result)
-      is Some({ closing: false, issue: None, .. }) else {
+    guard value.result_exports.get(result) is Some(output) &&
+      output.issue is None else {
+      return false
+    }
+    if !pending_confirmation && output.closing {
       return false
     }
   }
@@ -147,10 +201,11 @@ pub fn prepare_publication(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) &&
-    value.source_publications.get(record.source)
-    is Some({ closing: false, invocation: Some(invocation), compute, .. }) &&
-    value.computes.get(compute)
-    is Some({ closing: false, host: Some(host), .. }) &&
+    value.run_invocations.get(record.source)
+    is Some({ closing: false, invocation: Some(_), compute, .. }) &&
+    value.computes.get(compute) is Some({ closing: false, host: Some(_), .. }) &&
+    value.publication_preflights.get(record.preflight)
+    is Some({ closing: false, preflight: Some(preflight), .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -173,15 +228,12 @@ pub fn prepare_publication(
     Err(issue) => return issue_code(issue)
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "results", "retention", "max_work", "max_workspace_slots",
-    ])
+    @decode.closed_object(cursor, ["results", "max_work", "max_workspace_slots"])
     is Ok(object) &&
     @decode.required(object, "results") is Ok(results_cursor) &&
     @decode.elements(results_cursor) is Ok(results) &&
     results.length() > 0 &&
     results.length() <= value.workspace_slots &&
-    required_text(object, "retention") is Some(retention_wire) &&
     required_int32(object, "max_work") is Some(max_work) &&
     max_work > 0 &&
     max_work <= 1000000 &&
@@ -190,12 +242,15 @@ pub fn prepare_publication(
     max_workspace <= 100000 else {
     return -31
   }
-  let retention = match
-    @publication.admit_publication_contract(
-      "result_retention_policy", retention_wire, 65536, 4096, 64,
-    ) {
-    Ok(retention) => retention
-    Err(_) => return -31
+  if results.length() != @local_run.local_publication_preflight_count(preflight) {
+    return -2
+  }
+  if @local_run.validate_local_publication_preflight_current(
+      preflight,
+      current.account,
+    )
+    is Err(_) {
+    return -32
   }
   let handles : Array[Int] = []
   for result in results {
@@ -224,25 +279,23 @@ pub fn prepare_publication(
   record.max_work = max_work.to_int64()
   record.max_workspace = max_workspace
   record.pending = true
-  for result in handles {
+  for index, result in handles {
     let parent = value.result_exports.get(result).unwrap()
     let stream = parent.stream.unwrap()
     let issued = match parent.publication {
       Some(publication) =>
-        @local_run.reuse_local_result_publication(
+        @local_run.reuse_local_preflight_result_publication(
+          preflight,
+          index,
           publication,
-          host,
-          invocation,
           stream,
-          retention,
           current.account,
         )
       None =>
-        @local_run.issue_local_result_publication(
-          host,
-          invocation,
+        @local_run.issue_local_preflight_result_publication(
+          preflight,
+          index,
           stream,
-          retention,
           current.account,
           1048576,
           100000,
@@ -303,12 +356,11 @@ fn advance_publication_owner(
     return Ok((false, work))
   }
   if record.capture is None {
-    guard value.source_publications.get(record.source)
+    guard value.run_invocations.get(record.source)
       is Some({ invocation: Some(invocation), compute, .. }) &&
-      value.computes.get(compute) is Some({ host: Some(host), attempt, .. }) &&
-      value.native_attempts.get(attempt) is Some(original) &&
-      value.native_sources.get(original.configuration) is Some(source) &&
-      value.runs.get(source.run)
+      value.computes.get(compute) is Some(compute) &&
+      compute.host is Some(host) &&
+      stored_compute_original_run(value, compute)
       is Some({ normalization: Some(normalization), .. }) else {
       return Err(())
     }
@@ -524,6 +576,33 @@ pub fn publication_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+/// Release only the completed wire projection. Original Receipt, Captured Run,
+/// Result pins, preflight and input borrow remain under their existing Owners.
+#export_name("actql_publication_retire_output")
+pub fn retire_publication_output(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) else {
+    return -2
+  }
+  if record.pending ||
+    !record.produced ||
+    record.manifest is None ||
+    record.receipt is None ||
+    record.captured is None {
+    return -33
+  }
+  if record.output_closed {
+    return 0
+  }
+  let code = status(@buffers.close_buffer(value.pool, record.slot))
+  if code == 0 {
+    record.output_closed = true
+    value.copies.remove(handle) |> ignore
+  }
+  code
+}
+
+///|
 #export_name("actql_publication_close")
 pub fn close_publication(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
@@ -531,6 +610,12 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.payload_requests.values().any(child => child.publication == handle) {
+    return -9
+  }
+  if value.commit_exports.values().any(child => child.publication == handle) {
+    return -9
+  }
   if value.result_bindings
     .values()
     .any(binding => binding.publication == handle) {
@@ -547,6 +632,20 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
   }
   if record.commit is Some(commit) {
     commit.cancel()
+  }
+  if record.observation_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.observation_borrow = None
+  }
+  if record.lookup_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.lookup_borrow = None
   }
   if record.commit_borrow is Some(borrow) {
     let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
@@ -567,6 +666,17 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
     Err(_) => 0
   }
   if result == 0 {
+    // All child output use, the original commit input, the parent output and
+    // the original Source/input borrow have acknowledged cleanup or stop.
+    // A failed physical cleanup above retains this same cancelled view.
+    if record.commit is Some(commit) && record.commit_view is Some(view) {
+      match commit.release_view(view) {
+        Err(_) => return -32
+        Ok(_) => ()
+      }
+      record.commit_view = None
+      record.commit = None
+    }
     value.publications.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }

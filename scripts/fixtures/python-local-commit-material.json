@@ -1,0 +1,77 @@
+{
+  "count": 14,
+  "fields": [
+    "wire",
+    "name",
+    "identity_field",
+    "identity"
+  ],
+  "materials": [
+    [
+      "run_definition",
+      "run_definition_cid"
+    ],
+    [
+      "run_invocation",
+      "invocation_cid"
+    ],
+    [
+      "result_manifest",
+      "result_manifest_cid"
+    ],
+    [
+      "run_receipt",
+      "receipt_identity_cid"
+    ],
+    [
+      "captured_run",
+      "captured_run_cid"
+    ],
+    [
+      "publication_request",
+      "publication_request_cid"
+    ],
+    [
+      "publication_attempt",
+      "publication_attempt_cid"
+    ],
+    [
+      "public_index_entry",
+      "public_index_entry_cid"
+    ],
+    [
+      "result_definition",
+      "result_definition_cid"
+    ],
+    [
+      "result_artifact",
+      "result_artifact_cid"
+    ],
+    [
+      "derivation_evidence",
+      "self_cid"
+    ],
+    [
+      "ordering_evidence",
+      "self_cid"
+    ],
+    [
+      "result_retention_policy",
+      "effective_retention_policy_cid"
+    ],
+    [
+      "durable_result_binding",
+      "durable_result_binding_cid"
+    ]
+  ],
+  "cases": [
+    "unfinished_original_view_refuses_count",
+    "original_count_and_current_authority_refusal",
+    "all_original_ordinals_and_four_raw_fields",
+    "original_root_and_binding_bytes_match_retained_custody",
+    "immutable_child_projection_and_cached_current_access",
+    "invalid_controls_and_out_of_range_refusal",
+    "same_material_cleanup_retry_and_retired_read_refusal",
+    "parent_close_refuses_count_without_reexecution"
+  ]
+}

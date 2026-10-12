@@ -44,6 +44,7 @@ const physicalHoldingNamespaces = Object.freeze([
 const localContinuationEvidenceNames = Object.freeze([
   'captured_input', 'invocation_request', 'prepared_invocation',
   'review_projection', 'continuation_record', 'source_capture',
+  'original_model_state',
 ]);
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =
@@ -97,12 +98,97 @@ async function writeExclusive(path, bytes) {
   }
 }
 
-async function readBounded(path, maximum) {
-  const state = await lstat(path);
-  if (!state.isFile() || state.size > maximum) {
+async function readBounded(path, maximum, closed) {
+  if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
   }
-  return readFile(path);
+  // Pin the original allocation before allocating its bounded output. A
+  // nonblocking open also refuses a raced-in FIFO without waiting for a writer.
+  let handle;
+  try {
+    handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+      constants.O_NONBLOCK);
+  } catch (error) {
+    closed?.(); // No original FD was acquired.
+    throw error;
+  }
+  let readFailure;
+  let readFailed = false;
+  try {
+    const before = await handle.stat({bigint: true});
+    if (!before.isFile() || before.size < 0n ||
+        before.size > BigInt(maximum)) {
+      fail('InvalidPublicationStoreObject');
+    }
+    const sameFile = state => state.isFile() &&
+      state.dev === before.dev && state.ino === before.ino &&
+      state.size === before.size && state.mtimeNs === before.mtimeNs &&
+      state.ctimeNs === before.ctimeNs;
+    if (!sameFile(await lstat(path, {bigint: true}))) {
+      fail('InvalidPublicationStoreObject');
+    }
+    const size = Number(before.size);
+    // Avoid pooled backing and growth/concatenation. The one-byte probe is a
+    // separate bounded allocation; neither buffer is a byte-capacity grant.
+    const bytes = Buffer.allocUnsafeSlow(size);
+    let offset = 0;
+    while (offset < size) {
+      const {bytesRead} = await handle.read(bytes, offset, size - offset, offset);
+      if (!Number.isSafeInteger(bytesRead) || bytesRead <= 0 ||
+          bytesRead > size - offset) {
+        fail('InvalidPublicationStoreObject');
+      }
+      offset += bytesRead;
+    }
+    const probe = Buffer.allocUnsafeSlow(1);
+    const {bytesRead} = await handle.read(probe, 0, 1, size);
+    if (bytesRead !== 0 || !sameFile(await handle.stat({bigint: true})) ||
+        !sameFile(await lstat(path, {bigint: true}))) {
+      fail('InvalidPublicationStoreObject');
+    }
+    return bytes;
+  } catch (error) {
+    readFailed = true;
+    readFailure = error;
+    throw error;
+  } finally {
+    try {
+      await handle.close();
+    } catch (closeFailure) {
+      // Retain exactly this failed FD, not a pathname reopen or another read.
+      // As for the existing object reader, the original caller's reservation
+      // and custody stay live until confirmed close. This control/frame and
+      // any escaped error are part of the original funded read inventory.
+      let original = handle;
+      let retire = closed;
+      let flight;
+      const status = () => Object.freeze({pending: original !== undefined});
+      const cleanup = Object.freeze({
+        status,
+        retry() {
+          if (flight !== undefined) return flight;
+          if (original === undefined) return Promise.resolve(status());
+          flight = Promise.resolve().then(() => original.close()).then(() => {
+            original = undefined;
+            const acknowledge = retire;
+            retire = undefined;
+            acknowledge?.();
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        },
+      });
+      const primary = readFailed ? readFailure : closeFailure;
+      const failure = primary !== null && typeof primary === 'object' &&
+        Object.isExtensible(primary) && primary.cleanupHandle === undefined
+        ? primary : new Error('PublicationMetadataReaderCleanupPending', {cause: primary});
+      failure.cleanupHandle = cleanup;
+      failure.cleanupPending = true;
+      failure.cleanupError = closeFailure;
+      throw failure;
+    }
+    closed?.();
+  }
 }
 
 async function processIsAlive(pid) {
@@ -961,16 +1047,31 @@ export async function openLocalPublicationStore(
       if (error?.code === 'ENOENT') fail('PublicationObjectMissing');
       throw error;
     }
-    if (!state.isFile() || state.size > configuration.maxObjectBytes) {
+    if (!state.isFile() || !quantity(state.size) ||
+        state.size > configuration.maxObjectBytes) {
       fail('InvalidPublicationStoreObject');
     }
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+      constants.O_NONBLOCK);
     const hash = createHash('sha256');
     let bytes = 0;
     try {
       const before = await handle.stat();
+      if (!before.isFile() || !quantity(before.size) ||
+          before.size > configuration.maxObjectBytes ||
+          before.dev !== state.dev || before.ino !== state.ino ||
+          before.size !== state.size || before.mtimeMs !== state.mtimeMs) {
+        fail('InvalidPublicationStoreObject');
+      }
       const stream = handle.createReadStream({autoClose: false});
       for await (const chunk of stream) {
+        // Reject growth before charging this chunk to the hash/accepted byte
+        // inventory. The received chunk and stream backing remain a separate
+        // physical read cost, including the rejected in-flight chunk.
+        if (chunk.byteLength > before.size - bytes ||
+            chunk.byteLength > configuration.maxObjectBytes - bytes) {
+          fail('PublicationObjectCorrupt');
+        }
         hash.update(chunk);
         bytes += chunk.byteLength;
       }
@@ -1008,7 +1109,10 @@ export async function openLocalPublicationStore(
         sameClockFile(lastClockObservation.state, before)) {
       return lastClockObservation.value;
     }
-    const bytes = await readFile(path);
+    // Keep this original metadata size as the receive ceiling, not merely the
+    // Store-wide limit. Growth cannot allocate a larger readFile buffer before
+    // the clock/cache mutation check below observes it.
+    const bytes = await readBounded(path, Number(before.size));
     const after = await lstat(path, {bigint: true});
     if (!sameClockFile(before, after)) fail('PublicationClockUncertain');
     let value;
@@ -1816,6 +1920,10 @@ export async function openLocalPublicationStore(
       let size = 0;
       const stream = handle.createReadStream({autoClose: false});
       for await (const chunk of stream) {
+        if (chunk.byteLength > before.size - size ||
+            chunk.byteLength > configuration.maxObjectBytes - size) {
+          fail('PublicationContractCorrupt');
+        }
         chunks.push(chunk);
         hash.update(chunk);
         size += chunk.byteLength;
@@ -1867,7 +1975,9 @@ export async function openLocalPublicationStore(
     }
     return decoded;
   };
-  const readPrivateEvidence = async (name, semanticCid, holdingCid) => {
+  const readPrivateEvidenceObject = async (
+    name, semanticCid, holdingCid, index = 0, objectCount = 1,
+  ) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name)) {
       fail('InvalidPublicationPrivateEvidence');
@@ -1879,14 +1989,30 @@ export async function openLocalPublicationStore(
       const holding = await inspectPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
           holding.manifest_cid !== semanticCid ||
-          holding.objects.length !== 1) {
+          holding.objects.length !== objectCount) {
         fail('PublicationPrivateEvidenceUnavailable');
       }
-      const chunks = [];
-      await consumePhysicalHolding(holdingCid, 0,
-        chunk => chunks.push(Buffer.from(chunk)));
+      const expectedBytes = holding.objects[index].byte_count;
+      if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0 ||
+          expectedBytes > configuration.maxObjectBytes) {
+        fail('PublicationPrivateEvidenceCorrupt');
+      }
+      // The existing holding owns an exact bounded file. Receive directly
+      // into one buffer instead of retaining copied chunks plus their concat.
+      // No bytes escape before consumePhysicalHolding and AEAD both succeed.
+      const bytes = Buffer.alloc(expectedBytes);
+      let receivedBytes = 0;
+      await consumePhysicalHolding(holdingCid, index, chunk => {
+        if (chunk.byteLength > expectedBytes - receivedBytes) {
+          fail('PublicationPrivateEvidenceCorrupt');
+        }
+        bytes.set(chunk, receivedBytes);
+        receivedBytes += chunk.byteLength;
+      });
+      if (receivedBytes !== expectedBytes) {
+        fail('PublicationPrivateEvidenceCorrupt');
+      }
       try {
-        const bytes = Buffer.concat(chunks);
         let envelope;
         try { envelope = JSON.parse(bytes.toString('utf8')); }
         catch (error) { fail('PublicationPrivateEvidenceCorrupt', error); }
@@ -1909,11 +2035,13 @@ export async function openLocalPublicationStore(
       key.fill(0);
     }
   };
-  const preparePrivateEvidence = async (name, wire, semanticCid) => {
+  const readPrivateEvidence = (name, semanticCid, holdingCid) =>
+    readPrivateEvidenceObject(name, semanticCid, holdingCid);
+  const preparePrivateEvidenceBytes = async (name, bytes, semanticCid) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
-        typeof wire !== 'string' ||
-        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+        !(bytes instanceof Uint8Array) ||
+        bytes.byteLength > configuration.maxObjectBytes) {
       fail('InvalidPublicationPrivateEvidence');
     }
     cidHex(semanticCid);
@@ -1922,7 +2050,7 @@ export async function openLocalPublicationStore(
     const cipher = createCipheriv('aes-256-gcm', key, nonce);
     cipher.setAAD(privateEvidenceAad(name, semanticCid));
     const ciphertext = Buffer.concat([
-      cipher.update(wire, 'utf8'), cipher.final(),
+      cipher.update(bytes), cipher.final(),
     ]);
     const envelope = Buffer.from(JSON.stringify({
       version: 'actql-private-publication-evidence/0.1',
@@ -1948,6 +2076,126 @@ export async function openLocalPublicationStore(
       }
       throw error;
     }
+  };
+  // The historical String path retains exactly its old encoding and AAD.
+  const preparePrivateEvidence = (name, wire, semanticCid) => {
+    active();
+    if (typeof wire !== 'string' ||
+        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    return preparePrivateEvidenceBytes(name, Buffer.from(wire, 'utf8'), semanticCid);
+  };
+
+  // The portable Model/Publication issuer supplies the admitted descriptor
+  // binding. This physical port proves exact bytes and Store durability only;
+  // it cannot select a policy, authorize capture, or issue a Model receipt.
+  const validateModelRawBinding = binding => {
+    if (!exactKeys(binding, [
+      'semanticCid', 'holdingCid', 'wire', 'contentCid', 'byteCount',
+    ]) || typeof binding.wire !== 'string' ||
+        Buffer.byteLength(binding.wire, 'utf8') > configuration.maxObjectBytes ||
+        !quantity(binding.byteCount) ||
+        binding.byteCount > configuration.maxObjectBytes) {
+      fail('InvalidPublicationModelRawEvidence');
+    }
+    for (const cid of [binding.semanticCid, binding.holdingCid, binding.contentCid]) {
+      cidHex(cid);
+    }
+  };
+  const verifyModelRawBytes = (binding, bytes) => {
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength !== binding.byteCount ||
+        `sha256:${createHash('sha256').update(bytes).digest('hex')}` !==
+          binding.contentCid) {
+      fail('PublicationModelRawContentMismatch');
+    }
+  };
+  const prepareModelRawEvidence = async (binding, bytes) => {
+    active();
+    validateModelRawBinding(binding);
+    verifyModelRawBytes(binding, bytes);
+    // Hash and encrypt the same borrowed physical bytes before the first
+    // await. No caller callback can change the content between these steps.
+    const content = await preparePrivateEvidenceBytes(
+      'model_raw_content', bytes, binding.semanticCid,
+    );
+    try {
+      const descriptor = await preparePrivateEvidence(
+        'model_raw_descriptor', binding.wire, binding.semanticCid,
+      );
+      return Object.freeze([descriptor, content]);
+    } catch (error) {
+      try { await content.prepared.release(); }
+      catch (cleanupError) {
+        // Keep the existing retry owner rather than losing a prepared object
+        // when construction of the second original object fails.
+        error.cleanupFailure = cleanupError;
+        error.cleanupPending = true;
+        error.cleanupHandle = content.prepared;
+      }
+      throw error;
+    }
+  };
+  const readModelRawEvidence = async binding => {
+    active();
+    validateModelRawBinding(binding);
+    const record = await inspectPhysicalHolding(binding.holdingCid);
+    if (record === undefined) return undefined;
+    if (record.namespace !== 'publication-private' ||
+        record.manifest_cid !== binding.semanticCid || record.objects.length !== 2) {
+      fail('PublicationPrivateEvidenceUnavailable');
+    }
+    const descriptor = await readPrivateEvidenceObject(
+      'model_raw_descriptor', binding.semanticCid, binding.holdingCid, 0, 2,
+    );
+    if (!descriptor.equals(Buffer.from(binding.wire, 'utf8'))) {
+      fail('PublicationPrivateEvidenceConflict');
+    }
+    const bytes = await readPrivateEvidenceObject(
+      'model_raw_content', binding.semanticCid, binding.holdingCid, 1, 2,
+    );
+    verifyModelRawBytes(binding, bytes);
+    return bytes;
+  };
+  const confirmModelRawEvidence = async binding => {
+    const bytes = await readModelRawEvidence(binding);
+    if (bytes === undefined) return undefined;
+    const record = await inspectPhysicalHolding(binding.holdingCid);
+    // A readable directory link is not the nominal saved observation. The
+    // adapter may report saved only after this existing durability boundary.
+    await commitPhysicalHolding(record, []);
+    return Object.freeze({record, bytes});
+  };
+
+  // Availability of exact common-owner-admitted originals, not policy
+  // selection or permission. Keep this check separate from raw-cell commit:
+  // semantic adoption and physical persistence are different observations.
+  const confirmModelRawCaptureOriginals = async (originals, storeAuthorityCid) => {
+    active();
+    const kinds = ['retention_contract', 'metadata_retention_policy',
+      'clock_contract', 'data_policy'];
+    if (storeAuthorityCid !== configuration.storeAuthorityCid ||
+        !Array.isArray(originals) || originals.length !== kinds.length) {
+      fail('InvalidPublicationModelRawOriginals');
+    }
+    // Freeze the finite expected references before any Store await. This does
+    // not clone body trees or reinterpret a body in a JS policy evaluator.
+    const expected = originals.map((original, index) => {
+      if (!exactKeys(original, ['kind', 'cid', 'wire']) ||
+          original.kind !== kinds[index] || typeof original.wire !== 'string' ||
+          Buffer.byteLength(original.wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidPublicationModelRawOriginals');
+      }
+      cidHex(original.cid);
+      return Object.freeze({...original});
+    });
+    for (const original of expected) {
+      const stored = await readSemanticBytes(original.cid);
+      if (!stored.equals(Buffer.from(original.wire, 'utf8'))) {
+        fail('PublicationModelRawOriginalMismatch');
+      }
+    }
+    return true;
   };
 
   const readContract = async (cid, contractName) => {
@@ -3231,13 +3479,21 @@ export async function openLocalPublicationStore(
     return true;
   };
 
-  const consumeObject = async (cid, accept) => {
-    active();
-    if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
-    const path = objectPath(cid);
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  const consumeObject = async (cid, accept, closed) => {
+    let handle;
+    try {
+      active();
+      if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
+      const path = objectPath(cid);
+      handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    } catch (error) {
+      closed?.(); // No original FD was acquired.
+      throw error;
+    }
     const hash = createHash('sha256');
     let bytes = 0;
+    let readFailure;
+    let readFailed = false;
     try {
       const before = await handle.stat();
       if (!before.isFile() || before.size > configuration.maxObjectBytes) {
@@ -3257,8 +3513,46 @@ export async function openLocalPublicationStore(
         fail('PublicationObjectCorrupt');
       }
       return Object.freeze({cid, bytes});
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      try {
+        await handle.close();
+        closed?.();
+      } catch (closeFailure) {
+        // A view of this SAME original read/FD, not a replacement reader,
+        // cleanup owner or proof of successful consumption. Keep its existing
+        // active-reader count until close succeeds; never reopen by path.
+        let original = handle;
+        let retire = closed;
+        let flight;
+        const status = () => Object.freeze({pending: original !== undefined});
+        const cleanup = Object.freeze({
+          status,
+          retry() {
+            if (flight !== undefined) return flight;
+            if (original === undefined) return Promise.resolve(status());
+            flight = Promise.resolve().then(() => original.close()).then(() => {
+              original = undefined;
+              const acknowledge = retire;
+              retire = undefined;
+              acknowledge?.();
+              return status();
+            }).finally(() => { flight = undefined; });
+            return flight;
+          },
+        });
+        const primary = readFailed ? readFailure : closeFailure;
+        const failure = primary !== null && typeof primary === 'object' &&
+          Object.isExtensible(primary) && primary.cleanupHandle === undefined
+          ? primary : new Error('PublicationObjectReaderCleanupPending', {cause: primary});
+        failure.cleanupHandle = cleanup;
+        failure.cleanupPending = true;
+        failure.cleanupError = closeFailure;
+        throw failure;
+      }
     }
   };
 
@@ -4055,7 +4349,7 @@ export async function openLocalPublicationStore(
     active();
     if (!exactKeys(binding, [
       'name', 'semanticCid', 'holdingCid', 'wire',
-    ]) || !['effect_preview', 'effect_capture', 'model_capture_bundle',
+    ]) || !['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
       'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
       'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission',
       'observation_set', 'run_invocation', 'source_evidence',
@@ -4178,14 +4472,16 @@ export async function openLocalPublicationStore(
       holdingCid,
       (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
     );
-    try {
-      return await consumeObject(record.objects[objectIndex].cid, accept);
-    } finally {
+    let released = false;
+    const closed = () => {
+      if (released) return;
+      released = true;
       const remaining =
         (activePhysicalHoldingReaders.get(holdingCid) ?? 1) - 1;
       if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
       else activePhysicalHoldingReaders.set(holdingCid, remaining);
-    }
+    };
+    return await consumeObject(record.objects[objectIndex].cid, accept, closed);
   };
 
   const ensurePhysicalHoldingDeletion = async record => {
@@ -5114,8 +5410,55 @@ export async function openLocalPublicationStore(
   // by the marker rather than treating an absent index as successful cleanup.
   await recoverRetiredMetadata();
 
+  // One bounded semantic view per actual Store admission. The escaped handle
+  // carries no key/path and must be presented to this same live Store owner.
+  let originalModelStorageBinding;
+  // This existing Store's original binding readers stay owned during read and
+  // failed-close cleanup. Count/callback/error/control holding is not a new
+  // physical byte allowance, and must be included in the installed envelope.
+  let originalModelStorageBindingReaders = 0;
+  const observeOriginalModelStorageBinding = async () => {
+    active();
+    if (originalModelStorageBindingReaders !== 0) {
+      fail('PublicationStoreCleanupPending');
+    }
+    originalModelStorageBindingReaders++;
+    const bytes = await readBounded(storeContractPath, 256, () => {
+      originalModelStorageBindingReaders--;
+    });
+    const current = JSON.parse(bytes);
+    active();
+    if (!exactKeys(current, ['version', 'isolation', 'store_authority_cid']) ||
+        !Buffer.from(JSON.stringify(current), 'utf8').equals(storeContractBytes)) {
+      fail('PublicationStoreAuthorityMismatch');
+    }
+    if (originalModelStorageBinding === undefined) {
+      const evidence = contractControl.sealRunEvidence('model_original_storage_binding',
+        JSON.stringify({version: 'actql-model-original-storage-binding/0.1',
+          store_contract_wire: storeContractBytes.toString('utf8'),
+          store_contract_cid: `sha256:${createHash('sha256').update(storeContractBytes).digest('hex')}`,
+          store_authority_cid: configuration.storeAuthorityCid,
+          key_generation_cid: `sha256:${createHash('sha256').update(privateEvidenceKey()).digest('hex')}`,
+          private_namespace: 'local-continuation-private'}),
+        {maxWireBytes: 2048, maxNodes: 32, maxDepth: 2});
+      originalModelStorageBinding = {evidence, handle: Object.freeze({
+        kind: 'model-original-storage-binding', identity: evidence.identity,
+        wire: evidence.wire})};
+    }
+    return originalModelStorageBinding.handle;
+  };
+
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
+    observeOriginalModelStorageBinding,
+    originalModelStorageBindingEvidence(handle) {
+      active();
+      if (originalModelStorageBinding === undefined ||
+          handle !== originalModelStorageBinding.handle) {
+        fail('ForeignOriginalModelStorageBinding');
+      }
+      return originalModelStorageBinding.evidence;
+    },
     createObjectWriter,
     createPreparedObjectWriter,
     commitPhysicalHolding,
@@ -5134,6 +5477,10 @@ export async function openLocalPublicationStore(
     putSemantic,
     preparePrivateEvidence,
     confirmPrivateEvidence,
+    prepareModelRawEvidence,
+    readModelRawEvidence,
+    confirmModelRawEvidence,
+    confirmModelRawCaptureOriginals,
     confirmCapturedContentHoldings,
     putPreparedResultSchema,
     putPublicationContract,
@@ -5218,7 +5565,8 @@ export async function openLocalPublicationStore(
           pendingUncommittedMetadataCleanups.size !== 0 ||
           pendingPhysicalHoldingDeletions.size !== 0 ||
           activeResultReaders.size !== 0 ||
-          activePhysicalHoldingReaders.size !== 0) {
+          activePhysicalHoldingReaders.size !== 0 ||
+          originalModelStorageBindingReaders !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
         ));

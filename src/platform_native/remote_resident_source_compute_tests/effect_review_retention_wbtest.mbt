@@ -15,6 +15,14 @@ fn retained_effect_review_retention_store(
   authoring_cid : String,
   review_work? : @effect_provider.NativeResidentEffectReview? = None,
   original_journal_path? : String? = None,
+  original_work? : (
+    @client.NativeClientEffectSourceWork,
+    @client.NativeClientRunJournal,
+  )? = None,
+  original_context? : (
+    @resident.ResidentEffectReviewInputContext,
+    @dispatch_journal.Journal,
+  )? = None,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let child = "effect-review-retention-" + @env.now().to_string()
@@ -32,6 +40,14 @@ fn retained_effect_review_retention_store(
     max_wire_bytes: 262144,
     max_nodes: 10000,
     max_depth: 64,
+  }
+  // Test charges are explicit; they are not a production layout declaration.
+  let computation_capacity : @resident.ResidentEffectComputationCapacity = {
+    contract_bytes: 1048576L,
+    control_bytes: 4096L,
+    workspace_bytes: 65536L,
+    max_utf16_units: 1048576,
+    layout: original_computation_fixture_layout(),
   }
   let prepare = (material, secret, bounds) => {
     consumer.prepare_effect_review_retention(
@@ -84,6 +100,64 @@ fn retained_effect_review_retention_store(
     None => prepare(materials, key, limits).unwrap()
   }
   assert_true(retention.report() is Err(Unavailable))
+  assert_true(retention.original_approval_scope() is Err(Unavailable))
+  let request = materials.request.unwrap()
+  let confirm = () => {
+    retention.confirm_original_checkpoint(
+      consumer,
+      request,
+      materials.run_definition,
+    )
+  }
+  assert_true(confirm() is Err(Unavailable))
+  assert_true(
+    retention.original_review_projection(
+      consumer,
+      request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    retention.original_completion_evidence(
+      consumer,
+      request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
+  let binding : @checkpoint.ResumeBinding = {
+    // The original Local fixture explicitly installed these Host bindings at
+    // admission. They are not inferred from Source, Preview or a report.
+    authorization_context_cid: retained_compute_cid("a"),
+    environment_binding_cid: retained_compute_cid("b"),
+  }
+  if original_work is Some((work, journal)) {
+    guard journal.lookup(request, true) is Ok(@client.Retained(before)) else {
+      fail("original Local review Run missing before persistence")
+    }
+    assert_true(
+      work.wait_review_checkpoint(
+        retention,
+        @client.native_client_run_record_revision(before),
+        binding,
+        [],
+      )
+      is Err(@client.Retention(@resident.Unavailable)),
+    )
+    guard journal.lookup(request, true) is Ok(@client.Retained(after)) else {
+      fail("original Local review Run changed before persistence")
+    }
+    assert_eq(
+      @client.native_client_run_record_revision(after),
+      @client.native_client_run_record_revision(before),
+    )
+    assert_true(@client.native_client_run_checkpoint_state(after) is None)
+  }
   assert_true(
     retention.review_projection(() => true, 65536) is Err(Unavailable),
   )
@@ -106,8 +180,87 @@ fn retained_effect_review_retention_store(
         store.close().unwrap() |> ignore
       }
     })
-    let failed = retention.persist(store)
-    assert_true(lost.val)
+    println("native-original-review: persisting " + step)
+    let failed = if original_work is Some(_) {
+      retention
+      .persist_original_checkpoint(
+        store,
+        computation_capacity=Some(computation_capacity),
+      )
+      .map(_ => ())
+    } else {
+      retention
+      .persist(store, computation_capacity=Some(computation_capacity))
+      .map(_ => ())
+    }
+    assert_true(
+      lost.val,
+      msg=match failed {
+        Err(@resident.Capture(@resident.Binding(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Capture(@resident.Capacity(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Capture(@resident.ComputationCapacityMissing)) =>
+          "Original computation capacity is missing"
+        Err(@resident.Capture(@resident.Unavailable)) => "Capture unavailable"
+        Err(@resident.Capture(@resident.Store(_))) => "Capture Store rejected"
+        Err(@resident.Preview(_)) =>
+          "Preview rejected before commit observation"
+        Err(@resident.Preparation(@resident.Unavailable)) =>
+          "Checkpoint input unavailable"
+        Err(@resident.Preparation(@resident.ForeignCapture)) =>
+          "Foreign Checkpoint capture"
+        Err(@resident.Preparation(@resident.InvalidLimits)) =>
+          "Invalid Checkpoint limits"
+        Err(@resident.Preparation(@resident.RunLifetimeUnavailable)) =>
+          "Original Run lifetime unavailable"
+        Err(@resident.Preparation(@resident.Request(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.Keys(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.Checkpoint(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.RunBinding(@host.Run(_)))) =>
+          "Checkpoint checked Run mismatch"
+        Err(
+          @resident.Preparation(@resident.RunBinding(@host.Checkpoint(issue)))
+        ) => @debug.to_string(issue)
+        Err(@resident.Preparation(@resident.RunBinding(@host.ForeignSubject))) =>
+          "Checkpoint subject mismatch"
+        Err(
+          @resident.Preparation(@resident.RunBinding(@host.UnsupportedReview))
+        ) => "Unsupported Checkpoint review"
+        Err(@resident.Preparation(@resident.RunBinding(@host.OriginalLifetime))) =>
+          "Checkpoint exceeds original lifetime"
+        Err(@resident.Preparation(@resident.Encoding)) =>
+          "Checkpoint encoding failed"
+        Err(@resident.Preparation(@resident.Capture(_))) =>
+          "Checkpoint capture readback failed"
+        Err(@resident.Preparation(@resident.Preview(_))) =>
+          "Checkpoint Preview readback failed"
+        Err(@resident.Checkpoint(@resident.Store(@store.InvalidConfiguration))) =>
+          "Checkpoint Store configuration"
+        Err(@resident.Checkpoint(@resident.Store(@store.StateCollision))) =>
+          "Checkpoint Store collision"
+        Err(@resident.Checkpoint(@resident.Store(@store.DigestMismatch))) =>
+          "Checkpoint continuation digest mismatch"
+        Err(@resident.Checkpoint(@resident.Store(@store.Database(_)))) =>
+          "Checkpoint database rejected"
+        Err(
+          @resident.Checkpoint(@resident.Store(@store.PrivateEvidence(issue)))
+        ) => @debug.to_string(issue)
+        Err(@resident.Checkpoint(@resident.Capacity(issue))) =>
+          @debug.to_string(issue)
+        Err(@resident.Checkpoint(@resident.Unavailable)) =>
+          "Checkpoint inputs unavailable"
+        Err(@resident.Checkpoint(_)) => "Checkpoint custody rejected"
+        Err(@resident.Unavailable) => "Review inputs unavailable"
+        Err(@resident.InvalidConfiguration) => "Invalid review configuration"
+        Err(@resident.EvidenceDenied) => "Review Evidence denied"
+        Err(@resident.ProjectionTooLarge) => "Review Evidence exceeds its bound"
+        Ok(_) => "Expected durable commit observation was not emitted"
+      },
+    )
     match step {
       "effect-capture-persisted" =>
         assert_true(failed is Err(Capture(Store(Closed))))
@@ -118,23 +271,299 @@ fn retained_effect_review_retention_store(
     let pending = consumer.usage().reserved_retention_bytes
     assert_true(pending > baseline)
     assert_true(retention.report() is Err(_))
+    assert_true(confirm() is Err(_))
     assert_true(retention.review_projection(() => true, 65536) is Err(_))
     store = open()
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending)
   }
   println("native-original-review: persistence fault retries confirmed")
-  let report = retention.persist(store).unwrap()
+  let report = if original_work is Some(_) {
+    retention
+    .persist_original_checkpoint(
+      store,
+      computation_capacity=Some(computation_capacity),
+    )
+    .unwrap()
+    |> ignore
+    assert_true(
+      retention.report() is Err(@resident.Checkpoint(@resident.Unavailable)),
+    )
+    None
+  } else {
+    Some(
+      retention
+      .persist(store, computation_capacity=Some(computation_capacity))
+      .unwrap(),
+    )
+  }
+  let persisted = confirm().unwrap()
+  let approval_scope = retention.original_approval_scope().unwrap()
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(materials.run_definition),
+      persisted.artifact.checkpoint_cid,
+    ),
+    Some(@host.client_request_authority_scope_cid(request)),
+  )
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(materials.run_definition),
+      "sha256:" + "f".repeat(64),
+    ),
+    None,
+  )
+  if report is Some(remote_report) {
+    assert_eq(
+      persisted.artifact.checkpoint_cid,
+      @remote.remote_effect_checkpoint_report_checkpoint(remote_report).checkpoint_cid,
+    )
+  }
+  let foreign_run = @host.issue_client_effect_run_definition(
+    materials.allowed,
+    "local-review-fixture",
+    "foreign-original-review",
+    "2026-10-10T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    retention.confirm_original_checkpoint(consumer, request, foreign_run)
+    is Err(Unavailable),
+  )
+  let foreign_request = @host.prepare_client_effect_request_identity(
+    materials.prepared,
+    @host.client_request_authority_scope_cid(request),
+    "foreign-original-review",
+    @host.client_request_input_cid(request),
+  ).unwrap()
+  assert_eq(
+    approval_scope.current_for(
+      foreign_request,
+      @publication.publication_contract_identity(materials.run_definition),
+      persisted.artifact.checkpoint_cid,
+    ),
+    None,
+  )
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(foreign_run),
+      persisted.artifact.checkpoint_cid,
+    ),
+    None,
+  )
+  assert_true(
+    retention.confirm_original_checkpoint(
+      consumer,
+      foreign_request,
+      materials.run_definition,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    retention.original_review_projection(
+      consumer,
+      foreign_request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    retention.original_review_projection(
+      consumer,
+      request,
+      foreign_run,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    retention.original_completion_evidence(
+      consumer,
+      foreign_request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    retention.original_completion_evidence(
+      consumer,
+      request,
+      foreign_run,
+      () => true,
+      65536,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    retention.original_completion_evidence(
+      consumer,
+      request,
+      materials.run_definition,
+      () => false,
+      65536,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_true(
+    retention.original_completion_evidence(
+      consumer,
+      request,
+      materials.run_definition,
+      () => true,
+      1,
+    )
+    is Err(ProjectionTooLarge),
+  )
+  let completion_reads = Ref(0)
+  assert_true(
+    retention.original_completion_evidence(
+      consumer,
+      request,
+      materials.run_definition,
+      () => {
+        completion_reads.val += 1
+        completion_reads.val < 2
+      },
+      65536,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_eq(completion_reads.val, 2)
+  let completion_before = consumer.usage()
+  let completion = retention
+    .original_completion_evidence(
+      consumer,
+      request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    .unwrap()
+  assert_eq(completion.checkpoint_cid, persisted.artifact.checkpoint_cid)
+  assert_eq(
+    @publication.publication_contract_identity(completion.run_definition),
+    @publication.publication_contract_identity(materials.run_definition),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(completion.invocation),
+    @publication.publication_contract_identity(invocation),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(completion.computation_receipt),
+    @publication.publication_contract_identity(result.receipt),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(completion.result_manifest),
+    @publication.publication_contract_identity(result.manifest),
+  )
+  assert_eq(
+    @publication.effect_preview_run_identity(completion.preview),
+    @publication.publication_contract_identity(materials.run_definition),
+  )
+  assert_eq(
+    consumer.usage().reserved_retention_bytes,
+    completion_before.reserved_retention_bytes,
+  )
+  if original_work is Some((work, journal)) {
+    guard journal.lookup(request, true) is Ok(@client.Retained(before)) else {
+      fail("original Local review Run missing")
+    }
+    let revision = @client.native_client_run_record_revision(before)
+    assert_true(
+      work.wait_review_checkpoint(retention, revision + 1L, binding, [])
+      is Err(@client.Journal(@client.Checkpoint(@client.StaleRevision))),
+    )
+    assert_true(
+      work.wait_review_checkpoint(retention, revision, binding, [
+        "foreign-effect",
+      ])
+      is Err(@client.Journal(@client.Checkpoint(@client.InvalidMaterial))),
+    )
+    let waiting = work
+      .wait_review_checkpoint(retention, revision, binding, [])
+      .unwrap()
+    assert_eq(@client.native_client_run_record_revision(waiting), revision + 1L)
+    let state = @client.native_client_run_checkpoint_state(waiting).unwrap()
+    assert_eq(state.run_id, "original-local-effect-source-run")
+    assert_eq(state.status, @publication.WaitingCheckpoint)
+    assert_true(
+      work.execute_task(1) is Err(@client.NeedsOriginalReconciliation),
+    )
+    assert_true(
+      work.wait_review_checkpoint(retention, revision + 1L, binding, [])
+      is Err(
+        @client.Journal(@client.Checkpoint(@client.NeedsOriginalContinuation))
+      ),
+    )
+    let (original_checkpoint, original_wire) = work
+      .review_checkpoint(retention, () => true, 65536)
+      .unwrap()
+    assert_eq(
+      original_checkpoint.checkpoint_cid,
+      persisted.artifact.checkpoint_cid,
+    )
+    assert_eq(original_wire, wire)
+    assert_true(
+      work.review_checkpoint(retention, () => false, 65536)
+      is Err(@client.Retention(@resident.EvidenceDenied)),
+    )
+    guard journal.lookup(request, true) is Ok(@client.Retained(after_read)) else {
+      fail("original Local review Run lost after Evidence read")
+    }
+    assert_eq(
+      @client.native_client_run_record_revision(after_read),
+      revision + 1L,
+    )
+    // Discharge this test's actual review obligation before exercising custody
+    // cleanup below. No fixture receipt replaces the signed common rejection.
+    native_local_effect_reject_review(journal, request, persisted.artifact)
+    // Historical read authority does not require another execution grant and
+    // cannot undo rejection or acquire another Provider-send capability.
+    let (rejected_checkpoint, rejected_wire) = work
+      .review_checkpoint(retention, () => true, 65536)
+      .unwrap()
+    assert_eq(
+      rejected_checkpoint.checkpoint_cid,
+      original_checkpoint.checkpoint_cid,
+    )
+    assert_eq(rejected_wire, original_wire)
+    assert_true(
+      work.execute_task(1) is Err(@client.NeedsOriginalReconciliation),
+    )
+  }
+  let project = (authorize, bound) => {
+    if report is Some(_) {
+      retention
+      .review_projection(authorize, bound)
+      .map(pair => {
+        (@remote.remote_effect_checkpoint_report_checkpoint(pair.0), pair.1)
+      })
+    } else {
+      retention
+      .original_review_projection(
+        consumer,
+        request,
+        materials.run_definition,
+        authorize,
+        bound,
+      )
+      .map(pair => (pair.0.artifact, pair.1))
+    }
+  }
   let before_projection = consumer.usage().reserved_retention_bytes
-  assert_true(
-    retention.review_projection(() => false, 65536) is Err(EvidenceDenied),
-  )
-  assert_true(
-    retention.review_projection(() => true, 1) is Err(ProjectionTooLarge),
-  )
+  assert_true(project(() => false, 65536) is Err(EvidenceDenied))
+  assert_true(project(() => true, 1) is Err(ProjectionTooLarge))
   let evidence_reads = Ref(0)
   assert_true(
-    retention.review_projection(
+    project(
       () => {
         evidence_reads.val += 1
         evidence_reads.val < 2
@@ -144,9 +573,30 @@ fn retained_effect_review_retention_store(
     is Err(EvidenceDenied),
   )
   assert_eq(evidence_reads.val, 2)
+  // Both earlier checks allow this read. Current authority is unavailable
+  // only after the final paired Store confirmation, before plaintext returns.
+  let final_reads = Ref(0)
+  assert_true(
+    project(
+      () => {
+        final_reads.val += 1
+        final_reads.val < 3
+      },
+      65536,
+    )
+    is Err(EvidenceDenied),
+  )
+  assert_eq(final_reads.val, 3)
+  assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  if report is Some(report) {
+    assert_eq(
+      @remote.remote_effect_checkpoint_report_json(retention.report().unwrap()),
+      @remote.remote_effect_checkpoint_report_json(report),
+    )
+  }
   let closing_reads = Ref(0)
   assert_true(
-    retention.review_projection(
+    project(
       () => {
         closing_reads.val += 1
         if closing_reads.val == 2 {
@@ -160,21 +610,51 @@ fn retained_effect_review_retention_store(
   )
   assert_eq(closing_reads.val, 2)
   assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  assert_true(
+    retention.original_completion_evidence(
+      consumer,
+      request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    is Err(_),
+  )
   store = open()
   retention.restore_store(store).unwrap()
-  let (projection_report, projection_wire) = retention
-    .review_projection(() => true, 65536)
-    .unwrap()
+  let (projection_checkpoint, projection_wire) = project(() => true, 65536).unwrap()
   assert_eq(
-    @remote.remote_effect_checkpoint_report_json(projection_report),
-    @remote.remote_effect_checkpoint_report_json(report),
+    retention
+    .original_completion_evidence(
+      consumer,
+      request,
+      materials.run_definition,
+      () => true,
+      65536,
+    )
+    .unwrap().checkpoint_cid,
+    projection_checkpoint.checkpoint_cid,
+  )
+  assert_eq(
+    projection_checkpoint.checkpoint_cid,
+    persisted.artifact.checkpoint_cid,
   )
   assert_eq(projection_wire, wire)
   assert_eq(
-    @remote.remote_effect_checkpoint_report_checkpoint(projection_report).checkpoint.review_projection_cid,
+    projection_checkpoint.checkpoint.review_projection_cid,
     "sha256:" + @sha.hex(@utf8.encode(projection_wire)),
   )
   assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+  if report is Some(report) {
+    let (projection_report, remote_wire) = retention
+      .review_projection(() => true, 65536)
+      .unwrap()
+    assert_eq(
+      @remote.remote_effect_checkpoint_report_json(projection_report),
+      @remote.remote_effect_checkpoint_report_json(report),
+    )
+    assert_eq(remote_wire, projection_wire)
+  }
   let resolution_fixture = if review_work is Some(work) {
     let (original_report, original_wire) = work
       .review_projection(() => true, 65536)
@@ -182,28 +662,126 @@ fn retained_effect_review_retention_store(
     assert_eq(original_wire, projection_wire)
     assert_eq(
       @remote.remote_effect_checkpoint_report_identity(original_report),
-      @remote.remote_effect_checkpoint_report_identity(report),
+      @remote.remote_effect_checkpoint_report_identity(report.unwrap()),
     )
     println("native-original-review: retaining journal report")
     let queued = work
       .persist_and_retain_report(
-        store, crypto, key, "native-original-review-retention", "2026-10-10T00:00:00.000Z",
-        "2026-10-11T00:00:00.000Z", limits,
+        store,
+        crypto,
+        key,
+        "native-original-review-retention",
+        "2026-10-10T00:00:00.000Z",
+        "2026-10-11T00:00:00.000Z",
+        limits,
+        computation_capacity=Some(computation_capacity),
       )
       .unwrap()
     assert_eq(
       @remote.remote_effect_checkpoint_report_json(queued),
-      @remote.remote_effect_checkpoint_report_json(report),
+      @remote.remote_effect_checkpoint_report_json(report.unwrap()),
     )
-    retained_holder_upload_original_review(work, original_journal_path.unwrap())
-    Some(retained_holder_admit_resolution(work, report))
+    if original_context is Some((context, journal)) {
+      let before_original = store.capacity_usage().unwrap().reserved_bytes
+      let read_original = authorize => {
+        context.read_original_review_projection(
+          journal, store, authority, crypto, key, limits, authorize,
+        )
+      }
+      assert_true(read_original(() => false) is Err(EvidenceDenied))
+      let original_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          original_reads.val += 1
+          original_reads.val < 2
+        })
+        is Err(EvidenceDenied),
+      )
+      assert_eq(original_reads.val, 2)
+      let final_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          final_reads.val += 1
+          final_reads.val < 3
+        })
+        is Err(EvidenceDenied),
+      )
+      assert_eq(final_reads.val, 3)
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+      assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+      let restored = read_original(() => true).unwrap()
+      assert_eq(restored.1, projection_wire)
+      assert_eq(
+        @remote.remote_effect_checkpoint_report_json(restored.0),
+        @remote.remote_effect_checkpoint_report_json(queued),
+      )
+      assert_true(
+        context.read_original_review_projection(
+          journal,
+          store,
+          retained_compute_cid("f"),
+          crypto,
+          key,
+          limits,
+          () => true,
+        )
+        is Err(Store(StateCollision)),
+      )
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+      assert_eq(consumer.usage().reserved_retention_bytes, before_projection)
+      // A current authorization read can retire/close custody. Recheck after
+      // that boundary instead of returning previously read private bytes.
+      let close_reads = Ref(0)
+      assert_true(
+        read_original(() => {
+          close_reads.val += 1
+          if close_reads.val == 2 {
+            store.close().unwrap() |> ignore
+          }
+          true
+        })
+        is Err(Store(Closed)),
+      )
+      assert_eq(close_reads.val, 2)
+      store = open()
+      retention.restore_store(store).unwrap()
+      assert_eq(read_original(() => true).unwrap().1, projection_wire)
+      assert_eq(store.capacity_usage().unwrap().reserved_bytes, before_original)
+    }
+    let (upload_context, upload_journal) = original_context.unwrap()
+    retained_holder_upload_original_review(
+      work,
+      original_journal_path.unwrap(),
+      store,
+      {
+        crypto,
+        key,
+        checkpoint_id: "native-original-review-retention",
+        created_at: "2026-10-10T00:00:00.000Z",
+        expires_at: "2026-10-11T00:00:00.000Z",
+        limits,
+        report_url: @env.get_env_var(
+          "ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL",
+        ).unwrap(),
+        artifact_url: @env.get_env_var(
+          "ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL",
+        ).unwrap(),
+        access: (_, _) => {
+          abort("confirmed review repeated a Provider observation")
+        },
+      },
+      upload_context,
+      upload_journal,
+      authority,
+    )
+    Some(retained_holder_admit_resolution(work, report.unwrap()))
   } else {
     None
   }
   if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") {
     retained_holder_write_row(
       review_work.unwrap(),
-      report,
+      report.unwrap(),
       resolution_fixture.unwrap(),
       invocation,
       original_journal_path.unwrap(),
@@ -211,8 +789,8 @@ fn retained_effect_review_retention_store(
       result,
     )
   }
-  let report_wire = @remote.remote_effect_checkpoint_report_json(report)
-  let checkpoint = @remote.remote_effect_checkpoint_report_checkpoint(report)
+  let report_wire = report.map(@remote.remote_effect_checkpoint_report_json)
+  let checkpoint = persisted.artifact
   let holding = checkpoint.checkpoint_cid
   let inspection = sqlite
     .open_database(path + "/.actql-publication.sqlite3", 262144L)
@@ -263,12 +841,26 @@ fn retained_effect_review_retention_store(
   let physical_reserved = store.capacity_usage().unwrap().reserved_bytes
   assert_true(reserved > baseline)
   for _ in 0..<2 {
-    assert_eq(
-      @remote.remote_effect_checkpoint_report_json(
-        retention.persist(store).unwrap(),
-      ),
-      report_wire,
-    )
+    if report_wire is Some(expected) {
+      assert_eq(
+        @remote.remote_effect_checkpoint_report_json(
+          retention
+          .persist(store, computation_capacity=Some(computation_capacity))
+          .unwrap(),
+        ),
+        expected,
+      )
+    } else {
+      assert_eq(
+        retention
+        .persist_original_checkpoint(
+          store,
+          computation_capacity=Some(computation_capacity),
+        )
+        .unwrap().artifact.checkpoint_cid,
+        checkpoint.checkpoint_cid,
+      )
+    }
     assert_eq(consumer.usage().reserved_retention_bytes, reserved)
     assert_eq(store.capacity_usage().unwrap().reserved_bytes, physical_reserved)
     let current = inspection
@@ -345,15 +937,35 @@ fn retained_effect_review_retention_store(
     assert_true(pending.val > baseline)
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)
     assert_true(retention.report() is Err(Unavailable))
+    assert_true(confirm() is Err(Unavailable))
     store = open()
     retention.restore_store(store).unwrap()
     assert_eq(consumer.usage().reserved_retention_bytes, pending.val)
-    assert_true(retention.persist(store) is Err(Unavailable))
+    assert_true(
+      retention.persist(store, computation_capacity=Some(computation_capacity))
+      is Err(Unavailable),
+    )
+    assert_true(
+      retention.persist_original_checkpoint(
+        store,
+        computation_capacity=Some(computation_capacity),
+      )
+      is Err(Unavailable),
+    )
   }
   assert_true(retention.retry_cleanup().unwrap())
+  assert_eq(
+    approval_scope.current_for(
+      request,
+      @publication.publication_contract_identity(materials.run_definition),
+      persisted.artifact.checkpoint_cid,
+    ),
+    None,
+  )
   assert_false(retention.retry_cleanup().unwrap())
   assert_true(retention.restore_store(store) is Err(Unavailable))
   assert_true(retention.report() is Err(Unavailable))
+  assert_true(confirm() is Err(Unavailable))
   assert_true(
     retention.review_projection(() => true, 65536) is Err(Unavailable),
   )

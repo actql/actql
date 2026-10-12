@@ -23,6 +23,16 @@ pub fn check_table_inputs(@pipeline_typing.CheckedPipeline, @decode_core.Cursor,
 
 pub fn checked_contextual_orders(CheckedOrders) -> @pipeline_typing.ContextualOrders
 
+pub fn checked_input_at(CheckedResultInputs, Int) -> @pipeline_typing.ProducedInput?
+
+pub fn checked_input_order_pending(CheckedResultInputs, Int) -> @decode_core.Cursor?
+
+pub fn checked_input_publication(CheckedResultInputs, Int) -> @pipeline_typing.ResultPublication?
+
+pub fn checked_inputs_results(CheckedResultInputs) -> CheckedResults
+
+pub fn checked_inputs_usage(CheckedResultInputs) -> Usage
+
 pub fn checked_orders_usage(CheckedOrders) -> (Int, Int)
 
 pub fn checked_producer_orders(CheckedOrders) -> @pipeline_typing.ContextualClosure
@@ -36,6 +46,8 @@ pub fn definition_source(ResultDefinition) -> @decode_core.Cursor
 pub fn fields(ResultDefinition) -> Array[String]
 
 pub fn lookup(CheckedResults, String) -> ResultDefinition?
+
+pub fn lookup_checked_input(CheckedResultInputs, String) -> @pipeline_typing.ProducedInput?
 
 pub fn lookup_port(ResultPorts, String) -> ResultPort?
 
@@ -84,6 +96,8 @@ pub fn port_target(ResultPort) -> @pipeline_typing.Target
 pub fn ports_orders(ResultPorts) -> CheckedOrders
 
 pub fn ports_usage(ResultPorts) -> Usage
+
+pub fn prepare_checked_inputs(CheckedResults, PortLimits) -> Result[CheckedResultInputs, PortIssue]
 
 pub fn prepare_ports(CheckedOrders, PortLimits) -> Result[ResultPorts, PortIssue]
 
@@ -157,6 +171,8 @@ pub fn usage(CheckedResults) -> Usage
 
 // Types and methods
 type CheckedOrders
+
+type CheckedResultInputs
 
 type CheckedResults
 

@@ -4,6 +4,7 @@ struct Store {
   lock : @filesystem.Lock
   database : @sqlite.Database
   authority_cid : String
+  journal_identity : @filesystem.NativeFileOwnership
   capacity_bytes : Int64
   max_objects : Int64
   max_record_bytes : Int
@@ -78,12 +79,12 @@ fn allocation_name(
   request : @payload.PublicationPayloadRequest,
   ordinal : Int64,
 ) -> String {
-  "alloc-" + record_key(request)[7:].to_owned() + "-" + ordinal.to_string()
+  @payload.prepare_publication_payload_allocation_name(request, ordinal)
 }
 
 ///|
 /// The file name inside an allocation area.
-const ALLOCATION_FILE : String = "payload"
+const ALLOCATION_FILE : String = @payload.PUBLICATION_PAYLOAD_ALLOCATION_FILE
 
 ///|
 /// What the Store recorded about a request's allocation area: its name and,
@@ -95,33 +96,13 @@ priv struct RecordedAllocation {
 }
 
 ///|
-fn parse_digits(text : String) -> Int64? {
-  if text.is_empty() {
-    return None
-  }
-  let mut value = 0L
-  for character in text {
-    let code = character.to_int()
-    if code < 48 || code > 57 || value > 100000000000000L {
-      return None
-    }
-    value = value * 10L + (code - 48).to_int64()
-  }
-  Some(value)
-}
-
-///|
 fn allocation_body(allocation : RecordedAllocation) -> Bytes {
-  @utf8.encode(
-    match allocation.identity {
-      Some(identity) =>
-        allocation.name +
-        "|" +
-        identity.device.to_string() +
-        "|" +
-        identity.inode.to_string()
-      None => allocation.name
-    },
+  @payload.encode_publication_payload_allocation(
+    allocation.name,
+    allocation.identity.map(identity => {
+      device: identity.device,
+      inode: identity.inode,
+    }),
   )
 }
 
@@ -132,40 +113,27 @@ fn recorded_allocation(
   store : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[RecordedAllocation?, NativePublicationStoreIssue] {
-  let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
   match
-    store.database.read("publication_payload_allocation", record_key(request)) {
-    Ok(value) => {
-      let parts = @utf8.decode_lossy(value.body).split("|").collect()
-      guard parts.length() == 1 || parts.length() == 3 else {
-        return Err(StateCollision)
-      }
-      let name = parts[0].to_owned()
-      guard name.has_prefix(prefix) &&
-        parse_digits(
-          name.unsafe_substring(start=prefix.length(), end=name.length()),
-        )
-        is Some(_) else {
-        return Err(StateCollision)
-      }
-      if parts.length() == 1 {
-        return Ok(Some({ name, identity: None, }))
-      }
-      match
-        (parse_digits(parts[1].to_owned()), parse_digits(parts[2].to_owned())) {
-        (Some(device), Some(inode)) =>
+    store.database.read(
+      @payload.publication_payload_allocation_namespace(),
+      record_key(request),
+    ) {
+    Ok(value) =>
+      match @payload.admit_publication_payload_allocation(request, value.body) {
+        Err(_) => Err(StateCollision)
+        Ok(allocation) =>
           Ok(
             Some({
-              name,
-              identity: Some({
-                device: device.reinterpret_as_uint64(),
-                inode: inode.reinterpret_as_uint64(),
+              name: @payload.publication_payload_allocation_name(allocation),
+              identity: @payload.publication_payload_allocation_ownership(
+                allocation,
+              ).map(identity => {
+                device: identity.device,
+                inode: identity.inode,
               }),
             }),
           )
-        _ => Err(StateCollision)
       }
-    }
     Err(@sqlite.NotFound) => Ok(None)
     Err(issue) => Err(Database(issue))
   }
@@ -181,19 +149,15 @@ fn next_allocation_ordinal(
 ) -> Result[Int64, NativePublicationStoreIssue] {
   match recorded_allocation(store, request) {
     Ok(None) => Ok(1L)
-    Ok(Some(allocation)) => {
-      let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
+    Ok(Some(allocation)) =>
       match
-        parse_digits(
-          allocation.name.unsafe_substring(
-            start=prefix.length(),
-            end=allocation.name.length(),
-          ),
+        @payload.next_publication_payload_allocation_ordinal(
+          request,
+          allocation.name,
         ) {
-        Some(ordinal) => Ok(ordinal + 1L)
-        None => Err(StateCollision)
+        Ok(ordinal) => Ok(ordinal)
+        Err(_) => Err(StateCollision)
       }
-    }
     Err(issue) => Err(issue)
   }
 }
@@ -207,19 +171,27 @@ fn record_allocation(
   allocation : RecordedAllocation,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let body = allocation_body(allocation)
-  match store.database.insert("publication_payload_allocation", key, body) {
+  match
+    store.database.insert(
+      @payload.publication_payload_allocation_namespace(),
+      key,
+      body,
+    ) {
     Ok(_) => return Ok(())
     Err(@sqlite.Collision) => ()
     Err(issue) => return Err(Database(issue))
   }
   let current = match
-    store.database.read("publication_payload_allocation", key) {
+    store.database.read(
+      @payload.publication_payload_allocation_namespace(),
+      key,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }
   match
     store.database.compare_exchange(
-      "publication_payload_allocation",
+      @payload.publication_payload_allocation_namespace(),
       key,
       current.revision,
       body,
@@ -343,9 +315,21 @@ extern "C" fn store_format_ffi(
 fn admit_store_format(
   root_path : String,
   establish : Bool,
+  existing_only? : Bool = false,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   let path = @utf8.encode(root_path)
-  match store_format_ffi(path, path.length(), if establish { 1 } else { 0 }) {
+  match
+    store_format_ffi(
+      path,
+      path.length(),
+      if existing_only {
+        -1
+      } else if establish {
+        1
+      } else {
+        0
+      },
+    ) {
     0 => Ok(())
     1 => Err(LegacyStoreFormat(root_path))
     2 => Err(UnknownStoreFormat(root_path))
@@ -482,6 +466,41 @@ pub fn open_store(
   max_objects : Int64,
   max_record_bytes : Int64,
 ) -> Result[Store, NativePublicationStoreIssue] {
+  open_store_owned(
+    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    false,
+  )
+}
+
+///|
+/// Restore an existing physical Store without format or database initialization.
+/// This is not evidence of original Run binding or current authority: the Host
+/// must still verify those with the retained journal and Store custody location.
+/// Missing, empty or divergent originals refuse; no fresh custody is substituted.
+pub fn open_existing_store(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+) -> Result[Store, NativePublicationStoreIssue] {
+  open_store_owned(
+    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    true,
+  )
+}
+
+///|
+fn open_store_owned(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  existing_only : Bool,
+) -> Result[Store, NativePublicationStoreIssue] {
   if capacity_bytes < 0L ||
     max_objects < 1L ||
     max_record_bytes < 1L ||
@@ -492,7 +511,7 @@ pub fn open_store(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  match admit_store_format(root_path, false) {
+  match admit_store_format(root_path, false, existing_only~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -500,7 +519,7 @@ pub fn open_store(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  match admit_store_format(root_path, true) {
+  match admit_store_format(root_path, true, existing_only~) {
     Ok(_) => ()
     Err(issue) => {
       ignore(lock.close())
@@ -508,11 +527,28 @@ pub fn open_store(
     }
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
-  let database = match library.open_database(journal_path, max_record_bytes) {
+  let selected = if existing_only {
+    library.open_existing_database(journal_path, max_record_bytes)
+  } else {
+    library.open_database(journal_path, max_record_bytes)
+  }
+  let database = match selected {
     Ok(value) => value
     Err(issue) => {
       ignore(lock.close())
       return Err(Database(issue))
+    }
+  }
+  let journal_identity : @filesystem.NativeFileOwnership = match
+    root.inspect_generation(".actql-publication.sqlite3") {
+    Ok(Some(value)) => { device: value.device, inode: value.inode, }
+    other => {
+      database.close()
+      ignore(lock.close())
+      return match other {
+        Err(issue) => Err(Filesystem(issue))
+        _ => Err(StateCollision)
+      }
     }
   }
   Ok({
@@ -520,6 +556,7 @@ pub fn open_store(
     lock,
     database,
     authority_cid,
+    journal_identity,
     capacity_bytes,
     max_objects,
     max_record_bytes: max_record_bytes.to_int(),
@@ -3094,42 +3131,45 @@ pub fn ResultDelivery::close(
 }
 
 ///|
-/// Reconcile the latest durable terminal or unresolved fact for one delivery
-/// occurrence after a process restart. This does not authorize a new delivery
-/// or imply that its source material remains available.
-pub fn Store::inspect_result_delivery(
-  self : Store,
+fn read_result_delivery_attempt(
+  store : Store,
   attempt_id : String,
-) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
-  if self.closed {
-    return Err(Closed)
-  }
+) -> Result[@publication.PublicationContract?, NativePublicationStoreIssue] {
   let mapped = match
-    self.database.read("delivery_attempt", delivery_attempt_key(attempt_id)) {
+    store.database.read("delivery_attempt", delivery_attempt_key(attempt_id)) {
     Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Database(issue))
   }
   let attempt_cid = @utf8.decode(mapped.body) catch {
     _ => return Err(StateCollision)
   }
-  let attempt = match
-    load_publication_contract(self, "delivery_attempt", attempt_cid) {
+  load_publication_contract(store, "delivery_attempt", attempt_cid).map(value => {
+    Some(value)
+  })
+}
+
+///|
+fn read_result_delivery_records(
+  store : Store,
+  attempt : @publication.PublicationContract,
+) -> Result[
+  (@publication.PublicationContract?, @publication.PublicationContract?),
+  NativePublicationStoreIssue,
+] {
+  let attempt_cid = @publication.publication_contract_identity(attempt)
+  let head = match store.database.read("delivery_record_head", attempt_cid) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let head = match self.database.read("delivery_record_head", attempt_cid) {
-    Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok((None, None))
     Err(issue) => return Err(Database(issue))
   }
-  let record_wire = @utf8.decode(head.body) catch {
-    _ => return Err(StateCollision)
-  }
+  let wire = @utf8.decode(head.body) catch { _ => return Err(StateCollision) }
   let record = match
     @publication.admit_publication_contract(
       "delivery_record",
-      record_wire,
-      self.max_record_bytes,
-      self.max_record_bytes,
+      wire,
+      store.max_record_bytes,
+      store.max_record_bytes,
       64,
     ) {
     Ok(value) => value
@@ -3143,10 +3183,10 @@ pub fn Store::inspect_result_delivery(
   if projection.delivery_attempt_cid != attempt_cid {
     return Err(StateCollision)
   }
-  match projection.result_delivery_receipt_cid {
-    Some(receipt_cid) => {
+  let receipt = match projection.result_delivery_receipt_cid {
+    Some(cid) => {
       let receipt = match
-        load_publication_contract(self, "result_delivery_receipt", receipt_cid) {
+        load_publication_contract(store, "result_delivery_receipt", cid) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -3156,14 +3196,85 @@ pub fn Store::inspect_result_delivery(
             attempt, receipt, record,
           ),
         ) {
-        Ok(_) => ()
+        Ok(_) => Some(receipt)
         Err(issue) => return Err(issue)
       }
     }
-    None => ()
+    None => None
+  }
+  Ok((Some(record), receipt))
+}
+
+///|
+/// Metadata only, under the caller's separately established current authority.
+/// Missing attempt mapping and retained attempt without a record are distinct.
+/// Expired/deleted payload is never opened, and no grant use is claimed here.
+/// These immutable references and a latest record are not an atomic snapshot.
+pub fn Store::lookup_result_delivery(
+  self : Store,
+  scope : @publication.DeliveryAttemptLookupScope,
+) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let attempt = match read_result_delivery_attempt(self, scope.attempt_id) {
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(None)
+    Err(issue) => return Err(issue)
+  }
+  let grant_cid = match
+    delivery_issuance(@publication.delivery_attempt_read_grant_cid(attempt)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let grant = match
+    load_publication_contract(self, "result_read_grant", grant_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    delivery_issuance(
+      @publication.delivery_attempt_lookup_matches_scope(attempt, grant, scope),
+    ) {
+    Ok(true) => ()
+    Ok(false) => return Ok(None)
+    Err(issue) => return Err(issue)
+  }
+  let (record, receipt) = match read_result_delivery_records(self, attempt) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(Some({ attempt, record, host_release_receipt: receipt, }))
+}
+
+///|
+/// Reconcile the latest durable terminal or unresolved fact for one delivery
+/// occurrence after a process restart. This does not authorize a new delivery
+/// or imply that its source material remains available.
+pub fn Store::inspect_result_delivery(
+  self : Store,
+  attempt_id : String,
+) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let attempt = match read_result_delivery_attempt(self, attempt_id) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(Database(@sqlite.NotFound))
+    Err(issue) => return Err(issue)
+  }
+  let (record, _) = match read_result_delivery_records(self, attempt) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard record is Some(record) else { return Err(Database(@sqlite.NotFound)) }
+  let projection = match
+    delivery_issuance(@publication.project_delivery_record(record)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   Ok({
-    delivery_attempt_cid: attempt_cid,
+    delivery_attempt_cid: @publication.publication_contract_identity(attempt),
     delivery_record_cid: @publication.publication_contract_identity(record),
     state: projection.state,
     confirmed_bytes: projection.confirmed_byte_count,
@@ -3293,4 +3404,21 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
   }
   self.closed = true
   Ok(true)
+}
+
+///|
+/// The existing physical journal's identity, not a read/write grant. Retain it
+/// with the original Run so a same-authority empty replacement Store cannot
+/// turn lost publication history into proof of non-publication. File length is
+/// excluded; the journal grows without replacing its original ownership.
+pub fn Store::custody_location(
+  self : Store,
+) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue] {
+  Ok(
+    (
+      self.authority_cid,
+      self.journal_identity.device,
+      self.journal_identity.inode,
+    ),
+  )
 }

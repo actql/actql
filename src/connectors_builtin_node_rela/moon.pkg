@@ -45,6 +45,7 @@ import {
   "actql/actql/query_planning" @planning,
   "actql/actql/value_contract" @parameter_contract,
   "actql/actql/capacity_policy",
+  "actql/actql/client_source_publication" @source_publication,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/connectors/salesforce/catalog" @salesforce_catalog,
   "actql/actql/connectors/salesforce/host" @salesforce_host,
@@ -55,5 +56,4 @@ import {
   "actql/actql/source_frontend",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
-  "actql/actql/parameter_binding",
 }

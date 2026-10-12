@@ -138,7 +138,7 @@ test "DISTINCT signed order distinguishes a range field from an explicit object 
   assert_true(
     compile(
       @query.parse_query(
-        "FROM objects AS payload |> ASSERT UNIQUE BY (id) |> AGGREGATE ARRAY_AGG(DISTINCT -(payload).score IGNORE NULLS ORDER BY -payload.score) AS items",
+        "FROM objects AS payload |> ASSERT UNIQUE BY (id) |> AGGREGATE ARRAY_AGG(DISTINCT -(payload.payload).score IGNORE NULLS ORDER BY -payload.score) AS items",
         syntax_limits(),
       ).unwrap(),
       context,

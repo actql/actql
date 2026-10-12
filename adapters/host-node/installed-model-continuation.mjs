@@ -10,6 +10,9 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
 import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
+import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
+import {createInferPhysicalObservation} from './infer-physical-observation.mjs';
+import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
@@ -86,8 +89,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     immutableInput(snapshot);
     let tokens = custody.get(receiptWire);
     if (tokens === undefined) custody.set(receiptWire, tokens = new Set());
-    const state = {available: true};
-    const token = Object.freeze({receipt, snapshot, get available() { return state.available; }});
+    const state = {available: true, snapshot};
+    const token = Object.freeze({receipt, get snapshot() { return state.snapshot; },
+      get available() { return state.available; }});
     leases.set(token, {receiptWire, tokens, state, bytes});
     tokens.add(token);
     retainedInputs++;
@@ -123,6 +127,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     const lease = leases.get(token);
     if (lease === undefined) return;
     lease.state.available = false;
+    // Retire only this lease's decoded input. Escaped borrows and
+    // independently retained consumers keep their own original custody.
+    lease.state.snapshot = undefined;
     leases.delete(token);
     lease.tokens.delete(token);
     if (lease.tokens.size === 0 && custody.get(lease.receiptWire) === lease.tokens) {
@@ -246,6 +253,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     admitAttempt: ({originals, slot, attemptWire, authorityWire, attemptIndex}) =>
       parseCore(runtime.modelImmediateCallAttemptAdmit(canonicalJson(originals), slot.ordinal,
         attemptWire, authorityWire, attemptIndex)),
+    // JSON serialization preserves journal data strings verbatim. The bounded
+    // Common issuer supplies canonical data identities, not current grants.
+    projectOriginalJournalIdentity: ({originals, row}) =>
+      parseCore(runtime.modelOriginalJournalIdentity(JSON.stringify(originals), JSON.stringify(row))),
     admitImmediateEntry({decision, preparedCallSet, inventory, originals, slot, attemptIndex,
       attemptCid, attemptWire, authorityWire, at}) {
       const owner = live.get(preparedCallSet);
@@ -273,6 +284,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   async function prime(record) {
     const receiptWire = record.originals.fixedInputReceiptWire;
     const receipt = JSON.parse(receiptWire);
+    if (receipt.runId !== record.inventory.runId ||
+        receipt.runDefinitionCid !== record.inventory.runDefinitionCid) fail('ModelSnapshotBindingMismatch');
     const bytes = await checkpoints().readModelInput(receipt);
     const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
     const snapshot = JSON.parse(wire);
@@ -300,6 +313,9 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
     declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort,
     sourceContinuation, retainEvidenceCopy}, ownership) {
+    let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
+    const rawBinding = rawSelection === undefined ? undefined :
+      {attempted: false, complete: false, issue: undefined};
     const cp = checkpoints();
     const facts = operation.preparedFacts(preparedCallSet);
     const run = JSON.parse(plan.runDefinition.wire);
@@ -401,35 +417,19 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       entries: new Map()};
     live.set(preparedCallSet, owner);
     ownership.owner = owner;
+    const persistence = selected.entryPersistence !== 'async' ? undefined :
+      createNodeInferEntryPersistence({moon, preparedCallSet, journal: cp.journal,
+        ioNotification: operation.ioNotification,
+        settled(entry, receipt) {
+          if (owner.pending?.entry !== entry) return;
+          if (receipt !== undefined) owner.entries.set(owner.pending.slot, receipt);
+          owner.pending = undefined;
+        }});
     if (observation?.canMeasure('infer')) {
-      let physical;
-      const installed = operation.bindModelObservation(preparedCallSet, facts => {
-        try {
-          if (facts.event === 'started') {
-            // MoonBit emits this only at actual invoke, after durable entry
-            // and cancellation checks, never during approval or replay.
-            physical = {slot: facts.slot, attemptCid: facts.attemptCid,
-              started: performance.now()};
-            return;
-          }
-          const interval = physical;
-          physical = undefined;
-          const receipt = owner.entries.get(facts.slot);
-          if (interval === undefined || interval.slot !== facts.slot ||
-              interval.attemptCid !== facts.attemptCid ||
-              receipt?.attemptCid !== facts.attemptCid) {
-            observation.noteLoss(); return;
-          }
-          observation.emit('infer', 'transport_completed', {
-            ref: {namespaceId, authorityScopeCid, runDefinitionCid: receipt.runDefinitionCid},
-            task: receipt.taskIndex, slot: receipt.ordinal, attempt: receipt.attemptIndex,
-            attemptCid: facts.attemptCid,
-            // This is the physical callback disposition, not Run completion
-            // or proof that a returned response was valid, saved, or published.
-            outcome: facts.outcome,
-          }, {segment: facts.attemptCid, durationMs: performance.now() - interval.started});
-        } catch { observation.noteLoss(); }
-      });
+      const installed = operation.bindModelObservation(preparedCallSet,
+        createInferPhysicalObservation({observation,
+          reference: {namespaceId, authorityScopeCid},
+          receiptAt: slot => owner.entries.get(slot)}));
       if (!installed) observation.noteLoss();
     }
     const unreconciled = new Map();
@@ -494,6 +494,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }
       if (gate !== undefined && !gateReleased || operation.cleanupPending()) return false;
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
+      rawSelection = undefined;
       release(token);
       return true;
     };
@@ -541,6 +542,12 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         signal?.throwIfAborted();
         if (!owner.currentProvider()) fail('ModelProviderBindingChanged');
         if (selected.egressAdmission === undefined) throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');
+        // Never reissue a nominal registration or rebind physical custody
+        // after success or failure. Current send permission still belongs to
+        // the original Entry's final Common gate, not this cached observation.
+        if (rawBinding?.attempted) {
+          if (!rawBinding.complete) throw rawBinding.issue;
+        }
         if (gate === undefined) {
           gateOpening ??= cp.modelAuthorization(gateOptions).then(value => { gate = value; })
             .finally(() => { gateOpening = undefined; });
@@ -557,35 +564,84 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         signal?.throwIfAborted();
         if (view === undefined) view = cp.journal.registerImmediateModelCallSet({modelCallSet: originals, declaredResults, parentResume});
         owner.decision = decision;
-        operation.bindModelDispatch(control, plan, preparedCallSet, bound,
-          {account: selected.observeAccount(), principalId, at: now(), delegated: decision.runtimeDecision,
-            observeAccount: selected.observeAccount, observeAt: now,
-            enterCall(original) {
-              if (!owner.available || !owner.currentProvider() ||
-                  original.callWire !== originals.slotWires[original.slot] ||
-                  !operation.entryCurrent(original.entry, preparedCallSet)) return false;
-              const attempt = control.admitRunEvidence('model_call_attempt', original.attemptWire, limits);
-              const reference = {...select(inventory, scopeKeys), ordinal: original.slot,
-                slotCid: inventory.slots[original.slot].slotCid,
-                attemptIndex: JSON.parse(attempt.wire).attempt, attemptCid: attempt.identity,
-                attemptWire: original.attemptWire, authorityWire: original.authorityWire};
-              owner.pending = original;
-              try {
-                const receipt = claim === undefined
-                  ? cp.journal.enterImmediateModelCall(reference, {decision, preparedCallSet, parentResume})
-                  : cp.journal.enterResumedCall(claim, {...reference, checkpointCid: existing.checkpointCid,
-                      resolutionCid: decision.admission.resolutionCid});
-                owner.entries.set(original.slot, receipt);
-                diagnostic('model_call_entered', {ref: {namespaceId, authorityScopeCid,
-                  runDefinitionCid: receipt.runDefinitionCid}, task: receipt.taskIndex,
-                  slot: receipt.ordinal, attempt: receipt.attemptIndex,
-                  attemptCid: receipt.attemptCid, outcome: 'running'});
-                return true;
-              } catch (error) {
-                owner.entryFailure = error;
-                return false;
-              } finally { owner.pending = undefined; }
-            }});
+        if (rawBinding?.complete !== true) {
+          const dispatch = {account: selected.observeAccount(), principalId, at: now(), delegated: decision.runtimeDecision,
+              observeAccount: selected.observeAccount, observeAt: now,
+              enterCall(original) {
+                if (!owner.available || !owner.currentProvider() ||
+                    original.callWire !== originals.slotWires[original.slot] ||
+                    !operation.entryCurrent(original.entry, preparedCallSet)) return false;
+                const attempt = control.admitRunEvidence('model_call_attempt', original.attemptWire, limits);
+                const reference = {...select(inventory, scopeKeys), ordinal: original.slot,
+                  slotCid: inventory.slots[original.slot].slotCid,
+                  attemptIndex: JSON.parse(attempt.wire).attempt, attemptCid: attempt.identity,
+                  attemptWire: original.attemptWire, authorityWire: original.authorityWire};
+                owner.pending = original;
+                try {
+                  const receipt = claim === undefined
+                    ? cp.journal.enterImmediateModelCall(reference, {decision, preparedCallSet, parentResume})
+                    : cp.journal.enterResumedCall(claim, {...reference, checkpointCid: existing.checkpointCid,
+                        resolutionCid: decision.admission.resolutionCid});
+                  owner.entries.set(original.slot, receipt);
+                  diagnostic('model_call_entered', {ref: {namespaceId, authorityScopeCid,
+                    runDefinitionCid: receipt.runDefinitionCid}, task: receipt.taskIndex,
+                    slot: receipt.ordinal, attempt: receipt.attemptIndex,
+                    attemptCid: receipt.attemptCid, outcome: 'running'});
+                  return true;
+                } catch (error) {
+                  owner.entryFailure = error;
+                  return false;
+                } finally { owner.pending = undefined; }
+              }};
+          let admittedDispatch;
+          if (persistence === undefined) {
+            admittedDispatch = operation.bindModelDispatch(control, plan, preparedCallSet, bound, dispatch);
+          } else {
+            admittedDispatch = operation.bindModelEntryPersistence(control, plan, preparedCallSet, bound,
+              {...dispatch, beginEntry(original) {
+                if (!owner.available || !owner.currentProvider() ||
+                    original.callWire !== originals.slotWires[original.slot] ||
+                    !operation.entryCurrent(original.entry, preparedCallSet)) return undefined;
+                const attempt = control.admitRunEvidence('model_call_attempt', original.attemptWire, limits);
+                const reference = {...select(inventory, scopeKeys), ordinal: original.slot,
+                  slotCid: inventory.slots[original.slot].slotCid,
+                  attemptIndex: JSON.parse(attempt.wire).attempt, attemptCid: attempt.identity,
+                  attemptWire: original.attemptWire, authorityWire: original.authorityWire};
+                owner.pending = original;
+                // Retain the exact pending Entry across physical journal await.
+                // Neither an unknown save nor a late ACK may re-enter or send.
+                const view = claim === undefined
+                  ? persistence.beginImmediate(original, reference,
+                      {decision, parentResume})
+                  : persistence.beginResumed(original, {...reference,
+                      checkpointCid: existing.checkpointCid,
+                      resolutionCid: decision.admission.resolutionCid}, claim);
+                if (view === undefined) owner.pending = undefined;
+                return view;
+              }});
+          }
+          if (rawBinding !== undefined) {
+            rawBinding.attempted = true;
+            try {
+              const policy = control.issueCheckedClientInferRawCapturePolicy(
+                plan.compiled, plan.runDefinition, admittedDispatch, bound,
+                {...rawSelection, storeAuthorityCid});
+              const registration = control.registerCheckedClientInferRawCapture(
+                plan.compiled, plan.runDefinition, admittedDispatch, bound,
+                {policy, profile: rawSelection.profile,
+                  installation: rawSelection.installation, probability: rawSelection.probability,
+                  account: selected.observeAccount(), at: now(), storeAuthorityCid,
+                  selectionAvailable: () => owner.available && token.available &&
+                    owner.currentProvider() && rawSelection?.selectionAvailable() === true,
+                  observeAccount: selected.observeAccount, observeAt: now});
+              operation.bindModelRawCapture(registration);
+              rawBinding.complete = true;
+            } catch (error) {
+              rawBinding.issue = error;
+              throw error;
+            }
+          }
+        }
         for (const [slot, {entry, historical}] of unreconciled) {
           if (!owner.available || !owner.currentProvider()) fail('ModelProviderBindingChanged');
           signal?.throwIfAborted();

@@ -43,11 +43,14 @@ test "write capability has an independent profile identity" {
     write_capability_identity(evidence),
   )
   let binding = {
-    ..request.projection.binding,
+    ..site_catalog_test_binding(request.projection.binding),
     sync_occurrence: "sync-b",
     dispatch_request_cid: "sha256:" + "9".repeat(64),
   }
-  let refreshed = { ..request, projection: { ..request.projection, binding, }, }
+  let refreshed = {
+    ..request,
+    projection: { ..request.projection, binding: SiteCatalog(binding), },
+  }
   let fresh = prepare_write_capability_evidence(
     refreshed,
     runtime,
@@ -89,7 +92,10 @@ test "capability rejects runtime Site operation field and API substitution" {
         ..request,
         projection: {
           ..request.projection,
-          binding: { ..request.projection.binding, site_generation: 5, },
+          binding: SiteCatalog({
+            ..site_catalog_test_binding(request.projection.binding),
+            site_generation: 5,
+          }),
         },
       },
     ] {
@@ -134,7 +140,10 @@ test "capability current use checks the observed write constraints" {
   assert_true(recheck_write_capability(evidence, observation) is Ok(_))
   let wrong_generation = {
     ..observation,
-    binding: { ..observation.binding, site_generation: 5, },
+    binding: SiteCatalog({
+      ..site_catalog_test_binding(observation.binding),
+      site_generation: 5,
+    }),
   }
   assert_true(
     recheck_write_capability(evidence, wrong_generation)
@@ -156,10 +165,10 @@ test "capability content reuse does not waive exact execution binding" {
     ..request,
     projection: {
       ..request.projection,
-      binding: {
-        ..request.projection.binding,
+      binding: SiteCatalog({
+        ..site_catalog_test_binding(request.projection.binding),
         run_invocation_cid: "sha256:" + "9".repeat(64),
-      },
+      }),
     },
   }
   let same_profile = prepare_write_capability_evidence(

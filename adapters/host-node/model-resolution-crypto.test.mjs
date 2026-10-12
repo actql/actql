@@ -53,6 +53,8 @@ const verifier = {
   },
   admitAttempt: ({originals, slot, attemptWire, authorityWire, attemptIndex}) => admitted(
     runtime.modelCallAttemptAdmit(canonical(originals), slot.ordinal, attemptWire, authorityWire, attemptIndex)),
+  projectOriginalJournalIdentity: ({originals, row}) => admitted(
+    runtime.modelOriginalJournalIdentity(JSON.stringify(originals), JSON.stringify(row))),
   verifySettlement: async () => {throw Error('No physical settlement is exercised');},
 };
 const inventory = verifier.admitCallSet(request);
@@ -135,6 +137,53 @@ const unchanged = journal => {
   assert.equal(journal.resolutionOf(inventory.checkpointCid), undefined);
   assert.deepEqual(journal.readResumeCalls(inventory).slots.map(slot => slot.state), ['Unsent', 'Unsent']);
 };
+
+test('original journal deferred identity preserves real signed approval admission without new permission', async t => {
+  const {journal} = setup(t);
+  const summary = journal.activeRunCheckpoint(inventory.runId);
+  const identities = journal.modelCheckpointSummary(summary.checkpointCid);
+  const publicSummary = {checkpointId: summary.checkpointId, checkpointCid: summary.checkpointCid,
+    kind: summary.kind, phase: summary.phase, subject: {kind: 'run_unit', runId: summary.runId,
+      runDefinitionCid: summary.runDefinitionCid}, requiredArtifact: {...summary.requiredArtifact},
+    preparedInvocationCid: identities.preparedInvocationCid,
+    reviewProjectionCid: summary.reviewProjectionCid, requirements: [...summary.requirements],
+    createdAt: summary.createdAt, expiresAt: summary.expiresAt, humanSummary: summary.humanSummary};
+  await journal.submitResolution(await signedAnswer(publicSummary, 'approved', signer, decidedAt));
+  const claimed = journal.claimResume(inventory.runId, {claimant: 'original-journal', leaseMs: 1000, binding});
+  const approval = journal.admitResume(claimed.claim, {checkpointCid: inventory.checkpointCid});
+  const attempt = JSON.parse(fixture.attemptWire);
+  journal.enterResumedCall(claimed.claim, {...inventory, ordinal: 0,
+    slotCid: attempt.slot_cid, attemptIndex: 1, attemptCid: attempt.self_cid,
+    attemptWire: fixture.attemptWire, authorityWire: fixture.authorityWire,
+    intentId: claimed.claim.intentId, claimant: claimed.claim.claimant,
+    generation: claimed.claim.generation, resolutionCid: approval.resolutionCid});
+  const observation = journal.observeOriginalModelJournal(inventory);
+  const raw = journal.originalModelJournalObservationFacts(observation).attempts[0];
+  const entry = JSON.parse(raw.entry_json);
+  const actual = journal.originalModelJournalDataIdentities(observation)[0];
+  const expected = {version: 'actql-model-journal-entry/0.1',
+    run_id: entry.runId, run_definition_cid: entry.runDefinitionCid,
+    prepared_invocation_cid: entry.preparedInvocationCid, scope_cid: entry.scopeCid,
+    provider_binding_cid: entry.providerBindingCid, input_artifact_cid: entry.inputArtifactCid,
+    task_index: entry.taskIndex, strategy_revision: entry.strategyRevision,
+    ordinal: entry.ordinal, slot_cid: entry.slotCid, attempt_index: entry.attemptIndex,
+    attempt_cid: entry.attemptCid, dispatch_authority_cid: JSON.parse(fixture.authorityWire).self_cid,
+    admitted_at: entry.admittedAt, model_grant_expires_at: entry.modelGrantExpiresAt,
+    provenance: 'deferred', immediate: null, deferred: {
+      checkpoint_cid: approval.checkpointCid, intent_id: approval.intentId,
+      claimant: approval.claimant, generation: approval.generation,
+      resolution_cid: approval.resolutionCid, verified_resolution_cid: approval.verifiedResolutionCid,
+      lease_expires_ms: approval.leaseExpiresMs, prepare_attempt_id: null,
+      kind: 'model_invocation', required_artifact_cid: approval.requiredArtifactCid,
+      decision_subject_cid: approval.decisionSubjectCid, requested_claims: [...approval.requestedClaims],
+      configuration_cid: approval.configurationCid, observed_claims: [...approval.observedClaims],
+      authority: approval.authority, approval_expires_at: approval.approvalExpiresAt}};
+  assert.equal(actual.entryWire, canonical({...expected, self_cid: cidOf(expected)}));
+  assert.equal(actual.settlementWire, null);
+  const changed = {...raw, entry_json: JSON.stringify({...entry, generation: entry.generation + 1})};
+  assert.equal(JSON.parse(runtime.modelOriginalJournalIdentity(JSON.stringify(request), JSON.stringify(changed))).ok, false);
+  assert.strictEqual(journal.reconfirmOriginalModelJournal(observation), observation);
+});
 const flipped = signature => {const bytes = Buffer.from(signature, 'base64'); bytes[0] ^= 1; return bytes.toString('base64');};
 
 // This checks the existing identity-bound approval recorder after the actual

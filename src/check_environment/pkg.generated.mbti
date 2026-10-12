@@ -127,6 +127,8 @@ pub fn check_mapping_conversions(MappingContractShape, Int) -> Result[MappingCon
 
 pub fn check_mapping_row_fields(MappingContractShape, Int) -> Result[MappingRowFields, MappingRowFieldsIssue]
 
+pub fn check_model_response_profile_binding(ModelResponseProfile, ModelTaskContract, ModelResponseProfileInstallation, DecisionProbabilityProfile?) -> Result[Unit, ModelTaskIssueKind]
+
 pub fn check_model_tasks(WireEnvironment, ModelTaskLimits) -> Result[ModelTasks, ModelTaskIssue]
 
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
@@ -217,6 +219,16 @@ pub fn data_policy_source(SourceDataPolicy) -> String
 
 pub fn data_policy_usage(SourceDataPolicies) -> (Int, Int)
 
+pub fn decision_contract_matches(DecisionContract, ModelTaskContract, ModelDependency) -> Bool
+
+pub fn decision_contract_usage(DecisionContract) -> Int
+
+pub fn decision_output_contract(DecisionContract) -> @value_contract.Contract
+
+pub fn decision_probability_profile_cid(DecisionProbabilityProfile) -> String
+
+pub fn decision_state_input(DecisionContract) -> String
+
 pub fn default_read_mode(SourceViewModes) -> SourceReadMode
 
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -272,6 +284,8 @@ pub fn inherited_text_time_dependency_at(InheritedTextTimeContract, Int) -> Inhe
 pub fn inherited_text_time_dependency_count(InheritedTextTimeContract) -> Int
 
 pub fn inherited_text_time_for_expression(String) -> InheritedTextTimeContract?
+
+pub fn initial_jev_decision_profile() -> DecisionProbabilityProfile
 
 pub fn lookup_capacity_completeness(LookupCapacity) -> LookupCompleteness
 
@@ -417,6 +431,18 @@ pub fn model_execution_task(ModelExecutionContract) -> ModelTaskContract
 
 pub fn model_execution_usage(ModelExecutionContract) -> (Int, Int, Int)
 
+pub fn model_response_profile_completion_basis(ModelResponseProfile) -> String
+
+pub fn model_response_profile_identity(ModelResponseProfile) -> String
+
+pub fn model_response_profile_limits(ModelResponseProfile) -> ModelResponseProfileLimits
+
+pub fn model_response_profile_observation_at(ModelResponseProfile, Int) -> String?
+
+pub fn model_response_profile_observation_count(ModelResponseProfile) -> Int
+
+pub fn model_response_profile_usage(ModelResponseProfile) -> (Int, Int, Int)
+
 pub fn model_task_accepts_classification(ModelTaskContract, DataClassification) -> Bool
 
 pub fn model_task_at(ModelTasks, Int) -> ModelTaskContract?
@@ -427,11 +453,13 @@ pub fn model_task_data_handling_cid(ModelTaskContract) -> String
 
 pub fn model_task_for(ModelTasks, Member) -> ModelTaskContract?
 
-pub fn model_task_generation_config(ModelTaskContract) -> ModelGeneration
+pub fn model_task_generation_config(ModelTaskContract) -> ModelGeneration?
 
 pub fn model_task_identity(ModelTaskContract) -> (String, String, String)
 
 pub fn model_task_input(ModelTaskContract) -> @value_contract.Contract
+
+pub fn model_task_kind(ModelTaskContract) -> ModelTaskKind
 
 pub fn model_task_max_items(ModelTaskContract) -> Int64?
 
@@ -448,6 +476,8 @@ pub fn model_task_provider_retention(ModelTaskContract) -> Bool
 pub fn model_task_region_at(ModelTaskContract, Int) -> String?
 
 pub fn model_task_region_count(ModelTaskContract) -> Int
+
+pub fn model_task_schema(ModelTaskContract) -> String
 
 pub fn model_task_schema_cids(ModelTaskContract) -> (String, String)
 
@@ -487,6 +517,8 @@ pub fn read_calendar_selection(WireEnvironment, Int) -> Result[CalendarSelection
 
 pub fn read_capacity(WireEnvironment, @capacity_policy.Limits) -> Result[Capacity, CapacityIssue]
 
+pub fn read_decision_contract(ModelTaskContract, ModelDependency, DecisionLimits) -> Result[DecisionContract, DecisionIssue]
+
 pub fn read_mode_at(SourceViewModes, Int) -> SourceReadMode?
 
 pub fn read_mode_bounded(SourceReadMode) -> Bool
@@ -510,6 +542,8 @@ pub fn read_mode_view_at(SourceReadModes, Int) -> SourceViewModes?
 pub fn read_model_dependency(ModelDependencyKind, Bytes, String, Limits, Int) -> Result[ModelDependency, ModelTaskIssue]
 
 pub fn read_model_execution_contract(ModelTaskContract, Bytes, String, Limits, Int) -> Result[ModelExecutionContract, ModelTaskIssue]
+
+pub fn read_model_response_profile(Bytes, String, Limits, Int) -> Result[ModelResponseProfile, ModelTaskIssue]
 
 pub fn read_relation_schema_fields(@decode_core.Cursor, Int, Int, Int, Int) -> Result[(@relation_schema.Schema, Int), CarrierSchemaIssue]
 
@@ -552,6 +586,8 @@ pub fn selected_calendar_selection(SelectedCalendarProfile) -> CalendarSelection
 pub fn selected_text_rank_profile(SelectedTextRankProfile) -> @text_rank_profile.Profile
 
 pub fn selected_text_rank_selection(SelectedTextRankProfile) -> TextRankSelection
+
+pub fn single_attempt_model_decision(SingleAttemptModelDependencies) -> DecisionContract?
 
 pub fn single_attempt_model_dependencies_match(SingleAttemptModelDependencies, ModelExecutionContract) -> Bool
 
@@ -644,6 +680,8 @@ pub fn text_time_policy(TextTime) -> @text_time_policy.Policy
 pub fn text_time_usage(TextTime) -> (Int, Int)
 
 pub fn usage(WireEnvironment) -> (Int, Int, Int)
+
+pub fn validate_decision_answers(DecisionContract, @decode_core.Cursor, DecisionProbabilityProfile, Int) -> Result[Int, DecisionIssue]
 
 pub fn value_contract_policies(ProtocolValueContracts) -> SourceDataPolicies
 
@@ -859,6 +897,37 @@ pub(all) struct DataPolicyLimits {
   max_work : Int
   max_policies : Int
 }
+
+type DecisionContract
+
+pub(all) struct DecisionIssue {
+  kind : DecisionIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum DecisionIssueKind {
+  InvalidLimits
+  WorkLimit
+  UnsupportedTask
+  InvalidPrompt
+  InputField
+  OutputContract
+  InvalidAnswer
+  Precision
+  Distribution
+  ChoiceMaximum
+  ScoreConsistency
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DecisionLimits {
+  max_questions : Int
+  max_options : Int
+  max_levels : Int
+  max_name_bytes : Int
+  max_work : Int
+}
+
+type DecisionProbabilityProfile
 
 pub(all) enum ExpressionContractBody {
   ExpressionRoot
@@ -1120,6 +1189,49 @@ pub(all) enum ModelMediaRoleIssue {
   MediaTypeMismatch
 } derive(Eq, @debug.Debug)
 
+type ModelResponseProfile
+
+pub(all) struct ModelResponseProfileInstallation {
+  builder_id : String
+  builder_revision : String
+  codec_id : String
+  codec_revision : String
+  build_artifact_cid : String
+  sdk : ModelResponseProfileSDK?
+  endpoint : String
+  http_method : String
+  streaming : Bool
+  validator_id : String
+  validator_revision : String
+  validator_artifact_cid : String
+  completion_basis : String
+}
+
+pub(all) struct ModelResponseProfileLimits {
+  request_bytes : Int
+  response_bytes : Int
+  chunk_bytes : Int
+  chunks : Int
+  header_bytes : Int
+  metadata_bytes : Int
+  metadata_nodes : Int
+  metadata_depth : Int
+  parse_nodes : Int
+  parse_depth : Int
+  parse_work : Int
+  adapter_holding_bytes : Int
+  adapter_workspace_bytes : Int
+  active_slots : Int
+  unsettled_slots : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelResponseProfileSDK {
+  package_name : String
+  version : String
+  interface : String
+  lock_artifact_cid : String
+} derive(Eq, @debug.Debug)
+
 type ModelTaskContract
 
 pub(all) struct ModelTaskIssue {
@@ -1141,6 +1253,12 @@ pub(all) enum ModelTaskIssueKind {
   DuplicateSelector(String)
   UnknownSelector(String)
   ReferenceMismatch
+  InvalidDecision(DecisionIssueKind)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ModelTaskKind {
+  StructuredGenerate
+  Decision
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ModelTaskLimits {
@@ -1218,6 +1336,7 @@ pub struct SingleAttemptModelDependencies {
   retry : ModelDependency
   backoff : ModelDependency
   media : Array[ModelDependency]
+  decision : DecisionContract?
 }
 
 pub(all) enum SourceBatchRole {

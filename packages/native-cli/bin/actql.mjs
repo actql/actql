@@ -7,6 +7,7 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {constants} from 'node:os';
+import {installedLocalRuntimeEnvironment} from '../lib/local-runtime.mjs';
 
 export function platformKey({platform, arch, glibc}) {
   if (platform === 'darwin' && arch === 'arm64') return 'darwin-arm64';
@@ -55,11 +56,20 @@ export function launch(args) {
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024 * 1024 || !(stat.mode & 0o111)) {
     throw Object.assign(Error('Native executable is missing, non-regular or not executable.'), {exitCode: 65});
   }
-  admitInstalledBinary({key, expected, metadata: JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8')),
-    binary: readFileSync(executable), glibc,
-    macOS: process.platform === 'darwin' ? spawnSync('/usr/bin/sw_vers', ['-productVersion'], {encoding: 'utf8'}).stdout?.trim() : undefined});
-  const child = spawnSync(executable, args, {stdio: 'inherit'});
-  if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Check the documented shared-library requirements.`), {exitCode: 69});
+  const metadata = JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8'));
+  const macOS = process.platform === 'darwin' ? spawnSync('/usr/bin/sw_vers', ['-productVersion'], {encoding: 'utf8'}).stdout?.trim() : undefined;
+  admitInstalledBinary({key, expected, metadata,
+    binary: readFileSync(executable), glibc, macOS});
+  const environment = {...process.env};
+  delete environment.ACTQL_NATIVE_LOCAL_RUNTIME;
+  let selectedEnvironment = environment;
+  if (metadata.localRuntime !== undefined || expected.localRuntimeSha256 !== undefined) {
+    selectedEnvironment = installedLocalRuntimeEnvironment({root: installed,
+      expected: {...expected, platform: key}, metadata: metadata.localRuntime,
+      platformFacts: {macOS, glibc}, environment});
+  }
+  const child = spawnSync(executable, args, {stdio: 'inherit', env: selectedEnvironment});
+  if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Reinstall the fixed package cohort and verify the supported platform.`), {exitCode: 69});
   return child.status ?? 128 + (constants.signals[child.signal] ?? 1);
 }
 

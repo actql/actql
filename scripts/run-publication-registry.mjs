@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
+import {modelOriginalStorageBindingSchema} from './model-original-storage-binding-contract.mjs';
 
 const output = 'spec/contracts/actql-run-publication.json';
 const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
@@ -431,10 +432,75 @@ export function publicationSchemas() {
       public_index_entry_cid: clone(cid),
     },
   );
+  // Private Model custody is neither a Result nor Provider egress retention.
+  // These bodies describe an original Host selection; they grant no authority.
+  schemas.model_raw_capture_policy = schema(
+    'actql-model-raw-capture-policy', 'actql-model-raw-capture-policy/0.1',
+    ['purpose', 'run_definition_cid', 'scope_cid', 'model_task_cid',
+      'response_profile_cid', 'store_authority_cid', 'effective_data_policy_cid',
+      'retention_contract_cid', 'metadata_retention_policy_cid',
+      'clock_contract_cid', 'selected_at', 'available_until', 'delete_by',
+      'extension_ceiling_at', 'metadata_delete_by', 'self_cid'],
+    {
+      purpose: {const: 'model_raw_capture'},
+      ...Object.fromEntries(['run_definition_cid', 'scope_cid', 'model_task_cid',
+        'response_profile_cid', 'store_authority_cid', 'effective_data_policy_cid',
+        'retention_contract_cid', 'metadata_retention_policy_cid',
+        'clock_contract_cid', 'self_cid'].map(name => [name, clone(cid)])),
+      ...Object.fromEntries(['selected_at', 'available_until', 'delete_by',
+        'extension_ceiling_at', 'metadata_delete_by']
+        .map(name => [name, clone(timestamp)])),
+    },
+  );
+  schemas.model_raw_response = schema(
+    'actql-model-raw-response', 'actql-model-raw-response/0.1',
+    ['run_definition_cid', 'scope_cid', 'slot_cid', 'attempt_cid', 'attempt',
+      'phase', 'response_profile_cid', 'store_authority_cid',
+      'effective_data_policy_cid', 'raw_capture_policy_cid', 'content_cid',
+      'byte_count', 'http_status', 'transport_eof', 'observed_at', 'self_cid'],
+    {
+      ...Object.fromEntries(['run_definition_cid', 'scope_cid', 'slot_cid',
+        'attempt_cid', 'response_profile_cid', 'store_authority_cid',
+        'effective_data_policy_cid', 'raw_capture_policy_cid', 'content_cid',
+        'self_cid'].map(name => [name, clone(cid)])),
+      attempt: {const: 1}, phase: {const: 'entered'},
+      byte_count: {type: 'integer', minimum: 0, maximum: 2147483647},
+      http_status: {type: 'integer', minimum: 100, maximum: 599},
+      transport_eof: {type: 'boolean'}, observed_at: clone(timestamp),
+    },
+  );
+  schemas.model_original_storage_binding = modelOriginalStorageBindingSchema();
   return schemas;
 }
 
 export const referenceRoles = {
+  model_original_storage_binding: {
+    store_contract_cid: 'external:selected-private-store-contract',
+    store_authority_cid: 'external:store-authority',
+    key_generation_cid: 'external:installation-key-generation',
+  },
+  model_raw_capture_policy: {
+    run_definition_cid: 'external:run-definition',
+    scope_cid: 'external:model-invocation-scope',
+    model_task_cid: 'external:model-task',
+    response_profile_cid: 'external:model-response-profile',
+    store_authority_cid: 'external:store-authority',
+    effective_data_policy_cid: 'external:data-policy',
+    retention_contract_cid: 'external:retention-contract',
+    metadata_retention_policy_cid: 'external:metadata-retention-policy',
+    clock_contract_cid: 'external:clock-contract',
+  },
+  model_raw_response: {
+    run_definition_cid: 'external:run-definition',
+    scope_cid: 'external:model-invocation-scope',
+    slot_cid: 'external:model-call-slot',
+    attempt_cid: 'external:model-call-attempt',
+    response_profile_cid: 'external:model-response-profile',
+    store_authority_cid: 'external:store-authority',
+    effective_data_policy_cid: 'external:data-policy',
+    raw_capture_policy_cid: 'model_raw_capture_policy',
+    content_cid: 'external:exact-byte-object',
+  },
   compiled_plan: {
     executable_plan_cid: 'external:executable-plan',
     program_definition_cid: 'external:program-definition',
@@ -535,6 +601,7 @@ const authorizationSources = new Set([
 ]);
 const retentionSources = new Set([
   'result_retention_policy',
+  'model_raw_capture_policy',
   'durable_result_binding',
 ]);
 

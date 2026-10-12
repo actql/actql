@@ -17,6 +17,8 @@ const profiles = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-production-profile-schemas.json'), 'utf8'));
 const control = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-interactive-run-control.json'), 'utf8'));
+const publication = JSON.parse(readFileSync(join(root,
+  'spec/contracts/actql-run-publication.json'), 'utf8'));
 const selected = Object.freeze({
   result_plan: Object.freeze({
     schema: 'result_plan',
@@ -65,11 +67,11 @@ const selected = Object.freeze({
     identity: 'authoring_context_cid',
   }),
   model_invocation_evidence: Object.freeze({
-    schema: 'model_invocation_evidence',
+    schema: 'model_invocation_evidence_compatible',
     identity: 'model_invocation_evidence_cid',
   }),
   model_capture_bundle: Object.freeze({
-    schema: 'model_capture_bundle',
+    schema: 'model_capture_bundle_compatible',
     identity: 'bundle_cid',
   }),
   model_slot_capture: Object.freeze({
@@ -170,6 +172,7 @@ function patternTag(schema) {
     case '^[^\\u0000-\\u001f\\u007f]+$': return 9;
     case '^ACTQL_E_[A-Z0-9_]+$': return 10;
     case '^[A-Z]{3}$(?![\\s\\S])': return 13;
+    case '^(0|-?[1-9][0-9]*)$(?![\\s\\S])': return 14;
     default:
       throw new Error(`Unsupported publication schema pattern: ${schema.pattern}`);
   }
@@ -183,7 +186,7 @@ const supportedKeywords = new Set([
   'anyOf', 'not', 'if', 'then', 'else',
   'maximum', 'properties', 'required', 'additionalProperties',
   'minProperties', 'maxProperties', 'maxLength', 'propertyNames', 'items',
-  'minItems', 'maxItems', 'uniqueItems',
+  'minItems', 'maxItems', 'uniqueItems', 'prefixItems',
 ]);
 const annotationKeywords = new Set([
   '$schema', '$id', 'title', 'description', '$comment', 'examples',
@@ -419,6 +422,19 @@ function emitSchema(schema, assumedType) {
     return nodes.length - 1;
   }
   if (schema.type === 'array') {
+    if (schema.prefixItems !== undefined) {
+      requireKeywords(schema, 'tuple', [
+        'type', 'prefixItems', 'items', 'minItems', 'maxItems',
+      ]);
+      if (!Array.isArray(schema.prefixItems) || schema.items !== false ||
+          schema.minItems !== schema.prefixItems.length ||
+          schema.maxItems !== schema.prefixItems.length) {
+        throw new Error('Unsupported tuple schema: exact closed positional shape required');
+      }
+      const items = schema.prefixItems.map(item => emitSchema(item));
+      nodes.push(`protocol_tuple_rule([${items.join(', ')}])`);
+      return nodes.length - 1;
+    }
     requireKeywords(schema, 'array', [
       'type', 'items', 'minItems', 'maxItems', 'uniqueItems',
     ]);
@@ -486,17 +502,26 @@ function omitRequiredProperty(schema, field) {
   delete schema.properties[field];
 }
 
-for (const [name, selection] of Object.entries(selected)) {
+function registerArtifactSchema(name, selection) {
   const complete = structuredClone(
-    selection.registry === 'stage' ? stage.schemas[selection.schema]
-      : selection.registry === 'profiles' ? profiles.schemas[selection.schema]
+    selection.registry === 'publication' ? publication.schemas[selection.schema]
+      : selection.registry === 'stage' ? stage.schemas[selection.schema]
+        : selection.registry === 'profiles' ? profiles.schemas[selection.schema]
       : document.artifact_schemas[selection.schema],
   );
   if (complete === undefined) {
     throw new Error(`Missing publication schema: ${selection.schema}`);
   }
   const body = structuredClone(complete);
-  omitRequiredProperty(body, selection.identity);
+  if (['model_invocation_evidence', 'model_capture_bundle'].includes(name)) {
+    // Both exact registered versions exclude only their own identity field.
+    // Unknown versions and mixed embedded captures match neither branch.
+    for (const version of body.oneOf) {
+      omitRequiredProperty(version, selection.identity);
+    }
+  } else {
+    omitRequiredProperty(body, selection.identity);
+  }
   if (name === 'effect_preview') {
     // The generated body descriptor is the semantic CID preimage, not the
     // transported Preview minus only its self field.
@@ -508,6 +533,10 @@ for (const [name, selection] of Object.entries(selected)) {
   }
   roots.set(`${name}:false`, emitSchema(body));
   roots.set(`${name}:true`, emitSchema(complete));
+}
+
+for (const [name, selection] of Object.entries(selected)) {
+  registerArtifactSchema(name, selection);
 }
 
 // EffectOutcome is a value contract, not a self-addressed artifact. Reuse
@@ -524,12 +553,47 @@ for (const [name, schema] of Object.entries(control.schemas)) {
   }
 }
 
+// Append the new descriptor without renumbering historical artifact/control
+// rules. This is the same generator/validator, not another registry or Owner.
+registerArtifactSchema('model_response_profile', {
+  schema: 'model_response_profile', identity: 'self_cid',
+});
+for (const name of ['model_raw_capture_policy', 'model_raw_response',
+  'model_original_storage_binding']) {
+  registerArtifactSchema(name, {
+    schema: name, identity: 'self_cid', registry: 'publication',
+  });
+}
+
+// Append without renumbering historical descriptors. Byte-addressed original
+// resource evidence has no self field or configuration-CID exclusion path.
+if (document.artifact_schemas.model_original_resource_state !== undefined) {
+  roots.set('model_original_resource_state:true',
+    emitSchema(document.artifact_schemas.model_original_resource_state));
+}
+
+for (const name of ['model_journal_entry', 'model_journal_settlement']) {
+  registerArtifactSchema(name, {schema: name, identity: 'self_cid'});
+}
+
+// Keep compiler text segments finite without concatenating temporary rule
+// arrays. Each helper borrows the same destination. Capacity uses the pinned
+// target's existing constructor semantics (a hint only on JS), not a new
+// physical memory guarantee or a numerical Model profile.
+const nodeChunks = [];
+for (let offset = 0; offset < nodes.length; offset += 1000) {
+  nodeChunks.push(nodes.slice(offset, offset + 1000));
+}
 let generated = `// Generated by scripts/run-publication-protocol.mjs.\n` +
   `// Product validation is implemented by protocol_schema.mbt.\n\n` +
   `///|\nfn generated_protocol_schema_nodes() -> ` +
-  `Array[ProtocolSchemaRule] {\n  [\n` +
-  nodes.map(node => `    ${node},\n`).join('') +
-  `  ]\n}\n\n` +
+  `Array[ProtocolSchemaRule] {\n` +
+  `  let nodes : Array[ProtocolSchemaRule] = Array(capacity=${nodes.length})\n` +
+  nodeChunks.map((_, i) => `  generated_protocol_schema_nodes_${i}(nodes)\n`).join('') +
+  `  nodes\n}\n\n` +
+  nodeChunks.map((chunk, i) => `///|\nfn generated_protocol_schema_nodes_${i}(` +
+    `nodes : Array[ProtocolSchemaRule]) -> Unit {\n` +
+    chunk.map(node => `  nodes.push(${node})\n`).join('') + `}\n\n`).join('') +
   `///|\nfn generated_protocol_schema_root(` +
   `name : String, complete : Bool) -> Int? {\n` +
   `  match (name, complete) {\n` +
@@ -562,5 +626,6 @@ if (process.argv.includes('--write')) writeFileSync(output, generated);
 else if (readFileSync(output, 'utf8') !== generated) {
   throw new Error(`Run publication protocol descriptors are stale: ${output}`);
 }
-console.log(`${Object.keys(selected).length + 1} Run and Effect schemas and ` +
+// EffectOutcome plus the append-only response profile are outside selected.
+console.log(`${Object.keys(selected).length + 2} Run and Effect schemas and ` +
   `${Object.keys(control.schemas).length} interactive schemas verified.`);

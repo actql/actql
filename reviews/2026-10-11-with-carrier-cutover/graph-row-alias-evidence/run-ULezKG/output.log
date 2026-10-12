@@ -1,0 +1,10 @@
+Finished. moon: ran 3 tasks, now up to date
+Error: [4018]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_graph_range_alias_test.mbt:27:11 ]
+    │
+ 27 │           @debug.to_string(issue),
+    │           ────────┬───────  
+    │                   ╰───────── Type @actql/actql/query_program.Issue does not implement trait @moonbitlang/core/debug.Debug: no `impl` is defined
+────╯
+["moon","test","--target","js","src/query_syntax/with_graph_alias_test.mbt","src/query_program/with_graph_range_alias_test.mbt"]: process failed (1); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yWE7nt

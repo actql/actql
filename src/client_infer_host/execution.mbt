@@ -32,7 +32,7 @@ pub(all) enum Issue {
   Capacity(@publication_host.ClientInferHostCapacityIssue)
   IdentityExport(@relation.CompletedExportIssue)
   CallScope(@publication_host.ClientInferCallScopeIssue)
-  Resources(@resources.LedgerIssue)
+  OriginalCapacity(@publication_host.ClientModelInputCapacityIssue)
 }
 
 ///|
@@ -57,6 +57,7 @@ enum Source {
 ///|
 pub enum Poll {
   Continue(work~ : Int64)
+  AwaitIo(work~ : Int64)
   Waiting(work~ : Int64)
   Settling(Int, work~ : Int64)
   Complete(@relation.CompletedOutput, work~ : Int64)
@@ -92,11 +93,11 @@ pub struct Execution {
   mut advancing : Bool
   mut reclaimed : Bool
   mut local_component_bound : Bool
-  mut root_reservation : (@resources.Ledger, @resources.Reservation)?
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
+  mut original_preparation : OriginalModelPreparation?
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
   mut durable_calls : Bool
   mut model_send_mask : Array[Bool]?
@@ -256,6 +257,105 @@ pub fn start_generated_inputs(
     active.serialized_generation = Some(generation)
     active
   })
+}
+
+///|
+// Enter the original one-shot consumer before the existing generated input
+// constructor. No fallible post-start bind or independent root reserve exists.
+pub fn start_original_generated(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  provider : @model.ModelProvider,
+  limits : Limits,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_serialization_generation_infer_occurrence(
+      generation, compiled, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_infer_occurrence_matches(occurrence, prepared) &&
+    @publication_host.client_serialization_generation_output_for(
+      generation, compiled,
+    )
+    is Some(_) else {
+    return Err(CallScope(ForeignInput))
+  }
+  match
+    enter_original_model_preparation(
+      occurrence, compiled, definition, plan, consumer, read_retained_bytes, read_execution_bytes,
+      model_retained_bytes, model_execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The checked original producer/port and bounded serialization segment
+  // still belong to start_generated; do not duplicate their input execution.
+  start_generated(prepared, compiled, generation, plan, provider, limits).map(active => {
+    retain_original_model_preparation(
+      active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+    )
+    active
+  })
+}
+
+///|
+// The Local producer has already completed this exact checked edge. Model
+// input allocation still requires its own original consumer entry first.
+pub fn start_original_generated_inputs(
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  limits : Limits,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_serialization_generation_infer_occurrence(
+      generation, compiled, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_serialization_generation_output_for(
+      generation, compiled,
+    )
+    is Some(_) &&
+    inputs.length() == 1 &&
+    inputs[0] is @local.RelationInput(read) else {
+    return Err(CallScope(ForeignInput))
+  }
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  guard @relation.infer_completed_producer_input(owner, step, read) is Some(_) else {
+    return Err(CallScope(ForeignInput))
+  }
+  match
+    enter_original_model_preparation(
+      occurrence, compiled, definition, plan, consumer, read_retained_bytes, read_execution_bytes,
+      model_retained_bytes, model_execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  start_generated_inputs(compiled, generation, plan, inputs, provider, limits).map(active => {
+      retain_original_model_preparation(
+        active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+      )
+      active
+    },
+  )
 }
 
 ///|
@@ -552,6 +652,11 @@ fn start_occurrence(
     @resources.Ledger,
   )? = None,
 ) -> Result[Execution, Issue] {
+  // A caller-supplied Ledger/root tuple is not the original read/consumer.
+  // The checked generated branch enters that same Owner before construction.
+  if root is Some(_) {
+    return Err(OriginalCapacity(@publication_host.ForeignInput))
+  }
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
   )
@@ -605,71 +710,19 @@ fn start_occurrence(
   // a large caller envelope cannot silently widen the selected contract.
   // Replay consumes existing observations, not another physical allowance.
   let limits = if source is Physical(_) && plan is Some(graph) {
-    let execution = @publication_host.client_infer_plan_graph_execution_contract(
-      graph,
-    )
-    let ledger = limits.model.ledger
     {
       ..limits,
       model: {
         ..limits.model,
-        ledger: {
-          ..ledger,
-          attempts: Int64::min(
-            ledger.attempts.to_int64(),
-            @environment.model_execution_ceiling(
-              execution,
-              @environment.TotalAttempts,
-            ),
-          ).to_int(),
-          transfer_bytes: Int64::min(
-            ledger.transfer_bytes,
-            @environment.model_execution_ceiling(
-              execution,
-              @environment.TotalWireBytes,
-            ),
-          ),
-        },
+        ledger: original_model_ledger_limits(graph, limits.model),
       },
     }
   } else {
     limits
   }
-  // Root capacity must precede input-driver construction, not only the first
-  // poll. The reservation is private until the same Execution takes custody.
-  let root_reservation = match root {
-    None => None
-    Some((prefix, suffix, ledger)) => {
-      guard keyed_root_capacity(occurrence, prefix, suffix, limits)
-        is Some(capacity) else {
-        return Err(InvalidAdvance)
-      }
-      match
-        @resources.reserve_attempt(
-          ledger,
-          0L,
-          @relation.execution_capacity_retained_bytes(capacity),
-          @relation.execution_capacity_execution_bytes(capacity),
-        ) {
-        Ok(reservation) => Some((ledger, reservation))
-        Err(issue) => return Err(Resources(issue))
-      }
-    }
-  }
-  let started_input = start_input(limits)
-  let input = match started_input {
+  let input = match start_input(limits) {
     Ok(value) => value
-    Err(issue) => {
-      // No input handle was returned. This private reservation has never
-      // escaped or been charged; settle it without refunding the attempt.
-      if root_reservation is Some((ledger, reservation)) {
-        match @resources.settle_reservation(ledger, reservation) {
-          Ok(_) => ()
-          Err(settlement) => return Err(Resources(settlement))
-        }
-      }
-      return Err(Input(issue))
-    }
+    Err(issue) => return Err(Input(issue))
   }
   Ok({
     prepared,
@@ -702,6 +755,7 @@ fn start_occurrence(
     child_work: 0L,
     output_uses: 0,
     run_binding: None,
+    original_preparation: None,
     dispatch_admission: None,
     durable_calls: false,
     model_send_mask: None,
@@ -710,7 +764,6 @@ fn start_occurrence(
     egress_admission: None,
     final_quantity_usage: None,
     local_component_bound: false,
-    root_reservation,
   })
 }
 
@@ -810,7 +863,7 @@ pub fn start_keyed(
 /// exclusive. The existing execution retains the binding; no adapter flag can
 /// grant a second driver authority over a component already bound to Local.
 pub fn advance_root(active : Execution, quantum : Int) -> Result[Poll, Issue] {
-  if active.local_component_bound || active.root_reservation is None {
+  if active.local_component_bound {
     return Err(InvalidAdvance)
   }
   advance(active, quantum)
@@ -841,7 +894,6 @@ pub fn bind_compute_suffix(
     active.phase is Input &&
     active.work == 0L &&
     active.suffix_sequence is None &&
-    active.root_reservation is None &&
     physical_equal(
       @publication_host.client_infer_occurrence_preparation(active.occurrence),
       @relation.generated_sequence_owner(sequence),
@@ -888,19 +940,72 @@ fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
   let started = match active.source {
     Physical(provider) =>
-      @model.start_model_execution(
-        rows,
-        provider,
-        active.fixed_request_cid,
-        active.limits.model,
-        call_scope=active.call_scope,
-        dispatch_admission=active.dispatch_admission,
-        durable_calls=active.durable_calls,
-        send_mask=active.model_send_mask,
-        quantity_capacity=active.quantity_capacity,
-        physical_preflight=active.physical_preflight,
-        egress_admission=active.egress_admission,
-      )
+      if active.original_preparation is Some(original) {
+        guard active.run_binding is Some(bound) &&
+          active.plan is Some(plan) &&
+          active.call_scope is Some(scope) else {
+          return fail(active, InvalidAdvance)
+        }
+        // The seal is retained before attempting startup. A refused start must
+        // not lose its unconsumed original capacity or input cleanup custody.
+        let issued = match original.read {
+          Bound(read) =>
+            @model.prepare_original_model_startup(
+              read,
+              bound.compiled,
+              bound.definition,
+              plan,
+              scope,
+              rows,
+              original.retained_bytes,
+              original.execution_bytes,
+            )
+          Claimed(consumer) =>
+            @model.prepare_original_model_consumer_startup(
+              consumer,
+              bound.compiled,
+              bound.definition,
+              plan,
+              scope,
+              rows,
+              original.retained_bytes,
+              original.execution_bytes,
+            )
+        }
+        let startup = match issued {
+          Ok(value) => value
+          Err(issue) => return fail(active, OriginalCapacity(issue))
+        }
+        original.startup = Some(startup)
+        @model.start_original_model_execution(
+          startup,
+          rows,
+          provider,
+          active.fixed_request_cid,
+          active.limits.model,
+          scope,
+          dispatch_admission=active.dispatch_admission,
+          durable_calls=active.durable_calls,
+          send_mask=active.model_send_mask,
+          quantity_capacity=active.quantity_capacity,
+          physical_preflight=active.physical_preflight,
+          egress_admission=active.egress_admission,
+        )
+      } else {
+        @model.start_model_execution(
+          rows,
+          provider,
+          active.fixed_request_cid,
+          active.limits.model,
+          call_scope=active.call_scope,
+          dispatch_admission=active.dispatch_admission,
+          durable_calls=active.durable_calls,
+          send_mask=active.model_send_mask,
+          quantity_capacity=active.quantity_capacity,
+          physical_preflight=active.physical_preflight,
+          egress_admission=active.egress_admission,
+        )
+      }
     Replay(capture) => {
       guard active.call_scope is Some(scope) else {
         return fail(active, Model(@model.OutputIdentity))
@@ -1084,6 +1189,12 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             return fail(active, InvalidAdvance)
           }
           Waiting(work=active.work)
+        }
+        Ok(@model.AwaitIo(_, work)) => {
+          if !account(active, work) {
+            return fail(active, InvalidAdvance)
+          }
+          AwaitIo(work=active.work)
         }
         Ok(@model.Settling(slot, _, work)) => {
           if !account(active, work) {
@@ -1279,6 +1390,10 @@ pub fn cancel(active : Execution) -> Bool {
     return false
   }
   active.cancelled = true
+  if active.original_preparation is Some(original) &&
+    original.read is Claimed(consumer) {
+    @publication_host.stop_client_model_read_consumer(consumer)
+  }
   match active.phase {
     Input => @input.cancel_client_infer_input(active.input) |> ignore
     Identity =>
@@ -1331,6 +1446,7 @@ pub fn execution_stopped(active : Execution) -> Bool {
 pub fn poll_kind(poll : Poll) -> String {
   match poll {
     Continue(_) => "continue"
+    AwaitIo(_) => "await_io"
     Waiting(_) => "waiting"
     Settling(_, ..) => "settling"
     Complete(_, ..) => "complete"
@@ -1606,10 +1722,12 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
   }
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
-      if active.root_reservation is Some((ledger, reservation)) {
-        match @resources.settle_reservation(ledger, reservation) {
-          Ok(_) => active.root_reservation = None
-          Err(issue) => return Err(Resources(issue))
+      if active.original_preparation is Some(original) &&
+        original.startup is Some(startup) {
+        match @model.cleanup_original_model_startup(startup) {
+          Ok(true) => ()
+          Ok(false) => return Ok(false)
+          Err(issue) => return Err(Model(issue))
         }
       }
       if active.source is Replay(capture) {
@@ -1628,6 +1746,14 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       // Reclamation of the generated bytes remains with their original owner.
       active.serialized_output = None
       active.serialized_generation = None
+      // Core retirement does not prove original FD/Store cleanup. The original
+      // read owner retains this stopped ticket until its own physical cleanup
+      // settles the read and severs both nominal back-references.
+      if active.original_preparation is Some(original) &&
+        original.read is Claimed(consumer) {
+        @publication_host.stop_client_model_read_consumer(consumer)
+      }
+      active.original_preparation = None
       active.reclaimed = true
       Ok(true)
     }

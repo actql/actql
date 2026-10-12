@@ -1,0 +1,25 @@
+{
+  "name": "@actql/explorer",
+  "version": "0.0.0-development",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "dependencies": {
+    "@actql/client-wire": "0.0.0-development",
+    "@actql/explorer-ui": "0.0.0-development",
+    "@actql/node": "0.0.0-development",
+    "@actql/sdk": "0.0.0-development",
+    "hono": "4.13.13",
+    "@hono/node-server": "2.1.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "bin": {"actql-explorer": "./cli.mjs"},
+  "exports": {
+    ".": {"types": "./gateway.d.ts", "default": "./gateway.mjs"},
+    "./browser-source": {"types": "./browser-source.d.ts", "default": "./browser-source.mjs"},
+    "./launcher": {"types": "./launcher.d.ts", "default": "./launcher.mjs"}
+  },
+  "files": ["gateway.mjs", "gateway.d.ts", "browser-source.mjs", "browser-source.d.ts", "launcher.mjs", "launcher.d.ts", "assets.mjs", "cli.mjs", "dist", "README.md"],
+  "scripts": {"build": "npm run build --prefix ../explorer-ui && vite build --config vite.config.mts && node build-assets.mjs", "prepack": "npm run build"}
+}

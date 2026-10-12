@@ -32,7 +32,7 @@ test "LIMIT Parameters preserve count offset and omitted offset" {
 
 ///|
 test "LIMIT Parameters refuse row expressions and partial parameter operands" {
-  for operand in ["@p + 1", "id", "NULL", "'1'", "(@p)", "-@p", "@p.id"] {
+  for operand in ["@p + 1", "id", "NULL", "'1'", "-@p", "@p.id"] {
     for clause in ["LIMIT " + operand, "LIMIT 1 OFFSET " + operand] {
       assert_true(
         parse_query("SELECT id FROM orders " + clause, query_limits())

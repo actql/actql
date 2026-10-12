@@ -6,6 +6,8 @@ pub(all) enum NativeRunPublicationIssue {
   InvalidConfiguration
   AccessDenied
   CommitConflict
+  // The physical fence did not confirm completion. This is not resend evidence.
+  CommitFenceUnavailable
   Store(@store.NativePublicationStoreIssue)
   Issuance(@publication.PublicationCommitIssuanceIssue)
   Commit(@publication.PublicationCommitIssue)
@@ -173,6 +175,10 @@ pub(all) struct NativeRunPublicationAuthorization {
 ///|
 struct NativeRunPublicationAuthority {
   authorize : (NativeRunPublicationAuthorization) -> Bool
+  request_authorize : ((
+    @publication.PublicationRequestContext,
+    NativeRunPublicationAuthorization,
+  ) -> Bool)?
 }
 
 ///|
@@ -185,13 +191,29 @@ struct NativeRunPublicationService {
   max_wire_bytes : Int
   max_nodes : Int
   max_depth : Int
+  commit_guard : (
+    () -> Result[NativeRunPublicationResult, NativeRunPublicationIssue],
+  ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 }
 
 ///|
 pub fn install_native_run_publication_authority(
   authorize : (NativeRunPublicationAuthorization) -> Bool,
 ) -> NativeRunPublicationAuthority {
-  { authorize, }
+  { authorize, request_authorize: None, }
+}
+
+///|
+/// The existing request Owner supplies this context from its opaque contract.
+/// It is not public caller metadata and does not introduce another wire shape.
+pub fn install_native_run_publication_context_authority(
+  authorize : (NativeRunPublicationAuthorization) -> Bool,
+  request_authorize : (
+    @publication.PublicationRequestContext,
+    NativeRunPublicationAuthorization,
+  ) -> Bool,
+) -> NativeRunPublicationAuthority {
+  { authorize, request_authorize: Some(request_authorize), }
 }
 
 ///|
@@ -201,11 +223,16 @@ pub fn install_native_run_publication_service(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  commit_guard? : (
+    () -> Result[NativeRunPublicationResult, NativeRunPublicationIssue],
+  ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] = work => {
+    work()
+  },
 ) -> Result[NativeRunPublicationService, NativeRunPublicationIssue] {
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     Err(InvalidConfiguration)
   } else {
-    Ok({ store, authority, max_wire_bytes, max_nodes, max_depth, })
+    Ok({ store, authority, max_wire_bytes, max_nodes, max_depth, commit_guard, })
   }
 }
 
@@ -585,26 +612,71 @@ fn authorize(
   stage : String,
   index : @publication.PublicationContract?,
 ) -> Result[Unit, NativeRunPublicationIssue] {
-  let index_cid = match index {
-    Some(value) => Some(@publication.publication_contract_identity(value))
-    None => None
+  authorize_native_publication_request(
+    service.authority,
+    intent,
+    run_definition,
+    request,
+    stage,
+    index,
+  )
+}
+
+///|
+fn authorize_native_publication_request(
+  authority : NativeRunPublicationAuthority,
+  intent : NativeRunPublicationIntent,
+  run_definition : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  stage : String,
+  index : @publication.PublicationContract?,
+) -> Result[Unit, NativeRunPublicationIssue] {
+  let context = match
+    @publication.project_publication_request_context(request) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidConfiguration)
   }
-  if (service.authority.authorize)({
-      stage,
-      namespace_id: intent.namespace_id,
-      authority_scope_cid: intent.authority_scope_cid,
-      run_definition_cid: @publication.publication_contract_identity(
-        run_definition,
-      ),
-      publication_request_cid: @publication.publication_contract_identity(
-        request,
-      ),
-      public_index_entry_cid: index_cid,
-    }) {
-    Ok(())
-  } else {
-    Err(AccessDenied)
+  if context.namespace_id != intent.namespace_id ||
+    context.authority_scope_cid != intent.authority_scope_cid ||
+    context.run_definition_cid !=
+    @publication.publication_contract_identity(run_definition) ||
+    context.publication_policy_cid != intent.publication_policy_cid ||
+    context.publication_target_cid != intent.publication_target_cid {
+    return Err(AccessDenied)
   }
+  let index_cid = match (stage, index) {
+    ("request", None) => None
+    ("commit" | "return_committed", Some(value)) => {
+      let projected = match @publication.project_public_index_read(value) {
+        Ok(value) => value
+        Err(issue) => return Err(Projection(issue))
+      }
+      if projected.namespace_id != context.namespace_id ||
+        projected.authority_scope_cid != context.authority_scope_cid ||
+        projected.run_definition_cid != context.run_definition_cid ||
+        projected.publication_request_cid != context.publication_request_cid {
+        return Err(AccessDenied)
+      }
+      Some(@publication.publication_contract_identity(value))
+    }
+    _ => return Err(InvalidConfiguration)
+  }
+  let facts : NativeRunPublicationAuthorization = {
+    stage,
+    namespace_id: context.namespace_id,
+    authority_scope_cid: context.authority_scope_cid,
+    run_definition_cid: context.run_definition_cid,
+    publication_request_cid: context.publication_request_cid,
+    public_index_entry_cid: index_cid,
+  }
+  if !(authority.authorize)(facts) {
+    return Err(AccessDenied)
+  }
+  match authority.request_authorize {
+    Some(callback) => if !callback(context, facts) { return Err(AccessDenied) }
+    None => ()
+  }
+  Ok(())
 }
 
 ///|
@@ -811,6 +883,14 @@ fn inspect_existing_commit(
   match existing {
     None => Ok(None)
     Some(index) => {
+      // This is a stored validator-admitted index, including a legitimate
+      // earlier attempt of this original request. Do not expose unvalidated
+      // retained references to the Host publication callback.
+      let validated = match
+        validate_existing_commit(service, evidence, request, index) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
       match
         authorize(
           service,
@@ -823,10 +903,7 @@ fn inspect_existing_commit(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match validate_existing_commit(service, evidence, request, index) {
-        Ok(value) => Ok(Some(value))
-        Err(issue) => Err(issue)
-      }
+      Ok(Some(validated))
     }
   }
 }
@@ -860,59 +937,61 @@ fn commit_new_effect_free_run_native(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match
-    authorize(
-      service,
-      intent,
+  (service.commit_guard)(() => {
+    match
+      authorize(
+        service,
+        intent,
+        evidence.run_definition,
+        request,
+        "commit",
+        Some(index),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let committed = service.store.commit_publication(
       evidence.run_definition,
+      evidence.invocation,
+      evidence.definitions,
+      evidence.artifacts,
+      evidence.derivations,
+      evidence.orderings,
+      evidence.retentions,
+      evidence.bindings,
+      evidence.binding_schema_wires,
+      evidence.manifest,
+      evidence.receipt,
+      evidence.captured_run,
       request,
-      "commit",
-      Some(index),
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  let committed = service.store.commit_publication(
-    evidence.run_definition,
-    evidence.invocation,
-    evidence.definitions,
-    evidence.artifacts,
-    evidence.derivations,
-    evidence.orderings,
-    evidence.retentions,
-    evidence.bindings,
-    evidence.binding_schema_wires,
-    evidence.manifest,
-    evidence.receipt,
-    evidence.captured_run,
-    request,
-    attempt,
-    index,
-    service.max_wire_bytes,
-    service.max_nodes,
-    service.max_depth,
-  )
-  match committed {
-    Ok(value) =>
-      Ok({
-        public_index_entry_cid: value.public_index_entry_cid,
-        publication_request_cid: @publication.publication_contract_identity(
-          request,
-        ),
-        publication_attempt_cid: @publication.publication_contract_identity(
-          attempt,
-        ),
-        committed: value.committed,
-        idempotent: value.idempotent,
-      })
-    Err(@store.PublicationCommitConflict) =>
-      match inspect_existing_commit(service, evidence, intent, request) {
-        Ok(Some(value)) => Ok(value)
-        Ok(None) => Err(CommitConflict)
-        Err(issue) => Err(issue)
-      }
-    Err(issue) => Err(Store(issue))
-  }
+      attempt,
+      index,
+      service.max_wire_bytes,
+      service.max_nodes,
+      service.max_depth,
+    )
+    match committed {
+      Ok(value) =>
+        Ok({
+          public_index_entry_cid: value.public_index_entry_cid,
+          publication_request_cid: @publication.publication_contract_identity(
+            request,
+          ),
+          publication_attempt_cid: @publication.publication_contract_identity(
+            attempt,
+          ),
+          committed: value.committed,
+          idempotent: value.idempotent,
+        })
+      Err(@store.PublicationCommitConflict) =>
+        match inspect_existing_commit(service, evidence, intent, request) {
+          Ok(Some(value)) => Ok(value)
+          Ok(None) => Err(CommitConflict)
+          Err(issue) => Err(issue)
+        }
+      Err(issue) => Err(Store(issue))
+    }
+  })
 }
 
 ///|

@@ -98,13 +98,19 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     if (!allowedFailure) assert.equal(result.status, 0, `Missing foundation Git history: git ${args.join(' ')}\n${result.stderr}`);
     return result;
   }
-  assert.equal(git(['rev-parse', '--is-shallow-repository']).stdout.toString().trim(), 'false',
+  // Read the invocation's shallow state and commit identity in one real Git
+  // process. Graft paths remain a separate read because paths may contain LF.
+  // This is transport batching, not a cached history or admission result.
+  const metadata = git(['rev-parse', '--is-shallow-repository', '--verify', 'HEAD^{commit}']);
+  const metadataLines = metadata.stdout.toString().trim().split('\n');
+  assert.equal(metadataLines[0], 'false',
     'Incomplete foundation Git history: fetch full history');
+  assert.equal(metadataLines.length, 2, 'Invalid foundation Git head metadata');
+  const head = metadataLines[1];
+  assert.match(head, sha);
   const grafts = git(['rev-parse', '--git-path', 'info/grafts']).stdout.toString().trim();
   assert(!existsSync(resolve(root, grafts)) || !readFileSync(resolve(root, grafts)).length, 'Grafted foundation Git history');
   assert(!git(['for-each-ref', '--format=%(refname)', 'refs/replace']).stdout.length, 'Replaced foundation Git history');
-  const head = git(['rev-parse', '--verify', 'HEAD^{commit}']).stdout.toString().trim();
-  assert.match(head, sha);
   // Walk the complete unsimplified ancestry once. These are Git-derived parent
   // facts, not receipt labels. Missing objects still fail before any declaration
   // is accepted; retain parent order and reject incomplete/ambiguous output.
@@ -349,6 +355,67 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     byId.set(declaration.id, declaration);
     declarations.push({ path, digest: hash(bytes(entry)), introductions: declarationIntroductions, ...declaration });
   }
+  // Preserve a rejected co-introduction as rejected provenance. Only a new,
+  // independently checked, strictly later receipt can supply its inputs.
+  const temporalRepairs = new Map(), checkedRepairRecords = new Map(), repairReplacements = new Set();
+  for (const [path, entry] of supplementsAt(head)) {
+    const raw = bytes(entry), repair = JSON.parse(raw);
+    if (repair.version !== 'actql-foundation-supplement-repair/0.1') continue;
+    assert(raw.equals(Buffer.from(`${JSON.stringify(repair, null, 2)}\n`)), 'Noncanonical foundation repair JSON');
+    keys(repair, ['version', 'id', 'target', 'rejectedIntroductions', 'replacement', 'reason'], 'foundation repair');
+    assert.match(repair.id, id, 'Invalid foundation repair ID');
+    assert.equal(path, `${supplementDirectory}/${repair.id}.json`, 'Ambiguous foundation repair filename');
+    for (const binding of [repair.target, repair.replacement]) {
+      keys(binding, ['id', 'digest'], 'foundation repair binding');
+      assert.match(binding.id, id, 'Invalid foundation repair binding ID');
+      assert.match(binding.digest, digest, 'Invalid foundation repair binding digest');
+    }
+    assert(typeof repair.reason === 'string' && repair.reason.trim(), 'Missing foundation repair rationale');
+    assert(!temporalRepairs.has(repair.target.id), 'Duplicate foundation temporal repair');
+    assert(!repairReplacements.has(repair.replacement.id), 'Duplicate foundation repair replacement');
+    const bound = binding => {
+      const boundPath = `${supplementDirectory}/${binding.id}.json`, boundEntry = supplementsAt(head).get(boundPath);
+      assert(boundEntry && hash(bytes(boundEntry)) === binding.digest, 'Missing or changed foundation repair binding');
+      const value = JSON.parse(bytes(boundEntry));
+      assert.equal(value.version, 'actql-foundation-resolution-supplement/0.1', 'Wrong-kind foundation repair binding');
+      assert.equal(value.id, binding.id, 'Ambiguous foundation repair binding');
+      return { value, introductions: sorted(introductions.get(boundPath).revisions) };
+    };
+    const original = bound(repair.target), replacement = bound(repair.replacement);
+    assert.notEqual(repair.target.id, repair.replacement.id, 'Self-replacing foundation repair');
+    assert.deepEqual(replacement.value.target, original.value.target, 'Changed foundation repair target');
+    assert.deepEqual(replacement.value.inputs, original.value.inputs, 'Changed foundation repair inputs');
+    assert(Array.isArray(original.value.inputs) && original.value.inputs.length
+      && original.value.inputs.every(input => byId.has(input)), 'Unknown foundation repair dependency');
+    const rejected = original.introductions.filter(introduction => {
+      let coIntroduced = false;
+      for (const input of original.value.inputs) {
+        const dependency = declarations.find(value => value.id === input);
+        if (dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction))) continue;
+        assert(dependency.introductions.includes(introduction), 'Foundation repair requires exact co-introduction');
+        coIntroduced = true;
+      }
+      return coIntroduced;
+    });
+    assert(rejected.length, 'Foundation repair requires a rejected co-introduction');
+    assert.deepEqual(repair.rejectedIntroductions, rejected.map(revision => ({revision, parents: parents(revision)})),
+      'Incorrect foundation repair rejected introductions');
+    for (const introduction of replacement.introductions) {
+      assert(original.introductions.every(prior => prior !== introduction && ancestor(prior, introduction)),
+        'Foundation repair replacement must follow every original introduction');
+    }
+    const introduced = sorted(introductions.get(path).revisions);
+    for (const introduction of introduced) {
+      assert(replacement.introductions.every(prior => prior !== introduction && ancestor(prior, introduction)),
+        'Foundation repair must follow every replacement introduction');
+    }
+    temporalRepairs.set(repair.target.id, repair);
+    repairReplacements.add(repair.replacement.id);
+    checkedRepairRecords.set(path, {path, digest: hash(raw), introductions: introduced, ...repair});
+  }
+  for (const target of temporalRepairs.keys()) {
+    assert(!repairReplacements.has(target), 'Chained foundation temporal repair');
+  }
   const supplements = [], supplementsByTarget = new Map(), completionsByTarget = new Map();
   const inputNormalizationsByTarget = new Map();
   // Originals remain immutable. A completion may only add separately checked
@@ -356,6 +423,10 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const effectiveChanges = declaration => [...declaration.changes,
     ...(completionsByTarget.get(declaration.id) ?? []).flatMap(record => record.changes)];
   for (const [path, entry] of supplementsAt(head)) {
+    if (checkedRepairRecords.has(path)) {
+      supplements.push(checkedRepairRecords.get(path));
+      continue;
+    }
     if (checkedCopyRecords.has(path)) {
       supplements.push(checkedCopyRecords.get(path));
       continue;
@@ -430,12 +501,19 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
         'Foundation supplement must follow its original declaration');
       if (!completion && !normalization && !equivalence) for (const input of inputNormalization ? supplement.removeInputs : supplement.inputs) {
         const dependency = declarations.find(value => value.id === input);
-        assert(dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
+        if (!dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction))) {
+          const repair = temporalRepairs.get(supplement.id);
+          assert(repair && dependency.introductions.includes(introduction)
+            && repair.rejectedIntroductions.some(value => value.revision === introduction),
           'Foundation supplement must follow its dependency declaration');
+        }
       }
     }
-    const record = { path, digest: hash(raw), introductions: introduced, ...supplement };
+    const repair = temporalRepairs.get(supplement.id);
+    const record = { path, digest: hash(raw), introductions: introduced, ...supplement,
+      ...(repair ? {disposition: 'repaired_co_introduction', temporalRepair: repair.id} : {}) };
     supplements.push(record);
+    if (repair) continue;
     if (inputNormalization) {
       inputNormalizationsByTarget.set(original.id, record);
       continue;
@@ -457,6 +535,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       const raw = supplements.find(record => record.id === member.id);
       assert(raw?.version === 'actql-foundation-resolution-supplement/0.1',
         'Unknown or wrong-kind foundation supplement equivalence member');
+      assert(!temporalRepairs.has(raw.id), 'Rejected foundation receipt cannot supply equivalence');
       assert.equal(member.digest, raw.digest, 'Changed foundation supplement equivalence member');
       assert.deepEqual(raw.target, equivalence.target,
         'Different foundation supplement equivalence targets');

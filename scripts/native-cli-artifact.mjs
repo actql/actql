@@ -2,11 +2,13 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {chmod, copyFile, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import {chmod, copyFile, mkdir, open, readFile, realpath, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
+import {prepareNativeLocalRuntime} from './native-cli-local-runtime.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -34,18 +36,51 @@ export function inspectNativeAbi(binary, platform, execute = execFileSync) {
     httpLibraryRequirements: 'Separately supplied libcurl and its transitive dependencies may require a newer glibc than the executable.'};
 }
 
-export async function buildNativeCliArtifact(destination) {
+export async function buildNativeCliArtifact(destination, {verbose = false, localRuntime} = {}) {
+  assert.equal(typeof verbose, 'boolean', 'verbose must be an explicit Boolean');
   const source = checkoutState(repository); assert(source.clean, 'Native artifact requires clean source HEAD');
   const pins = JSON.parse(await readFile(join(repository, 'toolchain.json'), 'utf8'));
   const moon = run('moon', ['version']).trim(), moonc = run('moonc', ['-v']).trim();
   assert(moon.includes(pins.moon)); assert(moonc.includes(pins.moonc));
   const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
   const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
-  run('moon', ['build', '--target', 'native', '--release', 'src/cmd/native_client']);
+  destination = resolve(destination);
+  let localMetadata;
+  if (localRuntime !== undefined) {
+    assert.equal(localRuntime.sourceSha, source.revision, 'Local runtime must belong to this exact source');
+    assert.equal(localRuntime.platform, platform, 'Local runtime must match the producer platform');
+    await mkdir(destination);
+    localMetadata = await prepareNativeLocalRuntime(destination, localRuntime);
+  }
+  const buildArgs = ['build', ...(verbose ? ['--verbose'] : []),
+    '--target', 'native', '--release', 'src/cmd/native_client'];
+  const startedAt = performance.now();
+  if (verbose) console.log(JSON.stringify({phase: 'native-cli-build-start',
+    sourceSha: source.revision, command: ['moon', ...buildArgs], timeoutMs: 300_000}));
+  try {
+    const output = run('moon', buildArgs);
+    if (verbose) {
+      process.stdout.write(output);
+      console.log(JSON.stringify({phase: 'native-cli-build-exited', code: 0,
+        elapsedMs: Math.round(performance.now() - startedAt)}));
+    }
+  } catch (error) {
+    if (verbose) {
+      // Retain the actual compiler's bounded output on failure. This neither
+      // retries compilation nor treats the old executable as a new artifact.
+      if (error.stdout) process.stdout.write(error.stdout);
+      if (error.stderr) process.stderr.write(error.stderr);
+      console.error(JSON.stringify({phase: 'native-cli-build-failed',
+        sourceSha: source.revision, elapsedMs: Math.round(performance.now() - startedAt),
+        code: error.code ?? null, status: error.status ?? null,
+        signal: error.signal ?? null}));
+    }
+    throw error;
+  }
   assert.deepEqual(checkoutState(repository), source);
   const built = join(repository, '_build/native/release/build/cmd/native_client/native_client.exe');
   const c = join(repository, '_build/native/release/build/cmd/native_client/native_client.c');
-  destination = resolve(destination); await mkdir(destination);
+  if (localMetadata === undefined) await mkdir(destination);
   const binary = join(destination, 'actql-native-client');
   await copyFile(built, binary); await chmod(binary, 0o755);
   const bytes = await readFile(binary);
@@ -79,14 +114,41 @@ export async function buildNativeCliArtifact(destination) {
     generatedCSha256: hash(await readFile(c)), toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))), notices,
     toolchain: {moon, moonc, node: process.version, cc: run('cc', ['--version']).split('\n')[0]},
     abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
-    generation: ['moon', 'build', '--target', 'native', '--release', 'src/cmd/native_client']};
+    generation: ['moon', ...buildArgs], ...(localMetadata ? {localRuntime: localMetadata} : {})};
   await writeFile(join(destination, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx'});
   return record;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  assert.equal(process.argv.length, 3, 'usage: native-cli-artifact.mjs <new-artifact-directory>');
-  const record = await buildNativeCliArtifact(process.argv[2]);
+  const [destination, ...options] = process.argv.slice(2);
+  let verbose = false, recipe;
+  while (options.length) {
+    const option = options.shift();
+    if (option === '--verbose' && !verbose) verbose = true;
+    else if (option === '--local-runtime-recipe' && recipe === undefined && options.length) recipe = options.shift();
+    else assert.fail('usage: native-cli-artifact.mjs <new-artifact-directory> [--verbose] [--local-runtime-recipe <selected-recipe>]');
+  }
+  assert(destination);
+  let wire;
+  if (recipe) {
+    const descriptor = await open(resolve(recipe), constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const before = await descriptor.stat();
+      assert(before.isFile() && before.size > 0 && before.size <= 65536, 'Local runtime recipe exceeds the finite metadata envelope');
+      const bytes = Buffer.alloc(before.size + 1);
+      let offset = 0;
+      while (offset < bytes.length) {
+        const {bytesRead} = await descriptor.read(bytes, offset, bytes.length - offset, null);
+        if (!bytesRead) break;
+        offset += bytesRead;
+      }
+      const after = await descriptor.stat();
+      assert(offset === before.size && after.size === before.size && after.mtimeMs === before.mtimeMs && after.ctimeMs === before.ctimeMs);
+      wire = bytes.subarray(0, offset);
+    } finally {await descriptor.close();}
+  }
+  const record = await buildNativeCliArtifact(destination, {verbose,
+    ...(wire ? {localRuntime: JSON.parse(wire.toString('utf8'))} : {})});
   console.log(JSON.stringify({sourceSha: record.sourceSha, platform: record.platform,
     binarySha256: record.binarySha256, abi: record.abi.sharedLibraries}, null, 2));
 }

@@ -894,6 +894,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
   let retry;
   let closed = false;
   let host;
+  async function originalModelStorageEvidence(handle) {
+    if (closed) fail('OriginalModelStateHostStopped');
+    const selected = await evidence.originalModelStorageBindingEvidence(handle);
+    if (closed) fail('OriginalModelStateHostStopped');
+    return selected;
+  }
   // Errors that a later attempt may clear (a busy Store, a transient read);
   // anything else is permanent for this item and only observed.
   const PERMANENT = new Set(['ArtifactIntegrityFailed',
@@ -1284,6 +1290,75 @@ export async function installRemoteCheckpoints({root, namespaceId,
     modelContext: Object.freeze({accountId: gate.accountId,
       configurationCid: gate.configurationCid, principal: gate.principal,
       contextCid: gate.contextCid}),
+
+    // Installation-only custody from this exact private Evidence port, not a
+    // caller's CID or matching configuration. Reopening requires fresh nominal
+    // custody even when the selected Store's canonical identity is unchanged.
+    async observeModelOriginalStorageBinding() {
+      if (closed) fail('OriginalModelStateHostStopped');
+      const handle = await evidence.observeOriginalModelStorageBinding();
+      if (closed) fail('OriginalModelStateHostStopped');
+      return handle;
+    },
+    modelOriginalStorageBindingEvidence(handle) {
+      return originalModelStorageEvidence(handle);
+    },
+    // A data-only Common document is saved under its dedicated private role.
+    // This does not authenticate the other Origin fields, restore a current
+    // resource cut, acknowledge a Model Entry or grant startup/send authority.
+    async retainOriginalModelState({runDefinition, storageBinding, bodyWire}) {
+      const runId = contractControl.runDefinitionRunId(runDefinition);
+      if (!IDENTIFIER.test(runId)) fail('InvalidOriginalModelStateCustody');
+      const runDefinitionCid = runDefinition.identity;
+      const selected = await originalModelStorageEvidence(storageBinding);
+      const document = contractControl.readModelOriginalResourceDocument(bodyWire,
+        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+      if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
+          contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinitionCid ||
+          contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
+        fail('OriginalModelStateBindingMismatch');
+      }
+      const ownerId = `model-${runId}`;
+      const [cid] = await evidence.hold(ownerId, runDefinitionCid,
+        [{name: 'original_model_state', wire: document.wire}]);
+      // A changed installation after a save leaves its original custody held;
+      // it never rewrites the saved state as unsaved or grants another send.
+      await originalModelStorageEvidence(storageBinding);
+      const held = await evidence.open(ownerId);
+      if (held.requestCid !== runDefinitionCid) fail('ModelContinuationRunMismatch');
+      const saved = await held.bytes('original_model_state', cid,
+        {maxBytes: MAX_MODEL_INPUT_BYTES});
+      if (!saved.equals(Buffer.from(document.wire, 'utf8'))) fail('OriginalModelStateBindingMismatch');
+      await originalModelStorageEvidence(storageBinding);
+      return Object.freeze({ownerId, cid, runId, runDefinitionCid,
+        storageBindingCid: selected.identity});
+    },
+    async readOriginalModelState({runDefinition, storageBinding, receipt}) {
+      const runId = contractControl.runDefinitionRunId(runDefinition);
+      const selected = await originalModelStorageEvidence(storageBinding);
+      if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
+          Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
+          !IDENTIFIER.test(runId) || receipt.ownerId !== `model-${runId}` ||
+          receipt.runId !== runId || receipt.runDefinitionCid !== runDefinition.identity ||
+          receipt.storageBindingCid !== selected.identity ||
+          !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '')) {
+        fail('InvalidOriginalModelStateCustody');
+      }
+      const held = await evidence.open(receipt.ownerId);
+      if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
+      const bytes = await held.bytes('original_model_state', receipt.cid,
+        {maxBytes: MAX_MODEL_INPUT_BYTES});
+      const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+      const document = contractControl.readModelOriginalResourceDocument(wire,
+        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+      if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
+          contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
+          contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
+        fail('OriginalModelStateBindingMismatch');
+      }
+      await originalModelStorageEvidence(storageBinding);
+      return document;
+    },
 
     // Exact private pre-INFER completion bytes, held before either immediate
     // inventory registration or a deferred Checkpoint. This receipt names

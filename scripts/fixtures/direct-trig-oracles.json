@@ -1,0 +1,3596 @@
+{
+  "version": "actql-direct-trig-oracles/0.1",
+  "generator": {
+    "library": "MPFR",
+    "version": "4.2.2",
+    "precisionBits": 4096,
+    "input": "exact IEEE-754 binary64 via mpfr_set_d",
+    "rounding": [
+      "MPFR_RNDD",
+      "MPFR_RNDU"
+    ],
+    "adjacentBinary64Allowance": 2,
+    "scope": "Frozen test controls, not a universal accuracy guarantee; never widened to accommodate product output."
+  },
+  "vectors": [
+    {
+      "id": "sin_0",
+      "operation": "sin",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.47942553860420295,
+        0.479425538604203
+      ],
+      "directedBoundBits": [
+        "3fdeaee8744b05ef",
+        "3fdeaee8744b05f0"
+      ],
+      "acceptanceBounds": [
+        0.47942553860420284,
+        0.4794255386042031
+      ],
+      "acceptanceBoundBits": [
+        "3fdeaee8744b05ed",
+        "3fdeaee8744b05f2"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_1",
+      "operation": "sin",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.479425538604203,
+        -0.47942553860420295
+      ],
+      "directedBoundBits": [
+        "bfdeaee8744b05f0",
+        "bfdeaee8744b05ef"
+      ],
+      "acceptanceBounds": [
+        -0.4794255386042031,
+        -0.47942553860420284
+      ],
+      "acceptanceBoundBits": [
+        "bfdeaee8744b05f2",
+        "bfdeaee8744b05ed"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_2",
+      "operation": "sin",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        0.8414709848078965,
+        0.8414709848078966
+      ],
+      "directedBoundBits": [
+        "3feaed548f090cee",
+        "3feaed548f090cef"
+      ],
+      "acceptanceBounds": [
+        0.8414709848078963,
+        0.8414709848078968
+      ],
+      "acceptanceBoundBits": [
+        "3feaed548f090cec",
+        "3feaed548f090cf1"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_3",
+      "operation": "sin",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -0.8414709848078966,
+        -0.8414709848078965
+      ],
+      "directedBoundBits": [
+        "bfeaed548f090cef",
+        "bfeaed548f090cee"
+      ],
+      "acceptanceBounds": [
+        -0.8414709848078968,
+        -0.8414709848078963
+      ],
+      "acceptanceBoundBits": [
+        "bfeaed548f090cf1",
+        "bfeaed548f090cec"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_4",
+      "operation": "sin",
+      "inputs": [
+        1.5707963267948963
+      ],
+      "inputBits": [
+        "3ff921fb54442d17"
+      ],
+      "directedBounds": [
+        0.9999999999999999,
+        1.0
+      ],
+      "directedBoundBits": [
+        "3fefffffffffffff",
+        "3ff0000000000000"
+      ],
+      "acceptanceBounds": [
+        0.9999999999999997,
+        1.0000000000000004
+      ],
+      "acceptanceBoundBits": [
+        "3feffffffffffffd",
+        "3ff0000000000002"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_5",
+      "operation": "sin",
+      "inputs": [
+        1.5707963267948966
+      ],
+      "inputBits": [
+        "3ff921fb54442d18"
+      ],
+      "directedBounds": [
+        0.9999999999999999,
+        1.0
+      ],
+      "directedBoundBits": [
+        "3fefffffffffffff",
+        "3ff0000000000000"
+      ],
+      "acceptanceBounds": [
+        0.9999999999999997,
+        1.0000000000000004
+      ],
+      "acceptanceBoundBits": [
+        "3feffffffffffffd",
+        "3ff0000000000002"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_6",
+      "operation": "sin",
+      "inputs": [
+        1.5707963267948968
+      ],
+      "inputBits": [
+        "3ff921fb54442d19"
+      ],
+      "directedBounds": [
+        0.9999999999999999,
+        1.0
+      ],
+      "directedBoundBits": [
+        "3fefffffffffffff",
+        "3ff0000000000000"
+      ],
+      "acceptanceBounds": [
+        0.9999999999999997,
+        1.0000000000000004
+      ],
+      "acceptanceBoundBits": [
+        "3feffffffffffffd",
+        "3ff0000000000002"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_7",
+      "operation": "sin",
+      "inputs": [
+        1e+20
+      ],
+      "inputBits": [
+        "4415af1d78b58c40"
+      ],
+      "directedBounds": [
+        -0.6452512852657809,
+        -0.6452512852657808
+      ],
+      "directedBoundBits": [
+        "bfe4a5e605fd6451",
+        "bfe4a5e605fd6450"
+      ],
+      "acceptanceBounds": [
+        -0.6452512852657811,
+        -0.6452512852657806
+      ],
+      "acceptanceBoundBits": [
+        "bfe4a5e605fd6453",
+        "bfe4a5e605fd644e"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_8",
+      "operation": "sin",
+      "inputs": [
+        -1e+20
+      ],
+      "inputBits": [
+        "c415af1d78b58c40"
+      ],
+      "directedBounds": [
+        0.6452512852657808,
+        0.6452512852657809
+      ],
+      "directedBoundBits": [
+        "3fe4a5e605fd6450",
+        "3fe4a5e605fd6451"
+      ],
+      "acceptanceBounds": [
+        0.6452512852657806,
+        0.6452512852657811
+      ],
+      "acceptanceBoundBits": [
+        "3fe4a5e605fd644e",
+        "3fe4a5e605fd6453"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_9",
+      "operation": "sin",
+      "inputs": [
+        1e+100
+      ],
+      "inputBits": [
+        "54b249ad2594c37d"
+      ],
+      "directedBounds": [
+        -0.3806377310050287,
+        -0.3806377310050286
+      ],
+      "directedBoundBits": [
+        "bfd85c5e5b929359",
+        "bfd85c5e5b929358"
+      ],
+      "acceptanceBounds": [
+        -0.3806377310050288,
+        -0.3806377310050285
+      ],
+      "acceptanceBoundBits": [
+        "bfd85c5e5b92935b",
+        "bfd85c5e5b929356"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_10",
+      "operation": "sin",
+      "inputs": [
+        -1e+100
+      ],
+      "inputBits": [
+        "d4b249ad2594c37d"
+      ],
+      "directedBounds": [
+        0.3806377310050286,
+        0.3806377310050287
+      ],
+      "directedBoundBits": [
+        "3fd85c5e5b929358",
+        "3fd85c5e5b929359"
+      ],
+      "acceptanceBounds": [
+        0.3806377310050285,
+        0.3806377310050288
+      ],
+      "acceptanceBoundBits": [
+        "3fd85c5e5b929356",
+        "3fd85c5e5b92935b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_11",
+      "operation": "sin",
+      "inputs": [
+        1e+300
+      ],
+      "inputBits": [
+        "7e37e43c8800759c"
+      ],
+      "directedBounds": [
+        -0.8178819121159087,
+        -0.8178819121159085
+      ],
+      "directedBoundBits": [
+        "bfea2c16b010e386",
+        "bfea2c16b010e385"
+      ],
+      "acceptanceBounds": [
+        -0.8178819121159089,
+        -0.8178819121159083
+      ],
+      "acceptanceBoundBits": [
+        "bfea2c16b010e388",
+        "bfea2c16b010e383"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_12",
+      "operation": "sin",
+      "inputs": [
+        -1e+300
+      ],
+      "inputBits": [
+        "fe37e43c8800759c"
+      ],
+      "directedBounds": [
+        0.8178819121159085,
+        0.8178819121159087
+      ],
+      "directedBoundBits": [
+        "3fea2c16b010e385",
+        "3fea2c16b010e386"
+      ],
+      "acceptanceBounds": [
+        0.8178819121159083,
+        0.8178819121159089
+      ],
+      "acceptanceBoundBits": [
+        "3fea2c16b010e383",
+        "3fea2c16b010e388"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_13",
+      "operation": "sin",
+      "inputs": [
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        0.004961954789184061,
+        0.004961954789184062
+      ],
+      "directedBoundBits": [
+        "3f7452fc98b34e96",
+        "3f7452fc98b34e97"
+      ],
+      "acceptanceBounds": [
+        0.0049619547891840594,
+        0.004961954789184064
+      ],
+      "acceptanceBoundBits": [
+        "3f7452fc98b34e94",
+        "3f7452fc98b34e99"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sin_14",
+      "operation": "sin",
+      "inputs": [
+        -1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "ffefffffffffffff"
+      ],
+      "directedBounds": [
+        -0.004961954789184062,
+        -0.004961954789184061
+      ],
+      "directedBoundBits": [
+        "bf7452fc98b34e97",
+        "bf7452fc98b34e96"
+      ],
+      "acceptanceBounds": [
+        -0.004961954789184064,
+        -0.0049619547891840594
+      ],
+      "acceptanceBoundBits": [
+        "bf7452fc98b34e99",
+        "bf7452fc98b34e94"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_15",
+      "operation": "cos",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.8775825618903726,
+        0.8775825618903728
+      ],
+      "directedBoundBits": [
+        "3fec1528065b7d4f",
+        "3fec1528065b7d50"
+      ],
+      "acceptanceBounds": [
+        0.8775825618903724,
+        0.877582561890373
+      ],
+      "acceptanceBoundBits": [
+        "3fec1528065b7d4d",
+        "3fec1528065b7d52"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_16",
+      "operation": "cos",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        0.8775825618903726,
+        0.8775825618903728
+      ],
+      "directedBoundBits": [
+        "3fec1528065b7d4f",
+        "3fec1528065b7d50"
+      ],
+      "acceptanceBounds": [
+        0.8775825618903724,
+        0.877582561890373
+      ],
+      "acceptanceBoundBits": [
+        "3fec1528065b7d4d",
+        "3fec1528065b7d52"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_17",
+      "operation": "cos",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        0.5403023058681397,
+        0.5403023058681398
+      ],
+      "directedBoundBits": [
+        "3fe14a280fb5068b",
+        "3fe14a280fb5068c"
+      ],
+      "acceptanceBounds": [
+        0.5403023058681394,
+        0.54030230586814
+      ],
+      "acceptanceBoundBits": [
+        "3fe14a280fb50689",
+        "3fe14a280fb5068e"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_18",
+      "operation": "cos",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        0.5403023058681397,
+        0.5403023058681398
+      ],
+      "directedBoundBits": [
+        "3fe14a280fb5068b",
+        "3fe14a280fb5068c"
+      ],
+      "acceptanceBounds": [
+        0.5403023058681394,
+        0.54030230586814
+      ],
+      "acceptanceBoundBits": [
+        "3fe14a280fb50689",
+        "3fe14a280fb5068e"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_19",
+      "operation": "cos",
+      "inputs": [
+        1.5707963267948963
+      ],
+      "inputBits": [
+        "3ff921fb54442d17"
+      ],
+      "directedBounds": [
+        2.8327694488239893e-16,
+        2.83276944882399e-16
+      ],
+      "directedBoundBits": [
+        "3cb469898cc51701",
+        "3cb469898cc51702"
+      ],
+      "acceptanceBounds": [
+        2.8327694488239883e-16,
+        2.832769448823991e-16
+      ],
+      "acceptanceBoundBits": [
+        "3cb469898cc516ff",
+        "3cb469898cc51704"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_20",
+      "operation": "cos",
+      "inputs": [
+        1.5707963267948966
+      ],
+      "inputBits": [
+        "3ff921fb54442d18"
+      ],
+      "directedBounds": [
+        6.123233995736765e-17,
+        6.123233995736766e-17
+      ],
+      "directedBoundBits": [
+        "3c91a62633145c06",
+        "3c91a62633145c07"
+      ],
+      "acceptanceBounds": [
+        6.123233995736762e-17,
+        6.123233995736769e-17
+      ],
+      "acceptanceBoundBits": [
+        "3c91a62633145c04",
+        "3c91a62633145c09"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_21",
+      "operation": "cos",
+      "inputs": [
+        1.5707963267948968
+      ],
+      "inputBits": [
+        "3ff921fb54442d19"
+      ],
+      "directedBounds": [
+        -1.6081226496766366e-16,
+        -1.6081226496766364e-16
+      ],
+      "directedBoundBits": [
+        "bca72cece675d1fd",
+        "bca72cece675d1fc"
+      ],
+      "acceptanceBounds": [
+        -1.608122649676637e-16,
+        -1.6081226496766359e-16
+      ],
+      "acceptanceBoundBits": [
+        "bca72cece675d1ff",
+        "bca72cece675d1fa"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_22",
+      "operation": "cos",
+      "inputs": [
+        1e+20
+      ],
+      "inputBits": [
+        "4415af1d78b58c40"
+      ],
+      "directedBounds": [
+        0.7639704044417283,
+        0.7639704044417284
+      ],
+      "directedBoundBits": [
+        "3fe872720fc60d3d",
+        "3fe872720fc60d3e"
+      ],
+      "acceptanceBounds": [
+        0.763970404441728,
+        0.7639704044417286
+      ],
+      "acceptanceBoundBits": [
+        "3fe872720fc60d3b",
+        "3fe872720fc60d40"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_23",
+      "operation": "cos",
+      "inputs": [
+        -1e+20
+      ],
+      "inputBits": [
+        "c415af1d78b58c40"
+      ],
+      "directedBounds": [
+        0.7639704044417283,
+        0.7639704044417284
+      ],
+      "directedBoundBits": [
+        "3fe872720fc60d3d",
+        "3fe872720fc60d3e"
+      ],
+      "acceptanceBounds": [
+        0.763970404441728,
+        0.7639704044417286
+      ],
+      "acceptanceBoundBits": [
+        "3fe872720fc60d3b",
+        "3fe872720fc60d40"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_24",
+      "operation": "cos",
+      "inputs": [
+        1e+100
+      ],
+      "inputBits": [
+        "54b249ad2594c37d"
+      ],
+      "directedBounds": [
+        0.9247242387519338,
+        0.9247242387519339
+      ],
+      "directedBoundBits": [
+        "3fed9757496841f5",
+        "3fed9757496841f6"
+      ],
+      "acceptanceBounds": [
+        0.9247242387519335,
+        0.9247242387519341
+      ],
+      "acceptanceBoundBits": [
+        "3fed9757496841f3",
+        "3fed9757496841f8"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_25",
+      "operation": "cos",
+      "inputs": [
+        -1e+100
+      ],
+      "inputBits": [
+        "d4b249ad2594c37d"
+      ],
+      "directedBounds": [
+        0.9247242387519338,
+        0.9247242387519339
+      ],
+      "directedBoundBits": [
+        "3fed9757496841f5",
+        "3fed9757496841f6"
+      ],
+      "acceptanceBounds": [
+        0.9247242387519335,
+        0.9247242387519341
+      ],
+      "acceptanceBoundBits": [
+        "3fed9757496841f3",
+        "3fed9757496841f8"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_26",
+      "operation": "cos",
+      "inputs": [
+        1e+300
+      ],
+      "inputBits": [
+        "7e37e43c8800759c"
+      ],
+      "directedBounds": [
+        -0.5753861119575491,
+        -0.575386111957549
+      ],
+      "directedBoundBits": [
+        "bfe2699022adc4c1",
+        "bfe2699022adc4c0"
+      ],
+      "acceptanceBounds": [
+        -0.5753861119575493,
+        -0.5753861119575487
+      ],
+      "acceptanceBoundBits": [
+        "bfe2699022adc4c3",
+        "bfe2699022adc4be"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_27",
+      "operation": "cos",
+      "inputs": [
+        -1e+300
+      ],
+      "inputBits": [
+        "fe37e43c8800759c"
+      ],
+      "directedBounds": [
+        -0.5753861119575491,
+        -0.575386111957549
+      ],
+      "directedBoundBits": [
+        "bfe2699022adc4c1",
+        "bfe2699022adc4c0"
+      ],
+      "acceptanceBounds": [
+        -0.5753861119575493,
+        -0.5753861119575487
+      ],
+      "acceptanceBoundBits": [
+        "bfe2699022adc4c3",
+        "bfe2699022adc4be"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_28",
+      "operation": "cos",
+      "inputs": [
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        -0.99998768942656,
+        -0.9999876894265599
+      ],
+      "directedBoundBits": [
+        "bfefffe62ecfab76",
+        "bfefffe62ecfab75"
+      ],
+      "acceptanceBounds": [
+        -0.9999876894265602,
+        -0.9999876894265597
+      ],
+      "acceptanceBoundBits": [
+        "bfefffe62ecfab78",
+        "bfefffe62ecfab73"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cos_29",
+      "operation": "cos",
+      "inputs": [
+        -1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "ffefffffffffffff"
+      ],
+      "directedBounds": [
+        -0.99998768942656,
+        -0.9999876894265599
+      ],
+      "directedBoundBits": [
+        "bfefffe62ecfab76",
+        "bfefffe62ecfab75"
+      ],
+      "acceptanceBounds": [
+        -0.9999876894265602,
+        -0.9999876894265597
+      ],
+      "acceptanceBoundBits": [
+        "bfefffe62ecfab78",
+        "bfefffe62ecfab73"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_30",
+      "operation": "tan",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.5463024898437905,
+        0.5463024898437906
+      ],
+      "directedBoundBits": [
+        "3fe17b4f5bf3474a",
+        "3fe17b4f5bf3474b"
+      ],
+      "acceptanceBounds": [
+        0.5463024898437903,
+        0.5463024898437908
+      ],
+      "acceptanceBoundBits": [
+        "3fe17b4f5bf34748",
+        "3fe17b4f5bf3474d"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_31",
+      "operation": "tan",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.5463024898437906,
+        -0.5463024898437905
+      ],
+      "directedBoundBits": [
+        "bfe17b4f5bf3474b",
+        "bfe17b4f5bf3474a"
+      ],
+      "acceptanceBounds": [
+        -0.5463024898437908,
+        -0.5463024898437903
+      ],
+      "acceptanceBoundBits": [
+        "bfe17b4f5bf3474d",
+        "bfe17b4f5bf34748"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_32",
+      "operation": "tan",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        1.557407724654902,
+        1.5574077246549023
+      ],
+      "directedBoundBits": [
+        "3ff8eb245cbee3a5",
+        "3ff8eb245cbee3a6"
+      ],
+      "acceptanceBounds": [
+        1.5574077246549016,
+        1.5574077246549027
+      ],
+      "acceptanceBoundBits": [
+        "3ff8eb245cbee3a3",
+        "3ff8eb245cbee3a8"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_33",
+      "operation": "tan",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -1.5574077246549023,
+        -1.557407724654902
+      ],
+      "directedBoundBits": [
+        "bff8eb245cbee3a6",
+        "bff8eb245cbee3a5"
+      ],
+      "acceptanceBounds": [
+        -1.5574077246549027,
+        -1.5574077246549016
+      ],
+      "acceptanceBoundBits": [
+        "bff8eb245cbee3a8",
+        "bff8eb245cbee3a3"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_34",
+      "operation": "tan",
+      "inputs": [
+        1.5707963267948963
+      ],
+      "inputBits": [
+        "3ff921fb54442d17"
+      ],
+      "directedBounds": [
+        3530114321217157.5,
+        3530114321217158.0
+      ],
+      "directedBoundBits": [
+        "4329153d9443ed0b",
+        "4329153d9443ed0c"
+      ],
+      "acceptanceBounds": [
+        3530114321217156.5,
+        3530114321217159.0
+      ],
+      "acceptanceBoundBits": [
+        "4329153d9443ed09",
+        "4329153d9443ed0e"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_35",
+      "operation": "tan",
+      "inputs": [
+        1.5707963267948966
+      ],
+      "inputBits": [
+        "3ff921fb54442d18"
+      ],
+      "directedBounds": [
+        1.6331239353195368e+16,
+        1.633123935319537e+16
+      ],
+      "directedBoundBits": [
+        "434d02967c31cdb4",
+        "434d02967c31cdb5"
+      ],
+      "acceptanceBounds": [
+        1.6331239353195364e+16,
+        1.6331239353195374e+16
+      ],
+      "acceptanceBoundBits": [
+        "434d02967c31cdb2",
+        "434d02967c31cdb7"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_36",
+      "operation": "tan",
+      "inputs": [
+        1.5707963267948968
+      ],
+      "inputBits": [
+        "3ff921fb54442d19"
+      ],
+      "directedBounds": [
+        -6218431163823739.0,
+        -6218431163823738.0
+      ],
+      "directedBoundBits": [
+        "c33617a15494767b",
+        "c33617a15494767a"
+      ],
+      "acceptanceBounds": [
+        -6218431163823741.0,
+        -6218431163823736.0
+      ],
+      "acceptanceBoundBits": [
+        "c33617a15494767d",
+        "c33617a154947678"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_37",
+      "operation": "tan",
+      "inputs": [
+        1e+20
+      ],
+      "inputBits": [
+        "4415af1d78b58c40"
+      ],
+      "directedBounds": [
+        -0.8446024630198843,
+        -0.8446024630198842
+      ],
+      "directedBoundBits": [
+        "bfeb06fbbe995394",
+        "bfeb06fbbe995393"
+      ],
+      "acceptanceBounds": [
+        -0.8446024630198845,
+        -0.844602463019884
+      ],
+      "acceptanceBoundBits": [
+        "bfeb06fbbe995396",
+        "bfeb06fbbe995391"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_38",
+      "operation": "tan",
+      "inputs": [
+        -1e+20
+      ],
+      "inputBits": [
+        "c415af1d78b58c40"
+      ],
+      "directedBounds": [
+        0.8446024630198842,
+        0.8446024630198843
+      ],
+      "directedBoundBits": [
+        "3feb06fbbe995393",
+        "3feb06fbbe995394"
+      ],
+      "acceptanceBounds": [
+        0.844602463019884,
+        0.8446024630198845
+      ],
+      "acceptanceBoundBits": [
+        "3feb06fbbe995391",
+        "3feb06fbbe995396"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_39",
+      "operation": "tan",
+      "inputs": [
+        1e+100
+      ],
+      "inputBits": [
+        "54b249ad2594c37d"
+      ],
+      "directedBounds": [
+        -0.41162296288324984,
+        -0.4116229628832498
+      ],
+      "directedBoundBits": [
+        "bfda5807d6f76f7e",
+        "bfda5807d6f76f7d"
+      ],
+      "acceptanceBounds": [
+        -0.41162296288324995,
+        -0.4116229628832497
+      ],
+      "acceptanceBoundBits": [
+        "bfda5807d6f76f80",
+        "bfda5807d6f76f7b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_40",
+      "operation": "tan",
+      "inputs": [
+        -1e+100
+      ],
+      "inputBits": [
+        "d4b249ad2594c37d"
+      ],
+      "directedBounds": [
+        0.4116229628832498,
+        0.41162296288324984
+      ],
+      "directedBoundBits": [
+        "3fda5807d6f76f7d",
+        "3fda5807d6f76f7e"
+      ],
+      "acceptanceBounds": [
+        0.4116229628832497,
+        0.41162296288324995
+      ],
+      "acceptanceBoundBits": [
+        "3fda5807d6f76f7b",
+        "3fda5807d6f76f80"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_41",
+      "operation": "tan",
+      "inputs": [
+        1e+300
+      ],
+      "inputBits": [
+        "7e37e43c8800759c"
+      ],
+      "directedBounds": [
+        1.4214488238747243,
+        1.4214488238747245
+      ],
+      "directedBoundBits": [
+        "3ff6be411f37ac76",
+        "3ff6be411f37ac77"
+      ],
+      "acceptanceBounds": [
+        1.4214488238747238,
+        1.421448823874725
+      ],
+      "acceptanceBoundBits": [
+        "3ff6be411f37ac74",
+        "3ff6be411f37ac79"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_42",
+      "operation": "tan",
+      "inputs": [
+        -1e+300
+      ],
+      "inputBits": [
+        "fe37e43c8800759c"
+      ],
+      "directedBounds": [
+        -1.4214488238747245,
+        -1.4214488238747243
+      ],
+      "directedBoundBits": [
+        "bff6be411f37ac77",
+        "bff6be411f37ac76"
+      ],
+      "acceptanceBounds": [
+        -1.421448823874725,
+        -1.4214488238747238
+      ],
+      "acceptanceBoundBits": [
+        "bff6be411f37ac79",
+        "bff6be411f37ac74"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_43",
+      "operation": "tan",
+      "inputs": [
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        -0.004962015874444895,
+        -0.004962015874444894
+      ],
+      "directedBoundBits": [
+        "bf74530cfe729484",
+        "bf74530cfe729483"
+      ],
+      "acceptanceBounds": [
+        -0.004962015874444897,
+        -0.0049620158744448925
+      ],
+      "acceptanceBoundBits": [
+        "bf74530cfe729486",
+        "bf74530cfe729481"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tan_44",
+      "operation": "tan",
+      "inputs": [
+        -1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "ffefffffffffffff"
+      ],
+      "directedBounds": [
+        0.004962015874444894,
+        0.004962015874444895
+      ],
+      "directedBoundBits": [
+        "3f74530cfe729483",
+        "3f74530cfe729484"
+      ],
+      "acceptanceBounds": [
+        0.0049620158744448925,
+        0.004962015874444897
+      ],
+      "acceptanceBoundBits": [
+        "3f74530cfe729481",
+        "3f74530cfe729486"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asin_45",
+      "operation": "asin",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.5235987755982988,
+        0.5235987755982989
+      ],
+      "directedBoundBits": [
+        "3fe0c152382d7365",
+        "3fe0c152382d7366"
+      ],
+      "acceptanceBounds": [
+        0.5235987755982986,
+        0.5235987755982991
+      ],
+      "acceptanceBoundBits": [
+        "3fe0c152382d7363",
+        "3fe0c152382d7368"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asin_46",
+      "operation": "asin",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.5235987755982989,
+        -0.5235987755982988
+      ],
+      "directedBoundBits": [
+        "bfe0c152382d7366",
+        "bfe0c152382d7365"
+      ],
+      "acceptanceBounds": [
+        -0.5235987755982991,
+        -0.5235987755982986
+      ],
+      "acceptanceBoundBits": [
+        "bfe0c152382d7368",
+        "bfe0c152382d7363"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asin_47",
+      "operation": "asin",
+      "inputs": [
+        0.9999999999999999
+      ],
+      "inputBits": [
+        "3fefffffffffffff"
+      ],
+      "directedBounds": [
+        1.5707963118937354,
+        1.5707963118937356
+      ],
+      "directedBoundBits": [
+        "3ff921fb50442d18",
+        "3ff921fb50442d19"
+      ],
+      "acceptanceBounds": [
+        1.570796311893735,
+        1.570796311893736
+      ],
+      "acceptanceBoundBits": [
+        "3ff921fb50442d16",
+        "3ff921fb50442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asin_48",
+      "operation": "asin",
+      "inputs": [
+        -0.9999999999999999
+      ],
+      "inputBits": [
+        "bfefffffffffffff"
+      ],
+      "directedBounds": [
+        -1.5707963118937356,
+        -1.5707963118937354
+      ],
+      "directedBoundBits": [
+        "bff921fb50442d19",
+        "bff921fb50442d18"
+      ],
+      "acceptanceBounds": [
+        -1.570796311893736,
+        -1.570796311893735
+      ],
+      "acceptanceBoundBits": [
+        "bff921fb50442d1b",
+        "bff921fb50442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asin_49",
+      "operation": "asin",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        1.5707963267948966,
+        1.5707963267948968
+      ],
+      "directedBoundBits": [
+        "3ff921fb54442d18",
+        "3ff921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        1.5707963267948961,
+        1.5707963267948972
+      ],
+      "acceptanceBoundBits": [
+        "3ff921fb54442d16",
+        "3ff921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asin_50",
+      "operation": "asin",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -1.5707963267948968,
+        -1.5707963267948966
+      ],
+      "directedBoundBits": [
+        "bff921fb54442d19",
+        "bff921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -1.5707963267948972,
+        -1.5707963267948961
+      ],
+      "acceptanceBoundBits": [
+        "bff921fb54442d1b",
+        "bff921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acos_51",
+      "operation": "acos",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        1.0471975511965976,
+        1.0471975511965979
+      ],
+      "directedBoundBits": [
+        "3ff0c152382d7365",
+        "3ff0c152382d7366"
+      ],
+      "acceptanceBounds": [
+        1.0471975511965972,
+        1.0471975511965983
+      ],
+      "acceptanceBoundBits": [
+        "3ff0c152382d7363",
+        "3ff0c152382d7368"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acos_52",
+      "operation": "acos",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        2.0943951023931953,
+        2.0943951023931957
+      ],
+      "directedBoundBits": [
+        "4000c152382d7365",
+        "4000c152382d7366"
+      ],
+      "acceptanceBounds": [
+        2.0943951023931944,
+        2.0943951023931966
+      ],
+      "acceptanceBoundBits": [
+        "4000c152382d7363",
+        "4000c152382d7368"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acos_53",
+      "operation": "acos",
+      "inputs": [
+        0.9999999999999999
+      ],
+      "inputBits": [
+        "3fefffffffffffff"
+      ],
+      "directedBounds": [
+        1.4901161193847656e-08,
+        1.490116119384766e-08
+      ],
+      "directedBoundBits": [
+        "3e50000000000000",
+        "3e50000000000001"
+      ],
+      "acceptanceBounds": [
+        1.4901161193847653e-08,
+        1.4901161193847666e-08
+      ],
+      "acceptanceBoundBits": [
+        "3e4ffffffffffffe",
+        "3e50000000000003"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acos_54",
+      "operation": "acos",
+      "inputs": [
+        -0.9999999999999999
+      ],
+      "inputBits": [
+        "bfefffffffffffff"
+      ],
+      "directedBounds": [
+        3.141592638688632,
+        3.1415926386886324
+      ],
+      "directedBoundBits": [
+        "400921fb52442d18",
+        "400921fb52442d19"
+      ],
+      "acceptanceBounds": [
+        3.141592638688631,
+        3.1415926386886333
+      ],
+      "acceptanceBoundBits": [
+        "400921fb52442d16",
+        "400921fb52442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acos_55",
+      "operation": "acos",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        0.0,
+        0.0
+      ],
+      "directedBoundBits": [
+        "0000000000000000",
+        "0000000000000000"
+      ],
+      "acceptanceBounds": [
+        -1e-323,
+        1e-323
+      ],
+      "acceptanceBoundBits": [
+        "8000000000000002",
+        "0000000000000002"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acos_56",
+      "operation": "acos",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        3.141592653589793,
+        3.1415926535897936
+      ],
+      "directedBoundBits": [
+        "400921fb54442d18",
+        "400921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        3.1415926535897922,
+        3.1415926535897944
+      ],
+      "acceptanceBoundBits": [
+        "400921fb54442d16",
+        "400921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_57",
+      "operation": "atan",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.4636476090008061,
+        0.46364760900080615
+      ],
+      "directedBoundBits": [
+        "3fddac670561bb4f",
+        "3fddac670561bb50"
+      ],
+      "acceptanceBounds": [
+        0.463647609000806,
+        0.46364760900080626
+      ],
+      "acceptanceBoundBits": [
+        "3fddac670561bb4d",
+        "3fddac670561bb52"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_58",
+      "operation": "atan",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.46364760900080615,
+        -0.4636476090008061
+      ],
+      "directedBoundBits": [
+        "bfddac670561bb50",
+        "bfddac670561bb4f"
+      ],
+      "acceptanceBounds": [
+        -0.46364760900080626,
+        -0.463647609000806
+      ],
+      "acceptanceBoundBits": [
+        "bfddac670561bb52",
+        "bfddac670561bb4d"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_59",
+      "operation": "atan",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        0.7853981633974483,
+        0.7853981633974484
+      ],
+      "directedBoundBits": [
+        "3fe921fb54442d18",
+        "3fe921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        0.7853981633974481,
+        0.7853981633974486
+      ],
+      "acceptanceBoundBits": [
+        "3fe921fb54442d16",
+        "3fe921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_60",
+      "operation": "atan",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -0.7853981633974484,
+        -0.7853981633974483
+      ],
+      "directedBoundBits": [
+        "bfe921fb54442d19",
+        "bfe921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -0.7853981633974486,
+        -0.7853981633974481
+      ],
+      "acceptanceBoundBits": [
+        "bfe921fb54442d1b",
+        "bfe921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_61",
+      "operation": "atan",
+      "inputs": [
+        1e+20
+      ],
+      "inputBits": [
+        "4415af1d78b58c40"
+      ],
+      "directedBounds": [
+        1.5707963267948966,
+        1.5707963267948968
+      ],
+      "directedBoundBits": [
+        "3ff921fb54442d18",
+        "3ff921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        1.5707963267948961,
+        1.5707963267948972
+      ],
+      "acceptanceBoundBits": [
+        "3ff921fb54442d16",
+        "3ff921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_62",
+      "operation": "atan",
+      "inputs": [
+        -1e+20
+      ],
+      "inputBits": [
+        "c415af1d78b58c40"
+      ],
+      "directedBounds": [
+        -1.5707963267948968,
+        -1.5707963267948966
+      ],
+      "directedBoundBits": [
+        "bff921fb54442d19",
+        "bff921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -1.5707963267948972,
+        -1.5707963267948961
+      ],
+      "acceptanceBoundBits": [
+        "bff921fb54442d1b",
+        "bff921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_63",
+      "operation": "atan",
+      "inputs": [
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        1.5707963267948966,
+        1.5707963267948968
+      ],
+      "directedBoundBits": [
+        "3ff921fb54442d18",
+        "3ff921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        1.5707963267948961,
+        1.5707963267948972
+      ],
+      "acceptanceBoundBits": [
+        "3ff921fb54442d16",
+        "3ff921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan_64",
+      "operation": "atan",
+      "inputs": [
+        -1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "ffefffffffffffff"
+      ],
+      "directedBounds": [
+        -1.5707963267948968,
+        -1.5707963267948966
+      ],
+      "directedBoundBits": [
+        "bff921fb54442d19",
+        "bff921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -1.5707963267948972,
+        -1.5707963267948961
+      ],
+      "acceptanceBoundBits": [
+        "bff921fb54442d1b",
+        "bff921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_65",
+      "operation": "sinh",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.5210953054937473,
+        0.5210953054937474
+      ],
+      "directedBoundBits": [
+        "3fe0acd00fe63b96",
+        "3fe0acd00fe63b97"
+      ],
+      "acceptanceBounds": [
+        0.521095305493747,
+        0.5210953054937476
+      ],
+      "acceptanceBoundBits": [
+        "3fe0acd00fe63b94",
+        "3fe0acd00fe63b99"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_66",
+      "operation": "sinh",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.5210953054937474,
+        -0.5210953054937473
+      ],
+      "directedBoundBits": [
+        "bfe0acd00fe63b97",
+        "bfe0acd00fe63b96"
+      ],
+      "acceptanceBounds": [
+        -0.5210953054937476,
+        -0.521095305493747
+      ],
+      "acceptanceBoundBits": [
+        "bfe0acd00fe63b99",
+        "bfe0acd00fe63b94"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_67",
+      "operation": "sinh",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        1.1752011936438014,
+        1.1752011936438016
+      ],
+      "directedBoundBits": [
+        "3ff2cd9fc44eb982",
+        "3ff2cd9fc44eb983"
+      ],
+      "acceptanceBounds": [
+        1.175201193643801,
+        1.175201193643802
+      ],
+      "acceptanceBoundBits": [
+        "3ff2cd9fc44eb980",
+        "3ff2cd9fc44eb985"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_68",
+      "operation": "sinh",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -1.1752011936438016,
+        -1.1752011936438014
+      ],
+      "directedBoundBits": [
+        "bff2cd9fc44eb983",
+        "bff2cd9fc44eb982"
+      ],
+      "acceptanceBounds": [
+        -1.175201193643802,
+        -1.175201193643801
+      ],
+      "acceptanceBoundBits": [
+        "bff2cd9fc44eb985",
+        "bff2cd9fc44eb980"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_69",
+      "operation": "sinh",
+      "inputs": [
+        20.0
+      ],
+      "inputBits": [
+        "4034000000000000"
+      ],
+      "directedBounds": [
+        242582597.7048951,
+        242582597.70489514
+      ],
+      "directedBoundBits": [
+        "41aceb088b68e803",
+        "41aceb088b68e804"
+      ],
+      "acceptanceBounds": [
+        242582597.70489505,
+        242582597.7048952
+      ],
+      "acceptanceBoundBits": [
+        "41aceb088b68e801",
+        "41aceb088b68e806"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_70",
+      "operation": "sinh",
+      "inputs": [
+        -20.0
+      ],
+      "inputBits": [
+        "c034000000000000"
+      ],
+      "directedBounds": [
+        -242582597.70489514,
+        -242582597.7048951
+      ],
+      "directedBoundBits": [
+        "c1aceb088b68e804",
+        "c1aceb088b68e803"
+      ],
+      "acceptanceBounds": [
+        -242582597.7048952,
+        -242582597.70489505
+      ],
+      "acceptanceBoundBits": [
+        "c1aceb088b68e806",
+        "c1aceb088b68e801"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_71",
+      "operation": "sinh",
+      "inputs": [
+        710.0
+      ],
+      "inputBits": [
+        "4086300000000000"
+      ],
+      "directedBounds": [
+        1.1169973830808555e+308,
+        1.1169973830808557e+308
+      ],
+      "directedBoundBits": [
+        "7fe3e21a464507f9",
+        "7fe3e21a464507fa"
+      ],
+      "acceptanceBounds": [
+        1.116997383080855e+308,
+        1.116997383080856e+308
+      ],
+      "acceptanceBoundBits": [
+        "7fe3e21a464507f7",
+        "7fe3e21a464507fc"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_72",
+      "operation": "sinh",
+      "inputs": [
+        -710.0
+      ],
+      "inputBits": [
+        "c086300000000000"
+      ],
+      "directedBounds": [
+        -1.1169973830808557e+308,
+        -1.1169973830808555e+308
+      ],
+      "directedBoundBits": [
+        "ffe3e21a464507fa",
+        "ffe3e21a464507f9"
+      ],
+      "acceptanceBounds": [
+        -1.116997383080856e+308,
+        -1.116997383080855e+308
+      ],
+      "acceptanceBoundBits": [
+        "ffe3e21a464507fc",
+        "ffe3e21a464507f7"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_73",
+      "operation": "sinh",
+      "inputs": [
+        710.4758600739439
+      ],
+      "inputBits": [
+        "408633ce8fb9f87d"
+      ],
+      "directedBounds": [
+        1.7976931348621742e+308,
+        1.7976931348621744e+308
+      ],
+      "directedBoundBits": [
+        "7feffffffffffd3a",
+        "7feffffffffffd3b"
+      ],
+      "acceptanceBounds": [
+        1.7976931348621738e+308,
+        1.7976931348621748e+308
+      ],
+      "acceptanceBoundBits": [
+        "7feffffffffffd38",
+        "7feffffffffffd3d"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "sinh_74",
+      "operation": "sinh",
+      "inputs": [
+        -710.4758600739439
+      ],
+      "inputBits": [
+        "c08633ce8fb9f87d"
+      ],
+      "directedBounds": [
+        -1.7976931348621744e+308,
+        -1.7976931348621742e+308
+      ],
+      "directedBoundBits": [
+        "ffeffffffffffd3b",
+        "ffeffffffffffd3a"
+      ],
+      "acceptanceBounds": [
+        -1.7976931348621748e+308,
+        -1.7976931348621738e+308
+      ],
+      "acceptanceBoundBits": [
+        "ffeffffffffffd3d",
+        "ffeffffffffffd38"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_75",
+      "operation": "cosh",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        1.1276259652063807,
+        1.127625965206381
+      ],
+      "directedBoundBits": [
+        "3ff20ac1862ae8d0",
+        "3ff20ac1862ae8d1"
+      ],
+      "acceptanceBounds": [
+        1.1276259652063803,
+        1.1276259652063814
+      ],
+      "acceptanceBoundBits": [
+        "3ff20ac1862ae8ce",
+        "3ff20ac1862ae8d3"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_76",
+      "operation": "cosh",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        1.1276259652063807,
+        1.127625965206381
+      ],
+      "directedBoundBits": [
+        "3ff20ac1862ae8d0",
+        "3ff20ac1862ae8d1"
+      ],
+      "acceptanceBounds": [
+        1.1276259652063803,
+        1.1276259652063814
+      ],
+      "acceptanceBoundBits": [
+        "3ff20ac1862ae8ce",
+        "3ff20ac1862ae8d3"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_77",
+      "operation": "cosh",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        1.5430806348152437,
+        1.543080634815244
+      ],
+      "directedBoundBits": [
+        "3ff8b07551d9f550",
+        "3ff8b07551d9f551"
+      ],
+      "acceptanceBounds": [
+        1.5430806348152433,
+        1.5430806348152444
+      ],
+      "acceptanceBoundBits": [
+        "3ff8b07551d9f54e",
+        "3ff8b07551d9f553"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_78",
+      "operation": "cosh",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        1.5430806348152437,
+        1.543080634815244
+      ],
+      "directedBoundBits": [
+        "3ff8b07551d9f550",
+        "3ff8b07551d9f551"
+      ],
+      "acceptanceBounds": [
+        1.5430806348152433,
+        1.5430806348152444
+      ],
+      "acceptanceBoundBits": [
+        "3ff8b07551d9f54e",
+        "3ff8b07551d9f553"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_79",
+      "operation": "cosh",
+      "inputs": [
+        20.0
+      ],
+      "inputBits": [
+        "4034000000000000"
+      ],
+      "directedBounds": [
+        242582597.70489514,
+        242582597.70489517
+      ],
+      "directedBoundBits": [
+        "41aceb088b68e804",
+        "41aceb088b68e805"
+      ],
+      "acceptanceBounds": [
+        242582597.70489508,
+        242582597.70489523
+      ],
+      "acceptanceBoundBits": [
+        "41aceb088b68e802",
+        "41aceb088b68e807"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_80",
+      "operation": "cosh",
+      "inputs": [
+        -20.0
+      ],
+      "inputBits": [
+        "c034000000000000"
+      ],
+      "directedBounds": [
+        242582597.70489514,
+        242582597.70489517
+      ],
+      "directedBoundBits": [
+        "41aceb088b68e804",
+        "41aceb088b68e805"
+      ],
+      "acceptanceBounds": [
+        242582597.70489508,
+        242582597.70489523
+      ],
+      "acceptanceBoundBits": [
+        "41aceb088b68e802",
+        "41aceb088b68e807"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_81",
+      "operation": "cosh",
+      "inputs": [
+        710.0
+      ],
+      "inputBits": [
+        "4086300000000000"
+      ],
+      "directedBounds": [
+        1.1169973830808555e+308,
+        1.1169973830808557e+308
+      ],
+      "directedBoundBits": [
+        "7fe3e21a464507f9",
+        "7fe3e21a464507fa"
+      ],
+      "acceptanceBounds": [
+        1.116997383080855e+308,
+        1.116997383080856e+308
+      ],
+      "acceptanceBoundBits": [
+        "7fe3e21a464507f7",
+        "7fe3e21a464507fc"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_82",
+      "operation": "cosh",
+      "inputs": [
+        -710.0
+      ],
+      "inputBits": [
+        "c086300000000000"
+      ],
+      "directedBounds": [
+        1.1169973830808555e+308,
+        1.1169973830808557e+308
+      ],
+      "directedBoundBits": [
+        "7fe3e21a464507f9",
+        "7fe3e21a464507fa"
+      ],
+      "acceptanceBounds": [
+        1.116997383080855e+308,
+        1.116997383080856e+308
+      ],
+      "acceptanceBoundBits": [
+        "7fe3e21a464507f7",
+        "7fe3e21a464507fc"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_83",
+      "operation": "cosh",
+      "inputs": [
+        710.4758600739439
+      ],
+      "inputBits": [
+        "408633ce8fb9f87d"
+      ],
+      "directedBounds": [
+        1.7976931348621742e+308,
+        1.7976931348621744e+308
+      ],
+      "directedBoundBits": [
+        "7feffffffffffd3a",
+        "7feffffffffffd3b"
+      ],
+      "acceptanceBounds": [
+        1.7976931348621738e+308,
+        1.7976931348621748e+308
+      ],
+      "acceptanceBoundBits": [
+        "7feffffffffffd38",
+        "7feffffffffffd3d"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "cosh_84",
+      "operation": "cosh",
+      "inputs": [
+        -710.4758600739439
+      ],
+      "inputBits": [
+        "c08633ce8fb9f87d"
+      ],
+      "directedBounds": [
+        1.7976931348621742e+308,
+        1.7976931348621744e+308
+      ],
+      "directedBoundBits": [
+        "7feffffffffffd3a",
+        "7feffffffffffd3b"
+      ],
+      "acceptanceBounds": [
+        1.7976931348621738e+308,
+        1.7976931348621748e+308
+      ],
+      "acceptanceBoundBits": [
+        "7feffffffffffd38",
+        "7feffffffffffd3d"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_85",
+      "operation": "tanh",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.46211715726000974,
+        0.4621171572600098
+      ],
+      "directedBoundBits": [
+        "3fdd9353d7568af3",
+        "3fdd9353d7568af4"
+      ],
+      "acceptanceBounds": [
+        0.4621171572600096,
+        0.4621171572600099
+      ],
+      "acceptanceBoundBits": [
+        "3fdd9353d7568af1",
+        "3fdd9353d7568af6"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_86",
+      "operation": "tanh",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.4621171572600098,
+        -0.46211715726000974
+      ],
+      "directedBoundBits": [
+        "bfdd9353d7568af4",
+        "bfdd9353d7568af3"
+      ],
+      "acceptanceBounds": [
+        -0.4621171572600099,
+        -0.4621171572600096
+      ],
+      "acceptanceBoundBits": [
+        "bfdd9353d7568af6",
+        "bfdd9353d7568af1"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_87",
+      "operation": "tanh",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        0.7615941559557649,
+        0.761594155955765
+      ],
+      "directedBoundBits": [
+        "3fe85efab514f394",
+        "3fe85efab514f395"
+      ],
+      "acceptanceBounds": [
+        0.7615941559557646,
+        0.7615941559557652
+      ],
+      "acceptanceBoundBits": [
+        "3fe85efab514f392",
+        "3fe85efab514f397"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_88",
+      "operation": "tanh",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -0.761594155955765,
+        -0.7615941559557649
+      ],
+      "directedBoundBits": [
+        "bfe85efab514f395",
+        "bfe85efab514f394"
+      ],
+      "acceptanceBounds": [
+        -0.7615941559557652,
+        -0.7615941559557646
+      ],
+      "acceptanceBoundBits": [
+        "bfe85efab514f397",
+        "bfe85efab514f392"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_89",
+      "operation": "tanh",
+      "inputs": [
+        10.0
+      ],
+      "inputBits": [
+        "4024000000000000"
+      ],
+      "directedBounds": [
+        0.9999999958776927,
+        0.9999999958776928
+      ],
+      "directedBoundBits": [
+        "3feffffffdc96f35",
+        "3feffffffdc96f36"
+      ],
+      "acceptanceBounds": [
+        0.9999999958776925,
+        0.9999999958776931
+      ],
+      "acceptanceBoundBits": [
+        "3feffffffdc96f33",
+        "3feffffffdc96f38"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_90",
+      "operation": "tanh",
+      "inputs": [
+        -10.0
+      ],
+      "inputBits": [
+        "c024000000000000"
+      ],
+      "directedBounds": [
+        -0.9999999958776928,
+        -0.9999999958776927
+      ],
+      "directedBoundBits": [
+        "bfeffffffdc96f36",
+        "bfeffffffdc96f35"
+      ],
+      "acceptanceBounds": [
+        -0.9999999958776931,
+        -0.9999999958776925
+      ],
+      "acceptanceBoundBits": [
+        "bfeffffffdc96f38",
+        "bfeffffffdc96f33"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_91",
+      "operation": "tanh",
+      "inputs": [
+        20.0
+      ],
+      "inputBits": [
+        "4034000000000000"
+      ],
+      "directedBounds": [
+        0.9999999999999999,
+        1.0
+      ],
+      "directedBoundBits": [
+        "3fefffffffffffff",
+        "3ff0000000000000"
+      ],
+      "acceptanceBounds": [
+        0.9999999999999997,
+        1.0000000000000004
+      ],
+      "acceptanceBoundBits": [
+        "3feffffffffffffd",
+        "3ff0000000000002"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "tanh_92",
+      "operation": "tanh",
+      "inputs": [
+        -20.0
+      ],
+      "inputBits": [
+        "c034000000000000"
+      ],
+      "directedBounds": [
+        -1.0,
+        -0.9999999999999999
+      ],
+      "directedBoundBits": [
+        "bff0000000000000",
+        "bfefffffffffffff"
+      ],
+      "acceptanceBounds": [
+        -1.0000000000000004,
+        -0.9999999999999997
+      ],
+      "acceptanceBoundBits": [
+        "bff0000000000002",
+        "bfeffffffffffffd"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_93",
+      "operation": "asinh",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.4812118250596034,
+        0.48121182505960347
+      ],
+      "directedBoundBits": [
+        "3fdecc2caec51609",
+        "3fdecc2caec5160a"
+      ],
+      "acceptanceBounds": [
+        0.4812118250596033,
+        0.4812118250596036
+      ],
+      "acceptanceBoundBits": [
+        "3fdecc2caec51607",
+        "3fdecc2caec5160c"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_94",
+      "operation": "asinh",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.48121182505960347,
+        -0.4812118250596034
+      ],
+      "directedBoundBits": [
+        "bfdecc2caec5160a",
+        "bfdecc2caec51609"
+      ],
+      "acceptanceBounds": [
+        -0.4812118250596036,
+        -0.4812118250596033
+      ],
+      "acceptanceBoundBits": [
+        "bfdecc2caec5160c",
+        "bfdecc2caec51607"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_95",
+      "operation": "asinh",
+      "inputs": [
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        0.8813735870195429,
+        0.881373587019543
+      ],
+      "directedBoundBits": [
+        "3fec34366179d426",
+        "3fec34366179d427"
+      ],
+      "acceptanceBounds": [
+        0.8813735870195427,
+        0.8813735870195433
+      ],
+      "acceptanceBoundBits": [
+        "3fec34366179d424",
+        "3fec34366179d429"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_96",
+      "operation": "asinh",
+      "inputs": [
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -0.881373587019543,
+        -0.8813735870195429
+      ],
+      "directedBoundBits": [
+        "bfec34366179d427",
+        "bfec34366179d426"
+      ],
+      "acceptanceBounds": [
+        -0.8813735870195433,
+        -0.8813735870195427
+      ],
+      "acceptanceBoundBits": [
+        "bfec34366179d429",
+        "bfec34366179d424"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_97",
+      "operation": "asinh",
+      "inputs": [
+        1e+20
+      ],
+      "inputBits": [
+        "4415af1d78b58c40"
+      ],
+      "directedBounds": [
+        46.744849040440855,
+        46.74484904044086
+      ],
+      "directedBoundBits": [
+        "40475f57369e9342",
+        "40475f57369e9343"
+      ],
+      "acceptanceBounds": [
+        46.74484904044084,
+        46.744849040440876
+      ],
+      "acceptanceBoundBits": [
+        "40475f57369e9340",
+        "40475f57369e9345"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_98",
+      "operation": "asinh",
+      "inputs": [
+        -1e+20
+      ],
+      "inputBits": [
+        "c415af1d78b58c40"
+      ],
+      "directedBounds": [
+        -46.74484904044086,
+        -46.744849040440855
+      ],
+      "directedBoundBits": [
+        "c0475f57369e9343",
+        "c0475f57369e9342"
+      ],
+      "acceptanceBounds": [
+        -46.744849040440876,
+        -46.74484904044084
+      ],
+      "acceptanceBoundBits": [
+        "c0475f57369e9345",
+        "c0475f57369e9340"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_99",
+      "operation": "asinh",
+      "inputs": [
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        710.4758600739439,
+        710.475860073944
+      ],
+      "directedBoundBits": [
+        "408633ce8fb9f87d",
+        "408633ce8fb9f87e"
+      ],
+      "acceptanceBounds": [
+        710.4758600739436,
+        710.4758600739442
+      ],
+      "acceptanceBoundBits": [
+        "408633ce8fb9f87b",
+        "408633ce8fb9f880"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "asinh_100",
+      "operation": "asinh",
+      "inputs": [
+        -1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "ffefffffffffffff"
+      ],
+      "directedBounds": [
+        -710.475860073944,
+        -710.4758600739439
+      ],
+      "directedBoundBits": [
+        "c08633ce8fb9f87e",
+        "c08633ce8fb9f87d"
+      ],
+      "acceptanceBounds": [
+        -710.4758600739442,
+        -710.4758600739436
+      ],
+      "acceptanceBoundBits": [
+        "c08633ce8fb9f880",
+        "c08633ce8fb9f87b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acosh_101",
+      "operation": "acosh",
+      "inputs": [
+        1.0000000000000002
+      ],
+      "inputBits": [
+        "3ff0000000000001"
+      ],
+      "directedBounds": [
+        2.1073424255447014e-08,
+        2.1073424255447017e-08
+      ],
+      "directedBoundBits": [
+        "3e56a09e667f3bcc",
+        "3e56a09e667f3bcd"
+      ],
+      "acceptanceBounds": [
+        2.1073424255447007e-08,
+        2.1073424255447024e-08
+      ],
+      "acceptanceBoundBits": [
+        "3e56a09e667f3bca",
+        "3e56a09e667f3bcf"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acosh_102",
+      "operation": "acosh",
+      "inputs": [
+        1.5
+      ],
+      "inputBits": [
+        "3ff8000000000000"
+      ],
+      "directedBounds": [
+        0.9624236501192068,
+        0.9624236501192069
+      ],
+      "directedBoundBits": [
+        "3feecc2caec51609",
+        "3feecc2caec5160a"
+      ],
+      "acceptanceBounds": [
+        0.9624236501192066,
+        0.9624236501192072
+      ],
+      "acceptanceBoundBits": [
+        "3feecc2caec51607",
+        "3feecc2caec5160c"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acosh_103",
+      "operation": "acosh",
+      "inputs": [
+        2.0
+      ],
+      "inputBits": [
+        "4000000000000000"
+      ],
+      "directedBounds": [
+        1.3169578969248166,
+        1.3169578969248168
+      ],
+      "directedBoundBits": [
+        "3ff5124271980434",
+        "3ff5124271980435"
+      ],
+      "acceptanceBounds": [
+        1.3169578969248161,
+        1.3169578969248172
+      ],
+      "acceptanceBoundBits": [
+        "3ff5124271980432",
+        "3ff5124271980437"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acosh_104",
+      "operation": "acosh",
+      "inputs": [
+        1e+20
+      ],
+      "inputBits": [
+        "4415af1d78b58c40"
+      ],
+      "directedBounds": [
+        46.744849040440855,
+        46.74484904044086
+      ],
+      "directedBoundBits": [
+        "40475f57369e9342",
+        "40475f57369e9343"
+      ],
+      "acceptanceBounds": [
+        46.74484904044084,
+        46.744849040440876
+      ],
+      "acceptanceBoundBits": [
+        "40475f57369e9340",
+        "40475f57369e9345"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "acosh_105",
+      "operation": "acosh",
+      "inputs": [
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        710.4758600739439,
+        710.475860073944
+      ],
+      "directedBoundBits": [
+        "408633ce8fb9f87d",
+        "408633ce8fb9f87e"
+      ],
+      "acceptanceBounds": [
+        710.4758600739436,
+        710.4758600739442
+      ],
+      "acceptanceBoundBits": [
+        "408633ce8fb9f87b",
+        "408633ce8fb9f880"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atanh_106",
+      "operation": "atanh",
+      "inputs": [
+        0.5
+      ],
+      "inputBits": [
+        "3fe0000000000000"
+      ],
+      "directedBounds": [
+        0.5493061443340548,
+        0.5493061443340549
+      ],
+      "directedBoundBits": [
+        "3fe193ea7aad030a",
+        "3fe193ea7aad030b"
+      ],
+      "acceptanceBounds": [
+        0.5493061443340546,
+        0.5493061443340551
+      ],
+      "acceptanceBoundBits": [
+        "3fe193ea7aad0308",
+        "3fe193ea7aad030d"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atanh_107",
+      "operation": "atanh",
+      "inputs": [
+        -0.5
+      ],
+      "inputBits": [
+        "bfe0000000000000"
+      ],
+      "directedBounds": [
+        -0.5493061443340549,
+        -0.5493061443340548
+      ],
+      "directedBoundBits": [
+        "bfe193ea7aad030b",
+        "bfe193ea7aad030a"
+      ],
+      "acceptanceBounds": [
+        -0.5493061443340551,
+        -0.5493061443340546
+      ],
+      "acceptanceBoundBits": [
+        "bfe193ea7aad030d",
+        "bfe193ea7aad0308"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atanh_108",
+      "operation": "atanh",
+      "inputs": [
+        0.9999999999999999
+      ],
+      "inputBits": [
+        "3fefffffffffffff"
+      ],
+      "directedBounds": [
+        18.71497387511852,
+        18.714973875118524
+      ],
+      "directedBoundBits": [
+        "4032b708872320e1",
+        "4032b708872320e2"
+      ],
+      "acceptanceBounds": [
+        18.714973875118513,
+        18.71497387511853
+      ],
+      "acceptanceBoundBits": [
+        "4032b708872320df",
+        "4032b708872320e4"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atanh_109",
+      "operation": "atanh",
+      "inputs": [
+        -0.9999999999999999
+      ],
+      "inputBits": [
+        "bfefffffffffffff"
+      ],
+      "directedBounds": [
+        -18.714973875118524,
+        -18.71497387511852
+      ],
+      "directedBoundBits": [
+        "c032b708872320e2",
+        "c032b708872320e1"
+      ],
+      "acceptanceBounds": [
+        -18.71497387511853,
+        -18.714973875118513
+      ],
+      "acceptanceBoundBits": [
+        "c032b708872320e4",
+        "c032b708872320df"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_110",
+      "operation": "atan2",
+      "inputs": [
+        1.0,
+        1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000",
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        0.7853981633974483,
+        0.7853981633974484
+      ],
+      "directedBoundBits": [
+        "3fe921fb54442d18",
+        "3fe921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        0.7853981633974481,
+        0.7853981633974486
+      ],
+      "acceptanceBoundBits": [
+        "3fe921fb54442d16",
+        "3fe921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_111",
+      "operation": "atan2",
+      "inputs": [
+        1.0,
+        -1.0
+      ],
+      "inputBits": [
+        "3ff0000000000000",
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        2.356194490192345,
+        2.3561944901923453
+      ],
+      "directedBoundBits": [
+        "4002d97c7f3321d2",
+        "4002d97c7f3321d3"
+      ],
+      "acceptanceBounds": [
+        2.356194490192344,
+        2.356194490192346
+      ],
+      "acceptanceBoundBits": [
+        "4002d97c7f3321d0",
+        "4002d97c7f3321d5"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_112",
+      "operation": "atan2",
+      "inputs": [
+        -1.0,
+        -1.0
+      ],
+      "inputBits": [
+        "bff0000000000000",
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        -2.3561944901923453,
+        -2.356194490192345
+      ],
+      "directedBoundBits": [
+        "c002d97c7f3321d3",
+        "c002d97c7f3321d2"
+      ],
+      "acceptanceBounds": [
+        -2.356194490192346,
+        -2.356194490192344
+      ],
+      "acceptanceBoundBits": [
+        "c002d97c7f3321d5",
+        "c002d97c7f3321d0"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_113",
+      "operation": "atan2",
+      "inputs": [
+        -1.0,
+        1.0
+      ],
+      "inputBits": [
+        "bff0000000000000",
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        -0.7853981633974484,
+        -0.7853981633974483
+      ],
+      "directedBoundBits": [
+        "bfe921fb54442d19",
+        "bfe921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -0.7853981633974486,
+        -0.7853981633974481
+      ],
+      "acceptanceBoundBits": [
+        "bfe921fb54442d1b",
+        "bfe921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_114",
+      "operation": "atan2",
+      "inputs": [
+        1.0,
+        2.0
+      ],
+      "inputBits": [
+        "3ff0000000000000",
+        "4000000000000000"
+      ],
+      "directedBounds": [
+        0.4636476090008061,
+        0.46364760900080615
+      ],
+      "directedBoundBits": [
+        "3fddac670561bb4f",
+        "3fddac670561bb50"
+      ],
+      "acceptanceBounds": [
+        0.463647609000806,
+        0.46364760900080626
+      ],
+      "acceptanceBoundBits": [
+        "3fddac670561bb4d",
+        "3fddac670561bb52"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_115",
+      "operation": "atan2",
+      "inputs": [
+        2.0,
+        1.0
+      ],
+      "inputBits": [
+        "4000000000000000",
+        "3ff0000000000000"
+      ],
+      "directedBounds": [
+        1.1071487177940904,
+        1.1071487177940906
+      ],
+      "directedBoundBits": [
+        "3ff1b6e192ebbe44",
+        "3ff1b6e192ebbe45"
+      ],
+      "acceptanceBounds": [
+        1.10714871779409,
+        1.107148717794091
+      ],
+      "acceptanceBoundBits": [
+        "3ff1b6e192ebbe42",
+        "3ff1b6e192ebbe47"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_116",
+      "operation": "atan2",
+      "inputs": [
+        1.0,
+        0.0
+      ],
+      "inputBits": [
+        "3ff0000000000000",
+        "0000000000000000"
+      ],
+      "directedBounds": [
+        1.5707963267948966,
+        1.5707963267948968
+      ],
+      "directedBoundBits": [
+        "3ff921fb54442d18",
+        "3ff921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        1.5707963267948961,
+        1.5707963267948972
+      ],
+      "acceptanceBoundBits": [
+        "3ff921fb54442d16",
+        "3ff921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_117",
+      "operation": "atan2",
+      "inputs": [
+        -1.0,
+        0.0
+      ],
+      "inputBits": [
+        "bff0000000000000",
+        "0000000000000000"
+      ],
+      "directedBounds": [
+        -1.5707963267948968,
+        -1.5707963267948966
+      ],
+      "directedBoundBits": [
+        "bff921fb54442d19",
+        "bff921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -1.5707963267948972,
+        -1.5707963267948961
+      ],
+      "acceptanceBoundBits": [
+        "bff921fb54442d1b",
+        "bff921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_118",
+      "operation": "atan2",
+      "inputs": [
+        0.0,
+        -1.0
+      ],
+      "inputBits": [
+        "0000000000000000",
+        "bff0000000000000"
+      ],
+      "directedBounds": [
+        3.141592653589793,
+        3.1415926535897936
+      ],
+      "directedBoundBits": [
+        "400921fb54442d18",
+        "400921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        3.1415926535897922,
+        3.1415926535897944
+      ],
+      "acceptanceBoundBits": [
+        "400921fb54442d16",
+        "400921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_119",
+      "operation": "atan2",
+      "inputs": [
+        5e-324,
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "0000000000000001",
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        0.0,
+        5e-324
+      ],
+      "directedBoundBits": [
+        "0000000000000000",
+        "0000000000000001"
+      ],
+      "acceptanceBounds": [
+        0.0,
+        0.0
+      ],
+      "acceptanceBoundBits": [
+        "0000000000000000",
+        "0000000000000000"
+      ],
+      "exactCanonicalZero": true
+    },
+    {
+      "id": "atan2_120",
+      "operation": "atan2",
+      "inputs": [
+        -5e-324,
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "8000000000000001",
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        -5e-324,
+        -0.0
+      ],
+      "directedBoundBits": [
+        "8000000000000001",
+        "8000000000000000"
+      ],
+      "acceptanceBounds": [
+        0.0,
+        0.0
+      ],
+      "acceptanceBoundBits": [
+        "0000000000000000",
+        "0000000000000000"
+      ],
+      "exactCanonicalZero": true
+    },
+    {
+      "id": "atan2_121",
+      "operation": "atan2",
+      "inputs": [
+        1.7976931348623157e+308,
+        5e-324
+      ],
+      "inputBits": [
+        "7fefffffffffffff",
+        "0000000000000001"
+      ],
+      "directedBounds": [
+        1.5707963267948966,
+        1.5707963267948968
+      ],
+      "directedBoundBits": [
+        "3ff921fb54442d18",
+        "3ff921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        1.5707963267948961,
+        1.5707963267948972
+      ],
+      "acceptanceBoundBits": [
+        "3ff921fb54442d16",
+        "3ff921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_122",
+      "operation": "atan2",
+      "inputs": [
+        1.7976931348623157e+308,
+        -5e-324
+      ],
+      "inputBits": [
+        "7fefffffffffffff",
+        "8000000000000001"
+      ],
+      "directedBounds": [
+        1.5707963267948966,
+        1.5707963267948968
+      ],
+      "directedBoundBits": [
+        "3ff921fb54442d18",
+        "3ff921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        1.5707963267948961,
+        1.5707963267948972
+      ],
+      "acceptanceBoundBits": [
+        "3ff921fb54442d16",
+        "3ff921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_123",
+      "operation": "atan2",
+      "inputs": [
+        -1.7976931348623157e+308,
+        5e-324
+      ],
+      "inputBits": [
+        "ffefffffffffffff",
+        "0000000000000001"
+      ],
+      "directedBounds": [
+        -1.5707963267948968,
+        -1.5707963267948966
+      ],
+      "directedBoundBits": [
+        "bff921fb54442d19",
+        "bff921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -1.5707963267948972,
+        -1.5707963267948961
+      ],
+      "acceptanceBoundBits": [
+        "bff921fb54442d1b",
+        "bff921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_124",
+      "operation": "atan2",
+      "inputs": [
+        -1.7976931348623157e+308,
+        -5e-324
+      ],
+      "inputBits": [
+        "ffefffffffffffff",
+        "8000000000000001"
+      ],
+      "directedBounds": [
+        -1.5707963267948968,
+        -1.5707963267948966
+      ],
+      "directedBoundBits": [
+        "bff921fb54442d19",
+        "bff921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -1.5707963267948972,
+        -1.5707963267948961
+      ],
+      "acceptanceBoundBits": [
+        "bff921fb54442d1b",
+        "bff921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_125",
+      "operation": "atan2",
+      "inputs": [
+        1.7976931348623157e+308,
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "7fefffffffffffff",
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        0.7853981633974483,
+        0.7853981633974484
+      ],
+      "directedBoundBits": [
+        "3fe921fb54442d18",
+        "3fe921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        0.7853981633974481,
+        0.7853981633974486
+      ],
+      "acceptanceBoundBits": [
+        "3fe921fb54442d16",
+        "3fe921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_126",
+      "operation": "atan2",
+      "inputs": [
+        -1.7976931348623157e+308,
+        1.7976931348623157e+308
+      ],
+      "inputBits": [
+        "ffefffffffffffff",
+        "7fefffffffffffff"
+      ],
+      "directedBounds": [
+        -0.7853981633974484,
+        -0.7853981633974483
+      ],
+      "directedBoundBits": [
+        "bfe921fb54442d19",
+        "bfe921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -0.7853981633974486,
+        -0.7853981633974481
+      ],
+      "acceptanceBoundBits": [
+        "bfe921fb54442d1b",
+        "bfe921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_127",
+      "operation": "atan2",
+      "inputs": [
+        5e-324,
+        5e-324
+      ],
+      "inputBits": [
+        "0000000000000001",
+        "0000000000000001"
+      ],
+      "directedBounds": [
+        0.7853981633974483,
+        0.7853981633974484
+      ],
+      "directedBoundBits": [
+        "3fe921fb54442d18",
+        "3fe921fb54442d19"
+      ],
+      "acceptanceBounds": [
+        0.7853981633974481,
+        0.7853981633974486
+      ],
+      "acceptanceBoundBits": [
+        "3fe921fb54442d16",
+        "3fe921fb54442d1b"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_128",
+      "operation": "atan2",
+      "inputs": [
+        5e-324,
+        -5e-324
+      ],
+      "inputBits": [
+        "0000000000000001",
+        "8000000000000001"
+      ],
+      "directedBounds": [
+        2.356194490192345,
+        2.3561944901923453
+      ],
+      "directedBoundBits": [
+        "4002d97c7f3321d2",
+        "4002d97c7f3321d3"
+      ],
+      "acceptanceBounds": [
+        2.356194490192344,
+        2.356194490192346
+      ],
+      "acceptanceBoundBits": [
+        "4002d97c7f3321d0",
+        "4002d97c7f3321d5"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_129",
+      "operation": "atan2",
+      "inputs": [
+        -5e-324,
+        -5e-324
+      ],
+      "inputBits": [
+        "8000000000000001",
+        "8000000000000001"
+      ],
+      "directedBounds": [
+        -2.3561944901923453,
+        -2.356194490192345
+      ],
+      "directedBoundBits": [
+        "c002d97c7f3321d3",
+        "c002d97c7f3321d2"
+      ],
+      "acceptanceBounds": [
+        -2.356194490192346,
+        -2.356194490192344
+      ],
+      "acceptanceBoundBits": [
+        "c002d97c7f3321d5",
+        "c002d97c7f3321d0"
+      ],
+      "exactCanonicalZero": false
+    },
+    {
+      "id": "atan2_130",
+      "operation": "atan2",
+      "inputs": [
+        -5e-324,
+        5e-324
+      ],
+      "inputBits": [
+        "8000000000000001",
+        "0000000000000001"
+      ],
+      "directedBounds": [
+        -0.7853981633974484,
+        -0.7853981633974483
+      ],
+      "directedBoundBits": [
+        "bfe921fb54442d19",
+        "bfe921fb54442d18"
+      ],
+      "acceptanceBounds": [
+        -0.7853981633974486,
+        -0.7853981633974481
+      ],
+      "acceptanceBoundBits": [
+        "bfe921fb54442d1b",
+        "bfe921fb54442d16"
+      ],
+      "exactCanonicalZero": false
+    }
+  ]
+}

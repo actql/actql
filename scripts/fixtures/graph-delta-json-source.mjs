@@ -33,10 +33,10 @@ const delta = {version: 'actql-graph-delta/0.1', graph_contract_cid: contractCid
   nodes: {add: [], remove: [], update: [{before, after}]}, edges: {add: [], remove: [], update: []}};
 const deltaText = canonicalText(delta);
 
-export const graphDeltaJsonSource = 'DATA n = SELECT 1 AS node_key, 7 AS p; '
-  + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); '
-  + "DATA changes = SELECT JSON r'''" + deltaText + "''' AS delta; "
-  + 'FROM g |> apply_graph_delta(with: changes, field: "delta") '
+export const graphDeltaJsonSource = 'WITH n AS (SELECT 1 AS node_key, 7 AS p) '
+  + ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) '
+  + ", changes AS (SELECT JSON r'''" + deltaText + "''' AS delta) "
+  + 'FROM g |> apply_graph_delta(with: changes, field: `delta`) '
   + '|> node_rows() |> SELECT p, node_key |> RESULT answer';
 
 export const graphDeltaJsonProgram = {version: 'actql/0.1', id: 'fixture.query_pair',

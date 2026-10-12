@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "moonbit.h"
+#include "../filesystem/private_file_projection.h"
 
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -368,6 +369,7 @@ static bool actql_bearer_b64token(const unsigned char *token, size_t length) {
 // secret is zeroed on every path and never enters an error message.
 static bool actql_read_bearer_authorization(
   const char *path,
+  actql_native_private_file_projection *projection,
   size_t max_bytes,
   bool strict,
   char **authorization_out,
@@ -376,13 +378,17 @@ static bool actql_read_bearer_authorization(
   *authorization_out = NULL;
   *authorization_length_out = 0;
   enum { ACTQL_BEARER_BUFFER_BYTES = 8192 };
-  if (path == NULL || max_bytes == 0 || max_bytes > ACTQL_BEARER_BUFFER_BYTES) {
+  if ((path == NULL && projection == NULL) || max_bytes == 0 ||
+      max_bytes > ACTQL_BEARER_BUFFER_BYTES) {
     return false;
   }
   struct stat expected_secret;
   bool secret_generation_valid =
-    lstat(path, &expected_secret) == 0 && S_ISREG(expected_secret.st_mode);
-  int descriptor = secret_generation_valid
+    projection != NULL ||
+    (lstat(path, &expected_secret) == 0 && S_ISREG(expected_secret.st_mode));
+  int descriptor = projection != NULL
+    ? actql_native_private_file_projection_open(projection)
+    : secret_generation_valid
     ? open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
     : -1;
   if (descriptor < 0) return false;
@@ -391,7 +397,9 @@ static bool actql_read_bearer_authorization(
   struct stat opened_secret;
   bool secret_valid = fstat(descriptor, &opened_secret) == 0 &&
     S_ISREG(opened_secret.st_mode) &&
-    actql_same_file_generation(&expected_secret, &opened_secret) &&
+    (projection != NULL
+      ? actql_native_private_file_projection_matches(projection, descriptor)
+      : actql_same_file_generation(&expected_secret, &opened_secret)) &&
     (opened_secret.st_mode & 077) == 0 &&
     (!strict || opened_secret.st_uid == geteuid());
   while (secret_valid && secret_length <= max_bytes) {
@@ -441,7 +449,9 @@ static bool actql_read_bearer_authorization(
   memset(verified_secret, 0, sizeof(verified_secret));
   struct stat completed_secret;
   if (fstat(descriptor, &completed_secret) != 0 ||
-      !actql_same_file_generation(&opened_secret, &completed_secret)) {
+      !actql_same_file_generation(&opened_secret, &completed_secret) ||
+      (projection != NULL &&
+       !actql_native_private_file_projection_matches(projection, descriptor))) {
     secret_valid = false;
   }
   if (close(descriptor) != 0) secret_valid = false;
@@ -619,6 +629,7 @@ int32_t actql_native_http_client_post_json(
   if (client->bearer_path != NULL &&
       !actql_read_bearer_authorization(
         client->bearer_path,
+        NULL,
         ACTQL_BEARER_FILE_MAX_BYTES,
         true,
         &authorization,
@@ -789,6 +800,13 @@ invalid:
   return NULL;
 }
 
+static bool actql_http_credential_deadline_current(int64_t expires_at) {
+  struct timespec observed_time;
+  return expires_at > 0 && clock_gettime(CLOCK_REALTIME, &observed_time) == 0 &&
+    observed_time.tv_sec >= 0 && observed_time.tv_sec <= INT64_MAX / 1000 &&
+    observed_time.tv_sec * 1000 + observed_time.tv_nsec / 1000000 < expires_at;
+}
+
 static int32_t actql_native_http_client_request_owned(
   actql_native_http_client *client,
   moonbit_bytes_t method,
@@ -800,6 +818,7 @@ static int32_t actql_native_http_client_request_owned(
   moonbit_bytes_t body,
   int32_t body_length,
   const char *bearer_path,
+  actql_native_private_file_projection *preparation_projection,
   bool require_deadline,
   int64_t expires_at_milliseconds
 ) {
@@ -813,7 +832,8 @@ static int32_t actql_native_http_client_request_owned(
   bool is_put = method_text != NULL && strcmp(method_text, "PUT") == 0;
   bool is_patch = method_text != NULL && strcmp(method_text, "PATCH") == 0;
   if (url_text == NULL || (!is_get && !is_post && !is_put && !is_patch) ||
-      body_length < 0 || (is_get && body_length != 0)) {
+      body_length < 0 || (is_get && body_length != 0) ||
+      (preparation_projection != NULL && (!is_get || !require_deadline))) {
     free(method_text);
     free(url_text);
     actql_replace_error(&client->error, "invalid HTTPS request");
@@ -824,7 +844,7 @@ static int32_t actql_native_http_client_request_owned(
     client,
     headers_block,
     headers_length,
-    bearer_path != NULL,
+    bearer_path != NULL || preparation_projection != NULL,
     &headers_valid
   );
   if (!headers_valid) {
@@ -832,13 +852,14 @@ static int32_t actql_native_http_client_request_owned(
     free(url_text);
     return 6;
   }
-  if (bearer_path != NULL) {
+  if (bearer_path != NULL || preparation_projection != NULL) {
     char *authorization = NULL;
     size_t authorization_length = 0;
     if (!actql_read_bearer_authorization(
           bearer_path,
+          preparation_projection,
           require_deadline ? 8192 : ACTQL_BEARER_FILE_MAX_BYTES,
-          !require_deadline,
+          preparation_projection != NULL || !require_deadline,
           &authorization,
           &authorization_length
         )) {
@@ -863,13 +884,9 @@ static int32_t actql_native_http_client_request_owned(
     headers = next_headers;
   }
   if (require_deadline) {
-    struct timespec observed_time;
-    bool deadline_valid = expires_at_milliseconds > 0 &&
-      clock_gettime(CLOCK_REALTIME, &observed_time) == 0 &&
-      observed_time.tv_sec >= 0 &&
-      observed_time.tv_sec <= INT64_MAX / 1000 &&
-      observed_time.tv_sec * 1000 + observed_time.tv_nsec / 1000000 <
-        expires_at_milliseconds;
+    bool deadline_valid = actql_http_credential_deadline_current(
+      expires_at_milliseconds
+    );
     if (!deadline_valid) {
       client->library->slist_free_all(headers);
       free(method_text);
@@ -925,6 +942,29 @@ static int32_t actql_native_http_client_request_owned(
   ACTQL_SET(ACTQL_CURLOPT_XFERINFOFUNCTION, actql_transfer_progress);
   ACTQL_SET(ACTQL_CURLOPT_XFERINFODATA, client);
 #undef ACTQL_SET
+  // Recheck the original installation after configuration, immediately before
+  // entering transport. This never adopts a newly replaced credential file.
+  if (configured && preparation_projection != NULL) {
+    int descriptor = actql_native_private_file_projection_open(
+      preparation_projection
+    );
+    bool current_installation = descriptor >= 0;
+    if (descriptor >= 0 && close(descriptor) != 0) current_installation = false;
+    bool current_deadline = actql_http_credential_deadline_current(
+      expires_at_milliseconds
+    );
+    bool cancelled = atomic_load_explicit(&client->cancelled, memory_order_relaxed);
+    if (!current_installation || !current_deadline || cancelled) {
+      client->library->slist_free_all(headers);
+      client->library->easy_cleanup(curl);
+      free(method_text);
+      free(url_text);
+      actql_replace_error(&client->error, !current_installation
+        ? "bearer credential unavailable" : !current_deadline
+        ? "credential deadline expired" : "HTTP request cancelled");
+      return !current_installation ? 5 : !current_deadline ? 4 : 2;
+    }
+  }
   CURLcode code = configured
     ? client->library->easy_perform(curl)
     : ACTQL_CURLE_WRITE_ERROR;
@@ -963,7 +1003,7 @@ int32_t actql_native_http_client_request(
   return actql_native_http_client_request_owned(
     client, method, method_length, url, url_length,
     headers_block, headers_length, body, body_length,
-    client == NULL ? NULL : client->bearer_path, false, 0
+    client == NULL ? NULL : client->bearer_path, NULL, false, 0
   );
 }
 
@@ -981,10 +1021,37 @@ int32_t actql_native_http_client_request_bearer_file(
   int32_t result = actql_native_http_client_request_owned(
     client, method, method_length, url, url_length,
     headers_block, headers_length, body, body_length,
-    path, true, expires_at_milliseconds
+    path, NULL, true, expires_at_milliseconds
   );
   free(path);
   return result;
+}
+
+int32_t actql_native_http_client_get_local_preparation(
+  actql_native_http_client *client,
+  moonbit_bytes_t method, int32_t method_length,
+  moonbit_bytes_t url, int32_t url_length,
+  moonbit_bytes_t headers, int32_t headers_length,
+  moonbit_bytes_t body, int32_t body_length,
+  actql_native_private_file_projection *projection,
+  int64_t expires_at_milliseconds
+) {
+  if (projection == NULL) return 5;
+  return actql_native_http_client_request_owned(
+    client, method, method_length, url, url_length,
+    headers, headers_length, body, body_length,
+    NULL, projection, true, expires_at_milliseconds
+  );
+}
+
+int64_t actql_native_http_client_response_limit(actql_native_http_client *client) {
+  if (client == NULL || client->library == NULL ||
+      client->max_response_bytes < 0 || client->max_response_bytes > INT32_MAX) {
+    return -2;
+  }
+  if (client->closed) return -1;
+  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return -3;
+  return client->max_response_bytes;
 }
 
 int32_t actql_native_http_client_status(actql_native_http_client *client) {

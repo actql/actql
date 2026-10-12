@@ -18,10 +18,10 @@ const parameterDeclarations = {p2: payload, p1: payload, p3: payload, p4: payloa
   o2: other, o1: other, o3: other, o4: other};
 const parameters = {p2: rows[0].payload, p1: null, p3: rows[2].payload, p4: rows[3].payload,
   o2: rows[0].other, o1: rows[1].other, o3: rows[2].other, o4: rows[3].other};
-const data = 'DATA objects = SELECT 2 AS id, @p2 AS payload, @o2 AS other '
+const data = 'WITH objects AS (SELECT 2 AS id, @p2 AS payload, @o2 AS other '
   + 'UNION ALL SELECT 1 AS id, @p1 AS payload, @o1 AS other '
   + 'UNION ALL SELECT 3 AS id, @p3 AS payload, @o3 AS other '
-  + 'UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other; ';
+  + 'UNION ALL SELECT 4 AS id, @p4 AS payload, @o4 AS other) ';
 const columns = [{name: 'score', contract: {...number, nullable: true}},
   {name: 'id', contract: number}];
 const expected = [{score: 10, id: 3}, {score: 10, id: 4},

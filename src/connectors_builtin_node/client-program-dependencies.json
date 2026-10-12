@@ -1,12 +1,8 @@
 {
   "imports": [
     {
-      "path": "actql/actql/value_contract",
-      "alias": "parameter_contract"
-    },
-    {
-      "path": "actql/actql/capacity_policy",
-      "alias": "capacity_policy"
+      "path": "actql/actql/client_source_publication",
+      "alias": "source_publication"
     },
     {
       "path": "actql/actql/connectors/duckdb/host",
@@ -31,6 +27,14 @@
     {
       "path": "actql/actql/connectors/local/table",
       "alias": "local_table"
+    },
+    {
+      "path": "actql/actql/value_contract",
+      "alias": "parameter_contract"
+    },
+    {
+      "path": "actql/actql/capacity_policy",
+      "alias": "capacity_policy"
     }
   ]
 }

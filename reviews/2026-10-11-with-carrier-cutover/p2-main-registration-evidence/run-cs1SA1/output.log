@@ -1,0 +1,6 @@
+Total tests: 16, passed: 16, failed: 0.
+["moon","test","--target","js","src/query_syntax/sga_role_contract_test.mbt","src/query_syntax/producer_scope_wbtest.mbt","src/query_program/sga_role_lowering_test.mbt","src/run_publication_host/client_values_run_materials_wbtest.mbt"]: executed; counts={"tests":16,"passed":16,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-ILOMVY
+Total tests: 1, passed: 1, failed: 0.
+["moon","test","--target","js","src/canonical_json/identity_vectors.generated_test.mbt","--filter","contract spec/manifests/actql-grammar-0.1.json#"]: executed; counts={"tests":1,"passed":1,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-70R5Y3

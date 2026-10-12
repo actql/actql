@@ -1,0 +1,48 @@
+{
+  "startedAt": "2026-10-11T21:25:36.746Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format changed WITH acquisition Result and JOIN callers",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/with_result_owners_test.mbt",
+        "src/query_program/with_acquisition_test.mbt",
+        "src/query_program/with_join_test.mbt",
+        "src/query_program/join_chain_test.mbt",
+        "src/query_program/pipe_join_ranges_test.mbt",
+        "src/query_program/pipe_join_input_test.mbt"
+      ],
+      "startedAt": "2026-10-11T21:25:36.846Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T21:25:37.063Z",
+      "endedAt": "2026-10-11T21:25:37.067Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "1994c34f-b2ed-47f2-a436-8212fcc8dac4",
+    "pid": 78493,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T21:25:36.832Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-BR3GM1"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T21:25:37.146Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

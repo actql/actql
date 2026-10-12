@@ -91,7 +91,7 @@ fn QueryParser::resolve_window(
   let mut inherited : AnalyticWindow? = None
   for (candidate, definition) in definitions {
     self.spend(1)
-    if same_cte_name(candidate, name) {
+    if same_binding_name(candidate, name) {
       inherited = Some(definition)
       break
     }
@@ -140,7 +140,7 @@ fn QueryParser::window_definitions(
     let name = self.name()
     for (previous, _) in definitions {
       self.spend(1)
-      if same_cte_name(previous, name) {
+      if same_binding_name(previous, name) {
         raise QueryAbort("Duplicate named window", at)
       }
     }

@@ -4,6 +4,7 @@ import {
   "actql/actql/client_local_preparation" @input,
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
+  "actql/actql/publication_payload" @payload,
   "actql/actql/check_environment" @environment,
   "actql/actql/program_check" @checked,
   "actql/actql/execution_authorization" @authorization,
@@ -23,4 +24,5 @@ import {
 import {
   "actql/actql/canonical_json" @identity,
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
 } for "wbtest"

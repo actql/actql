@@ -89,13 +89,21 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
     compute.host is Some(host) &&
     compute.start is Some(start) &&
     value.run_configurations.get(record.current_configuration) is Some(current) &&
-    value.native_attempts.get(compute.attempt) is Some(original) &&
-    value.native_sources.get(original.configuration) is Some(source) &&
-    value.runs.get(source.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
+    stored_compute_original_run(value, compute)
+    is Some({ outcome: Some(Ok(plan)), .. }) else {
     return -2
   }
   if value.closing || record.closing || compute.closing {
     return -5
+  }
+  // Fix original publication scope before the activation Owner is invoked.
+  // Current Run/Source access is separate from the task dispatch permit.
+  guard compute_publication_preflight(value, record.compute)
+    is Some((_, preflight)) else {
+    return -36
+  }
+  if !stored_preflight_current(value, preflight, current.account) {
+    return -32
   }
   if record.operations is Some(_) || record.issue is Some(_) {
     return 0

@@ -1029,7 +1029,179 @@ errors rather than truncating to a first row. Canonical CSV is unchanged; human
 formatting or formula escaping is an explicit transformation producing a distinct
 artifact, while original bytes remain an Artifact.
 
+## Private Model raw response custody
+
+The owned `actql-model-raw-capture-policy/0.1` body fixes a Host-selected
+private capture purpose, original Run/ModelTask/invocation scope, physical
+response profile, Store authority, effective data policy, actual retention
+contract, metadata retention policy and clock contract. Its timestamp members
+are explicit Host selections, not derived from Provider retention or a Result
+policy. Their canonical order is
+`selected_at <= available_until <= delete_by <= extension_ceiling_at` and
+`delete_by <= metadata_delete_by`. Retry, restart and a late saved acknowledgement
+do not extend any of these values. Integrity admission of this body or its
+references is not authority to capture, read, disclose or execute.
+
+The installed Host's private registration must bind these admitted originals
+to the original compiled observation policy, actual private capture permission,
+selected policy applicability, trusted clock and existing Store custody.
+An encryption key, authority string, caller CID or Provider retention claim is
+not this registration. Private saving and disclosure are separately authorized;
+expiry, revocation and cleanup use the existing Artifact/Store owners.
+
+The closed `actql-model-raw-response/0.1` envelope identifies one original Run,
+scope, Slot, attempt (initial index 1), existing `entered` phase, response
+profile, Store authority and selected raw capture policy. It records the exact
+raw content CID, observed byte count, actual HTTP status and transport EOF,
+and the Host's observation timestamp. Missing model/request/usage/media facts
+are not filled. Its identity excludes exactly `self_cid`; raw content is hashed
+as original bytes, independently of the canonical descriptor and later
+structured-response identity. There is no future Invocation reference or
+response-success assertion in either preimage. Existing closed bodies and
+their preimages are unchanged.
+
+The existing private holding retains an encrypted descriptor and original
+encrypted byte object under the same scoped cell. A trusted Store adapter
+reconfirms both byte identities and directory durability before reporting a
+saved observation to the original Model Entry owner. A different Entry cannot
+adopt that observation by presenting equal CID strings. The saved observation
+is not dispatch, completion, retention or disclosure permission. A lost commit
+response reconciles the same cell; unresolved persistence remains pending or
+unknown without another Model send.
+
+Invalid UTF-8, malformed JSON, a rejected shape and partial/no-EOF responses
+may have saved raw observations but do not become successful answers. Only
+fatal UTF-8 decoding of the same confirmed complete body may enter the Chat
+child. All remaining raw bytes, decoded text, parser/answer aliases, Store
+encoding/AEAD buffers and controls remain included in the original Ledger's
+funded simultaneous holding until actually retired. Saving alone does not prove
+heap retirement or enable an unfunded public profile.
+
+### Original Model private storage binding
+
+`actql-model-original-storage-binding/0.1` is a closed, self-addressed
+projection of one actual selected private Store and installation key
+generation. It is not a grant. Its complete required fields are `version`,
+`store_contract_wire`, `store_contract_cid`, `store_authority_cid`,
+`key_generation_cid`, `private_namespace` and `self_cid`.
+
+`store_contract_wire` is the existing Store admission's exact three-field
+serialization, ordered `version`, `isolation`, `store_authority_cid`, without
+whitespace. Its version is `actql-local-publication-store/0.1`; isolation is
+`execution-namespace`. Its SHA-256 over those UTF-8 bytes must equal
+`store_contract_cid`; its authority must equal the outer authority. This
+does not change the existing Store file admission or repair a saved artifact.
+`key_generation_cid` is the digest of the actual installation key generation;
+the raw key and directory/path are not present. `private_namespace` is exactly
+`local-continuation-private`. The outer canonical JSON preimage orders keys
+lexicographically and excludes only `self_cid`.
+
+Neither a holding CID nor the original resource artifact's own CID is included:
+the origin's `storage_binding_cid` refers to this prior installation projection,
+and the later receipt separately authenticates the derived holding. Thus no
+self-hash cycle is introduced. The existing Store/Private Evidence admission
+also retains a separate opaque nominal handle to its actual original custody.
+Copying these fields, admitting their semantic CID, comparing configurations,
+or restarting with a saved handle does not reproduce that custody. Re-observe
+the actual Store before adopting the binding; foreign or changed originals
+refuse. No read, resource-restoration, dispatch or release permission follows.
+
+The physical supplier must fund the projection, original handle, verification
+and metadata/Store workspaces before public use. This kind alone does not adopt
+a numerical profile, current resource cut or journal CAS.
+
+<!-- model-original-storage-binding-pins:start -->
+```text
+../../../spec/contracts/actql-run-publication.json#/schemas/model_original_storage_binding sha256:b3906487cb64d2c9a7c5a271358d971051e76884e0d795b1c6ad64c3f00d96f1
+```
+<!-- model-original-storage-binding-pins:end -->
+
+### Original Model journal data identities
+
+`actql-model-journal-entry/0.1` and
+`actql-model-journal-settlement/0.1` identify admitted original journal facts.
+Their closed canonical JSON preimages preserve original string values, order
+keys lexicographically and exclude exactly `self_cid`. They are data identities,
+not acknowledgement, custody, park, current-cut, restoration or send grants.
+Neither changes the existing attempt, authority or capture preimages.
+
+An Entry contains the original `run_id`, `run_definition_cid`,
+`prepared_invocation_cid`, `scope_cid`, `provider_binding_cid`,
+`input_artifact_cid`, `task_index`, `strategy_revision`, `ordinal`, `slot_cid`,
+`attempt_index`, `attempt_cid`, `dispatch_authority_cid`, `admitted_at` and
+`model_grant_expires_at`. These map to the original admitted full Entry's
+camel-case members; `dispatch_authority_cid` names the actual original admitted
+dispatch authority (including its Run, context, policy and principal bindings).
+It is not inferred from the attempt CID. Journal integer members retain the
+existing nonnegative safe-integer domain; attempt and claim generation are
+positive. This does not change the Ledger's quantity domains.
+
+`provenance` is `immediate` or `deferred`. Exactly the corresponding nested
+object is present and the other is null. `immediate` contains the actual
+admission's `run_valid_until`, `dispatch_valid_until` and nullable
+`parent_resume_fence`. An observed parent contains exactly `checkpoint_cid`,
+`intent_id`, `claimant` and `generation`; an ordinary immediate Entry has null,
+not a fabricated approval or resolution. `deferred` contains the actual
+admission's `checkpoint_cid`, `intent_id`, `claimant`, `generation`,
+`resolution_cid`, `verified_resolution_cid`, `lease_expires_ms`,
+`prepare_attempt_id` (null for this Model admission), `kind`
+(`model_invocation`), `required_artifact_cid`, nullable `decision_subject_cid`,
+`requested_claims`, nullable `configuration_cid`, `observed_claims`,
+`authority` and `approval_expires_at`. Ordered claim strings are preserved.
+These members are projections of the original admission and continuation,
+not caller authority. Original admission/Entry/authority cross-references must
+agree before a trusted journal issuer may use this data identity.
+
+A settlement contains `entry_identity_cid`, the actual saved `state`
+(`SavedSuccess` or `SavedFailure`), `durable: true`, actual `retry_allowed`,
+`settled_at` and closed `evidence`. Its required references are
+`model_call_attempt`, `model_dispatch_authority`, `model_attempt_accounting`
+and `model_attempt_outcome`; each contains the actual `cid` and `holding_cid`.
+`model_slot_capture` and `model_capture_bundle` use that reference shape when
+observed, otherwise null. `terminal_failure` preserves an observed boolean,
+otherwise null. A partially saved failure does not lose an observed capture or
+invent an absent response, receipt or bundle. `SavedSuccess` cannot allow retry.
+Unknown/unsent attempts have no saved settlement identity. `settled_at` is the
+actual original journal row's timestamp, not a fresh observation clock value.
+
+The trusted issuer obtains these facts from the original admitted full Entry
+and saved settlement rows in the same journal. Missing or unrepresentable
+facts leave this projection unavailable and retain original custody; they are
+not repaired, classified as answer failure or generalized into a language ban.
+Shape/CID admission of copied data never authenticates the actual journal,
+Store or original resource state. A stable current cut additionally requires
+the original parked/stopping resource receipt and committed journal fences.
+Readonly observations and equal Run revisions alone do not establish that cut.
+
+<!-- model-journal-identity-pins:start -->
+```text
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_journal_entry sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_journal_settlement sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b
+```
+<!-- model-journal-identity-pins:end -->
+
+<!-- model-raw-capture-pins:start -->
+```text
+../../../spec/contracts/actql-run-publication.json#/schemas/model_raw_capture_policy sha256:f542a5957ce196eb56105b6b5a81aa4f51c38ccc24d335855b8df0dad3dcac21
+../../../spec/contracts/actql-run-publication.json#/schemas/model_raw_response sha256:07f7c91e32a97d3aaf58381b2fee15bed860021875b3cb2b0e5fc646aa5a5ca6
+```
+<!-- model-raw-capture-pins:end -->
+
 <a id="machine-contracts"></a>
+
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/result_definition sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:1dbb53f3905b65891e92f87dc0b2e7f4f917d86bc170d3052328aedcb0bb1f1d -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/publication_attempt sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/publication_record sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/manifest_read_grant sha256:2988afee66209d63cd12d9174c1adea619231e49fca1e8dc7876b6655a6f7fd5 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:e154fb5adec4d242933cf93989188fb5bab5486ebb6999ae123fafa6b064488a -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/laws sha256:18e62f30a4120596c290b055c7bfacda84375eb3a4c0d02a7bfed1dae7af25a0 -->
 
 ## Machine contracts
 
@@ -1046,17 +1218,17 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81
 ../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4
 ../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4
-../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82
+../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:1dbb53f3905b65891e92f87dc0b2e7f4f917d86bc170d3052328aedcb0bb1f1d
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_attempt sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_record sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d
-../../../spec/contracts/actql-run-publication.json#/schemas/manifest_read_grant sha256:2aeaa77acc11099eb0192defd561691a3bd90bbf70d5ed111ffdfbb71ae90e78
-../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:288322154204b30c3715cf6b8da76ea0ac564a2e2064ad2558531904509d2215
+../../../spec/contracts/actql-run-publication.json#/schemas/manifest_read_grant sha256:2988afee66209d63cd12d9174c1adea619231e49fca1e8dc7876b6655a6f7fd5
+../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:e154fb5adec4d242933cf93989188fb5bab5486ebb6999ae123fafa6b064488a
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4
-../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:2e809c8c0fd41f544551bfa7053014b884167a8b51b843969e78206c2e7e5202
-../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:17cc4f2a763d52bee4a75bc8e6b934f62225fac9cb9fd42b93776824bac75e71
-../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:12bb213201492c20dbd28dc66363d75b0b7015f7025bf20cd333ed97a6ef4b04
-../../../spec/contracts/actql-run-publication.json#/laws sha256:9d6de1a60e727f7ef6b594aa59b9b7a39d7045fa8950d48851574585f8aa6474
+../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e
+../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:fae98b9b12e5b472855170b0451d34fee34ee0fe7227341310fccaaca0775df7
+../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:2bdd46f5723bc33676ed46ac367cb26cb02f8d91a134c09c8b754dd7675a908b
+../../../spec/contracts/actql-run-publication.json#/laws sha256:18e62f30a4120596c290b055c7bfacda84375eb3a4c0d02a7bfed1dae7af25a0
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/content_source sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/content_barrier sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/content_evidence sha256:19cb6932ef23ba83de127214eb884249f127085ec48d1bbfa8945ec06e35d695

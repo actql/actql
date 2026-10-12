@@ -57,6 +57,157 @@ fn test_historyless_body(request : @remote.DispatchRequest) -> Bytes {
 }
 
 ///|
+test "native shared inspection reads a closed private copy without source writes" {
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/shared-inspection-read.sqlite3"
+  let original = library.open_database(path, 1048576L).unwrap()
+  original.insert("fixture", "original", b"exact value").unwrap() |> ignore
+  let before = test_source_bytes(path)
+  let mut escaped : @sqlite.Database? = None
+  let mut write_refused = false
+  let bytes = inspect_sqlite_source(library, path, 1048576L, 1048576L, copy => {
+    let copy = copy.unwrap()
+    escaped = Some(copy)
+    let value = copy.read("fixture", "original").unwrap().body
+    write_refused = copy.insert("fixture", "injected", b"forbidden") is Err(_)
+    Ok(value)
+  }).unwrap()
+  assert_eq(bytes, b"exact value")
+  assert_true(write_refused)
+  assert_true(
+    escaped.unwrap().read("fixture", "original") is Err(@sqlite.DatabaseClosed),
+  )
+  assert_eq(test_source_bytes(path), before)
+  original.close_checked().unwrap()
+}
+
+///|
+test "native shared inspection absence does not create custody or run callbacks on invalid limits" {
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/shared-inspection-absent.sqlite3"
+  let mut visits = 0
+  assert_false(
+    inspect_sqlite_source(library, path, 1048576L, 1048576L, copy => {
+      visits = visits + 1
+      Ok(copy is Some(_))
+    }).unwrap(),
+  )
+  assert_eq(test_source_bytes(path), [b"", b"", b"", b""])
+  assert_true(
+    inspect_sqlite_source(library, path, -1L, 1048576L, _ => {
+      visits = visits + 1
+      Ok(())
+    })
+    is Err(Physical(@sqlite.InvalidLimit)),
+  )
+  assert_eq(visits, 1)
+}
+
+///|
+test "native shared inspection retains callback refusal and one cleanup retry owner" {
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/shared-inspection-cleanup.sqlite3"
+  let original = library.open_database(path, 1048576L).unwrap()
+  let before = test_source_bytes(path)
+  let mut copied : @sqlite.Database? = None
+  let admission : Result[Unit, NativeRemoteJournalIssue] = inspect_sqlite_source(
+    library,
+    path,
+    1048576L,
+    1048576L,
+    copy => {
+      let database = copy.unwrap()
+      copied = Some(database)
+      test_fail_inspection_close(database, 1)
+      Err(StateCollision)
+    },
+  )
+  guard admission
+    is Err(InitializationCleanupPending(Some(StateCollision), _, retained)) else {
+    fail("shared inspection lost refusal or retry responsibility")
+  }
+  assert_true(retained.pending())
+  assert_eq(test_checked_close_count(copied.unwrap()), 1)
+  retained.retry().unwrap()
+  assert_false(retained.pending())
+  assert_eq(test_checked_close_count(copied.unwrap()), 2)
+  retained.retry().unwrap()
+  assert_eq(test_checked_close_count(copied.unwrap()), 2)
+  assert_eq(test_source_bytes(path), before)
+  original.close_checked().unwrap()
+}
+
+///|
+test "native shared inspection refuses source generation changed during callback" {
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/shared-inspection-changed.sqlite3"
+  let original = library.open_database(path, 1048576L).unwrap()
+  original.insert("fixture", "first", b"original").unwrap() |> ignore
+  let mut saw_original = false
+  let admission : Result[Unit, NativeRemoteJournalIssue] = inspect_sqlite_source(
+    library,
+    path,
+    1048576L,
+    1048576L,
+    copy => {
+      saw_original = copy.unwrap().read("fixture", "first").unwrap().body ==
+        b"original"
+      original.insert("fixture", "second", b"concurrent").unwrap() |> ignore
+      Ok(())
+    },
+  )
+  assert_true(admission is Err(Physical(@sqlite.Physical(_))))
+  assert_true(saw_original)
+  assert_eq(original.read("fixture", "second").unwrap().body, b"concurrent")
+  original.close_checked().unwrap()
+}
+
+///|
+test "native shared inspection refuses snapshot capacity before copy or callback" {
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/shared-inspection-capacity.sqlite3"
+  let original = library.open_database(path, 1048576L).unwrap()
+  original.insert("fixture", "retained", b"unchanged").unwrap() |> ignore
+  let before = test_source_bytes(path)
+  let encoded = @utf8.encode(path)
+  let physical = inspection_open_bounded(encoded, encoded.length(), 1L)
+  assert_false(inspection_ready(physical))
+  assert_true(inspection_limit_exceeded(physical))
+  assert_eq(inspection_path(physical), b"")
+  assert_true(inspection_close(physical))
+  let mut visits = 0
+  let admission : Result[Unit, NativeRemoteJournalIssue] = inspect_sqlite_source(
+    library,
+    path,
+    1048576L,
+    1L,
+    _ => {
+      visits = visits + 1
+      Ok(())
+    },
+  )
+  assert_true(admission is Err(Physical(@sqlite.CapacityExceeded)))
+  assert_eq(visits, 0)
+  assert_eq(test_source_bytes(path), before)
+  original.close_checked().unwrap()
+}
+
+///|
 test "native Coordinator refuses old and unknown WAL formats before source writes" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
     is Some(library_path) else {

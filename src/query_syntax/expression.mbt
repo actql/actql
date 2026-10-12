@@ -405,19 +405,16 @@ fn ExpressionParser::small_integer(
   let token = self.advance()
   match token.value {
     Numeric(text) => {
-      let mut value = 0
-      for unit in text {
+      for _ in 0..<text.length() {
         self.spend()
-        let n = unit.to_int() - 48
-        if n < 0 || n > 9 || value > (38 - n) / 10 {
-          raise ExpressionAbort(
-            "Expected bounded integer type argument",
-            token.start,
-          )
-        }
-        value = value * 10 + n
       }
-      value
+      guard exact_integer_literal(text) is Some(value) && value <= 38L else {
+        raise ExpressionAbort(
+          "Expected bounded integer type argument",
+          token.start,
+        )
+      }
+      value.to_int()
     }
     _ => raise ExpressionAbort("Expected integer type argument", token.start)
   }
@@ -641,7 +638,9 @@ fn ExpressionParser::expression(
                 "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ON",
                 "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW", "WHEN",
                 "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN", "LIKE",
-              ].contains(upper_ascii(name)) {
+              ].contains(upper_ascii(name)) &&
+              !(["LEFT", "RIGHT"].contains(upper_ascii(name)) &&
+              self.peek().value == Symbol(40)) {
               raise ExpressionAbort(
                 "Reserved query identifier requires quoting",
                 t.start,

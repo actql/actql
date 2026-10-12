@@ -9,7 +9,10 @@ import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixtu
 import {nativeEffectCheckpointReplyFixture} from './fixtures/native-effect-checkpoint-server.mjs';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-const residentApprovedRow = process.argv.includes('--resident-approved-row-write');
+const residentMappedCreate = process.argv.includes('--resident-original-mapped-create-write');
+const residentApprovedRow = residentMappedCreate || process.argv.includes('--resident-approved-row-write');
+const originalLocalReview = process.argv.includes('--original-local-review');
+const directLocalClaimCustody = process.argv.includes('--direct-local-claim-custody');
 const residentOriginalHolder = residentApprovedRow || process.argv.includes('--resident-original-holder-review');
 const residentCheckpoint = residentOriginalHolder || process.argv.includes('--resident-checkpoint-custody');
 const residentPreview = residentCheckpoint || process.argv.includes('--resident-preview');
@@ -17,6 +20,8 @@ const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-ru
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
 const coreIndex = process.argv.indexOf('--core-test-json');
 const coreArgs = coreIndex < 0 ? undefined : JSON.parse(process.argv[coreIndex + 1]);
+assert(!directLocalClaimCustody || (!originalLocalReview && !residentProposals && coreArgs === undefined),
+  'Direct Local claim custody requires its own finite fixture selection');
 if (coreArgs !== undefined) {
   assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
     'Invalid Native core fixture invocation');
@@ -43,6 +48,7 @@ await writeFile(join(root, 'credential.secret'), 'native-target-test\n',
   {mode: 0o600});
 const paths = [];
 let resolutionRequests = 0;
+let localRejectionRequests = 0;
 let writes = 0;
 let rejectedWrites = 0;
 let reviewUploads = 0;
@@ -50,9 +56,64 @@ let checkpointReportRequests = 0;
 let checkpointReportWire;
 const reviewUploadBodies = [];
 const writeBodies = [];
+const effectCurrentReports = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
 const server = createServer({key: await readFile(join(root, 'server.key')),
   cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+  if (request.method === 'POST' && request.url === '/fixture/native-local-effect-rejection') {
+    if (request.headers.authorization !== 'Bearer native-target-test') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks = []; let bytes = 0;
+    request.on('data', chunk => {bytes += chunk.length;
+      if (bytes > 262144) request.destroy(); else chunks.push(chunk);});
+    request.on('end', () => {
+      try {
+        const fixture = nativeResolutionFixture(Buffer.concat(chunks).toString('utf8'),
+          {decision: 'rejected'});
+        localRejectionRequests++;
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify(fixture));
+      } catch {response.writeHead(422); response.end();}
+    });
+    return;
+  }
+  if (residentMappedCreate && request.method === 'POST' && request.url === '/fixture/effect-current') {
+    if (request.headers.authorization !== 'Bearer native-target-test' ||
+        request.headers['content-type'] !== 'application/json') {
+      response.writeHead(403); response.end(); return;
+    }
+    const chunks = []; let bytes = 0;
+    request.on('data', chunk => {bytes += chunk.length; if (bytes > 65536) request.destroy(); else chunks.push(chunk);});
+    request.on('end', async () => {
+      try {
+        assert.equal(checkpointReportRequests, 2);
+        assert.notEqual(checkpointReportWire, undefined);
+        const body = Buffer.concat(chunks);
+        const reply = JSON.parse(body.toString('utf8'));
+        const original = JSON.parse(nativeEffectCheckpointReplyFixture(checkpointReportWire));
+        assert.equal(reply.version, 'actql-remote-effect-current-reply/0.1');
+        for (const field of ['report_cid', 'checkpoint_cid', 'dispatch_request_cid']) {
+          assert.equal(reply[field], original[field]);
+        }
+        assert.equal(typeof reply.response_saved, 'boolean');
+        effectCurrentReports.push({queryId: reply.query_id, queryCid: reply.query_cid,
+          reportCid: reply.report_cid, ledgerHeadCid: reply.ledger_head_cid,
+          recoveryAction: reply.recovery_action, responseSaved: reply.response_saved,
+          bodySha256: createHash('sha256').update(body).digest('hex')});
+        if (reply.query_id === 'native-current-revoked') {
+          // Revoke this fixture's independent evidence-read authority after
+          // receiving the bytes, before returning its transport receipt.
+          await writeFile(join(root, 'current-evidence-revoked'), 'revoked');
+        }
+        // A transport refusal retains the original review. This peer does not
+        // issue an Effect ACK, durable Cloud commit or authority to retry a write.
+        response.writeHead(effectCurrentReports.length === 1 ? 503 : 200);
+        response.end();
+      } catch { response.writeHead(422); response.end(); }
+    });
+    return;
+  }
   if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-review-report') {
     if (request.headers.authorization !== 'Bearer native-target-test' ||
         request.headers['content-type'] !== 'application/json') {
@@ -211,6 +272,15 @@ try {
     ACTQL_TEST_NATIVE_CREDENTIAL_PUBLIC_KEY:
       keys.publicKey.export({type: 'spki', format: 'pem'}),
   };
+  if (originalLocalReview) {
+    assert(!residentProposals && coreArgs === undefined,
+      'Original Local review selects its own focused Native caller');
+    assert(testEnv.ACTQL_TEST_DUCKDB_LIBRARY, 'Native DuckDB library is required');
+    const retainedRoot = join(root, 'retained');
+    await mkdir(retainedRoot, {mode: 0o700});
+    Object.assign(testEnv, {ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: retainedRoot,
+      ACTQL_TEST_NATIVE_SQLITE_ROOT: retainedRoot, ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS: '1'});
+  }
   if (residentProposals) {
     assert(testEnv.ACTQL_TEST_DUCKDB_LIBRARY, 'Native DuckDB library is required');
     const target = process.platform === 'darwin' && process.arch === 'arm64'
@@ -231,7 +301,8 @@ try {
     const runtimeKeys = generateKeyPairSync('ed25519');
     bearer = await startNativeBearerServers({host: '127.0.0.1',
       key: await readFile(join(root, 'server.key')),
-      cert: await readFile(join(root, 'server.crt')), root, allowEffectWrite: residentApprovedRow});
+      cert: await readFile(join(root, 'server.crt')), root, allowEffectWrite: residentApprovedRow && !residentMappedCreate,
+      allowEffectCreate: residentMappedCreate});
     await mkdir(join(root, 'retained'), {recursive: true});
     Object.assign(testEnv, {
       ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW: residentApprovedRow ? '1' : '0',
@@ -250,6 +321,7 @@ try {
         .toString('base64url'),
     });
   }
+  if (residentMappedCreate) testEnv.ACTQL_TEST_EFFECT_CURRENT_FIXTURE_URL = origin + '/fixture/effect-current';
   // Only this package consumes the target fixture. A full Core run must not
   // accidentally activate unrelated optional HTTP tests with this endpoint.
   for (const suffix of ['HTTP_URL', 'HTTP_CA', 'HTTP_SECRET', 'HTTP_LIBRARY', 'TARGET_ROOT',
@@ -261,16 +333,27 @@ try {
       else testEnv[key] = process.env[key];
     }
   }
-  const selection = residentOriginalHolder
+  // The ordinary target fixture also executes this refusal case in its same
+  // Native selection. The dedicated flag narrows execution; it adds no job or
+  // successful writes to the existing Provider expectations.
+  if (!residentProposals && !originalLocalReview) testEnv.ACTQL_TEST_NATIVE_DIRECT_LOCAL_CLAIM_CUSTODY = '1';
+  else delete testEnv.ACTQL_TEST_NATIVE_DIRECT_LOCAL_CLAIM_CUSTODY;
+  const selection = directLocalClaimCustody
+    ? 'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'
+    : originalLocalReview
+    ? 'src/platform_native/remote_resident_source_compute_tests/local_client_effect_source_wbtest.mbt'
+    : residentOriginalHolder
     ? 'src/platform_native/remote_resident_source_compute_tests/acquisition_runtime_wbtest.mbt'
     : residentProposals
     ? 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt'
     : 'src/platform_native/salesforce_effect_preview/native_test/target_test.mbt';
-  const moonArgs = coreArgs === undefined ? ['--target', 'native', '--strip', selection,
-    ...(!residentProposals ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
+  const moonArgs = coreArgs === undefined ? ['--target', 'native', ...(!originalLocalReview ? ['--strip'] : []), selection,
+    ...(!residentProposals && !originalLocalReview && !directLocalClaimCustody ? ['src/platform_native/salesforce_effect_preview/native_test/resolution_test.mbt',
       'src/platform_native/salesforce_effect_preview/native_test/credential_write_test.mbt',
       'src/platform_native/credential_resource/guarded_write_native_wbtest.mbt'] : []),
-    ...(residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
+    ...(directLocalClaimCustody ? ['--filter', 'Native retained credential claim never repairs*']
+      : residentMappedCreate ? ['--filter', 'original completion-free mapped-create approval retains one physical write through response custody loss']
+      : residentOriginalHolder ? ['--filter', 'Effect original holders retain physical Provider review*']
       : residentCheckpoint ? ['--filter', 'Native Checkpoint custody*']
       : residentPreview ? ['--filter', 'Native retained consumer*']
       : residentEffectRuntimeCapture ? ['--filter', 'Effect retained consumer completes through Runtime*'] : [])]
@@ -278,18 +361,26 @@ try {
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
-    "{timeout: " + (coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 
   {env: testEnv, stdio: 'inherit'});
   const [code, signal] = await once(child, 'close');
   child = undefined;
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
-    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, reviewUploads, reviewUploadBodies,
-    checkpointReportRequests, checkpointReportSha256:checkpointReportWire===undefined?undefined:
+    code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, localRejectionRequests, reviewUploads, reviewUploadBodies,
+    effectCurrentReports,
+    checkpointReportRequests, checkpointReportSha256: checkpointReportWire === undefined ? undefined :
       createHash('sha256').update(checkpointReportWire).digest('hex'),
     provider: bearer?.effectTargets(), providerValue: bearer?.effectTargetValue(),
+    providerCreated: residentMappedCreate ? bearer.effectCreatedValues() : undefined,
     captureProgress: residentOriginalHolder ? await readNativeEffectCaptureProgress(join(root, 'retained')) : undefined,
-    scope: residentApprovedRow
+    scope: directLocalClaimCustody
+      ? 'Native credential adapter original ordinal/use custody refusal for Local and Remote types; no adopted Local Host, public CLI, approval or Provider write acceptance'
+      : originalLocalReview
+      ? 'Actual accepted original Local Run -> acquired Source and imported Result -> checked protocol Preview -> encrypted capture/Preview/Checkpoint -> original journal waiting -> signed explicit rejection -> retryable cleanup; no public CLI or Provider write or separate-process recovery'
+      : residentMappedCreate
+      ? 'Actual original completion-free Source/consumer -> mapped-create Preview without target read -> locally signed original Resolution -> one physical POST -> raw response custody loss/retry -> common row terminal; local trusted claim only; no Cloud approval, Host restart or formal Run release'
+      : residentApprovedRow
       ? 'Actual original Source/consumer holder -> signed original Resolution -> common Ledger claim -> one physical Provider write -> raw response retention/retry -> admitted common row terminal; local trusted resume fixture; no Cloud claim, public Effect apply, restart or formal Run release'
       : residentOriginalHolder
       ? 'Actual original producer and consumer holders -> physical HTTPS Provider Preview -> encrypted capture and original Checkpoint and signed Resolution admission boundary; live Ledger retained; no Cloud waiting commit, resume claim or Provider write'
@@ -299,18 +390,35 @@ try {
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'
       : 'Native HTTPS target observation, signed credential admission and exact bounded Provider write transport; no signed Effect approval, Effect Ledger, Source capture, whole Preview or Cloud apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
-  const expectedWrites = residentProposals ? 0 : 2;
+  const expectedWrites = residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 2;
   assert.equal(writes, expectedWrites);
-  assert.equal(rejectedWrites, residentProposals ? 0 : 1);
+  assert.equal(rejectedWrites, residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
-  assert.equal(reviewUploads,residentOriginalHolder?3:0);
+  assert.equal(reviewUploads,residentOriginalHolder?6:0);
   assert.equal(checkpointReportRequests,residentOriginalHolder?2:0);
-  if(residentOriginalHolder){assert.deepEqual(reviewUploadBodies[1],reviewUploadBodies[0]);assert.deepEqual(reviewUploadBodies[2],reviewUploadBodies[0]);}
-  if (residentProposals) {
+  if(residentOriginalHolder){for(const body of reviewUploadBodies.slice(1))assert.deepEqual(body,reviewUploadBodies[0]);}
+  if (residentMappedCreate) {
+    assert.equal(effectCurrentReports.length, 5, 'Denied or foreign queries reached the transport');
+    assert.deepEqual(effectCurrentReports.map(value => [value.queryId, value.recoveryAction, value.responseSaved]), [
+      ['native-current-before-send', 0, false], ['native-current-before-send', 0, false],
+      ['native-current-revoked', 0, false],
+      ['native-current-pending', 3, true], ['native-current-terminal', 5, true],
+    ]);
+    assert.deepEqual(effectCurrentReports[0], effectCurrentReports[1], 'Explicit retry changed the original current snapshot before the write');
+  }
+  if (directLocalClaimCustody) {
+    assert.equal(localRejectionRequests, 0);
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
-    assert.equal(bearer.effectTargetValue(), residentApprovedRow ? 3 : 7);
+  } else if (originalLocalReview) {
+    assert.equal(localRejectionRequests, 1);
+    assert.deepEqual(paths, []);
+  } else if (residentProposals) {
+    assert.deepEqual(paths, []);
+    assert.deepEqual(bearer.effectTargets(), {reads: residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
+    assert.equal(bearer.effectTargetValue(), residentApprovedRow && !residentMappedCreate ? 3 : 7);
+    if (residentMappedCreate) assert.deepEqual(bearer.effectCreatedValues(),
+      [{Id: '001000000000001AAA', Count__c: 3}]);
   } else {
     assert.deepEqual(paths.filter(value => value.method === 'GET'), [
       {method: 'GET', path: expected + '001000000000001'},

@@ -46,12 +46,12 @@ const program = {version: 'actql/0.1', id: 'fixture.graph_shortest',
   ], results: {a: {from: 'a', fields}, b: {from: 'b', fields}}}],
   results: {a: {from: {stage: 'main', result: 'a'}},
     b: {from: {stage: 'main', result: 'b'}}}};
-const source = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
-  '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
-const seeds = 'DATA seeds = FROM g |> node_rows() |> SELECT id AS element; ';
+const source = 'WITH n AS (SELECT 1 AS node_key), g AS (GRAPH ' +
+  '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
+const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
 const tail = ' |> SELECT ' + fields.join(', ') + ' |> RESULT paths';
-const call = selection => "shortest_path(source: {from: seeds, id: 'element'}, " +
-  "target: {from: seeds, id: 'element'}, selection: '" + selection +
+const call = selection => "shortest_path(source: {from: seeds, id: `element`}, " +
+  "target: {from: seeds, id: `element`}, selection: '" + selection +
   "', direction: 'out', max_hops: 2)";
 // Nonzero-hop inputs are independently authored as both machine and source
 // Programs. Parallel edges retain separate keys; the self-loop cannot replace
@@ -81,15 +81,15 @@ const weightedProgram = {version: 'actql/0.1', id: 'fixture.graph_shortest_weigh
     {select: ['hop_count', 'total_cost'], as: 'out'},
   ], results: {paths: {from: 'out', fields: ['hop_count', 'total_cost']}}}],
   results: {paths: {from: {stage: 'main', result: 'paths'}}}};
-const weightedSource = 'DATA n = SELECT 2 AS node_key, 2 AS seed UNION ALL SELECT 1 AS node_key, 1 AS seed; ' +
-  'DATA e = SELECT 11 AS edge_key, 1 AS src, 2 AS dst, 2 AS w ' +
+const weightedSource = 'WITH n AS (SELECT 2 AS node_key, 2 AS seed UNION ALL SELECT 1 AS node_key, 1 AS seed), ' +
+  'e AS (SELECT 11 AS edge_key, 1 AS src, 2 AS dst, 2 AS w ' +
   'UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst, 0 AS w ' +
-  'UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst, 1 AS w; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) ' +
+  'UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst, 1 AS w), ' +
+  'g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) ' +
   'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N ' +
-  'DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (w))); ' +
-  "DATA paths = FROM g |> shortest_path(source: {where: 'seed = 1'}, " +
-  "target: {where: 'seed = 2'}, selection: 'each_pair', direction: 'out', max_hops: 2, weight: 'w'); " +
+  'DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (w)))), ' +
+  "paths AS (FROM g |> shortest_path(source: {where: 'seed = 1'}, " +
+  "target: {where: 'seed = 2'}, selection: 'each_pair', direction: 'out', max_hops: 2, weight: `w`)) " +
   'FROM paths |> WHERE hop_count > 0 |> SELECT hop_count, total_cost |> RESULT paths';
 const weightedResult = {paths: {rows: [{hop_count: 1, total_cost: 1}],
   columns: ['hop_count', 'total_cost'].map(name => ({name, contract: number}))}};
@@ -102,8 +102,8 @@ export const graphShortestSourceSuccesses = [
     results: {paths: result(sourceDomain)}, sourceReadCount: 0,
   })),
   {name: 'graph-shortest-aql-data-empty-target', format: 'aql-text',
-    text: source + "DATA paths = FROM g |> shortest_path(source: {where: 'true'}, " +
-      "target: {where: 'false'}, selection: 'each_pair', direction: 'in', max_hops: 1); " +
+    text: source + ", paths AS (FROM g |> shortest_path(source: {where: 'true'}, " +
+      "target: {where: 'false'}, selection: 'each_pair', direction: 'in', max_hops: 1)) " +
       'FROM paths' + tail,
     results: {paths: result(sourceDomain, true)}, sourceReadCount: 0},
   {name: 'graph-shortest-json-weighted-parallel-edges', format: 'json',
@@ -115,7 +115,7 @@ export const graphShortestSourceRefusals = [
   ['zero-hops', call('each_pair').replace('max_hops: 2', 'max_hops: 0')],
   ['missing-selection', call('each_pair').replace("selection: 'each_pair', ", '')],
   ['unknown-direction', call('each_pair').replace("'out'", "'invented'")],
-  ['missing-selector-field', call('each_pair').replace("id: 'element'", "id: 'missing'")],
+  ['missing-selector-field', call('each_pair').replace("id: `element`", "id: `missing`")],
   ['missing-property', "shortest_path(source: {where: 'missing = 1'}, target: {where: 'true'}, " +
     "selection: 'each_pair', direction: 'out', max_hops: 1)"],
 ].map(([name, operation]) => ({name: 'graph-shortest-refuse-' + name,

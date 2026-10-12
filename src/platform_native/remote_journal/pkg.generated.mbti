@@ -7,9 +7,11 @@ import {
   "actql/actql/execution_site",
   "actql/actql/logical_request_scope",
   "actql/actql/physical_manifest",
+  "actql/actql/physical_resources",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/publication_payload",
+  "actql/actql/remote_credential",
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
@@ -18,6 +20,26 @@ import {
 
 // Values
 pub fn effect_response_body_digest(Bytes) -> String
+
+pub fn effect_response_record_fields(Bytes, Bytes, Int64) -> (String, Int)?
+
+pub fn effect_response_record_metadata(NativeEffectSavedResponse, Int64) -> Bytes?
+
+pub fn initial_catalog_use_claim_dispatch(NativeInitialCatalogUseClaim) -> String
+
+pub fn initial_catalog_use_claim_matches_journal(NativeInitialCatalogUseClaim, Journal) -> Bool
+
+pub fn initial_catalog_use_cleanup_row_matches(Bytes, Bytes, Int64) -> Bool
+
+pub fn initial_catalog_use_custody_dispatch(NativeInitialCatalogUseCustody) -> String
+
+pub fn initial_catalog_use_custody_matches_ledger(NativeInitialCatalogUseCustody, @physical_resources.Ledger) -> Bool
+
+pub fn initial_catalog_use_custody_pending(NativeInitialCatalogUseCustody) -> Bool
+
+pub fn initial_catalog_use_custody_usage(NativeInitialCatalogUseCustody) -> @physical_resources.LedgerUsage
+
+pub fn[T] inspect_sqlite_source(@sqlite.Library, String, Int64, Int64, (@sqlite.Database?) -> Result[T, NativeRemoteJournalIssue]) -> Result[T, NativeRemoteJournalIssue]
 
 pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String
 
@@ -75,14 +97,19 @@ pub fn CoordinatorJournal::require(Self, @remote_site_protocol.DispatchRequest) 
 
 type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
+pub fn Journal::accept_with_initial_catalog_use(Self, @remote_site_protocol.DispatchRequest, @physical_resources.Ledger, NativeInitialCatalogUseEnvelope, original_custody? : NativeInitialCatalogUseCustody?) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord, NativeInitialCatalogUseCustody?), NativeInitialCatalogUseFailure]
 pub fn Journal::cancellation_requested(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteJournalIssue]
 pub fn Journal::claim_effect_ledger_dispatch(Self, @remote_site_protocol.DispatchRequest, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, @checkpoint_runtime.WireLimits, @checkpoint_runtime.WireLimits) -> Result[(Bool, @effect_application.EffectLedgerEntry), NativeRemoteJournalIssue]
+pub fn Journal::claim_funded_initial_catalog_use(Self, NativeInitialCatalogUseCustody) -> Result[NativeInitialCatalogUseClaim, NativeRemoteJournalIssue]
+pub fn Journal::claim_initial_catalog_use(Self, @remote_site_protocol.DispatchRequest) -> Result[NativeInitialCatalogUseClaim, NativeRemoteJournalIssue]
 pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
+pub fn Journal::cleanup_initial_catalog_use(Self, NativeInitialCatalogUseCustody) -> Result[Unit, NativeInitialCatalogUseIssue]
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?, file_custody? : NativeOutputFileCustody?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::dispatch_envelope(Self, String) -> Result[String?, NativeRemoteJournalIssue]
+pub fn Journal::effect_catalog_use(Self, @remote_site_protocol.DispatchRequest, @remote_credential.RemoteCredentialGrant, String) -> Result[@remote_credential.RemoteCredentialUse, NativeRemoteJournalIssue]
 pub fn Journal::effect_checkpoint_report(Self, @remote_site_protocol.DispatchRequest, @checkpoint_runtime.WireLimits) -> Result[(@remote_site_protocol.RemoteEffectCheckpointReport, @remote_site_protocol.RemoteEffectCheckpointReply?), NativeRemoteJournalIssue]
 pub fn Journal::effect_ledger_custody(Self, @remote_site_protocol.DispatchRequest, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.EffectLedgerBasis, @checkpoint_runtime.WireLimits, @checkpoint_runtime.WireLimits) -> Result[NativeEffectRowCustody?, NativeRemoteJournalIssue]
 pub fn Journal::effect_ledger_response(Self, @remote_site_protocol.DispatchRequest, @effect_application.EffectLedgerEntry) -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue]
@@ -92,6 +119,8 @@ pub fn Journal::observation(Self, @remote_site_protocol.DispatchRequest) -> Resu
 pub fn Journal::output_report(Self, String) -> Result[(@remote_site_protocol.RemoteOutputReportCustody, @remote_site_protocol.RemoteOutputReportReply?), NativeRemoteJournalIssue]
 pub fn Journal::output_report_after(Self, String) -> Result[(String, @remote_site_protocol.RemoteOutputReportCustody, @remote_site_protocol.RemoteOutputReportReply?)?, NativeRemoteJournalIssue]
 pub fn Journal::pending_output_intents(Self) -> Result[Array[(String, String)], NativeRemoteJournalIssue]
+pub fn Journal::read_catalog_preparation_capacity(Self, NativeInitialCatalogUseCustody, NativeInitialCatalogUseEnvelope) -> Result[Unit, NativeInitialCatalogUseIssue]
+pub fn Journal::read_funded_initial_catalog_use(Self, NativeInitialCatalogUseCustody) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::record_effect_checkpoint_reply(Self, @remote_site_protocol.DispatchRequest, String, @checkpoint_runtime.WireLimits) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::record_effect_ledger_response(Self, @remote_site_protocol.DispatchRequest, @effect_application.EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, NativeEffectSavedResponse) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::record_effect_row_receipt(Self, @remote_site_protocol.DispatchRequest, @effect_application.EffectLedgerEntry, @run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, Int, @checkpoint_runtime.WireLimits) -> Result[(@run_publication.PublicationContract, @effect_application.EffectLedgerEntry), NativeRemoteJournalIssue]
@@ -104,7 +133,9 @@ pub fn Journal::reserve_output_report(Self, @remote_site_protocol.RemotePollOutp
 pub fn Journal::reserved_output(Self, @remote_site_protocol.DispatchRequest, String) -> Result[@remote_site_protocol.RemotePollOutput?, NativeRemoteJournalIssue]
 pub fn Journal::restart(Self, @execution_site.ExecutionSite) -> Result[Int, NativeRemoteJournalIssue]
 pub fn Journal::retain_dispatch_envelope(Self, @remote_site_protocol.DispatchRequest, String) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::retain_effect_catalog_use(Self, @remote_site_protocol.DispatchRequest, @remote_credential.RemoteCredentialGrant, @remote_credential.RemoteCredentialUse) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retain_effect_checkpoint_report(Self, @remote_site_protocol.RemoteEffectCheckpointReport) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::retain_initial_catalog_use(Self, NativeInitialCatalogUseClaim, @remote_credential.RemoteCredentialGrant, @remote_credential.RemoteCredentialUse) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retain_output_report(Self, @remote_site_protocol.RemoteOutputReportCustody) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retry_output_report(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
@@ -120,6 +151,26 @@ pub(all) struct NativeEffectSavedResponse {
   credential_use_cid : String
   status_code : Int
   body : Bytes
+}
+
+type NativeInitialCatalogUseClaim
+
+type NativeInitialCatalogUseCustody
+
+pub(all) struct NativeInitialCatalogUseEnvelope {
+  record_bytes : Int64
+  control_bytes : Int64
+  workspace_bytes : Int64
+}
+
+pub(all) struct NativeInitialCatalogUseFailure {
+  issue : NativeInitialCatalogUseIssue
+  custody : NativeInitialCatalogUseCustody?
+}
+
+pub(all) enum NativeInitialCatalogUseIssue {
+  Journal(NativeRemoteJournalIssue)
+  Capacity(@physical_resources.LedgerIssue)
 }
 
 type NativeOutputFileCustody

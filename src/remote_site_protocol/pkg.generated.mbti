@@ -601,6 +601,8 @@ pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
 
 pub fn remote_poll_dispatch_run_materials(RemotePollDispatch) -> String?
 
+pub fn remote_poll_effect_current_envelope_json(RemotePollEffectCurrent) -> Result[String, DispatchIssue]
+
 pub fn remote_poll_effect_current_json(RemoteEffectCurrentQuery) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_effect_current_query_json(RemotePollEffectCurrent) -> String
@@ -608,6 +610,8 @@ pub fn remote_poll_effect_current_query_json(RemotePollEffectCurrent) -> String
 pub fn remote_poll_effect_current_request(RemotePollEffectCurrent) -> DispatchRequest
 
 pub fn remote_poll_effect_resume_delivery_json(RemotePollEffectResume) -> String
+
+pub fn remote_poll_effect_resume_envelope_json(RemotePollEffectResume) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_effect_resume_json(RemoteEffectResumeDelivery) -> Result[String, DispatchIssue]
 

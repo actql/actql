@@ -3,6 +3,8 @@
 // common execution owner must separately admit dependencies and authority.
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
+import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {openSync, readSync, closeSync} from 'node:fs';
 
 // Physical observation only: the common account reader/evaluator decides
@@ -113,13 +115,25 @@ export function installModelProviders(moon, register) {
     if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
-          'bindingOriginals', 'reconcileResponse'].includes(key)) ||
+          'bindingOriginals', 'reconcileResponse', 'entryPersistence',
+          'originalReadInstallation', 'rawCaptureSelection'].includes(key)) ||
+        entry.entryPersistence !== undefined && entry.entryPersistence !== 'async' ||
         entry.reconcileResponse !== undefined && typeof entry.reconcileResponse !== 'function' ||
         typeof entry.providerId !== 'string' ||
         typeof entry.invoke !== 'function' ||
         typeof entry.validatePrompt !== 'function' ||
         result.has(entry.providerId)) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
+    }
+    // Installation-time snapshot precedes any provider or original Run start.
+    // No default numerical profile is supplied when this declaration is absent.
+    const originalReadInstallation = retainInferOriginalReadInstallation(entry.originalReadInstallation);
+    const rawCaptureSelection = snapshotModelRawCaptureSelection(entry.rawCaptureSelection);
+    // This installation profile connects raw custody only to the existing
+    // durable asynchronous caller. It grants no raw capture or send authority.
+    if (rawCaptureSelection !== undefined &&
+        (entry.entryPersistence !== 'async' || typeof entry.physicalPreflight !== 'function')) {
+      throw new TypeError('InstalledInferRawCaptureRequiresAsyncPhysicalPreflight');
     }
     const provider = moon.clientProgramInstallModelProvider(entry.providerId,
       entry.invoke);
@@ -146,9 +160,10 @@ export function installModelProviders(moon, register) {
         perAttempt: Object.freeze({...capacity.perAttempt}),
       });
     }
-    result.set(entry.providerId, Object.freeze({provider,
+    result.set(entry.providerId, Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
       bindingOriginals: retainProviderBindingOriginals(entry.bindingOriginals),
       physicalPreflight: entry.physicalPreflight,
+      entryPersistence: entry.entryPersistence,
       reconcileResponse: entry.reconcileResponse,
       quantityCapacity,
       observeEgress: typeof entry.observeEgress !== 'function' ? undefined : () => {

@@ -198,8 +198,7 @@ fn Scanner::quoted(
     if delimiter != 0x60 && !triple && (n == 0x0a || n == 0x0d) {
       raise LexicalAbort(UnexpectedToken, self.byte_offset)
     }
-    // Plain query strings forbid raw newlines, not every control scalar.
-    // The historical annotation language still requires escaped controls.
+    // The historical annotation profile still requires escaped controls.
     if n < 0x20 {
       annotation_compatible = false
     }
@@ -218,9 +217,7 @@ fn Scanner::quoted(
         output.write_char('\\')
         escaped
       } else {
-        // Keep the historical Graph annotation profile distinct from query
-        // strings. Both use this bounded decoder; query-only escape forms must
-        // not become newly valid annotation keys or field designations.
+        // Query-only escapes do not extend the historical annotation profile.
         if delimiter == 0x22 &&
           !(escaped == 0x5c ||
           escaped == 0x22 ||
@@ -314,6 +311,25 @@ fn Scanner::name(self : Scanner) -> String raise {
 fn Scanner::number(self : Scanner) -> String raise {
   let start = self.byte_offset
   let output = StringBuilder()
+  if self.peek() == Some(48) &&
+    (self.peek(ahead=1) == Some(120) || self.peek(ahead=1) == Some(88)) {
+    for _ in 0..<2 {
+      self.budget.charge(LiteralBytes, 1, self.byte_offset)
+      output.write_char(self.advance().unsafe_to_char())
+    }
+    let mut digits = 0
+    while self.peek() is Some(n) &&
+          (digit(n) || (n >= 65 && n <= 70) || (n >= 97 && n <= 102)) {
+      self.budget.charge(LiteralBytes, 1, self.byte_offset)
+      output.write_char(self.advance().unsafe_to_char())
+      digits += 1
+    }
+    if digits == 0 ||
+      (self.peek() is Some(n) && (identifier_start(n) || n == 46)) {
+      raise LexicalAbort(InvalidNumber, start)
+    }
+    return output.to_string()
+  }
   let mut count = 0
   while self.peek() is Some(n) && digit(n) {
     self.budget.charge(LiteralBytes, 1, self.byte_offset)

@@ -1490,6 +1490,73 @@ pub fn client_program_compile_local_tasks(
 }
 
 ///|
+// Read-only projections retain the original compiler owner. They issue no
+// Run admission, open no material and make no provider call.
+#export_name("clientProgramValuesStaticPlanView")
+pub fn client_program_values_static_plan_view(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientValuesCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientInteractivePlanIssue] {
+  @publication_host.client_values_static_plan_view(
+    prepared,
+    compiled,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    inspect_installed=true,
+  )
+}
+
+///|
+#export_name("clientProgramTaskStaticPlanView")
+pub fn client_program_task_static_plan_view(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientTaskCompilation,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication_host.ClientInteractivePlanIssue] {
+  @publication_host.client_task_static_plan_view(
+    prepared,
+    compiled,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    inspect_installed=true,
+  )
+}
+
+///|
+#export_name("clientProgramCurrentRunView")
+pub fn client_program_current_run_view(
+  run : @publication.PublicationContract,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  run_ref_wire : String,
+  state_wire : String,
+  snapshot_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.RunControlReadIssue] {
+  @publication.project_current_interactive_run_view(
+    run,
+    prepared,
+    authorization,
+    run_ref_wire,
+    state_wire,
+    snapshot_cid,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    static_plan_installed=true,
+  )
+}
+
+///|
 #export_name("clientProgramTaskCompilationPlanWire")
 pub fn client_program_task_compilation_plan_wire(
   value : @publication_host.ClientTaskCompilation,
@@ -2704,25 +2771,7 @@ pub(all) enum ClientEffectProgramBridgeOutcome {
 
 ///|
 fn client_program_effect_limits() -> @publication_host.ClientEffectComputationLimits {
-  {
-    program: client_program_standard_limits(),
-    max_members: 1024,
-    max_header_work: 1000000,
-    mapping: {
-      max_bytes: 65536,
-      max_nodes: 4096,
-      max_depth: 64,
-      max_members: 256,
-    },
-    max_mapping_work: 100000,
-    effects: {
-      max_members: 1024,
-      max_work: 1000000,
-      max_admission_nodes: 100000,
-      max_admission_depth: 64,
-      max_admission_text_bytes: 1000000,
-    },
-  }
+  @publication_host.client_standard_effect_computation_limits()
 }
 
 ///|

@@ -1,0 +1,354 @@
+{
+  "tested_source": "0ebb257ad38f5c8206dd632eacfdb65ce5188223",
+  "tested_tree": "14ce5c3216b4a786472745913fd188b24c685fd7",
+  "adopted_main": "23697f7430c227327b4b0b3735ad14806eed321a",
+  "adopted_E": "54d7852347e087b01de17f698eff154cd050c74b",
+  "normal_E_merge": "787ecc42d9f45ca2ad9e883a9105849419299433",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "runs": [
+    {
+      "run": "run-qxA3yF",
+      "source": "787ecc42d9f45ca2ad9e883a9105849419299433",
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-qxA3yF/summary.json",
+          "sha256": "0965c6f7bfab9d215fd291e1cb72232cce11d24b53cf0cac8e3c50b408c1b3f1"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-qxA3yF/output.log",
+          "sha256": "b68f4d453f682455b6d0d93926c7af7deae33c7b35b54da9662e2c02fec61da7"
+        }
+      },
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 86284,
+      "locks_released": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/with-graph-operation-caller.test.mjs",
+          "scripts/graph-shortest-source-input.test.mjs",
+          "scripts/graph-refusal-classification-source-input.test.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_diagnostics_test.mbt",
+          "src/query_program/traversal_nodes_test.mbt",
+          "src/query_program/traverse_hop_vocabulary_test.mbt",
+          "src/query_program/traversal_join_input_test.mbt",
+          "src/query_program/graph_shortest_source_test.mbt",
+          "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+          "src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt"
+        ]
+      ],
+      "executed_counts": [
+        {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        {
+          "tests": 25,
+          "passed": 22,
+          "failed": 3,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        }
+      ],
+      "actual_owner_group_and_own_lock_absent": true
+    },
+    {
+      "run": "run-AN9Lch",
+      "source": "79fc5cf6ab53a72ae22ae4e2fa06984d45685332",
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-AN9Lch/summary.json",
+          "sha256": "4066cd10ed6d6a718b5c7c6ff69cb7201ec850677f0a7ff6fcf2b35b9d283a95"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-AN9Lch/output.log",
+          "sha256": "0abb3523caff609b623c0af0aaf90be88828c9e143feae1f415e43a38d1aec14"
+        }
+      },
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 87674,
+      "locks_released": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_diagnostics_test.mbt",
+          "src/query_program/traversal_nodes_test.mbt",
+          "src/query_program/traverse_hop_vocabulary_test.mbt",
+          "src/query_program/traversal_join_input_test.mbt"
+        ]
+      ],
+      "executed_counts": [],
+      "actual_owner_group_and_own_lock_absent": true
+    },
+    {
+      "run": "run-jTyHKq",
+      "source": "b36d313fc68beaecffb04087eb82115423133586",
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-jTyHKq/summary.json",
+          "sha256": "8630daa0227b2dedc3702061f7600c22ee15635419b4052a7ad095486baed174"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-jTyHKq/output.log",
+          "sha256": "fe007953f7cffc8b00c6a4fca92a55fdafa6c15ff3d25d62ee2ca1e2ec09d3c0"
+        }
+      },
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 88700,
+      "locks_released": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_diagnostics_test.mbt",
+          "src/query_program/traversal_nodes_test.mbt"
+        ]
+      ],
+      "executed_counts": [
+        {
+          "tests": 11,
+          "passed": 10,
+          "failed": 1,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        }
+      ],
+      "actual_owner_group_and_own_lock_absent": true
+    },
+    {
+      "run": "run-IFSzQQ",
+      "source": "111ad90c4336755c3d85b3ac90c391998e68b944",
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-IFSzQQ/summary.json",
+          "sha256": "b74c66e3424b9e5da14aee003d2d21400d1d3420160d9c122f0219d52979cb0c"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-IFSzQQ/output.log",
+          "sha256": "2331a0ab2cdadb4361db6996f76fa35bdba764b2f581a8101db9994e7c656fa7"
+        }
+      },
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 89220,
+      "locks_released": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/traversal_nodes_test.mbt",
+          "--filter",
+          "Graph traversal retains malformed authored bodies for common refusal"
+        ]
+      ],
+      "executed_counts": [
+        {
+          "tests": 1,
+          "passed": 0,
+          "failed": 1,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        }
+      ],
+      "actual_owner_group_and_own_lock_absent": true
+    },
+    {
+      "run": "run-mDZp4D",
+      "source": "0ebb257ad38f5c8206dd632eacfdb65ce5188223",
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-mDZp4D/summary.json",
+          "sha256": "465a68d8672c1c35b1a0fcdfc498702e84d4c8eaa5a4657e87a0541b5b064a4d"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-mDZp4D/output.log",
+          "sha256": "040d80698c55cdca434a5e6d26a8105244bba161edee7f58652717f2bbfdbc9f"
+        }
+      },
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 91750,
+      "locks_released": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/traversal_nodes_test.mbt",
+          "--filter",
+          "Graph traversal retains malformed authored bodies for common refusal"
+        ]
+      ],
+      "executed_counts": [
+        {
+          "tests": 1,
+          "passed": 1,
+          "failed": 0,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        }
+      ],
+      "actual_owner_group_and_own_lock_absent": true
+    },
+    {
+      "run": "run-xPs3Gl",
+      "source": "0ebb257ad38f5c8206dd632eacfdb65ce5188223",
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-xPs3Gl/summary.json",
+          "sha256": "39d3313ad82475bad05e4a46e39f1f93ae418781817b4e17908fa9021c9f1924"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-xPs3Gl/output.log",
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        }
+      },
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 92226,
+      "locks_released": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/traversal_nodes_test.mbt"
+        ]
+      ],
+      "executed_counts": [],
+      "actual_owner_group_and_own_lock_absent": true
+    },
+    {
+      "run": "run-88GD0X",
+      "source": "0ebb257ad38f5c8206dd632eacfdb65ce5188223",
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-88GD0X/summary.json",
+          "sha256": "cf93dd64e1794a739e17db89097b1db81173bc1e6578e5a3c16010583aca1a04"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/operation-caller-evidence/run-88GD0X/output.log",
+          "sha256": "ac9e1cc299256446acc7695a1a0b48f22b79d6098d410a23decf8db367b48fb2"
+        }
+      },
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 93200,
+      "locks_released": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/with-graph-operation-caller.test.mjs",
+          "scripts/graph-shortest-source-input.test.mjs",
+          "scripts/graph-refusal-classification-source-input.test.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_diagnostics_test.mbt",
+          "src/query_program/traversal_nodes_test.mbt",
+          "src/query_program/traverse_hop_vocabulary_test.mbt",
+          "src/query_program/traversal_join_input_test.mbt",
+          "src/query_program/graph_shortest_source_test.mbt",
+          "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+          "src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt"
+        ]
+      ],
+      "executed_counts": [
+        {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        {
+          "tests": 25,
+          "passed": 25,
+          "failed": 0,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        }
+      ],
+      "actual_owner_group_and_own_lock_absent": true
+    }
+  ],
+  "guard_not_started_failure": {
+    "source": "b8b6933ce642c87a4268771622ccf76262d0adf1",
+    "cause": "SyntaxError in inline JavaScript command before runLocalCheck was invoked",
+    "guard_run": null,
+    "tests_executed": 0,
+    "receipt": "Conversation tool output; no guard receipt was created"
+  },
+  "actual_core_public_diagnostic_reports": {
+    "run": "run-88GD0X",
+    "count": 6
+  },
+  "scope": "Node independent caller obligations; focused JS lowering, static check and actual Core public client_check callers. No Host or transport execution.",
+  "unverified": [
+    "four Carrier/P2 completion",
+    "packed Local/HTTPS",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ]
+}

@@ -21,6 +21,8 @@ import {once} from 'node:events';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
+import {preparePrivatePublicationHolding} from
+  '../host-common/private-publication-holding.mjs';
 
 const contractControl = createPublicationContractControlFixture();
 const limits = Object.freeze({
@@ -572,6 +574,192 @@ test('Local continuation evidence has its own private holding namespace',
     assert.equal((await store.retirePhysicalHolding(shared)).deleted, true);
     assert.equal(store.status().storedBytes, 0);
   });
+
+test('Model raw custody preserves invalid UTF8 bytes and immutable descriptor after restart',
+  async t => {
+    const {store, configuration} = await fixture(t, {
+      privateEvidenceKey: Buffer.alloc(32, 7),
+    });
+    // Physical Store test only: these authored bindings do not issue a Core
+    // registration, saved receipt, retention permission or completion fact.
+    const bytes = Uint8Array.of(0x7b, 0xc3, 0x28, 0x7d);
+    const binding = Object.freeze({name: 'model_raw_response',
+      semanticCid: digest('independent-raw-envelope'),
+      holdingCid: digest('independent-raw-cell'),
+      wire: '{"independent":"descriptor"}', contentCid: digest(bytes),
+      byteCount: bytes.byteLength});
+    let writes = 0;
+    const physical = Object.freeze({
+      ...store,
+      async prepareModelRawEvidence(...args) {
+        writes++;
+        return store.prepareModelRawEvidence(...args);
+      },
+    });
+    const owner = preparePrivatePublicationHolding(physical, binding, bytes);
+    const record = await owner.commit();
+    assert.equal(owner.status().committed, true);
+    assert.equal(record.objects.length, 2);
+    assert.equal(writes, 1);
+    await owner.retry();
+    assert.equal(writes, 1);
+    const {name, ...readBinding} = binding;
+    assert.deepEqual(await store.readModelRawEvidence(readBinding), Buffer.from(bytes));
+    assert.throws(() => new TextDecoder('utf-8', {fatal: true}).decode(bytes));
+    for (const object of record.objects) {
+      const encrypted = [];
+      await store.consumeObject(object.cid, chunk => encrypted.push(Buffer.from(chunk)));
+      assert.equal(Buffer.concat(encrypted).includes(Buffer.from(bytes)), false);
+    }
+    await store.close();
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    t.after(() => reopened.close());
+    assert.deepEqual((await reopened.confirmModelRawEvidence(readBinding)).bytes,
+      Buffer.from(bytes));
+    for (const changed of [
+      {...readBinding, semanticCid: digest('other-entry-envelope')},
+      {...readBinding, wire: '{"independent":"changed"}'},
+      {...readBinding, contentCid: digest('other-body')},
+      {...readBinding, byteCount: 3},
+    ]) await assert.rejects(reopened.confirmModelRawEvidence(changed));
+    const restored = preparePrivatePublicationHolding(reopened, binding, bytes);
+    assert.equal((await restored.commit()).holding_cid, binding.holdingCid);
+    assert.equal(await restored.abort(), false);
+    const retirement = await reopened.retirePhysicalHolding(binding.holdingCid);
+    assert.equal(retirement.deleted, true);
+  });
+
+test('Model raw lost commit response reconciles the same cell without new encryption',
+  async t => {
+    const {store} = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+    const bytes = Buffer.from('{"answer":"e\u0301\\r\\n"}', 'utf8');
+    const binding = Object.freeze({name: 'model_raw_response',
+      semanticCid: digest('lost-commit-envelope'), holdingCid: digest('lost-commit-cell'),
+      wire: '{"independent":"lost-commit-descriptor"}',
+      contentCid: digest(bytes), byteCount: bytes.byteLength});
+    let writes = 0, commits = 0, confirmations = 0;
+    const physical = Object.freeze({...store,
+      async prepareModelRawEvidence(...args) {
+        writes++;
+        return store.prepareModelRawEvidence(...args);
+      },
+      async commitPhysicalHolding(...args) {
+        commits++;
+        await store.commitPhysicalHolding(...args);
+        throw Object.assign(new Error('lost commit response'), {code: 'InjectedLoss'});
+      },
+      async confirmModelRawEvidence(...args) {
+        confirmations++;
+        // Initial lookup is absent. The first reconciliation is unknown.
+        if (confirmations === 2) throw Object.assign(
+          new Error('unavailable confirmation'), {code: 'InjectedUnknown'});
+        return store.confirmModelRawEvidence(...args);
+      },
+    });
+    const owner = preparePrivatePublicationHolding(physical, binding, bytes);
+    await assert.rejects(owner.commit(), error => {
+      assert.equal(error.code, 'InjectedLoss');
+      assert.equal(error.cleanupPending, true);
+      assert.equal(error.cleanupHandle, owner);
+      return true;
+    });
+    assert.equal(owner.status().committed, false);
+    const record = await owner.retry();
+    assert.equal(record.holding_cid, binding.holdingCid);
+    assert.equal(owner.status().committed, true);
+    assert.equal(writes, 1);
+    assert.equal(commits, 1);
+    const {name, ...readBinding} = binding;
+    assert.deepEqual(await store.readModelRawEvidence(readBinding), bytes);
+  });
+
+test('Model raw selected originals require exact same Store availability', async t => {
+  const {store, configuration} = await fixture(t);
+  // This physical test does not admit these bodies as policy or issue a grant.
+  const originals = ['retention_contract', 'metadata_retention_policy',
+    'clock_contract', 'data_policy'].map(kind => {
+    const wire = JSON.stringify({independent: kind, text: 'e\u0301\r\n'});
+    return Object.freeze({kind, cid: digest(wire), wire});
+  });
+  await assert.rejects(store.confirmModelRawCaptureOriginals(
+    originals, configuration.storeAuthorityCid,
+  ), {code: 'PublicationContractMissing'});
+  for (const original of originals) await store.putSemantic(original.wire, original.cid);
+  assert.equal(await store.confirmModelRawCaptureOriginals(
+    originals, configuration.storeAuthorityCid,
+  ), true);
+  for (let index = 0; index < originals.length; index++) {
+    const changed = originals.map((original, ordinal) => ordinal === index
+      ? {...original, wire: original.wire.replace('e\u0301', '\u00e9')}
+      : original);
+    await assert.rejects(store.confirmModelRawCaptureOriginals(
+      changed, configuration.storeAuthorityCid,
+    ), {code: 'PublicationModelRawOriginalMismatch'});
+  }
+  for (const changed of [originals.slice(0, 3), [...originals, originals[0]],
+    [...originals].reverse(), originals.map(original => ({...original, extra: true})),
+    originals.map(original => ({...original, cid: digest('absent original')}))]) {
+    await assert.rejects(store.confirmModelRawCaptureOriginals(
+      changed, configuration.storeAuthorityCid,
+    ));
+  }
+  await assert.rejects(store.confirmModelRawCaptureOriginals(
+    originals, digest('foreign Store'),
+  ), {code: 'InvalidPublicationModelRawOriginals'});
+});
+
+for (const action of ['retry', 'abort']) {
+  test(`Model raw ${action} retains failed partial construction cleanup after reconciliation`,
+    async t => {
+      const {store} = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+      const bytes = Uint8Array.of(0, 1, 2);
+      const binding = Object.freeze({name: 'model_raw_response',
+        semanticCid: digest(`partial-${action}-envelope`),
+        holdingCid: digest(`partial-${action}-cell`),
+        wire: '{"independent":"partial-construction"}',
+        contentCid: digest(bytes), byteCount: bytes.byteLength});
+      const orphan = await store.preparePrivateEvidence(
+        'model_raw_content', 'orphan backing', binding.semanticCid,
+      );
+      let releases = 0, preparations = 0;
+      const pending = {
+        async release() {
+          if (++releases === 1) throw Object.assign(
+            new Error('partial cleanup unavailable'), {code: 'InjectedCleanup'});
+          return orphan.prepared.release();
+        },
+      };
+      const observed = {...store,
+        async prepareModelRawEvidence() {
+          preparations++;
+          throw Object.assign(new Error('second object construction failed'), {
+            code: 'InjectedConstruction', cleanupPending: true, cleanupHandle: pending,
+          });
+        },
+      };
+      const owner = preparePrivatePublicationHolding(observed, binding, bytes);
+      await assert.rejects(owner.commit(), {code: 'InjectedConstruction'});
+      assert.equal(owner.status().preparedPending, true);
+      // Another durable observation of the same immutable cell does not erase
+      // this owner's still-pending partial construction responsibility.
+      const completed = preparePrivatePublicationHolding(store, binding, bytes);
+      await completed.commit();
+      await assert.rejects(owner[action](), {code: 'InjectedCleanup'});
+      assert.equal(owner.status().preparedPending, true);
+      assert.equal(owner.status().committed, false);
+      assert.equal(orphan.prepared.status().pending, true);
+      const result = await owner[action]();
+      assert.equal(action === 'abort' ? result : result.holding_cid,
+        action === 'abort' ? false : binding.holdingCid);
+      assert.equal(owner.status().committed, true);
+      assert.equal(owner.status().preparedPending, false);
+      assert.equal(orphan.prepared.status().pending, false);
+      assert.equal(preparations, 1);
+      assert.equal(releases, 2);
+      await store.retirePhysicalHolding(binding.holdingCid);
+      assert.equal(store.status().storedBytes, 0);
+    });
+}
 
 test('uncommitted private evidence retains a recoverable prepared owner',
   async t => {

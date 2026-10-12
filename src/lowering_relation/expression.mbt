@@ -47,6 +47,10 @@ pub(all) enum UnaryOperator {
   IsFalse
   IsUnknown
   Length
+  ByteLength
+  Unicode
+  Chr
+  Reverse
   Upper
   Lower
   Trim
@@ -54,6 +58,22 @@ pub(all) enum UnaryOperator {
   RTrim
   Floor
   Sqrt
+  Cbrt
+  Sin
+  Cos
+  Tan
+  Asin
+  Acos
+  Atan
+  Sinh
+  Cosh
+  Tanh
+  Asinh
+  Acosh
+  Atanh
+  Exp
+  Ln
+  Log10
   Abs
   Sign
   Round
@@ -72,6 +92,9 @@ pub(all) enum BinaryOperator {
   SafeSubtract
   SafeMultiply
   Modulo
+  Pow
+  Atan2
+  Log
   RoundAt
   TruncAt
   Strpos
@@ -97,10 +120,20 @@ pub(all) enum ManyOperator {
   And
   Or
   Coalesce
+  Greatest
+  Least
   Concat
   ConcatStrict
   Replace
+  Repeat
+  Translate
+  Instr
+  Split
   Substring
+  LeftString
+  RightString
+  LPad
+  RPad
   Between
 } derive(Eq, Debug)
 
@@ -220,6 +253,22 @@ fn expression_tag(
     | "rtrim"
     | "floor"
     | "sqrt"
+    | "cbrt"
+    | "sin"
+    | "cos"
+    | "tan"
+    | "asin"
+    | "acos"
+    | "atan"
+    | "sinh"
+    | "cosh"
+    | "tanh"
+    | "asinh"
+    | "acosh"
+    | "atanh"
+    | "exp"
+    | "ln"
+    | "log10"
     | "abs"
     | "sign"
     | "round"
@@ -240,6 +289,9 @@ fn expression_tag(
     | "safe_subtract"
     | "safe_multiply"
     | "modulo"
+    | "pow"
+    | "atan2"
+    | "log"
     | "strpos"
     | "starts_with"
     | "ends_with"
@@ -257,11 +309,25 @@ fn expression_tag(
     | "and"
     | "or"
     | "coalesce"
+    | "greatest"
+    | "least"
     | "concat"
     | "concat_strict"
     | "len"
+    | "byte_length"
+    | "unicode"
+    | "chr"
+    | "reverse"
+    | "repeat"
+    | "translate"
+    | "instr"
     | "replace"
+    | "split"
     | "substring"
+    | "left"
+    | "right"
+    | "lpad"
+    | "rpad"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -326,6 +392,22 @@ fn expression_children(
     | "lower"
     | "floor"
     | "sqrt"
+    | "cbrt"
+    | "sin"
+    | "cos"
+    | "tan"
+    | "asin"
+    | "acos"
+    | "atan"
+    | "sinh"
+    | "cosh"
+    | "tanh"
+    | "asinh"
+    | "acosh"
+    | "atanh"
+    | "exp"
+    | "ln"
+    | "log10"
     | "abs"
     | "sign"
     | "safe_negate"
@@ -335,7 +417,7 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
-    "len" => [body]
+    "len" | "byte_length" | "unicode" | "chr" | "reverse" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -927,6 +1009,22 @@ fn lower_typed_expression_measured(
           }
         "floor" => Unary(Floor, args[0])
         "sqrt" => Unary(Sqrt, args[0])
+        "cbrt" => Unary(Cbrt, args[0])
+        "sin" => Unary(Sin, args[0])
+        "cos" => Unary(Cos, args[0])
+        "tan" => Unary(Tan, args[0])
+        "asin" => Unary(Asin, args[0])
+        "acos" => Unary(Acos, args[0])
+        "atan" => Unary(Atan, args[0])
+        "sinh" => Unary(Sinh, args[0])
+        "cosh" => Unary(Cosh, args[0])
+        "tanh" => Unary(Tanh, args[0])
+        "asinh" => Unary(Asinh, args[0])
+        "acosh" => Unary(Acosh, args[0])
+        "atanh" => Unary(Atanh, args[0])
+        "exp" => Unary(Exp, args[0])
+        "ln" => Unary(Ln, args[0])
+        "log10" => Unary(Log10, args[0])
         "abs" => Unary(Abs, args[0])
         "sign" => Unary(Sign, args[0])
         "round" =>
@@ -943,6 +1041,10 @@ fn lower_typed_expression_measured(
           }
         "safe_negate" => Unary(SafeNegate, args[0])
         "len" => Unary(Length, args[0])
+        "byte_length" => Unary(ByteLength, args[0])
+        "unicode" => Unary(Unicode, args[0])
+        "chr" => Unary(Chr, args[0])
+        "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
@@ -959,6 +1061,9 @@ fn lower_typed_expression_measured(
         "safe_subtract" => Binary(SafeSubtract, args[0], args[1])
         "safe_multiply" => Binary(SafeMultiply, args[0], args[1])
         "modulo" => Binary(Modulo, args[0], args[1])
+        "pow" => Binary(Pow, args[0], args[1])
+        "atan2" => Binary(Atan2, args[0], args[1])
+        "log" => Binary(Log, args[0], args[1])
         "strpos" => Binary(Strpos, args[0], args[1])
         "starts_with" => Binary(StartsWith, args[0], args[1])
         "ends_with" => Binary(EndsWith, args[0], args[1])
@@ -987,11 +1092,21 @@ fn lower_typed_expression_measured(
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)
+        "greatest" => Many(Greatest, args)
+        "least" => Many(Least, args)
         "concat" => Many(Concat, args)
         "concat_strict" => Many(ConcatStrict, args)
         "between" => Many(Between, args)
         "replace" => Many(Replace, args)
+        "repeat" => Many(Repeat, args)
+        "translate" => Many(Translate, args)
+        "instr" => Many(Instr, args)
+        "split" => Many(Split, args)
         "substring" => Many(Substring, args)
+        "left" => Many(LeftString, args)
+        "right" => Many(RightString, args)
+        "lpad" => Many(LPad, args)
+        "rpad" => Many(RPad, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2

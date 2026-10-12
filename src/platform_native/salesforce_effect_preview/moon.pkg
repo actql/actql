@@ -9,8 +9,11 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/source_value" @source,
+  "actql/actql/value_admission" @values,
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
   "actql/actql/program_check" @checked,
+  "actql/actql/check_environment" @environment,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/stage_results" @results,
@@ -20,6 +23,8 @@ import {
   "actql/actql/platform_native/credential_resource" @resource,
   "actql/actql/remote_credential" @credential,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/execution_authorization" @authorization,
+  "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/signature",
   "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/platform_native/remote_journal" @journal,
@@ -27,3 +32,7 @@ import {
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/platform_native/publication_store" @store,
 }
+
+import {
+  "actql/actql/sha256" @sha,
+} for "wbtest"

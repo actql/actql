@@ -46,3 +46,25 @@ test('every explicit machine-import marker has a pinned owner registration', () 
   assert.deepEqual(analytic.map(r => r.pointer).toSorted(), ['', '/schemas/analytic_slot']);
   validateMachineImports(family.documents);
 });
+
+test('run publication schemas retain their existing normative owners', () => {
+  const family = loadSpecFamily();
+  const schemas = [
+    'compiled_plan', 'result_definition', 'run_invocation',
+    'result_retention_policy', 'durable_result_binding',
+    'publication_request', 'publication_attempt', 'publication_record',
+    'manifest_read_grant', 'result_read_grant', 'delivery_attempt',
+    'delivery_record', 'public_index_entry', 'model_raw_capture_policy',
+    'model_raw_response',
+  ];
+  for (const pointer of [...schemas.map(name => `/schemas/${name}`), '/laws']) {
+    const owners = family.documents.filter(document =>
+      document.machine_contracts.some(ref =>
+        ref.path === 'spec/contracts/actql-run-publication.json' &&
+        ref.pointer === pointer));
+    // The compilation envelope belongs to static planning contracts. The
+    // Run-bound publication chain is already normative in Artifacts.
+    assert.deepEqual(owners.map(document => document.document_id),
+      [pointer === '/schemas/compiled_plan' ? 'contracts' : 'artifacts']);
+  }
+});

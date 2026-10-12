@@ -1,0 +1,12 @@
+{
+  "source": "e490950553ecc72a32e88cd9b97272bd965123f0",
+  "preserved": [
+    "all operation argument omissions/extra arguments/selectors and Carrier mismatch expectations",
+    "shortest two explicit Relation selectors id/id, each_pair/out/max_hops1",
+    "mean weights/support/closed property policy exact_equal unchanged",
+    "heterogeneous candidates and field refusals independent of definition order",
+    "Graph star/implicit export/named edge/quantified terminal endpoint support boundaries"
+  ],
+  "changes": "Old DATA source wrappers become WITH bindings and pure GRAPH primaries. A reproduced frontend routing inconsistency now reuses the established root resolved-Relation InvalidQuery rule in projected producer bodies. Unknown Graph sources retain the established UnsupportedGraph support refusal. No common checker/Graph/Owner semantics change.",
+  "public_execution": "not performed"
+}

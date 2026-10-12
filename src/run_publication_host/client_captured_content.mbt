@@ -17,7 +17,7 @@ pub fn prepare_client_captured_content(
   media_type : String,
   content_cid : String,
   size_bytes : Int,
-  limits : @admitted.ReferenceLimits,
+  limits : @values.ReferenceLimits,
 ) -> Result[ClientCapturedContent, @publication.GeneratedContentReferenceIssue] {
   if !client_keyed_request_matches_acquisition(request, acquisition) ||
     request.attempts < 1L ||
@@ -86,7 +86,7 @@ pub fn prepare_client_run_captured_content(
   media_type : String,
   content_cid : String,
   size_bytes : Int,
-  limits : @admitted.ReferenceLimits,
+  limits : @values.ReferenceLimits,
 ) -> Result[ClientCapturedContent, @publication.GeneratedContentReferenceIssue] {
   let matches = match compiled.compilation {
     Effects(allowed) =>
@@ -125,7 +125,7 @@ pub fn prepare_client_stored_run_captured_content(
   acquisition : ClientKeyedAcquisition,
   original_wire : String,
   binding_wire : String,
-  limits : @admitted.ReferenceLimits,
+  limits : @values.ReferenceLimits,
 ) -> Result[ClientCapturedContent, @publication.GeneratedContentReferenceIssue] {
   let matches = match compiled.compilation {
     Effects(allowed) =>
@@ -287,9 +287,9 @@ pub fn client_captured_content_storage(
 ///|
 pub fn issue_client_captured_content(
   value : ClientCapturedContent,
-  issuer : @admitted.ReferenceIssuer,
-  limits : @admitted.ReferenceLimits,
-) -> Result[@admitted.CheckedValue, @publication.GeneratedContentReferenceIssue] {
+  issuer : @values.ReferenceIssuer,
+  limits : @values.ReferenceLimits,
+) -> Result[@values.CheckedValue, @publication.GeneratedContentReferenceIssue] {
   if value.request is Some(request) {
     if !client_keyed_request_matches_acquisition(request, value.acquisition) ||
       request.left.lookup_issue is Some(_) {

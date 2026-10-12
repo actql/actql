@@ -8,6 +8,7 @@ import {inferTaskPublicationPlan} from './local-values-plan.mjs';
 import {inferPublicationExecution} from './infer-result-publication.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
+import {createInferIoNotification} from './infer-io-notification.mjs';
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
@@ -16,10 +17,49 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
   const control = core.publicationControl;
   const run = async ({preparedProgram, plan, store, principalId, signal,
     retainExecution, acquiredInfer, acquiredContent, replay = false, beginPhysicalWork = () => {},
-    submission, existingModel, modelClaim, assertCurrent}) => {
+    submission, existingModel, modelClaim, assertCurrent, originalPreparation}) => {
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
+    }
+    const originalInstallation = selected.originalReadInstallation;
+    if (originalInstallation !== undefined &&
+        (originalPreparation !== undefined || acquiredInfer !== undefined || replay ||
+          selected.components !== undefined)) {
+      throw new TypeError('InstalledInferOriginalReadInstallationUnavailable');
+    }
+    if (originalInstallation !== undefined &&
+        ['beginCheckedClientInferOriginalReadScope', 'prepareCheckedClientInferNodeReadLayout',
+          'claimCheckedClientInferNodePreparationLayout', 'startCheckedClientInferOriginalPreparation',
+          'stopCheckedClientInferOriginalReadPreparation', 'settleCheckedClientInferOriginalReadPreparation',
+          'finishCheckedClientInferOriginalReadScope'].some(name => typeof control[name] !== 'function')) {
+      throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
+    }
+    // Installation-only original custody. Public request data and restored
+    // inputs cannot mint a fresh read or replace its original scope/Ledger.
+    if (originalPreparation !== undefined &&
+        (originalPreparation === null || typeof originalPreparation !== 'object' ||
+          Object.keys(originalPreparation).sort().join(',') !==
+            'compiled,control,modelExecutionBytes,modelRetainedBytes,nodeInstallation,physicalCustody,read,readExecutionBytes,readRetainedBytes,runDefinition,scope' ||
+          originalPreparation.control !== control ||
+          originalPreparation.compiled !== plan.compiled ||
+          originalPreparation.runDefinition !== plan.runDefinition ||
+          originalPreparation.scope === undefined || originalPreparation.read === undefined ||
+          !Object.hasOwn(originalPreparation, 'nodeInstallation') ||
+          ['close', 'cleanup', 'cleanupPending'].some(name =>
+            typeof originalPreparation.physicalCustody?.[name] !== 'function') ||
+          ['stopCheckedClientInferOriginalReadPreparation',
+            'settleCheckedClientInferOriginalReadPreparation',
+            'finishCheckedClientInferOriginalReadScope'].some(name =>
+            typeof control[name] !== 'function') ||
+          acquiredInfer !== undefined || replay || selected.components !== undefined)) {
+      throw new TypeError('InvalidInstalledInferOriginalPreparation');
+    }
+    if (originalPreparation !== undefined) {
+      // Capture these already-owned references once before any await. The
+      // installation's full preparation envelope must fund this record and
+      // its overlap with the caller's input; no late grant is inferred here.
+      originalPreparation = Object.freeze({...originalPreparation});
     }
     if (selected.components !== undefined) {
       return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
@@ -31,11 +71,21 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     }
     const keyed = selected.occurrence !== undefined && selected.serializationGraph === undefined &&
       checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) !== undefined;
+    // The current installed read/layout supplier has no adopted Content overlap.
+    // Refuse before generation/recovery or keyed input construction; support
+    // checks and a visible child Ledger are not original funding authority.
+    if (keyed || selected.serializationGraph !== undefined || acquiredContent !== undefined) {
+      throw new TypeError('InstalledInferContentOriginalPreparationUnavailable');
+    }
     if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
     const runId = JSON.parse(plan.runDefinition.wire).run_id;
     const taskIndex = moon.clientProgramInferPlanBoundary(selected.graph)._0;
     existingModel ??= modelController.discover(runId).find(record => record.inventory.taskIndex === taskIndex);
     if (replay && existingModel === undefined) throw new Error('InstalledInferOriginalInventoryMissing');
+    if ((originalPreparation !== undefined || originalInstallation !== undefined) &&
+        existingModel !== undefined) {
+      throw new TypeError('RestoredInferOriginalPreparationUnavailable');
+    }
     const token = existingModel === undefined ? undefined : await modelController.prime(existingModel);
     let restoredInput, sources;
     try {
@@ -55,10 +105,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       serializedInput, restoredReferenceIssuer, keyedInput, receivingKeyed;
     let captureCloseAttempted = false, captureReleased = false;
     let continuationCloseAttempted = false, continuationReleased = false;
+    // These are phases of the same existing retained custody, not another
+    // cleanup Owner. A failed physical close keeps this exact original record.
+    let originalReadStopped = false, originalReadCloseAttempted = false;
+    let originalReadPhysicalReleased = originalPreparation === undefined && originalInstallation === undefined;
+    let originalReadSettled = originalReadPhysicalReleased;
+    let originalScopeReleased = originalReadPhysicalReleased;
+    let originalCleanupFlight;
     const cleanupPending = () => evidenceCopy?.cleanupPending() === true || !captureReleased ||
-      continuation !== undefined && !continuationReleased || contentChild?.cleanupPending() === true ||
-      keyedContentChild?.cleanupPending() === true;
-    const cleanup = async () => {
+      continuation !== undefined && !continuationReleased ||
+      contentChild?.cleanupPending() === true || keyedContentChild?.cleanupPending() === true ||
+      !originalReadSettled || !originalScopeReleased;
+    const cleanupOwned = async () => {
       // Optional projection is a child of this already-retained INFER custody.
       // Keep its originals alive until the copy handoff and release settle.
       if (evidenceCopy !== undefined) {
@@ -88,15 +146,113 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // Reclaim Model/input borrowers before their producer's prefix. The
       // Content Store's committed private generation remains durable custody,
       // independently of this temporary execution or a public Result index.
-      if (captureReleased && (continuation === undefined || continuationReleased) &&
-          contentChild !== undefined && await contentChild.cleanup() === false) return false;
-      if (captureReleased && (continuation === undefined || continuationReleased) &&
-          keyedContentChild !== undefined && await keyedContentChild.cleanup() === false) return false;
+      if (!captureReleased || continuation !== undefined && !continuationReleased) return false;
+      if (contentChild !== undefined) {
+        if (await contentChild.cleanup() === false || contentChild.cleanupPending() !== false) return false;
+        contentChild = undefined;
+      }
+      if (keyedContentChild !== undefined) {
+        if (await keyedContentChild.cleanup() === false || keyedContentChild.cleanupPending() !== false) return false;
+        keyedContentChild = undefined;
+      }
+      if (originalPreparation !== undefined && captureReleased &&
+          (continuation === undefined || continuationReleased)) {
+        if (originalPreparation.read === undefined) {
+          // The original scope was issued, but read admission refused before
+          // an Execution/physical child existed. Only the original census can
+          // finish this scope; no synthetic read or physical ACK is issued.
+          originalReadStopped = true;
+          originalReadPhysicalReleased = true;
+          originalReadSettled = true;
+        } else if (!originalReadStopped) {
+          control.stopCheckedClientInferOriginalReadPreparation(plan.compiled,
+            plan.runDefinition, selected.graph, originalPreparation.scope,
+            originalPreparation.read);
+          originalReadStopped = true;
+        }
+        if (!originalReadPhysicalReleased) {
+          const child = originalPreparation.physicalCustody;
+          const recover = originalReadCloseAttempted;
+          originalReadCloseAttempted = true;
+          const result = await (recover ? child.cleanup() : child.close());
+          originalReadPhysicalReleased = result !== false && child.cleanupPending() === false;
+          if (!originalReadPhysicalReleased) return false;
+        }
+        if (!originalReadSettled) {
+          control.settleCheckedClientInferOriginalReadPreparation(plan.compiled,
+            plan.runDefinition, selected.graph, originalPreparation.read, true);
+          originalReadSettled = true;
+        }
+        // All actual children of this fresh single-component custody have
+        // acknowledged cleanup. The original Core census still refuses any
+        // other live child; read settlement alone cannot release bootstrap.
+        originalScopeReleased = control.finishCheckedClientInferOriginalReadScope(
+          plan.compiled, plan.runDefinition, selected.graph,
+          originalPreparation.scope, true) === true;
+        if (originalScopeReleased) originalPreparation = undefined;
+      }
       return !cleanupPending();
+    };
+    const cleanup = () => {
+      // An original cleanup flight belongs to this same retained custody.
+      // Concurrent close/retry callers must not overlap physical close or
+      // settle its read twice. The former route is otherwise unchanged.
+      if (originalReadStopped && originalScopeReleased) return originalCleanupFlight;
+      if (originalCleanupFlight === undefined) {
+        originalCleanupFlight = cleanupOwned();
+        originalCleanupFlight.then(complete => {
+          if (complete !== true) originalCleanupFlight = undefined;
+        }, () => { originalCleanupFlight = undefined; });
+      }
+      return originalCleanupFlight;
     };
     const custody = Object.freeze({cleanupPending, cleanup, close: cleanup});
     try { retainExecution(custody); }
-    catch (error) { modelController.release(token); throw error; }
+    catch (error) {
+      if (originalInstallation !== undefined) {
+        originalReadPhysicalReleased = true;
+        originalReadSettled = true;
+        originalScopeReleased = true;
+      }
+      modelController.release(token); throw error;
+    }
+    if (originalInstallation !== undefined) {
+      // Custody exists before the first issuer. A failed issuer is atomic;
+      // once scope is returned, record it before read construction can fail.
+      // These fixed installation values must have the reviewed initial/full
+      // phase basis. Presence or passing Common support checks is not proof.
+      let scope;
+      try {
+        scope = control.beginCheckedClientInferOriginalReadScope(plan.compiled,
+          plan.runDefinition, selected.graph,
+          {...originalInstallation.bootstrap, quantityCapacity: selected.quantityCapacity});
+      } catch (error) {
+        // The existing issuer's refusal is atomic and returned no scope. Do
+        // not invent one to clean up, nor leave a nonexistent read pending.
+        originalReadPhysicalReleased = true;
+        originalReadSettled = true;
+        originalScopeReleased = true;
+        throw error;
+      }
+      originalPreparation = {compiled: plan.compiled, runDefinition: plan.runDefinition,
+        control, scope, read: undefined,
+        nodeInstallation: originalInstallation.nodeInstallation,
+        readRetainedBytes: originalInstallation.nodeInstallation.layout.retained_bytes,
+        readExecutionBytes: originalInstallation.nodeInstallation.layout.execution_bytes,
+        modelRetainedBytes: originalInstallation.modelRetainedBytes,
+        modelExecutionBytes: originalInstallation.modelExecutionBytes,
+        // A projection of this SAME existing Execution, not another physical
+        // cleanup owner or a stop Boolean. Constructor refusal creates no child.
+        physicalCustody: Object.freeze({
+          close: () => operation === undefined ? true : operation.close(),
+          cleanup: () => operation === undefined ? true : operation.cleanup(),
+          cleanupPending: () => operation?.cleanupPending() ?? false})};
+      try {
+        originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
+          plan.compiled, plan.runDefinition, selected.graph, scope,
+          originalInstallation.nodeInstallation);
+      } finally { Object.freeze(originalPreparation); }
+    }
     if (restoredInput?.capturedContent !== undefined) {
       if (typeof prepareKeyedRecovery !== 'function' || typeof runContent?.recoverKeyed !== 'function') {
         throw new Error('InstalledCapturedContentRecoveryUnavailable');
@@ -156,6 +312,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
       provider: selected.provider, quantityCapacity: selected.quantityCapacity,
       physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission,
+      originalPreparation,
+      ioNotification: selected.entryPersistence === 'async' ? createInferIoNotification() : undefined,
       retainOperation(value) { operation = value; }});
     captureOwner = openNodeInferCaptureCustody({moon, control, operation,
       plan, store, storeAuthorityCid, replay: false, durableCalls: true, faultInjection,

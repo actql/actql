@@ -30,7 +30,7 @@ const HOLDING_VERSION = 'actql-local-continuation-holding/0.1';
 const NAMESPACE = 'local-continuation-private';
 const NAMES = Object.freeze(['captured_input', 'invocation_request',
   'prepared_invocation', 'review_projection', 'continuation_record',
-  'source_capture']);
+  'source_capture', 'original_model_state']);
 const ATTEMPT = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 const fail = (code, cause) => {
@@ -152,12 +152,26 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       const store = retained ?? await openStore();
       retained = undefined;
       const cleanups = [];
+      let workFailure;
+      let workFailed = false;
       try {
         cleanups.push(...await store.recoverPhysicalHoldingDeletions());
         return await work(store, cleanup => cleanups.push(cleanup));
+      } catch (error) {
+        workFailed = true;
+        workFailure = error;
+        throw error;
       } finally {
         if (cleanups.some(item => item.status().pending)) retained = store;
-        else await store.close();
+        else {
+          try { await store.close(); }
+          catch (closeFailure) {
+            // Pending original metadata/FD custody keeps this exact Store.
+            // Neither a failed close nor its Error is successful cleanup.
+            retained = store;
+            throw workFailed ? workFailure : closeFailure;
+          }
+        }
       }
     });
     queue = operation.catch(() => {});
@@ -271,8 +285,41 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       key_id: keyId});
   };
 
+  // The installation's same private Evidence custody survives individual
+  // Store open/close operations. Never keep a closed Store's graph alive in
+  // an escaped view, or treat a copied wire/CID as this nominal custody.
+  let originalModelBinding;
+  async function observeOriginalModelBinding() {
+    return withStore(async store => {
+      const handle = await store.observeOriginalModelStorageBinding();
+      const evidence = store.originalModelStorageBindingEvidence(handle);
+      const body = JSON.parse(evidence.wire);
+      if (body.key_generation_cid !== keyId || body.private_namespace !== NAMESPACE) {
+        fail('PrivateEvidenceKeyMismatch');
+      }
+      if (originalModelBinding === undefined) {
+        originalModelBinding = {evidence, handle: Object.freeze({
+          kind: 'model-original-storage-binding', identity: evidence.identity,
+          wire: evidence.wire})};
+      } else if (evidence.wire !== originalModelBinding.evidence.wire) {
+        fail('OriginalModelStorageBindingChanged');
+      }
+      return originalModelBinding.handle;
+    });
+  }
+
   return Object.freeze({
     keyId,
+    observeOriginalModelStorageBinding: observeOriginalModelBinding,
+    async originalModelStorageBindingEvidence(handle) {
+      if (originalModelBinding === undefined || handle !== originalModelBinding.handle) {
+        fail('ForeignOriginalModelStorageBinding');
+      }
+      // This checks the actual selected Store after its admission await.
+      // Nominal origin is required first; value equality is only a fence.
+      await observeOriginalModelBinding();
+      return originalModelBinding.evidence;
+    },
 
     // The exact reference and holding of one evidence item of a continuation.
     reference,
@@ -318,10 +365,23 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
           fail('InvalidEvidenceReadLimit');
         }
         const current = await readLedger(prepareAttemptId);
+        if (current === undefined) fail('ContinuationEvidenceNotHeld');
+        sameKey(current);
+        if (current.request_cid !== ledger.request_cid) {
+          fail('ContinuationRequestMismatch');
+        }
         const entry = current?.holdings.find(item => item.name === name &&
           item.semantic_cid === semanticCid);
         if (entry === undefined) fail('ContinuationEvidenceNotHeld');
         sameKey(entry);
+        // Same payload bytes do not merge two continuations' custody. Reuse
+        // the original holding derivation before opening the physical Store;
+        // the semantic CID and a mutable metadata entry are not its authority.
+        if (!NAMES.includes(name) ||
+            !/^sha256:[0-9a-f]{64}$/u.test(semanticCid) ||
+            entry.holding_cid !== holdingCidOf(prepareAttemptId, name, semanticCid)) {
+          fail('ContinuationEvidenceNotHeld');
+        }
         if (entry.state !== 'held') fail('ContinuationEvidenceRetired');
         const stored = await withStore(async store => {
           if (maxBytes !== undefined) {
@@ -375,8 +435,14 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       const pending = [];
       for (const id of await listLedgers()) {
         const ledger = await readLedger(id);
+        // A terminal Run, abandonment or missing journal row does not prove
+        // release of original Model state needed by retained Results,
+        // reconciliation or pending cleanup. The exact original Owner's
+        // release observation is not connected here yet; keep this role.
+        // This holding does not own or settle the Model/Ledger token itself.
         const releasable = ledger.holdings.filter(item =>
-          item.name !== 'invocation_request' && item.state !== 'retired');
+          item.name !== 'invocation_request' &&
+          item.name !== 'original_model_state' && item.state !== 'retired');
         if (releasable.length === 0 || needed(ledger)) continue;
         for (const item of releasable) item.state = 'retiring';
         await writeLedger(ledger);
@@ -406,9 +472,9 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     async close() {
       await queue;
       const store = retained;
-      retained = undefined;
       if (store !== undefined) {
-        try { await store.close(); } catch { /* durable deletion record */ }
+        await store.close();
+        retained = undefined;
       }
     },
   });

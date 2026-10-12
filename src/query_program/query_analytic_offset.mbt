@@ -1,6 +1,6 @@
 ///|
-// Parentheses retain the literal/whole-parameter role required by the common
-// analytic contract. Never turn an arbitrary expression into an offset value.
+// Grouping and numeric unary plus retain the literal/whole-parameter role.
+// Never turn an arbitrary expression into an offset value.
 fn lower_analytic_offset(
   construction : Construction,
   expression : @query.Expression,
@@ -17,21 +17,16 @@ fn lower_analytic_offset(
     work += 1
     let node = @query.expression_node(expression, index).unwrap()
     match node.kind {
-      Parenthesized(child) => index = child
+      Parenthesized(child) | Unary("+", child) => index = child
       Number(text) => {
-        let mut value = 0L
-        for unit in text {
+        for _ in 0..<text.length() {
           if work >= max_work {
             raise Abort(Expression({ issue: WorkLimit, origin: Some(origin), }))
           }
           work += 1
-          let digit = unit.to_int() - 48
-          if digit < 0 ||
-            digit > 9 ||
-            value > (9007199254740991L - digit.to_int64()) / 10L {
-            raise Abort(UnsupportedAnalytic)
-          }
-          value = value * 10L + digit.to_int64()
+        }
+        guard @query.exact_integer_literal(text) is Some(value) else {
+          raise Abort(UnsupportedAnalytic)
         }
         return { ..construction, generated: origin, }.add(
           Number(value.to_double()),
@@ -53,19 +48,26 @@ fn lower_analytic_offset(
         work += 1
         let child = @query.expression_node(expression, child).unwrap()
         if child.kind is Number(text) {
+          let hex = text.has_prefix("0x") || text.has_prefix("0X")
           let mut positive = false
-          for unit in text {
+          for index in 0..<text.length() {
             if work >= max_work {
               raise Abort(
                 Expression({ issue: WorkLimit, origin: Some(origin), }),
               )
             }
             work += 1
-            let digit = unit.to_int() - 48
-            if digit < 0 || digit > 9 {
-              raise Abort(UnsupportedAnalytic)
+            if hex {
+              if index >= 2 {
+                positive = positive || text[index] != '0'
+              }
+            } else {
+              let digit = text[index].to_int() - 48
+              if digit < 0 || digit > 9 {
+                raise Abort(UnsupportedAnalytic)
+              }
+              positive = positive || digit > 0
             }
-            positive = positive || digit > 0
           }
           // A directly negated positive integer atom proves a domain violation.
           // Zero and other signed spellings retain their existing support limit.

@@ -2,12 +2,19 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import {checkModelOriginalStorageBindingContract} from './model-original-storage-binding-contract.mjs';
 import {
   publicationRegistry,
   publicationSchemas,
 } from './run-publication-registry.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
+
+test('original Model storage binding has its owned schema pin', () => {
+  checkModelOriginalStorageBindingContract();
+  assert.equal(machineCid(publicationSchemas().model_original_storage_binding),
+    'sha256:b3906487cb64d2c9a7c5a271358d971051e76884e0d795b1c6ad64c3f00d96f1');
+});
 
 test('publication schemas are closed and self identities are explicit', () => {
   const schemas = publicationSchemas();
@@ -25,6 +32,9 @@ test('publication schemas are closed and self identities are explicit', () => {
     delivery_attempt: 'delivery_attempt_cid',
     delivery_record: 'delivery_record_cid',
     public_index_entry: 'public_index_entry_cid',
+    model_raw_capture_policy: 'self_cid',
+    model_raw_response: 'self_cid',
+    model_original_storage_binding: 'self_cid',
   };
   assert.deepEqual(Object.keys(schemas), Object.keys(selfFields));
   for (const [name, field] of Object.entries(selfFields)) {

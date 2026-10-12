@@ -3,8 +3,10 @@
 /// success cases. This fixture is not Cloud approval authority.
 fn retained_holder_review_policy(
   holder : @resident.ResidentRetainedConsumer,
+  journal : @dispatch_journal.Journal,
   inputs : @strategy.CapturedEffectInputs,
   invocation : @publication.PublicationContract,
+  mapped_create? : Bool = false,
 ) -> @effect_provider.NativeResidentEffectReviewPolicy raise {
   let dispatch = @resident.resident_retained_consumer_request(holder)
   let mut result_index = -1
@@ -15,28 +17,46 @@ fn retained_holder_review_policy(
   }
   assert_true(result_index >= 0)
   let binding = {
-    ..provider_binding(),
+    ..(if mapped_create {
+      native_mapped_create_binding()
+    } else {
+      provider_binding()
+    }),
     run_invocation_cid: @publication.publication_contract_identity(invocation),
     dispatch_request_cid: @remote.dispatch_request_identity(dispatch),
   }
-  let catalog = provider_catalog(binding)
+  let catalog = if mapped_create {
+    native_mapped_create_catalog(binding)
+  } else {
+    provider_catalog(binding)
+  }
   {
     stage: 1,
     effect_id: "save",
     result_index,
-    mapping: provider_mapping(),
+    mapping: if mapped_create {
+      native_mapped_create_mapping()
+    } else {
+      provider_mapping()
+    },
     projection: @catalog.prepare_write_projection(
       catalog,
       binding,
       "ActQL_Test_Record__c",
-      @catalog.WriteUpdateById,
+      if mapped_create {
+        @catalog.WriteCreate
+      } else {
+        @catalog.WriteUpdateById
+      },
       ["Count__c"],
       1,
     ).unwrap(),
     catalog,
     api_version: "v66.0",
     runtime_bundle_cid: @remote.dispatch_request_execution_scope(dispatch)[2],
-    source_binding_cid: retained_compute_cid("e"),
+    source_binding_cid: holder
+    .effect_source_binding_cid(journal, inputs)
+    .unwrap(),
     store_authority_cid: retained_compute_cid("a"),
     retention: retained_compute_effect_retention(),
     retention_dependencies: [
@@ -129,7 +149,35 @@ fn retained_holder_provider_review(
   }
   let request = consumer.request_for_effect_review(inputs).unwrap()
   assert_eq(Some(request), materials.request)
-  let policy = retained_holder_review_policy(holder, inputs, invocation)
+  let policy = retained_holder_review_policy(
+    holder, journal, inputs, invocation,
+  )
+  // The create connection cannot reinterpret this genuine update member,
+  // export a different input, or acquire Provider authority from it.
+  let create_before = consumer.usage().reserved_retention_bytes
+  assert_true(
+    @effect_provider.prepare_native_resident_effect_created_targets(
+      consumer,
+      materials,
+      inputs,
+      policy.stage,
+      policy.effect_id,
+      policy.result_index,
+      policy.mapping,
+      policy.projection,
+      policy.api_version,
+      policy.export_limits,
+      policy.body_limits,
+      policy.request_limits,
+      policy.max_rows,
+      policy.max_fields,
+      policy.max_work,
+      policy.max_utf16_units,
+      policy.preview_limits.max_wire_bytes,
+    )
+    is Err(ForeignMapping),
+  )
+  assert_eq(consumer.usage().reserved_retention_bytes, create_before)
   let work = @effect_provider.prepare_native_resident_effect_review_from_context(
     holder, journal, owned_context, normalization, policy,
   ).unwrap()
@@ -163,6 +211,14 @@ fn retained_holder_provider_review(
     )
   }
   let before = consumer.usage().reserved_retention_bytes
+  // A well-formed fixture CID cannot stand in for the original consumer edge.
+  assert_true(
+    prepare(materials, {
+      ..policy,
+      source_binding_cid: retained_compute_cid("e"),
+    })
+    is Err(Unavailable),
+  )
   assert_true(
     prepare({ ..materials, request: None, }, policy) is Err(Unavailable),
   )
@@ -184,6 +240,31 @@ fn retained_holder_provider_review(
     prepare(materials, { ..policy, max_capture_workspace_entries: 0, })
     is Err(InvalidLimits),
   )
+  guard policy.catalog.binding is @catalog.SiteCatalog(original_site_binding) else {
+    fail("expected the original Site Catalog fixture binding")
+  }
+  // A valid Catalog with the same Resource shape is still foreign to the
+  // original holder. Reject before taking another completed-output export or
+  // allowing the Provider access callback to run.
+  for
+    foreign in [
+      { ..original_site_binding, site_key: "foreign-site", },
+      { ..original_site_binding, site_generation: 2, },
+      {
+        ..original_site_binding,
+        run_invocation_cid: retained_compute_cid("f"),
+      },
+      {
+        ..original_site_binding,
+        dispatch_request_cid: retained_compute_cid("f"),
+      },
+    ] {
+    assert_true(
+      prepare(materials, { ..policy, catalog: provider_catalog(foreign), })
+      is Err(Unavailable),
+    )
+    assert_eq(consumer.usage().reserved_retention_bytes, before)
+  }
   assert_eq(consumer.usage().reserved_retention_bytes, before)
   assert_true(work.complete() is Err(Unavailable))
   let facts = resident_provider_observe(
@@ -300,7 +381,7 @@ fn retained_holder_provider_review(
       owned_result,
       invocation,
       complete.preview.preview,
-      [complete.preview.proof],
+      [complete.preview.proof.unwrap()],
       [complete.source],
       [complete.local_source],
       complete.inventory,
@@ -399,6 +480,7 @@ fn retained_holder_provider_review(
     original_journal_path=Some(
       root_path + "/" + name + ".runtime/execution.sqlite3",
     ),
+    original_context=Some((owned_context, journal)),
   )
   let saved = journal
     .effect_checkpoint_report(dispatch, {

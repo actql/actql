@@ -86,9 +86,9 @@ const receiverDeclarations = {a: receiverObject, b: receiverObject,
 const receiverParameters = {a: {score: 10}, b: {score: 20}, c: null, d: {score: null}};
 const receiverRows = [{id: 2, amount: 20}, {id: 1, amount: 10},
   {id: 4, amount: 10}, {id: 3, amount: 99}, {id: 5, amount: 88}, {id: 0, amount: 777}];
-const receiverData = 'DATA objects = SELECT id, amount AS score, '
+const receiverData = 'WITH objects AS (SELECT id, amount AS score, '
   + 'CASE WHEN id = 2 THEN @a WHEN id = 1 OR id = 4 THEN @b WHEN id = 5 THEN @d ELSE @c END AS payload '
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const receiverExpected = [{score: 10}, {score: 20}, {score: null}];
 const receiverColumns = [{name: 'score', contract: receiverNumber}];
 export const orderReceiverProgram = {version: 'actql/0.1', id: 'fixture.order_property_receiver',

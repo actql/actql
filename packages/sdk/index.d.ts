@@ -9,7 +9,8 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
-  WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix} from
+  WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
+  WirePlanView, WireRunView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -533,6 +534,9 @@ export interface Execution {
   readonly ref: RunReference;
   readonly profile: ConfirmedProfile;
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
+  /** Read-only Owner-local projection; omitted pending facts remain unknown. */
+  inspect(options?: {signal?: AbortSignal; maxWireBytes?: number;
+    maxNodes?: number; maxDepth?: number}): Promise<WireRunView>;
   /** Independent Owner-local views; cursors are not authority or control revisions. */
   observeOwners(options?: {signal?:AbortSignal;cursors?:readonly OwnerCursor[];
     maxEntries?:number;maxWireBytes?:number}): Promise<OwnerObservations>;
@@ -585,6 +589,14 @@ export interface Client {
    */
   check(text: string, options: TextCheckOptions): Promise<CheckOutcome>;
   check(program: Record<string, unknown>, options: ProgramCheckOptions): Promise<CheckOutcome>;
+  /** Static checked Plan projection; creates no Run and performs no Provider I/O. */
+  plan(input: string | Record<string, unknown>, options?: {
+    kind?: 'aql' | 'program'; format?: ClientSourceFormat;
+    parameterDeclarations?: Record<string, unknown>;
+    parameters?: QueryParameters;
+    maxWireBytes?: number; maxNodes?: number; maxDepth?: number;
+    signal?: AbortSignal;
+  }): Promise<WirePlanView>;
   start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,

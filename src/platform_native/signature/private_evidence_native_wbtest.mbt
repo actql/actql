@@ -74,7 +74,7 @@ test "native private evidence authenticates the existing Store envelope" {
 }
 
 ///|
-test "native continuation and checkpoint roles authenticate independent Node envelopes" {
+test "native continuation checkpoint and Catalog roles authenticate independent Node envelopes" {
   let library = load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
   ).unwrap()
@@ -85,6 +85,8 @@ test "native continuation and checkpoint roles authenticate independent Node env
     (role, tag) in [
       ("continuation_record", "3yJDT2CxbtjfVQftN2GjCg=="),
       ("checkpoint", "nNFQ/3TzvkCWXAw8mHf78g=="),
+      ("effect_catalog", "Lp6w6J1zL2EI2B/BmufyJQ=="),
+      ("credential_raw_observation", "M5MACSiYVAwOAhJ4P/F8Tw=="),
     ] {
     // Public deterministic AES-GCM vector generated independently by Node's
     // crypto API, not copied from the Native implementation's output.
@@ -99,7 +101,8 @@ test "native continuation and checkpoint roles authenticate independent Node env
     )
     for
       foreign in [
-        "effect_capture", "effect_preview", "checkpoint", "continuation_record",
+        "effect_capture", "effect_preview", "effect_catalog", "credential_raw_observation",
+        "checkpoint", "continuation_record",
       ] {
       if foreign != role {
         assert_true(

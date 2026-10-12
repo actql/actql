@@ -7,8 +7,8 @@ test "SQL and Pipe bind expansion before a subsequent ordinary JOIN" {
       "SELECT p.id FROM parents p JOIN rights r ON p.id = r.id CROSS JOIN UNNEST(p.items) e JOIN others o ON e = o.id MAX_OUTPUT_ROWS 10",
     ] {
     let query = parse_query(text, query_limits()).unwrap()
-    assert_eq(cte_count(query), 1)
-    let expanded = cte_at(query, 0).unwrap()
+    assert_eq(query_binding_count(query), 1)
+    let expanded = query_binding_at(query, 0).unwrap()
     assert_true(expanded.carry_ranges)
     assert_eq(join_part_count(query), 1)
     assert_eq(join_part_at(query, 0).unwrap().max_output_rows, Some(10L))

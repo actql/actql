@@ -1,0 +1,85 @@
+{
+  "unit": "P1-A context/CTAS first product slice; not the complete WITH cutover",
+  "owner": "B",
+  "adopted_main": "ab5460e2422f59da69dcf873c5498dc8a5d7997e",
+  "normal_adoption": "d4f0cb470f247af195e4793272eb057430d0ba1d",
+  "adoption_tree": "54f6f118ced6db8e2628221768ffac0390618078",
+  "contract": "reviewed bundle b5d03b1d38912c52a9ad333a4734155edbec0c70 LANGUAGE_CHANGES.md N3",
+  "old_source_observations": [
+    "CTAS treated any first parenthesis as a whole Compute wrapper, so following UNION/Pipe continuation was left outside the consumed CTAS input.",
+    "Pure producer RESULT was previously parsed and deferred to lowering; context now rejects it at its original token."
+  ],
+  "changes": [
+    "Private Pure/Compute/Statement context instead of declaration-placement Boolean; no new wire or Owner.",
+    "One bounded, work-charged scan of original token parentheses chooses whole CTAS wrapping; parser retains its existing source-depth limits.",
+    "Every ordinary group, WITH body and right Pipe-set operand remains Pure.",
+    "Direct CTAS Compute accepts INFER/RESULT and rejects terminal writes."
+  ],
+  "independent_controls": "compute-context-controls.json; query_context_test.mbt also fixes exact UTF-8 RESULT token offsets from the unchanged ASCII sources.",
+  "checks": {
+    "source_offset_metadata": "four corrected offsets independently counted; authoring failure retained",
+    "diff_whitespace": "exit 0; no compiler/runtime executed",
+    "moonbit_execution": "not executed",
+    "format": "not executed",
+    "checker_runtime_public": "not executed"
+  },
+  "prepared_commands": [
+    {
+      "boundary": "affected syntax plus existing placement callers",
+      "cap_seconds": 60,
+      "heavy": false,
+      "argv": [
+        "node",
+        "scripts/local-checks.mjs",
+        "test",
+        "moon",
+        "--timeout-seconds",
+        "60",
+        "--",
+        "--target",
+        "js",
+        "src/query_syntax/query_context_test.mbt",
+        "src/query_syntax/table_effect_test.mbt",
+        "src/query_syntax/infer_test.mbt",
+        "src/query_syntax/query_test.mbt"
+      ],
+      "status": "unexecuted; retained B guard rejection is not retried or bypassed"
+    }
+  ],
+  "source_files": [
+    {
+      "path": "src/query_syntax/query_context.mbt",
+      "sha256": "fd0c069e9ca75b268f1969a518becaf2067d0b4d80d938c877caacb71fc84cf7",
+      "bytes": 1303
+    },
+    {
+      "path": "src/query_syntax/query_context_test.mbt",
+      "sha256": "75953524c434313963f8590591530d672cacc192d729ec495ab6f12823c536e1",
+      "bytes": 4017
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "sha256": "e812e8be36fdad95af03dd750895d6754df6b07702716afcdc85a97be10b2349",
+      "bytes": 99138
+    },
+    {
+      "path": "src/query_syntax/query_script.mbt",
+      "sha256": "0cde5d715ba692d970f9af0a8afb9975b07ff91685058192fbb2d87899751712",
+      "bytes": 3323
+    }
+  ],
+  "remaining": [
+    "Shared WITH producer AST and four-Carrier resolution/lowering.",
+    "Static checking of every binding and demanded emission/capture reuse.",
+    "GRAPH constructor and shared sql/aql-text routing; complete retired DATA acceptance/API/current-source removal.",
+    "Generated grammar/pins/independent identities/source-map/README controls.",
+    "Actual bounded execution and coherent packed public acceptance."
+  ],
+  "not_start_dependencies": [
+    "INFER or Debug completion",
+    "Root independent old GROUP repair",
+    "G registration consistency repair"
+  ],
+  "execution_claim": "Product edits and static source metadata only; no parser or public PASS.",
+  "authored_syntax_tests": 5
+}

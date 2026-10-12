@@ -1,0 +1,38 @@
+{
+  "adoptedMain": "588319cd4bb292a414129f299bda8098cbc7657c",
+  "files": [
+    {
+      "path": "src/query_program/query_order_grouped_expression.mbt",
+      "sha256": "940c6f84ce60ad70c303c1177ee22add79255cc57d7c9d44ca01e7c0ada83652"
+    },
+    {
+      "path": "src/query_program/group_order_range_alias_test.mbt",
+      "sha256": "be61eebdef8bb012a7a20972e04f6a1c21d4e5008e92b0b28ecba2f26363f4ec"
+    },
+    {
+      "path": "scripts/fixtures/group-order-range-alias-source-input.mjs",
+      "sha256": "2c0da9892130b8f1939b63c6ef9f1f0a30d6bdea5e4525b87d03a3e3b9075a6b"
+    },
+    {
+      "path": "scripts/group-order-range-alias-source-input.test.mjs",
+      "sha256": "565e15aca4de7a9e5b02f86eedf71d50d86bec816504c8b5ac23d7d2665abd86"
+    },
+    {
+      "path": "scripts/fixtures/packed-public-query.mjs",
+      "sha256": "df251138b929472b8e1900468b035adf624d6a99f29e529a43afde965e531920"
+    },
+    {
+      "path": "scripts/fixtures/public-query-inventory.json",
+      "sha256": "3f33975d2ac225aeb05b3f5a9df1f2b5c6d8fe30dab9dabf130ce11316851613"
+    },
+    {
+      "path": "scripts/public-query-profiles.test.mjs",
+      "sha256": "96864bdf88f31018c496ae4e85b5c3301ff8ed435015a310c42a44528241eeb2"
+    },
+    {
+      "path": "scripts/test-packed-public-query.mjs",
+      "sha256": "ea8d12c75ceb77693c1bb9ecd4e14dbc341e5a1fb80ea8d338b571d3b3e988c7"
+    }
+  ],
+  "runtimeExecuted": false
+}

@@ -1,0 +1,101 @@
+{
+  "startedAt": "2026-10-12T02:19:30.516Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Independent dedupe and affected Carrier callers",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/event_dedupe_call_test.mbt",
+        "src/query_program/event_dedupe_source_test.mbt",
+        "src/query_program/event_window_source_test.mbt",
+        "src/query_program/with_vectors_events_test.mbt",
+        "src/query_program/vector_pool_source_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-12T02:19:30.595Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:19:43.917Z",
+      "endedAt": "2026-10-12T02:19:43.925Z"
+    },
+    {
+      "name": "Current grammar canonical consumer",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/canonical_json/identity_vectors.generated_test.mbt",
+        "--filter",
+        "contract spec/manifests/actql-grammar-0.1.json#"
+      ],
+      "startedAt": "2026-10-12T02:19:43.997Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:19:44.866Z",
+      "endedAt": "2026-10-12T02:19:44.869Z"
+    },
+    {
+      "name": "Independent dedupe public fixtures and retained identity history",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/event-dedupe-source.test.mjs",
+        "scripts/event-dedupe-identity.test.mjs",
+        "scripts/event-window-identity.test.mjs",
+        "scripts/vector-pool-identity.test.mjs",
+        "scripts/sga-signature-role-identity.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs",
+        "scripts/compilation-manifests.test.mjs",
+        "scripts/frontend-profile.test.mjs",
+        "scripts/public-query-profiles.test.mjs"
+      ],
+      "startedAt": "2026-10-12T02:19:44.944Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:19:52.141Z",
+      "endedAt": "2026-10-12T02:19:52.143Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "fe5e665a-e8e8-4459-adb3-b36a9121c3ce",
+    "pid": 10213,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T02:19:30.589Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-yTgvDr"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T02:19:52.211Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

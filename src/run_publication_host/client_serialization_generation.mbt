@@ -53,7 +53,7 @@ pub fn complete_client_serialization_generation(
   input : ClientSerializationInput,
   input_evidence : ClientSerializationInputEvidence,
   candidate : @publication.GeneratedContentReference,
-  content : @admitted.CheckedValue,
+  content : @values.CheckedValue,
   available : () -> Bool,
   limits : @execution.ValueLimits,
   max_name_bytes : Int,

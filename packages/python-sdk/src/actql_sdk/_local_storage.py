@@ -1,10 +1,11 @@
 """Physical opaque-byte persistence; Core owns every Run meaning and decision."""
+from collections.abc import Callable
 from dataclasses import dataclass
 import os
 from pathlib import Path
 import sqlite3
 import stat
-from threading import RLock
+from threading import RLock, get_ident
 
 _APPLICATION_ID = 0x41514C42
 _SCHEMA = '''CREATE TABLE core_bytes (
@@ -12,6 +13,9 @@ _SCHEMA = '''CREATE TABLE core_bytes (
     generation INTEGER NOT NULL CHECK(generation >= 0),
     payload BLOB NOT NULL CHECK(typeof(payload) = 'blob')
 ) STRICT, WITHOUT ROWID'''
+# Match the existing Native SQLite physical reservation fields. Core supplies
+# the namespace, material key and amounts; this table carries no Run state.
+_CAPACITY_SCHEMA = '''CREATE TABLE actql_capacity(namespace TEXT NOT NULL,reservation_key TEXT NOT NULL,reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),PRIMARY KEY(namespace, reservation_key)) STRICT'''
 
 
 @dataclass(frozen=True)
@@ -19,6 +23,11 @@ class StoredBytes:
     # A physical CAS generation, never a Run or control revision.
     generation: int
     payload: bytes
+
+
+_NamespaceConsumer = Callable[[tuple[str, StoredBytes] | None], object]
+_NamespaceReader = Callable[[str, str, _NamespaceConsumer], None]
+_InventoryInspection = Callable[[_NamespaceReader], object]
 
 
 @dataclass(frozen=True)
@@ -29,14 +38,52 @@ class ByteWrite:
     payload: bytes
 
 
+@dataclass(frozen=True)
+class ByteFence:
+    # Original physical record observation, not authority or a Run revision.
+    key: str
+    generation: int
+    payload: bytes
+
+
+@dataclass(frozen=True)
+class CapacityReservation:
+    namespace: str
+    key: str
+    reserved_bytes: int
+    reserved_objects: int
+
+
+@dataclass(frozen=True)
+class CapacityUsage:
+    reserved_bytes: int
+    reserved_objects: int
+
+
 class LocalStorageError(RuntimeError):
     """Physical storage failure; it grants no execution, retry or absence fact."""
+
+
+class LocalStorageCommitUnknown(LocalStorageError):
+    """COMMIT was attempted; retain the same Store and inspect original bytes.
+
+    This physical exception claims no Run outcome or retry permission. A
+    current-port refusal after COMMIT cannot become a pre-write refusal.
+    """
+
+    def __init__(self, cleanup_store: 'LocalByteStore') -> None:
+        super().__init__('Local physical COMMIT outcome is unknown')
+        self.cleanup_store = cleanup_store
 
 
 class LocalStorageInitializationError(LocalStorageError):
     def __init__(self, cleanup_store: 'LocalByteStore') -> None:
         super().__init__('Local storage initialization cleanup is pending')
         self.cleanup_store = cleanup_store
+
+
+class _ProjectedWriteConflict(Exception):
+    """Internal physical CAS refusal; not a Run or publication outcome."""
 
 
 class LocalByteStore:
@@ -97,10 +144,11 @@ class LocalByteStore:
                 version = self._connection.execute('PRAGMA user_version').fetchone()[0]
                 if not schema and application == 0 and version == 0:
                     self._connection.execute(_SCHEMA)
+                    self._connection.execute(_CAPACITY_SCHEMA)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
-                    self._connection.execute('PRAGMA user_version = 1')
-                elif (schema != [('core_bytes', _SCHEMA)]
-                      or application != _APPLICATION_ID or version != 1):
+                    self._connection.execute('PRAGMA user_version = 2')
+                elif (schema != [('actql_capacity', _CAPACITY_SCHEMA), ('core_bytes', _SCHEMA)]
+                      or application != _APPLICATION_ID or version != 2):
                     raise LocalStorageError('Unknown Local physical storage format')
                 self._connection.execute('COMMIT')
             except BaseException:
@@ -131,7 +179,9 @@ class LocalByteStore:
             if not self._created or self._creation_claimed:
                 return False
             self._creation_claimed = True
-            return bool(self._connection.execute('SELECT EXISTS(SELECT 1 FROM core_bytes)').fetchone()[0] == 0)
+            return bool(self._connection.execute('''SELECT
+                EXISTS(SELECT 1 FROM core_bytes) OR
+                EXISTS(SELECT 1 FROM actql_capacity)''').fetchone()[0] == 0)
 
     def _open(self) -> None:
         if self._closed or not self._ready:
@@ -145,26 +195,46 @@ class LocalByteStore:
                 or len(key.encode('utf-8')) > 4096):
             raise ValueError('Invalid Local physical storage key')
 
+    @staticmethod
+    def namespaced_key(namespace: str, key: str) -> str:
+        """Encode Owner-issued namespace/key as one private physical address.
+
+        The UTF-8 byte length makes this mapping injective without normalizing
+        either value. Original bare Core records are not moved or reinterpreted.
+        This selects storage only; it does not assert namespace completeness,
+        absence, authority, a record's meaning, or permission to write it.
+        Installed Host assembly keeps this prefix separate from its bare keys.
+        """
+        LocalByteStore._capacity_name(namespace)
+        LocalByteStore._key(key)
+        physical = f'namespace:{len(namespace.encode("utf-8"))}:{namespace}:{key}'
+        LocalByteStore._key(physical)
+        return physical
+
     def read(self, key: str) -> StoredBytes | None:
         self._key(key)
         with self._lock:
             self._open()
-            # CASE bounds the Python allocation even for a corrupted/foreign
-            # oversized row. SQLite length(BLOB) reads its size, not its value.
-            row = self._connection.execute('''SELECT generation,
-                CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
-                typeof(payload), length(payload)
-                FROM core_bytes WHERE key = ?''',
-                (self._max_record_bytes, key)).fetchone()
-            if row is None:
-                return None
-            generation, payload, kind, length = row
-            if (type(generation) is not int or generation < 0
-                    or type(payload) is not bytes or kind != 'blob'
-                    or type(length) is not int or length != len(payload)
-                    or length > self._max_record_bytes):
-                raise LocalStorageError('Invalid retained Local physical bytes')
-            return StoredBytes(generation, payload)
+            return self._read_bytes_locked(key)
+
+    def _read_bytes_locked(self, key: str, *, max_bytes: int | None = None) -> StoredBytes | None:
+        # CASE bounds the Python allocation even for a corrupted/foreign
+        # oversized row. SQLite length(BLOB) reads its size, not its value.
+        row = self._connection.execute('''SELECT generation,
+            CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
+            typeof(payload), length(payload)
+            FROM core_bytes WHERE key = ?''',
+            (self._max_record_bytes if max_bytes is None else
+             min(self._max_record_bytes, max_bytes), key)).fetchone()
+        if row is None:
+            return None
+        generation, payload, kind, length = row
+        if (type(generation) is not int or generation < 0
+                or type(payload) is not bytes or kind != 'blob'
+                or type(length) is not int or length != len(payload)
+                or length > self._max_record_bytes):
+            raise LocalStorageError('Invalid retained Local physical bytes')
+        return StoredBytes(generation, payload)
 
     def compare_exchange(self, key: str, expected_generation: int | None,
                          payload: bytes) -> int | None:
@@ -172,7 +242,182 @@ class LocalByteStore:
         generations = self.compare_exchange_many((ByteWrite(key, expected_generation, payload),))
         return None if generations is None else generations[0]
 
-    def compare_exchange_many(self, writes: tuple[ByteWrite, ...]) -> tuple[int, ...] | None:
+    def read_exchange(self, write: ByteWrite) -> StoredBytes | None:
+        """Read the exact successor of an original physical CAS without writing.
+
+        A lost acknowledgement is not permission to repeat the CAS. Missing,
+        changed or later bytes remain unmatched observations for the Core Owner.
+        This physical match is not publication authority or a Run outcome.
+        Caller-held expected bytes and returned bytes need separate reservations.
+        """
+        if type(write) is not ByteWrite:
+            raise ValueError('Invalid Local physical write')
+        self._key(write.key)
+        if (write.expected_generation is not None
+                and (type(write.expected_generation) is not int
+                     or not 0 <= write.expected_generation < 2**63 - 1)):
+            raise ValueError('Invalid Local physical CAS generation')
+        if type(write.payload) is not bytes or len(write.payload) > self._max_record_bytes:
+            raise ValueError('Invalid Local physical payload')
+        observed = self.read(write.key)
+        successor = 0 if write.expected_generation is None else write.expected_generation + 1
+        if (observed is None or observed.generation != successor
+                or observed.payload != write.payload):
+            return None
+        return observed
+
+    @staticmethod
+    def _capacity_name(name: str) -> None:
+        if type(name) is not str or not 1 <= len(name.encode('utf-8')) <= 512:
+            raise ValueError('Invalid Local physical capacity name')
+
+    @staticmethod
+    def _capacity_amount(amount: int) -> None:
+        if type(amount) is not int or not 0 <= amount <= 2**63 - 1:
+            raise ValueError('Invalid Local physical capacity amount')
+
+    def read_capacity(self, namespace: str, key: str) -> CapacityReservation | None:
+        """Observe the original reservation without acquiring or releasing it.
+
+        Missing rows and read failures are not permission to retry a write or
+        acknowledge Core's Reserved transition. The Host binds this store to
+        the original Store authority before passing any observation to Core.
+        """
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        with self._lock:
+            self._open()
+            row = self._connection.execute('''SELECT reserved_bytes, reserved_objects
+                FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                (namespace, key)).fetchone()
+            if row is None:
+                return None
+            if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
+                raise LocalStorageError('Invalid retained Local physical capacity')
+            return CapacityReservation(namespace, key, row[0], row[1])
+
+    def capacity_usage(self, namespace: str) -> CapacityUsage:
+        self._capacity_name(namespace)
+        with self._lock:
+            self._open()
+            return self._capacity_usage_locked(namespace)
+
+    def _capacity_usage_locked(self, namespace: str) -> CapacityUsage:
+        row = self._connection.execute('''SELECT coalesce(sum(reserved_bytes), 0),
+            coalesce(sum(reserved_objects), 0) FROM actql_capacity WHERE namespace = ?''',
+            (namespace,)).fetchone()
+        if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
+            raise LocalStorageError('Invalid retained Local physical capacity usage')
+        return CapacityUsage(row[0], row[1])
+
+    def reserve_capacity(self, namespace: str, key: str, reserved_bytes: int,
+                         reserved_objects: int, max_bytes: int, max_objects: int) -> bool:
+        """Atomically reserve exact physical amounts using Native's contract.
+
+        Limits come from trusted Host configuration, never Program input.
+        True means inserted; False means the exact reservation already existed.
+        Neither is publication authority, Run admission or a retry instruction.
+        Commit errors remain unknown and are never automatically repeated.
+        """
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        for amount in (reserved_bytes, reserved_objects, max_bytes, max_objects):
+            self._capacity_amount(amount)
+        if reserved_bytes > max_bytes or reserved_objects > max_objects:
+            raise LocalStorageError('Local physical capacity exceeded')
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN IMMEDIATE')
+            try:
+                existing = database.execute('''SELECT reserved_bytes, reserved_objects
+                    FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                    (namespace, key)).fetchone()
+                if existing is not None:
+                    if existing != (reserved_bytes, reserved_objects):
+                        raise LocalStorageError('Local physical capacity reservation collision')
+                    database.execute('COMMIT')
+                    return False
+                used = self._capacity_usage_locked(namespace)
+                count = database.execute('SELECT count(*) FROM actql_capacity').fetchone()[0]
+                if (count >= self._max_records or used.reserved_bytes > max_bytes
+                        or used.reserved_objects > max_objects
+                        or reserved_bytes > max_bytes - used.reserved_bytes
+                        or reserved_objects > max_objects - used.reserved_objects):
+                    raise LocalStorageError('Local physical capacity exceeded')
+                database.execute('INSERT INTO actql_capacity VALUES (?, ?, ?, ?)',
+                                 (namespace, key, reserved_bytes, reserved_objects))
+                database.execute('COMMIT')
+                return True
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+
+    def release_capacity(self, namespace: str, key: str,
+                         reserved_bytes: int, reserved_objects: int) -> bool:
+        """Release only the original exact reservation after Owner cleanup.
+
+        The adapter does not infer cleanup from close or from missing bytes.
+        True means removed; False means absent. A mismatch leaves the row intact.
+        """
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        self._capacity_amount(reserved_bytes)
+        self._capacity_amount(reserved_objects)
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN IMMEDIATE')
+            try:
+                existing = database.execute('''SELECT reserved_bytes, reserved_objects
+                    FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                    (namespace, key)).fetchone()
+                if existing is None:
+                    database.execute('COMMIT')
+                    return False
+                if existing != (reserved_bytes, reserved_objects):
+                    raise LocalStorageError('Local physical capacity reservation collision')
+                database.execute('''DELETE FROM actql_capacity
+                    WHERE namespace = ? AND reservation_key = ?''', (namespace, key))
+                database.execute('COMMIT')
+                return True
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+
+    def compare_exchange_reserved(self, write: ByteWrite,
+                                  capacity: CapacityReservation) -> int | None:
+        """CAS original bytes only while the exact reservation is still present.
+
+        Capacity and record are checked under one SQLite write transaction.
+        A prior read alone cannot supply this fence. Neither a conflict nor an
+        exception acquires capacity or authorizes another physical write.
+        """
+        if type(capacity) is not CapacityReservation:
+            raise ValueError('Invalid Local physical capacity observation')
+        generations = self.compare_exchange_many((write,), capacity=capacity)
+        return None if generations is None else generations[0]
+
+    def compare_exchange_attached(self, write: ByteWrite, original: ByteFence,
+                                  capacity: CapacityReservation) -> int | None:
+        """CAS separate metadata while retaining the exact original record.
+
+        The original bytes/generation and its capacity are checked in the same
+        transaction. The original record is never written or advanced. These
+        are trusted Host physical observations, not admission/publication proof.
+        Lost acknowledgements still require lookup of this one metadata write.
+        """
+        if (type(write) is not ByteWrite or type(original) is not ByteFence
+                or type(capacity) is not CapacityReservation
+                or write.key == original.key or capacity.key != original.key):
+            raise ValueError('Invalid original Local physical metadata binding')
+        generations = self.compare_exchange_many_attached((write,), ((original, capacity),))
+        return None if generations is None else generations[0]
+
+    def compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
+                              capacity: CapacityReservation | None = None) -> tuple[int, ...] | None:
         """Install all opaque writes in one physical transaction or none.
 
         The trusted Host must first obtain the Core's full-chain validation and
@@ -180,7 +425,524 @@ class LocalByteStore:
         An exception, including a lost commit acknowledgement, is returned to
         that Owner without repeating the transaction. Caller-held bytes and
         SQLite workspace remain separately reserved by the Host.
+
+        When supplied, the original capacity observation must name a key in this
+        batch. Its exact retained amounts are rechecked in the same transaction;
+        a changed or missing reservation leaves every write untouched. The Host
+        still supplies the original Store binding and Core-issued record bytes.
         """
+        return self._compare_exchange_many(writes, capacity=capacity)
+
+    def compare_exchange_many_attached(
+            self, writes: tuple[ByteWrite, ...],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> tuple[int, ...] | None:
+        """Atomically attach opaque metadata to all original payload records.
+
+        Every exact bytes/generation and reservation is checked after the same
+        BEGIN IMMEDIATE, before any metadata write. Original payloads and their
+        reservations are never changed. Core full-chain validation and current
+        publisher authority must precede this call; these physical fences grant
+        neither. Lost acknowledgements require observation, never batch replay.
+        The Host separately reserves retained input bytes and SQLite workspace.
+        """
+        if type(originals) is not tuple or not 1 <= len(originals) <= self._max_records:
+            raise ValueError('Invalid original Local physical metadata batch')
+        return self._compare_exchange_many(writes, capacity=None, originals=originals)
+
+    def compare_exchange_many_fenced(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            current: Callable[[], object]) -> tuple[int, ...] | None:
+        """Persist original Core bytes under exact physical metadata fences.
+
+        The installed Host holds Core before Store, reserves retained bytes and
+        SQLite workspace, and checks its original typed current port. No caller
+        permission boolean, phase, scope comparison or Run decision is created
+        here. Fences bind the original epoch/configuration/count observations in
+        the same write transaction. A count row may also be a CAS target; its
+        old bytes and generation must match before replacement. No write or
+        lookup is repeated automatically after a conflict or lost COMMIT reply.
+        """
+        if not callable(current):
+            raise ValueError('Invalid Local physical current callback')
+        self._validate_fences(fences, writes)
+        return self._compare_exchange_many(writes, capacity=None,
+                                           fences=fences, current=current)
+
+    def read_exchange_many_fenced(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            current: Callable[[], object]) -> tuple[StoredBytes, ...] | None:
+        """Observe exact successors and untouched metadata in one snapshot.
+
+        Overlapping count fences are checked against this original write's
+        exact successor bytes/generation. Read-only epoch/configuration fences
+        remain unchanged. This is a physical observation, never accepted Run
+        state, confirmed nonexecution or permission to replay the transaction.
+        The current typed port is checked before reads and before returning;
+        query and transaction-cleanup failures remain exceptions with custody.
+        """
+        if not callable(current):
+            raise ValueError('Invalid Local physical current callback')
+        self._validate_fences(fences, writes)
+        return self._read_exchange_many(writes, fences=fences, current=current)
+
+    def compare_exchange_many_inspected(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection,
+            current: Callable[[], object]) -> tuple[int, ...] | None:
+        """Forward original namespace rows to Core before CAS in one transaction.
+
+        Installed Host assembly holds Core before Store and reserves retained
+        inputs and SQLite workspace. Core supplies original namespaces/cursors,
+        consumes raw rows or the observed physical end, and validates every
+        required inventory/custody relationship. Count syntax, a partial scan,
+        or returning None from this callback is not an admission proof. Python
+        does not choose scope, completeness, accepted state or retry permission.
+
+        One row is copied at a time under the existing count and cumulative
+        byte bounds. The original epoch/configuration/count fences and typed
+        current port stay checked in the same BEGIN IMMEDIATE transaction.
+        Query, consumer and cleanup failures prevent exposure of a success;
+        attempted-COMMIT uncertainty retains the same Store without replay.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local inventory inspection callback')
+        self._validate_fences(fences, writes)
+        return self._compare_exchange_many(writes, capacity=None, fences=fences,
+                                           current=current, inspect=inspect)
+
+    def read_exchange_many_inspected(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection,
+            current: Callable[[], object]) -> tuple[StoredBytes, ...] | None:
+        """Observe original successors and inventories without repeating writes.
+
+        Exact successor rows and unchanged metadata are inspected in this same
+        read snapshot. The existing Core Owners must readmit the actual saved
+        rows and their relationships, not the earlier candidate bytes. No
+        accepted Run, nonexecution or resend permission is inferred here.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local inventory inspection callback')
+        self._validate_fences(fences, writes)
+        return self._read_exchange_many(writes, fences=fences, current=current,
+                                        inspect=inspect)
+
+    def read_exchange_many_attached(
+            self, writes: tuple[ByteWrite, ...],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> tuple[StoredBytes, ...] | None:
+        """Observe this exact batch's successors under one physical read snapshot.
+
+        The original payload bytes/generations and reservations are checked in
+        that same transaction. Missing, changed or later metadata is unmatched,
+        never proof of absence or permission to replay the batch. Returned bytes
+        remain physical observations for the existing Core/authorization Owners.
+        A transaction cleanup failure keeps this Store handle pending and exposes
+        no partial observation. The Host reserves input/output retention itself.
+        """
+        self._validate_originals(originals, self._exchange_write_keys(writes))
+        return self._read_exchange_many(writes, originals=originals)
+
+    def _read_exchange_many(
+            self, writes: tuple[ByteWrite, ...], *,
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...] = (),
+            fences: tuple[ByteFence, ...] = (),
+            current: Callable[[], object] | None = None,
+            inspect: _InventoryInspection | None = None) -> tuple[StoredBytes, ...] | None:
+        keys = self._exchange_write_keys(writes)
+        if originals:
+            self._validate_originals(originals, keys)
+        if fences:
+            self._validate_fences(fences, writes)
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN')
+            try:
+                self._fenced_current(current)
+                result: tuple[StoredBytes, ...] | None = None
+                if (self._originals_match_locked(originals)
+                        and self._fences_match_locked(fences, writes)):
+                    observed: list[StoredBytes] = []
+                    for write in writes:
+                        row = self._read_bytes_locked(write.key)
+                        successor = 0 if write.expected_generation is None else write.expected_generation + 1
+                        if row is None or row.generation != successor or row.payload != write.payload:
+                            break
+                        observed.append(row)
+                    if len(observed) == len(writes):
+                        result = tuple(observed)
+                if result is not None and inspect is not None:
+                    self._inspect_namespace_locked(inspect, fences, current,
+                                                   successors=writes)
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences, writes):
+                    result = None
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+            else:
+                # Do not publish observations or repeat cleanup if this fails.
+                database.execute('ROLLBACK')
+                return result
+
+    def _inspect_namespace_locked(
+            self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
+            current: Callable[[], object] | None, *,
+            successors: tuple[ByteWrite, ...] = ()) -> None:
+        # This callback borrows the enclosing physical transaction. It cannot
+        # commit, acknowledge Core adoption, repair metadata or survive cleanup.
+        active = True
+        reading = False
+        thread = get_ident()
+        reads = copied = 0
+        failure: BaseException | None = None
+
+        def fence() -> None:
+            if not self._fences_match_locked(fences, successors):
+                raise LocalStorageError('Original Local inventory metadata changed')
+            self._fenced_current(current)
+            if not self._fences_match_locked(fences, successors):
+                raise LocalStorageError('Original Local inventory metadata changed')
+
+        def read(namespace: str, after: str, consume: _NamespaceConsumer) -> None:
+            nonlocal reading, reads, copied, failure
+            entered = False
+            try:
+                if (not active or reading or get_ident() != thread
+                        or failure is not None):
+                    raise ValueError('Local inventory reader is not active')
+                self._capacity_name(namespace)
+                if type(after) is not str or not callable(consume):
+                    raise ValueError('Invalid Local inventory cursor or consumer')
+                # Use the same injective namespace/key encoding as physical
+                # writes. Empty cursor means start, not an empty logical key.
+                prefix = f'namespace:{len(namespace.encode("utf-8"))}:{namespace}:'
+                lower = self.namespaced_key(namespace, after) if after else prefix
+                upper = prefix[:-1] + ';'
+                if reads >= self._max_records:
+                    raise LocalStorageError('Local inventory inspection capacity exceeded')
+                reading = entered = True
+                fence()
+                # A malformed empty logical key must be observed and refused,
+                # not silently excluded from the original namespace inventory.
+                relation = '>' if after else '>='
+                row = self._connection.execute(f'''SELECT
+                    CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
+                    generation,
+                    CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
+                    typeof(payload), length(payload)
+                    FROM core_bytes WHERE key {relation} ? AND key < ?
+                    ORDER BY key COLLATE BINARY LIMIT 1''',
+                    (min(self._max_record_bytes, self._max_payload_bytes - copied),
+                     lower, upper)).fetchone()
+                reads += 1
+                observation: tuple[str, StoredBytes] | None = None
+                if row is not None:
+                    key, generation, payload, kind, length = row
+                    if (type(key) is not str or not key.startswith(prefix)
+                            or type(generation) is not int or generation < 0
+                            or type(payload) is not bytes or kind != 'blob'
+                            or type(length) is not int or length != len(payload)):
+                        raise LocalStorageError('Invalid retained Local inventory row')
+                    logical = key[len(prefix):]
+                    self._key(logical)
+                    copied += len(payload)
+                    observation = (logical, StoredBytes(generation, payload))
+                fence()
+                # The Host completes transfer into its reserved Core input and
+                # returns the same input/output loan before requesting a row.
+                if consume(observation) is not None:
+                    raise ValueError('Invalid Local inventory consumer result')
+                del observation, row
+                fence()
+            except BaseException as error:
+                failure = error
+                raise
+            finally:
+                if entered:
+                    reading = False
+
+        try:
+            fence()
+            result = inspect(read)
+            if failure is not None:
+                raise failure
+            if result is not None or reads == 0:
+                raise ValueError('Incomplete Local physical inventory inspection')
+            fence()
+        finally:
+            active = False
+
+    def inspect_publication_projected_attached(
+            self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            current: Callable[[], object]) -> None:
+        """Transport bounded original-key reads under one physical snapshot.
+
+        The trusted Host holds Core, then File, before this Store lock. It
+        supplies each key from the original Core scope or stored-contract
+        projection, and forwards the raw row synchronously to that Owner. No
+        candidate-byte equality, scope parsing, content comparison or commit
+        decision happens here. A missing row is only a physical observation;
+        query/fence/cleanup failures raise instead of becoming NotFound.
+
+        current must recheck the original six facts and independent publisher
+        port, returning None only on success. It runs before lookup, before
+        consumption and before returning from the snapshot. The callback is not
+        an authorization supplier. Original fences/capacity are checked in this
+        same snapshot; no replacement or replay follows a failure.
+
+        Each consumer finishes the same output/input loan's required transfer
+        and cleanup before returning None. It must not retain the borrowed row
+        outside its reserved Core input. Failure retains that original loan in
+        its caller. SQLite/Python workspace, original fences and simultaneously
+        retained Core inputs are separately accounted by the Host. This method
+        neither releases those resources nor acknowledges a publication.
+
+        Existing record/store limits bound the number and cumulative bytes of
+        reads, including repeats. Only one physical row is copied at a time.
+        A captured reader cannot be used later, concurrently or recursively.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local publication inspection callback')
+        self._validate_originals(originals, set())
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN')
+            active = True
+            reading = False
+            thread = get_ident()
+            reads = copied = 0
+            failure: BaseException | None = None
+
+            def fence() -> None:
+                if not self._originals_match_locked(originals):
+                    raise LocalStorageError('Original Local publication observation changed')
+                if current() is not None:
+                    raise ValueError('Invalid Local publication current callback result')
+                if not self._originals_match_locked(originals):
+                    raise LocalStorageError('Original Local publication observation changed')
+
+            def read(key: str, consume: Callable[[StoredBytes | None], object]) -> None:
+                nonlocal reading, reads, copied, failure
+                entered = False
+                try:
+                    if (not active or reading or get_ident() != thread
+                            or failure is not None):
+                        raise ValueError('Local publication snapshot reader is not active')
+                    self._key(key)
+                    if not callable(consume):
+                        raise ValueError('Invalid Local publication observation consumer')
+                    if reads >= self._max_records:
+                        raise LocalStorageError('Local publication inspection capacity exceeded')
+                    reading = entered = True
+                    fence()
+                    # Bound the cumulative copy before SQLite fetches a BLOB.
+                    row = self._read_bytes_locked(
+                        key, max_bytes=self._max_payload_bytes - copied)
+                    reads += 1
+                    if row is not None:
+                        copied += len(row.payload)
+                    fence()
+                    if consume(row) is not None:
+                        raise ValueError('Invalid Local publication observation consumer result')
+                    del row
+                    fence()
+                except BaseException as error:
+                    failure = error
+                    raise
+                finally:
+                    if entered:
+                        reading = False
+
+            try:
+                fence()
+                result = inspect(read)
+                # Swallowing a consumer/query/permission failure is not success.
+                if failure is not None:
+                    raise failure
+                if result is not None or reads == 0:
+                    raise ValueError('Incomplete Local publication inspection')
+                fence()
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+            else:
+                # Read-only transaction end, never a Store commit or durable ACK.
+                # Failure leaves this same connection pending; no automatic retry.
+                database.execute('ROLLBACK')
+            finally:
+                active = False
+
+    def compare_exchange_projected_attached(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+        """Consume one borrowed opaque projection at a time, in one transaction.
+
+        The trusted Host supplies the original Core count and calls the consumer
+        exactly once for each ordinal while its output loan is live. The
+        consumer copies that one write into SQLite synchronously; the Host must
+        finish the same loan's cleanup before project returns. Cleanup failure
+        must raise, retaining the original handle/reservation outside this Store.
+
+        The Host first obtains original full-chain validation/current authority.
+        before_commit then calls the original current publisher Owner port after
+        all projection cleanup, before COMMIT. It must return None only after
+        that port succeeds; refusal/unknown raises. This callback is not itself
+        authorization evidence. Core still owns ACK and uncertainty decisions.
+
+        Original payload bytes/generations/capacity are fenced before production
+        and again before COMMIT. Any prefix is uncommitted; conflict rolls it
+        back, failure propagates without retry, and lost ACK is not replay
+        permission. No metadata payload list is retained here. Per-record/store
+        limits are unchanged; the Host separately accounts original fences,
+        live projection bytes, key/generation descriptors and SQLite workspace.
+        """
+        return self._projected_attached(
+            count, project, originals, before_commit=before_commit, reuse_identical=False)
+
+    def store_publication_projected_attached(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+        """Insert original publication bytes, reusing only byte-identical records.
+
+        The trusted Host supplies Core-issued immutable contract/schema addresses
+        and the scoped index reference. Each original occurrence is consumed and
+        cleaned up, even when an identity was already stored. Existing bytes are
+        never overwritten or normalized; mismatch rolls back the entire prefix.
+        No expected CAS generation is accepted on this insert-only path.
+
+        An existing index with different bytes is a physical conflict. Core must
+        inspect the actually stored index and validate its full chain separately;
+        this adapter does not compare committed content or choose an index.
+        Returned generations are physical observations, never a publication ACK.
+        All original/current fences and cleanup rules of the projected transaction
+        apply. The Host reserves the bounded equality copy and SQLite workspace.
+        """
+        return self._projected_attached(
+            count, project, originals, before_commit=before_commit, reuse_identical=True)
+
+    def _projected_attached(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            before_commit: Callable[[], object], reuse_identical: bool) -> tuple[int, ...] | None:
+        if (type(count) is not int or not 1 <= count <= self._max_records
+                or not callable(project) or not callable(before_commit)):
+            raise ValueError('Invalid Local physical projection batch')
+        self._validate_originals(originals, set())
+        original_keys = {fence.key for fence, _ in originals}
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN IMMEDIATE')
+            try:
+                if not self._originals_match_locked(originals):
+                    database.execute('ROLLBACK')
+                    return None
+                record_count, payload_bytes = database.execute(
+                    'SELECT count(*), coalesce(sum(length(payload)), 0) FROM core_bytes'
+                ).fetchone()
+                generations: list[int] = []
+                keys: set[str] = set()
+                thread = get_ident()
+
+                def consume_ordinal(ordinal: int) -> None:
+                    nonlocal record_count, payload_bytes
+                    active = True
+                    delivered = False
+                    failure: BaseException | None = None
+
+                    def consume(write: ByteWrite) -> None:
+                        nonlocal delivered, failure, record_count, payload_bytes
+                        try:
+                            if not active or get_ident() != thread or delivered:
+                                raise ValueError('Local physical projection consumer is not active')
+                            self._exchange_write_keys((write,))
+                            if (write.key in original_keys
+                                    or (not reuse_identical and write.key in keys)):
+                                raise ValueError('Duplicate or original Local physical projection key')
+                            if reuse_identical and write.expected_generation is not None:
+                                raise ValueError('Publication physical projection is insert-only')
+                            existing = database.execute(
+                                'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
+                                (write.key,)).fetchone()
+                            if reuse_identical and existing is not None:
+                                # Bound the stored equality copy before fetching bytes.
+                                # This does not validate any Core identity or chain.
+                                if existing[1] > self._max_record_bytes:
+                                    raise LocalStorageError('Local physical payload capacity exceeded')
+                                if existing[1] != len(write.payload):
+                                    raise _ProjectedWriteConflict()
+                                stored = database.execute(
+                                    'SELECT payload FROM core_bytes WHERE key = ?',
+                                    (write.key,)).fetchone()
+                                if stored is None or stored[0] != write.payload:
+                                    raise _ProjectedWriteConflict()
+                                del stored
+                                keys.add(write.key)
+                                generations.append(existing[0])
+                                delivered = True
+                                return
+                            if ((existing is None) != (write.expected_generation is None)
+                                    or (existing is not None
+                                        and existing[0] != write.expected_generation)):
+                                raise _ProjectedWriteConflict()
+                            generation = 0 if existing is None else existing[0] + 1
+                            next_count = record_count + (1 if existing is None else 0)
+                            next_bytes = payload_bytes - (0 if existing is None else existing[1]) + len(write.payload)
+                            if next_count > self._max_records or next_bytes > self._max_payload_bytes:
+                                raise LocalStorageError('Local physical payload capacity exceeded')
+                            if existing is None:
+                                database.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
+                                                 (write.key, generation, write.payload))
+                            else:
+                                database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
+                                                 (generation, write.payload, write.key))
+                            keys.add(write.key)
+                            generations.append(generation)
+                            record_count, payload_bytes = next_count, next_bytes
+                            delivered = True
+                        except BaseException as error:
+                            failure = error
+                            raise
+
+                    try:
+                        result = project(ordinal, consume)
+                    finally:
+                        active = False
+                    # A producer cannot swallow a consumer refusal, duplicate
+                    # delivery or failed physical write and promote it to success.
+                    if failure is not None:
+                        raise failure
+                    if result is not None or not delivered:
+                        raise ValueError('Incomplete Local physical projection')
+
+                for ordinal in range(count):
+                    consume_ordinal(ordinal)
+                if before_commit() is not None:
+                    raise ValueError('Invalid Local physical precommit callback result')
+                if not self._originals_match_locked(originals):
+                    database.execute('ROLLBACK')
+                    return None
+                database.execute('COMMIT')
+                return tuple(generations)
+            except _ProjectedWriteConflict:
+                database.execute('ROLLBACK')
+                return None
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+
+    def _exchange_write_keys(self, writes: tuple[ByteWrite, ...]) -> set[str]:
         if type(writes) is not tuple or not 1 <= len(writes) <= self._max_records:
             raise ValueError('Invalid Local physical write batch')
         keys: set[str] = set()
@@ -197,11 +959,135 @@ class LocalByteStore:
                 raise ValueError('Invalid Local physical CAS generation')
             if type(write.payload) is not bytes or len(write.payload) > self._max_record_bytes:
                 raise ValueError('Invalid Local physical payload')
+        return keys
+
+    def _validate_originals(
+            self, originals: tuple[tuple[ByteFence, CapacityReservation], ...],
+            keys: set[str]) -> None:
+        if type(originals) is not tuple or not 1 <= len(originals) <= self._max_records:
+            raise ValueError('Invalid original Local physical metadata batch')
+        original_keys: set[str] = set()
+        for pair in originals:
+            if type(pair) is not tuple or len(pair) != 2:
+                raise ValueError('Invalid original Local physical metadata binding')
+            fence, reservation = pair
+            if type(fence) is not ByteFence or type(reservation) is not CapacityReservation:
+                raise ValueError('Invalid original Local physical metadata binding')
+            self._key(fence.key)
+            self._capacity_name(reservation.namespace)
+            self._capacity_name(reservation.key)
+            self._capacity_amount(reservation.reserved_bytes)
+            self._capacity_amount(reservation.reserved_objects)
+            if (type(fence.generation) is not int
+                    or not 0 <= fence.generation <= 2**63 - 1
+                    or type(fence.payload) is not bytes
+                    or len(fence.payload) > self._max_record_bytes
+                    or fence.key in keys or fence.key in original_keys
+                    or reservation.key != fence.key):
+                raise ValueError('Invalid original Local physical record fence')
+            original_keys.add(fence.key)
+
+    def _originals_match_locked(
+            self, originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> bool:
+        database = self._connection
+        for fence, reservation in originals:
+            retained = database.execute('''SELECT reserved_bytes, reserved_objects
+                FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                (reservation.namespace, reservation.key)).fetchone()
+            if retained != (reservation.reserved_bytes, reservation.reserved_objects):
+                return False
+            original = database.execute('''SELECT generation,
+                CASE WHEN length(payload) <= ? THEN payload ELSE NULL END
+                FROM core_bytes WHERE key = ?''',
+                (self._max_record_bytes, fence.key)).fetchone()
+            if original != (fence.generation, fence.payload):
+                return False
+        return True
+
+    def _validate_fences(self, fences: tuple[ByteFence, ...],
+                         writes: tuple[ByteWrite, ...]) -> None:
+        self._exchange_write_keys(writes)
+        if type(fences) is not tuple or not 1 <= len(fences) <= self._max_records:
+            raise ValueError('Invalid Local physical metadata fences')
+        keys: set[str] = set()
+        copied = 0
+        for fence in fences:
+            if type(fence) is not ByteFence:
+                raise ValueError('Invalid Local physical metadata fence')
+            self._key(fence.key)
+            if (type(fence.generation) is not int
+                    or not 0 <= fence.generation <= 2**63 - 1
+                    or type(fence.payload) is not bytes
+                    or len(fence.payload) > self._max_record_bytes
+                    or fence.key in keys):
+                raise ValueError('Invalid Local physical metadata fence')
+            keys.add(fence.key)
+            copied += len(fence.payload)
+            if copied > self._max_payload_bytes:
+                raise ValueError('Local physical metadata fences exceed their bound')
+            for write in writes:
+                if write.key == fence.key and write.expected_generation != fence.generation:
+                    raise ValueError('Local physical write has another metadata generation')
+
+    def _fences_match_locked(self, fences: tuple[ByteFence, ...],
+                             successors: tuple[ByteWrite, ...] = ()) -> bool:
+        for fence in fences:
+            generation, payload = fence.generation, fence.payload
+            for write in successors:
+                if write.key == fence.key:
+                    generation = fence.generation + 1
+                    payload = write.payload
+                    break
+            original = self._read_bytes_locked(fence.key)
+            if original != StoredBytes(generation, payload):
+                return False
+        return True
+
+    @staticmethod
+    def _fenced_current(current: Callable[[], object] | None) -> None:
+        if current is not None and current() is not None:
+            raise ValueError('Invalid Local physical current callback result')
+
+    def _compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
+                               capacity: CapacityReservation | None,
+                               originals: tuple[tuple[ByteFence, CapacityReservation], ...] = (),
+                               fences: tuple[ByteFence, ...] = (),
+                               current: Callable[[], object] | None = None,
+                               inspect: _InventoryInspection | None = None) -> tuple[int, ...] | None:
+        keys = self._exchange_write_keys(writes)
+        if capacity is not None:
+            if type(capacity) is not CapacityReservation:
+                raise ValueError('Invalid Local physical capacity observation')
+            self._capacity_name(capacity.namespace)
+            self._capacity_name(capacity.key)
+            self._capacity_amount(capacity.reserved_bytes)
+            self._capacity_amount(capacity.reserved_objects)
+            if capacity.key not in keys or originals:
+                raise ValueError('Local physical reservation names another record')
+        if originals:
+            self._validate_originals(originals, keys)
+        if fences:
+            self._validate_fences(fences, writes)
         with self._lock:
             self._open()
             database = self._connection
             database.execute('BEGIN IMMEDIATE')
+            commit_attempted = False
             try:
+                self._fenced_current(current)
+                if capacity is not None:
+                    retained = database.execute('''SELECT reserved_bytes, reserved_objects
+                        FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+                        (capacity.namespace, capacity.key)).fetchone()
+                    if retained != (capacity.reserved_bytes, capacity.reserved_objects):
+                        database.execute('ROLLBACK')
+                        return None
+                if (not self._originals_match_locked(originals)
+                        or not self._fences_match_locked(fences)):
+                    database.execute('ROLLBACK')
+                    return None
+                if inspect is not None:
+                    self._inspect_namespace_locked(inspect, fences, current)
                 generations: list[int] = []
                 inserted = replaced = 0
                 for write in writes:
@@ -232,13 +1118,26 @@ class LocalByteStore:
                     else:
                         database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
                                          (generation, write.payload, write.key))
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences, writes):
+                    database.execute('ROLLBACK')
+                    return None
+                commit_attempted = True
                 database.execute('COMMIT')
+                self._fenced_current(current)
                 return tuple(generations)
-            except BaseException:
+            except BaseException as failure:
                 # COMMIT failure is not a successful write or permission to
                 # resend. Preserve the exception and the original store handle.
-                if database.in_transaction:
-                    database.execute('ROLLBACK')
+                try:
+                    if database.in_transaction:
+                        database.execute('ROLLBACK')
+                except BaseException as cleanup_failure:
+                    if current is not None and commit_attempted:
+                        raise LocalStorageCommitUnknown(self) from cleanup_failure
+                    raise
+                if current is not None and commit_attempted:
+                    raise LocalStorageCommitUnknown(self) from failure
                 raise
 
     def close(self) -> None:

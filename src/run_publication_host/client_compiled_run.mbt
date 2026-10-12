@@ -55,6 +55,20 @@ pub fn client_compiled_effect_program(
 }
 
 ///|
+/// Result declarations come from the exact checked compilation, including
+/// Effect-bearing Runs. A Host must not invent names in lifecycle projections.
+pub fn client_compiled_run_result_names(
+  value : ClientCompiledRun,
+) -> Array[String] {
+  match value.compilation {
+    Values(compilation) => client_values_compilation_result_names(compilation)
+    Tasks(compilation) => client_task_compilation_result_names(compilation)
+    Effects(allowed) =>
+      client_effect_compilation_result_names(allowed.compilation)
+  }
+}
+
+///|
 /// The shared Run owner retains the selected model barrier through admission.
 /// None denotes another compilation path, not permission to synthesize one.
 pub fn client_compiled_run_infer(
@@ -160,6 +174,27 @@ pub fn with_client_infer_result_policy(
   }
   if prepared_client_acquisition_count(value.owner) != 0 {
     return Ok(value)
+  }
+  with_client_source_free_result_policy(
+    value, cid, wire, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Add the installed Host's exact unknown-provenance Result policy original to
+/// an Effect-free source-free compilation. This pure admission is not publish,
+/// read or egress authority, and never replaces a contributing Source policy.
+pub fn with_client_source_free_result_policy(
+  value : ClientCompiledRun,
+  cid : String,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  if value.compilation is Effects(_) ||
+    prepared_client_acquisition_count(value.owner) != 0 {
+    return Err(ForeignOwner)
   }
   let original = match
     admit_source_free_result_policy_body(

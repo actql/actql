@@ -1,0 +1,51 @@
+{
+  "startedAt": "2026-10-11T18:55:27.963Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "with-graph-alias-caller-and-independent-vector-node",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/graph-row-positional-set.test.mjs",
+        "scripts/graph-refusal-classification-source-input.test.mjs",
+        "scripts/frontend-profile.test.mjs",
+        "scripts/sga-query-call-contract.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs",
+        "scripts/compilation-manifests.test.mjs"
+      ],
+      "startedAt": "2026-10-11T18:55:28.066Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:55:38.054Z",
+      "endedAt": "2026-10-11T18:55:38.061Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "39d40402-471b-443c-aa7a-97727506f9dc",
+    "pid": 34993,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:55:28.055Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-UamMq8"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:55:38.150Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

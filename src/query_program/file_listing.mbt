@@ -6,7 +6,7 @@ pub enum FileListingIssue {
   UnsupportedSelector
   InvalidSelector
   FixedSelectorConflict
-  Source(@source_inputs.Issue)
+  Source(@sourceviews.Issue)
   Resolution(@source_resolution.Issue)
   RequestSlots(@request_slots.Issue)
   Request(@source_resolution.RequestIssue)
@@ -212,7 +212,7 @@ fn lower_file_listing_input(
       Err(issue) => raise Abort(FileListing(ParameterDeclarations(issue)))
     }
     let inputs = match
-      @source_inputs.collect(staged, {
+      @sourceviews.collect(staged, {
         max_work: limits.max_expression_work,
         max_order_keys: limits.source.tree.max_nodes,
       }) {

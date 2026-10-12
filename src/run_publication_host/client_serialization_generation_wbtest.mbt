@@ -121,7 +121,7 @@ test "Serialize generation closes exact compiled component policy ceilings and l
     barrier, source, encoder,
   ).unwrap()
   let input_evidence = serialization_generation_test_input_evidence(run, input)
-  let reference_limits : @admitted.ReferenceLimits = {
+  let reference_limits : @values.ReferenceLimits = {
     max_bytes: 4096,
     max_nodes: 100,
     max_depth: 8,
@@ -158,7 +158,7 @@ test "Serialize generation closes exact compiled component policy ceilings and l
     encoder, binding, reference_limits,
   ).unwrap()
   let live = Ref(true)
-  let issuer = @admitted.bind_reference_issuer(
+  let issuer = @values.bind_reference_issuer(
     (_, wire) => {
       live.val &&
       wire == @publication.generated_content_reference_wire(candidate)

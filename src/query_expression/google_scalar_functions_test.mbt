@@ -28,9 +28,15 @@ test "GoogleSQL scalar arities and namespaces stay closed" {
       is Err({ issue: InvalidArguments, .. }),
     )
   }
+  // SAFE_DIVIDE is adopted; qualification and the legacy SAFE_DIV alias are not.
+  assert_eq(
+    emit("SAFE_DIVIDE(1, 0)"),
+    "{\"safe_divide\":[{\"literal\":1},{\"literal\":0}]}",
+  )
   for
     text in [
-      "ACTQL.SIGN(1)", "ACTQL.STARTS_WITH('a', 'a')", "SAFE_DIVIDE(1, 0)", "CONTAINS_SUBSTR('a', 'A')",
+      "ACTQL.SIGN(1)", "ACTQL.STARTS_WITH('a', 'a')", "ACTQL.SAFE_DIVIDE(1, 0)",
+      "SAFE_DIV(1, 0)", "CONTAINS_SUBSTR('a', 'A')",
     ] {
     assert_true(
       lower(fixture(text), _ => None, limits())

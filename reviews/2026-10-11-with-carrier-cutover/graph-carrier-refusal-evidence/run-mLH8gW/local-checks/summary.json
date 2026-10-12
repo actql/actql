@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-11T22:21:46.552Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH Graph typed refusal boundaries and explicit shortest selectors",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_refusal_classification_test.mbt",
+        "src/query_program/graph_rows_join_input_test.mbt",
+        "src/query_program/match_with_producer_test.mbt"
+      ],
+      "startedAt": "2026-10-11T22:21:46.642Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T22:21:56.779Z",
+      "endedAt": "2026-10-11T22:21:56.781Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "2443c883-6cb2-4bf6-acba-fa62f68ed701",
+    "pid": 22358,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T22:21:46.629Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-mLH8gW"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T22:21:56.851Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

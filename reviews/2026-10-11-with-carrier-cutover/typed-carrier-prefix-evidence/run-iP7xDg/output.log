@@ -1,0 +1,3 @@
+Total tests: 27, passed: 27, failed: 0.
+["moon","test","--target","js","src/query_program/with_vectors_events_test.mbt","src/query_program/with_binding_preparation_test.mbt","src/query_program/with_binding_static_order_gap_test.mbt","src/query_program/source_member_test.mbt","src/query_program/graph_projection_property_test.mbt","src/query_program/graph_member_test.mbt","src/query_program/quoted_graph_macro_test.mbt","src/query_program/grouped_graph_macro_test.mbt"]: executed; counts={"tests":27,"passed":27,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4ba6DC

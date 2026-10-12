@@ -22,6 +22,28 @@ const effectApplicationControls = new WeakMap();
 const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
 
+// Translate the installed Node envelope only; Common owns contract ceilings.
+function inferQuantityCapacity(value) {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).sort().join(',') !== 'limits,perAttempt' ||
+      ['limits', 'perAttempt'].some(scope => {
+        const amount = value[scope];
+        return amount === null || typeof amount !== 'object' || Array.isArray(amount) ||
+          Object.keys(amount).sort().join(',') !== 'costUnits,durationMs,tokens' ||
+          Object.values(amount).some(quantity => typeof quantity !== 'bigint' ||
+            quantity < 0n || quantity > BigInt(Number.MAX_SAFE_INTEGER));
+      })) {
+    throw new TypeError('InvalidInstalledInferQuantityCapacity');
+  }
+  return {
+    limits: {tokens: value.limits.tokens, cost_units: value.limits.costUnits,
+      duration_ms: value.limits.durationMs},
+    per_attempt: {tokens: value.perAttempt.tokens, cost_units: value.perAttempt.costUnits,
+      duration_ms: value.perAttempt.durationMs},
+  };
+}
+
 function effectApplicationControl(moon) {
   let control = effectApplicationControls.get(moon);
   if (control !== undefined) return control;
@@ -1778,6 +1800,7 @@ function publicationControl(moon) {
   if (control !== undefined) return control;
   const tokens = new WeakMap();
   const evidenceTokens = new WeakMap();
+  const modelOriginalDocumentTokens = new WeakMap();
   const admissionTokens = new WeakMap();
   const compiledRunTokens = new WeakMap();
   const serializationPlanTokens = new WeakMap();
@@ -2118,6 +2141,26 @@ function publicationControl(moon) {
       return compiledRunResult(moon.clientProgramStartGeneratedInferInputs(
         run, original, graph, inputs, provider), 'RunHostContentInferInputRejected');
     },
+    startCheckedClientOriginalGeneratedInferExecution(compiled, generation, prepared, graph, provider,
+      definition, consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined) throw new TypeError('Foreign Client Content generation');
+      return compiledRunResult(moon.clientProgramStartOriginalGeneratedInferExecution(
+        prepared, run, original, graph, provider, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes),
+      'RunHostContentInferInputRejected');
+    },
+    startCheckedClientOriginalGeneratedInferInputs(compiled, generation, graph, inputs, provider,
+      definition, consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined) throw new TypeError('Foreign Client Content generation');
+      return compiledRunResult(moon.clientProgramStartOriginalGeneratedInferInputs(
+        run, original, graph, inputs, provider, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes),
+      'RunHostContentInferInputRejected');
+    },
     startCheckedClientRestoredGeneratedInferExecution(compiled, definition, generation,
       prepared, graph, provider, bodies, snapshot, available) {
       const run = compiledContent(compiled);
@@ -2161,6 +2204,40 @@ function publicationControl(moon) {
     },
     prepareCheckedClientAcquiredSerializationComponent(checkedProgram, options) {
       return prepareAcquiredSerializationGraph(checkedProgram, options, true);
+    },
+    readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
+      if (typeof moon.clientProgramCurrentRunView !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'),
+          {code: 'ClientOperationUnavailable'});
+      }
+      return compiledRunResult(moon.clientProgramCurrentRunView(
+        token(runDefinition), evidenceToken(prepared), evidenceToken(authorization),
+        JSON.stringify(ref), JSON.stringify(state), snapshotCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostInspectRejected');
+    },
+    readCheckedClientStaticPlan(checkedProgram, kind, limits) {
+      if (!['values', 'tasks'].includes(kind) ||
+          !Number.isSafeInteger(limits?.maxWireBytes) || limits.maxWireBytes < 1 ||
+          !Number.isSafeInteger(limits?.maxNodes) || limits.maxNodes < 1 ||
+          !Number.isSafeInteger(limits?.maxDepth) || limits.maxDepth < 1) {
+        throw new TypeError('InvalidClientStaticPlanRequest');
+      }
+      const compile = kind === 'values' ? moon.clientProgramCompileLocalValues
+        : moon.clientProgramCompileLocalTasks;
+      const project = kind === 'values' ? moon.clientProgramValuesStaticPlanView
+        : moon.clientProgramTaskStaticPlanView;
+      if (typeof compile !== 'function' || typeof project !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'),
+          {code: 'ClientOperationUnavailable'});
+      }
+      // Compile the original checked owner only. In particular, do not issue
+      // an allowed Run, allocate a request identity or open an execution.
+      const compiled = compiledRunResult(compile(checkedProgram),
+        'RunHostCompilationRejected');
+      return compiledRunResult(project(checkedProgram, compiled,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostStaticPlanRejected');
     },
     prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {
@@ -2694,6 +2771,211 @@ function publicationControl(moon) {
       checked(moon.clientProgramBindInferModelDispatch(execution, preparedCallSet,
         admitted, enterCall));
       return admitted;
+    },
+    // Installation-only async port. It uses the same original scoped
+    // admission issuer; a persistence observation is never a fresh permit.
+    bindCheckedClientInferModelEntryPersistence(compiled, execution, definition,
+      preparedCallSet, scope, {account, principalId, at, delegated,
+        observeAccount, observeAt, beginEntry}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof observeAccount !== 'function' || typeof observeAt !== 'function' ||
+          typeof beginEntry !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer dispatch');
+      }
+      const admitted = checked(moon.clientProgramIssueScopedInferDispatchAdmission(
+        value, token(definition), scope, account, principalId, at, delegated,
+        observeAccount, observeAt));
+      checked(moon.clientProgramBindInferModelEntryPersistence(execution,
+        preparedCallSet, admitted, beginEntry));
+      return admitted;
+    },
+    // Installation-only original bootstrap: caller custody must keep this
+    // same scope on failure/recovery, never issue a replacement Ledger.
+    // Initial allocation and the full preset projection require pre-funding
+    // by the trusted installation; supplied numbers do not prove a layout.
+    beginCheckedClientInferOriginalReadScope(compiled, definition, graph,
+      {quantityCapacity, bootstrapRetainedBytes, bootstrapExecutionBytes,
+        maxReservations, maxHoldings, maxDelegations}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramBeginInferOriginalReadScope(value,
+        token(definition), graph, inferQuantityCapacity(quantityCapacity), bootstrapRetainedBytes,
+        bootstrapExecutionBytes, maxReservations, maxHoldings, maxDelegations));
+    },
+    prepareCheckedClientInferNodeReadLayout(compiled, definition, graph, scope,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramPrepareInferNodeReadLayout(scope, value,
+        token(definition), graph, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability));
+    },
+    // Explicit alternative to the normal descriptor issuer, not a fallback.
+    // Bootstrap must already cover the dedicated Writer and finish-text borrow.
+    prepareCheckedClientInferNodeReadState(compiled, definition, graph, scope,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      issuanceLimits(limits, 'Original Model state Writer');
+      if (['maxWireBytes', 'maxNodes', 'maxDepth'].some(key =>
+        !Number.isSafeInteger(limits[key]) || limits[key] < 0 || limits[key] > 2147483647) ||
+        limits.maxNodes === 0) {
+        throw new TypeError('Invalid original Model state Writer limits');
+      }
+      return checked(moon.clientProgramPrepareInferNodeReadState(scope, value,
+        token(definition), graph, layout, installation, runtimeArtifactCid,
+        layoutArtifactCid, probability, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    originalClientInferNodeReadStateRead(writer) {
+      return checked(moon.clientProgramInferNodeReadStateRead(writer));
+    },
+    advanceCheckedClientInferNodeReadState(compiled, definition, graph, writer, quantum) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647) {
+        throw new TypeError('Invalid original Model state Writer quantum');
+      }
+      const poll = moon.clientProgramInferNodeReadStatePoll(
+        moon.clientProgramAdvanceInferNodeReadState(writer, value, token(definition), graph, quantum));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+    },
+    finishCheckedClientInferNodeReadState(compiled, definition, graph, writer) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramFinishInferNodeReadState(writer, value, token(definition), graph));
+    },
+    stopCheckedClientInferNodeReadState(compiled, definition, graph, scope, writer) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStopInferNodeReadState(writer, scope, value, token(definition), graph));
+    },
+    settleCheckedClientInferNodeReadState(compiled, definition, graph, writer, physicalCleanupComplete) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (typeof physicalCleanupComplete !== 'boolean') {
+        throw new TypeError('Invalid original read cleanup observation');
+      }
+      return checked(moon.clientProgramSettleInferNodeReadState(writer, value,
+        token(definition), graph, physicalCleanupComplete));
+    },
+    // Do not derive whole-Run cleanup from read refusal, AbortSignal or a
+    // saved response. The original census also checks every live child.
+    finishCheckedClientInferOriginalReadScope(compiled, definition, graph,
+      scope, originalRunCleanupComplete) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (typeof originalRunCleanupComplete !== 'boolean') {
+        throw new TypeError('Invalid original Run cleanup observation');
+      }
+      return checked(moon.clientProgramFinishInferOriginalReadScope(scope,
+        value, token(definition), graph, originalRunCleanupComplete));
+    },
+    settleCheckedClientInferOriginalReadPreparation(compiled, definition, graph,
+      read, physicalCleanupComplete) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (typeof physicalCleanupComplete !== 'boolean') {
+        throw new TypeError('Invalid original read cleanup observation');
+      }
+      return checked(moon.clientProgramSettleInferOriginalReadPreparation(read,
+        value, token(definition), graph, physicalCleanupComplete));
+    },
+    stopCheckedClientInferOriginalReadPreparation(compiled, definition, graph,
+      scope, read) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStopInferOriginalReadPreparation(scope,
+        read, value, token(definition), graph));
+    },
+    // Reuse the original compiled/definition token domains. A public wrapper
+    // object cannot be passed as a nominal MoonBit compiled Run or contract.
+    claimCheckedClientInferNodePreparationLayout(compiled, definition, graph, read,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramClaimInferNodePreparationLayout(read,
+        value, token(definition), graph, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability));
+    },
+    startCheckedClientInferOriginalPreparation(compiled, definition, prepared,
+      step, graph, registry, values, provider, consumer, readRetainedBytes,
+      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalInferExecution(prepared,
+        step, graph, registry, values, provider, value, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes,
+        modelExecutionBytes, fragment, ordered));
+    },
+    // Private installed Node inputs only. Canonical/body admission does not
+    // issue capture authority, funded capacity or public async support.
+    readInstalledModelResponseProfile(wire, expectedCid, limits) {
+      issuanceLimits(limits, 'Model response profile');
+      if (['maxWireBytes', 'maxNodes', 'maxDepth', 'maxMembers', 'maxWork']
+          .some(key => !Number.isSafeInteger(limits[key]) || limits[key] < 0 ||
+            limits[key] > 2147483647) ||
+          typeof wire !== 'string' || wire.length > limits.maxWireBytes) {
+        throw new TypeError('Invalid Model response profile limits');
+      }
+      return checked(moon.clientProgramReadModelResponseProfile(wire, expectedCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+        limits.maxMembers, limits.maxWork));
+    },
+    bindInstalledModelRawCapturePolicy(policy, retention, metadata, clock, data) {
+      return checked(moon.clientProgramBindModelRawCapturePolicy(
+        evidenceToken(policy), retention, metadata, clock, data));
+    },
+    issueCheckedClientInferRawCapturePolicy(compiled, definition, dispatch, scope,
+      {profile, installation, probability, storeAuthorityCid, retention, metadata,
+        clock, data, selectedAt, availableUntil, deleteBy, extensionCeilingAt,
+        metadataDeleteBy}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer raw policy');
+      }
+      return checked(moon.clientProgramIssueInferRawCapturePolicy(value,
+        token(definition), dispatch, scope, profile, installation, probability,
+        storeAuthorityCid, retention, metadata, clock, data, selectedAt,
+        availableUntil, deleteBy, extensionCeilingAt, metadataDeleteBy));
+    },
+    registerCheckedClientInferRawCapture(compiled, definition, dispatch, scope,
+      {policy, profile, installation, probability, account, at, storeAuthorityCid,
+        selectionAvailable, observeAccount, observeAt, delegated}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof selectionAvailable !== 'function' ||
+          typeof observeAccount !== 'function' || typeof observeAt !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer raw capture');
+      }
+      return checked(moon.clientProgramRegisterInferRawCapture(value,
+        token(definition), dispatch, scope, policy, profile, installation,
+        probability, account, at, storeAuthorityCid, selectionAvailable,
+        observeAccount, observeAt, delegated));
     },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {
@@ -4398,6 +4680,24 @@ function publicationControl(moon) {
     },
     runDefinitionRunId(runDefinition) {
       return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
+    },
+    // The Common reader checks the exact canonical document and embedded
+    // resource CID. This private handle carries data, never restored custody.
+    readModelOriginalResourceDocument(wire, limits) {
+      if (typeof wire !== 'string') throw new TypeError('Invalid original Model document');
+      issuanceLimits(limits, 'Original Model document');
+      const {maxWireBytes, maxNodes, maxDepth} = limits;
+      const document = checked(moon.clientProgramReadModelOriginalResourceDocument(
+        wire, maxWireBytes, maxNodes, maxDepth));
+      const view = Object.freeze({kind: 'model-original-resource-document', wire});
+      modelOriginalDocumentTokens.set(view, document);
+      return view;
+    },
+    modelOriginalResourceOriginField(document, field) {
+      const original = modelOriginalDocumentTokens.get(document);
+      if (original === undefined) throw new TypeError('Foreign original Model document');
+      if (typeof field !== 'string') throw new TypeError('Invalid original Model origin field');
+      return moon.clientProgramModelOriginalResourceOriginField(original, field);
     },
     runCancellationConfirmed(facts) {
       const names = ['cancellationRequested', 'modelFenceRequired', 'modelFenced',

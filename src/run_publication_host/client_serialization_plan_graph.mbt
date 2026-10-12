@@ -242,6 +242,7 @@ fn issue_acquired_client_serialization_plan_graph(
   }
   let bodies = match
     checked_client_source_policy_bodies(
+      @strategy.graph_program(owner.graph),
       selected,
       max_wire_bytes,
       max_nodes,

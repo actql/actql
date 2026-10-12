@@ -19,13 +19,13 @@ test "COMMAND postlude retains its Result scope and original expression origins"
 }
 
 ///|
-test "COMMAND postlude follows DATA SERIALIZE and an ordinary destination JOIN" {
+test "COMMAND postlude follows WITH SERIALIZE and an ordinary destination JOIN" {
   let script = parse_query_script(
     (
-      #|DATA destinations = FROM files.transfers |> WHERE name IS NOT NULL |> SELECT destination, name;
-      #|DATA attachment = FROM destinations |> SELECT name |> ASSERT UNIQUE BY (name)
+      #|WITH destinations AS (FROM files.transfers |> WHERE name IS NOT NULL |> SELECT destination, name),
+      #|attachment AS (FROM destinations |> SELECT name |> ASSERT UNIQUE BY (name)
       #||> SERIALIZE FORMAT CSV ORDER BY name
-      #|OPTIONS (name = 'approved.csv', header = TRUE, null_marker = r'\N', max_rows = 1, max_bytes = 32);
+      #|OPTIONS (name = 'approved.csv', header = TRUE, null_marker = r'\N', max_rows = 1, max_bytes = 32))
       #|SELECT d.destination AS destination, a.name AS name, a.content AS content
       #|FROM attachment AS a JOIN destinations AS d ON a.name = d.name MAX_OUTPUT_ROWS 1 |> RESULT r;
       #|EFFECT upload COMMAND FROM RESULT r AS t TARGET t.destination
@@ -33,7 +33,7 @@ test "COMMAND postlude follows DATA SERIALIZE and an ordinary destination JOIN" 
     ),
     query_limits(),
   ).unwrap()
-  assert_eq(data_declaration_count(script), 2)
+  assert_eq(query_binding_count(script_query(script)), 2)
   assert_eq(command_effect_count(script), 1)
 }
 

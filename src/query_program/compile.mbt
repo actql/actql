@@ -66,6 +66,8 @@ pub(all) enum Issue {
   InvalidContext
   // A proven authored semantic violation, distinct from a lowering gap.
   InvalidQuery
+  // Row range aliases require an actual Relation, independently of FROM spelling.
+  RangeAliasRequiresRelation
   UnknownRelation
   // The existing relation resolver exhausted the admitted inputs for this
   // exact semantic path. This witness alone is not a Source absence proof.
@@ -94,6 +96,9 @@ pub(all) enum Issue {
   Expression(@expression.Diagnostic)
   // Retain the common checker's cause and authored cursor from scope probes.
   ExpressionTyping(@typing.Issue)
+  // Common metadata/pipeline preparation before selecting demanded bindings.
+  // The original typed cause is retained; this is not execution admission.
+  BindingPreparation(BindingPreparationIssue)
   Admission(@program.SyntaxError)
 }
 
@@ -488,7 +493,10 @@ fn same_expression(
         }
       (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
-        if (!same_path(x, y) && !@expression.same_scalar_function(x, y)) ||
+        if (
+            !same_path(x, y) &&
+            !@expression.same_scalar_function(x, y, arity=Some(ax.length()))
+          ) ||
           ax.length() != ay.length() {
           return false
         }
@@ -617,7 +625,7 @@ fn selected_relation(
 }
 
 ///|
-// DATA/CTE producer aliases and published relation paths retain their
+// WITH producer aliases and published relation paths retain their
 // respective rules at every query and constructor entry.
 fn input_relation_matches(
   relation : Array[@query.NamePart],
@@ -1625,6 +1633,7 @@ fn analytic_boundary(
     UnboundedPreceding => construction.text("unbounded_preceding")
     CurrentRow => construction.text("current_row")
     UnboundedFollowing => construction.text("unbounded_following")
+    Preceding(0L) | Following(0L) => construction.text("current_row")
     Preceding(distance) =>
       construction.object([
         ("preceding", construction.add(Number(distance.to_double()))),
@@ -1651,6 +1660,36 @@ fn analytic_boundary(
 }
 
 ///|
+// Zero physical distance denotes the current row. Validate authored boundary
+// categories before that projection: zero cannot make an illegal interval
+// spelling legal. Parameter distances remain with the common positive domain.
+fn validate_literal_zero_frame(
+  frame : @query.AnalyticFrame,
+) -> Unit raise Abort {
+  let zero = frame.start is Preceding(0L) ||
+    frame.start is Following(0L) ||
+    frame.end is Preceding(0L) ||
+    frame.end is Following(0L)
+  if !zero {
+    return
+  }
+  let category = fn(boundary : @query.FrameBoundary) -> Int {
+    match boundary {
+      UnboundedPreceding => 0
+      Preceding(_) | PrecedingParameter(_) => 1
+      CurrentRow => 2
+      Following(_) | FollowingParameter(_) => 3
+      UnboundedFollowing => 4
+    }
+  }
+  if category(frame.start) > category(frame.end) ||
+    frame.start is UnboundedFollowing ||
+    frame.end is UnboundedPreceding {
+    raise Abort(InvalidQuery)
+  }
+}
+
+///|
 fn lower_analytic_call(
   construction : Construction,
   call : @query.AnalyticCall,
@@ -1658,6 +1697,9 @@ fn lower_analytic_call(
   max_work : Int,
   max_collection_bytes : Int64,
 ) -> @builder.Node raise Abort {
+  if call.window.frame is Some(frame) {
+    validate_literal_zero_frame(frame)
+  }
   match call.aggregate {
     Some(aggregate) => {
       // The selected SQL analytic contract forbids DISTINCT with window ORDER
@@ -2065,7 +2107,7 @@ fn compile_steps(
             }
           }
         Some(Unpivot(clause)) => {
-          positional_destination_names.push(clause.value_column)
+          positional_destination_names.append(clause.value_columns)
           positional_destination_names.push(clause.name_column)
         }
         Some(Pivot(clause)) =>
@@ -2415,14 +2457,16 @@ fn compile_steps(
         1
       }
       if operation is Unpivot(clause) {
-        for name in clause.columns {
-          if positional_private_fields.any(field => {
-              same_name(name, { value: field, quoted: false, })
-            }) {
-            raise Abort(UnknownColumn)
-          }
-          if ambiguous_current_name(name) {
-            raise Abort(AmbiguousColumn)
+        for names in clause.column_sets {
+          for name in names {
+            if positional_private_fields.any(field => {
+                same_name(name, { value: field, quoted: false, })
+              }) {
+              raise Abort(UnknownColumn)
+            }
+            if ambiguous_current_name(name) {
+              raise Abort(AmbiguousColumn)
+            }
           }
         }
       }
@@ -6187,9 +6231,13 @@ fn compile_steps(
           // A materialized DISTINCT/SELECT cannot sort through a range slot
           // that its projection removed. An identical selected expression is
           // handled below using the evaluated output slot.
-          if pipe_selected &&
+          if (pipe_selected || pending_select is Some(_)) &&
             path.length() > 1 &&
-            order_output_slot([path[0]], selected_output_slots) is Some(_) {
+            order_output_slot(
+              [path[0]],
+              pending_bindings + selected_output_slots,
+            )
+            is Some(_) {
             return None
           }
           let current = pipe_expression_slot(
@@ -6437,7 +6485,11 @@ fn compile_steps(
               let direct = match kind {
                 Reference(path) =>
                   order_expression_slot(
-                    path, query, input, selected_input_fields, order_analytic_slots,
+                    path,
+                    query,
+                    input,
+                    selected_input_fields,
+                    order_analytic_slots + pending_bindings,
                   )
                 _ => None
               }
@@ -6758,10 +6810,18 @@ pub fn compile(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  if @query.terminal_effect(query) is Some(_) ||
+  let needs_input_binding = join_requires_input_binding(query, context) catch {
+    Abort(issue) => return Err(issue)
+  }
+  if needs_input_binding ||
+    @query.terminal_command_effect_count(query) > 0 ||
+    @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
-    has_cte_unnest_input(query) {
+    has_cte_unnest_input(query) ||
+    @query.query_binding_count(query) > 0 ||
+    @query.producer_primary(query) is Some(_) ||
+    @query.graph_query(query) is Some(_) {
     return compile_query_script(
       @query.single_query_script(query),
       context,
@@ -6777,7 +6837,7 @@ pub fn compile(
   }
   if has_nearest &&
     (
-      @query.cte_count(query) > 0 ||
+      @query.query_binding_count(query) > 0 ||
       @query.set_part_count(query) > 0 ||
       @query.join_part_count(query) > 0 ||
       @query.graph_query(query) is Some(_)
@@ -6808,22 +6868,6 @@ pub fn compile(
       context,
       limits,
     )
-  }
-  if @query.cte_count(query) > 0 {
-    let positional_operand = Array::makei(@query.cte_count(query), index => {
-      @query.positional_output(@query.cte_at(query, index).unwrap().query)
-    }).any(value => value)
-    if positional_operand {
-      // These parser-owned bindings can export values without authored names.
-      // Reuse script composition rather than publishing an intermediate Result.
-      return compile_query_script(
-        @query.single_query_script(query),
-        context,
-        limits,
-        table_writes~,
-      )
-    }
-    return compile_cte_query(query, context, limits)
   }
   if @query.set_part_count(query) > 0 {
     return compile_set_query(query, context, limits)
@@ -7036,652 +7080,14 @@ pub fn compile(
 }
 
 ///|
-// A CTE is a checked Stage Result binding. The body is built once, then the
-// consumer refers to that Result; text substitution would duplicate acquisition.
+// Enumerate the head and set operands for shared query composition. Binding
+// resolution, demand and capture remain with the unified script owner.
 fn query_terms(query : @query.Query) -> Array[@query.Query] {
   let terms = [query]
   for index in 0..<@query.set_part_count(query) {
     terms.push(@query.set_part_at(query, index).unwrap().right)
   }
   terms
-}
-
-///|
-// Count only references to the outer input under this nonrecursive CTE scope.
-// A later JOIN-right use needs the same complete capture as a principal FROM;
-// an earlier CTE with the input's name instead binds its own retained Result.
-// Two references suffice to establish sharing; no acquisition is performed.
-fn cte_capture_reference_count(
-  query : @query.Query,
-  declarations : @query.Query,
-  visible_ctes : Int,
-  input : Input,
-) -> Int {
-  let mut count = 0
-  for term in query_terms(query) {
-    let paths = [@query.relation(term)]
-    for index in 0..<@query.join_part_count(term) {
-      paths.push(@query.join_part_at(term, index).unwrap().relation)
-    }
-    for index in 0..<@query.operation_count(term) {
-      if @query.operation_at(term, index) is Some(Nearest(clause)) {
-        paths.push(clause.relation)
-      }
-    }
-    for path in paths {
-      if !input_relation_matches(path, input) {
-        continue
-      }
-      let mut shadowed = false
-      for index in 0..<visible_ctes {
-        if same_relation_path(path, [
-            @query.cte_at(declarations, index).unwrap().name,
-          ]) {
-          shadowed = true
-        }
-      }
-      if !shadowed {
-        count += 1
-        if count == 2 {
-          return count
-        }
-      }
-    }
-  }
-  count
-}
-
-///|
-fn compile_cte_query(
-  query : @query.Query,
-  context : Context,
-  limits : Limits,
-) -> Result[@program.Program, Issue] {
-  if @query.cte_count(query) < 1 ||
-    context.program_id == "" ||
-    context.stage_id == "" ||
-    context.stage_result == "" ||
-    context.result_name == "" {
-    return Err(UnsupportedCte)
-  }
-  if @query.relation(query).length() != 1 {
-    return Err(UnsupportedCte)
-  }
-  validate_cte_scope(query, context.inputs) catch {
-    Abort(issue) => return Err(issue)
-  }
-  let document = @query.query_document(query)
-  let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
-  let builder = match @builder.create(document, limits.source) {
-    Ok(value) => value
-    Err(issue) => return Err(Construction(issue))
-  }
-  let parameter_names = query_parameter_names(
-    context.parameter_declarations,
-    limits.max_expression_work,
-  ) catch {
-    Abort(issue) => {
-      @builder.discard(builder)
-      return Err(issue)
-    }
-  }
-  let construction : Construction = {
-    builder,
-    generated,
-    model_tasks: context.model_tasks,
-    parameter_names,
-  }
-  try {
-    let stages : Array[@builder.Node] = []
-    let used_stage_names : Array[String] = []
-    let mut known = context.inputs.copy()
-    let cte_inputs : Array[Input] = []
-    let retained : Array[RetainedResult] = []
-    let mut captured_owner = false
-    for index in 0..<@query.cte_count(query) {
-      let cte = @query.cte_at(query, index).unwrap()
-      let captures = known.filter(input => {
-        input.source is Captured(_) &&
-        query_terms(cte.query).any(term => {
-          same_relation_path(@query.relation(term), input.relation)
-        })
-      })
-      if captures.length() > 1 || (!captures.is_empty() && captured_owner) {
-        raise Abort(UnsupportedCte)
-      }
-      let captures_source = !captures.is_empty()
-      if captures_source {
-        captured_owner = true
-      }
-      let mut body_start = 0
-      let mut referenced_elsewhere = captures_source &&
-        (
-          @query.set_part_count(cte.query) > 0 ||
-          cte_capture_reference_count(cte.query, query, index, captures[0]) > 1 ||
-          cte_capture_reference_count(
-            query,
-            query,
-            @query.cte_count(query),
-            captures[0],
-          ) >
-          0
-        )
-      for other in 0..<@query.cte_count(query) {
-        if captures_source &&
-          other != index &&
-          cte_capture_reference_count(
-            @query.cte_at(query, other).unwrap().query,
-            query,
-            other,
-            captures[0],
-          ) >
-          0 {
-          referenced_elsewhere = true
-        }
-      }
-      if captures_source &&
-        (context.captured_stage is Some(_) || referenced_elsewhere) {
-        let capture_name = context.captured_stage.unwrap_or("aql_cte_capture_0")
-        if capture_name == context.stage_id ||
-          capture_name == "" ||
-          used_stage_names.contains(capture_name) {
-          raise Abort(InvalidContext)
-        }
-        let input = captures[0]
-        guard input.source is Captured(declaration) else {
-          raise Abort(InvalidContext)
-        }
-        let imported = match
-          @builder.import_cursor(builder, declaration, generated) {
-          Ok(node) => node
-          Err(issue) => raise Abort(Construction(issue))
-        }
-        let predicate = match @query.operation_at(cte.query, 0) {
-          Some(Where(expression)) if !referenced_elsewhere => {
-            body_start = 1
-            append_expression(
-              construction,
-              expression,
-              cte.query,
-              input,
-              columns(input),
-              limits.max_expression_work,
-            )
-          }
-          _ => construction.object([("literal", construction.add(Bool(true)))])
-        }
-        let (capture, _) = capture_source_boundary(
-          construction,
-          capture_name,
-          input.name,
-          imported,
-          columns(input),
-          predicate,
-        )
-        stages.push(capture)
-        used_stage_names.push(capture_name)
-        known = known.map(value => {
-          if same_relation_path(value.relation, input.relation) {
-            { ..value, source: StageResult(capture_name, "source"), }
-          } else {
-            value
-          }
-        })
-      }
-      let stage_name = "aql_cte_" + index.to_string()
-      let (body_stages, binding) = if @query.set_part_count(cte.query) > 0 {
-        let (nodes, fields) = compile_set_stages(
-          construction,
-          cte.query,
-          {
-            ..context,
-            inputs: known,
-            stage_id: stage_name,
-            stage_result: "rows",
-            captured_stage: None,
-          },
-          limits,
-          stage_name + "_",
-        )
-        (
-          nodes,
-          {
-            relation: [cte.name],
-            name: cte.name.value,
-            source: StageResult(stage_name, "rows"),
-            visible_fields: fields,
-            graph_bindings: [],
-          },
-        )
-      } else {
-        let scoped = cte_schema_scope(
-          cte.query,
-          construction,
-          stages,
-          known,
-          context,
-          limits,
-        )
-        let (stage, binding) = compile_cte_stage(
-          construction, cte, known, scoped, limits, stage_name, body_start,
-        )
-        (
-          match stage {
-            Some(node) => [node]
-            None => []
-          },
-          binding,
-        )
-      }
-      if !body_stages.is_empty() {
-        if stage_name == context.stage_id ||
-          used_stage_names.contains(stage_name) {
-          raise Abort(InvalidContext)
-        }
-        used_stage_names.push(stage_name)
-        for node in body_stages {
-          stages.push(node)
-        }
-      }
-      known = known.filter(input => {
-        !same_relation_path(input.relation, [cte.name])
-      })
-      known.push(binding)
-      cte_inputs.push(binding)
-    }
-    let context = cte_schema_scope(
-      query, construction, stages, known, context, limits,
-    )
-    if @query.set_part_count(query) > 0 {
-      let (nodes, _) = compile_set_stages(
-        construction,
-        query,
-        { ..context, inputs: known, captured_stage: None, },
-        limits,
-        "",
-      )
-      for node in nodes {
-        stages.push(node)
-      }
-    } else {
-      let mut cte_input : Input? = None
-      for input in cte_inputs {
-        if same_relation_path(input.relation, @query.relation(query)) {
-          cte_input = Some(input)
-        }
-      }
-      guard cte_input is Some(cte_input) else { raise Abort(UnsupportedCte) }
-      let body_output = cte_input.visible_fields
-      guard cte_input.source is StageResult(stage_name, result_name) else {
-        raise Abort(UnsupportedCte)
-      }
-      let cte_ref = construction.object([
-        (
-          "result",
-          construction.object([
-            ("stage", construction.text(stage_name)),
-            ("result", construction.text(result_name)),
-          ]),
-        ),
-      ])
-      let (outer_steps, output, outer_inputs, outer_from) = if @query.join_part_count(
-          query,
-        ) >
-        1 ||
-        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) ||
-        join_requires_input_binding(query, { ..context, inputs: known, }) {
-        compile_join_chain_stage_body(
-          construction,
-          query,
-          known,
-          context,
-          limits,
-          Some(retained),
-        )
-      } else if @query.join_part_count(query) == 1 {
-        let part = @query.join_part_at(query, 0).unwrap()
-        let mut right_input : Input? = None
-        for input in known {
-          if same_relation_path(input.relation, part.relation) {
-            right_input = Some(input)
-          }
-        }
-        guard right_input is Some(right_input) &&
-          right_input.source is StageResult(right_stage, right_result) else {
-          raise Abort(UnsupportedCte)
-        }
-        let right_ref = construction.object([
-          (
-            "result",
-            construction.object([
-              ("stage", construction.text(right_stage)),
-              ("result", construction.text(right_result)),
-            ]),
-          ),
-        ])
-        let (steps, fields, final_from) = compile_join_steps(
-          construction,
-          query,
-          @query.relation(query)[0],
-          body_output,
-          part.relation[0],
-          right_input.visible_fields,
-          limits,
-          retained=Some(retained),
-        )
-        (steps, fields, [("l", cte_ref), ("r", right_ref)], final_from)
-      } else {
-        let (steps, fields) = compile_steps(
-          construction,
-          query,
-          cte_input,
-          body_output,
-          limits.max_expression_work,
-          limits,
-          limits.max_collection_items,
-          limits.max_collection_bytes,
-          0,
-          false,
-          "aql_gen_0",
-          retained=Some(retained),
-          parameter_declarations=context.parameter_declarations,
-          prefix_context=Some(context),
-        )
-        let from = if steps.is_empty() { cte_input.name } else { "aql_gen_0" }
-        (steps, fields, [(cte_input.name, cte_ref)], from)
-      }
-      let stage = construction.object([
-        ("id", construction.text(context.stage_id)),
-        ("inputs", construction.object(outer_inputs)),
-        ("steps", construction.array(outer_steps)),
-        (
-          "results",
-          retained_stage_results(
-            construction,
-            context.stage_result,
-            construction.object([
-              ("from", construction.text(outer_from)),
-              (
-                "fields",
-                construction.array(
-                  output.map(field => construction.text(field)),
-                ),
-              ),
-            ]),
-            retained,
-          ),
-        ),
-      ])
-      stages.push(stage)
-    }
-    let root = program_root(
-      construction,
-      context,
-      stages,
-      result_exports=retained_result_exports(context, retained),
-    )
-    let source = match @builder.finish(builder, root) {
-      Ok(value) => value
-      Err(issue) => raise Abort(Construction(issue))
-    }
-    match admit_query_source(source, document, context, limits) {
-      Ok(program) => Ok(program)
-      Err(issue) => Err(issue)
-    }
-  } catch {
-    Abort(issue) => {
-      @builder.discard(builder)
-      Err(issue)
-    }
-  }
-}
-
-///|
-fn compile_cte_stage(
-  construction : Construction,
-  cte : @query.CtePart,
-  known : Array[Input],
-  context : Context,
-  limits : Limits,
-  stage_name : String,
-  body_start : Int,
-) -> (@builder.Node?, Input) raise Abort {
-  let body = cte.query
-  if @query.set_part_count(body) != 0 || @query.cte_count(body) != 0 {
-    raise Abort(UnsupportedCte)
-  }
-  if @query.join_part_count(body) > 1 ||
-    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) ||
-    join_requires_input_binding(body, { ..context, inputs: known, }) {
-    let (steps, output, inputs, from) = compile_join_chain_stage_body(
-      construction,
-      body,
-      known,
-      context,
-      limits,
-      None,
-    )
-    let stage = construction.object([
-      ("id", construction.text(stage_name)),
-      ("inputs", construction.object(inputs)),
-      ("steps", construction.array(steps)),
-      (
-        "results",
-        construction.object([
-          (
-            "rows",
-            construction.object([
-              ("from", construction.text(from)),
-              (
-                "fields",
-                construction.array(
-                  output.map(field => construction.text(field)),
-                ),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ])
-    return (
-      Some(stage),
-      {
-        relation: [cte.name],
-        name: cte.name.value,
-        source: StageResult(stage_name, "rows"),
-        visible_fields: output,
-        graph_bindings: [],
-      },
-    )
-  }
-  if @query.join_part_count(body) == 1 {
-    let left = selected_input(body, { ..context, inputs: known, }, limits)
-    let right_relation = @query.join_part_at(body, 0).unwrap().relation
-    let mut right : Input? = None
-    for input in known {
-      if same_relation_path(input.relation, right_relation) {
-        right = Some(input)
-      }
-    }
-    guard right is Some(right_input) &&
-      left.source is StageResult(left_stage, left_result) &&
-      right_input.source is StageResult(right_stage, right_result) else {
-      raise Abort(UnsupportedCte)
-    }
-    let stage_ref = fn(producer : String, result : String) raise Abort {
-      construction.object([
-        (
-          "result",
-          construction.object([
-            ("stage", construction.text(producer)),
-            ("result", construction.text(result)),
-          ]),
-        ),
-      ])
-    }
-    let (steps, output, final_from) = compile_join_steps(
-      construction,
-      body,
-      @query.relation(body)[0],
-      columns(left),
-      right_relation[0],
-      columns(right_input),
-      limits,
-    )
-    let stage = construction.object([
-      ("id", construction.text(stage_name)),
-      (
-        "inputs",
-        construction.object([
-          ("l", stage_ref(left_stage, left_result)),
-          ("r", stage_ref(right_stage, right_result)),
-        ]),
-      ),
-      ("steps", construction.array(steps)),
-      (
-        "results",
-        construction.object([
-          (
-            "rows",
-            construction.object([
-              ("from", construction.text(final_from)),
-              (
-                "fields",
-                construction.array(
-                  output.map(field => construction.text(field)),
-                ),
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ])
-    return (
-      Some(stage),
-      {
-        relation: [cte.name],
-        name: cte.name.value,
-        source: StageResult(stage_name, "rows"),
-        visible_fields: output,
-        graph_bindings: [],
-      },
-    )
-  }
-  let input = selected_input(body, { ..context, inputs: known, }, limits)
-  let fields = query_columns(body, input)
-  let (cte_inputs, seed) = match input.source {
-    Captured(declaration) => {
-      let imported = match
-        @builder.import_cursor(
-          construction.builder,
-          declaration,
-          construction.generated,
-        ) {
-        Ok(node) => node
-        Err(issue) => raise Abort(Construction(issue))
-      }
-      ([(input.name, imported)], [])
-    }
-    GeneratedValues(step) => {
-      if context.captured_stage is Some(_) && !@query.relation(body).is_empty() {
-        raise Abort(InvalidContext)
-      }
-      let imported = match
-        @builder.import_cursor(
-          construction.builder,
-          step,
-          construction.generated,
-        ) {
-        Ok(node) => node
-        Err(issue) => raise Abort(Construction(issue))
-      }
-      ([], [imported])
-    }
-    StepReference => raise Abort(InvalidContext)
-    StageResult(producer, result) => {
-      let source_ref = construction.object([
-        (
-          "result",
-          construction.object([
-            ("stage", construction.text(producer)),
-            ("result", construction.text(result)),
-          ]),
-        ),
-      ])
-      ([(input.name, source_ref)], [])
-    }
-  }
-  let final_alias = "aql_cte_final"
-  let (body_steps, body_output) = compile_steps(
-    construction,
-    body,
-    input,
-    fields,
-    limits.max_expression_work,
-    limits,
-    limits.max_collection_items,
-    limits.max_collection_bytes,
-    body_start,
-    input.source is Captured(_),
-    final_alias,
-    parameter_declarations=context.parameter_declarations,
-    prefix_steps=seed,
-    prefix_context=Some(context),
-  )
-  // A CTE with no remaining computation binds the existing producer after
-  // scope validation. compile_steps may emit a synthetic identity projection
-  // for a range alias; an explicit SELECT still keeps its own computation.
-  let mut binding_only = true
-  for i in body_start..<@query.operation_count(body) {
-    if !(@query.operation_at(body, i) is Some(Alias(_))) {
-      binding_only = false
-    }
-  }
-  if binding_only && seed.is_empty() && input.source is StageResult(_, _) {
-    return (
-      None,
-      {
-        relation: [cte.name],
-        name: cte.name.value,
-        source: input.source,
-        visible_fields: body_output,
-        graph_bindings: [],
-      },
-    )
-  }
-  let body_from = if body_steps.is_empty() { input.name } else { final_alias }
-  let stage = construction.object([
-    ("id", construction.text(stage_name)),
-    ("inputs", construction.object(cte_inputs)),
-    ("steps", construction.array(seed + body_steps)),
-    (
-      "results",
-      construction.object([
-        (
-          "rows",
-          construction.object([
-            ("from", construction.text(body_from)),
-            (
-              "fields",
-              construction.array(
-                body_output.map(field => construction.text(field)),
-              ),
-            ),
-          ]),
-        ),
-      ]),
-    ),
-  ])
-  (
-    Some(stage),
-    {
-      relation: [cte.name],
-      name: cte.name.value,
-      source: StageResult(stage_name, "rows"),
-      visible_fields: body_output,
-      graph_bindings: [],
-    },
-  )
 }
 
 ///|

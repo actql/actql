@@ -1,0 +1,213 @@
+[
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_syntax/query.mbt"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.048,
+    "stdout": "static-00.stdout.log",
+    "stderr": "static-00.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_syntax/grouped_rows_boundary_test.mbt"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.007,
+    "stdout": "static-01.stdout.log",
+    "stderr": "static-01.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/query_program/grouped_rows_boundary_test.mbt"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.006,
+    "stdout": "static-02.stdout.log",
+    "stderr": "static-02.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.008,
+    "stdout": "static-03.stdout.log",
+    "stderr": "static-03.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/bin/moonfmt",
+      "-w",
+      "src/check_environment/compilation_manifests.generated.mbt"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.007,
+    "stdout": "static-04.stdout.log",
+    "stderr": "static-04.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/fixtures/grouped-rows-boundary-source-input.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.137,
+    "stdout": "static-05.stdout.log",
+    "stderr": "static-05.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/grouped-rows-boundary-source-input.test.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.025,
+    "stdout": "static-06.stdout.log",
+    "stderr": "static-06.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/fixtures/packed-public-query.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.041,
+    "stdout": "static-07.stdout.log",
+    "stderr": "static-07.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/test-packed-public-query.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.03,
+    "stdout": "static-08.stdout.log",
+    "stderr": "static-08.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/client-values-run-materials-vector.test.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.027,
+    "stdout": "static-09.stdout.log",
+    "stderr": "static-09.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "scripts/public-query-profiles.test.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.024,
+    "stdout": "static-10.stdout.log",
+    "stderr": "static-10.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "--check",
+      "reviews/2026-10-11-grouped-rows-boundaries-control/identity-preimage-preparation.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.026,
+    "stdout": "static-11.stdout.log",
+    "stderr": "static-11.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/compilation-manifests.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.139,
+    "stdout": "static-12.stdout.log",
+    "stderr": "static-12.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/update-document-metadata.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.807,
+    "stdout": "static-13.stdout.log",
+    "stderr": "static-13.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-actql-spec-family.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.791,
+    "stdout": "static-14.stdout.log",
+    "stderr": "static-14.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-canonical-json.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 1.002,
+    "stdout": "static-15.stdout.log",
+    "stderr": "static-15.stderr.log"
+  },
+  {
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "scripts/check-document-links.mjs"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 2.715,
+    "stdout": "static-16.stdout.log",
+    "stderr": "static-16.stderr.log"
+  },
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "exit_code": 0,
+    "timeout": false,
+    "elapsed_seconds": 0.137,
+    "stdout": "static-17.stdout.log",
+    "stderr": "static-17.stderr.log"
+  }
+]

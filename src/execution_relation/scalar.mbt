@@ -56,7 +56,15 @@ pub fn unary(
 ) -> Result[Value, ScalarIssue] {
   match op {
     // Constructed text is evaluated only by the bounded expression continuation.
-    Upper | Lower | Trim | LTrim | RTrim => Err(InvalidOperand)
+    Upper
+    | Lower
+    | Trim
+    | LTrim
+    | RTrim
+    | ByteLength
+    | Unicode
+    | Chr
+    | Reverse => Err(InvalidOperand)
     Length =>
       match value {
         Null => Ok(Null)
@@ -132,6 +140,69 @@ pub fn unary(
       match value {
         Null => Ok(Null)
         Number(n) => finite(if n < 0.0 { -n } else { n })
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
+    Sin
+    | Cos
+    | Tan
+    | Asin
+    | Acos
+    | Atan
+    | Sinh
+    | Cosh
+    | Tanh
+    | Asinh
+    | Acosh
+    | Atanh =>
+      match value {
+        Null => Ok(Null)
+        Number(n) => {
+          if n.is_nan() || n.is_inf() {
+            return Err(InvalidOperand)
+          }
+          if ((op == @lower.Asin || op == @lower.Acos) && (n < -1.0 || n > 1.0)) ||
+            (op == @lower.Acosh && n < 1.0) ||
+            (op == @lower.Atanh && (n <= -1.0 || n >= 1.0)) {
+            return Err(ArithmeticFailure)
+          }
+          // The pinned core owns argument reduction and numerical algorithms.
+          // Existing finite-result validation also canonicalizes output zero.
+          let result = match op {
+            Sin => @math.sin(n)
+            Cos => @math.cos(n)
+            Tan => @math.tan(n)
+            Asin => @math.asin(n)
+            Acos => @math.acos(n)
+            Atan => @math.atan(n)
+            Sinh => @math.sinh(n)
+            Cosh => @math.cosh(n)
+            Tanh => @math.tanh(n)
+            Asinh => @math.asinh(n)
+            Acosh => @math.acosh(n)
+            Atanh => @math.atanh(n)
+            _ => return Err(InvalidOperand)
+          }
+          finite(result)
+        }
+        Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
+      }
+    Cbrt | Exp | Ln | Log10 =>
+      match value {
+        Null => Ok(Null)
+        Number(n) =>
+          if n.is_nan() || n.is_inf() {
+            Err(InvalidOperand)
+          } else if op == @lower.Cbrt {
+            finite(@math.cbrt(n))
+          } else if op == @lower.Exp {
+            finite(@math.exp(n))
+          } else if n <= 0.0 {
+            Err(ArithmeticFailure)
+          } else if op == @lower.Ln {
+            finite(@math.ln(n))
+          } else {
+            finite(@math.log10(n))
+          }
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
     Sqrt =>
@@ -349,6 +420,9 @@ pub fn binary(
     | Multiply
     | Divide
     | Modulo
+    | Pow
+    | Atan2
+    | Log
     | SafeAdd
     | SafeSubtract
     | SafeMultiply
@@ -373,6 +447,25 @@ pub fn binary(
             finite(a / b)
           }
         Modulo => if b == 0.0 { Err(ArithmeticFailure) } else { finite(a % b) }
+        Pow =>
+          if (a < 0.0 && b.trunc() != b) || (a == 0.0 && b < 0.0) {
+            Err(ArithmeticFailure)
+          } else {
+            // Integrality stays in binary64, including finite exponents beyond
+            // every bounded integer range. Reuse canonical finite/zero handling.
+            finite(@math.pow(a, b))
+          }
+        Atan2 =>
+          // GoogleSQL ATAN2(X, Y) preserves authored order. Calling the core
+          // primitive avoids quotient overflow/underflow and preserves the
+          // quadrant, including raw signed zeros at this internal boundary.
+          finite(@math.atan2(a, b))
+        Log =>
+          if a <= 0.0 || b <= 0.0 || b == 1.0 {
+            Err(ArithmeticFailure)
+          } else {
+            finite(@math.ln(a) / @math.ln(b))
+          }
         Equal
         | NotEqual
         | IsDistinctFrom
@@ -461,6 +554,9 @@ fn binary_comparison_result(
     | SafeSubtract
     | SafeMultiply
     | Modulo
+    | Pow
+    | Atan2
+    | Log
     | In
     | NotIn
     | RoundAt
@@ -506,8 +602,22 @@ pub fn boolean_pair(
           Boolean(false)
         },
       )
-    Coalesce | Concat | ConcatStrict | Replace | Substring | Between =>
-      Err(InvalidOperand)
+    Coalesce
+    | Concat
+    | ConcatStrict
+    | Replace
+    | Repeat
+    | Translate
+    | Instr
+    | Split
+    | Substring
+    | LeftString
+    | RightString
+    | LPad
+    | RPad
+    | Between
+    | Greatest
+    | Least => Err(InvalidOperand)
   }
 }
 
@@ -523,5 +633,48 @@ fn membership_result(
     Null
   } else {
     Boolean(op == @lower.NotIn)
+  }
+}
+
+///|
+// Extrema reuse the common finite-number comparison owner. The common Many
+// continuation still evaluates later children after NULL and owns every root.
+fn number_extremum(
+  op : @lower.ManyOperator,
+  previous : Value,
+  value : Value,
+  first : Bool,
+) -> Result[Value, ScalarIssue] {
+  if op != @lower.Greatest && op != @lower.Least {
+    return Err(InvalidOperand)
+  }
+  match value {
+    Null => Ok(Null)
+    Number(n) => {
+      // Validate even after an earlier NULL, including a non-null singleton.
+      match compare(value, value) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      if first {
+        return finite(n)
+      }
+      match previous {
+        Null => Ok(Null)
+        Number(_) =>
+          match compare(previous, value) {
+            Err(issue) => Err(issue)
+            Ok(order) =>
+              if (op == @lower.Greatest && order < 0) ||
+                (op == @lower.Least && order > 0) {
+                finite(n)
+              } else {
+                Ok(previous)
+              }
+          }
+        _ => Err(InvalidOperand)
+      }
+    }
+    _ => Err(InvalidOperand)
   }
 }

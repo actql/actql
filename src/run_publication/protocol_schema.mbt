@@ -12,6 +12,7 @@ priv enum ProtocolSchemaRule {
   NumberRule
   IntegerRule(Int64?, Int64?)
   ArrayRule(Int, Int, Bool, Int)
+  TupleRule(Array[Int])
   ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?, Int)
   OneOfRule(Array[Int])
   AnyOfRule(Array[Int])
@@ -91,6 +92,13 @@ fn protocol_array_rule(
   max_items : Int,
 ) -> ProtocolSchemaRule {
   ArrayRule(items, min_items, unique, max_items)
+}
+
+///|
+// Exact positional schemas borrow the existing immutable rule table. They
+// neither copy the input array nor grant authority to a decoded resource state.
+fn protocol_tuple_rule(items : Array[Int]) -> ProtocolSchemaRule {
+  TupleRule(items)
 }
 
 ///|
@@ -244,6 +252,26 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
       }
       valid
     }
+    14 =>
+      if value == "0" {
+        true
+      } else {
+        let first = if value.has_prefix("-") { 1 } else { 0 }
+        if value.length() <= first ||
+          value[first].to_int() < 49 ||
+          value[first].to_int() > 57 {
+          false
+        } else {
+          let mut valid = true
+          for index = first + 1; index < value.length(); index = index + 1 {
+            let unit = value[index].to_int()
+            if unit < 48 || unit > 57 {
+              valid = false
+            }
+          }
+          valid
+        }
+      }
     _ => false
   }
 }
@@ -334,7 +362,11 @@ fn validate_generated_protocol_shape(
     max_wire_bytes,
     max_nodes,
     max_depth,
-  })
+  }) &&
+  (
+    name != "model_original_storage_binding" ||
+    model_original_storage_binding_shape(value)
+  )
 }
 
 ///|

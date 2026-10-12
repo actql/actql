@@ -739,6 +739,1006 @@
       "line": 170,
       "count": 1,
       "reason": "Existing test or rejection fixture occurrence; frozen to this context."
+    },
+    {
+      "path": "docs/design/infer-decision-contracts.md",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "eec9a9ebe34502cf1e6ceb0f197e1e7b029832f12801c989af41a6395d021cfe",
+      "line": 6,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "docs/spec/language.md",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "a931488aadc9c05bdd570ae0c7e6cd1c826315208dd476d3c2b3ec3385d18968",
+      "line": 7641,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "docs/spec/protocols/contracts.md",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "6457e38283e1fac3fc775664ef953195c297487d4073ee32cd445f84a4919c8a",
+      "line": 1170,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "portability/corpus/decision-contracts.json",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "6210bd90a44e7d4204ba64598d489135bd8ce10a6242b22415691375bea8534a",
+      "line": 48,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "portability/corpus/decision-contracts.json",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "56dad17c43a650e1be0a8adff0ae89ec764ae1f318b949259ffb3ad95ebcfc8f",
+      "line": 169,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "scripts/decision-contract.mjs",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "d3bd806ef1242381e86ede7f67fa3947f78507d08aee86a5a11c507372b00edf",
+      "line": 27,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "scripts/decision-vectors.mjs",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "2cf6e6c2c396c3aa84b21bde6f1e2d76450235f0b1e33cc1c86152eea3fe3ce6",
+      "line": 180,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "scripts/fixtures/decision-contract.mjs",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "35bb9a24ab75ba26b0bc42187c97b61e251776a9e6590066dd13d9602f1d7a94",
+      "line": 25,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "a53fc4dafaa52db9456d8323909accb418ece4ced42e9f08e7de34d8d2d82029",
+      "line": 10684,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "2b4c1ac2898754d7064544bf9a52d6441c5c0b44393f1d8f1bb57fe47cc0fbd1",
+      "line": 10,
+      "count": 8,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "4978d48d7cca7dbcd0cfb4f7ef049ba5daf7f97a24b35377f369c6695fe5ddc2",
+      "line": 87,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "53e1dd5839208b24a579cedd0c54270e5ae72d603e9df989e921b3ec10c453bc",
+      "line": 94,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "49bb43db39bffec5750ffec24ea1f93f81f16d0eca8ab77f012fdab1e275804a",
+      "line": 101,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "a009feb77fc0c7bfda3dae91b0a48d653cf833b7d846c7e86aefe6a3afd82a54",
+      "line": 108,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "d3f4e8d43b947ec4313936b81fe934849fb59a25ce25aff7e5d2e69b6b55c873",
+      "line": 115,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "28fd1df1ed6d8f1f00d7afca302d170763ab25d68cfa2da64185d2010d184494",
+      "line": 122,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "33f01c3a22f3e04b926967fb0c46ebf4d8eb931067e81ff98aea204fc7c3f89d",
+      "line": 129,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "2cbbea066e862295b52b9926f3e71b877fe05aee715b268f685ca5640e6a6bd4",
+      "line": 136,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "713dcc5204cb4d5ad5f34e2b52214ad360bef7ff32cc6cc9af7f2779bba1a04e",
+      "line": 143,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "7c9c136d006aca287ca0ac7050d9fd353330ffd22a4bc9fbd748603b2673646a",
+      "line": 150,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "10999247a39b52d28a63f5c6b36b42d32080ddcdd2f0a5a973fa10c24882ef9d",
+      "line": 157,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/model_tasks.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "27b1a8fe98a3e6ba06529c580e2d661c2902e60c558a732dd70c6e974d019027",
+      "line": 392,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/model_tasks.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "fb3aa9cec63bbd86428391a4a80d994280539cc3f3ac9feaa1d7e2ea866ac919",
+      "line": 395,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/client_infer_host/decision_admission.generated_wbtest.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "7a52a69ea71ddf1bb7459e102f8ed13a0f0bd5436295b3c3651d3f125acbf483",
+      "line": 7,
+      "count": 1,
+      "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "97e21838b6a2adde891e54f14e5ad1169451885d113041c498fe4beda372838a",
+      "line": 164,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "a93953bc821b230fd6a216feb1fcbb9e04468d35bd8174a50eee448cdfa6a31e",
+      "line": 171,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "ad06e87bfbe614e86bb75bf9700daf3b4fde11730d447300e00cfabab6c95bd0",
+      "line": 178,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "e2bf5123170f7be7fb0f96794ae685041140db5445e105203a6a17d20a6f6943",
+      "line": 185,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "4699b4ec07687af3d853e471777dfac333e901fe8a8af37b39f59a5d557bb2cf",
+      "line": 192,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "73d0f6c164cee42c8f1422a0fb35321098a04d6db7bd2fced35cc6a60fb044e1",
+      "line": 199,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "dc707426d45f6daec39bca9d3d246cf06c6f2fba3d05aed52cfeb03750c01510",
+      "line": 206,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "b5862182c4fb9ea69f9c87e4373eabc85baf7015bf8c7740c571f5262901ef63",
+      "line": 214,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "src/check_environment/decision_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "655252ddf7ee9a0baa8f0d4bf5105956b1d9e419e111464314c5f7363f35d345",
+      "line": 222,
+      "count": 1,
+      "reason": "Reviewed M0a required String empty/absent/null fixtures; exact Task 0.2 contexts only. See docs/design/infer-decision-contracts.md."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "dd2642b146d4e95b53b8ac55ad7dcccf7c61046d491bdbd8c8ee879e05bb7c18",
+      "line": 34,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "5290e5fb106e2c43c42a3eb8780cc048262b8a8ee8c03a357589e9aa09071d43",
+      "line": 62,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "e16056e9da609bbbe847d485e717b004935e463600d2c335af781555503fe1ee",
+      "line": 67,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "100ff484f0a65e94cff34fe8648778447bc84feee46c26686afdc87df1b40441",
+      "line": 110,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "214de425ec349e617c97d7df0ba847c4ebcaa03dc133ad04af52e0cef50d5dbe",
+      "line": 115,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "03f1b451a5617a9fcc7d2f3cd5736d3bbf64bf804f7f2d1cd1249a285016288f",
+      "line": 143,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/fixtures/model-observation.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "35283d8fda93aa4a529fcec6a4fc1f192c2347ce4f296d939b69b7257a0631d4",
+      "line": 19,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/model-observation-contract.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "6092967b8be96ccb7f37dfdb9684870ca3bcf7170ead4e1f7b3a3ab5c014cdfa",
+      "line": 19,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/model-observation-contract.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "46375b92d209043005296782a26210cbe21d7fec67d21b4d25848f3122cb7bf4",
+      "line": 45,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/model-observation-contract.test.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "727e245a8980b4b6ceed369bd4922c80e36b4ffba6e4a602534cc0dc6cad3b0f",
+      "line": 37,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "c58d2aa4c9b7d5e6b7bc55b644902220e90fe066b1993332865e192cdbd807da",
+      "line": 40,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "256c91c9b21b2c58c409a50dc7e12a703a1b89faed8e7192fae72d36f9fb021c",
+      "line": 70,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "f73247d4544569367984854dd11a3fdda622ac3e5e9661e34477508e895c0f8c",
+      "line": 82,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "d93b2fbd508d76b7485033a5b06f425ce4d23987c6685959704a90280ca71f31",
+      "line": 95,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "f25790d67ad2f23acbfd6fb9bb3c1f9368ce377de691f1662d3221bd9ae71a39",
+      "line": 92351,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "a6c0b00cf79bec37ed1151586eb0cbff8f47be93653f558572eb2d4466b61fab",
+      "line": 92541,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "88b7c1593acaa0f0b7ae18662f1283666128b05201245db52e7cfce23468b354",
+      "line": 92597,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "45af32a62a515f96c3a4c1df1a003ee92c110dd63fb7fc327b80b2c94d28b2bf",
+      "line": 92944,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "67a6967785fe990c38e973486a6753eece3a48511312fac394cc33721c57836e",
+      "line": 93309,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "ad16e7520376687dc206d67ef12bc29ec67ed1d7f528746fe557af3856412ed1",
+      "line": 93365,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_capture_bundle.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "4b2ab1fb6e8eaafc3f8a50ec24ee0c63db75a5f59c9c91005dde6de1dc7b3e92",
+      "line": 235,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "77659cc41fe8e78a7b93a984fdbdbcba16fc1f1b46d77399b83fd729635da265",
+      "line": 24,
+      "count": 3,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "873ca214a9622bfa695244ba66097c78902ba046d8e3469eda40601c6a37bdf0",
+      "line": 27,
+      "count": 9,
+      "reason": "Explicit reviewed October 11 M0b and C10 capture compatibility; nine exact original/new evidence fixture contexts, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "121c565421933dce48557513e486158494bd8613f60a5c2ceee0161bec70e13a",
+      "line": 27,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "6d54649ee8f15419ce99ae0aec300364a5792ebf0d61c54ea04a725e06890279",
+      "line": 46,
+      "count": 2,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "a23d2918ab9a8ac96e09be3dc5b067a57543f27c82f6b4ea0cdab0fd98ae79ea",
+      "line": 66,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "45bfee3600d11c531508de80796fdd71b378ad78b286a93fe66841b020fa24c1",
+      "line": 83,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "c2a69a5cddb84255d2e7d9004063813b7467d4afec6171ebc5d2376b563efeb4",
+      "line": 88,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "780d5b398916a46d09e3b973cc1365ae384fd941c6d5e8258f7bbc09c2555131",
+      "line": 98,
+      "count": 3,
+      "reason": "Explicit reviewed October 11 M0b/C10 original attempt-one refusal vector; three frozen exact contexts, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "cebdd767397e18d5fd476b08dae7be387bfa72834fd9314b28bbd78be77d7afb",
+      "line": 103,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "5472d2e6e84c2cf1847135622957e7eeeebd759f7e5ed9b911ed015971a8cc06",
+      "line": 108,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "5fbca09d3cf84cb6f47516ae3342c3819427d869ce6a894bfbcb5184852e0bbc",
+      "line": 113,
+      "count": 2,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "11eb770f1ca0ee89ee1d42d6a4fd188cccde2b3fbe2b74f1e2e6a673167a665e",
+      "line": 123,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "551e86b50c7d5bfd1f1509890a68457c7d50aa0bc0e4ece54ff1be4b2f9bf8e1",
+      "line": 133,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "30106280dc4159de7d80d48b238567506fbf014b93a7b7e5ed6fbaa72a02dd59",
+      "line": 138,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "878638703eea26a7a9f7f842f061806c1108dd5e87d5eb1bdc603e03a3b19497",
+      "line": 143,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "58b85df87f825044387488d49ab28133131a914d12c07ccae03ec650ce9dda8d",
+      "line": 148,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "4aa0378c083a67e37d0a38f873e1b583479e0fcd23ba1e9acfa3112c31cecf7d",
+      "line": 153,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "82c27fcb1b9c3883d431498e6e5897ffde4314dac7e487df630199a8680bfae8",
+      "line": 158,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "11de75041260e15ab4d76b6a2f000779da83625b7a11e8bb5ea1e53dcc984039",
+      "line": 173,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "166ce892d05526a85e28e26f36944ddea2fd99c8c7fcb73be1274d9fcc0edd9f",
+      "line": 173,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "6a12ce3f20859f64c8ed7d4d5dcbc20e930e2414857aec2bc82eb01bcc10c7d6",
+      "line": 180,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "e2d57a988709d01b0018466e4353f65989fc9db8a6e222c52ce12606dabbf19b",
+      "line": 187,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "be0f98770aa452e7b610bb323a154df4ad3bd813b85137bda77b49810fdd27b0",
+      "line": 194,
+      "count": 15,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "2a7799efa35c4727f7dc86117e5e3e33b931b8bfa601128836b8a7dca5f28292",
+      "line": 195,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+    },
+    {
+      "path": "src/run_publication/protocol_schema.generated.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "80a9b9707663ec072e873e451bcfc002e4e384ecef59eba99e2a9cb14f26a1d6",
+      "line": 1065,
+      "count": 4,
+      "reason": "Reviewed October 12 finite descriptor segmentation: same four admitted M0b/C10 invocation occurrences, same order/body/CID, one destination and no concat; exact new context only."
+    },
+    {
+      "path": "src/run_publication/protocol_schema.generated.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "e6d690c3a198f03a7b8af21ffc40848fcb560e33e19728f70f06a1bee1dee8a7",
+      "line": 1427,
+      "count": 2,
+      "reason": "Reviewed October 12 finite descriptor segmentation: same two admitted M0b/C10 bundle occurrences, same order/body/CID, one destination and no concat; exact new context only."
+    },
+    {
+      "path": "src/run_publication_host/client_journal_row_decoding_wbtest.mbt",
+      "token": "actql-native-client-run-row/0.2",
+      "contextSha256": "4fa473624dc9769873ff8128d6f6f56795d998d4856cc9baee7e21dc710ccf09",
+      "line": 106,
+      "count": 1,
+      "reason": "Reviewed October 12 existing merged #1643 refusal fixture: replacing version 0.1 by refused version 0.2 must yield CustodyLost; exact negative context only, not a reader or adopted wire."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "08931220a8c07018c1f599f6ab6341d0ca1ace820c39675cd4c1a39f8a7e2e03",
+      "line": 143,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "4b0b1ba72eb52de737807ee54e8da72f868accba42e009beb765aa5413588d38",
+      "line": 150,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "0e79ed16c3454ff7a69d4470074fcffc3f07db872f541a9c036d452a37993684",
+      "line": 186,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "eb6abd9d4f12bdff99a44b77cc6505fcfe92717bfc966ee984328b4f777f2fd7",
+      "line": 191,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "291301b46116fc599b3b9f213ffe9a2961bdf0a140795cd5a8de72d014fd891d",
+      "line": 230,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "9a2b981f3017fce27b1571a0aee249b2a4f58a767bc784ddeaceaa025a3cbecc",
+      "line": 278,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "portability/corpus/model-observations.json",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "ee1fc3b255605d7334cdd6849ba4288b936583d1a6c102092519bc95422b2f1c",
+      "line": 278,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-contract.test.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "138a828e1105575ac3c1dfd47774e88c7170f998b37a30254254f66ef97064a7",
+      "line": 39,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-contract.test.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "5230230edf60056b807fe314b061ae2d362effa9a0b1af9ed671d019802d0b19",
+      "line": 101,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "1202c03ac18bb723a8c5bd8e3a0c8d51e700ce1f2d04ad6794f6e73af9c9f0a6",
+      "line": 79,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "8fb58e53563de0d35ef61adea14c88c4abeed5ac64a727f438e139fda805744b",
+      "line": 83,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "c0aa0170a98beec21df8e80e89f89512ad281ab53b216d766ba65c2872f78ef8",
+      "line": 103,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "scripts/model-observation-vectors.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "66be722b8c407b28fd082259cbf0c49f80c7bf3390192f6f2e7e42de0bf49375",
+      "line": 109,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "spec/contracts/actql-protocol-schemas.json",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "6938772927eca02e5ff1f9b9b9342119a1a35eac524d70bf2f68e3d51600ce20",
+      "line": 93605,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/client_infer_host/mixed_capture_replay_wbtest.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "a3737325686fddbb7259ce1a43b80d0161eda7922ddb1b7028d76c60d918fb68",
+      "line": 43,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/client_infer_host/mixed_capture_replay_wbtest.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "81d2338609fd1d264457f69f39a115a9087d45474d8623738fea46c08dc05568",
+      "line": 64,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "9a2b981f3017fce27b1571a0aee249b2a4f58a767bc784ddeaceaa025a3cbecc",
+      "line": 179,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "1ee9a3015f0a3dc98f5bc268c91b539707e28e4e2436bf5f61502c6e2f2441d0",
+      "line": 179,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "373450594484c98439c0df93e71fb8426b4fcbea9431401b903a07a2da778cdf",
+      "line": 186,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "c3170cdc217cc0990bfeaab451f2439a94593c3631b2dab7102575ad1815fdc9",
+      "line": 194,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "35db1a398ba9a3c56e6cd0c2f4f8bec9132fb7404094bbbaf31707049dc0bbd1",
+      "line": 199,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
+    },
+    {
+      "path": "src/model_execution/capture_export.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "e875ec5314bbb99d454d3201ef0365f1672dead0fd727e2936de3a5901dad811",
+      "line": 192,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/model_execution/capture_export.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "43dc0f66db7e91de253100cc784a3a8a2790cb7610bad02c8f7b5f02870e361c",
+      "line": 228,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "73fa20ed0cbc6cefb7df6b53593407f0a8c57d76b44de40b7450db721814ee49",
+      "line": 237,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_observation_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "969e30b629bb9053e28be60ab2205a04e845485789ea3064255ee97936a32f80",
+      "line": 242,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/run_publication/model_replay_observation.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "bcbe87ccd7232d416ccdccb49e4d039589991b2649d228d17876934eb3efaeaa",
+      "line": 25,
+      "count": 1,
+      "reason": "Explicit reviewed October 11 C10 original evidence preservation and bounded writer discriminator; exact context, no global version upgrade."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "21aaa89399d30dceb441705a8fc359fb904df5f7aabf529c03cc364632cb7555",
+      "line": 5391,
+      "count": 1,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "7a32a019d4db119a9c7afd5a44aa4fedaeb82516b0e46c39d994502b25c0abda",
+      "line": 5454,
+      "count": 4,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "020ac0fa2a32ef8d4999ce13d0dd6bbdc8e214a96047debc52d0212a9ade5374",
+      "line": 5466,
+      "count": 1,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "src/canonical_json/identity_vectors.generated_test.mbt",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "c5e911afb917a4c74a436ef2a040cfd1a0b8106c856d67862959827c49a67f89",
+      "line": 5497,
+      "count": 1,
+      "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "scripts/infer-owner-checker.test.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "265e1be1f2ab8a0f16285090f099bf123459d32c3c3e661b9daff84915de9475",
+      "line": 378,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "scripts/infer-owner-checker.test.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "924c39dbd8f8a0b341d4b341a81d2d1d87a39184292be1839eca6f2ce8f5c932",
+      "line": 387,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/client_infer_host/encoded_response_wbtest.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "ed33154cebf795267dc8ab7f7402e8c67cf8cf9eb5ac06f7e91e7b504d262296",
+      "line": 98,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/client_infer_host/physical_response_poll_wbtest.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "62a60879a08e4f6e24a81a85c93f3aab885a5e16355e02e5304de5a0234d91df",
+      "line": 246,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/model_execution/invocation_evidence.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "8d037d1c5a0e2d1b74258e965f75b8fa4378bf2d3f9a76b20fbe05d431ea61b7",
+      "line": 124,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/model_execution/invocation_evidence.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "f5fb0b54e26fb5a9c4b8eac460d41c1abe116faa2dd3b58f6dcfd06e83445f58",
+      "line": 142,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/run_publication/model_replay_observation.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "989beceaf002a015a9d2e88ceb2f047aebc17ff13238549e589395ae62a21870",
+      "line": 14,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/run_publication/model_replay_observation.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "fde371cbc4891be69606a50f343cc00f302671c1b5ad3460ac9a1f691e0cc43a",
+      "line": 19,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/with-current-document-original-preimages.json",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "18233964fb2d38daace2960259ca50b74e6d104531e44bcd87084744fd43b318",
+      "line": 7,
+      "count": 1,
+      "reason": "Reviewed WITH terminology-cutover snapshot of the already adopted October 11 ModelTask 0.2 specification. Preserve its original document bytes and digest; this exact historical source context does not authorize another writer or contract."
+    },
+    {
+      "path": "scripts/fixtures/python-local-payload-record.json",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "c009fbf8de034d50caddc311d08a966e14dd142d6680e3ca6b21d3d119d75ffb",
+      "line": 3,
+      "count": 1,
+      "reason": "Existing independent private Python ABI fixture for the unchanged legacy publication payload record. Frozen source context only; no new writer or version adoption."
+    },
+    {
+      "path": "scripts/fixtures/python-local-payload-reservation.json",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "97946af22db98459b1fdc86920d721d93741217e28733ceff764c6364e7370a2",
+      "line": 7,
+      "count": 1,
+      "reason": "Existing independent private Python ABI fixture for the unchanged legacy publication payload record. Frozen source context only; no new writer or version adoption."
+    },
+    {
+      "path": "scripts/fixtures/python-local-payload-writing.json",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "0ae9451564dfb79a24165029f511a97e74a88e050ef4743ecb2e8e54fded58ae",
+      "line": 7,
+      "count": 1,
+      "reason": "Existing independent private Python ABI fixture for the unchanged legacy publication payload record. Frozen source context only; no new writer or version adoption."
+    },
+    {
+      "path": "src/run_publication_host/client_submitted_journal_record_wbtest.mbt",
+      "token": "actql-native-client-submitted-intent-row/0.2",
+      "contextSha256": "794717af78bd6cff1148731d71bfb17fb0b7bd472d003bcb660a9cbcd9d576a5",
+      "line": 119,
+      "count": 1,
+      "reason": "Reviewed October 12 existing merged #1659 decoder refusal fixture: forged version0.2 must yield CustodyLost; exact negative context only, not a production reader or adopted wire."
+    },
+    {
+      "path": "src/run_publication_host/client_submitted_journal_record_wbtest.mbt",
+      "token": "actql-submission-epoch/0.2",
+      "contextSha256": "662739a2ff179c62423e0a63a4d0ca2c132653b754be40ead11543e8936c3776",
+      "line": 139,
+      "count": 1,
+      "reason": "Reviewed October 12 existing merged #1659 decoder refusal fixture: forged version0.2 must yield CustodyLost; exact negative context only, not a production reader or adopted wire."
     }
   ]
 }

@@ -13,6 +13,7 @@ pub struct ResidentRetainedConsumer {
   codec : @output.NativeRemoteStandardRowCodec
   effect_limits : @host.ClientEffectComputationLimits?
   effect_configuration : ResidentSourceComputeConfiguration?
+  initial_catalog_use : Ref[@journal.NativeInitialCatalogUseCustody?]
   mut material : @transfer_client.NativeRemoteDestinationMaterialUse?
   mut executed : ResidentExecuted?
   mut pending_runtime : @runtime.NativeRemoteRuntime?
@@ -442,6 +443,7 @@ fn prepare_resident_retained_consumer_owned(
     codec,
     effect_limits,
     effect_configuration,
+    initial_catalog_use: Ref(None),
     material: None,
     executed: None,
     pending_runtime: None,
@@ -475,6 +477,10 @@ pub fn ResidentRetainedConsumer::accept(
   admission : ResidentRunAdmission,
   dispatch : @remote.RemotePollDispatch,
   at : String,
+  initial_catalog_use? : (
+    ResidentEffectProducerExecuted,
+    @journal.NativeInitialCatalogUseEnvelope,
+  )? = None,
 ) -> Result[ResidentAcceptance, ResidentHostIssue] {
   if self.closing ||
     @remote.dispatch_request_identity(
@@ -543,6 +549,25 @@ pub fn ResidentRetainedConsumer::accept(
       Err(_) => return Ok(Refused(@resident.ForeignSource))
     }
   }
+  let funding = match initial_catalog_use {
+    None => None
+    Some((producer, envelope)) => {
+      guard self.effect_limits is Some(_) &&
+        physical_equal(producer.executed.runtime, self.handoff.runtime) &&
+        @remote.dispatch_request_identity(producer.executed.request) ==
+        @remote.dispatch_request_identity(self.handoff.dispatch) &&
+        producer.source_for_capture(self.producer_journal) is Some(source) else {
+        return Ok(Refused(@resident.ForeignSource))
+      }
+      Some(
+        (
+          @strategy.captured_dag_ledger(source.run),
+          envelope,
+          self.initial_catalog_use,
+        ),
+      )
+    }
+  }
   retain_and_acknowledge_resident_dispatch(
     journal,
     client,
@@ -551,6 +576,7 @@ pub fn ResidentRetainedConsumer::accept(
     self.binding,
     body,
     () => (),
+    initial_catalog_use=funding,
   )
 }
 
@@ -777,4 +803,83 @@ pub fn ResidentRetainedConsumer::effect_computation(
     return None
   }
   Some(owner)
+}
+
+///|
+/// Read-only projection of this exact original consumer dispatch after the
+/// existing journal, Runtime, completed computation and receiver-borrow checks.
+/// This is not a Host identity, current permission or a replacement issuer.
+pub fn ResidentRetainedConsumer::effect_original_dispatch(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> @remote.DispatchRequest? {
+  guard self.effect_computation(journal) is Some(_) else { return None }
+  Some(self.request)
+}
+
+///|
+/// Project the exact admitted consumer binding only while the existing Effect
+/// computation, receiver borrow, journal and original request are current.
+/// The producer Source binding is a separate identity and is never substituted.
+pub fn ResidentRetainedConsumer::effect_source_binding_cid(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+  inputs : @strategy.CapturedEffectInputs,
+) -> String? {
+  guard self.effect_computation(journal) is Some(owner) &&
+    owner.request_for_effect_review(inputs) is Some(request) &&
+    owner.effect_materials_for_capture() is Some(materials) &&
+    materials.request == Some(request) else {
+    return None
+  }
+  Some(@remote.remote_input_binding_cid(self.binding))
+}
+
+///|
+/// Select this holder's actual completed Effect computation output. The
+/// existing journal, receiver borrow and Runtime validation above remain
+/// required. This does not approve an Effect or make its Result publishable.
+pub fn ResidentRetainedConsumer::completed_effect_execution(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+) -> ResidentExecuted? {
+  guard self.effect_computation(journal) is Some(_) else { return None }
+  self.executed
+}
+
+///|
+/// Called by the private holder only after its original Review/Catalog/Resource
+/// Owners and receiver have retired. The consumer's own actual close must have
+/// completed; callers cannot supply a boolean as its physical-cleanup evidence.
+/// Stamp funding belongs to this exact original producer, whose formal release
+/// is deliberately not a prerequisite for returning this control-row charge.
+pub fn ResidentRetainedConsumer::cleanup_initial_catalog_use(
+  self : ResidentRetainedConsumer,
+  journal : @journal.Journal,
+  producer : ResidentEffectProducerExecuted,
+) -> Bool {
+  guard self.closed &&
+    physical_equal(producer.executed.runtime, self.handoff.runtime) &&
+    @remote.dispatch_request_identity(producer.executed.request) ==
+    @remote.dispatch_request_identity(self.handoff.dispatch) else {
+    return false
+  }
+  if self.initial_catalog_use.val is Some(custody) {
+    if !producer.owns_initial_catalog_use_custody(custody) ||
+      @journal.initial_catalog_use_custody_dispatch(custody) !=
+      @remote.dispatch_request_identity(self.request) ||
+      journal.cleanup_initial_catalog_use(custody) is Err(_) {
+      return false
+    }
+    self.initial_catalog_use.val = None
+  }
+  true
+}
+
+///|
+/// A read-only pending-duty projection, not evidence of an unsent GET.
+pub fn ResidentRetainedConsumer::has_initial_catalog_use_custody(
+  self : ResidentRetainedConsumer,
+) -> Bool {
+  self.initial_catalog_use.val is Some(_)
 }

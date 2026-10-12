@@ -1,0 +1,259 @@
+///|
+// The physical descriptor's origin is issued from the original checked Run.
+// It cannot be constructed from a JSON usage aggregate or a reported Run CID.
+priv struct ClientModelReadOrigin {
+  compiled : ClientCompiledRun
+  definition_cid : String
+  plan : ClientInferPlanGraph
+  host_policy_cid : String
+  execution_context_cid : String
+}
+
+///|
+// Issued before any child resources: this is the original Run/Host binding,
+// not a retrospective assignment of a used Ledger to a supplied Run CID.
+struct ClientModelReadScope {
+  origin : ClientModelReadOrigin
+  ledger : @resources.Ledger
+  identity : @resources.OriginalLedgerIdentity
+}
+
+///|
+struct ClientModelReadPreparation {
+  origin : ClientModelReadOrigin
+  claim : @resources.FundedReadClaim[ClientModelReadOrigin]
+}
+
+///|
+pub(all) enum ClientModelReadPreparationIssue {
+  ForeignRun
+  InvalidBootstrap
+  Resource(@resources.OriginalReadIssue)
+} derive(Eq, Debug)
+
+///|
+// The existing Run owner reserves bootstrap before this call, including this
+// binding, descriptor inventory and checker/authentication workspace. Profile
+// coefficients and durable descriptor admission are not established here.
+pub fn begin_client_model_read_scope(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  ledger : @resources.Ledger,
+  bootstrap : @resources.CapacityReservation,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
+  // No Run authentication or binding allocation precedes the funded envelope.
+  if !@resources.original_read_bootstrap_available(ledger, bootstrap) {
+    return Err(InvalidBootstrap)
+  }
+  if !client_compiled_run_has_infer(compiled, plan) ||
+    check_client_compiled_run_definition(compiled, definition) is Err(_) {
+    return Err(ForeignRun)
+  }
+  let origin : ClientModelReadOrigin = {
+    compiled,
+    definition_cid: @publication.publication_contract_identity(definition),
+    plan,
+    host_policy_cid: @publication.run_publication_host_policy(
+      compiled.admission,
+    ),
+    execution_context_cid: @publication.run_publication_execution_context(
+      compiled.admission,
+    ),
+  }
+  let identity = match
+    @resources.begin_original_ledger_inventory(
+      ledger, bootstrap, max_reservations, max_holdings, max_delegations,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  Ok({ origin, ledger, identity, })
+}
+
+///|
+pub fn prepare_client_model_read(
+  scope : ClientModelReadScope,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue] {
+  let origin = scope.origin
+  let ledger = scope.ledger
+  let descriptor = match
+    @resources.issue_recorded_original_ledger_descriptor(scope.identity, origin) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  match
+    @resources.fund_original_read(
+      ledger, origin, descriptor, retained_bytes, execution_bytes,
+    ) {
+    Ok(claim) => Ok({ origin, claim, })
+    Err(issue) => Err(Resource(issue))
+  }
+}
+
+///|
+// The original owning Run retains this scope when layout/descriptor/read
+// admission fails before a preparation exists. Its final cleanup uses the
+// same census/bootstrap; no Ledger projection or reconstructed binding is
+// needed. The acknowledgement covers the owning Run, not merely read failure.
+// Existing live-child checks still prevent early return after successful issue.
+pub fn finish_client_model_read_scope(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, ClientModelReadPreparationIssue] {
+  if !client_model_origin_matches(scope.origin, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.finish_original_ledger_inventory(
+    scope.ledger,
+    original_run_cleanup_complete,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
+fn client_model_read_origin_matches(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  client_model_origin_matches(value.origin, compiled, definition, plan)
+}
+
+///|
+fn client_model_origin_matches(
+  origin : ClientModelReadOrigin,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  physical_equal(origin.compiled, compiled) &&
+  physical_equal(origin.plan, plan) &&
+  @publication.publication_contract_identity(definition) ==
+  origin.definition_cid &&
+  @publication.run_publication_host_policy(compiled.admission) ==
+  origin.host_policy_cid &&
+  @publication.run_publication_execution_context(compiled.admission) ==
+  origin.execution_context_cid
+}
+
+///|
+pub fn client_model_read_available(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  client_model_read_origin_matches(value, compiled, definition, plan) &&
+  @resources.funded_read_available(value.claim, value.origin)
+}
+
+///|
+// This is a ledger handoff, not model-send authorization. Existing current
+// authority, egress, fence and dispatch checks are still required downstream.
+pub fn handoff_client_model_read(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Result[@resources.Ledger, ClientModelReadPreparationIssue] {
+  if !client_model_read_origin_matches(value, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.handoff_funded_read(value.claim, value.origin).map_err(issue => {
+    Resource(issue)
+  })
+}
+
+///|
+// Verify already reserved derivation workspace on this exact checked Run/Host
+// read. The consumer still derives its complete overlap envelope separately.
+// Check the retained envelope before constructing its original preparation or
+// Execution as well. This verifies an existing token, without reserving again.
+pub fn client_model_read_preparation_available(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  execution_bytes : Int64,
+  retained_bytes? : Int64 = 0L,
+) -> Bool {
+  client_model_read_origin_matches(value, compiled, definition, plan) &&
+  @resources.funded_read_preparation_available(
+    value.claim,
+    value.origin,
+    execution_bytes,
+    retained_bytes~,
+  )
+}
+
+///|
+// The same original checked Run owner transfers byte custody atomically.
+// This does not authenticate arbitrary PreparedInferRows, select a physical
+// profile or authorize Model dispatch; those checked boundaries remain separate.
+pub fn handoff_client_model_read_capacity(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  (@resources.Ledger, @resources.CapacityReservation),
+  ClientModelReadPreparationIssue,
+] {
+  if !client_model_read_origin_matches(value, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.handoff_funded_read_capacity(
+    value.claim,
+    value.origin,
+    retained_bytes,
+    execution_bytes,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
+pub fn stop_client_model_read(value : ClientModelReadPreparation) -> Unit {
+  @resources.stop_funded_read(value.claim)
+}
+
+///|
+pub fn settle_client_model_read(
+  value : ClientModelReadPreparation,
+  physical_cleanup_complete : Bool,
+) -> Result[Unit, ClientModelReadPreparationIssue] {
+  @resources.settle_funded_read(value.claim, physical_cleanup_complete).map_err(issue => {
+      Resource(issue)
+    },
+  )
+}
+
+///|
+// The original owning Run calls this only on its final cleanup path. Read
+// retirement alone does not acknowledge other Run children/FD/Store cleanup.
+// No Ledger getter or reconstructed origin is added for this finalization.
+pub fn finish_client_model_read_inventory(
+  value : ClientModelReadPreparation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, ClientModelReadPreparationIssue] {
+  if !client_model_read_origin_matches(value, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.finish_funded_read_inventory(
+    value.claim,
+    value.origin,
+    original_run_cleanup_complete,
+  ).map_err(issue => Resource(issue))
+}

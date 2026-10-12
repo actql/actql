@@ -1,0 +1,63 @@
+{
+  "startedAt": "2026-10-11T23:20:57.482Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Preserve independent complete fixtures and existing selected consumers",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/with-relational-public-fixtures.test.mjs",
+        "scripts/aggregate-order-parameter-source-input.test.mjs",
+        "scripts/aggregate-property-order-source-input.test.mjs",
+        "scripts/aggregate-signed-order-source-input.test.mjs",
+        "scripts/aggregate-conditional-order-source-input.test.mjs",
+        "scripts/aggregate-member-call-reuse-source-input.test.mjs",
+        "scripts/analytic-partition-expression-source-input.test.mjs",
+        "scripts/analytic-partition-property-source-input.test.mjs",
+        "scripts/concat-expression-reuse-source-input.test.mjs",
+        "scripts/group-order-range-alias-source-input.test.mjs",
+        "scripts/group-property-receiver-source-input.test.mjs",
+        "scripts/membership-expression-reuse-source-input.test.mjs",
+        "scripts/negated-predicate-reuse-source-input.test.mjs",
+        "scripts/scalar-alias-group-source.test.mjs",
+        "scripts/qualify-source-input.test.mjs",
+        "scripts/pipe-pivot-source-input.test.mjs",
+        "scripts/pipe-distinct-source-input.test.mjs",
+        "scripts/order-window-source-input.test.mjs"
+      ],
+      "startedAt": "2026-10-11T23:20:57.571Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T23:20:58.677Z",
+      "endedAt": "2026-10-11T23:20:58.680Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "5fd44d45-64ba-470d-a9c6-0901e939329d",
+    "pid": 73635,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T23:20:57.557Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-492msU"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T23:20:58.755Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

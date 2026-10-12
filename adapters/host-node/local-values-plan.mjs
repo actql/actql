@@ -450,10 +450,10 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     outputLimits: Object.freeze({...localOutputLimits,
       maxResultWorkspaceEntries: Math.max(localOutputLimits.maxResultWorkspaceEntries, maxRows)}),
   });
-  if (originalPolicy !== undefined) valuesAdmissions.set(plan, Object.freeze({
+  valuesAdmissions.set(plan, Object.freeze({
     prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
-    valuesHostPolicyOriginal: originalPolicy,
+    ...(originalPolicy === undefined ? {} : {valuesHostPolicyOriginal: originalPolicy}),
   }));
   return plan;
 }

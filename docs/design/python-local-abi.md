@@ -35,7 +35,7 @@ owning instance; neither a handle nor a nonce is an authorization token.
 
 The Python physical bridge checks the installed artifact digest, scalar ABI
 version, exact callback signatures, required exports and linear-memory maximum
-before opening the instance. `actql_host_abi_version` returns 20; this private ABI
+before opening the instance. `actql_host_abi_version` returns 36; this private ABI
 version is independent of Client wire and package release versions. Optional
 Wasmtime import is deferred until physical Local construction. Remote import
 does not load Wasmtime or DuckDB.
@@ -57,6 +57,18 @@ repeat cleanup. Acknowledged input close discards its private loan and completio
 record; repeated transfers do not accumulate released descriptors.
 Closing this Host bridge is separate from closing a Client connection and
 cannot decide Run cancellation.
+
+The private payload-request projection borrows one original completed Result
+publication and its exact physical input. The input contains only the Store
+authority CID, material generation CID and payload byte ceiling. The existing
+Core payload Owner derives the schema, order, logical Result, exact byte count,
+row count and original publication attempt. This projection does not write a
+payload, install a Store, authorize a publisher or acknowledge durable commit.
+Current Run and Source authorization is checked before each production call,
+including reuse of a completed projection. Its output is bounded to 65,536
+bytes; cleanup failure retains the same child, parent pin and input borrow.
+The parent refuses close until that child is released. Retiring the earlier
+preflight transport output preserves the original semantic preflight used here.
 
 All exports use scalar arguments. Input chunks are ordered, at most 16,384 bytes,
 and admitted before the physical callback runs. Input imports are
@@ -114,6 +126,40 @@ Compute completion, cancellation requests and transfer-pool closure cannot
 return this allowance. The trusted physical adapter must supply observations
 of the exact reserved workspace; this binding does not authorize I/O or imply
 that the product's complete runtime footprint has been accounted for.
+
+## Validated commit material view
+
+`PublicationCommitPreparation.finish_view()` retains the original complete
+validated chain under the existing preparation. It exposes one immutable
+contract at a time, in fixed root order followed by the six original inventories.
+The view does not copy or re-admit contracts, create an index, authorize a
+publisher, install Store data, or acknowledge durability. The existing `finish()`
+continues to return only validation completion and releases its inputs.
+
+The active view reserves one descriptor within the original workspace ceiling.
+Count and ordinal selection inspect a fixed number of inventory boundaries;
+they do not scan inventories or contract bytes. Validation still advances through
+the existing bounded cursor and retains its quantum-independent logical work.
+Borrowed arrays must remain unchanged until the original view is released.
+
+Cancellation immediately refuses further view reads while retaining the same
+original inputs and descriptor. Physical output use and input borrows must stop
+and cleanup must succeed before the private Host calls `release_view()`.
+Cleanup failure retains that same view for explicit retry. Owner identity and
+the exact nominal view are checked; foreign or copied views cannot read or
+release originals. Successful release removes the input references and owner
+back-reference, retaining only the retired nominal token for idempotent cleanup.
+A later read, new finish, or cursor advance remains refused.
+
+The private Wasm publication parent retains this view after its existing commit
+finish operation. Candidate transport reads the original request, attempt and
+nominal index from that completed cursor, after the existing current Run/Source
+check. Parent close first waits for its output children, then follows the
+original commit-input stop, parent-output cleanup and Source/input stop order.
+Only successful completion of those steps releases the view. A failed step
+keeps the same parent, input custody and cancelled view for explicit cleanup
+retry. No new export, scalar ABI version or Client wire field is introduced by
+this custody connection; it is not a complete material transport or Store ACK.
 
 ## Physical DuckDB boundary
 
@@ -425,6 +471,63 @@ DuckDB workspace. Their simultaneous holdings still require the existing shared
 resource Owner; a byte-store test alone establishes no aggregate Local bound or
 successful Run recovery.
 
+### Durable physical capacity
+
+Private byte-store format 2 adds the existing Native SQLite `actql_capacity`
+reservation fields alongside `core_bytes`. Format 1 is refused without migration
+or deletion; retained evidence and saved records are not relabeled. This is the
+Python byte store's closed physical format, not Native publication Store format
+interoperability.
+
+The private `reserve_capacity`, `read_capacity`, `capacity_usage` and
+`release_capacity` port preserves the Native physical contract: namespace and
+material key remain exact UTF-8 strings, amounts are nonnegative signed 64-bit
+integers, identical acquisition returns an existing reservation, and different
+amounts collide. SQLite serializes acquisition and checks both byte and object
+totals before inserting. Trusted Host configuration supplies the limits. Capacity
+metadata has a separate row ceiling equal to the byte store's `max_records`,
+including zero-amount reservations; byte-record ceilings remain unchanged.
+
+A lost commit acknowledgement remains unknown. `read_capacity` only reads the
+original namespace/key and returns physical amounts; it neither inserts nor
+releases. The Host must bind that actual store and observation to the original
+Core request's Store authority, material identity and maximum before confirming
+the existing Core transition. A read miss does not grant a retry. Releasing
+requires the exact original amounts and is called only after the existing Owner
+acknowledges physical cleanup. Failed deletion retains the original reservation;
+failed transaction rollback leaves the same connection pending and unreadable.
+Closing the connection preserves durable capacity and does not cancel a Run.
+
+`compare_exchange_reserved` fences the original byte CAS with the exact retained
+capacity row under the same SQLite transaction. Its immutable observation must
+name the written material key. The existing batch port can apply the same fence
+to its original material and dependent opaque records. A reservation removed or
+changed after an earlier read produces a physical conflict with no writes, no
+capacity reacquisition and no automatic resend. This follows the Native physical
+transaction boundary; it does not interpret Core record states. A lost commit
+acknowledgement still requires original read-only observation and Core decision.
+The trusted Host must retain the original cleanup responsibility and coordinate
+release through the existing Owner; a physical row is not a cleanup permission.
+
+The existing payload Owner's
+`prepare_observed_publication_payload_reserved` checks the original nominal
+record's Store authority, the existing `publication_payload` namespace, material
+identity, exact maximum bytes and one object. It prepares the same existing
+`Intent` to `Reserved` transition; the record remains `Intent` until the trusted
+Store persists the exact next record and
+`commit_observed_publication_payload_transition` confirms its original revision,
+request and canonical bytes. A matching capacity observation alone is neither a
+durable record commit nor permission to create a file. Foreign capacity facts,
+changed amounts, later states and stale transition commits are refused. This
+Owner function does not by itself provide a Wasm transport or public Host port.
+
+This port alone does not install a Store, complete filesystem payload custody,
+authorize a publisher or acknowledge `Reserved`, `Writing`, `Sealed` or Run
+completion. SQLite workspace, Core Wasm memory, transfer buffers, DuckDB workspace
+and the durable file reservation remain separate holdings for the existing shared
+resource Owner. Physical capacity tests do not establish global memory accounting
+or public Local recovery.
+
 ## Original Core material transfer
 
 The private `actql_material_*` family projects records from an existing prepared
@@ -464,7 +567,7 @@ commit, Source acquisition, task dispatch, publication or recovery start. The
 saved exact authored input and request are separate records from lowered Program
 materials. The product Host still needs to connect original journal facts,
 current authorization, completed retained outputs and publication Owners before
-it can resume the original Run. Earlier ABI modules are refused by the ABI 21 bridge;
+it can resume the original Run. Earlier ABI modules are refused by the ABI 23 bridge;
 no compatibility adapter or alternate runtime route is retained.
 
 ## Original execution Owner restoration
@@ -857,15 +960,90 @@ parent revokes binding issuance. Issuance alone proves neither physical retentio
 Store commit, publication permission nor a Run outcome. A durable Store must
 still verify its actual payload and current publication authority separately.
 
+### Original checked publication intent and preflight
+
+`prepare_local_publication_intent` reads every Named Result name and producer
+from the original LocalRunPlan's checked graph. The existing checked inventory
+Owner creates their Result definitions, and the existing publication issuers
+create the request and attempt. No supplied subset, semantic JSON or replacement
+Result definition enters this path. A Host-selected inventory limit rejects the
+whole preparation when exceeded; it never shortens the inventory. Result names
+retain the existing Result Definition Owner's canonical-text requirements.
+The Host supplies the original fence CID and optional external idempotency key
+to the existing attempt issuer. This fixes intent; it does not prove a live fence
+or turn an idempotency key into permission to repeat an unknown operation.
+
+`check_local_source_publication_preflight` requires the exact captured Source
+invocation and its original plan. It checks current Run and Source access and
+live Source identity, then delegates the complete immutable scope to the existing
+publication preflight. Preparation must precede the first Compute activation;
+an active or completed Compute frontier or a pending activation grant is
+refused. The Host must retain this preparation before invoking its existing
+task activation Owner.
+
+The resulting opaque LocalPublicationPreflight retains the original intent,
+invocation and a copy of the aligned retention array. Mutable policy arrays are
+not exposed. `issue_local_preflight_result_publication` checks the exact Result
+definition and derives its retention from that preparation, then calls the
+existing completed-output and Local Result publication Owners. It rechecks
+current access and live Source custody, so an old preparation is not permanent
+authority. Preparation performs no Source acquisition or Compute activation.
+
+These facts grant neither Run admission nor Store publication permission. The
+physical publisher must separately check its current publication authority and
+durable transaction boundary. The preparation's original admission, compiled
+plan, Program definition, Source logical input, policy and authority references
+must remain bound through final Receipt, Captured Run and commit validation.
+
+### Private preflight custody before activation
+
+Private ABI 22 adds `actql_publication_preflight_reserve`,
+`actql_publication_preflight_prepare`, `actql_publication_preflight_length` and
+`actql_publication_preflight_close`. The original completed Source publication
+and a sealed intent input are retained by one nominal child. The input is a
+closed object of Host namespace, policy/target CIDs, request/attempt timestamps,
+fence, optional external idempotency key and the complete aligned retention
+array. Neither semantic Result definitions nor a replacement Run or invocation
+are supplied. The existing checked intent and preflight Owners validate it and
+return the original request/attempt bytes. NULL does not mean absent.
+
+`actql_task_start` requires this retained preflight and checks current Run/Source
+access before calling the existing activation Owner. It does not derive a task
+grant from preflight success. Cached start and preflight reuse also check current
+access. The child remains attached to its original Compute and Source; it cannot
+be replaced while live. Parent close seals further use while retaining custody.
+
+Publication accepts only the complete original Result occurrence list and work
+limits. A late `retention` field is refused; policies come from the retained
+preflight. The existing nominal cache/reuse guard retains original Receipt and
+artifact identity after a cancelled snapshot, and each Result must match its
+checked inventory index. Commit request, attempt and index are derived from that original intent by
+the existing issuers before the existing commit Owner is invoked.
+
+Close retains the child while tasks or publication children exist. Output
+cleanup and the exact input-borrow stop/return must both succeed before removing
+the handle. A failed cleanup can be retried on that same handle; closing a loan
+neither certifies Run cancellation nor changes the durable outcome. Python
+preserves the same nominal family, refuses copies before I/O, and returns exact
+Core bytes without reconstructing intent. Its loader checks the four scalar
+signatures together with the current private ABI and accepts no older fallback.
+
+This preflight does not establish a live physical publication fence, current
+publisher permission, Store installation or durable Run recovery. Those remain
+separate obligations through the original final Receipt and commit chain.
+
 ### Original publication commit validation
 
 Private ABI 20 adds `actql_publication_prepare_commit`,
 `actql_publication_advance_commit`, `actql_publication_commit_progress` and
 `actql_publication_finish_commit` on the original publication handle. Preparation
-borrows a closed input containing only `bindings`, `request`, `attempt` and
-`index_entry`; each is an admitted publication contract, with bindings as an
-array. The Receipt, Captured Run, Manifest, original normalization and Result
-inventory come from the retained Core handle rather than supplied replacements.
+now borrows a closed input containing only `bindings` and `committed_at`.
+Bindings are an array of admitted durable binding contract strings. Private
+ABI 23 derives the request, attempt and candidate index from the original
+retained preflight using the existing index issuer. Supplied replacements for
+these contracts are refused as unknown fields; Python does not build their CIDs.
+The Receipt, Captured Run, Manifest, original normalization and Result inventory
+come from the retained Core handle rather than supplied replacements.
 The physical Host supplies binding facts; consistency validation does not prove
 that physical payload bytes were written.
 
@@ -882,6 +1060,66 @@ Successful finish proves chain validation only. The physical Store must separate
 verify actual payload facts, current publication authority and the durable commit
 boundary. This ABI does not write an index, acknowledge persistence, admit a Run,
 retry an unknown operation or supply saved-Run recovery.
+
+### Validated commit candidate export
+
+The portable publisher callback port is installed by the trusted Host using the
+original preflight request and attempt and a fixed Store authority identity.
+It presents the same six facts as Native publication: stage, namespace,
+authority scope, Run, request and optional index. Policy and target are the
+external references in the original request preimage; projection does not
+publish their bodies or supply their current authorization. The Host must
+select their genuine configured originals and evaluate its independent
+publisher authority for `request`, `commit` and `return_committed`.
+
+Every check fences the original nominal request/attempt and Store identity,
+then checks current Host custody before and after the authority callback. The
+Local adapter also obtains a fresh account for current original Run/Source
+authorization on both sides. Neither Run/Source access nor an SDK boolean
+implements publisher authority. A denied or revoked check changes no Result,
+payload, attempt or Run state. A prior successful callback caches no grant.
+Returning an existing committed index can refer to an earlier attempt of the
+same request; its stored full chain still requires the existing validator.
+This callback port does not install a Store, validate physical payloads, commit
+an index or establish public Local admission or durable recovery.
+
+The portable `prepare_local_preflight_payload_request` projection binds one
+original nominal Result to the publication attempt fixed before Compute. It
+rechecks original preflight, retention and current Run/Source access, then asks
+the completed-output Owner to project the existing `PublicationPayloadRequest`.
+That Owner requires a live EOF receipt, issued evidence and artifact, and obtains
+schema, codec, ordering, byte count and row count from the exact retained export.
+Only physical Store authority, material generation and a payload byte ceiling
+are supplied by trusted Host configuration. The ceiling must cover the exact
+payload; it does not replace aggregate workspace or transfer reservations.
+
+This request does not start I/O, authorize a publisher or create a durable
+record. The existing publication payload Owner retains responsibility for
+reservation, writing, sealing, durable transition confirmation and cleanup.
+Retained metadata or cancellation of a borrowed snapshot cannot replace the
+original live receipt, and a released parent cannot issue another payload intent.
+
+Private ABI 23 adds `actql_publication_commit_export_reserve`,
+`actql_publication_commit_export_produce`,
+`actql_publication_commit_export_length` and
+`actql_publication_commit_export_close`. Reservation requires successful finish
+of the original complete-chain validator. Encoding returns exactly the existing
+Core's `request`, `attempt` and `index_entry` contract strings, within a reserved
+1 MiB output buffer and separately reserved physical copy allowance. Current
+Run and Source access is checked before initial and cached production.
+
+The child pins its original publication. Parent close seals new production and
+retains custody; failed output cleanup retains the same child and reservation
+for explicit retry. The parent still owns its original immutable commit input
+borrow and nominal Result/Receipt/artifact. No source acquisition, task
+activation, Receipt reissuance or physical Store call occurs during export.
+
+The index is a candidate accepted by the semantic validator. Its `committed_at`
+is a supplied physical observation, not proof that a Store transaction committed.
+The physical Host must separately check current publisher authority, verify
+payloads and obtain durable acceptance. A copied export never supplies those
+permissions. Python returns the exact bytes and treats closing this loan as
+resource cleanup, without cancelling a Run or resending a publication.
 
 ### Original Result storage binding output
 
@@ -910,3 +1148,554 @@ keeps the same child and reservation available for cleanup retry. No Source or
 Compute replay is part of this operation. Binding output proves neither Store
 commit nor durable publication, admission, recovery or a Run outcome. The
 physical Store must still verify its payload and current publication authority.
+
+
+Private ABI 24 adds `actql_publication_preflight_retire_output`. After the Host
+has copied the original request/attempt projection, this operation retires only
+that output allocation through the existing buffer Owner. Pending physical
+cleanup returns `-9` and retains the same output reservation and handle. Only
+successful cleanup marks the output closed. Repeating successful retirement
+performs no second physical cleanup. Output reads then refuse; the Python bridge
+has also discarded its transport bytes through the original cleanup callback.
+
+The original semantic preflight, admitted request/attempt, Source pin and exact
+input borrow stay live. Task activation and later original commit preparation
+still use that nominal preflight and recheck current authority. Output retirement
+is neither preflight close nor publisher permission. Full preflight close keeps
+its existing child guards and returns the original input borrow only after its
+stop/cleanup responsibilities complete. Failed earlier Source/input close cannot
+release their held capacity. No capacity formula, resource ceiling or fuel budget
+changes, and no Source or Compute is repeated to recover space.
+
+The private ABI26 `actql_publication_retire_output` releases only the completed
+publication wire projection through the existing buffer Owner. A successful
+retirement preserves original Receipt/Captured Run roots, Result pins, preflight
+and exact input borrow for child binding and commit validation. Cleanup failure
+retains the same output handle and allocation; only successful cleanup marks the
+transport closed. Retirement grants neither publisher authority nor Store
+acceptance. Full close still waits for children and returns the original borrow.
+The private Python method discards its copied wire only after the same physical
+cleanup succeeds, while retaining its nominal semantic loan.
+
+
+Private ABI27 keeps a child replay under the original typed payload request,
+preflight and completed Result. Core's existing completed-output replay Owner
+provides bounded chunks and proves its final digest. Each production and cached
+read rechecks the original current Run/Source/custody boundary. One reserved
+chunk pins its request until exact cleanup succeeds; lost acknowledgements use
+the same chunk rather than consuming more bytes. Request close cancels only its
+child replay, retains live chunks and retries the same original input borrow.
+Python exposes exact bytes and the Core EOF marker. It does not infer durable
+payload sealing, Store installation, publisher authority or Run completion.
+
+The existing payload Owner can confirm a prepared transition from an admitted
+durable record using `commit_observed_publication_payload_transition`. It checks
+the original Store authority, material identity, expected successor revision,
+original request identity and exact canonical successor bytes before invoking
+the existing transition commit. Format admission alone proves no physical
+persistence: the trusted Host adapter must supply a real observation from that
+same Store and key. Python's private `LocalByteStore.read_exchange` reads the
+exact successor of an original physical CAS without repeating the write. Equal
+bytes at a later physical generation do not confirm the old CAS. Missing or
+mismatching observations remain unresolved, and neither API grants publisher
+authority or changes the Run. The portable Wasm persistence connection and
+filesystem payload installation are separate integration obligations.
+
+Private ABI28 projects the existing payload Owner's original initial Intent
+record under its nominal request. Production and cached reads recheck current
+Run/Source authorization. The physical Host marks a single CAS attempt before
+writing; repeated begin is refused. An uncertain write pins the same record,
+parent request and original input, including after a close request. Confirmation
+requires an actual observation from the original Store authority, material key,
+physical revision zero and exact canonical initial bytes. It leaves the Core
+record at Intent: no payload capacity reservation, Writing/Sealed transition,
+Store installation, publisher authority or Run completion is inferred. Pending
+close can be retried on that same record after confirmation; transport cleanup
+failure retains the original allocation. This private boundary still requires
+the portable durable-capacity, filesystem and recovery integrations before it
+can form the product Local persistence path.
+
+
+Private ABI29 retains a child Reserved transition under that same confirmed
+initial Intent. Its five-field closed input carries actual trusted Host capacity
+observations: `store_authority_cid`, `material_generation_cid`,
+`capacity_namespace`, `reserved_bytes`, and `reserved_objects`. The original
+payload Owner checks the original Store/material, fixed `publication_payload`
+namespace, original bounded max_bytes and one object. Preparing or reading the
+transition does not advance the original record or reserve physical capacity.
+Cached reads still recheck current original Run/Source authorization.
+
+The Host marks one original physical CAS attempt and uses the existing
+capacity-fenced byte transaction. Confirmation accepts the same closed physical
+record observation as ABI28, but requires the original exact successor revision
+and canonical Reserved bytes through the existing transition commit Owner.
+An uncertain CAS retains its child, parent record and original Source/input
+custody even while closing. Current authorization is required to resolve it.
+Transport cleanup failure retains the same allocation; successful child close
+releases transport only and never deletes the durable capacity row. The Host's
+original Store cleanup responsibility continues independently. Repeated begin
+is not permission to resend, and no publisher authority, filesystem ownership,
+payload sealing, Store installation or Run completion follows from this bridge.
+
+If the original Core commit completed but its reply was lost, the existing
+payload Owner can confirm that same nominal transition read-only. Both the real
+durable successor and the current original record must match every canonical
+field at that exact successor revision. This performs no second commit or CAS;
+later revisions and partial or changed records stay unresolved. It does not
+change the existing transition commit's refusal of a stale second commit.
+
+The private Python file port performs physical operations below an installed
+private root locked exclusively like the existing Native Store. Original
+Core-selected names are single ASCII components; the port never derives names
+from Program input or normalizes payload bytes. An exclusive file descriptor is
+registered before fallible identity/directory-sync observations. Acquisition
+failure exposes that same handle, and directory durability is retried without
+repeating creation. Only that descriptor can supply its device/inode facts.
+
+Writes are bounded by the original file byte ceiling and the Host's selected
+chunk ceiling. One call performs one physical write and returns the actual short
+write count. An uncertain write retains the same handle, refuses subsequent
+writes and cannot supply a seal fact. Read-only descriptor size is not a retry
+permit. The existing Core Store Owner must decide reconciliation and sealing.
+Host-provided capacity and workspace reservations remain separate obligations.
+
+Root close refuses live descriptors. Failed descriptor close retains the same
+handle; a lost reply is resolved by actual original descriptor observation,
+without closing a recycled foreign descriptor. Descriptor retirement neither
+unlinks files nor releases durable capacity, cancels a Run or grants publisher
+authority. Filesystem reclaim, final-name installation, persistent original
+ownership and public Local assembly remain separate Owner integrations.
+
+After an uncertain close, matching device/inode alone cannot prove that the
+numeric descriptor still denotes the same open-file description. A recycled
+descriptor can reopen the same inode. The port therefore retries only physical
+observation: an equal live descriptor remains unknown, without another close.
+EBADF or a different current identity proves the original descriptor retired;
+that fact still says nothing about file reclaim, durable capacity or a Run.
+If the original descriptor cannot be distinguished, the Host retains pending
+responsibility until an authoritative physical stop boundary resolves it.
+
+The same private file port can stop append, flush the original descriptor and
+observe its physical SHA-256 with a bounded cursor. `begin_snapshot` permanently
+stops new append before flushing. A failed flush retains that same stopped
+descriptor; retrying the flush does not repeat a write. Unknown writes cannot
+begin a snapshot. `advance_snapshot` reads at most one selected chunk with
+`pread`, leaving the original write offset unchanged. The caller can yield or
+stop the descriptor between steps. The Host must reserve the hash state and
+transient read chunk before using this port; this is not aggregate accounting.
+
+Each step and cached-result reuse checks the original nominal handle, exact
+name/device/inode/size and observed modification/change timestamps. A changed
+generation, short read or closing descriptor invalidates the cursor; copied
+cursors and retired handles are refused before I/O. An ordinary failed read can
+retry that same offset without restarting hashing or writing. Empty files yield
+the SHA-256 of zero bytes without a data read. The returned identity, size and
+digest are physical observations only. The original Core payload Owner still
+requires its persisted ownership, current authorization, exact durable
+successor and Sealed transition. No pathname adoption, final-name installation,
+Store commit, capacity release or Run completion occurs in this operation.
+
+Private ABI32 extends the original `actql_payload_writing_*` transition loan
+with kind 3 for Sealed preparation. It requires the original confirmed, owned
+Writing record. A closed physical observation carries the original Store and
+material CIDs, canonical decimal strings for `device`, `inode` and nonnegative
+signed-64-bit `size`, and `physical_digest`. Missing, NULL, extra fields and
+noncanonical integers are refused. The existing payload Owner determines exact
+ownership, byte bounds and digest validity; the bridge adds no sealing rules.
+
+Preparation leaves the record in Writing. The same loan/current-authorization
+guards and original capacity-fenced CAS confirmation are shared with Writing
+and ownership. An uncertain CAS retains that original loan, record and input
+custody; read-only exact successor confirmation performs no second write.
+Neither a physical digest nor a produced Sealed candidate grants publisher
+authority, installs a final pathname, commits a Store or determines a Run
+outcome. Actual physical installation and durable publication remain separate
+existing Owner responsibilities.
+
+Private ABI33 projects original Core-selected staging/object names through a
+separately reserved 1KiB `actql_payload_names_*` output child. Only a confirmed
+filesystem-owned Writing or Sealed record can create it. The projection carries
+the original request CID, Store/material identity and captured record revision.
+It uses the existing payload Owner's name getters; Python does not reconstruct
+names from a submitted Program or interpret a durable-record compatibility
+format. The existing durable record, public schema and identity preimages are
+unchanged. These names do not authorize file operations or publication.
+
+Production and cached reads require the same original revision and current
+Run/Source authorization. A later transition invalidates that old projection.
+The child pins its original record and exact Source/input custody until its
+existing buffer cleanup succeeds. Parent close seals further production and
+waits for that same child; failed cleanup retains its reservation and handle.
+Python checks nominal loans and bounds before copying, returns exact bytes and
+does not start an execution, write files or release persistent capacity.
+
+The private physical staging port retains a nominal name cursor before an
+exclusive link. Original durable file ownership and the name projection from
+that same Core record are prerequisites enforced by the trusted Host assembly;
+this port does not manufacture them. Source and target roots must share their
+original capacity and lock family. The cursor blocks append and snapshot work
+until the known original descriptor moves, and pins both roots during failure.
+
+A known acquired target is checked against the original device, inode and byte
+count and directory-flushed before dropping only the exact original name.
+Directory-sync failure retries the same link custody without acquisition. An
+uncertain unlink observes original-name absence or rechecks the original owned
+generation before cleanup; it never unlinks a replacement. An uncertain link
+acquisition remains unknown even if the destination currently names the same
+inode. Neither another link attempt nor pathname equality supplies its missing
+acquisition fact.
+
+Cursor retirement is transport retirement. Pending known/unknown acquisition
+first requires actual original descriptor stop; close failure retains the same
+handle and both root pins. Retirement does not remove remaining aliases, return
+Store capacity, settle unknown acquisition, advance a Core record or authorize
+publishing. The existing Store Owner retains the persisted original file and
+allocation custody and reservations for reconciliation/reclaim after process
+exit. The Host must reserve the fixed cursor and OS workspace before this port.
+This connects staging only: physical final-name sealing, durable publication and
+normal Python Local assembly remain separate integrations.
+
+The private final-name port requires the completed nominal bounded snapshot of
+the original file and the object name selected by its same original Core record.
+It flushes and rechecks the staged bytes, then physically stops the original
+writer before any exclusive final link. Close uncertainty uses the existing
+original-descriptor observation rule: EBADF or a different recycled identity
+proves original stop, whereas an equal live inode remains unknown and cannot
+trigger another close or link. The same stop rule is shared with transport close.
+
+The final-name cursor retains the file slot and root while stopped I/O remains
+pending. A known linked final is generation-checked and directory-flushed before
+removing only the owned staging name. Link uncertainty never becomes ownership
+from pathname equality or a second link call. Unlink and directory-sync failures
+retain the same cursor; only original owned-name cleanup/observation can continue.
+Original byte generation/mtime must survive owned metadata operations, and cached
+final reuse checks the complete final timestamp/identity stamp. No new payload
+bytes are written or acquired while final work is pending.
+
+A successful physical result carries the original snapshot's device, inode, byte
+count and digest; it is not a Core Sealed/Commit witness. The existing payload
+Owner still needs the original typed preparation and exact durable successor,
+and Store publication needs its separate current authority/Policy/target checks.
+Cursor retirement requires actual original writer stop and releases only cursor
+transport. It never removes remaining aliases, resolves unknown acquisition,
+returns durable Store capacity or finalizes a Run. Host reservation of the fixed
+cursor/OS workspace and whole-process resource accounting remain separate duties.
+
+The private final-file reader pins the original nominal completed final-name
+cursor and opens only its same identity/generation without following links. The
+trusted Host first confirms the original Core Sealed record, current context and
+separately reserved descriptor/hash/chunk workspace. Python neither reconstructs
+publication authority from a pathname nor treats a physical digest as a Core
+payload-value proof. Reader descriptors, original file handles and allocation
+areas share the existing root descriptor limit, including parallel readers.
+
+Each read returns at most one configured bounded chunk. That exact chunk stays
+retained and its offset stays unchanged while the original Core input borrow or
+buffer cleanup remains pending. Returning the same chunk rechecks descriptor and
+name generation without another read; copied chunks cannot release its custody.
+The Host releases a chunk only after its same Core borrow and buffer have actually
+retired. No whole-file input is retained by this reader. Current Core authority
+must still be evaluated at the consumer boundary before transferring bytes.
+
+Physical finish requires released EOF, original generation and the original
+physical digest, then actual descriptor stop. Uncertain close keeps the same
+handle, outstanding chunk and root/file pins; only original-descriptor stop
+observation can finish transport retirement. An early transport close cannot
+become a physical finish. Read/short-read/generation errors do not advance the
+offset or become payload verification, Store installation or Run completion.
+All named bytes and durable Store capacity remain with their existing Owners.
+The Core payload verifier, current publisher and public Local/recovery assembly
+remain separate integrations; descriptor/chunk limits are not aggregate process
+memory accounting.
+
+Original filesystem Sealed binding uses the existing completed Result Owner.
+The record's request body and identity must match the payload intent issued from
+that same live export, and its exact physical byte count and digest then pass
+through `issue_durable_binding`. This retains the original value, schema,
+ordering, codec and retention checks rather than adding a Python payload parser
+or another value verifier. A merely prepared Sealed candidate, Opaque custody,
+foreign request or changed physical content cannot acquire this binding.
+
+The Local wrapper first reuses the original nominal preflight/Result and
+revalidates current Run/Source authority, then checks the original publication
+attempt. This is a read-only binding operation: it does not advance the record,
+read or rewrite a payload, acknowledge a Store commit or grant publisher
+permission. Physical generation opening/digest observation and trusted Host
+Store/Policy/target authorization remain separate prerequisites. Parent Result
+cleanup revokes the content facts even when a valid durable record remains.
+
+## Original Sealed Result binding transport
+
+The private ABI34 `actql_payload_binding_*` child pins a confirmed original
+filesystem Sealed record, its revision and original publication preflight. Its
+separately reserved output is limited to 65,536 bytes; the existing buffer Owner
+accounts for staging, sealed output and physical copying. Core reconstructs the
+original request and calls the existing live Result content-binding Owner,
+which checks the exact physical byte count and SHA256 against the original
+Result. Python transports the resulting contract without reconstructing values
+or semantic fields.
+
+Production and cached reads revalidate the original Run and Source account. A
+prepared, opaque, foreign or changed record cannot supply this binding. A failed
+production is not automatically retried. Pending cleanup keeps the same child,
+allocation and parent pin; only successful cleanup retires the child. Closing
+the original record waits for its children. This read-only projection does not
+commit a Store, acknowledge publication, issue publisher permission or decide
+Run completion. ABI33 artifacts are rejected by the current strict loader;
+prior immutable evidence retains its original source and module identity.
+
+## Physical publication metadata transactions
+
+The installed Python Host can attach one opaque metadata batch to several
+original payload records with `LocalByteStore.compare_exchange_many_attached`.
+The existing SQLite byte Store checks every original record's exact bytes and
+physical generation, and its exact capacity reservation, after the same
+`BEGIN IMMEDIATE` and before any metadata replacement. A missing or changed
+original, reservation or expected metadata generation prevents the entire
+batch. Original payloads and reservations are not advanced or released.
+
+Core full-chain validation, original Store binding, and current publisher
+authority remain prerequisites owned by their existing Owners. This physical
+transaction does not parse a contract, decide publication, or assert a Run
+state. A lost commit acknowledgement is propagated without repeating writes;
+the caller observes exact successors and lets the original Owner decide the
+meaning. Schema format 2 and its bounds remain unchanged. Retained caller bytes
+and SQLite workspace require their existing Host reservations.
+
+The exact successor of an opaque metadata batch is observed with
+`read_exchange_many_attached` under one SQLite read transaction. All original
+payload bytes, generations and capacity reservations share that snapshot with
+all metadata reads. The method returns the complete exact batch or an unmatched
+observation; it never emits a partial prefix or converts a missing/later record
+to an absence proof or retry permission. Invalid retained bytes are errors.
+Only successful read-transaction cleanup exposes the observation; failed
+cleanup retains the original Store handle as pending. Current authorization and
+Core interpretation remain separate, and physical process-restart readback is
+not proof of restored Run state.
+
+## Independent publisher callback transport
+
+The private `actql_publisher_*` child uses the original checked publication
+preflight and an original borrowed Store input, not copied contracts or an SDK
+permission boolean. Installation grants nothing. `authorize` selects the
+original request or the matching Core-produced commit index, then delegates to
+`install_local_preflight_publisher_port`. The existing port revalidates current
+Run/Source access and the installed Host fence before and after its independent
+publisher callback at every stage. Permission for `return_committed` is not a
+Store acknowledgement or a completed public Run.
+
+`publisher_current`, `publisher_begin`, `publisher_byte` and `publisher_finish`
+are private scalar imports. Facts contain exactly stage, namespace, authority,
+Run, original request and optional original index. Policy and target remain in
+the original request preimage. The installed trusted Host must supply the
+actual current publisher Owner bound to that original policy/target and Store;
+this bridge supplies no portable settings issuer or authorization registry.
+Source or Run access cannot implement publisher authority.
+
+The Local supplier retains the original admitted Account configuration body;
+its configuration CID must equal the original request's publication policy CID.
+The request's target must equal the original private Store authority. Core
+evaluates the original Run principal and connection with resource `run` and
+operation `publish`, independently of its submission tuple. Both the retained
+Account and the current Account must allow publication. The current Account is
+reevaluated before and after every callback. A newer Account never replaces the
+original policy CID or fills missing original custody. The physical callbacks
+remain Host fences and six-field observations, not SDK-supplied grants. A
+previously committed index with a different attempt remains eligible for the
+existing full-chain validator and `return_committed` scope check.
+
+The six-field transfer is bounded to 8,192 UTF-8 bytes using the existing
+encoder. Ordered scalar bytes avoid interpreting MoonBit object pointers.
+The existing buffer pool reserves overlapping encoder text/bytes and the
+physical collector/decoder allowance before callbacks allocate their transfer.
+The physical allowance is conservatively 128 times the transfer limit plus
+measured descriptors and container overhead. Independent callback resources
+still require their own reservations; this is not aggregate memory accounting.
+Budget refusal is unknown, never publisher permission. Callback true, false,
+and exception/unknown remain distinct: success is 0, denied permission -35,
+revoked current authority -32, and missing original custody or physical callback
+failure -36. Original policy/target mismatch is invalid material (-31).
+No completed grant is cached between stages.
+
+Parent close waits for the child. Child close blocks new checks immediately,
+then retries existing buffer cleanup and the same original input borrow stop.
+Cleanup failure retains the original child and reservation. Neither close nor
+permission checks submit, execute, resend, or cancel a Run. Remote-only import
+has no additional engine dependency. A private bridge and strict caller compile
+are distinct from actual Wasm execution, durable Store publication and wheel
+acceptance.
+
+
+## Original commit material projection
+
+Private ABI 36 adds `actql_publication_commit_export_count` on the original
+publication and `actql_publication_commit_export_produce_material` on an
+existing reserved output child. Both require the original completed validator
+view, its exact nominal index, and current Run/Source access. Counting reads the
+fixed eight roots and six inventory lengths. Selection uses the original view's
+fixed inventory boundaries; it never scans or reparses the inventory.
+
+Each child is fixed to either the existing candidate or one ordinal/field at
+first production. A different projection refuses with -33, including switching
+between candidate and material. Repeating the same produced projection still
+rechecks current access. A failed production keeps its original reservation and
+handle until explicit cleanup. Invalid controls refuse with -3; unavailable
+original custody/current access or an out-of-range ordinal refuses with -32.
+
+Fields 0 through 3 are exact UTF-8 `wire`, `name`, `identity_field` and `identity`
+from the original immutable contract. They are raw fields, without a JSON
+wrapper that could double-escape the original bounded wire. The existing
+1,048,576-byte output and overlapping physical copy allowance are unchanged.
+Python neither parses nor canonicalizes these bytes. A caller reserves, reads
+and closes one field at a time; original input/view custody survives until all
+children and original physical borrows have stopped. Cleanup failure retains
+the same handle and capacity; successful cleanup prevents further reads.
+
+The loader requires the new closed scalar signatures and ABI 36, with no legacy
+fallback. These private projections provide no Store key selection, write,
+current publisher grant, durable acknowledgement or restored Run state. Actual
+Wasm consumption, product aggregate accounting and public Local/wheel acceptance
+remain separate from compile and physical-adapter facade tests.
+
+## Original submitted input preparation
+
+Private ABI46 adds preparation kind 3 for the existing SDK submitted-intent
+envelope (`kind`, `input`, `parameters`). Core retains the original
+`ClientSubmittedIntent` together with the exact `LocalPreparedInput` produced
+from that envelope. Run preparation and restoration require that same nominal
+prepared input; a separately prepared document cannot replace it. This is input
+preparation custody, not durable Submission admission or permission to dispatch.
+
+Structured Program input uses the existing JSON frontend. Query input selects
+the existing explicit SQL or AQL-text frontend and preserves its original text,
+parameter declarations and supplied bindings. Missing bindings and explicit NULL
+remain distinct in the existing Checker. The installed Local profile rejects
+other query formats before preparation and does not try another format. No
+Source, Compute, Model, Effect or persistent Run operation is started by this
+preparation. Earlier module ABIs are rejected by the strict installed loader.
+
+The shared checked-binding validator is the original Native journal's pure
+request/prepared/compiled/definition check, reused by Local. Native still owns
+its original admission transaction and issuance count; this extraction neither
+acknowledges persistence nor grants publication authority.
+
+The original Native submitted Run admission codec is shared with the portable
+Host. It preserves the exact `admitted_revision` decimal Int64, original
+request record and Run definition CID; decoding requires the same canonical
+bytes. The Native journal continues to check the original epoch, intent, Run
+record and current authority inside its existing transaction. Parsing these
+bytes alone does not establish that transaction's commit or a dispatch permit.
+
+
+The shared physical journal encoders preserve the existing Native Run row and
+submitted-intent row bodies, field omission, Unicode values and byte limits.
+The submission epoch Owner supplies the original reference wire, and the
+checkpoint and policy Owners supply their original serialized bodies. Encoding
+these fields is not admission, a transaction acknowledgement, current authority
+or a start permit. Native readmission still validates those original records,
+relationships and canonical bytes; its count, epoch and transaction fences are
+unchanged. The portable physical adapter must retain those same obligations
+before exposing any accepted Submission or Run.
+
+
+The physical byte Store can fence an original admission batch with exact epoch,
+configuration and issuance metadata bytes/generations in the same SQLite
+transaction. A count row that is replaced by that batch is checked against its
+original preimage before COMMIT, then against the exact successor during
+read-only lost-acknowledgement lookup. Other originals remain unchanged. The
+installed Host holds Core before Store and separately reserves the retained
+projection and SQLite workspace; its current typed port is checked before the
+transaction work, before COMMIT and before exposing a successful reply. A fenced COMMIT failure or current-port
+failure after COMMIT raises `LocalStorageCommitUnknown`, preserving the same
+Store cleanup handle and original cause. It cannot be reported as a pre-write
+refusal or permission to repeat the batch. Query and cleanup
+failures are exceptions, never unmatched/absent results or replay permission.
+The adapter only returns physical generations/raw bytes. Existing Core Owners
+still validate original identity, admission, publication and execution facts.
+
+The shared SubmissionReference codec preserves the original Native token
+shape, canonical reference bytes and typed nonce identity. A syntactically
+valid authenticator is not HMAC authentication. The physical Host still verifies
+the original durable key, clock and epoch in the same admission transaction.
+Native authentication, journal readers, count custody and transactions remain
+separate from this pure codec.
+
+The Local submitted-row preparation binds the exact nominal submitted
+preparation to its original checked Plan, request, current Account permit and
+context. It compares the retained preparing row with the original encoded
+intent and reference before projecting the initial Run row and ready candidate.
+It cannot prepare a ready row again, replace an equivalent preparation, or use
+a foreign or expired reference. These opaque projections perform no I/O and
+prove no COMMIT, accepted Submission or start permission. Before adoption, the
+Host must validate complete original journal/count custody, current epoch
+authentication and the same physical transaction, then readmit the actual saved
+rows through the existing Owners. A lost acknowledgement never authorizes
+repeating the candidate writes or reconstructing a new Run.
+
+Private ABI47 projects the original submitted-row candidates through the
+existing material output family. Its separate reserve entry binds an original
+Run, current Account configuration and input buffer containing the original
+reference, retained preparing bytes and observed epoch clock. Ordinary material
+kinds remain closed at 1–5. The new entry retains the original submitted
+preparation; it does not pair a copied intent with an unrelated prepared Plan.
+Core emits physical keys and raw preparing/initial Run/ready candidate strings
+using the shared original codecs. The same existing one-MiB output reservation
+accounts for transfer and Python destinations before encoding. Encoding or
+cleanup refusal does not release the original handle prematurely.
+
+The candidate output closes before returning its input borrow. Cleanup failure
+retains the same output, Run, current configuration and borrow for retry;
+successful output retirement is not repeated while physical reader stop is
+pending. New reads/production of a retired output are refused. No operation
+admits a Submission, persists a Run, reserves dispatch, starts Compute, cancels
+a Run or commits publication. The Host must still connect the complete original
+issuance/count inventory, authenticated epoch, same-Store transaction and actual
+saved-row readmission before exposing a public accepted operation.
+
+The shared original Run-row decoder validates the closed retained shape,
+request identity, Run Definition and exact canonical row bytes. Its result is
+an encoding record, not a retained Run or admission proof. Native readmission
+continues to validate Policy, Effect and Checkpoint originals with their
+existing Owners, including the original Definition and Effect ledger scope,
+then re-encodes the complete admitted record. The shared issuance-count reader
+preserves the original canonical decimal syntax and finite profile. A valid
+count is not evidence of complete registration: the same Store transaction
+must still scan every original row and validate all custody relationships.
+
+The physical Store's inspected batch forwards Owner-selected namespace/cursor
+reads synchronously under the same SQLite transaction as the original metadata
+fences and CAS. It copies one original row at a time, preserves raw keys,
+generations and bytes, and distinguishes the observed physical end from query
+failure. The existing record and cumulative copy limits include repeated reads.
+A captured reader cannot outlive that transaction or be used concurrently or
+recursively; swallowing a query, current-port or consumer failure still aborts
+the batch. The Host accounts for Core inputs, retained originals and SQLite
+workspace and returns the same transfer loans before requesting another row.
+
+Lost-acknowledgement inspection checks the exact original write successors and
+untouched metadata, then forwards saved inventory rows in that same read-only
+snapshot. It performs no write or replay. Core must validate complete required
+inventories and readmit the actual saved records with their original identities
+before an accepted operation can be exposed. Neither a count match, a partial
+scan nor the physical callback's return value supplies that evidence. Cleanup
+failure retains the same Store transaction; attempted-COMMIT uncertainty keeps
+the original Store handle for lookup instead of creating a replacement Run.
+
+The shared submitted-row decoder preserves the original Native reference,
+unchecked intent, preparing/ready shape and exact Int64 admission revision. A
+decoded ready field is not an accepted public operation. The original retained
+relationship validator binds its Reference authority/caller, Request intent,
+Run Definition and admission revision to the actual retained Run. A later Run
+revision preserves the immutable earlier admission; an expired epoch can still
+identify retained history without granting a fresh admission or resend.
+Native keeps its actual Run reader, nested original validators, complete
+inventory scans, authenticated epoch and SQLite transaction around this shared
+validation. Its original codec test adapters are test-only.
+
+Local validation additionally binds observed physical keys/generations and
+saved rows to the exact nominal submitted preparation and checked Plan that
+issued the original candidates. A changed submitted intent or a merely equal
+preparation cannot acquire that relationship. This returns only a relation
+check: nested originals, complete same-Store inventories, current authority,
+authenticated epoch and physical COMMIT still require their existing Owners.
+The returned Unit is not an acknowledgement, start permit or public Run state.

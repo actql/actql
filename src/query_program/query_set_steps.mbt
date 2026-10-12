@@ -117,7 +117,7 @@ fn set_operation_body(
 }
 
 ///|
-// Root sets, CTE bodies and logical DATA sets use the same output scope,
+// Root sets, CTE bodies and logical WITH sets use the same output scope,
 // evaluated-slot reuse, hidden sort projection and bounded expression owner.
 fn append_set_final_steps(
   construction : Construction,

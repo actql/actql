@@ -1,6 +1,6 @@
 ///|
 // Standalone JOIN stages have private bindings. Several JOINs composed into a
-// DATA pipeline instead reserve those same roles in the shared step scope.
+// WITH pipeline instead reserve those same roles in the shared step scope.
 // This changes binding names only; expression, key and order lowering remain
 // shared with ordinary SQL/CTE JOINs.
 fn join_step_binding(bindings : Map[String, String], role : String) -> String {

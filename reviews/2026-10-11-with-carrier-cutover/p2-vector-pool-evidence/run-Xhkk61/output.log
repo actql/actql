@@ -1,0 +1,14 @@
+[actql/actql] test query_program/vector_pool_source_test.mbt:199 ("P2 Carrier continuation retains qualified input scope without restoring dropped fields") failed: Error
+    at $panic (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:23:9)
+    at @moonbitlang/core/abort.abort (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/abort/abort.mbt:29:3)
+    at Result::unwrap (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/builtin/result.mbt:263:15)
+    at f (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:200:16)
+    at moonbit_test_driver_internal_js_catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:399:11)
+    at _M0FP35actql5actql30query__program__blackbox__test42moonbit__test__driver__internal__js__catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:32199:6)
+    at moonbit_test_driver_internal_catch_error (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:396:3)
+    at MoonBit_Test_Driver::run_test (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2709:5)
+    at moonbit_test_driver_internal_do_execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2882:10)
+    at _M0FP35actql5actql30query__program__blackbox__test40moonbit__test__driver__internal__execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2783:5)
+Total tests: 13, passed: 12, failed: 1.
+["moon","test","--target","js","src/query_syntax/vector_pool_role_test.mbt","src/query_program/vector_pool_source_test.mbt","src/query_program/with_vectors_events_test.mbt","src/run_publication_host/client_values_run_materials_wbtest.mbt"]: process failed (2); counts={"tests":13,"passed":12,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-dXjnLa

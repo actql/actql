@@ -4,26 +4,24 @@ fn prepare_publication_commit_owner(
   record : StoredPublication,
   account : @authorization.AdmittedAccountConfiguration,
   borrow : @buffers.BufferBorrow,
-) -> Result[@publication.PublicationCommitPreparation, Unit] {
+) -> Result[
+  (@publication.PublicationContract, @publication.PublicationCommitPreparation),
+  Unit,
+] {
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "bindings", "request", "attempt", "index_entry",
-    ])
-    is Ok(object) &&
+    @decode.closed_object(cursor, ["bindings", "committed_at"]) is Ok(object) &&
     @decode.required(object, "bindings") is Ok(bindings_cursor) &&
     @decode.elements(bindings_cursor) is Ok(binding_values) &&
     binding_values.length() == record.publications.length() &&
-    required_text(object, "request") is Some(request_wire) &&
-    required_text(object, "attempt") is Some(attempt_wire) &&
-    required_text(object, "index_entry") is Some(index_wire) &&
+    required_text(object, "committed_at") is Some(committed_at) &&
     record.manifest is Some(manifest) &&
     record.receipt is Some(receipt) &&
     record.captured is Some(captured) &&
-    value.source_publications.get(record.source) is Some({ compute, .. }) &&
-    value.computes.get(compute) is Some({ attempt, .. }) &&
-    value.native_attempts.get(attempt) is Some(original) &&
-    value.native_sources.get(original.configuration) is Some(source) &&
-    value.runs.get(source.run)
+    value.publication_preflights.get(record.preflight)
+    is Some({ closing: false, preflight: Some(preflight), .. }) &&
+    value.run_invocations.get(record.source) is Some({ compute, .. }) &&
+    value.computes.get(compute) is Some(original_compute) &&
+    stored_compute_original_run(value, original_compute)
     is Some({ normalization: Some(normalization), .. }) else {
     return Err(())
   }
@@ -38,40 +36,21 @@ fn prepare_publication_commit_owner(
       Err(_) => return Err(())
     }
   }
-  let request = match
-    @publication.admit_publication_contract(
-      "publication_request", request_wire, 1048576, 100000, 64,
-    ) {
-    Ok(contract) => contract
-    Err(_) => return Err(())
-  }
-  let attempt = match
-    @publication.admit_publication_contract(
-      "publication_attempt", attempt_wire, 1048576, 100000, 64,
-    ) {
-    Ok(contract) => contract
-    Err(_) => return Err(())
-  }
-  let index_entry = match
-    @publication.admit_publication_contract(
-      "public_index_entry", index_wire, 1048576, 100000, 64,
-    ) {
-    Ok(contract) => contract
-    Err(_) => return Err(())
-  }
-  @local_run.start_local_publication_commit_check(
+  @local_run.prepare_local_preflight_commit_candidate(
+    preflight,
     manifest,
     normalization,
     receipt,
     captured,
     bindings,
-    request,
-    attempt,
-    index_entry,
+    committed_at,
     account,
-    1048576,
-    100000,
-    64,
+    {
+      max_results: value.workspace_slots,
+      max_wire_bytes: 1048576,
+      max_nodes: 100000,
+      max_depth: 64,
+    },
     record.max_workspace,
   ).map_err(_ => ())
 }
@@ -135,7 +114,8 @@ pub fn prepare_publication_commit(
   )
   record.pending = false
   match result {
-    Ok(commit) => {
+    Ok((index_entry, commit)) => {
+      record.commit_index = Some(index_entry)
       record.commit = Some(commit)
       0
     }
@@ -263,12 +243,12 @@ pub fn finish_publication_commit(
     return -7
   }
   record.pending = true
-  let result = commit.finish()
+  let result = commit.finish_view()
   record.pending = false
   match result {
-    Ok(_) => {
+    Ok(view) => {
       record.commit_finished = true
-      record.commit = None
+      record.commit_view = Some(view)
       0
     }
     Err(_) => {

@@ -355,6 +355,6 @@ fn cancel_model_request_preparation(request : ModelRequestPreparation) -> Unit {
       @admitted.cancel_wire_emit(cursor)
     ReadKey | ReadInput | FinishKeyIdentity => ()
   }
-  request.keys.clear()
-  request.inputs.clear()
+  retire_model_owned_array(request.keys)
+  retire_model_owned_array(request.inputs)
 }

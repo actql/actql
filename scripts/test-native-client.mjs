@@ -620,4 +620,7 @@ try {
 
 // Keep the independent shared-contract corpus on the normal Native CI entry.
 await import('./test-native-client-wire.test.mjs');
+// Reuse the same generated or externally installed Native executable. The
+// Local ingress regression adds no independent build or packed CI job.
+await import('./test-native-local-cli.test.mjs');
 scratch.passed();

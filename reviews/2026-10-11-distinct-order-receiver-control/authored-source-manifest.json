@@ -1,0 +1,37 @@
+{
+  "base": "61655a2f732592d4ad07b11f2d15aaa4edcd61ac",
+  "files": [
+    {
+      "path": "src/query_program/query_order_selected_members.mbt",
+      "sha256": "c3eef45749b4928c080870ad73aee8f7a5141a327f8305bd726950fc2702004c"
+    },
+    {
+      "path": "src/query_program/distinct_order_receiver_scope_test.mbt",
+      "sha256": "64dd9a28392cf0440de3b438d604d486e8a9eded8e52012254fe33540c1a7bcb"
+    },
+    {
+      "path": "scripts/fixtures/distinct-order-receiver-source-input.mjs",
+      "sha256": "5671b4a9ab01df94d6c8d22671114286e0086024d32e85985f3034eb3c2b3115"
+    },
+    {
+      "path": "scripts/distinct-order-receiver-source-input.test.mjs",
+      "sha256": "c344cca31e1f3ce41b64a7884648caf4d906c57f79750bc1e605f671165d24c0"
+    },
+    {
+      "path": "scripts/fixtures/packed-public-query.mjs",
+      "sha256": "dcb5de9191435d2023b70f0236658d558e033fb6ca95bacc92cc1611b1042f5c"
+    },
+    {
+      "path": "scripts/fixtures/public-query-inventory.json",
+      "sha256": "a76297b1c9cf85c99940302e9b26ff8790786b21434765a587c75796751fce54"
+    },
+    {
+      "path": "scripts/public-query-profiles.test.mjs",
+      "sha256": "71e8b888d3d01a8b22047e4b4f2c5321f5cb0dec88428868419e6aea41b9919b"
+    },
+    {
+      "path": "scripts/test-packed-public-query.mjs",
+      "sha256": "c2d3c328488707b214891d245525e9a414f928ff94e96579bfcf4461c2bc4d1a"
+    }
+  ]
+}

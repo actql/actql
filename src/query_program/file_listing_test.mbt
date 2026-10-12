@@ -259,7 +259,7 @@ fn file_query_input_declarations(
       abort("fixture")
     }
     // Input objects are unordered. Follow first use in the ordered stage
-    // steps to check the Source-to-DATA correspondence, not Map iteration.
+    // steps to check the Source-to-WITH correspondence, not Map iteration.
     let seen : Map[String, Bool] = Map([])
     for step in steps {
       if step is Object(fields) {
@@ -388,9 +388,9 @@ test "LIST_FILES refuses ordinary schema hints absent profiles and incompatible 
 }
 
 ///|
-test "LIST_FILES distinct Requests of one Source do not reuse the first DATA capture" {
+test "LIST_FILES distinct Requests of one Source do not reuse the first WITH capture" {
   let script = @query.parse_query_script(
-    "DATA a = (FROM LIST_FILES(docs.invoices, paths => ['a.pdf']) |> SELECT name); DATA b = (FROM LIST_FILES(docs.invoices, paths => ['b.pdf']) |> SELECT name); FROM a |> UNION ALL (FROM b |> SELECT name) |> SELECT name",
+    "WITH a AS (FROM LIST_FILES(docs.invoices, paths => ['a.pdf']) |> SELECT name), b AS (FROM LIST_FILES(docs.invoices, paths => ['b.pdf']) |> SELECT name) FROM a |> UNION ALL (FROM b |> SELECT name) |> SELECT name",
     syntax_limits(),
   ).unwrap()
   let program = compile_query_script(
@@ -484,7 +484,7 @@ fn file_query_direct_requests(
     max_depth: 100,
     max_text_bytes: 100000,
   }).unwrap()
-  let inputs = @source_inputs.collect(staged, {
+  let inputs = @sourceviews.collect(staged, {
     max_work: 100000,
     max_order_keys: 100,
   }).unwrap()
@@ -553,7 +553,7 @@ test "compiled LIST_FILES Requests remain valid under their final Program owner"
   for
     text in [
       "FROM LIST_FILES(docs.invoices, paths => ['a.pdf', 'é.pdf']) |> SELECT name",
-      "DATA a = (FROM LIST_FILES(docs.invoices, paths => ['a.pdf']) |> SELECT name); DATA b = (FROM LIST_FILES(docs.invoices, paths => ['b.pdf']) |> SELECT name); FROM a |> UNION ALL (FROM b |> SELECT name) |> SELECT name",
+      "WITH a AS (FROM LIST_FILES(docs.invoices, paths => ['a.pdf']) |> SELECT name), b AS (FROM LIST_FILES(docs.invoices, paths => ['b.pdf']) |> SELECT name) FROM a |> UNION ALL (FROM b |> SELECT name) |> SELECT name",
     ] {
     let context = file_query_context()
     let script = @query.parse_query_script(text, syntax_limits()).unwrap()

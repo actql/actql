@@ -16,13 +16,17 @@ pub fn commit_prepared_effect_free_run_publication_native(NativeRunPublicationSe
 
 pub fn install_native_run_publication_authority((NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
 
-pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
+pub fn install_native_run_publication_context_authority((NativeRunPublicationAuthorization) -> Bool, (@actql/actql/run_publication.PublicationRequestContext, NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
+
+pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int, commit_guard? : (() -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
 
 pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
 
 pub fn prepare_captured_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy.CapturedDAG, NativeEffectFreeRunContext, Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?]) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
 pub fn prepare_effect_free_run_publication_native(NativeRunPublicationService, @actql/actql/run_publication.PublicationContract, Array[@actql/actql/run_publication.PublicationContract], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue]
+
+pub fn prepare_exported_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy.CapturedDAG, NativeEffectFreeRunContext, Array[@run_publication_host.PublicationOutputExport], Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
@@ -165,6 +169,7 @@ pub(all) enum NativeRunPublicationIssue {
   InvalidConfiguration
   AccessDenied
   CommitConflict
+  CommitFenceUnavailable
   Store(@publication_store.NativePublicationStoreIssue)
   Issuance(@actql/actql/run_publication.PublicationCommitIssuanceIssue)
   Commit(@actql/actql/run_publication.PublicationCommitIssue)

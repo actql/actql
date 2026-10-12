@@ -1,4 +1,4 @@
-> The legacy structural envelope, STEP and OP are withdrawn. SQL/Pipe DATA
+> The legacy structural envelope, STEP and OP are withdrawn. SQL/Pipe WITH
 > connects the named calls listed under [current source connections](#current-source-connections)
 > to ordinary Program operations. Other adopted calls remain explicit gaps;
 > the historical decoder is an internal fixture tool, not a public fallback.
@@ -8,7 +8,7 @@
 
 This is the accepted logical design for the SGA Frontend increment. Named
 Graph calls previously lowered inside structural DATA; that public envelope
-is withdrawn. Current Script lowering uses SQL/Pipe DATA and the sole Graph
+is withdrawn. Current Script lowering uses SQL/Pipe WITH and the sole Graph
 contract. The contract baseline remains 0.1. Public SDK/CLI
 source routing and packed Local/HTTP execution are required for text migration
 acceptance. Graph execution support is measured per operation and profile.
@@ -30,8 +30,8 @@ fallback for the sole Graph model. It is not current consumer
 acceptance evidence. Adapt laws and consumers together, and reject unsupported
 operations instead of collapsing parallel edges.
 
-DATA binds a logical producer. Existing lowering emits ordinary steps with
-`as`/`from`; a bare DATA alias reuses its producer without emitting a step.
+WITH binds a logical producer. Existing lowering emits ordinary steps with
+`as`/`from`; a bare WITH reference reuses its producer without emitting a step.
 Adding the surface must not introduce per-binding acquisition, materialization,
 publication or physical tasks. Preserve authored step occurrences, shared
 producer references and explicit Stage, acquisition, approval, Effect and
@@ -56,25 +56,29 @@ Each argument position obtains its role from the existing operation contract:
 - `with: target` is a producer reference; graph lists retain their authored
   order and repeated references.
 - `start: "A"` in reach is a typed ID value, never a guessed producer name.
-  `start: {from: seeds, id: "id"}` instead names a Relation producer in the
+  `start: {from: seeds, id: id}` instead names a Relation producer in the
   selector's `from` field; its `id` field designates a column.
-- `field: "delta"` is a column designation, not a value or producer reference.
-- `nodes: {from: reached, id: "node_id"}` contains a producer reference and a
+- `field: delta` is a column designation, not a value or producer reference.
+- `nodes: {from: reached, id: node_id}` contains a producer reference and a
   column designation at their respective existing selector positions.
 
 Never infer these roles from string contents. Reference positions admit the
-existing DATA name syntax, including quoted names; value positions use their
+nearest WITH name syntax, including quoted names; value positions use their
 existing literal/expression contract. Column positions retain exact admitted
 column names, including names requiring quoting. SQL expressions continue to
 use their established identifier and alias rules. Do not rewrite a literal
-merely because it equals a DATA name. Detailed lexical admission and diagnostics
-must be tested when the productions are added.
+merely because it equals a WITH name. Detailed lexical admission and diagnostics
+must be tested when the productions are added. The signature adapter also
+distinguishes authored MATCH output names from operand columns, and existing
+expression field/property paths from opaque literal objects. A qualified
+selector field resolves to its declared operand's lexical binding; it does not
+borrow another producer's column. Strings at reference positions are rejected.
 
-Within a Stage, reuse the input/step/port producer namespace and existing DATA
+Within a Stage, reuse the input/step/port producer namespace and nearest lexical WITH
 visibility. Reject duplicate producer definitions, forward references and
 cycles. SQL column aliases occupy query scopes and do not replace producer
 bindings. Cross-Stage references use explicit Result exports/imports, not
-temporary DATA names. Any necessary change to existing DATA semantics must be
+temporary lexical producer names. Any necessary change to adopted WITH semantics must be
 reported explicitly rather than hidden in lowering.
 
 For consuming operations, the Pipe left operand supplies the existing current
@@ -102,12 +106,12 @@ argument or certify every backend.
 | `shortest_path` | Graph → Relation | [Shortest rows](../../src/query_program/traversal_nodes_program.mbt); retained source/target selectors, explicit set selection, direction, weight and positive finite hop bound |
 | `match_nodes`, `match_edges` | Graph → Relation | [Named match rows](../../src/query_program/graph_match_rows_program.mbt); explicit field order, common predicate/type checking |
 | `degree`, `graph_bounds`, `components` | Graph → Relation | [Diagnostic rows](../../src/query_program/graph_diagnostics_program.mbt); authored bodies and parameters retained |
-| `graphs_equal`, `graph_diff` | Graph pair → Relation | [Pair rows](../../src/query_program/graph_equality_program.mbt); explicit earlier DATA peer, existing Boolean/Delta columns |
+| `graphs_equal`, `graph_diff` | Graph pair → Relation | [Pair rows](../../src/query_program/graph_equality_program.mbt); explicit earlier WITH peer, existing Boolean/Delta columns |
 | `subgraph` | Graph → Graph | [Subgraph calls](../../src/query_program/subgraph_script_program.mbt); existing retained Relation selector, common membership/closure rules |
 | `union_graphs`, `subtract_graphs`, `graft_graph` | Graph inputs → Graph | [Composition calls](../../src/query_program/graph_composition_program.mbt); preserve authored peer order and policies, binary subtraction and closed exact-equal graft |
 | `apply_graph_delta` | Graph + Delta Relation → Graph | [Delta application](../../src/query_program/graph_delta_program.mbt); explicit producer and field, common Delta validation |
 
-Both DATA and terminal query routing reuse these boundaries. A Relation-returning
+Both WITH bodies and terminal query routing reuse these boundaries. A Relation-returning
 call creates the corresponding Relation scope; the old Graph columns do not
 remain visible. Further Graph calls after that transition are refused. A
 Graph-returning call retains the checked Graph contract until explicit rows
@@ -148,13 +152,13 @@ Historical successes do not establish current execution or packed acceptance
 of the new named source.
 
 The two construction rows retain the old inventory's forms. Current pure text
-construction is `DATA g = PROPERTY GRAPH (...)`; those rows are not pending
+construction is `WITH g AS (GRAPH (...)) ...`; those rows are not pending
 alternative public constructors or supported legacy machine schemas.
 
 | Historical Program operation | Pipe/current input | Other inputs | Output | Adopted call / historical form | Historical Local evidence |
 | --- | --- | --- | --- | --- | --- |
-| graph, concise form | Relation | Existing graph field mapping | Graph | Withdrawn form; current constructor is PROPERTY GRAPH | Host |
-| graph, explicit form | None | Node Relation and edge Relation | Graph | Withdrawn form; current constructor is PROPERTY GRAPH | Host |
+| graph, concise form | Relation | Existing graph field mapping | Graph | Withdrawn form; current pure constructor is GRAPH | Host |
+| graph, explicit form | None | Node Relation and edge Relation | Graph | Withdrawn form; current pure constructor is GRAPH | Host |
 | normalize_graph | Graph | None | Graph | `normalize_graph()` | Host |
 | match_nodes | Graph | Predicate/projection arguments | Relation | `match_nodes(...)` | Host |
 | match_edges | Graph | Predicate/projection arguments | Relation | `match_edges(...)` | Host |
@@ -189,9 +193,10 @@ fixtures. `g`, `base`, `target`, `g1` and `g2`
 denote existing Graph producers. No example invents a source, grant or schema.
 
 ```text
-DATA groups = FROM g
+WITH groups AS (FROM g
   |> components(kind: "weak")
-  |> SELECT node_id, component_id, component_size;
+  |> SELECT node_id, component_id, component_size)
+FROM groups |> SELECT node_id, component_id, component_size |> RESULT groups
 ```
 
 Existing steps: `from: g, components: {kind: weak}`, then
@@ -199,11 +204,12 @@ Existing steps: `from: g, components: {kind: weak}`, then
 The first operation changes the current Carrier to Relation.
 
 ```text
-DATA reached = FROM g
-  |> reach(start: "A", direction: "out", max_depth: 2);
-DATA neighborhood = FROM g
-  |> subgraph(nodes: {from: reached, id: "node_id"});
-DATA rows = FROM neighborhood |> node_rows() |> SELECT id;
+WITH reached AS (FROM g
+  |> reach(start: "A", direction: "out", max_depth: 2)),
+     neighborhood AS (FROM g
+  |> subgraph(nodes: {from: reached, id: node_id})),
+     rows AS (FROM neighborhood |> node_rows() |> SELECT id)
+FROM rows |> SELECT id |> RESULT nodes
 ```
 
 Existing steps: `from: g, reach: {start: A, direction: out, max_depth: 2},
@@ -213,10 +219,11 @@ as: neighborhood`; `from: neighborhood, node_rows: true`; then
 is no direct Relation-to-subgraph coercion.
 
 ```text
-DATA changes = FROM base |> graph_diff(with: target);
-DATA restored = FROM base
-  |> apply_graph_delta(with: changes, field: "delta");
-DATA rows = FROM restored |> node_rows() |> SELECT id;
+WITH changes AS (FROM base |> graph_diff(with: target)),
+     restored AS (FROM base
+  |> apply_graph_delta(with: changes, field: delta)),
+     rows AS (FROM restored |> node_rows() |> SELECT id)
+FROM rows |> SELECT id |> RESULT nodes
 ```
 
 Existing steps: `from: base, graph_diff: {with: target}, as: changes`;
@@ -226,12 +233,13 @@ Keep the checked Delta evidence and exact base/target snapshot validation.
 A shape-compatible arbitrary JSON object does not replace this evidence.
 
 ```text
-DATA average = mean_graphs(
+WITH average AS (mean_graphs(
   with: [g1, g2], weights: [1, 1],
   support: {nodes: 0.5, edges: 0.5},
   properties: {nodes: {}, edges: {}}
-);
-DATA rows = FROM average |> node_rows() |> SELECT id;
+)),
+     rows AS (FROM average |> node_rows() |> SELECT id)
+FROM rows |> SELECT id |> RESULT nodes
 ```
 
 Existing steps: `mean_graphs: {with: [g1, g2], weights: [1, 1],
@@ -245,7 +253,7 @@ The zero-argument `node_rows()` surface maps to the existing boolean
 
 Each example needs a separately authored Result declaration to publish a
 Named Result. For example, `from: rows, fields: [id], order_by: [{id: asc}]`
-is an explicit Result body. DATA does not synthesize `results.answer`, sort,
+is an explicit Result body. WITH does not synthesize `results.answer`, sort,
 a retention boundary, or additional Results. An explicit sort or Result order
 is compared as part of the authored Program, not added to make a test pass.
 
@@ -270,7 +278,7 @@ Derive expected results from existing normative laws, including:
 - mean uses exact support boundary comparisons, retained list multiplicity,
   zero/repeated weights and existing property-mean laws, including rejection.
 
-Include quoted DATA/column names, value strings matching producer names,
+Include quoted WITH/column names, value strings matching producer names,
 wrong Carrier chains, duplicate primary inputs, scope/cycle rejection and
 wrong-base Delta. Test Result absence/order without silently repairing them.
 Then execute the public source from clean packed Local and HTTP installations,

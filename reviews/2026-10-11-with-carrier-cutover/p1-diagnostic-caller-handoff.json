@@ -1,0 +1,29 @@
+{
+  "fixed_source": "dcd402f4a196cbc8f0d0bd3d1964a89deb1ffa57",
+  "run": "run-T6stAJ",
+  "command": [
+    "node",
+    "--input-type=module",
+    "-e",
+    "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+    "moon",
+    "--target",
+    "js",
+    "src/query_syntax/with_graph_alias_test.mbt",
+    "src/query_program/with_graph_range_alias_test.mbt",
+    "src/query_program/graph_rows_test.mbt",
+    "src/query_program/graph_rows_positional_set_test.mbt",
+    "src/source_frontend/with_graph_binding_test.mbt",
+    "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+    "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+  ],
+  "phase": "compiler, before MoonBit test execution",
+  "file": "src/connectors_builtin_node/client_check.mbt",
+  "line": 314,
+  "actual_error": "partial_match: QueryLowering(RangeAliasRequiresRelation | BindingPreparation(_))",
+  "required_boundary": "Project exact lowerer/static-binding common causes through the existing diagnostic/disclosure owner. Do not ignore the check-only failure or blame all BindingPreparation variants on the author.",
+  "owner_handoff": "E/Root diagnostic caller; B did not edit client_check.mbt.",
+  "new_frontend_fact": "RangeAliasRequiresRelation is a static violation, with source preparation invalid-input classification already retained.",
+  "minimal_source": "WITH n AS (SELECT 1 AS id), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES))) FROM GRAPH g AS r |> MATCH WALK (a:Node) |> SELECT a.id",
+  "api": "@source_frontend.lower -> QueryLowering(@query_program.Issue); @query_program.compile_query_script retains BindingPreparationIssue through shared check-only topology."
+}

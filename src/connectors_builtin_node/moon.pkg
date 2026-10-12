@@ -4,7 +4,6 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
-  "actql/actql/client_source_publication" @source_publication,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host" @host_driver,
   "actql/actql/physical_strategy" @strategy,
@@ -48,6 +47,7 @@ import {
   "actql/actql/query_planning" @planning,
   "actql/actql/value_contract" @parameter_contract,
   "actql/actql/capacity_policy",
+  "actql/actql/client_source_publication" @source_publication,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/connectors/salesforce/catalog" @salesforce_catalog,
   "actql/actql/connectors/salesforce/host" @salesforce_host,

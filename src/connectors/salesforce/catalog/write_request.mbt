@@ -70,7 +70,7 @@ pub fn single_write_request_body(value : SingleWriteRequest) -> String {
 
 ///|
 pub fn single_write_request_org_id(value : SingleWriteRequest) -> String {
-  value.projection.binding.org_id
+  catalog_binding_org_id(value.projection.binding)
 }
 
 ///|
@@ -198,7 +198,7 @@ pub fn single_write_request_matches_site_scope(
 
 ///|
 fn write_binding_matches_site_scope(
-  binding : CatalogObservationBinding,
+  owned_binding : CatalogExecutionBinding,
   namespace_id : String,
   principal : String,
   environment : String,
@@ -210,6 +210,7 @@ fn write_binding_matches_site_scope(
   run_invocation_cid : String,
   dispatch_request_cid : String,
 ) -> Bool {
+  guard owned_binding is SiteCatalog(binding) else { return false }
   binding.namespace_id == namespace_id &&
   binding.principal == principal &&
   binding.environment == environment &&

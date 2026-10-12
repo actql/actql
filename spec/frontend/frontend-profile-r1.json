@@ -7,7 +7,7 @@
     "actql-pattern/0.1"
   ],
   "current_milestone": [
-    "public_structural_retirement"
+    "with_carrier_cutover_in_progress"
   ],
   "principles": [
     "one_canonical_program",
@@ -767,7 +767,8 @@
         "|> ASSERT UNIQUE BY (fields)",
         "|> DISTINCT",
         "|> PIVOT",
-        "|> UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value FOR name IN (columns)) [AS alias]"
+        "|> UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] (value FOR name IN (columns)) [AS alias]",
+        "|> UNPIVOT [INCLUDE NULLS | EXCLUDE NULLS] ((values) FOR name IN ((columns) [AS label], ...)) [AS alias]"
       ],
       "canonical_lowering": "shared Query AST and ordinary Steps",
       "preconditions": [
@@ -775,7 +776,7 @@
         "range-alias preservation",
         "DISTINCT compares visible value slots and preserves only surviving range columns",
         "PIVOT retains current unaggregated keys and authored result column order; common checker owns type and NULL rules",
-        "single-value UNPIVOT replaces the input range scope and uses the common exact type/nullability contract; default excludes SQL NULL"
+        "UNPIVOT replaces the input range scope and uses the common exact type/nullability contract for corresponding positions; multi-column default excludes only all-NULL tuples"
       ],
       "spec_section": "7.2-7.4",
       "execution_evidence_ids": [],
@@ -848,24 +849,42 @@
     {
       "feature_id": "query.cte",
       "surface_forms": [
-        "WITH nonrecursive"
+        "WITH name AS (Pure producer body), ... query",
+        "|> to_vectors(id: field, vector: field)",
+        "|> normalize_vectors()",
+        "|> score_vectors(query: value, metric: string)",
+        "|> pool_vectors(by: [fields], method: string, vector: field?, output_id: name?)",
+        "|> vectors()",
+        "|> to_events(id: field, time: field)",
+        "|> row_window(time: field, kind: string, size: value, step: value?, offset: value?)",
+        "|> window_events(kind: string, size: value, step: value?, offset: value?)",
+        "|> watermark_events(watermark_ms: number, policy: string)",
+        "|> watermark_rows(time: field, late_policy: string, watermark_ms: value?, max_skew: value?)",
+        "|> session(by: [fields], gap: string)",
+        "|> dedupe_events(by: [fields], order_by: [OrderKeys])",
+        "|> events()"
       ],
-      "canonical_lowering": "static named dataflow",
+      "canonical_lowering": "common checked producer topology, followed by demanded emission",
       "preconditions": [
-        "earlier CTEs only",
-        "no recursive/volatile body"
+        "nonrecursive nearest lexical scope across Carrier kinds",
+        "all bindings statically checked; execution follows explicit demand",
+        "table/set operands and authored row aliases require Relation",
+        "typed field roles resolve through ordinary scope; Carrier/schema remain common-checker evidence",
+        "Vectors/Events require an explicit common bridge before Relation operations"
       ],
       "spec_section": "7.8",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-4",
       "acceptance_case_ids": [
         "SQL-27",
         "SQL-28",
         "SYS-08"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "four Carrier and public Local/HTTPS cutover acceptance remains pending"
+      ]
     },
     {
       "feature_id": "query.order_limit",
@@ -1041,18 +1060,19 @@
     {
       "feature_id": "graph.labels",
       "surface_forms": [
-        "FROM GRAPH g LABELS {\"node\":{\"field\":\"type\"}}"
+        "GRAPH constructor LABEL/PROPERTIES",
+        "MATCH (node:label) and labelled edge patterns"
       ],
-      "canonical_lowering": "explicit label-to-property equality expansion",
+      "canonical_lowering": "common Graph-owned label membership",
       "preconditions": [
-        "known string field",
-        "single label only",
-        "no MDM authority"
+        "admitted Graph label evidence",
+        "ordinary properties do not redefine membership",
+        "definition-selected common checking"
       ],
       "spec_section": "9.2",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-5",
       "acceptance_case_ids": [
         "GRF-09",
@@ -1060,7 +1080,10 @@
         "GRF-11",
         "GRF-12"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "retired LABELS annotation is refused before preparation",
+        "new WITH/GRAPH public Local/HTTPS evidence is separate from syntax/lowering"
+      ]
     },
     {
       "feature_id": "graph.binary",
@@ -1589,5 +1612,33 @@
   },
   "retired_public_profiles": [
     "actql-text/0.1"
-  ]
+  ],
+  "named_call_argument_roles": {
+    "status": "syntax_and_lowering_subset_not_public_execution_evidence",
+    "roles": [
+      "ProducerRef",
+      "FieldRef",
+      "OutputName",
+      "Expression",
+      "Enum/Literal",
+      "ClosedRecord/List",
+      "WholeParameter"
+    ],
+    "selector_qualification": "declared_operand_lexical_identity",
+    "literal_subtrees": "opaque_exact_data",
+    "retired_reference_strings": true,
+    "signed_numeric_token": "installed_common_numeric_admission",
+    "common_obligations": [
+      "type",
+      "presence",
+      "identity",
+      "order",
+      "parameter",
+      "capacity"
+    ],
+    "remaining": [
+      "complete_VecA_TEA_signature_connection",
+      "public_Local_HTTPS_acceptance"
+    ]
+  }
 }

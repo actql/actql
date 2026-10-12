@@ -747,19 +747,23 @@ fn request_body(
 fn command() -> @argparse.Command {
   @argparse.Command(
     "actql-native-client",
-    about="Bounded native Client Host transport",
+    about="Bounded Native Client operations",
     version="0.1",
     subcommand_required=true,
     options=[
-      @argparse.OptionArg("endpoint", required=true, global=true),
-      @argparse.OptionArg("connection-root", required=true, global=true),
-      @argparse.OptionArg("connection-file", required=true, global=true),
-      @argparse.OptionArg("token-root", required=true, global=true),
-      @argparse.OptionArg("token-file", required=true, global=true),
-      @argparse.OptionArg("http-library", required=true, global=true),
-      @argparse.OptionArg("ca", required=true, global=true),
-      @argparse.OptionArg("cert", required=true, global=true),
-      @argparse.OptionArg("key", required=true, global=true),
+      @argparse.OptionArg("mode", default_values=["remote"], global=true),
+      @argparse.OptionArg("config-root", default_values=["."], global=true),
+      @argparse.OptionArg("config-file", global=true),
+      @argparse.OptionArg("input-root", global=true),
+      @argparse.OptionArg("endpoint", global=true),
+      @argparse.OptionArg("connection-root", global=true),
+      @argparse.OptionArg("connection-file", global=true),
+      @argparse.OptionArg("token-root", global=true),
+      @argparse.OptionArg("token-file", global=true),
+      @argparse.OptionArg("http-library", global=true),
+      @argparse.OptionArg("ca", global=true),
+      @argparse.OptionArg("cert", global=true),
+      @argparse.OptionArg("key", global=true),
       @argparse.OptionArg(
         "max-request-bytes",
         default_values=["65536"],
@@ -772,7 +776,14 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
-      @argparse.Command("connect"),
+      @argparse.Command("check", flags=[@argparse.FlagArg("json")], options=[
+        @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("format", required=true),
+        @argparse.OptionArg("parameters-file"),
+        @argparse.OptionArg("parameter-declarations-file"),
+      ]),
+      @argparse.Command("adopt", flags=[@argparse.FlagArg("json")]),
+      @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("new-submission", options=[
         @argparse.OptionArg("request-id", required=true),
       ]),
@@ -795,6 +806,22 @@ fn command() -> @argparse.Command {
       @argparse.Command("lookup-submission", options=[
         @argparse.OptionArg("submission-ref-file", required=true),
       ]),
+      @argparse.Command("checkpoint-state", options=[
+        @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("ref-file", required=true),
+      ]),
+      @argparse.Command("lookup-preparation-grant", options=[
+        @argparse.OptionArg("grant-ref-file", required=true),
+        @argparse.OptionArg("operation-cid", required=true),
+        @argparse.OptionArg("issuer-file", required=true),
+      ]),
+      @argparse.Command("lookup-preparation-raw", options=[
+        @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("grant-ref-file", required=true),
+        @argparse.OptionArg("operation-cid", required=true),
+        @argparse.OptionArg("use-id", required=true),
+      ]),
       @argparse.Command("lookup-request", options=[
         @argparse.OptionArg("request-id", required=true),
       ]),
@@ -810,12 +837,14 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("cancel", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
         @argparse.OptionArg("cancel-id", required=true),
         @argparse.OptionArg("expected-revision", required=true),
         @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
       @argparse.Command("lookup-cancellation", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
         @argparse.OptionArg("cancel-id", required=true),
         @argparse.OptionArg("expected-revision", required=true),
       ]),
@@ -824,11 +853,17 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("read", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
+        @argparse.OptionArg("purpose"),
+        @argparse.OptionArg("format"),
+        @argparse.OptionArg("max-output-bytes"),
         @argparse.OptionArg("result-name", required=true),
         @argparse.OptionArg("attempt-id", required=true),
       ]),
       @argparse.Command("delivery-attempt", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("submission-ref-file"),
+        @argparse.OptionArg("purpose"),
         @argparse.OptionArg("result-name", required=true),
         @argparse.OptionArg("attempt-id", required=true),
       ]),
@@ -838,6 +873,42 @@ fn command() -> @argparse.Command {
 
 ///|
 fn execute(matches : @argparse.Matches) -> String raise ClientStop {
+  match required(matches, "mode") {
+    "local" => return execute_native_local(matches)
+    "remote" =>
+      if matches.subcommand is Some(("check", _)) ||
+        matches.subcommand is Some(("adopt", _)) ||
+        matches.subcommand is Some(("checkpoint-state", _)) ||
+        matches.subcommand is Some(("lookup-preparation-grant", _)) ||
+        matches.subcommand is Some(("lookup-preparation-raw", _)) {
+        stop("operation requires an explicit Local configuration")
+      }
+    _ => stop("unsupported Client mode")
+  }
+  if optional(matches, "input-root") is Some(_) {
+    stop("Local document root is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some((operation, child)) &&
+    (
+      operation == "lookup-cancellation" ||
+      operation == "cancel" ||
+      operation == "delivery-attempt" ||
+      operation == "read"
+    ) &&
+    optional(child, "submission-ref-file") is Some(_) {
+    stop("Original Local submission binding is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some(("delivery-attempt", child)) &&
+    optional(child, "purpose") is Some(_) {
+    stop("Explicit Local delivery purpose is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some(("read", child)) {
+    for name in ["purpose", "format", "max-output-bytes"] {
+      if optional(child, name) is Some(_) {
+        stop("Explicit Local read options are unavailable in Remote mode")
+      }
+    }
+  }
   let endpoint = endpoint_url(required(matches, "endpoint"))
   let request_max = positive_int(
     required(matches, "max-request-bytes"),
@@ -1121,6 +1192,11 @@ fn main {
     }
   }
   if matches.subcommand is Some(("read", _)) {
+    // Local streams directly through the existing durable sink; never append
+    // a reply, newline or a second buffered copy to its payload.
+    if matches.values.get("mode") == Some(["local"]) {
+      return
+    }
     let bytes = @utf8.encode(value)
     if !write_stdout_ffi(bytes, bytes.length()) {
       fail_command("stdout write failed")
