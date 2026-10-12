@@ -52,8 +52,8 @@ law, matcher, strategy policy, source or execution implementation changes.
 
 ## Evidence and limits
 
-Raw receipts are retained outside Git at
-`/Users/t14i/workspace/20260822/reviews/2026-10-13-b-core-checkpoint-three-evidence`.
+Raw receipts are retained outside Git in the owner-local
+`2026-10-13-b-core-checkpoint-three-evidence` cohort.
 
 - `run-QvqkBT`: unmodified base, 11 JS cases, 8 pass / 3 fail.
 - `run-ShG6IL`: diagnostic compile failure; tests not executed.
