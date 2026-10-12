@@ -132,59 +132,20 @@ fn submitted_intent_body(
 fn read_submitted_intent(
   row : @sqlite.NativeJournalValue,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
-  let source = @source.parse_json_bytes_preserving(row.body, {
-    max_input_bytes: 262144,
-    max_nodes: 16,
-    max_depth: 2,
-  }).to_option()
-  guard source is Some(source) &&
-    @decode.admit(source, {
-      max_nodes: 16,
-      max_depth: 2,
-      max_string_bytes: 131072,
-      max_total_string_bytes: 262144,
-    })
-    is Ok(cursor) &&
-    @decode.closed_object(cursor, [
-      "intent", "phase", "reference", "run_admission", "version",
-    ])
-    is Ok(object) &&
-    epoch_text(object, "version") ==
-    Some("actql-native-client-submitted-intent-row/0.1") &&
-    epoch_text(object, "phase") is Some(phase) &&
-    epoch_text(object, "reference") is Some(reference_wire) &&
-    epoch_text(object, "intent") is Some(intent_wire) else {
-    return Err(CustodyLost)
-  }
-  let reference = match
-    admit_native_client_submission_reference(reference_wire) {
+  let decoded = match @host.decode_client_submitted_journal_row(row.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let intent = match
-    @host.prepare_client_submitted_intent(intent_wire, 65536, 65536, 64) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let run_admission = match @decode.lookup(object, "run_admission") {
-    None => None
-    Some(value) => {
-      guard @decode.text(value) is Ok(wire) else { return Err(CustodyLost) }
-      match read_submitted_run_admission(wire) {
-        Ok(value) => Some(value)
-        Err(issue) => return Err(issue)
-      }
-    }
-  }
-  if phase != (if run_admission is Some(_) { "ready" } else { "preparing" }) ||
-    !@host.client_submitted_intent_transition(phase, phase) {
-    return Err(CustodyLost)
-  }
-  match submitted_intent_body(reference, intent, run_admission~) {
-    Ok(body) if body == row.body =>
-      Ok({ reference, intent, run_admission, revision: row.revision, })
-    _ => Err(CustodyLost)
-  }
+  Ok({
+    reference: native_submission_reference_record(decoded.reference),
+    intent: decoded.intent,
+    run_admission: decoded.run_admission.map(value => {
+      request: value.0,
+      run_definition_cid: value.1,
+      revision: value.2,
+    }),
+    revision: row.revision,
+  })
 }
 
 ///|
