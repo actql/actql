@@ -1,0 +1,35 @@
+{"grammar_manifest_cid":"sha256:ef4c4a2c93af0a8c77a5431db475098aa873f9f7899665192eacb30ebf02b738","barrier_contract_manifest_cid":"sha256:37d13c552a2a923fe135961e3fd859ed6439c90d8900b0f52310bdb97e871fda"}
+{"grammar":"sha256:ef4c4a2c93af0a8c77a5431db475098aa873f9f7899665192eacb30ebf02b738","template":"sha256:43b25a9633b65d41f9ee319b1b52818412f19ac91665fc666f76e4395e58d9a3","executable":"sha256:055d173cd0ed562d04142cb901b2ac8660433daf3b31ce29ba007e2e792d7f47","compiled":"sha256:fb9c5e25554cb1aeb90d97b8bc4f6fe6e97d12e4fd89a04961da51b14210cae7","run":"sha256:04a7dab8cbc36acd31b768288dce3bf69d8924a17561c6dcd1a923dd3216b81f"}
+{
+  "changes": [
+    {
+      "path": "spec/manifests/actql-grammar-0.1.json",
+      "pointer": "",
+      "before": "sha256:65926695ee1f8ea36f801515eb2def451b0944f59f855dae3ec4c2d508f463e9",
+      "after": "sha256:dabe09cb81d6b619f3ab4730fd282f672c82b043662c25ccf010322d78fb56a9"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:e2f3cdd95f807fa3a2fb05157afad4a627a9db8e90e258703d3ae78127a914ae",
+      "after": "sha256:11e105a14f0cad812c6917656304deaec6aabd63085298dbdbb6b8d9829ad067"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:e2f3cdd95f807fa3a2fb05157afad4a627a9db8e90e258703d3ae78127a914ae",
+      "after": "sha256:11e105a14f0cad812c6917656304deaec6aabd63085298dbdbb6b8d9829ad067"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:e2f3cdd95f807fa3a2fb05157afad4a627a9db8e90e258703d3ae78127a914ae",
+      "after": "sha256:11e105a14f0cad812c6917656304deaec6aabd63085298dbdbb6b8d9829ad067"
+    },
+    {
+      "owner": "actql.protocol.contracts",
+      "before": "sha256:e2f3cdd95f807fa3a2fb05157afad4a627a9db8e90e258703d3ae78127a914ae",
+      "after": "sha256:11e105a14f0cad812c6917656304deaec6aabd63085298dbdbb6b8d9829ad067"
+    }
+  ],
+  "writes": true
+}
+{"documents":10,"requirements":1521,"document_imports":23,"machine_imports":336,"informative_references":52,"conformance":false}
+572 canonical JSON identities verified; generated tests match their inputs.

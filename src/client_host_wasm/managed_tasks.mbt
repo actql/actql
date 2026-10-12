@@ -89,10 +89,8 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
     compute.host is Some(host) &&
     compute.start is Some(start) &&
     value.run_configurations.get(record.current_configuration) is Some(current) &&
-    compute.origin is Captured(attempt) &&
-    value.native_attempts.get(attempt) is Some(original) &&
-    value.native_sources.get(original.configuration) is Some(source) &&
-    value.runs.get(source.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
+    stored_compute_original_run(value, compute)
+    is Some({ outcome: Some(Ok(plan)), .. }) else {
     return -2
   }
   if value.closing || record.closing || compute.closing {
