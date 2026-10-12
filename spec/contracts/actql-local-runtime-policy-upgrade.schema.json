@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:local-runtime-policy-upgrade:0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "adoption_cid",
+    "authority_scope_cid",
+    "legacy_admissions_wire",
+    "operation_id",
+    "profile_wire",
+    "read_configuration_name",
+    "read_original_cid",
+    "read_selection_wire",
+    "retention_configuration_cid",
+    "retention_configuration_name",
+    "run_configuration_cid",
+    "run_configuration_name",
+    "runtime_pair_wire",
+    "store_configuration_cid",
+    "store_configuration_name",
+    "version"
+  ],
+  "properties": {
+    "adoption_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "authority_scope_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "legacy_admissions_wire": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "operation_id": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[^\\u0000]+$"
+    },
+    "profile_wire": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "read_configuration_name": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[^/\\\\\\u0000]+$"
+    },
+    "read_original_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "read_selection_wire": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "retention_configuration_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "retention_configuration_name": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[^/\\\\\\u0000]+$"
+    },
+    "run_configuration_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "run_configuration_name": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[^/\\\\\\u0000]+$"
+    },
+    "store_configuration_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "store_configuration_name": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[^/\\\\\\u0000]+$"
+    },
+    "version": {
+      "const": "actql-local-runtime-policy-upgrade/0.1"
+    },
+    "runtime_pair_wire": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    }
+  }
+}
