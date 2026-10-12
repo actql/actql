@@ -8,6 +8,9 @@ import {prepareOpenAIChatRequest} from
   '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
 import {createSdkModelPreflight} from
   '../../packages/provider-ai-sdk/_internal/model-port.mjs';
+import {createAdmittedOpenAIChatPreflight} from
+  '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
+import {openNodeInferOperation} from './infer-operation.mjs';
 import {createModelRawTransportPersistence} from './infer-raw-capture.mjs';
 import {rawCaptureStoreFixture} from './infer-raw-capture.fixture.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
@@ -41,7 +44,7 @@ async function until(read, predicate, io) {
 }
 
 async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
-  physicalFor = f => f.physical, beforeStart = async () => {}} = {}) {
+  physicalFor = f => f.physical, beforeStart = async () => {}, deferredRaw = false} = {}) {
   const f = await rawCaptureStoreFixture(t, {bytes, ...storeFault});
   const notification = createInferIoNotification();
   const io = claimInferIoNotification(notification);
@@ -80,6 +83,13 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
   let originalCall;
   let observes = 0;
   let physicalStarts = 0;
+  let bindRaw;
+  const originalOperation = deferredRaw ? openNodeInferOperation({provider:{},
+    rawCaptureBinder:(registration,persistence)=>bindRaw(registration,persistence),
+    moon:{clientProgramStartScopedInferExecution:()=>({$tag:1,_0:{}}),
+      clientProgramCancelInferExecution:()=>{},clientProgramInferExecutionStopped:()=>true,
+      clientProgramCleanupInferExecution:()=>({$tag:1,_0:true})}}) : undefined;
+  if (originalOperation !== undefined) t.after(()=>originalOperation.close());
   const retained = [];
   // Real pinned SDK, final loopback fetch and encrypted Store/holding. The
   // Common grant/Entry/nominal receipt below are explicitly doubles; this is
@@ -118,33 +128,69 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
     },
   };
   const persistence = createModelRawTransportPersistence({store: physicalFor(f),
-    moon, registration, retainHolding: value => retained.push(value), notify: io.notify});
-  const preparation = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
+    moon, registration, operation:originalOperation,
+    retainHolding: value => retained.push(value), notify: io.notify});
+  const preparation = deferredRaw ? undefined : prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
     baseURL: `http://127.0.0.1:${server.address().port}/v1`,
     apiKey: 'fixture-only-not-a-service-secret', maxRequestBytes: 4096,
     maxHeaderBytes: 4096, maxHeaders: 16, notify: io.notify, options: {
       prompt: [{role: 'user', content: [{type: 'text', text: input}]}],
       maxOutputTokens: 16, responseFormat: {type: 'json'},
     }});
-  const port = createSdkModelPreflight({moon, request, preparation,
+  const physicalOptions = {moon, request,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n,
       durationMs: 500n}, fetch(...args) { physicalStarts++; return fetch(...args); },
-    responseLimits, persistRaw: persistence, cleanupRaw: persistence.cleanup,
-    notify: io.notify, checked, observeAt: () => observedAt});
+    responseLimits, notify: io.notify, checked, observeAt: () => observedAt};
+  const projectedInput='{"text":"Original é\\r\\n"}';
+  const schema={type:'object',properties:{risk:{type:'string'}},required:['risk'],additionalProperties:false};
+  let projectionSteps=0;
+  if (deferredRaw) {
+    // The Core/registration ports remain doubles. This joins the real pinned
+    // SDK and encrypted Store through the actual operation's private binder.
+    moon.clientProgramStartOpenAIChatProjection=()=>({$tag:1,_0:{}});
+    moon.clientProgramAdvanceOpenAIChatProjection=()=>({$tag:1,_0:++projectionSteps===2?
+      {_0:input,_1:projectedInput,_2:JSON.stringify(schema),_3:'task',_4:'prompt',_5:'schema',_6:'fixture-chat'}:undefined});
+    moon.clientProgramRetireOpenAIChatProjection=()=>{};
+    moon.clientProgramModelRequestGeneration=()=>({_0:'fixture-chat',_1:0.25,_2:0.875,_3:16n,_4:undefined});
+  }
+  const port = deferredRaw ? createAdmittedOpenAIChatPreflight({...physicalOptions,
+    admittedProvider:{},taskCid:'task',promptCid:'prompt',outputSchemaCid:'schema',modelSelector:'fixture-chat',
+    projectionLimits:{maxBytes:4096,maxNodes:1000,maxDepth:30,maxFrames:100,maxWork:10000},
+    modelId:'gpt-4.1-nano',baseURL:`http://127.0.0.1:${server.address().port}/v1`,
+    apiKey:'fixture-only-not-a-service-secret',maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,
+    rawCaptureBinder(callback){assert.equal(bindRaw,undefined);bindRaw=callback;}})
+    : createSdkModelPreflight({...physicalOptions,preparation,
+      persistRaw:persistence,cleanupRaw:persistence.cleanup});
+  if (deferredRaw) {
+    // Core maps these fixed projection transitions to Kernel Continue, not
+    // AwaitIo. Do not wait on a physical notification for synchronous work.
+    // This fixture has exactly start + two synthetic child transitions.
+    for (let step=0;step<3;step++) {
+      assert.deepEqual(port.preflight.advance(),{_0:false,_1:undefined});
+    }
+    assert.equal(projectionSteps,2);
+  }
   const {_1: plan} = await wait(() => port.preflight.advance(), value => value._0);
   t.diagnostic('joined boundary: fixed SDK preflight prepared');
   assert.equal(serverState.requests, 0);
   assert.equal(physicalStarts, 0);
+  if (deferredRaw) originalOperation.bindModelRawCapture(registration,persistence);
   await beforeStart(f);
   const call = plan.start(entry);
   t.diagnostic('joined boundary: fixed transport started');
   assert.equal(physicalStarts, 1);
   assert.equal(plan.start(entry), undefined);
-  return {...f, port, call, plan, entry, retained, serverState, wait,
+  return {...f, port, call, plan, entry, retained, serverState, wait, originalOperation,
     counters: () => ({physicalStarts, observes})};
 }
 
 test('joined fixed SDK and original encrypted Store preserve exact raw bytes across Store reopen', async t => {
+  let reopened;
+  // Register before the parent fixture so this same reopened Owner confirms
+  // close before the shared directory can be removed.
+  t.after(async () => {
+    if (reopened !== undefined) assert.equal(await reopened.close(), true);
+  });
   const f = await joinedFixture(t);
   const observed = await f.wait(() => f.call.poll(), value => value.kind === 'chat');
   t.diagnostic('joined boundary: original raw saved Chat view observed');
@@ -160,10 +206,9 @@ test('joined fixed SDK and original encrypted Store preserve exact raw bytes acr
   assert.equal(f.retained[0].holding.status().committed, true);
   await f.store.close();
   t.diagnostic('joined boundary: original Store closed');
-  const reopened = await openLocalPublicationStore({...f.storeOptions,
+  reopened = await openLocalPublicationStore({...f.storeOptions,
     privateEvidenceKey: Buffer.from(f.storeOptions.privateEvidenceKey)},
     createPublicationContractControlFixture());
-  t.after(() => reopened.close());
   const saved = await reopened.confirmModelRawEvidence(f.binding);
   t.diagnostic('joined boundary: reopened Store raw bytes reconfirmed');
   assert.deepEqual(saved.bytes, Buffer.from(wire));
@@ -327,4 +372,35 @@ test('joined invalid UTF8 retains the actual Store raw receipt and Unknown witho
   assert.equal(f.serverState.requests, 1);
   assert.deepEqual(f.counters(), {physicalStarts: 1, observes: 1});
   await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('deferred original-operation binding joins admitted SDK preparation and actual Store without another send',async t=>{
+  const f=await joinedFixture(t,{deferredRaw:true});
+  const observed=await f.wait(()=>f.call.poll(),value=>value.kind==='chat');
+  assert.equal(observed.response.actual,f.receipt);
+  assert.equal(observed.response.body,wire);
+  assert.equal(f.state.writes,1);assert.equal(f.state.acknowledgements,1);
+  assert.equal(JSON.parse(f.serverState.requestBody).messages[1].content,'{"text":"Original é\\r\\n"}');
+  await f.wait(()=>f.port.preflight.cleanup(),Boolean);
+  assert.equal(f.retained[0].holding.status().committed,true);
+  const saved=await f.store.confirmModelRawEvidence(f.binding);
+  assert.deepEqual(saved.bytes,Buffer.from(wire));
+  assert.equal(f.plan.start(f.entry),undefined);
+  assert.equal(f.serverState.requests,1);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+
+test('deferred original-operation Store refusal keeps Unknown and the same holding until cleanup',async t=>{
+  const f=await joinedFixture(t,{deferredRaw:true,storeFault:{refuseCommit:true}});
+  await f.wait(()=>f.call.poll(),value=>value.kind==='unknown');
+  const failure=f.port.rawFailure();
+  assert.equal(failure.rawCustodyRetained,true);
+  assert.equal(failure.cleanupHandle,f.retained[0].holding);
+  assert.equal(f.state.acknowledgements,0);
+  assert.equal(f.state.writes,1);assert.equal(f.state.commits,1);
+  assert.equal(f.plan.start(f.entry),undefined);
+  await f.wait(()=>f.port.preflight.cleanup(),Boolean);
+  assert.equal(f.retained[0].holding.status().abandoned,true);
+  assert.equal(f.retained[0].holding.status().preparedPending,false);
+  assert.equal(f.serverState.requests,1);
 });

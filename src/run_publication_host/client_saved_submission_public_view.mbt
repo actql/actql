@@ -27,7 +27,8 @@ pub fn client_saved_submission_admission_wire(
       run.request,
       run.definition,
       retained.revision,
-    ) is Err(_) {
+    )
+    is Err(_) {
     return Err(CustodyLost)
   }
   // The journal keeps the full Int64. The public JSON value domain cannot
@@ -39,15 +40,13 @@ pub fn client_saved_submission_admission_wire(
     is Some(run_namespace) else {
     return Err(CustodyLost)
   }
-  let mut characters = 0
+  if run_namespace.length() == 0 || run_namespace.length() > 256 {
+    return Err(Encoding)
+  }
   for character in run_namespace.iter() {
-    characters += 1
-    if characters > 256 || character.to_int() < 32 || character.to_int() == 127 {
+    if character.to_int() < 32 || character.to_int() == 127 {
       return Err(Encoding)
     }
-  }
-  if characters == 0 {
-    return Err(Encoding)
   }
   try {
     let writer = @encode.writer(4096, 16, 3)
@@ -57,9 +56,15 @@ pub fn client_saved_submission_admission_wire(
     @encode.key(writer, "namespaceId")
     @encode.string_value(writer, run_namespace)
     @encode.key(writer, "authorityScopeCid")
-    @encode.string_value(writer, client_request_authority_scope_cid(run.request))
+    @encode.string_value(
+      writer,
+      client_request_authority_scope_cid(run.request),
+    )
     @encode.key(writer, "runDefinitionCid")
-    @encode.string_value(writer, @publication.publication_contract_identity(run.definition))
+    @encode.string_value(
+      writer,
+      @publication.publication_contract_identity(run.definition),
+    )
     @encode.end_object(writer)
     @encode.key(writer, "durability")
     @encode.string_value(writer, "durable")

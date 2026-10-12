@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {readCatalog, compareCatalogs} from './actions.mjs';
-import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs, pipelineInventoryBoundary} from './inputs.mjs';
+import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs, pipelineInventoryBoundary, hash} from './inputs.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
-import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview} from './package-configurations.mjs';
+import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview,
+  packageConfigurationReviewFor, foreignLibraryConfigurationReview} from './package-configurations.mjs';
 
 const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
@@ -175,6 +176,41 @@ test('reviewed native-only configuration requires its independent path/bytes/too
   assert(observed.unresolved.some(reason => reason.endsWith(path)));
   assert.deepEqual(observed.inputs.packageConfigurations, []);
   assert(observed.inputs.files.some(file => file.path === path));
+});
+
+test('the exact JS foreign library binds imports and source bytes under its separate review', () => {
+  const path = 'src/connectors_builtin_node/moon.pkg';
+  const source = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+  const files = new Map(base);
+  files.set('toolchain.json', readFileSync(new URL('../../toolchain.json', import.meta.url), 'utf8'));
+  files.set(path, source);
+  files.set('src/connectors_builtin_node/bridge.mbt', 'original foreign source');
+  for (const dependency of packageImports(source).imports) if (dependency.startsWith('actql/actql/')) {
+    const directory = `src/${dependency.slice('actql/actql/'.length)}`;
+    files.set(`${directory}/moon.pkg`, 'supported_targets = "js"');
+    files.set(`${directory}/source.mbt`, 'original literal dependency');
+  }
+  const selected = {...action, package: 'src/connectors_builtin_node'};
+  const original = inventory(files, 'a'.repeat(40), selected);
+  assert.deepEqual(original.unresolved, []);
+  assert.equal(original.inputs.packageConfigurations.find(entry => entry.path === path)?.review.rule,
+    'literal-js-foreign-library-with-bound-source-membership');
+  assert.equal(packageImports(source).unknown, 'Unreviewed package configuration',
+    'The generic parser must not accept arbitrary package kinds');
+  for (const dependency of packageImports(source).imports) if (dependency.startsWith('actql/actql/'))
+    assert(original.inputs.files.some(entry => entry.path === `src/${dependency.slice('actql/actql/'.length)}/source.mbt`));
+  const changed = new Map(files);
+  changed.set('src/connectors_builtin_node/bridge.mbt', 'changed foreign source');
+  assert.equal(compareInputs(original, inventory(changed, 'b'.repeat(40), selected)).eligible, false);
+  changed.set(path, source + '\noptions(pre_build: { "command": "unreviewed" })\n');
+  const unreviewed = inventory(changed, 'b'.repeat(40), selected);
+  assert(unreviewed.unresolved.includes(`Unreviewed package configuration: ${path}`));
+  assert.deepEqual(unreviewed.inputs.packageConfigurations, []);
+  const request = {path, digest: hash(source), target: 'js', toolchainDigest: packageConfigurationReview.toolchainDigest};
+  assert.equal(packageConfigurationReviewFor(request), foreignLibraryConfigurationReview);
+  for (const wrong of [{...request, target: 'native'}, {...request, target: 'wasm'},
+    {...request, toolchainDigest: 'f'.repeat(64)}, {...request, path: 'src/other/moon.pkg'},
+    {...request, digest: 'f'.repeat(64)}]) assert.equal(packageConfigurationReviewFor(wrong), null);
 });
 
 test('literal formatter exclusions remain bound; dynamic configuration stays open', () => {

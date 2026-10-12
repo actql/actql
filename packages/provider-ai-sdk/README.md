@@ -20,6 +20,64 @@ prompt/schema, credentials and physical-profile compatibility; this projection
 does not establish any of them. The actual fixture verifies this mapping only
 for its selected non-reasoning chat profile, not every OpenAI model.
 
+The additional private admitted-request consumer reads the closed
+`actql.openai_chat_prompt/0.1` payload, mapped input wire and strict output
+schema from Common's original admitted Provider/Task. It binds the Task,
+prompt and output-schema CIDs plus the selector before SDK preparation. Empty
+instructions are explicit and valid; missing, NULL or extra payload fields
+refuse. One separate data-text message keeps Common's exact input wire,
+including Decimal strings, without parsing it back into JavaScript values.
+The actual intercepted SDK request must match those originals and authored
+generation settings. An SDK model-dependent rewrite refuses, with no fallback.
+
+The bounded schema emitter supports a nonnullable closed Object root, plain
+Text/Number/Boolean/Array/Object children and explicit nested nullability.
+All fields are required. Unsupported constraints and other value kinds refuse
+before send rather than being weakened. This is not a language-wide ban or
+Common output validation. The convenience private request consumer uses finite
+preparation work/byte/node/depth/frame limits; it is not evidence of cooperative
+SDK JSON parsing or a funded public physical-preflight installation.
+
+The additional private `createAdmittedOpenAIChatPreflight` consumes one Common
+projection-child transition per physical-preflight advance. It allocates that
+child only after the existing port validates its installation; projection
+completion retires its borrows before starting one SDK preparation. Cancellation,
+refusal and retirement failure preserve the original cleanup path without a new
+request. The resulting plan still uses the existing fixed transport/Entry/send
+gate and raw-save port. SDK initialization and JSON work remain external
+synchronous work, not a new cooperative guarantee. The child's nine fields,
+phase payloads, output tuple and Node progress reference/callback/context overlap
+must be funded before normal startup; this private integration supplies no
+numerical layout, public capability or execution permission.
+
+The private physical preflight can retain the original operation's raw binder
+before Approval. Its installed continuation supplies one actual Store persistence
+port after nominal raw registration, before returning dispatch and creating an
+Entry. Known missing Store/wake installation refuses before Approval. Registration
+pending is not a fabricated capture grant: the existing approval path must finish
+binding first. The port belongs to that exact operation and registration; copies,
+another operation and rebinding refuse. A missing binding observed after an Entry
+cannot start transport or regain the consumed attempt when a late binding arrives.
+It keeps the original Unknown/cleanup responsibility. This is the initial private
+one-Slot connection, not accepted public funding or multi-Slot raw persistence.
+
+The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
+`registerModelProviders` entry from trusted, already retained installation
+selections. It does not load packages, derive a numerical profile or reconstruct
+opaque Owners from CIDs. Missing originals or a missing consuming runtime hook
+refuse before Provider installation. Exact Task/selector/payload selection is a
+byte/string comparison; Common retains schema interpretation and validation.
+Projection, request and response bounds are distinct immutable declarations.
+The selected SDK, endpoint, generation completion basis, original raw profile,
+quantity and read selections stay with their existing Host/Model Owners.
+
+This is private assembler preparation, not the public user installation API:
+the package still has no public exports. The Host must verify actual builder,
+codec, build/lock and validator originals and supply justified complete physical
+funding before public use. Frozen objects, matching declarations and fixture
+allowances do not establish those facts. The public entry and external-package
+example remain dependent on that original installation/funding acceptance.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final
@@ -59,5 +117,45 @@ all remain part of C's full funding before public adoption.
 The package lock freezes the actual dependency closure. Preparation and
 transport tests use the real pinned SDK with synthetic responses and explicitly
 installed fixture fetches, with no ambient or live network.
+
+The private native `prepareTypeSafeDecisionRequest` reuses that same interceptor
+and fixed transport with the selected TypeSafe v4 `doDecide` operation. It sends
+all mapped questions against one state without generation settings, high-level
+retries, default-provider mutation or SDK workflow restoration. Its input must
+come from the original bounded Common Decision projection and funded caller;
+the private builder itself does not admit a Task or validate native answers.
+Exact SDK key mapping, Common native raw decode/completeness, registered physical
+profile/precision, original Store receipt and installed caller remain unconnected.
+SDK model fallbacks and reported rounding are not provider observations or
+profile authority. Prototype-key SDK response refusal keeps original raw bytes
+and no repair call; it does not prohibit legal Common IDs. This preparation adds
+no public/native capability or numerical profile. The generation SDK closure and
+the native SDK's separately pinned dependency closure remain distinguishable.
+
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
+
+### Private native Decision request projection
+
+The Common `start_native_decision_projection` child projects an original
+admitted Decision request without dispatching it. The Node consumer exposes
+the same opaque cursor and escaped request view; neither is an installation,
+capacity, approval, response-completion or send grant. This preparation is not
+part of the initial Node generation gate.
+
+Questions remain borrowed from the original admitted prompt. Fixed-width
+position aliases preserve ordered question/option correspondence without
+banning legal IDs such as `__proto__`. The escaped view retains the original
+IDs and exact Task/prompt/schema/selector binding for a later response codec.
+Retiring the emitting child does not retire an escaped view. The original
+parent must fund and retire both lifetimes, including retained empty backing
+arrays, writers and request strings. No physical numeric profile is supplied.
+
+The initial physical subset accepts text and JSON-compatible state, preserving
+empty text, null, numbers, booleans, arrays and Unicode/newlines. The typed JSON
+carrier is unwrapped before its original value is emitted by Common; JS must
+not reconstruct the value. Unsupported typed state and the selected SDK's
+question-count limits are physical refusals, not common language restrictions.
+Native answer decoding, original raw Store binding and public Decision
+execution remain unconnected; do not route this view through the generation
+`SavedChat` completion codec.

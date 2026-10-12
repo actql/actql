@@ -1104,6 +1104,10 @@ pub fn source_producer_work(SourceProducerContext) -> Int
 
 pub fn source_program_diagnostic_issue(SourceViewProgramIssue) -> SourceViewContextIssue
 
+pub fn source_request_bindings_diagnostic_issue(@binding_declarations.Issue) -> PrepareSourcesIssue
+
+pub fn source_request_context_diagnostic_issue(@sourceview_resolution.RequestIssue) -> PrepareSourcesIssue
+
 pub fn source_request_facts(SourceRequestContexts) -> @check_environment.LookupCapacities?
 
 pub fn source_request_inputs(SourceRequestContexts) -> ReconciledContexts
@@ -1118,6 +1122,8 @@ pub fn source_request_pushdowns(SourceRequestContexts) -> @check_environment.Pus
 
 pub fn source_request_slots(SourceRequestContexts) -> @source_request_slots.Slots
 
+pub fn source_request_slots_diagnostic_issue(@source_request_slots.Issue) -> PrepareSourcesIssue
+
 pub fn source_request_stage(SourceRequestContexts, Int) -> @sourceview_resolution.PipelineRequests?
 
 pub fn source_request_usage(SourceRequestContexts) -> (Int, Int, Int, Int)
@@ -1127,6 +1133,8 @@ pub fn source_rows_requests(SourceRowContexts) -> SourceRequestContexts
 pub fn source_rows_stage(SourceRowContexts, Int) -> @sourceview_resolution.KeyedRowBounds?
 
 pub fn source_rows_work(SourceRowContexts) -> Int
+
+pub fn source_selection_diagnostic_issue(@sourceview_resolution.Issue) -> SourceRegistrationIssue
 
 pub fn sourceview_checked_topology(SourceViewCheckedTopology) -> @stage_results.CheckedTopology
 

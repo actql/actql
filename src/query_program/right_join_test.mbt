@@ -9,8 +9,11 @@ test "RIGHT JOIN commutes into a bounded common LEFT JOIN with SQL range slots" 
     construction_limits(),
   ).unwrap()
   let wire = semantic(generated)
-  assert_true(wire.contains("\"from\":\"aql_chain_input_1\""))
-  assert_true(wire.contains("\"with\":\"aql_chain_input_0\""))
+  // The current shared binder installs the original t/r Values in one Unit.
+  // Commutation reads the right seed first, with the left seed as its peer.
+  assert_eq(@program.stage_count(generated), 1)
+  assert_true(wire.contains("\"from\":\"aql_script_seed_3\""))
+  assert_true(wire.contains("\"with\":\"aql_script_seed_2\""))
   assert_true(wire.contains("\"kind\":\"left\""))
   assert_true(wire.contains("\"on\":[{\"left\":\"k\",\"right\":\"x\"}]"))
   assert_true(wire.contains("\"aql_chain_column_2\":\"right.x\""))

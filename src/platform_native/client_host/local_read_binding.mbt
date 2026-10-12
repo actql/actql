@@ -23,6 +23,8 @@ struct NativeLocalReadPolicyBinding {
   connection : String
   scope : String
   expires_at : String
+  selection_cid : String
+  upgrade_packet : Bytes?
   run_policy_original : (
     NativeClientSubmissionReference,
     @host.ClientRequestIdentity,
@@ -70,6 +72,8 @@ pub fn NativeLocalHostConnection::bind_result_read_policy(
     connection,
     scope,
     expires_at,
+    selection_cid: file.content_cid,
+    upgrade_packet: None,
     run_policy_original: None,
   })
 }
@@ -88,9 +92,13 @@ pub fn NativeLocalHostConnection::bind_result_read_policy_for_run(
   if !physical_equal(self, policy.host) {
     return Err(SelectionMismatch)
   }
-  let file = policy.files[1]
-  let text = @utf8.decode(file.body) catch {
-    _ => return Err(Selection(InvalidOriginal))
+  let file = policy.read_file
+  let text = match policy.origin {
+    Selected =>
+      @utf8.decode(file.body) catch {
+        _ => return Err(Selection(InvalidOriginal))
+      }
+    Upgraded(_, wire) => wire
   }
   let selection = match admit_native_local_read_selection(text) {
     Ok(value) => value
@@ -99,9 +107,9 @@ pub fn NativeLocalHostConnection::bind_result_read_policy_for_run(
   guard selection.expiry is AcceptedRunProfile(roles) &&
     roles.profile_cid ==
     @host.client_local_run_policy_profile_cid(policy.profile) &&
-    roles.run_file == policy.files[2].name &&
-    roles.retention_file == policy.files[3].name &&
-    roles.store_file == policy.files[4].name &&
+    roles.run_file == policy.run_file.name &&
+    roles.retention_file == policy.retention_file.name &&
+    roles.store_file == policy.store_file.name &&
     selection.principal == policy.principal &&
     selection.connection == policy.connection else {
     return Err(SelectionMismatch)
@@ -126,6 +134,11 @@ pub fn NativeLocalHostConnection::bind_result_read_policy_for_run(
     connection: policy.connection,
     scope: policy.scope,
     expires_at,
+    selection_cid: policy.read_selection_cid,
+    upgrade_packet: match policy.origin {
+      Selected => None
+      Upgraded(packet, _) => Some(packet)
+    },
     run_policy_original: Some(
       (
         reference,
@@ -158,6 +171,19 @@ fn NativeLocalReadPolicyBinding::require_current(
   if current != self.file.body {
     return Err(SelectionMismatch)
   }
+  if self.upgrade_packet is Some(packet) {
+    guard self.host.database.read(
+        "client_local_installation_originals", local_policy_upgrade_key,
+      )
+      is Ok(row) &&
+      row.revision == 0L &&
+      row.body == packet else {
+      return Err(Journal(CustodyLost))
+    }
+    if self.host.with_installation_custody(() => Ok(())) is Err(_) {
+      return Err(Journal(CustodyLost))
+    }
+  }
   if self.run_policy_original is Some((reference, request, body)) {
     guard self.host.journal.retained(request) is Ok(Some(run)) &&
       run.local_run_policy_originals is Some(wire) &&
@@ -187,6 +213,12 @@ fn NativeLocalReadPolicyBinding::require_request(
   if self.run_policy_original is Some((_, bound, _)) &&
     @host.client_request_identity_relation(bound, original) != @host.SameRequest {
     return Err(SelectionMismatch)
+  }
+  if self.selection.expiry is Absolute(_) {
+    match self.host.require_original_legacy_policy(original) {
+      Ok(_) => ()
+      Err(issue) => return Err(Journal(issue))
+    }
   }
   if !self.selection.enabled {
     return Err(Disabled)
