@@ -119,3 +119,64 @@ pub fn client_program_cancel_infer_original_current_state_comparison(
 ) -> Unit {
   @publication_host.cancel_client_model_current_state_comparison(value)
 }
+
+///|
+#export_name("clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch")
+pub fn client_program_advance_infer_original_current_state_comparison_with_match(
+  active : @infer_host.Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  value : @publication_host.ClientModelCurrentStateComparison,
+  quantum : Int,
+) -> Result[
+  @resources.OriginalCurrentStateMatchPoll[
+    @publication_host.ClientModelReadOrigin,
+  ],
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  @infer_host.advance_original_model_current_state_comparison_with_match(
+    active, scope, park, value, quantum,
+  )
+}
+
+///|
+#export_name("clientProgramInferOriginalCurrentStateMatchPoll")
+pub fn client_program_infer_original_current_state_match_poll(
+  poll : @resources.OriginalCurrentStateMatchPoll[
+    @publication_host.ClientModelReadOrigin,
+  ],
+) -> (
+  String,
+  Int,
+  @resources.OriginalStateComparisonIssue?,
+  @publication_host.ClientModelCurrentStateMatch?,
+) {
+  match poll {
+    @resources.CurrentMatchContinue(work~) => ("continue", work, None, None)
+    @resources.CurrentMatchComplete(value, work~) =>
+      ("complete", work, None, Some(value))
+    @resources.CurrentMatchFailed(issue, work~) =>
+      ("failed", work, Some(issue), None)
+  }
+}
+
+///|
+#export_name("clientProgramInferOriginalCurrentStateMatchCurrent")
+pub fn client_program_infer_original_current_state_match_current(
+  active : @infer_host.Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  value : @publication_host.ClientModelCurrentStateMatch,
+) -> @publication_host.ClientModelCurrentStateMatch? {
+  @infer_host.original_model_current_state_match_current(
+    active, scope, park, value,
+  )
+}
+
+///|
+#export_name("clientProgramRetireInferOriginalCurrentStateMatch")
+pub fn client_program_retire_infer_original_current_state_match(
+  value : @publication_host.ClientModelCurrentStateMatch,
+) -> Unit {
+  @publication_host.retire_client_model_current_state_match(value)
+}

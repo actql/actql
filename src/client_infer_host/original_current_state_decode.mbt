@@ -333,3 +333,54 @@ pub fn advance_original_model_current_state_comparison(
     quantum,
   )
 }
+
+///|
+pub fn advance_original_model_current_state_comparison_with_match(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  value : @publication_host.ClientModelCurrentStateComparison,
+  quantum : Int,
+) -> Result[
+  @resources.OriginalCurrentStateMatchPoll[
+    @publication_host.ClientModelReadOrigin,
+  ],
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  guard original_model_resource_park_current(active, scope, park) is Some(_) &&
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
+    return Err(@publication_host.Resource(@resources.ChangedOriginalState))
+  }
+  @publication_host.advance_client_model_current_state_comparison_with_match(
+    value,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
+    quantum,
+  )
+}
+
+///|
+pub fn original_model_current_state_match_current(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+  park : @publication_host.ClientModelResourcePark,
+  value : @publication_host.ClientModelCurrentStateMatch,
+) -> @publication_host.ClientModelCurrentStateMatch? {
+  guard original_model_resource_park_current(active, scope, park) is Some(_) &&
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
+    return None
+  }
+  @publication_host.client_model_current_state_match_current(
+    value,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
+  )
+}
