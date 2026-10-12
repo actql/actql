@@ -1663,6 +1663,10 @@ pub fn submission_request_id(@logical_request_scope.SubmissionEpoch, String) -> 
 
 pub fn validate_client_local_run_policy_original_run(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[Unit, ClientLocalRunPolicyProfileIssue]
 
+pub fn validate_client_native_local_runtime_compute_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
+
+pub fn validate_client_native_local_runtime_library_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
+
 pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn validate_client_retained_input_plan(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, @remote_site_protocol.RemoteRetainedInputPlan, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
