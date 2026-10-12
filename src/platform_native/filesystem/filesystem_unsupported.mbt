@@ -28,6 +28,13 @@ pub fn Root::private_ownership(
 }
 
 ///|
+pub fn Root::bootstrap_parent_ownership(
+  _self : Root,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Root::acquire_lock(
   _self : Root,
   _name : String,

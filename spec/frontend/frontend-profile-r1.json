@@ -859,6 +859,7 @@
         "|> row_window(time: field, kind: string, size: value, step: value?, offset: value?)",
         "|> window_events(kind: string, size: value, step: value?, offset: value?)",
         "|> watermark_events(watermark_ms: number, policy: string)",
+        "|> watermark_rows(time: field, late_policy: string, watermark_ms: value?, max_skew: value?)",
         "|> session(by: [fields], gap: string)",
         "|> dedupe_events(by: [fields], order_by: [OrderKeys])",
         "|> events()"

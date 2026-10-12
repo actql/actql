@@ -46,6 +46,10 @@ extern "C" fn private_root_identity_ffi(root : Root) -> Bool = "actql_native_fil
 
 ///|
 #borrow(root)
+extern "C" fn bootstrap_parent_identity_ffi(root : Root) -> Bool = "actql_native_filesystem_bootstrap_parent_identity"
+
+///|
+#borrow(root)
 extern "C" fn root_ready_ffi(root : Root) -> Bool = "actql_native_filesystem_root_ready"
 
 ///|
@@ -255,6 +259,23 @@ pub fn Root::private_ownership(
   self : Root,
 ) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
   if private_root_identity_ffi(self) {
+    Ok({
+      device: root_result_device_ffi(self),
+      inode: root_result_inode_ffi(self),
+    })
+  } else {
+    Err(RootOpen(decode_message(root_error_ffi(self))))
+  }
+}
+
+///|
+/// Recheck a user-owned bootstrap parent and its original no-follow namespace.
+/// This is physical metadata, not private-state ownership or an operation permit.
+/// Exclusive children still require their original witness and private_ownership.
+pub fn Root::bootstrap_parent_ownership(
+  self : Root,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  if bootstrap_parent_identity_ffi(self) {
     Ok({
       device: root_result_device_ffi(self),
       inode: root_result_inode_ffi(self),

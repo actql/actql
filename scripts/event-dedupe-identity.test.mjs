@@ -8,9 +8,9 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 test('event dedupe independently reseals grammar identities and retains window preimages', () => {
   const before = read('scripts/fixtures/pre-event-dedupe-values-identities.json');
   assert.deepEqual(before, read('scripts/fixtures/submitted-event-window-values-identities.json'));
-  const expected = eventDedupeIdentityOracle();
+  const expected = eventDedupeIdentityOracle({grammarPath:'scripts/fixtures/pre-row-watermark-query-grammar.ebnf',rulesPath:'scripts/fixtures/pre-row-watermark-query-rules.md'});
   assert.deepEqual(expected, read('scripts/fixtures/submitted-event-dedupe-values-identities.json'));
-  assert.deepEqual(expected.grammar, read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(expected, read('scripts/fixtures/pre-row-watermark-values-identities.json'));
   assert.equal(before.run_preimages.run.run_definition_cid,
     'sha256:04a7dab8cbc36acd31b768288dce3bf69d8924a17561c6dcd1a923dd3216b81f');
   assert.notEqual(expected.run_preimages.run.run_definition_cid, before.run_preimages.run.run_definition_cid);
