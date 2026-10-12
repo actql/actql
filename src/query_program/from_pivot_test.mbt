@@ -32,13 +32,35 @@ test "SELECT FROM PIVOT preserves its projected columns and ordering" {
 
 ///|
 test "FROM PIVOT matches independently authored producer stages" {
-  let expected = @program.parse(
+  let staged_control = @program.parse(
     (
       #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"aql_cte_0","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":"a","customer_id":"one","status":"open","amount":1},{"id":"b","customer_id":"two","status":"open","amount":2}]},"as":"orders"},{"from":"orders","pivot":{"index":["id","customer_id"],"column":"status","values":["open","closed"],"value":"amount","aggregate":"count"}},{"select":["id","customer_id",{"opened":"open"},"closed"],"as":"aql_cte_final"}],"results":{"rows":{"from":"aql_cte_final","fields":["id","customer_id","opened","closed"]}}},{"id":"main","inputs":{"aql_query_source_0":{"result":{"stage":"aql_cte_0","result":"rows"}}},"steps":[{"from":"aql_query_source_0","select":["id","customer_id","opened","closed"]},{"sort":[{"field":"id","dir":"asc","nulls":"first"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id","customer_id","opened","closed"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
   ).unwrap()
+  assert_true(
+    @check.check_parsed(
+      staged_control,
+      check_environment(),
+      None,
+      check_limits(),
+    )
+    is Checked(_),
+  )
+  // The same original postfix/projection/order bodies compose in one pipeline.
+  // Naming the projected FROM producer does not require a Stage boundary.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":"a","customer_id":"one","status":"open","amount":1},{"id":"b","customer_id":"two","status":"open","amount":2}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_3","pivot":{"index":["id","customer_id"],"column":"status","values":["open","closed"],"value":"amount","aggregate":"count"}},{"select":["id","customer_id",{"opened":"open"},"closed"],"as":"aql_script_cte_2"},{"from":"aql_script_cte_2","select":["id","customer_id","opened","closed"]},{"sort":[{"field":"id","dir":"asc","nulls":"first"}],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id","customer_id","opened","closed"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(expected, check_environment(), None, check_limits())
+    is Checked(_),
+  )
   for
     source in [
       "SELECT id,customer_id,opened,closed FROM orders PIVOT(COUNT(amount) FOR status IN ('open' AS opened,'closed')) ORDER BY id",

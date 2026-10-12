@@ -1,0 +1,267 @@
+[
+  {
+    "file": "from_pivot_test.mbt",
+    "program": {
+      "version": "actql/0.1",
+      "id": "fixture.query_pair",
+      "stages": [
+        {
+          "id": "aql_cte_0",
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "customer_id": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "status": {
+                    "type": "string",
+                    "nullable": false
+                  },
+                  "amount": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "a",
+                    "customer_id": "one",
+                    "status": "open",
+                    "amount": 1
+                  },
+                  {
+                    "id": "b",
+                    "customer_id": "two",
+                    "status": "open",
+                    "amount": 2
+                  }
+                ]
+              },
+              "as": "orders"
+            },
+            {
+              "from": "orders",
+              "pivot": {
+                "index": [
+                  "id",
+                  "customer_id"
+                ],
+                "column": "status",
+                "values": [
+                  "open",
+                  "closed"
+                ],
+                "value": "amount",
+                "aggregate": "count"
+              }
+            },
+            {
+              "select": [
+                "id",
+                "customer_id",
+                {
+                  "opened": "open"
+                },
+                "closed"
+              ],
+              "as": "aql_cte_final"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_cte_final",
+              "fields": [
+                "id",
+                "customer_id",
+                "opened",
+                "closed"
+              ]
+            }
+          }
+        },
+        {
+          "id": "main",
+          "inputs": {
+            "aql_query_source_0": {
+              "result": {
+                "stage": "aql_cte_0",
+                "result": "rows"
+              }
+            }
+          },
+          "steps": [
+            {
+              "from": "aql_query_source_0",
+              "select": [
+                "id",
+                "customer_id",
+                "opened",
+                "closed"
+              ]
+            },
+            {
+              "sort": [
+                {
+                  "field": "id",
+                  "dir": "asc",
+                  "nulls": "first"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "id",
+                "customer_id",
+                "opened",
+                "closed"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    }
+  },
+  {
+    "file": "from_unpivot_test.mbt",
+    "program": {
+      "version": "actql/0.1",
+      "id": "fixture.pipe_slots",
+      "stages": [
+        {
+          "id": "aql_cte_0",
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "x": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "y": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "x": 1,
+                    "y": 20
+                  },
+                  {
+                    "x": 2,
+                    "y": 10
+                  }
+                ]
+              },
+              "as": "t"
+            },
+            {
+              "from": "t",
+              "unpivot": {
+                "columns": [
+                  "x",
+                  "y"
+                ],
+                "keep": [],
+                "name_column": "aql_unpivot_name_2",
+                "value_column": "aql_unpivot_value_3"
+              }
+            },
+            {
+              "select": [
+                {
+                  "value": "aql_unpivot_value_3"
+                },
+                {
+                  "label": "aql_unpivot_name_2"
+                }
+              ],
+              "as": "aql_cte_final"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_cte_final",
+              "fields": [
+                "value",
+                "label"
+              ]
+            }
+          }
+        },
+        {
+          "id": "main",
+          "inputs": {
+            "aql_query_source_0": {
+              "result": {
+                "stage": "aql_cte_0",
+                "result": "rows"
+              }
+            }
+          },
+          "steps": [
+            {
+              "from": "aql_query_source_0",
+              "select": [
+                "value",
+                "label"
+              ]
+            },
+            {
+              "sort": [
+                {
+                  "field": "label",
+                  "dir": "asc",
+                  "nulls": "first"
+                },
+                {
+                  "field": "value",
+                  "dir": "asc",
+                  "nulls": "first"
+                }
+              ],
+              "as": "aql_gen_0"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "aql_gen_0",
+              "fields": [
+                "value",
+                "label"
+              ]
+            }
+          }
+        }
+      ],
+      "results": {
+        "answer": {
+          "from": {
+            "stage": "main",
+            "result": "rows"
+          }
+        }
+      }
+    }
+  }
+]
