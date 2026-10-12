@@ -14,7 +14,7 @@
 // A separate exact JS foreign-library review is recorded below; it does not
 // inherit the native-options rule or authorize arbitrary package kinds.
 export const packageConfigurationReview = Object.freeze({
-  revision: '22174e19f86b8bf8d56b434f344118d99d004d72',
+  revision: '9f2bfdb42dcfeac26104c160ed1c5b1770542f3f',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
