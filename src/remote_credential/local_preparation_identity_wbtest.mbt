@@ -130,13 +130,13 @@ test "Local preparation identity separately binds every original field and rejec
 
 ///|
 test "Local preparation identity leaves the existing Local resume and Remote vectors unchanged" {
-  let resume = local_credential_fixture_grant()
+  let resume_grant = local_credential_fixture_grant()
   assert_eq(
-    local_credential_grant_json(resume),
+    local_credential_grant_json(resume_grant),
     Ok(local_credential_expected_body),
   )
   assert_eq(
-    local_credential_grant_cid(resume),
+    local_credential_grant_cid(resume_grant),
     "sha256:d2e42a0c51b75d996bf9c1c87e9b9fe99ea71048769f15393aec553efb8e5423",
   )
   let remote = credential_grant()
