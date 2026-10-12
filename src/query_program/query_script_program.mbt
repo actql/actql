@@ -53,6 +53,9 @@ fn lower_script_relation(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
   )
   let query = @query.after_query_bindings(query)
+  let (query, known) = lower_script_relation_primary(
+    construction, query, known, context, sources, limits, steps, reserved,
+  )
   let current = lower_script_primary(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
   )
@@ -436,6 +439,9 @@ pub fn compile_query_script(
       limits,
       steps,
       reserved,
+    )
+    let (root, known) = lower_script_relation_primary(
+      construction, root, known, context, sources, limits, steps, reserved,
     )
     let primary_graph = lower_script_primary(
       construction, root, known, graphs, context, sources, limits, steps, reserved,

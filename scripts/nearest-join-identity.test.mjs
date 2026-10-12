@@ -7,9 +7,9 @@ const read=path=>JSON.parse(readFileSync(path,'utf8'));
 test('JOIN continuation preserves complete parent identities and changes only authored rules',()=>{
   const before=read('scripts/fixtures/pre-nearest-join-values-identities.json');
   assert.deepEqual(before,read('scripts/fixtures/submitted-nearest-continuation-values-identities.json'));
-  const after=nearestJoinIdentityOracle();
+  const after=nearestJoinIdentityOracle({grammarPath:'reviews/2026-10-12-frontend-time-series-primary/preimages/query-grammar.ebnf',rulesPath:'reviews/2026-10-12-frontend-time-series-primary/preimages/query-rules.md'});
   assert.deepEqual(after,read('scripts/fixtures/submitted-nearest-join-values-identities.json'));
-  assert.deepEqual(after.grammar,read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(after.grammar,read('reviews/2026-10-12-frontend-time-series-primary/preimages/grammar-manifest.json'));
   assert.deepEqual(after.values_dependencies,before.values_dependencies);
   assert.deepEqual(after.program_identity,before.program_identity);
   assert.deepEqual(after.grammar,{...before.grammar,

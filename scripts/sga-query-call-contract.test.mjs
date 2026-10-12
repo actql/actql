@@ -468,7 +468,10 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const {grammar_manifest_cid: joinCid, ...joinBody} = read('scripts/fixtures/submitted-nearest-join-values-identities.json').grammar;
   assert.equal(cid(joinBody), joinCid);
   assert.deepEqual(joinBody, {...continuationBody,query_text_rules_sha256:joinBody.query_text_rules_sha256});
-  assert.deepEqual(currentBody, joinBody);
+  const {grammar_manifest_cid: seriesCid, ...seriesBody} = read('scripts/fixtures/submitted-time-series-primary-values-identities.json').grammar;
+  assert.equal(cid(seriesBody), seriesCid);
+  assert.deepEqual(seriesBody, {...joinBody,query_text_grammar_sha256:seriesBody.query_text_grammar_sha256,query_text_rules_sha256:seriesBody.query_text_rules_sha256});
+  assert.deepEqual(currentBody, seriesBody);
   assert.deepEqual(nearestBody, {...submittedLagBody,
     query_text_grammar_sha256: nearestBody.query_text_grammar_sha256,
     query_text_rules_sha256: nearestBody.query_text_rules_sha256});
@@ -476,7 +479,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
   assert.equal(beforeInnerBody.query_text_rules_sha256, "afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e");
-  assert.equal(cid(currentBody), joinCid);
+  assert.equal(cid(currentBody), seriesCid);
   // Preserve the complete predecessor before adding a numeric type alias.
   const {grammar_manifest_cid: beforeDoubleCid, ...beforeDoubleBody} =
     read('scripts/fixtures/pre-double-type-alias-grammar.json').grammar;
@@ -524,9 +527,9 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_rules_sha256: '40d9b9fdbc9180c7d4967c58951f262b1b0fbfa050896cac1dd295c45200be86'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
-  assert.equal(grammar_manifest_cid, joinCid);
+  assert.equal(grammar_manifest_cid, seriesCid);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
-    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), joinCid);
+    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), seriesCid);
   }
 });
 
