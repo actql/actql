@@ -8,9 +8,9 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 test('event windows independently reseal grammar identities and retain pooling preimages', () => {
   const before = read('scripts/fixtures/pre-event-window-values-identities.json');
   assert.deepEqual(before, read('scripts/fixtures/submitted-vector-pool-values-identities.json'));
-  const expected = eventWindowIdentityOracle();
+  const expected = eventWindowIdentityOracle({grammarPath:'scripts/fixtures/pre-event-dedupe-query-grammar.ebnf',rulesPath:'scripts/fixtures/pre-event-dedupe-query-rules.md'});
   assert.deepEqual(expected, read('scripts/fixtures/submitted-event-window-values-identities.json'));
-  assert.deepEqual(expected.grammar, read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(expected, read('scripts/fixtures/pre-event-dedupe-values-identities.json'));
   assert.equal(before.run_preimages.run.run_definition_cid,
     'sha256:663b66b4834fbd848ec592e8b06cbbf01773015bc0720b610ac70a0894be0884');
   assert.notEqual(expected.run_preimages.run.run_definition_cid, before.run_preimages.run.run_definition_cid);

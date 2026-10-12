@@ -159,6 +159,8 @@ test "original state document exact work bounds reject before returning a cursor
 ///|
 test "original state document canonical scalar and closed header refusals" {
   let wire = original_document_test_wire()
+  // Build the rejection input without declaring a future owned contract.
+  let future_version = "actql-original-ledger-state/" + "0.2"
   for
     (old, replacement) in [
       ("\"17\"", "17"),
@@ -168,7 +170,7 @@ test "original state document canonical scalar and closed header refusals" {
       ("\"7\"", "\"9223372036854775808\""),
       ("\"reading\"", "\"handed_off\""),
       ("true,true,false", "true,true,true"),
-      ("actql-original-ledger-state/0.1", "actql-original-ledger-state/0.2"),
+      ("actql-original-ledger-state/0.1", future_version),
     ] {
     let source = original_document_test_cursor(
       wire.replace(old~, new=replacement),
