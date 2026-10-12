@@ -21,6 +21,7 @@ from ._local_distribution import installed_local_components, load_local_module
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation
 from ._local_run import LocalRunCustody, _RunConfiguration
+from ._local_storage import ByteWrite, LocalStorageError
 from ._values import wire_bytes
 
 _T = TypeVar('_T')
@@ -201,6 +202,68 @@ class InstalledLocalHost:
                 raise ValueError('Invalid installed Local Host profile')
             return profile
 
+    def _retain_intent(self, reference: object, intent: bytes) -> _Output:
+        """Keep the original unchecked intent before invoking preparation.
+
+        Core selects the same issued CAS and preparing row. Physical success
+        acknowledges only those original rows, never a Run or execution. A
+        failed or unknown COMMIT retains the same output/input loans; this
+        method does not retry, reconstruct a reference or reissue an epoch.
+        """
+        installation = self._active()
+        if installation._epoch is None or installation._store is None or self._configuration is None:
+            raise ValueError('Original Local submission suppliers are unavailable')
+        with self._core._lock:
+            # Authentication is performed by the original physical epoch
+            # supplier. Its Core projection checks current original scope.
+            identity = installation._epoch.identity(reference)
+            raw = wire_bytes({'reference': wire_bytes(reference).decode('utf-8'),  # type: ignore[no-untyped-call]
+                              'intent': intent.decode('utf-8'),
+                              'now': installation._epoch._observed_clock})
+            source = self._copy(raw)
+            configuration = self._configuration
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 3, cleanup=lambda: True))
+            self._projections.append(output)
+            captured: list[dict[str, Any]] = []
+            def observe(current: _Output) -> None:
+                self._core.produce_submission_append(output, current)
+                captured.append(_object(self._core.read_submission_append(output, current), 1048576))
+            installation.binding.inspect(observe)
+            candidate = captured[0]
+            kind = candidate.get('kind')
+            fields = ({'kind', 'key', 'body', 'issued_revision', 'issued_body'} if kind == 'append'
+                      else {'kind', 'key', 'body', 'revision'} if kind == 'retained' else set())
+            if (not fields or set(candidate) != fields or
+                    any(type(candidate[name]) is not str for name in fields) or
+                    candidate['key'] != identity.request_id):
+                raise ValueError('Invalid original Core submitted intent projection')
+            if kind == 'retained':
+                # A retained preparing or ready record is observation only.
+                # Run/phase explanation must come from its original Core Owner.
+                return output
+            revision = candidate['issued_revision']
+            if (not revision.isascii() or not revision.isdecimal() or
+                    (len(revision) > 1 and revision.startswith('0')) or
+                    len(revision) > 19 or int(revision) > 2**63 - 1):
+                raise ValueError('Invalid original Core issued generation')
+            store = installation._store
+            writes = (
+                ByteWrite(store.namespaced_key('client_submitted_intent_custody', 'issued'),
+                          int(revision), candidate['issued_body'].encode('utf-8')),
+                ByteWrite(store.namespaced_key('client_submitted_intents', candidate['key']),
+                          None, candidate['body'].encode('utf-8')),
+            )
+            with installation.binding.fenced() as fences:
+                def inspect(reader: Any) -> None:
+                    installation.binding.inspect_reader(reader, lambda current:
+                        self._core.validate_submission_append(output, current))
+                result = store.compare_exchange_many_inspected(
+                    writes, fences, inspect=inspect, current=installation.binding.current)
+            if result is None:
+                raise LocalStorageError('Original Local submitted intent write conflicted; lookup is required')
+            return output
+
     def close(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
@@ -209,7 +272,9 @@ class InstalledLocalHost:
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
             for output in tuple(reversed(self._projections)):
-                if not self._core.close_submission_projection(output):
+                closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
+                          else self._core.close_submission_projection(output))
+                if not closed:
                     return False
                 self._projections.remove(output)
             if self._configuration is not None:

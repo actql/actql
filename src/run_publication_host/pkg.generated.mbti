@@ -837,6 +837,8 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
+pub fn client_submission_epoch_token_authority_scope_cid(ClientSubmissionEpochToken) -> String
+
 pub fn client_submission_epoch_token_body(ClientSubmissionEpochToken) -> @logical_request_scope.SubmissionEpoch
 
 pub fn client_submission_epoch_token_tag(ClientSubmissionEpochToken) -> Bytes
