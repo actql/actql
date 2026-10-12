@@ -7,6 +7,8 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {buildSync} from 'esbuild';
 import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
+// Keep the deferred-initialization regressions in the ordinary cold-pack gate.
+import './deferred-function-runtime.test.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 // Independent command inventory: runtime preparation keeps its build, type,
