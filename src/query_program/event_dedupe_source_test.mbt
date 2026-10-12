@@ -95,31 +95,70 @@ test "P2 shorthand dedupe order keeps typed field names and omitted null placeme
 
 ///|
 test "P2 dedupe common refusals keep wrong Carrier and exact OrderKey causes" {
-  let prefix = "WITH rows AS (" + event_dedupe_rows() + "), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) "
+  let prefix = "WITH rows AS (" +
+    event_dedupe_rows() +
+    "), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) "
   let cases : Array[(String, @pipeline.IssueKind)] = [
-    ("FROM rows |> dedupe_events(by: [], order_by: [{event_id: 'asc'}])", Event(WrongCarrier(RelationKind))),
+    (
+      "FROM rows |> dedupe_events(by: [], order_by: [{event_id: 'asc'}])",
+      Event(WrongCarrier(RelationKind)),
+    ),
     ("FROM ev |> dedupe_events(by: [], order_by: [])", Event(InvalidOrder)),
-    ("FROM ev |> dedupe_events(by: [], order_by: [{score: 'ASC'}])", Event(InvalidOrder)),
-    ("FROM ev |> dedupe_events(by: [], order_by: [{field: score, dir: 'asc', nulls: 'LAST'}])", Event(InvalidOrder)),
-    ("FROM ev |> dedupe_events(by: [], order_by: [{field: score, dir: 'asc'}])", Event(Decode(MissingField))),
+    (
+      "FROM ev |> dedupe_events(by: [], order_by: [{score: 'ASC'}])",
+      Event(InvalidOrder),
+    ),
+    (
+      "FROM ev |> dedupe_events(by: [], order_by: [{field: score, dir: 'asc', nulls: 'LAST'}])",
+      Event(InvalidOrder),
+    ),
+    (
+      "FROM ev |> dedupe_events(by: [], order_by: [{field: score, dir: 'asc'}])",
+      Event(Decode(MissingField)),
+    ),
   ]
   for (call, expected) in cases {
     assert_eq(event_window_issue(prefix + call), expected)
   }
-  for order in ["[{missing: 'asc'}]", "[{`SCORE`: 'asc'}]", "[{field: missing, dir: 'asc', nulls: 'last'}]"] {
-    assert_true(with_carrier_program(event_dedupe_source("[]", order), {..pair_context(), inputs: [],}) is Err(UnknownColumn), msg=order)
+  for
+    order in [
+      "[{missing: 'asc'}]", "[{`SCORE`: 'asc'}]", "[{field: missing, dir: 'asc', nulls: 'last'}]",
+    ] {
+    assert_true(
+      with_carrier_program(event_dedupe_source("[]", order), {
+        ..pair_context(),
+        inputs: [],
+      })
+      is Err(UnknownColumn),
+      msg=order,
+    )
   }
-  assert_true(with_carrier_program(prefix + "FROM ev |> dedupe_events(by: [], order_by: [{score: 'asc'}], max_output_rows: 1)", {..pair_context(), inputs: [],}) is Err(InvalidQuery))
+  assert_true(
+    with_carrier_program(
+      prefix +
+      "FROM ev |> dedupe_events(by: [], order_by: [{score: 'asc'}], max_output_rows: 1)",
+      { ..pair_context(), inputs: [], },
+    )
+    is Err(InvalidQuery),
+  )
 }
 
 ///|
 test "P2 dedupe cannot resurrect a dropped grouping field or range alias" {
   let rows = "WITH rows AS (" + event_dedupe_rows() + ") "
-  for call in [
-    "dedupe_events(by: [bucket], order_by: [{event_id: 'asc'}])",
-    "dedupe_events(by: [], order_by: [{old.event_id: 'asc'}])",
-  ] {
-    assert_true(with_carrier_program(rows + "FROM rows |> AS old |> SELECT event_id, occurred_ms |> to_events(id: event_id, time: occurred_ms) |> " + call,
-      {..pair_context(), inputs: [],}) is Err(UnknownColumn), msg=call)
+  for
+    call in [
+      "dedupe_events(by: [bucket], order_by: [{event_id: 'asc'}])", "dedupe_events(by: [], order_by: [{old.event_id: 'asc'}])",
+    ] {
+    assert_true(
+      with_carrier_program(
+        rows +
+        "FROM rows |> AS old |> SELECT event_id, occurred_ms |> to_events(id: event_id, time: occurred_ms) |> " +
+        call,
+        { ..pair_context(), inputs: [], },
+      )
+      is Err(UnknownColumn),
+      msg=call,
+    )
   }
 }
