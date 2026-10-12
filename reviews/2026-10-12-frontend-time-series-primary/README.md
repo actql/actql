@@ -38,6 +38,11 @@ test filename in `run-CBcBHD` and missing exhaustive dependency-visitor arm in
 assertion recognized only the Catalog prefix wrapper; it now checks the same
 exact TimeSeries cause through both existing Local and Catalog wrappers. These
 failures remain retained, not relabeled as final success.
+The first fixed-source run-zibiAU passed JS26/26 but Node134/135: a historical
+continuation oracle still read the current EBNF, which now includes the new
+Relation primary. That oracle now reads the retained parent EBNF as well as
+its retained rules. Historical bodies/CIDs and product source are unchanged;
+later checks are recorded at their own new fixed HEAD.
 
 Grammar/rules/profile and current grammar-bound Values identities are updated
 through the existing generators and independent complete-preimage oracle. All
