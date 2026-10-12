@@ -1,0 +1,276 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "WITH Graph rows JOIN and Subgraph retained current callers, independent complete Programs, scoped refs, common typed malformed-body refusals and NULL-bearing task-bound Source compile control.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-graph-selector-original-callers.json",
+  "correction": "with-graph-selector-boundary-correction.json",
+  "unexecuted": [
+    "Host Local/HTTPS Named Result execution",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-mlNA3E",
+      "source": "253ede402e609ee9574b5bdab093b0d33dd46b9f",
+      "tree": "79f6330a5c8d784e949d1d17141d9fd5710b8f52",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 87977,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_rows_join_input_test.mbt",
+          "src/query_program/subgraph_source_test.mbt",
+          "src/query_program/subgraph_public_source_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/local-checks/output.log",
+          "sha256": "e9bdda68230333099b8ab23a699d6f86095a18e51a3118372d7a8bad32bd9ef2"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/local-checks/summary.json",
+          "sha256": "613e748d887b399397c125362b4717a8915ef00e18cda79b1fa3545f640b0853"
+        },
+        "focused-test-XJ5JSh/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/0001.summary.json",
+          "sha256": "cca9783020ddb189133a8ecfcd49b785fc749ca306a8e6e82816668690b9cca0"
+        },
+        "focused-test-XJ5JSh/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/0002.summary.json",
+          "sha256": "332f972ea0d43074f66136df3be723a7fc77dc8640f4566d59cc7083e1805883"
+        },
+        "focused-test-XJ5JSh/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/0003.summary.json",
+          "sha256": "8bd5d9e3afb7d7947e0276aeb446f35eba2e22f1ad803ecf77ac7551e0224682"
+        },
+        "focused-test-XJ5JSh/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/0004.summary.json",
+          "sha256": "da052ce992a853c49b5c8bcbd1028bc404f865256e97b556c56119ecc12fd6e7"
+        },
+        "focused-test-XJ5JSh/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/001.result.json",
+          "sha256": "8c875f2d2b293ab18e4bd56413798dcbc2de0d62124865be6f55c2392e0fe24c"
+        },
+        "focused-test-XJ5JSh/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/001.started.json",
+          "sha256": "9e1bf06045371f435d37b317cbd444416bbe91ede67730dfb0edc54555de8177"
+        },
+        "focused-test-XJ5JSh/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-XJ5JSh/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/001.stdout.log",
+          "sha256": "13e7cb97ccec66a384edc58acf102b464ccf8a20e1209a8348ae167340a567f8"
+        },
+        "focused-test-XJ5JSh/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-mlNA3E/focused-test-XJ5JSh/summary.json",
+          "sha256": "da052ce992a853c49b5c8bcbd1028bc404f865256e97b556c56119ecc12fd6e7"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 11,
+        "passed": 9,
+        "failed": 2
+      }
+    },
+    {
+      "run": "run-muzlz5",
+      "source": "86dd6b9d2c1fdb9c36f8d1ecaf6ad95ae6df74e9",
+      "tree": "d8d0969d184a19bc3d34f9863c9dcee43fe2e2aa",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 89701,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_rows_join_input_test.mbt",
+          "src/query_program/subgraph_source_test.mbt",
+          "src/query_program/subgraph_public_source_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-muzlz5/local-checks/output.log",
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-muzlz5/local-checks/summary.json",
+          "sha256": "ee54ef2f4597cc85dddd12bae0185adcc10e184e1bc2038d569b85b297f3466f"
+        }
+      },
+      "formatter": "completed; one source whitespace-only diff subsequently committed in 04bf24d8e"
+    },
+    {
+      "run": "run-71pek9",
+      "source": "04bf24d8e58f0d0aa0d5d09b13fe900bd784693c",
+      "tree": "5541200d6e72f738126e7ee281a00af9794e14cd",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 89918,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_rows_join_input_test.mbt",
+          "src/query_program/subgraph_source_test.mbt",
+          "src/query_program/subgraph_public_source_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/local-checks/output.log",
+          "sha256": "554b70fb485cce934ec601fc6b2f33f9214672fa20504370ea4da05ad777e0c5"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/local-checks/summary.json",
+          "sha256": "cb7ff36aa4f16fd1d1246cb8d451f638165bfcc43a9024bc38f090a40640a9f9"
+        },
+        "focused-test-XUMU67/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/0001.summary.json",
+          "sha256": "064423f489ba2cd9002e96d67e867fa77888fdfaa8d0dc5e3891649cfbedb54a"
+        },
+        "focused-test-XUMU67/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/0002.summary.json",
+          "sha256": "1ab03dad8cfbff983f13aa5f788ec8746205a71821de152000cb7435a0e7c075"
+        },
+        "focused-test-XUMU67/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/0003.summary.json",
+          "sha256": "62401233b77b93f12f1976b7b8bb3dc487a031c88dc096e72421cbd0f70d8cb4"
+        },
+        "focused-test-XUMU67/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/0004.summary.json",
+          "sha256": "0c6d0504da82f49e29b12ad3f0f29befb4453e16260627bd83487328a38b6979"
+        },
+        "focused-test-XUMU67/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/001.result.json",
+          "sha256": "39df89dd1c6c07688c7eca0c1f14a5f61be43d94ee33941702f4c53632c1c8f2"
+        },
+        "focused-test-XUMU67/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/001.started.json",
+          "sha256": "c98fdec5d746694f704bad87e007616a149e36776e3d77b53bcb283ce756d2dd"
+        },
+        "focused-test-XUMU67/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-XUMU67/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/001.stdout.log",
+          "sha256": "4066682a4b79dee20cbffc44765563dd74067f0a03650a718c190c1a9da79155"
+        },
+        "focused-test-XUMU67/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-71pek9/focused-test-XUMU67/summary.json",
+          "sha256": "0c6d0504da82f49e29b12ad3f0f29befb4453e16260627bd83487328a38b6979"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 11,
+        "passed": 10,
+        "failed": 1
+      }
+    },
+    {
+      "run": "run-gFzEmD",
+      "source": "853bfd6fc7b2b10e5dee9370e92c3531fce00496",
+      "tree": "deab7910571a77351a10f5e4f2f3385f0b3f36a1",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 90414,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_rows_join_input_test.mbt",
+          "src/query_program/subgraph_source_test.mbt",
+          "src/query_program/subgraph_public_source_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/local-checks/output.log",
+          "sha256": "9959ea86797f1097bb512e0cee51f145e4197e3b1ed1f5de0e174f06e63e4e09"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/local-checks/summary.json",
+          "sha256": "f78cdd0788a4faf3b730131eeb778e694e484040497d0aff4e6ceeb108d99671"
+        },
+        "focused-test-yZ4UkL/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/0001.summary.json",
+          "sha256": "e34f5e9aea5ba65afaf40a470f5f839588258f85b22fd09ece0ffcb26a8d57b5"
+        },
+        "focused-test-yZ4UkL/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/0002.summary.json",
+          "sha256": "975b51f2be37787a148c08a8ba68cbd037f76c99213ccccedcd786fe4ee424da"
+        },
+        "focused-test-yZ4UkL/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/0003.summary.json",
+          "sha256": "eafccafc4629ae1f0a70b89d034babfc02c551d34b1956604e921bd9a3f2ca5e"
+        },
+        "focused-test-yZ4UkL/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/0004.summary.json",
+          "sha256": "c808f31f4aa370e5ca47ea0a4bcf1f8307fa9b96ab57616cb08d606c92f529e5"
+        },
+        "focused-test-yZ4UkL/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/001.result.json",
+          "sha256": "7dbf9791ee03585aee428e3f0b116848e1f38c7cbfb92c6a65d41256845e0f0a"
+        },
+        "focused-test-yZ4UkL/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/001.started.json",
+          "sha256": "81faf5fdb704802067d2b342e99f8606c91b506f18eeaca3f82a34995fbafcdf"
+        },
+        "focused-test-yZ4UkL/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-yZ4UkL/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/001.stdout.log",
+          "sha256": "f3cce346a168da9127e82fa09504d0d8393441a20c0ef912e3cf2caaa80e2cfc"
+        },
+        "focused-test-yZ4UkL/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-selector-retirement-evidence/run-gFzEmD/focused-test-yZ4UkL/summary.json",
+          "sha256": "c808f31f4aa370e5ca47ea0a4bcf1f8307fa9b96ab57616cb08d606c92f529e5"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 11,
+        "passed": 11,
+        "failed": 0
+      }
+    }
+  ]
+}

@@ -6134,8 +6134,8 @@ would later be excluded. NULL or missing endpoints exclude an edge without
 inventing nodes. These are different rules from legacy equal-payload collapse.
 
 Domain issuance projects resolved constructor source references to ordered
-input occurrences and retains the unbound producer definitions. Outer DATA
-aliases and source locations do not enter identity. Neither bound Artifact
+input occurrences and retains the unbound producer definitions. Outer WITH
+binding names and source locations do not enter identity. Neither bound Artifact
 CIDs, parameter values, Run/Invocation CIDs nor Graph content enters the
 domain. Editing inline VALUES or semantic mapping defines a different domain;
 cross-domain comparison has no implicit compatibility mapping. Within one
@@ -6144,7 +6144,7 @@ snapshot content, not element identity. SourceView inputs retain the original
 Stage declaration and the selected Catalog Carrier owner. Their domain
 projection includes the unbound Source declaration, the canonical static
 Carrier schema body CID and the selected SourceView member body CID; it does
-not include the enclosing Program ID, DATA alias or Environment bundle CID.
+not include the enclosing Program ID, WITH binding name or Environment bundle CID.
 The common checker requires the original Stage's steps and registered input,
 and SourceView attachment requires the exact selected Catalog owner. This
 retention is not acquisition or execution permission: the existing request,

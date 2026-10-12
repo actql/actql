@@ -38,12 +38,12 @@ export const graphUnionProgram = {version: 'actql/0.1', id: 'fixture.graph_union
     edges: {from: 'edge_projection', fields: ['w', 'part', 'edge_key', 'labels']}}}],
   results: {nodes: {from: {stage: 'main', result: 'nodes'}},
     edges: {from: {stage: 'main', result: 'edges'}}}};
-const data = 'DATA n = SELECT 7 AS part, 1 AS node_key, 7 AS p; ' +
-  'DATA e = SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
-  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w; ';
-const definition = 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
+const data = 'WITH n AS (SELECT 7 AS part, 1 AS node_key, 7 AS p) ' +
+  ', e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
+  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w) ';
+const definition = ', g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
   'EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N ' +
-  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w))); ';
+  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))) ';
 const policy = strategy => `{node_properties: {p: '${strategy}'}, edge_properties: {w: '${strategy}'}}`;
 // The query-script contract has one terminal query. Both projections have
 // independent source submissions; the JSON control also checks both consumers
@@ -58,19 +58,19 @@ const textCase = (name, body, results) => ['nodes', 'edges'].map(kind => ({
 export const graphUnionSourceSuccesses = [
   {name: 'graph-union-independent-json', format: 'json', text: JSON.stringify(graphUnionProgram),
     results: result(21, 6, 15), sourceReadCount: 0},
-  ...textCase('repeated-peer-list', `DATA combined = FROM g |> union_graphs(with: [g, g], merge: ${policy('number_sum')}); `,
+  ...textCase('repeated-peer-list', `, combined AS (FROM g |> union_graphs(with: [g, g], merge: ${policy('number_sum')})) `,
     result(21, 6, 15)),
-  ...textCase('uppercase-merge-vocabulary', "DATA combined = FROM g |> UNION_GRAPHS(WITH: [g, g], MERGE: {NODE_PROPERTIES: {p: 'number_sum'}, EDGE_PROPERTIES: {w: 'number_sum'}}); ",
+  ...textCase('uppercase-merge-vocabulary', ", combined AS (FROM g |> UNION_GRAPHS(WITH: [g, g], MERGE: {NODE_PROPERTIES: {p: 'number_sum'}, EDGE_PROPERTIES: {w: 'number_sum'}})) ",
     result(21, 6, 15)),
-  ...textCase('quoted-merge-vocabulary', "DATA combined = FROM g |> union_graphs(with: [g, g], merge: {`Node_Properties`: {P: 'number_sum'}, `Edge_Properties`: {W: 'number_sum'}}); ",
+  ...textCase('quoted-merge-vocabulary', ", combined AS (FROM g |> union_graphs(with: [g, g], merge: {`Node_Properties`: {P: 'number_sum'}, `Edge_Properties`: {W: 'number_sum'}})) ",
     result(21, 6, 15)),
-  ...textCase('single-peer', `DATA combined = FROM g |> union_graphs(with: g, merge: ${policy('number_sum')}); `,
+  ...textCase('single-peer', `, combined AS (FROM g |> union_graphs(with: g, merge: ${policy('number_sum')})) `,
     result(14, 4, 10)),
-  ...textCase('quoted-alias', `DATA \`peer graph\` = FROM g; DATA combined = FROM g |> union_graphs(with: \`peer graph\`, merge: ${policy('number_sum')}); `,
+  ...textCase('quoted-alias', `, \`peer graph\` AS (FROM g) , combined AS (FROM g |> union_graphs(with: \`peer graph\`, merge: ${policy('number_sum')})) `,
     result(14, 4, 10)),
-  ...textCase('forward-fold-order', `DATA doubled = FROM g |> union_graphs(with: g, merge: ${policy('number_sum')}); DATA combined = FROM g |> union_graphs(with: [doubled, g], merge: ${policy('number_mean')}); `,
+  ...textCase('forward-fold-order', `, doubled AS (FROM g |> union_graphs(with: g, merge: ${policy('number_sum')})) , combined AS (FROM g |> union_graphs(with: [doubled, g], merge: ${policy('number_mean')})) `,
     result(8.75, 2.5, 6.25)),
-  ...textCase('reverse-fold-order', `DATA doubled = FROM g |> union_graphs(with: g, merge: ${policy('number_sum')}); DATA combined = FROM g |> union_graphs(with: [g, doubled], merge: ${policy('number_mean')}); `,
+  ...textCase('reverse-fold-order', `, doubled AS (FROM g |> union_graphs(with: g, merge: ${policy('number_sum')})) , combined AS (FROM g |> union_graphs(with: [g, doubled], merge: ${policy('number_mean')})) `,
     result(10.5, 3, 7.5)),
   {name: 'graph-union-direct-relation-transition', format: 'aql-text',
     text: data + definition + `FROM g |> union_graphs(with: [g, g], merge: ${policy('number_sum')}) |> edge_rows(definition: 'E') |> WHERE w > 10 |> SELECT edge_key, w |> ORDER BY edge_key |> LIMIT 1 |> RESULT selected`,
@@ -82,11 +82,11 @@ export const graphUnionSourceRefusals = [
   'FROM g |> union_graphs(with: []) |> node_rows() |> SELECT p',
   'FROM g |> union_graphs(with: missing) |> node_rows() |> SELECT p',
   'FROM g |> union_graphs(with: n) |> node_rows() |> SELECT p',
-  'DATA combined = FROM g |> union_graphs(with: later); DATA later = FROM g; ' + outputs.nodes,
+  ', combined AS (FROM g |> union_graphs(with: later)) , later AS (FROM g) ' + outputs.nodes,
   'FROM g |> union_graphs(with: g, extra: true) |> node_rows() |> SELECT p',
   "FROM g |> union_graphs(with: g, merge: {node_properties: {p: 'unknown'}}) |> node_rows() |> SELECT p",
   'FROM g |> node_rows() |> union_graphs(with: g) |> SELECT p',
-  'DATA m = SELECT 7 AS part, 2 AS node_key, 7 AS p; DATA h = PROPERTY GRAPH (NODE TABLES (m AS N KEY (part, node_key) LABEL Person PROPERTIES (p))); FROM g |> union_graphs(with: h) |> node_rows() |> SELECT p',
+  ', m AS (SELECT 7 AS part, 2 AS node_key, 7 AS p) , h AS (GRAPH (NODE TABLES (m AS N KEY (part, node_key) LABEL Person PROPERTIES (p)))) FROM g |> union_graphs(with: h) |> node_rows() |> SELECT p',
 ].map((body, index) => ({name: 'graph-union-refuse-' + index, format: 'aql-text',
   text: data + definition + body,
   expectedCode: index === 7 ? 'ClientProgramInvalidInput' :
@@ -101,5 +101,5 @@ export const graphUnionSourceRefusals = [
   expectedCode: 'ClientProgramInvalidInput'})));
 export const graphUnionSourceExecutionFailures = ['nodes', 'edges'].map(kind => ({name: 'graph-union-unselected-conflict-policy-' + kind,
   format: 'aql-text', text: data + definition +
-    `DATA doubled = FROM g |> union_graphs(with: g, merge: ${policy('number_sum')}); DATA combined = FROM doubled |> union_graphs(with: g); ` + outputs[kind],
+    `, doubled AS (FROM g |> union_graphs(with: g, merge: ${policy('number_sum')})) , combined AS (FROM doubled |> union_graphs(with: g)) ` + outputs[kind],
   resultNames: [kind], sourceReadCount: 0}));

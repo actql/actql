@@ -1,0 +1,11 @@
+{
+  "source": "703d4cc02d202d3434ac8b536a4e7d6396163c84",
+  "derivation": [
+    "Source-free n reserves cte0/seed1; Graph reserves with_graph2; chosen Relation reserves cte3 with original MATCH seed4. Complete independent lowering changes only these names.",
+    "Independent ordinary JSON controls and public expected rows/full ordered columns/counts are byte-preserved. Historical case IDs remain stable, while active caller/file/selection names use WITH.",
+    "The adopted unified query owner permits pure projected Graph MATCH in nested WITH and derived-table bodies. Former blanket CTE/derived-table parse refusals become normal checked cases.",
+    "RESULT is forbidden in a pure producer body by the existing parser Syntax reason; its public refusal is InvalidInput rather than the retired DATA lowerer's UnsupportedResult implementation-limit route. INFER/Effect placement is preserved."
+  ],
+  "preserved": ["NULL/empty schema", "original property versus pattern/private identity", "quoted binding name and star projection", "parallel keyed TRAIL multiplicity", "Source predicate id = 2", "one Native read session with two owned read operations", "Result order and full column contracts"],
+  "public_execution": "not performed"
+}

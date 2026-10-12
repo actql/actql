@@ -10,13 +10,9 @@ import {
 // Values
 pub fn after_graph_calls(Query) -> Query
 
-pub fn cte_at(Query, Int) -> CtePart?
+pub fn after_producer_primary(Query) -> Query
 
-pub fn cte_count(Query) -> Int
-
-pub fn data_declaration_at(QueryScript, Int) -> DataDeclaration?
-
-pub fn data_declaration_count(QueryScript) -> Int
+pub fn after_query_bindings(Query) -> Query
 
 pub fn effect_result_continuation(Query, NamePart) -> (Query, Query)?
 
@@ -44,6 +40,8 @@ pub fn final_operation_count(Query) -> Int
 
 pub fn graph_query(Query) -> GraphQuery?
 
+pub fn graph_source_query(Query) -> Query
+
 pub fn has_sga_relation_lowering(String) -> Bool
 
 pub fn join_part_at(Query, Int) -> JoinPart?
@@ -67,6 +65,12 @@ pub fn parse_relation_path(String, LexicalLimits, source_path? : String) -> Resu
 pub fn parse_sga_call(String, QueryLimits, source_path? : String) -> Result[SgaCall, Diagnostic]
 
 pub fn positional_output(Query) -> Bool
+
+pub fn producer_primary(Query) -> ProducerPrimary?
+
+pub fn query_binding_at(Query, Int) -> QueryBinding?
+
+pub fn query_binding_count(Query) -> Int
 
 pub fn query_document(Query) -> @frontend_source_map.Document
 
@@ -159,25 +163,6 @@ pub(all) enum CastType {
   Timestamp
   Decimal(Int, Int)
 } derive(Eq, @debug.Debug)
-
-pub(all) struct CtePart {
-  name : NamePart
-  query : Query
-  carry_ranges : Bool
-}
-
-pub(all) struct DataDeclaration {
-  name : NamePart
-  value : DataExpression
-  start : Int
-  end : Int
-}
-
-pub(all) enum DataExpression {
-  RelationQuery(Query)
-  Graph(GraphConstructor)
-  NamedGraphCall(SgaCall)
-}
 
 pub(all) struct Diagnostic {
   issue : Issue
@@ -310,7 +295,6 @@ pub(all) enum GraphPropertySelection {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct GraphQuery {
-  label_field : String?
   pattern : GraphPattern?
 }
 
@@ -410,6 +394,11 @@ pub(all) struct PivotClause {
   values : Array[(String, NamePart?)]
 }
 
+pub(all) enum ProducerPrimary {
+  GraphValue(GraphConstructor)
+  GraphGenerator(SgaCall)
+}
+
 pub(all) struct Projection {
   expression : Expression?
   aggregate : AggregateCall?
@@ -421,6 +410,18 @@ pub(all) struct Projection {
 }
 
 type Query
+
+pub(all) struct QueryBinding {
+  name : NamePart
+  query : Query
+  origin : QueryBindingOrigin
+  carry_ranges : Bool
+}
+
+pub(all) enum QueryBindingOrigin {
+  AuthoredWith(NamePart, Int, Int)
+  RelationalContinuation
+} derive(Eq, @debug.Debug)
 
 pub(all) enum QueryInteger {
   Integer(Int64)
@@ -482,6 +483,7 @@ pub(all) struct SetPart {
 
 pub(all) enum SgaArgument {
   Producer(NamePart)
+  FieldReference(Array[NamePart])
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
@@ -521,7 +523,6 @@ pub struct Token {
   value : Lexeme
   start : Int
   end : Int
-  annotation_compatible : Bool
 } derive(Eq, @debug.Debug)
 
 type Tokens

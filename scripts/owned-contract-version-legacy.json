@@ -1635,6 +1635,78 @@
       "line": 5497,
       "count": 1,
       "reason": "Existing explicitly reviewed October 11 INFER Task and M0b invocation/capture compatibility decision; register its unchanged canonical protocol-schema vectors. See docs/design/infer-decision-contracts.md. Exact contexts and counts only, with no authorization for new writers."
+    },
+    {
+      "path": "scripts/infer-owner-checker.test.mjs",
+      "token": "actql-model-capture-bundle/0.2",
+      "contextSha256": "265e1be1f2ab8a0f16285090f099bf123459d32c3c3e661b9daff84915de9475",
+      "line": 378,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "scripts/infer-owner-checker.test.mjs",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "924c39dbd8f8a0b341d4b341a81d2d1d87a39184292be1839eca6f2ce8f5c932",
+      "line": 387,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/client_infer_host/encoded_response_wbtest.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "ed33154cebf795267dc8ab7f7402e8c67cf8cf9eb5ac06f7e91e7b504d262296",
+      "line": 98,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/client_infer_host/physical_response_poll_wbtest.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "62a60879a08e4f6e24a81a85c93f3aab885a5e16355e02e5304de5a0234d91df",
+      "line": 246,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/model_execution/invocation_evidence.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "8d037d1c5a0e2d1b74258e965f75b8fa4378bf2d3f9a76b20fbe05d431ea61b7",
+      "line": 124,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/model_execution/invocation_evidence.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "f5fb0b54e26fb5a9c4b8eac460d41c1abe116faa2dd3b58f6dcfd06e83445f58",
+      "line": 142,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/run_publication/model_replay_observation.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "989beceaf002a015a9d2e88ceb2f047aebc17ff13238549e589395ae62a21870",
+      "line": 14,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "src/run_publication/model_replay_observation.mbt",
+      "token": "actql-model-invocation-evidence/0.2",
+      "contextSha256": "fde371cbc4891be69606a50f343cc00f302671c1b5ad3460ac9a1f691e0cc43a",
+      "line": 19,
+      "count": 1,
+      "reason": "Reviewed consuming implementation of the October 11 M0b invocation/capture compatibility decision: exact original-response writer, saved-observation replay or independent caller fixture. Existing schemas and canonical identities are unchanged; this is not permission for another format or context."
+    },
+    {
+      "path": "reviews/2026-10-11-with-carrier-cutover/with-current-document-original-preimages.json",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "18233964fb2d38daace2960259ca50b74e6d104531e44bcd87084744fd43b318",
+      "line": 7,
+      "count": 1,
+      "reason": "Reviewed WITH terminology-cutover snapshot of the already adopted October 11 ModelTask 0.2 specification. Preserve its original document bytes and digest; this exact historical source context does not authorize another writer or contract."
     }
   ]
 }

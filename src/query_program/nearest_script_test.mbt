@@ -13,14 +13,14 @@ fn nearest_script_expected() -> @program.Program {
 
 ///|
 fn nearest_script_source() -> String {
-  "DATA qs = FROM queries; DATA cs = FROM candidates; " +
+  "WITH qs AS (FROM queries), cs AS (FROM candidates) " +
   "FROM qs AS q |> NEAREST cs AS c QUERY KEY (q.request_id) VECTOR q.embedding " +
   "CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 " +
   "KEEP (q.note, c.label) AS neighbor"
 }
 
 ///|
-test "DATA NEAREST resolves both retained Relation producers" {
+test "WITH NEAREST resolves both retained Relation producers" {
   // The independent common Program fixes two matches, pair-key uniqueness,
   // nullable KEEP and nested typed key objects before frontend compilation.
   match
@@ -49,32 +49,36 @@ test "DATA NEAREST resolves both retained Relation producers" {
     ) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
-    NeedsInputs(_) => fail("DATA must retain existing input bindings")
+    NeedsInputs(_) => fail("WITH must retain existing input bindings")
   }
 }
 
 ///|
-test "NEAREST CTE candidate reports the separate current scope-validation gap" {
-  let source = nearest_script_source().replace(
-    old="DATA qs = FROM queries; DATA cs = FROM candidates; ",
-    new="WITH qs AS (FROM queries), cs AS (FROM candidates) ",
-  )
-  // The candidate CTE is used. validate_cte_scope currently misses NEAREST
-  // in its use graph and rejects it as unused; this is an implementation gap,
-  // not a language restriction. Its positive source is retained for D's fix.
-  assert_true(
-    compile_query_script(
-      @query.parse_query_script(source, syntax_limits()).unwrap(),
-      nearest_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedCte),
-  )
+test "NEAREST WITH candidate reaches the unified public query entry" {
+  let actual = compile(
+    @query.parse_query(nearest_script_source(), syntax_limits()).unwrap(),
+    nearest_context(),
+    construction_limits(),
+  ).unwrap()
+  // The candidate producer is consumed by NEAREST even though it is not the
+  // principal FROM. The old separate CTE unused-refusal is not language law.
+  assert_eq(semantic(actual), semantic(nearest_script_expected()))
+  match
+    @check.check_parsed(
+      actual,
+      check_environment(veca=true),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    NeedsInputs(_) => fail("closed WITH candidate must remain checked")
+  }
 }
 
 ///|
-test "NEAREST DATA aliases retain one shared seed with both key roles" {
-  let source = "DATA qs = FROM queries; DATA cs = FROM qs; " +
+test "NEAREST WITH aliases retain one shared seed with both key roles" {
+  let source = "WITH qs AS (FROM queries), cs AS (FROM qs) " +
     "FROM qs AS q |> NEAREST cs AS c QUERY KEY (q.request_id) VECTOR q.embedding " +
     "CANDIDATE KEY (c.request_id) VECTOR c.embedding METRIC dot K 2 " +
     "KEEP (q.note AS query_note, c.note AS candidate_note) AS neighbor"
@@ -95,7 +99,7 @@ test "NEAREST DATA aliases retain one shared seed with both key roles" {
     ) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
-    NeedsInputs(_) => fail("shared DATA alias must not acquire another input")
+    NeedsInputs(_) => fail("shared WITH alias must not acquire another input")
   }
 }
 
@@ -104,10 +108,10 @@ test "NEAREST Script rejects undeclared and forward candidate references" {
   for
     source in [
       nearest_script_source().replace(old="NEAREST cs", new="NEAREST absent"),
-      "DATA matched = FROM queries AS q |> NEAREST later AS c " +
+      "WITH matched AS (FROM queries AS q |> NEAREST later AS c " +
       "QUERY KEY (q.request_id) VECTOR q.embedding " +
-      "CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 AS neighbor; " +
-      "DATA later = FROM candidates; FROM matched",
+      "CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 2 AS neighbor), " +
+      "later AS (FROM candidates) FROM matched",
     ] {
     assert_true(
       compile_query_script(

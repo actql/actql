@@ -1,0 +1,30 @@
+[actql/actql] test query_program/with_vectors_events_test.mbt:10 ("WITH preserves Vectors between bindings and only vectors bridges to Relation") failed: src/query_program/with_binding_demand_test.mbt:21:30-21:74@actql/actql FAILED: Admission Structure(
+  EmptyDeclarations,
+  path=[Key("stages"), Index(0), Key("results")],
+  span={
+    start_byte: 0,
+    end_byte: 0,
+    start_line: 1,
+    start_column: 1,
+    end_line: 1,
+    end_column: 1,
+    source_path: "<query>",
+  },
+)
+[actql/actql] test query_program/with_vectors_events_test.mbt:25 ("WITH Events session keeps typed clock and explicit bridge") failed: src/query_program/with_binding_demand_test.mbt:21:30-21:74@actql/actql FAILED: Admission Structure(
+  EmptyDeclarations,
+  path=[Key("stages"), Index(0), Key("results")],
+  span={
+    start_byte: 0,
+    end_byte: 0,
+    start_line: 1,
+    start_column: 1,
+    end_line: 1,
+    end_column: 1,
+    source_path: "<query>",
+  },
+)
+[actql/actql] test query_program/with_vectors_events_test.mbt:37 ("WITH typed producer cannot use a row range or skip explicit bridge") failed: src/query_program/with_vectors_events_test.mbt:40:5-40:107@actql/actql FAILED: `false` is not true
+Total tests: 3, passed: 0, failed: 3.
+["moon","test","--target","js","src/query_program/with_vectors_events_test.mbt"]: process failed (2); counts={"tests":3,"passed":0,"failed":3,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-RDuJUh

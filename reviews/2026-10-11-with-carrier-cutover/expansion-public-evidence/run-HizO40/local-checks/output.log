@@ -1,0 +1,4 @@
+[actql/actql] test query_program/with_expansion_public_fixture_test.mbt:371 ("WITH public expansion joined-unnest-star-acquired-data") failed: src/query_program/with_expansion_public_fixture_test.mbt:416:7-416:35@actql/actql FAILED: Catalog output Order
+Total tests: 15, passed: 14, failed: 1.
+["moon","test","--target","js","src/query_program/with_expansion_public_fixture_test.mbt"]: process failed (2); counts={"tests":15,"passed":14,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-CTLbCp

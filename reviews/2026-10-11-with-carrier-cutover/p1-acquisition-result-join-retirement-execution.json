@@ -1,0 +1,204 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Retire current acquisition Result and JOIN DATA callers into authored WITH. Retain complete independent Programs, capture and import owner, Source predicate, Result checkpoints, alias ORDER and ceilings. Missing Graph provenance remains the same common typed refusal, now at static preparation.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-acquisition-result-join-original-callers.json",
+  "unexecuted": [
+    "Host Local/HTTPS Named Result execution",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-8mivVK",
+      "source": "bfe03a6935d67f57d641f10282f4d43184482382",
+      "tree": "9a305e89111a1840558a4bdf41dc4b2f13aa565d",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 77272,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_result_owners_test.mbt",
+          "src/query_program/with_acquisition_test.mbt",
+          "src/query_program/with_join_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "focused-test-OCEvIe/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/0001.summary.json",
+          "sha256": "17404316aa93c7cfcbcfaff50db9755de5a976652d4be42f2dc54e769c2c5d0d"
+        },
+        "focused-test-OCEvIe/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/0002.summary.json",
+          "sha256": "b11849a81a5c03687ddcc97c1940076ae35e3906629d33d27aeabb442fa316a6"
+        },
+        "focused-test-OCEvIe/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/0003.summary.json",
+          "sha256": "4400c6e65c4318fd2753282ee1f42f06b4a9f052383942713268fb15d06a2b21"
+        },
+        "focused-test-OCEvIe/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/0004.summary.json",
+          "sha256": "6ee68c5a312bfec11fcda0235c06aaaf27df22161ade720f2539b3c484690559"
+        },
+        "focused-test-OCEvIe/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/001.result.json",
+          "sha256": "685ab9a997cbcfcffc423f7c177c7505972739feada5d4d75797aab9b08080ca"
+        },
+        "focused-test-OCEvIe/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/001.started.json",
+          "sha256": "cc2bbb5a3b446311afb0d42fc97beb229d91d857e09b0554c1ec68fe521ce4b2"
+        },
+        "focused-test-OCEvIe/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-OCEvIe/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/001.stdout.log",
+          "sha256": "075f018fb9437f3691567872993d2b69ce5d489d2aadd68ebd41704a1dc73c3f"
+        },
+        "focused-test-OCEvIe/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/focused-test-OCEvIe/summary.json",
+          "sha256": "6ee68c5a312bfec11fcda0235c06aaaf27df22161ade720f2539b3c484690559"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/output.log",
+          "sha256": "2fa70ad44a4ec1238401af12dd65b4c8d45ea5e9863f60d90cf781f2e9e29433"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-8mivVK/summary.json",
+          "sha256": "f1b2e877311c1553f147ded9eaaa1244494b5cd486c1f06849df0c330e406c01"
+        }
+      },
+      "actual_js": {
+        "tests": 11,
+        "passed": 10,
+        "failed": 1
+      },
+      "failure": "One negative JOIN test had incorrectly migrated WITH declaration grammar and failed at parser unwrap, not product lowering. Original bad aliases/fields/ON/ceiling were preserved while fixing that grammar."
+    },
+    {
+      "run": "run-BR3GM1",
+      "source": "02b5da6fb2ad208d710288bb6767114475e327fe",
+      "tree": "8bd11097a70b9838c55a1bb18618f507eb5ad20f",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 78493,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_result_owners_test.mbt",
+          "src/query_program/with_acquisition_test.mbt",
+          "src/query_program/with_join_test.mbt",
+          "src/query_program/join_chain_test.mbt",
+          "src/query_program/pipe_join_ranges_test.mbt",
+          "src/query_program/pipe_join_input_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-BR3GM1/output.log",
+          "sha256": "d9b015c38c593df35215cd7f4dc78b49f23b6ab51a36a1d02bc12597f4bbde84"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-BR3GM1/summary.json",
+          "sha256": "daf9c89d540245951d1b31dd03c0390fae70c5a9bf4e204d202f5de01eb76944"
+        }
+      }
+    },
+    {
+      "run": "run-ejpUac",
+      "source": "185a915c60f6b47ccb3a3b5b6a9fb04dc7ec53b3",
+      "tree": "e961db48ec2decbe0077e7dd14b0d9b853b5625f",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 78929,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_result_owners_test.mbt",
+          "src/query_program/with_acquisition_test.mbt",
+          "src/query_program/with_join_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "focused-test-0JSdhk/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/0001.summary.json",
+          "sha256": "b84757d6fa3ae7870782adc320931573c5db4778e8720d0328cfbc0fce06ea2e"
+        },
+        "focused-test-0JSdhk/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/0002.summary.json",
+          "sha256": "6b69df69e62ab456a9173c60cb0a56c8e00fe2eb8e26d1ac4081e53f0db7ceba"
+        },
+        "focused-test-0JSdhk/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/0003.summary.json",
+          "sha256": "8a7b9df3ce643238b53e7bf5073442b87970b238a49f9a11b5df0247700ad4b9"
+        },
+        "focused-test-0JSdhk/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/0004.summary.json",
+          "sha256": "2690f27eb38d022f4f04ba540cebe2cc21ab63bf14ee1a21d8081bdd0a30c947"
+        },
+        "focused-test-0JSdhk/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/001.result.json",
+          "sha256": "17b1ef89a79478da97495905e88956392672a6c59cfd77ce6153018209b86447"
+        },
+        "focused-test-0JSdhk/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/001.started.json",
+          "sha256": "d572680f9aa5a4645bda32d59c80b6b72945aedba25cdd9f032228a3e9447798"
+        },
+        "focused-test-0JSdhk/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-0JSdhk/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/001.stdout.log",
+          "sha256": "f3cce346a168da9127e82fa09504d0d8393441a20c0ef912e3cf2caaa80e2cfc"
+        },
+        "focused-test-0JSdhk/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/focused-test-0JSdhk/summary.json",
+          "sha256": "2690f27eb38d022f4f04ba540cebe2cc21ab63bf14ee1a21d8081bdd0a30c947"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/output.log",
+          "sha256": "4a598050e5f1b3767b62c6d0af031eee18ed245b5d093b707e83226fa1a38675"
+        },
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/acquisition-result-join-retirement-evidence/run-ejpUac/summary.json",
+          "sha256": "3360ef948d2b5dedab344449d6616a25cf814b404918b73490f6ef4c31feb4d4"
+        }
+      },
+      "actual_js": {
+        "tests": 11,
+        "passed": 11,
+        "failed": 0
+      }
+    }
+  ],
+  "correction": "with-acquisition-result-join-fixture-correction.json"
+}

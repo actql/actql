@@ -10,12 +10,12 @@ const parameters = {a: {score: 10}, b: {score: 20}, c: null, d: {score: null}};
 const columns = [{name: 'id', contract: number}, {name: 'score', contract: score}];
 const expected = [{id: 1, score: 20}, {id: 2, score: 10},
   {id: 3, score: null}, {id: 4, score: null}];
-const data = 'DATA objects = SELECT 2 AS id, @a AS payload '
+const data = 'WITH objects AS (SELECT 2 AS id, @a AS payload '
   + 'UNION ALL SELECT 1 AS id, @b AS payload '
   + 'UNION ALL SELECT 3 AS id, @c AS payload '
-  + 'UNION ALL SELECT 4 AS id, @d AS payload; ';
-const graph = 'DATA g = PROPERTY GRAPH (NODE TABLES '
-  + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); ';
+  + 'UNION ALL SELECT 4 AS id, @d AS payload) ';
+const graph = ', g AS (GRAPH (NODE TABLES '
+  + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload)))) ';
 const head = data + graph + 'FROM GRAPH g |> MATCH WALK (a:Person) |> ';
 const result = values => ({matched: {rows: values, columns}});
 const sourceCase = (name, tail, values = expected, extra = {}) => ({
@@ -50,11 +50,11 @@ identityProgram.stages[0].steps.splice(3, 0, {from: 'matched', filter: {and: [
 // Continue from the filtered current row, not the original matched producer.
 delete identityProgram.stages[0].steps[4].from;
 // Two independently keyed self-loops produce two one-hop WALK occurrences.
-const pathData = 'DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst '
-  + 'UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst; ';
-const pathGraph = 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) '
+const pathData = 'WITH n AS (SELECT 1 AS id) , e AS (SELECT 10 AS key, 1 AS src, 1 AS dst '
+  + 'UNION ALL SELECT 11 AS key, 1 AS src, 1 AS dst) ';
+const pathGraph = ', g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) '
   + 'EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N '
-  + 'DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
+  + 'DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES))) ';
 const pathResult = {matched: {rows: [{depth: 1}, {depth: 1}],
   columns: [{name: 'depth', contract: number}]}};
 const pathProgram = {version: 'actql/0.1', id: 'fixture.graph_quoted_path', stages: [

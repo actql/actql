@@ -1,0 +1,24 @@
+{
+  "implementation_source": "24993dd8510474b7868f76eaff68326c85a87ead",
+  "submitted": false,
+  "experimental_patch_sha256": "1c156eb1c4405ff93980ea6591bf7277262d24d9677a5e78217db4299e2c5667",
+  "actual_failure": {
+    "run": "run-DH1AIy",
+    "executed": 3,
+    "passed": 0,
+    "failed": 3,
+    "first_cause": "Admission.Structure(EmptyDeclarations, stages[0].results)",
+    "common_prefix_checker_reached": false
+  },
+  "required_boundary": "A check-only prefix retaining the actual Cursor, checked input/import contracts, Catalog ownership and unresolved obligations, without a synthetic ResultPort. Complete Program preparation/publication remains strict.",
+  "unverified": [
+    "Vectors/Events source lowering",
+    "four-Carrier public Local/HTTPS"
+  ],
+  "retained_runs": [
+    "run-IuopFI",
+    "run-YDiEOM",
+    "run-ZIm69J",
+    "run-DH1AIy"
+  ]
+}

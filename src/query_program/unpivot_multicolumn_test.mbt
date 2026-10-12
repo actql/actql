@@ -11,13 +11,17 @@ fn tuple_unpivot_context() -> Context {
   ).unwrap()
   {
     ..pair_context(),
-    inputs: [{
-      relation: [{ value: "wide", quoted: false, }],
-      name: "wide",
-      source: GeneratedValues(step),
-      visible_fields: ["id", "jan_amount", "jan_note", "feb_amount", "feb_note"],
-      graph_bindings: [],
-    }],
+    inputs: [
+      {
+        relation: [{ value: "wide", quoted: false, }],
+        name: "wide",
+        source: GeneratedValues(step),
+        visible_fields: [
+          "id", "jan_amount", "jan_note", "feb_amount", "feb_note",
+        ],
+        graph_bindings: [],
+      },
+    ],
   }
 }
 
@@ -44,7 +48,13 @@ test "multi-column source matches an independent complete ordinary Program" {
     construction_limits(),
   ).unwrap()
   assert_eq(semantic(actual), semantic(independent_tuple_unpivot_program()))
-  match @check.check_parsed(actual, check_environment(numeric=true), None, check_limits()) {
+  match
+    @check.check_parsed(
+      actual,
+      check_environment(numeric=true),
+      None,
+      check_limits(),
+    ) {
     Checked(_) => ()
     Rejected(issue) => raise @check.diagnostic_cause(issue)
     NeedsInputs(_) => fail("the independently authored Values input is closed")

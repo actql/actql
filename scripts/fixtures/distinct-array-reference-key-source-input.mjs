@@ -4,9 +4,9 @@ const sourceRows = [{id: 4, amount: 20}, {id: 2, amount: 10},
   {id: 1, amount: 20}, {id: 3, amount: null}, {id: 0, amount: 99}];
 // This explicit bound belongs to the submitted source. Only id is asserted
 // unique; duplicate x values must survive until the ordinary DISTINCT owner.
-const data = 'DATA limited = FROM records |> WHERE id > 0 '
-  + '|> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4; '
-  + 'DATA pair = SELECT id, COALESCE(amount, 0) AS x FROM limited; ';
+const data = 'WITH limited AS (FROM records |> WHERE id > 0 '
+  + '|> ASSERT UNIQUE BY (id) |> ORDER BY id |> LIMIT 4) '
+  + ', pair AS (SELECT id, COALESCE(amount, 0) AS x FROM limited) ';
 const columns = [{name: 'items', contract: {type: 'array', nullable: false,
   items: number}}];
 

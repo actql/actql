@@ -1,0 +1,8 @@
+{
+  "kind": "Own preparation failures; no product execution",
+  "attempts": [
+    {"exit_code": 1, "error": "AssertionError: src/carrier_projection/vectors.mbt", "correction": "Actual vectors/events projection is src/carrier_projection/projection.mbt::check. No fixture was written before the failed assertion."},
+    {"exit_code": 1, "error": "SyntaxError: unterminated string literal at expected_columns", "correction": "Replaced the malformed authoring script with explicit JSON. No file was written by that script."}
+  ],
+  "product_execution": 0
+}

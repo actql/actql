@@ -39,3 +39,23 @@ test('Graph row set cases remain registered in ordinary and focused packed consu
   assert.ok(consumer.includes('graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_ONLY = '1'"));
 });
+
+// Expected rows, schemas, controls and source counts were authored before the
+// syntax cutover. Current text is written directly; no migration runtime exists.
+test('WITH Graph row callers retain complete independent acceptance obligations', () => {
+  const original = JSON.parse(readFileSync(new URL('../reviews/2026-10-11-with-carrier-cutover/pre-with-graph-row-source-input.json', import.meta.url), 'utf8'));
+  for (const [key, inputs] of [['successes', graphRowSourceSuccesses], ['refusals', graphRowSourceRefusals]]) {
+    assert.equal(inputs.length, original[key].length);
+    for (const input of inputs) {
+      const previous = original[key].find(item => item.name === input.name);
+      const {text: oldText, ...oldExpectations} = previous;
+      const {text, ...expectations} = input;
+      assert.deepEqual(expectations, oldExpectations, input.name);
+      if (input.format === 'json') assert.equal(text, oldText, input.name);
+      else {
+        assert.ok(text.startsWith('WITH '), input.name);
+        assert.ok(!/\bDATA\b|PROPERTY GRAPH/.test(text), input.name);
+      }
+    }
+  }
+});

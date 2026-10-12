@@ -534,6 +534,8 @@ pub fn local_input_execution_predecessor(LocalInputExecutionCheck) -> LocalInput
 
 pub fn local_inputs_at(InputContexts, Int) -> @stage_local_inputs.Attached?
 
+pub fn local_program_diagnostic_issue(@stage_results.LocalProgramIssue) -> SourceViewContextIssue
+
 pub fn measure_operation_values_rows(ProgramOperationCells, Int, Int, Int, Int) -> Result[(Int, Int, Int), ValuesMeasurementIssue]
 
 pub fn nearest_resource_at(NearestCheck, Int) -> NearestResource?
@@ -1078,6 +1080,8 @@ pub fn source_contract_stage_count(SourceContractRequirements) -> Int
 
 pub fn source_contract_usage(SourceContractRequirements) -> (Int, Int, Int)
 
+pub fn source_declaration_diagnostic_issue(@sourceview_input.Issue) -> SourceRegistrationIssue
+
 pub fn source_mode_closure_at(ProgramSourceModeClosure, Int) -> SourceModeExecutionCheck?
 
 pub fn source_mode_closure_count(ProgramSourceModeClosure) -> Int
@@ -1097,6 +1101,8 @@ pub fn source_producer_at(SourceProducerContext, Int, Int) -> @capacity_graph_pr
 pub fn source_producer_capacity(SourceProducerContext) -> SourceCapacityContext
 
 pub fn source_producer_work(SourceProducerContext) -> Int
+
+pub fn source_program_diagnostic_issue(SourceViewProgramIssue) -> SourceViewContextIssue
 
 pub fn source_request_facts(SourceRequestContexts) -> @check_environment.LookupCapacities?
 

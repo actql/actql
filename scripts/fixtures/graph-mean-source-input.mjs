@@ -25,12 +25,12 @@ const results = {
       ...['part', 'edge_key'].map(name => ({name, contract: number})),
       {name: 'labels', contract: labels}]},
 };
-const prefix = 'DATA n = SELECT 7 AS part, 1 AS node_key, 7 AS p; ' +
-  'DATA e = SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
-  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
+const prefix = 'WITH n AS (SELECT 7 AS part, 1 AS node_key, 7 AS p) ' +
+  ', e AS (SELECT 7 AS part, 11 AS edge_key, 1 AS src_key, 1 AS dst_key, 5 AS w ' +
+  'UNION ALL SELECT 7 AS part, 10 AS edge_key, 1 AS src_key, 1 AS dst_key, 2 AS w) ' +
+  ', g AS (GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
   'EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N ' +
-  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w))); ';
+  'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w)))) ';
 const call = 'mean_graphs(with: [g, g, g], weights: [1, 2, 0], ' +
   "support: {nodes: 1, edges: 1}, properties: {nodes: {p: {mean: {missing: 'exclude', nulls: 'exclude'}}}, " +
   "edges: {w: {mean: {missing: 'exclude', nulls: 'exclude'}}}})";
@@ -62,7 +62,7 @@ export const graphMeanSourceOracles = [
     results: Object.fromEntries(Object.entries(results).map(([name, result]) =>
       [name, {...result, rows: []}])), sourceReadCount: 0},
   ...['nodes', 'edges'].map(kind => ({name: 'graph-mean-aql-generator-' + kind,
-    format: 'aql-text', text: prefix + 'DATA combined = ' + call + '; ' +
+    format: 'aql-text', text: prefix + ', combined AS (' + call + ') ' +
       (kind === 'nodes'
         ? 'FROM combined |> node_rows() |> SELECT p, part, node_key, labels |> RESULT nodes'
         : 'FROM combined |> edge_rows() |> WHERE w > 0 |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges'),
@@ -70,17 +70,17 @@ export const graphMeanSourceOracles = [
   {name: 'graph-mean-json-asymmetric-ordered-samples', format: 'json',
     text: JSON.stringify(asymmetric), results: asymmetricResults, sourceReadCount: 0},
   {name: 'graph-mean-aql-asymmetric-ordered-samples', format: 'aql-text',
-    text: prefix + "DATA doubled = FROM g |> union_graphs(with: [g], " +
-      "merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}}); " +
-      'DATA combined = ' + call.replace('[g, g, g]', '[doubled, g, doubled]') + '; ' +
+    text: prefix + ", doubled AS (FROM g |> union_graphs(with: [g], " +
+      "merge: {node_properties: {p: 'number_sum'}, edge_properties: {w: 'number_sum'}})) " +
+      ', combined AS (' + call.replace('[g, g, g]', '[doubled, g, doubled]') + ') ' +
       'FROM combined |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges',
     results: {edges: asymmetricResults.edges}, sourceReadCount: 0},
 ];
 
 export const graphMeanSourceRefusalOracles = [
-  prefix + 'DATA combined = FROM g |> ' + call + '; FROM combined |> node_rows() |> SELECT node_key',
-  prefix + 'DATA combined = ' + call.replace('[1, 2, 0]', '[0, 0, 0]') + '; FROM combined |> node_rows() |> SELECT node_key',
-  prefix + 'DATA combined = ' + call.replace('[g, g, g]', '[g, missing, g]') + '; FROM combined |> node_rows() |> SELECT node_key',
+  prefix + ', combined AS (FROM g |> ' + call + ') FROM combined |> node_rows() |> SELECT node_key',
+  prefix + ', combined AS (' + call.replace('[1, 2, 0]', '[0, 0, 0]') + ') FROM combined |> node_rows() |> SELECT node_key',
+  prefix + ', combined AS (' + call.replace('[g, g, g]', '[g, missing, g]') + ') FROM combined |> node_rows() |> SELECT node_key',
 ];
 
 export const graphMeanSourceRefusals = graphMeanSourceRefusalOracles.map((text, index) => ({

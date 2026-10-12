@@ -1,0 +1,6 @@
+[actql/actql] test query_syntax/graph_test.mbt:2 ("Graph LABELS property annotation is retired at the authored token") failed: src/query_syntax/graph_test.mbt:11:10-11:56@actql/actql FAILED: retired LABELS must not reach lowering
+[actql/actql] test query_syntax/graph_test.mbt:83 ("Graph MATCH rejects open, repeated and unowned patterns") failed: src/query_syntax/graph_test.mbt:92:5-92:71@actql/actql FAILED: FROM GRAPH g |> SELECT id
+[actql/actql] test source_frontend/with_graph_binding_test.mbt:75 ("public SQL and Text reject retired Graph LABELS before preparation") failed: src/source_frontend/with_graph_binding_test.mbt:78:5-85:6@actql/actql FAILED: `false` is not true
+Total tests: 12, passed: 9, failed: 3.
+["moon","test","--target","js","src/query_syntax/graph_test.mbt","src/source_frontend/with_graph_binding_test.mbt"]: process failed (2); counts={"tests":12,"passed":9,"failed":3,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-zpCUii

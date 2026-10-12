@@ -1,0 +1,110 @@
+TAP version 13
+# Subtest: shared Relation controls and Graph source cases have one request each
+ok 1 - shared Relation controls and Graph source cases have one request each
+  ---
+  duration_ms: 3.025792
+  type: 'test'
+  ...
+# Subtest: duplicate request names cannot hide conflicting source or expectations
+ok 2 - duplicate request names cannot hide conflicting source or expectations
+  ---
+  duration_ms: 8.387
+  type: 'test'
+  ...
+# Subtest: WITH positional fixture keeps NULL duplicates and public output contracts
+ok 3 - WITH positional fixture keeps NULL duplicates and public output contracts
+  ---
+  duration_ms: 1.261625
+  type: 'test'
+  ...
+# Subtest: WITH refusal fixtures distinguish unsupported output names from private references
+ok 4 - WITH refusal fixtures distinguish unsupported output names from private references
+  ---
+  duration_ms: 0.829667
+  type: 'test'
+  ...
+# Subtest: PIVOT expression controls distinguish consumed fields, constants and frozen input slots
+ok 5 - PIVOT expression controls distinguish consumed fields, constants and frozen input slots
+  ---
+  duration_ms: 1.075042
+  type: 'test'
+  ...
+# Subtest: FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh output scopes
+ok 6 - FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh output scopes
+  ---
+  duration_ms: 0.877167
+  type: 'test'
+  ...
+# Subtest: joined row fixtures distinguish row identity, null extension and ORDER receiver reuse
+ok 7 - joined row fixtures distinguish row identity, null extension and ORDER receiver reuse
+  ---
+  duration_ms: 1.278292
+  type: 'test'
+  ...
+# Subtest: optional table aliases preserve independent NULL/duplicate and range-value controls
+ok 8 - optional table aliases preserve independent NULL/duplicate and range-value controls
+  ---
+  duration_ms: 1.159458
+  type: 'test'
+  ...
+# Subtest: derived value-table aliases retain scalar/object type and old-name refusal controls
+ok 9 - derived value-table aliases retain scalar/object type and old-name refusal controls
+  ---
+  duration_ms: 2.673
+  type: 'test'
+  ...
+# Subtest: ordinary row fixtures distinguish NULL fields, immutable bindings and rebound columns
+ok 10 - ordinary row fixtures distinguish NULL fields, immutable bindings and rebound columns
+  ---
+  duration_ms: 3.101292
+  type: 'test'
+  ...
+# Subtest: range-shadow fixtures distinguish input ranges, ORDER aliases and NULL object columns
+ok 11 - range-shadow fixtures distinguish input ranges, ORDER aliases and NULL object columns
+  ---
+  duration_ms: 0.975541
+  type: 'test'
+  ...
+# Subtest: JOIN value receiver fixtures distinguish scalar object and ordinary row kinds
+ok 12 - JOIN value receiver fixtures distinguish scalar object and ordinary row kinds
+  ---
+  duration_ms: 0.338167
+  type: 'test'
+  ...
+# Subtest: ON range refusals retain qualified column and USING controls
+ok 13 - ON range refusals retain qualified column and USING controls
+  ---
+  duration_ms: 0.522292
+  type: 'test'
+  ...
+# Subtest: parenthesized JOIN controls retain equality keys NULLs duplicates and explicit ceilings
+ok 14 - parenthesized JOIN controls retain equality keys NULLs duplicates and explicit ceilings
+  ---
+  duration_ms: 0.289
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 186.371541
+ACTQL_TEST_CASE {"name":"shared Relation controls and Graph source cases have one request each","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"duplicate request names cannot hide conflicting source or expectations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH positional fixture keeps NULL duplicates and public output contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH refusal fixtures distinguish unsupported output names from private references","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"PIVOT expression controls distinguish consumed fields, constants and frozen input slots","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"FROM PIVOT fixtures retain predicates, explicit JOIN limits and fresh output scopes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"joined row fixtures distinguish row identity, null extension and ORDER receiver reuse","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"optional table aliases preserve independent NULL/duplicate and range-value controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"derived value-table aliases retain scalar/object type and old-name refusal controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary row fixtures distinguish NULL fields, immutable bindings and rebound columns","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"range-shadow fixtures distinguish input ranges, ORDER aliases and NULL object columns","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"JOIN value receiver fixtures distinguish scalar object and ordinary row kinds","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ON range refusals retain qualified column and USING controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"parenthesized JOIN controls retain equality keys NULLs duplicates and explicit ceilings","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":14,"failed":0,"passed":14,"cancelled":0,"skipped":0,"todo":0,"topLevel":14,"suites":0},"duration_ms":48.648708,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":14,"failed":0,"passed":14,"cancelled":0,"skipped":0,"todo":0,"topLevel":14,"suites":0},"duration_ms":186.371541}

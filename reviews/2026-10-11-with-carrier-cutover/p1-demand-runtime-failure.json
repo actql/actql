@@ -1,0 +1,33 @@
+{
+  "source": "34e768f890952ac4631b6e1391d3bd336ac52424",
+  "tree": "d2e4a64a5aa03a383fb8ab693f7d951529a87e15",
+  "run": "run-QX6pIf",
+  "focused": "focused-test-3FyOJT",
+  "tests": 12,
+  "passed": 10,
+  "failed": 2,
+  "exit_code": 2,
+  "failures": [
+    "Complete source-free expected Program assigned seed_1, but the existing physical-name rule starts at the reserved list length: one installed input plus one emitted binding reserves two slots. Correct the independent name derivation to seed_2, retaining every value/schema/operation expectation.",
+    "Nested unused Source case aborted at Result.unwrap. The exact typed refusal must be exposed before correcting product code; its cause is not yet established."
+  ],
+  "termination": {
+    "owner": 42613,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-QX6pIf/summary.json",
+      "sha256": "ff280ac43c0abe7cad2d359c7a27dc57aefa6800f4d7f42309448ab60ab87673"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-QX6pIf/output.log",
+      "sha256": "1efb91fc9a5f1f9164879792c3037de3baf1971be1ef6eaaf22e504389909b70"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-3FyOJT/summary.json",
+      "sha256": "9d7f05b994c1bb8163d69260899387e580d2bdf48a584ddb48f6a37071454914"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "startedAt": "2026-10-11T19:14:10.203Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "selected WITH Graph core test format",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/with_graph_core_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T19:14:10.308Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:14:10.529Z",
+      "endedAt": "2026-10-11T19:14:10.533Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "733a663d-02b3-41e7-b395-daf9a372c2b9",
+    "pid": 66128,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T19:14:10.298Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Htb2q7"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T19:14:10.613Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

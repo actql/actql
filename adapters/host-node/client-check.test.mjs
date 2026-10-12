@@ -702,8 +702,8 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: Graph components expose typed argument violations`, async t => {
     const client = await open(t, configurations.denied);
-    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
-      '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
+    const prefix = 'WITH n AS (SELECT 1 AS node_key), g AS (GRAPH ' +
+      '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
     for (const format of ['aql-text']) {
       for (const kind of ['weak', 'strong']) {
         const outcome = await client.check(prefix +
@@ -2103,8 +2103,8 @@ for (const entrance of ['local', 'http']) {
 
   test(`${entrance}: Subgraph selector violations preserve the common Owner reason`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
-      '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
+    const prefix = 'WITH n AS (SELECT 1 AS node_key), g AS (GRAPH ' +
+      '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
     for (const selector of ['[1]', '{ids: []}', '{ids: [], unknown: true}']) {
       const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
       const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'aql-text'});

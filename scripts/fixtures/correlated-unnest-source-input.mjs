@@ -92,7 +92,7 @@ export const correlatedUnnestSuccesses = [
   success('sql', sql),
   success('pipe', pipe, {format: 'aql-text'}),
   success('quoted', sql.replaceAll('p.', '`p`.').replace(') p ', ') `p` ').replaceAll('element', '`element`')),
-  success('data', 'DATA expanded = ' + pipe + '; FROM expanded |> RESULT answer', {format: 'aql-text'}),
+  success('data', 'WITH expanded AS (' + pipe + ') FROM expanded |> RESULT answer', {format: 'aql-text'}),
   success('empty-parents', sql, {parameters: {parents: []}, expected: []}),
   success('empty-arrays', sql, {parameters: {parents: [{id: 1, items: []}, {id: 2, items: null}]}, expected: []}),
   success('filter-limit', sql.replace('ORDER BY', 'WHERE element IS NOT NULL ORDER BY') + ' LIMIT 2',
@@ -151,7 +151,7 @@ export const correlatedUnnestSuccesses = [
   success('inner-immutable-parent', innerPipe.replace('|> JOIN', '|> SELECT id, items |> AS p |> SET id = 99 |> JOIN')
     .replace('SELECT p.id,', 'SELECT id,'),
     {format: 'aql-text', expected: immutableInnerExpected}),
-  success('inner-data', 'DATA expanded = ' + innerPipe + '; FROM expanded |> RESULT answer',
+  success('inner-data', 'WITH expanded AS (' + innerPipe + ') FROM expanded |> RESULT answer',
     {format: 'aql-text', expected: innerExpected}),
   success('inner-ordinary-join-continuation', innerSql.replace('ORDER BY',
     'JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 ORDER BY'),
@@ -226,8 +226,8 @@ export const retainedArraySuccesses = [
     + ' |> CROSS JOIN UNNEST(items) element WITH OFFSET position '
     + '|> WHERE element IS NOT NULL |> SELECT * EXCEPT (items) '
     + '|> ORDER BY id, position |> LIMIT 3', {expected: retainedRows.slice(0, 3)}),
-  retainedSuccess('data-set-star', 'DATA expanded = ' + retainedHead + ' ' + retainedTail
-    + '; FROM expanded |> RESULT answer'),
+  retainedSuccess('data-set-star', 'WITH expanded AS (' + retainedHead + ' ' + retainedTail
+    + ') FROM expanded |> RESULT answer'),
   retainedSuccess('empty-set-star', retainedHead + ' ' + retainedTail,
     {parameters: {parents: []}, expected: []}),
   retainedSuccess('cte-array-alias', 'WITH chosen AS (SELECT p.id, p.items AS children '

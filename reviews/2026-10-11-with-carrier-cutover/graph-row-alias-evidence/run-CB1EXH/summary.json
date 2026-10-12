@@ -1,0 +1,65 @@
+{
+  "startedAt": "2026-10-11T18:50:51.315Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "with-graph-alias-selected-format",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_syntax/query.mbt",
+        "src/query_program/compile.mbt",
+        "src/query_program/sga_script_program.mbt",
+        "src/query_program/graph_rows_program.mbt",
+        "src/connectors_builtin_node/client_source_preparation.mbt",
+        "src/connectors_builtin_node_rela/client_source_preparation.mbt"
+      ],
+      "startedAt": "2026-10-11T18:50:51.395Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:50:51.856Z",
+      "endedAt": "2026-10-11T18:50:51.858Z"
+    },
+    {
+      "name": "with-graph-alias-real-interface-generation",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/query_program"
+      ],
+      "startedAt": "2026-10-11T18:50:51.933Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:50:53.223Z",
+      "endedAt": "2026-10-11T18:50:53.226Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "0e4e0dfe-8d16-4621-b363-ac1ad3d5f2a3",
+    "pid": 25880,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:50:51.388Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-CB1EXH"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:50:53.300Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

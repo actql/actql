@@ -6,10 +6,10 @@ test "JOIN chain resolves every previous range and output alias" {
       "FROM seed AS l |> JOIN seed AS r ON l.x = r.x |> JOIN seed AS s ON r.x = s.x |> SELECT l.x AS y |> ORDER BY y + 1",
       "SELECT l.x AS y FROM seed AS l JOIN seed AS r ON l.x = r.x JOIN seed AS s ON l.x = s.x ORDER BY r.y + 1",
     ] {
-    let program = checked_data_join(
-      "DATA seed = FROM t |> SELECT x, y; DATA joined = " +
+    let program = checked_with_join(
+      "WITH seed AS (FROM t |> SELECT x, y), joined AS (" +
       body +
-      "; FROM joined |> SELECT y",
+      ") FROM joined |> SELECT y",
       join_order_context(),
     )
     let wire = semantic(program)
@@ -22,8 +22,8 @@ test "JOIN chain resolves every previous range and output alias" {
 
 ///|
 test "JOIN chain USING merges only unqualified key visibility" {
-  let program = checked_data_join(
-    "DATA seed = FROM t |> SELECT x, y; SELECT x, l.y AS a, r.y AS b, s.y AS c FROM seed AS l JOIN seed AS r USING (x) JOIN seed AS s USING (x)",
+  let program = checked_with_join(
+    "WITH seed AS (FROM t |> SELECT x, y) SELECT x, l.y AS a, r.y AS b, s.y AS c FROM seed AS l JOIN seed AS r USING (x) JOIN seed AS s USING (x)",
     join_order_context(),
   )
   assert_true(
@@ -43,7 +43,7 @@ test "JOIN chain rejects ambiguous and out of scope keys" {
     assert_true(
       compile_query_script(
         @query.parse_query_script(
-          "DATA seed = FROM t |> SELECT x, y; " + suffix,
+          "WITH seed AS (FROM t |> SELECT x, y) " + suffix,
           syntax_limits(),
         ).unwrap(),
         join_order_context(),
@@ -105,8 +105,8 @@ test "JOIN chain Program agrees with an independent existing-IR fixture" {
 
 ///|
 test "JOIN chain preserves shared CTE capture and rejected resource ceilings" {
-  let program = checked_data_join(
-    "DATA joined = WITH seed AS (FROM orders |> SELECT id) SELECT l.id FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id; FROM joined |> SELECT id",
+  let program = checked_with_join(
+    "WITH joined AS (WITH seed AS (FROM orders |> SELECT id) SELECT l.id FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id) FROM joined |> SELECT id",
     { ..fixture_context(), captured_stage: Some("capture"), },
   )
   assert_eq(@program.stage_count(program), 2)
@@ -126,15 +126,15 @@ test "JOIN chain preserves shared CTE capture and rejected resource ceilings" {
 
 ///|
 test "JOIN chain DISTINCT reuses the selected expression after projection" {
-  let program = checked_data_join(
-    "DATA seed = FROM t |> SELECT x, y; SELECT DISTINCT l.x AS out FROM seed AS l JOIN seed AS m ON l.x = m.x JOIN seed AS r ON m.x = r.x ORDER BY l.x",
+  let program = checked_with_join(
+    "WITH seed AS (FROM t |> SELECT x, y) SELECT DISTINCT l.x AS out FROM seed AS l JOIN seed AS m ON l.x = m.x JOIN seed AS r ON m.x = r.x ORDER BY l.x",
     join_order_context(),
   )
   assert_true(semantic(program).contains("\"field\":\"out\""))
   assert_true(
     compile_query_script(
       @query.parse_query_script(
-        "DATA seed = FROM t |> SELECT x, y; SELECT DISTINCT l.x AS out FROM seed AS l JOIN seed AS m ON l.x = m.x JOIN seed AS r ON m.x = r.x ORDER BY r.y",
+        "WITH seed AS (FROM t |> SELECT x, y) SELECT DISTINCT l.x AS out FROM seed AS l JOIN seed AS m ON l.x = m.x JOIN seed AS r ON m.x = r.x ORDER BY r.y",
         syntax_limits(),
       ).unwrap(),
       join_order_context(),

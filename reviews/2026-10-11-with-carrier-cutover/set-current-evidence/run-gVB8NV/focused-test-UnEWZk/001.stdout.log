@@ -1,0 +1,217 @@
+TAP version 13
+# Subtest: BY NAME ON expectations distinguish names, order, NULL and duplicates
+ok 1 - BY NAME ON expectations distinguish names, order, NULL and duplicates
+  ---
+  duration_ms: 1.428417
+  type: 'test'
+  ...
+# Subtest: BY NAME ON is copied and selected in narrow and normal public acceptance
+ok 2 - BY NAME ON is copied and selected in narrow and normal public acceptance
+  ---
+  duration_ms: 3.057959
+  type: 'test'
+  ...
+# Subtest: CORRESPONDING matching has independent row, type, scope and multiplicity controls
+ok 3 - CORRESPONDING matching has independent row, type, scope and multiplicity controls
+  ---
+  duration_ms: 1.499042
+  type: 'test'
+  ...
+# Subtest: positional windows retain opposing order keys and different functions
+ok 4 - positional windows retain opposing order keys and different functions
+  ---
+  duration_ms: 0.483542
+  type: 'test'
+  ...
+# Subtest: anonymous analytic ordinals retain scope without authored private receivers
+ok 5 - anonymous analytic ordinals retain scope without authored private receivers
+  ---
+  duration_ms: 0.264666
+  type: 'test'
+  ...
+# Subtest: duplicate aggregate aliases retain different COUNT arguments and empty global rows
+ok 6 - duplicate aggregate aliases retain different COUNT arguments and empty global rows
+  ---
+  duration_ms: 0.272709
+  type: 'test'
+  ...
+# Subtest: positional duplicate controls retain both values, types and scope
+ok 7 - positional duplicate controls retain both values, types and scope
+  ---
+  duration_ms: 0.223292
+  type: 'test'
+  ...
+# Subtest: CORRESPONDING matching participates in both normal and narrow packed acceptance
+ok 8 - CORRESPONDING matching participates in both normal and narrow packed acceptance
+  ---
+  duration_ms: 0.700916
+  type: 'test'
+  ...
+# Subtest: parenthesized operands preserve independent ordinal values and private scopes
+ok 9 - parenthesized operands preserve independent ordinal values and private scopes
+  ---
+  duration_ms: 0.365083
+  type: 'test'
+  ...
+# Subtest: positional inner ORDER LIMIT has independent values and opposite alias controls
+ok 10 - positional inner ORDER LIMIT has independent values and opposite alias controls
+  ---
+  duration_ms: 0.576834
+  type: 'test'
+  ...
+# Subtest: positional star fixtures preserve values nullable schema DISTINCT and scope
+ok 11 - positional star fixtures preserve values nullable schema DISTINCT and scope
+  ---
+  duration_ms: 0.698083
+  type: 'test'
+  ...
+# Subtest: postprojection filters retain only current names and stay before append
+ok 12 - postprojection filters retain only current names and stay before append
+  ---
+  duration_ms: 0.620167
+  type: 'test'
+  ...
+# Subtest: positional exclusions use authored names without exposing anonymous slots
+ok 13 - positional exclusions use authored names without exposing anonymous slots
+  ---
+  duration_ms: 0.278792
+  type: 'test'
+  ...
+# Subtest: positional replacement preserves snapshots anonymous values and column types
+ok 14 - positional replacement preserves snapshots anonymous values and column types
+  ---
+  duration_ms: 0.274875
+  type: 'test'
+  ...
+# Subtest: window replacement uses current names with opposing keys and retained anonymous values
+ok 15 - window replacement uses current names with opposing keys and retained anonymous values
+  ---
+  duration_ms: 1.138084
+  type: 'test'
+  ...
+# Subtest: positional SET retains pre-assignment values, nullability and private scope
+ok 16 - positional SET retains pre-assignment values, nullability and private scope
+  ---
+  duration_ms: 0.306416
+  type: 'test'
+  ...
+# Subtest: positional DROP removes authored duplicates and retains unnamed values and current scope
+ok 17 - positional DROP removes authored duplicates and retains unnamed values and current scope
+  ---
+  duration_ms: 0.371
+  type: 'test'
+  ...
+# Subtest: positional RENAME preserves values while changing current authored lookup
+ok 18 - positional RENAME preserves values while changing current authored lookup
+  ---
+  duration_ms: 0.359708
+  type: 'test'
+  ...
+# Subtest: pure Pipe tails retain ordinal values and only expose authored range names
+ok 19 - pure Pipe tails retain ordinal values and only expose authored range names
+  ---
+  duration_ms: 0.29775
+  type: 'test'
+  ...
+# Subtest: positional ORDER windows retain named snapshots without publishing hidden keys
+ok 20 - positional ORDER windows retain named snapshots without publishing hidden keys
+  ---
+  duration_ms: 0.162875
+  type: 'test'
+  ...
+# Subtest: positional DISTINCT compares anonymous values and preserves later DROP multiplicity
+ok 21 - positional DISTINCT compares anonymous values and preserves later DROP multiplicity
+  ---
+  duration_ms: 0.172792
+  type: 'test'
+  ...
+# Subtest: positional UNNEST preserves anonymous occurrences, child multiplicity and immutable range values
+ok 22 - positional UNNEST preserves anonymous occurrences, child multiplicity and immutable range values
+  ---
+  duration_ms: 0.175958
+  type: 'test'
+  ...
+# Subtest: positional UNPIVOT retains anonymous values, generated current labels and repeated-row multiplicity
+ok 23 - positional UNPIVOT retains anonymous values, generated current labels and repeated-row multiplicity
+  ---
+  duration_ms: 0.15725
+  type: 'test'
+  ...
+# Subtest: UNPIVOT generated-name collisions keep old and new values as separate positional occurrences
+ok 24 - UNPIVOT generated-name collisions keep old and new values as separate positional occurrences
+  ---
+  duration_ms: 0.201083
+  type: 'test'
+  ...
+# Subtest: positional ASSERT retains values and validates explicit current/range keys through the common Owner
+ok 25 - positional ASSERT retains values and validates explicit current/range keys through the common Owner
+  ---
+  duration_ms: 0.385916
+  type: 'test'
+  ...
+# Subtest: positional PIVOT keeps anonymous group keys, immutable receivers and authored bucket order
+ok 26 - positional PIVOT keeps anonymous group keys, immutable receivers and authored bucket order
+  ---
+  duration_ms: 0.239667
+  type: 'test'
+  ...
+# Subtest: WITH set cutover preserves full independent fixture inventories and JSON bytes
+ok 27 - WITH set cutover preserves full independent fixture inventories and JSON bytes
+  ---
+  duration_ms: 17.877125
+  type: 'test'
+  ...
+# Subtest: INNER matching has independent row, type, scope and multiplicity controls
+ok 28 - INNER matching has independent row, type, scope and multiplicity controls
+  ---
+  duration_ms: 1.175625
+  type: 'test'
+  ...
+# Subtest: INNER matching participates in both normal and narrow packed acceptance
+ok 29 - INNER matching participates in both normal and narrow packed acceptance
+  ---
+  duration_ms: 2.634417
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 136.573167
+ACTQL_TEST_CASE {"name":"BY NAME ON expectations distinguish names, order, NULL and duplicates","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-by-name-list-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"BY NAME ON is copied and selected in narrow and normal public acceptance","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-by-name-list-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"CORRESPONDING matching has independent row, type, scope and multiplicity controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional windows retain opposing order keys and different functions","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"anonymous analytic ordinals retain scope without authored private receivers","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"duplicate aggregate aliases retain different COUNT arguments and empty global rows","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional duplicate controls retain both values, types and scope","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"CORRESPONDING matching participates in both normal and narrow packed acceptance","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"parenthesized operands preserve independent ordinal values and private scopes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional inner ORDER LIMIT has independent values and opposite alias controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional star fixtures preserve values nullable schema DISTINCT and scope","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"postprojection filters retain only current names and stay before append","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional exclusions use authored names without exposing anonymous slots","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional replacement preserves snapshots anonymous values and column types","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"window replacement uses current names with opposing keys and retained anonymous values","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional SET retains pre-assignment values, nullability and private scope","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional DROP removes authored duplicates and retains unnamed values and current scope","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional RENAME preserves values while changing current authored lookup","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pure Pipe tails retain ordinal values and only expose authored range names","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional ORDER windows retain named snapshots without publishing hidden keys","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional DISTINCT compares anonymous values and preserves later DROP multiplicity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional UNNEST preserves anonymous occurrences, child multiplicity and immutable range values","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional UNPIVOT retains anonymous values, generated current labels and repeated-row multiplicity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"UNPIVOT generated-name collisions keep old and new values as separate positional occurrences","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional ASSERT retains values and validates explicit current/range keys through the common Owner","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positional PIVOT keeps anonymous group keys, immutable receivers and authored bucket order","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH set cutover preserves full independent fixture inventories and JSON bytes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"INNER matching has independent row, type, scope and multiplicity controls","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-inner-by-name-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"INNER matching participates in both normal and narrow packed acceptance","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-inner-by-name-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":11.387541,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-by-name-list-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":25,"failed":0,"passed":25,"cancelled":0,"skipped":0,"todo":0,"topLevel":25,"suites":0},"duration_ms":45.141208,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-corresponding-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":13.022916,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/set-inner-by-name-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":29,"failed":0,"passed":29,"cancelled":0,"skipped":0,"todo":0,"topLevel":29,"suites":0},"duration_ms":136.573167}

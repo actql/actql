@@ -1,0 +1,74 @@
+{
+  "startedAt": "2026-10-11T19:43:17.914Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH operation independent caller obligations",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/with-graph-operation-caller.test.mjs",
+        "scripts/graph-shortest-source-input.test.mjs",
+        "scripts/graph-refusal-classification-source-input.test.mjs"
+      ],
+      "startedAt": "2026-10-11T19:43:18.010Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:43:18.661Z",
+      "endedAt": "2026-10-11T19:43:18.663Z"
+    },
+    {
+      "name": "WITH Graph lowering and E public diagnostic callers",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_diagnostics_test.mbt",
+        "src/query_program/traversal_nodes_test.mbt",
+        "src/query_program/traverse_hop_vocabulary_test.mbt",
+        "src/query_program/traversal_join_input_test.mbt",
+        "src/query_program/graph_shortest_source_test.mbt",
+        "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+        "src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T19:43:18.735Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:43:22.970Z",
+      "endedAt": "2026-10-11T19:43:22.974Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "0ec90064-6375-4efb-bab0-2ed7534058de",
+    "pid": 93200,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T19:43:17.996Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-88GD0X"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T19:43:23.047Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
