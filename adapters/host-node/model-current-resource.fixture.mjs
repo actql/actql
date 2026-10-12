@@ -62,7 +62,8 @@ export async function currentResourceFixture(moon, control, runId = 'current-res
         bootstrap: {bootstrapRetainedBytes: 100000n, bootstrapExecutionBytes: 100000n,
           maxReservations: 8, maxHoldings: 8, maxDelegations: 8},
         modelRetainedBytes: 100000n, modelExecutionBytes: 3000n, nodeInstallation: selected,
-        metadataAcquisition: metadataOptions.metadataAcquisition}}]).get('models/fixture');
+        metadataAcquisition: metadataOptions.metadataAcquisition,
+        ...(Object.hasOwn(metadataOptions, 'storeBootstrap') ? {storeBootstrap: metadataOptions.storeBootstrap} : {})}}]).get('models/fixture');
     metadataInstallation = registered.originalReadInstallation;
     selected = metadataInstallation.nodeInstallation;
     if (metadataOptions.copiedNodeInstallation) selected = {...selected};

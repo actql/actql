@@ -18,12 +18,13 @@ const record = handle => {
 // Before invocation, the installed caller must fund the complete SDK input,
 // body/header copies, Promise/record and eventual decoder/response holdings.
 export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
-  maxHeaderBytes, maxHeaders, signal, notify}) {
+  maxHeaderBytes, maxHeaders, signal, notify, verifyRequest}) {
   if (typeof runSdk !== 'function' || typeof endpoint !== 'string' ||
       !positive(maxRequestBytes) || !positive(maxHeaderBytes) ||
       !positive(maxHeaders) || maxHeaders > 64 ||
       typeof notify !== 'function' ||
-      (signal !== undefined && !(signal instanceof AbortSignal))) {
+      (signal !== undefined && !(signal instanceof AbortSignal)) ||
+      (verifyRequest !== undefined && typeof verifyRequest !== 'function')) {
     throw issue('InvalidSdkPreparation');
   }
   const url = new URL(endpoint);
@@ -72,6 +73,13 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
       if (bytes > maxHeaderBytes) return reject('SdkRequestHeadersRefused');
     }
     if (headers.length > maxHeaders) return reject('SdkRequestHeadersRefused');
+    // Installed verification is preparation before Entry admission, never a
+    // callback between the final one-shot consume and transport start.
+    if (verifyRequest !== undefined) {
+      try {
+        if (verifyRequest(init.body) !== true) return reject('SdkOriginalRequestMismatch');
+      } catch { return reject('SdkOriginalRequestMismatch'); }
+    }
     // Header values may contain current secrets. They stay in this private
     // record and are never part of a poll result, log or public preimage.
     state.request = {url: input, method: 'POST', body: init.body,
