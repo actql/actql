@@ -16,6 +16,9 @@ from typing import Any, cast
 from ._local_core import LOCAL_CORE_ABI
 
 WASMTIME_VERSION = '38.0.0'
+# Selected standalone profile, shared with the pinned vendor/artifact producer.
+# This is not the older private Node/DuckDB physical diagnostic profile.
+DUCKDB_VERSION = 'v1.4.3'
 _NOTICES = ('LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
 
 
@@ -112,8 +115,7 @@ def inspect_local_components(root: Path, *, package_version: str) -> LocalCompon
                 or body['platform'] != 'darwin-arm64'
                 or type(body['core_abi']) is not int or body['core_abi'] != LOCAL_CORE_ABI
                 or body['wasmtime_version'] != WASMTIME_VERSION
-                or type(body['duckdb_version']) is not str
-                or re.fullmatch(r'v\d+\.\d+\.\d+', body['duckdb_version']) is None):
+                or body['duckdb_version'] != DUCKDB_VERSION):
             raise LocalInstallationError('Installed Local release cohort is incompatible')
         module, module_hash = _component(root, body['module'], 'client_host_wasm.wasm', 32 * 1024 * 1024)
         library, library_hash = _component(root, body['duckdb'], 'libduckdb.dylib', 128 * 1024 * 1024)
