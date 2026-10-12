@@ -261,6 +261,8 @@ pub fn start_client_infer_suffix(@execution_relation.GeneratedSequence, Array[@e
 
 pub fn start_client_keyed_local_join(ClientKeyedJoinPreparation, run? : @physical_strategy.CapturedDAG?) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
 
+pub fn start_client_original_serialization_prefix(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, workspace? : @execution_relation.ExecutionCapacity?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
+
 pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
 
 pub fn start_client_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientInferInputExecution, ClientInferInputIssue]
@@ -384,6 +386,7 @@ type ClientSerializationPrefix
 
 pub(all) enum ClientSerializationPrefixIssue {
   Unavailable
+  Original(@run_publication_host.ClientModelReadPreparationIssue)
   Physical(@physical_resources.LedgerIssue)
   Provider(@connector_sdk.FixedComputeIssue)
   Capture(@execution_query.CapturedSourceIssue)
