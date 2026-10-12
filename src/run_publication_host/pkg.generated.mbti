@@ -207,6 +207,12 @@ pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCom
 
 pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectProducerArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientEffectLocalResultArtifact, ClientEffectTransferredArtifactIssue]
 
+pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
+pub fn borrow_client_original_row_acquisition_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, @query_planning.QueryRequirement) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
+pub fn borrow_client_original_serialization_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
 pub fn cancel_client_keyed_file_locator(ClientKeyedFileLocator) -> Unit
 
 pub fn cancel_client_keyed_row_request(ClientKeyedRequestPreparation) -> Unit
@@ -640,6 +646,8 @@ pub fn client_local_product_common_originals(String, String, ClientLocalProductA
 pub fn client_local_product_finite_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+
+pub fn client_local_product_sdk_bootstrap_originals(String, String) -> Result[ClientLocalProductSDKBootstrapOriginals, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_run_policy_metadata_cursor(Bytes) -> Result[@decode_core.Cursor, ClientLocalProductConfigurationIssue]
 
@@ -2588,6 +2596,12 @@ pub(all) enum ClientLocalProductConfigurationIssue {
   InvalidResultPolicy
   ConfigurationLimit
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalProductSDKBootstrapOriginals {
+  original : ClientLocalProductBootstrapOriginals
+  profile : ClientLocalRunPolicyProfile
+  read : @run_publication.LocalSDKResultReadSelection
+}
 
 type ClientLocalRunPolicyOriginal
 

@@ -19,7 +19,7 @@ from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreInitializationError, LocalCoreResources, _Input, _Output
 from ._local_distribution import installed_local_components, load_local_module
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
-from ._local_preparation import LocalPreparation
+from ._local_preparation import LocalPreparation, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration
 from ._local_storage import ByteWrite, LocalStorageError
 from ._values import wire_bytes
@@ -60,7 +60,7 @@ class InstalledLocalHost:
     """
 
     def __init__(self, core: LocalCore, directory: Path, *,
-                 now: Callable[[], int], observed_at: str) -> None:
+                 now: Callable[[], int], observed_at: str, sdk_finite: bool = False) -> None:
         if type(core) is not LocalCore or not callable(now):
             raise ValueError('Installed Local Host requires its original Core')
         self._original = self
@@ -68,15 +68,18 @@ class InstalledLocalHost:
         self._now = now
         self._installation: OriginalLocalInstallation | None = None
         self._preparation = LocalPreparation(core)
+        self._environment: _Environment | None = None
+        self._prepared_inputs: list[_Preparation] = []
         self._runs = LocalRunCustody(core, self._preparation)
         self._configuration: _RunConfiguration | None = None
         self._inputs: list[_Input] = []
         self._projections: list[_Output] = []
+        self._append_sources: dict[int, _Input] = {}
         self._uncertain_ticket: int | None = None
         self._closing = False
         try:
             self._installation = OriginalLocalInstallation(core, directory,
-                observed_at=observed_at, now=now, project_epoch=self._project_epoch)
+                observed_at=observed_at, now=now, project_epoch=self._project_epoch, sdk_finite=sdk_finite)
             # Exact original file bytes supply only a CID claim. Core validates
             # that claim and the policy body; it is not publisher authority.
             binding = self._installation.binding
@@ -105,7 +108,7 @@ class InstalledLocalHost:
             directory = _default_directory()
             now = lambda: time.time_ns() // 1_000_000
             observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            return cls(core, directory, now=now, observed_at=observed_at)
+            return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)
         except LocalProductCleanupPending:
             raise
         except BaseException:
@@ -225,6 +228,7 @@ class InstalledLocalHost:
             output = self._reserve(lambda: self._core.reserve_submission_projection(
                 configuration.handle, source, 3, cleanup=lambda: True))
             self._projections.append(output)
+            self._append_sources[output.ticket] = source
             captured: list[dict[str, Any]] = []
             def observe(current: _Output) -> None:
                 self._core.produce_submission_append(output, current)
@@ -264,6 +268,65 @@ class InstalledLocalHost:
                 raise LocalStorageError('Original Local submitted intent write conflicted; lookup is required')
             return output
 
+    def _close_projection(self, output: _Output) -> bool:
+        """Release only original transport loans after successful cleanup."""
+        closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
+                  else self._core.close_submission_projection(output))
+        if not closed:
+            return False
+        self._projections.remove(output)
+        source = self._append_sources.get(output.ticket)
+        if source is not None:
+            if not self._core.close_input(source):
+                # The output has closed, but its same input remains reachable
+                # through _inputs for retry. No semantic record is deleted.
+                return False
+            del self._append_sources[output.ticket]
+            self._inputs.remove(source)
+        return True
+
+    def _prepare_original(self, reference: object, intent: bytes) -> _Preparation:
+        """Connect the retained original input to its existing Checker.
+
+        The first write must acknowledge normally. Response loss exits before
+        preparation and retains all original loans. A fresh same-Store lookup
+        then confirms the original intent; it never supplies execution or retry
+        permission. Both new and saved inputs use the same normal preparation
+        Owner, including declarations, bindings and exact text bytes. Restoring
+        a checked input here does not rerun Source, Compute, Model or Effect.
+        """
+        installation = self._active()
+        if type(intent) is not bytes or not 0 < len(intent) <= 65536:
+            raise ValueError('Invalid original Local submitted input transport')
+        # Capture once before physical IO so a caller cannot change the request
+        # identity between retention and the original lookup.
+        captured_reference = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        with self._core._lock:
+            written = self._retain_intent(captured_reference, intent)
+            if not self._close_projection(written):
+                raise LocalProductCleanupPending(self)
+            observed = self._retain_intent(captured_reference, intent)
+            if self._environment is None:
+                selected = next(value for value in installation.binding._selected
+                                if value.name == 'environment.json')
+                source = self._copy(installation.binding._source.original_bytes(selected))
+                def install(_: _Output) -> None:
+                    self._environment = self._preparation.install_environment(source, profile='source-free')
+                installation.binding.inspect(install)
+            assert self._environment is not None
+            document = self._copy(intent)
+            prepared = self._preparation.reserve(self._environment, document, format='submitted')
+            self._prepared_inputs.append(prepared)
+            def check(current: _Output) -> None:
+                # The observed original is revalidated in the same borrowed
+                # read snapshot before entering the existing parser/Checker.
+                self._core.validate_submission_append(observed, current)
+                self._preparation.prepare(prepared)
+            installation.binding.inspect(check)
+            if not self._close_projection(observed):
+                raise LocalProductCleanupPending(self)
+            return prepared
+
     def close(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
@@ -271,20 +334,26 @@ class InstalledLocalHost:
             self._closing = True
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
-            for output in tuple(reversed(self._projections)):
-                closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
-                          else self._core.close_submission_projection(output))
-                if not closed:
+            for prepared in tuple(reversed(self._prepared_inputs)):
+                if not self._preparation.close_preparation(prepared):
                     return False
-                self._projections.remove(output)
+                self._prepared_inputs.remove(prepared)
+            for output in tuple(reversed(self._projections)):
+                if not self._close_projection(output):
+                    return False
             if self._configuration is not None:
                 if not self._runs.close_configuration(self._configuration):
                     return False
                 self._configuration = None
+            if self._environment is not None:
+                if not self._preparation.close_environment(self._environment):
+                    return False
+                self._environment = None
             for source in tuple(reversed(self._inputs)):
                 if not self._core.close_input(source):
                     return False
                 self._inputs.remove(source)
+            self._append_sources.clear()
             if self._installation is not None:
                 if not self._installation.close():
                     return False
