@@ -11,7 +11,7 @@ const DATA_MAX_BYTES = 65536;
 const LICENSE_MAX_BYTES = 1024 * 1024;
 const roles = ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy'];
 const systems = {
-  'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib']),
+  'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib', '/usr/lib/libz.1.dylib']),
   'linux-x64-gnu': new Set(['libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0', 'librt.so.1', 'ld-linux-x86-64.so.2']),
 };
 export const localRuntimeHash = bytes => createHash('sha256').update(bytes).digest('hex');

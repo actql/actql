@@ -1367,34 +1367,26 @@
     {
       "path": "src/run_publication/protocol_schema.generated.mbt",
       "token": "actql-model-invocation-evidence/0.2",
-      "contextSha256": "e95f49b7e559d6956d0fe9378bade6e6d3682bcd48980449be33016d6141f5c7",
-      "line": 908,
+      "contextSha256": "80a9b9707663ec072e873e451bcfc002e4e384ecef59eba99e2a9cb14f26a1d6",
+      "line": 1065,
       "count": 4,
-      "reason": "Explicit reviewed October 11 M0b and C10 capture compatibility; four exact discriminated schema contexts, not a global upgrade."
+      "reason": "Reviewed October 12 finite descriptor segmentation: same four admitted M0b/C10 invocation occurrences, same order/body/CID, one destination and no concat; exact new context only."
     },
     {
       "path": "src/run_publication/protocol_schema.generated.mbt",
       "token": "actql-model-capture-bundle/0.2",
-      "contextSha256": "130fb4203aafe997cf4a360b52dae42917375d82131c5a97bfba173f698260f7",
-      "line": 1248,
-      "count": 1,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
-    },
-    {
-      "path": "src/run_publication/protocol_schema.generated.mbt",
-      "token": "actql-model-invocation-evidence/0.2",
-      "contextSha256": "a96c48ccfc794c84b9f85e57dcc4626b2d4eb6bb5a088d477879b799c79602d8",
-      "line": 1252,
+      "contextSha256": "e6d690c3a198f03a7b8af21ffc40848fcb560e33e19728f70f06a1bee1dee8a7",
+      "line": 1427,
       "count": 2,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+      "reason": "Reviewed October 12 finite descriptor segmentation: same two admitted M0b/C10 bundle occurrences, same order/body/CID, one destination and no concat; exact new context only."
     },
     {
-      "path": "src/run_publication/protocol_schema.generated.mbt",
-      "token": "actql-model-capture-bundle/0.2",
-      "contextSha256": "2307d6817d077c26456f8640a6608d04bc89e663801e2b948096a15b30160ff1",
-      "line": 1467,
+      "path": "src/run_publication_host/client_journal_row_decoding_wbtest.mbt",
+      "token": "actql-native-client-run-row/0.2",
+      "contextSha256": "4fa473624dc9769873ff8128d6f6f56795d998d4856cc9baee7e21dc710ccf09",
+      "line": 106,
       "count": 1,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
+      "reason": "Reviewed October 12 existing merged #1643 refusal fixture: replacing version 0.1 by refused version 0.2 must yield CustodyLost; exact negative context only, not a reader or adopted wire."
     },
     {
       "path": "portability/corpus/model-observations.json",
@@ -1731,6 +1723,22 @@
       "line": 7,
       "count": 1,
       "reason": "Existing independent private Python ABI fixture for the unchanged legacy publication payload record. Frozen source context only; no new writer or version adoption."
+    },
+    {
+      "path": "src/run_publication_host/client_submitted_journal_record_wbtest.mbt",
+      "token": "actql-native-client-submitted-intent-row/0.2",
+      "contextSha256": "794717af78bd6cff1148731d71bfb17fb0b7bd472d003bcb660a9cbcd9d576a5",
+      "line": 119,
+      "count": 1,
+      "reason": "Reviewed October 12 existing merged #1659 decoder refusal fixture: forged version0.2 must yield CustodyLost; exact negative context only, not a production reader or adopted wire."
+    },
+    {
+      "path": "src/run_publication_host/client_submitted_journal_record_wbtest.mbt",
+      "token": "actql-submission-epoch/0.2",
+      "contextSha256": "662739a2ff179c62423e0a63a4d0ca2c132653b754be40ead11543e8936c3776",
+      "line": 139,
+      "count": 1,
+      "reason": "Reviewed October 12 existing merged #1659 decoder refusal fixture: forged version0.2 must yield CustodyLost; exact negative context only, not a production reader or adopted wire."
     }
   ]
 }

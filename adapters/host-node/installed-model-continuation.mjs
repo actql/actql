@@ -188,6 +188,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     admitAttempt: ({originals, slot, attemptWire, authorityWire, attemptIndex}) =>
       parseCore(runtime.modelImmediateCallAttemptAdmit(canonicalJson(originals), slot.ordinal,
         attemptWire, authorityWire, attemptIndex)),
+    // JSON serialization preserves journal data strings verbatim. The bounded
+    // Common issuer supplies canonical data identities, not current grants.
+    projectOriginalJournalIdentity: ({originals, row}) =>
+      parseCore(runtime.modelOriginalJournalIdentity(JSON.stringify(originals), JSON.stringify(row))),
     admitImmediateEntry({decision, preparedCallSet, inventory, originals, slot, attemptIndex,
       attemptCid, attemptWire, authorityWire, at}) {
       const owner = live.get(preparedCallSet);

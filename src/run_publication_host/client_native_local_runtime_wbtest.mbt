@@ -105,6 +105,34 @@ fn runtime_test_library(value : Json, index : Int) -> Map[String, Json] {
 }
 
 ///|
+test "Darwin runtime accepts exact OS zlib and refuses aliases or foreign platform" {
+  let value = runtime_test_manifest()
+  runtime_test_library(value, 0)["dependencies"] = product_texts([
+    "/usr/lib/libSystem.B.dylib", "/usr/lib/libz.1.dylib",
+  ])
+  let admitted = runtime_test_admit(value).unwrap()
+  assert_eq(client_native_local_runtime_original(admitted), value.stringify())
+  for
+    dependency in [
+      "/usr/lib/libz.dylib", "/usr/lib/libz.2.dylib", "/usr/local/lib/libz.1.dylib",
+      "/opt/homebrew/lib/libz.1.dylib", "@rpath/libz.1.dylib", "@loader_path/libz.1.dylib",
+      "libz.1.dylib",
+    ] {
+    let value = runtime_test_manifest()
+    runtime_test_library(value, 0)["dependencies"] = product_texts([dependency])
+    assert_eq(runtime_test_admit(value).map(_ => 1), Err(InvalidClosure))
+  }
+  let value = runtime_test_manifest(platform="linux-x64-gnu")
+  runtime_test_library(value, 0)["dependencies"] = product_texts([
+    "/usr/lib/libz.1.dylib",
+  ])
+  assert_eq(
+    runtime_test_admit(value, platform="linux-x64-gnu").map(_ => 1),
+    Err(InvalidClosure),
+  )
+}
+
+///|
 test "Native runtime metadata preserves both finite formal platform closures" {
   for platform in ["darwin-arm64", "linux-x64-gnu"] {
     let value = runtime_test_manifest(platform~)

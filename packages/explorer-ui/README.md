@@ -1,9 +1,22 @@
-# Explorer read model (E0 / initial E1 preparation)
+# Shared read-only Explorer UI
 
-This private package currently contains a finite read model and public SDK read
-adapter only. It installs no React viewer, Gateway, launcher, Cloud adapter,
-controls, Sample capture or authority. It is not an Explorer release or a Node
-release gate. See [the fixed E0 inventory](../../docs/reviews/2026-10-12-explorer-e0.md).
+This package contains the finite read model, public SDK read adapter and shared
+React Plan viewer described below. The separate optional `@actql/explorer`
+package supplies the built SPA, Hono Gateway and Local launcher; embedding the
+UI library does not open a Host. Cloud route integration, controls and Sample
+capture remain unavailable. Read-only Viewer acceptance does not establish Full
+Explorer completion or add a gate to the initial Node release.
+
+The [fixed E0 inventory](../../docs/reviews/2026-10-12-explorer-e0.md) records the
+earlier read-model-only boundary and its inspected SHAs. Its outstanding UI and
+Gateway work is historical, rather than the current package capability list.
+
+Checked-in manifests are private development manifests. The optional
+[Explorer release cohort](../../release/explorer-cohort.json) stages exact
+package versions and dependency/peer metadata through the existing release
+recipe. A verified RC can be installed normally from its fixed distribution;
+that does not establish formal registry publication. For the standalone install
+and launch interface, see [the Explorer package](../explorer/README.md).
 
 `planReadModel` accepts a static projection already admitted by the SDK. It
 preserves original logical occurrences, ports and input roles. Data edges come
@@ -26,11 +39,7 @@ requests cap reads at 65536 bytes / 10000 nodes / depth 64, preserve tighter
 caller limits, and leave invalid values to existing SDK admission. These
 are view limits, not changes to Host computation or resource ceilings.
 
-The future common UI uses the adopted React/Vite/TanStack/Tailwind/shadcn stack,
-with React/Query peers, original-port Flow and exported built CSS. Its installation,
-Hono loopback/session security, real build and public read acceptance are still
-outstanding. This component fixture acceptance alone cannot establish those.
-# Shared read-only Plan component
+## Shared read-only Plan component
 
 `@actql/explorer-ui/plan-explorer` exports `PlanExplorer({model, scopeKey})`.
 Import `@actql/explorer-ui/styles.css` once in the embedding app. `model` is
