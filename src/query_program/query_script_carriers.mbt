@@ -103,17 +103,27 @@ fn script_carrier_field(
   argument : @query.SgaArgument,
   query : @query.Query,
   input : Input,
+  sources : ScriptSources,
 ) -> @builder.Node raise Abort {
   match argument {
     FieldReference(path) => {
-      guard resolve_column(path, query, input, columns(input)) is Some(name) else {
+      let resolved = match
+        script_input_scope(sources, input.name, query_range_name(query)) {
+        // Use the same continuation scope as ordinary FieldRef selectors.
+        // A miss in this scope must not fall back to a removed input range.
+        Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
+        None => resolve_column(path, query, input, columns(input))
+      }
+      guard resolved is Some(name) else {
         raise Abort(UnknownColumn)
       }
       construction.text(name)
     }
     ListValue(items) =>
       construction.array(
-        items.map(item => script_carrier_field(construction, item, query, input)),
+        items.map(item => {
+          script_carrier_field(construction, item, query, input, sources)
+        }),
       )
     _ => raise Abort(InvalidQuery)
   }
@@ -212,7 +222,7 @@ fn lower_script_carrier_calls(
       construction.object(
         call.arguments.map(argument => {
           let value = if fields.contains(argument.0) {
-            script_carrier_field(construction, argument.1, query, input)
+            script_carrier_field(construction, argument.1, query, input, sources)
           } else {
             script_traversal_argument(construction, argument.1, known, limits)
           }
