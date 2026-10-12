@@ -99,7 +99,7 @@ test "public admission cannot replace original validated Run or scope" {
 // New independent namespace fixtures; the historical fixed bodies stay intact.
 // The existing seal/retained-row Owners establish identity, never this view.
 fn namespace_admission_snapshot(
-  namespace : String,
+  run_namespace : String,
 ) -> ClientSavedSubmissionSnapshot {
   let definition = @publication.seal_publication_contract(
     "run_definition",
@@ -110,7 +110,7 @@ fn namespace_admission_snapshot(
     )
     .replace(
       old="\"scope_id\":\"scope\"",
-      new="\"scope_id\":\"" + namespace + "\"",
+      new="\"scope_id\":\"" + run_namespace + "\"",
     ),
     65536,
     4096,
@@ -139,13 +139,13 @@ fn namespace_admission_snapshot(
 ///|
 test "saved admission namespace projection uses the public UTF16 bound without changing originals" {
   for
-    (namespace, admitted) in [
+    (run_namespace, admitted) in [
       ("😀".repeat(128), true),
       ("😀".repeat(129), false),
       ("a".repeat(256), true),
       ("a".repeat(257), false),
     ] {
-    let snapshot = namespace_admission_snapshot(namespace)
+    let snapshot = namespace_admission_snapshot(run_namespace)
     let record = client_saved_submission_record(snapshot)
     let row = client_saved_submission_row(snapshot)
     let run = client_saved_submission_run_row(snapshot).unwrap()
@@ -153,14 +153,14 @@ test "saved admission namespace projection uses the public UTF16 bound without c
     let result = client_saved_submission_admission_wire(snapshot)
     if admitted {
       assert_true(
-        result.unwrap().contains("\"namespaceId\":\"" + namespace + "\""),
+        result.unwrap().contains("\"namespaceId\":\"" + run_namespace + "\""),
       )
     } else {
       assert_eq(result, Err(Encoding))
     }
     assert_eq(
       @publication.run_definition_namespace(definition),
-      Some(namespace),
+      Some(run_namespace),
     )
     assert_eq(
       client_submitted_intent_wire(
