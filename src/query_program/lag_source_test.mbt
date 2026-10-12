@@ -18,7 +18,7 @@ fn lag_source_control(body : String, parameters? : Bool = false) -> @program.Pro
 
 ///|
 fn lag_source_text(call : String) -> String {
-  "WITH rows AS (SELECT 1 AS id, 10 AS amount UNION ALL SELECT 2, 30 UNION ALL SELECT 3, NULL), " +
+  "WITH rows AS (SELECT 1 AS id, 10 AS amount UNION ALL SELECT 2, 30 UNION ALL SELECT 3, CAST(NULL AS FLOAT64)), " +
   "keyed AS (FROM rows |> ASSERT UNIQUE BY (id)), " +
   "lagged AS (FROM keyed AS r |> " + call + ") " +
   "SELECT id, amount, previous FROM lagged ORDER BY id"
