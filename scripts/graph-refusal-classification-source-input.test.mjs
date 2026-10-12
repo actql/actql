@@ -1,3 +1,10 @@
+import {graphAnyDirectionRefusals as historicalgraphAnyDirectionRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-any-direction-source-input.mjs';
+import {graphAbbreviatedRefusals as historicalgraphAbbreviatedRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-abbreviated-edge-source-input.mjs';
+import {graphQuantifierFormsRefusals as historicalgraphQuantifierFormsRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-quantifier-forms-source-input.mjs';
+import {graphEdgePredicateRefusals as historicalgraphEdgePredicateRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-edge-predicate-source-input.mjs';
+import {graphHopNodePredicateRefusals as historicalgraphHopNodePredicateRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-hop-node-predicate-source-input.mjs';
+import {graphDifferenceSourceRefusals as historicalgraphDifferenceSourceRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-difference-source-input.mjs';
+import {graphEqualitySourceRefusals as historicalgraphEqualitySourceRefusals} from '../reviews/2026-10-11-with-carrier-cutover/pre-with-refusal-inputs/graph-equality-source-input.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -54,16 +61,18 @@ const cases = new Map([
   ...historicalCore.graph.refusals,
   ...historicalSubgraphRefusals.map(item => ({...item,
     ...(item.name === 'subgraph-common-where-selector-gap' ? {expectedCode:'ClientProgramImplementationLimit'} : {})})),
-  ...graphAnyDirectionRefusals,
-  ...graphAbbreviatedRefusals,
-  ...graphQuantifierFormsRefusals,
-  ...graphEdgePredicateRefusals,
-  ...graphHopNodePredicateRefusals,
+  ...historicalgraphAnyDirectionRefusals,
+  ...historicalgraphAbbreviatedRefusals,
+  ...historicalgraphQuantifierFormsRefusals,
+  ...historicalgraphEdgePredicateRefusals,
+  ...historicalgraphHopNodePredicateRefusals,
   ...historicalRows.refusals,
   ...historicalOperations.groups.diagnostics.refusals,
-  ...graphDifferenceSourceRefusals,
-  ...graphEqualitySourceRefusals,
+  ...historicalgraphDifferenceSourceRefusals,
+  ...historicalgraphEqualitySourceRefusals,
 ].map(item => [item.name, item]));
+
+const currentCases = new Map([...graphSourceRefusals,...subgraphSourceRefusals,...graphAnyDirectionRefusals,...graphAbbreviatedRefusals,...graphQuantifierFormsRefusals,...graphEdgePredicateRefusals,...graphHopNodePredicateRefusals,...graphRowSourceRefusals,...graphDiagnosticSourceRefusals,...graphDifferenceSourceRefusals,...graphEqualitySourceRefusals].map(item=>[item.name,item]));
 
 test('only independently proven Graph support gaps gain exact implementation-limit expectations', () => {
   assert.equal(originals.filter(([, , gap]) => gap).length, 10);
@@ -73,8 +82,10 @@ test('only independently proven Graph support gaps gain exact implementation-lim
     const {expectedCode, ...input} = item;
     assert.equal(createHash('sha256').update(encodeRetainedFixture(input)).digest('hex'),
       originalDigest, name + ': preserve the complete original authored input');
-    if (gap) assert.equal(expectedCode, 'ClientProgramImplementationLimit', name);
-    else assert.equal(Object.hasOwn(item, 'expectedCode'), false,
+    const current = currentCases.get(name);
+    assert.ok(current,name);
+    if (gap) assert.equal(current.expectedCode, 'ClientProgramImplementationLimit', name);
+    else assert.equal(Object.hasOwn(current, 'expectedCode'), false,
       name + ': malformed input retains its original rejection policy');
   }
 });
