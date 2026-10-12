@@ -622,6 +622,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       originalJournalInstallation,
       prepareOriginalResourceCurrentCut(park, storageBinding, receipt, codec) {
         originalResourceReadCurrent(park);
+        // Validate the installed runtime before Store I/O and use the original
+        // envelope before even limit-snapshot/validation temporary allocation.
+        if (['clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch',
+          'clientProgramInferOriginalCurrentStateMatchPoll',
+          'clientProgramInferOriginalCurrentStateMatchCurrent',
+          'clientProgramRetireInferOriginalCurrentStateMatch'].some(name => typeof moon[name] !== 'function')) {
+          fail('ModelOriginalCurrentCutUnavailable');
+        }
+        const acquisition = operation.originalMetadataAcquisition(park);
         if (originalCut !== undefined) {
           if (originalCut.park !== park || originalCut.storageBinding !== storageBinding ||
               originalCut.receipt !== receipt || originalCut.codec.deref() !== codec) {
@@ -639,7 +648,6 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             codec.comparisonWork > 2147483647) fail('ModelOriginalCurrentCodecUnavailable');
         // Check the same original envelope BEFORE this caller's first retained
         // allocation. Copy only finite DATA limits, never authority or custody.
-        const acquisition = operation.originalMetadataAcquisition(park);
         const decode = codec.decode;
         const bounded = (value, fields) => value !== null && typeof value === 'object' &&
           Object.keys(value).sort().join(',') === fields && Object.values(value).every(
