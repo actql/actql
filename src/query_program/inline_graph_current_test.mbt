@@ -123,3 +123,26 @@ test "ordinary source-free SELECT keeps its Unit with unrelated lexical inputs" 
     NeedsInputs(_) => fail("the unchanged source-free Unit has no acquisition")
   }
 }
+
+///|
+test "an inline Graph row star exposes its actual fields without a private range" {
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p) GRAPH (NODE TABLES (n AS N KEY (node_key) PROPERTIES (p))) |> node_rows()"
+  let program = carrier_current_primary_program(prefix + " |> SELECT *")
+  assert_true(
+    semantic(program).contains(
+      "\"fields\":[\"id\",\"labels\",\"node_key\",\"p\"]",
+    ),
+  )
+  assert_eq(semantic(program).split("\"values\":{").length() - 1, 1)
+  assert_true(
+    compile_query_script(
+      @query.parse_query_script(
+        prefix + " |> SELECT aql_sga_3.p",
+        syntax_limits(),
+      ).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(UnknownColumn),
+  )
+}
