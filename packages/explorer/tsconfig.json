@@ -4,5 +4,5 @@
     "strict": true, "noEmit": true, "skipLibCheck": false,
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "files": ["gateway.d.ts", "browser-source.d.ts", "gateway.typecheck.mts"]
+  "files": ["gateway.d.ts", "browser-source.d.ts", "gateway.typecheck.mts", "launcher.d.ts", "launcher.typecheck.mts"]
 }

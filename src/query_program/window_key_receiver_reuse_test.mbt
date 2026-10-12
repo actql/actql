@@ -52,7 +52,7 @@ test "OVER key reuse retains distinct current and original Pipe values" {
 test "OVER key reuse distinguishes explicit object and Relation range receivers" {
   let program = compile(
     @query.parse_query(
-      "SELECT id, ROW_NUMBER() OVER (ORDER BY (payload).score, id) AS pos, RANK() OVER (ORDER BY payload.score DESC, id) AS ranking FROM objects AS payload ORDER BY id",
+      "SELECT id, ROW_NUMBER() OVER (ORDER BY (payload.payload).score, id) AS pos, RANK() OVER (ORDER BY payload.score DESC, id) AS ranking FROM objects AS payload ORDER BY id",
       syntax_limits(),
     ).unwrap(),
     group_receiver_scope_context(),

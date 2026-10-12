@@ -23,9 +23,15 @@ pub fn local_prepared_original(LocalPreparedInput) -> LocalInput
 
 pub fn local_prepared_program(LocalPreparedInput) -> @run_publication_host.PreparedClientProgram
 
+pub fn local_submitted_preparation_input(LocalSubmittedPreparation) -> LocalPreparedInput
+
+pub fn local_submitted_preparation_intent(LocalSubmittedPreparation) -> @run_publication_host.ClientSubmittedIntent
+
 pub fn prepare_local_input(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, LocalPreparationIssue]
 
 pub fn prepare_local_input_material(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalPreparedInput, LocalPreparationIssue]
+
+pub fn prepare_local_submitted_input(String, @program_check.CheckEnvironment, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
 
 // Errors
 
@@ -44,12 +50,19 @@ pub(all) enum LocalPreparationIssue {
   Frontend(@source_frontend.Issue)
   Preparation(@run_publication_host.ClientProgramPreparationIssue)
   ArrayProfile(@source_frontend.ArrayProfileIssue)
+  SubmittedInput(@run_publication_host.ClientSubmittedIntentIssue)
+  Declarations(@parameter_binding.Issue)
 }
 
 pub struct LocalPreparedInput {
   prepared : @run_publication_host.PreparedClientProgram
   original : LocalInput
   document : String
+}
+
+pub struct LocalSubmittedPreparation {
+  intent : @run_publication_host.ClientSubmittedIntent
+  input : LocalPreparedInput
 }
 
 // Type aliases
