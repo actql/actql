@@ -223,6 +223,9 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) else {
     return -2
   }
+  if value.runs.values().any(run => run.sdk_submission == Some(handle)) {
+    return -9
+  }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))
     if result != 0 {

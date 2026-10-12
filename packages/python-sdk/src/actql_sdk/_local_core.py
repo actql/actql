@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 55
+LOCAL_CORE_ABI = 56
 
 
 class LocalCoreError(RuntimeError):
@@ -207,8 +207,10 @@ _RUN_SIGNATURES = {
     'dispatch_action': ('i64 i32 i32 i32', 'i32'),
     'install_configuration': ('i64 i32', 'i32'),
     'install_current_configuration': ('i64 i32 i32', 'i32'),
+    'install_sdk_configuration': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i32', 'i32'),
     'prepare': ('i64 i32', 'i32'),
+    'prepare_sdk': ('i64 i32 i32', 'i32'),
     'restore': ('i64 i32 i32', 'i32'),
     'prepared': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -251,6 +253,7 @@ _RUN_INVOCATION_SIGNATURES = {
 _MATERIAL_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
     'reserve_submitted_rows': ('i64 i32 i32 i32 i32 i64', 'i32'),
+    'validate_submitted_rows': ('i64 i32', 'i32'),
     'produce': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -2883,6 +2886,30 @@ class LocalCore:
 
     def produce_material(self, value: _Output) -> None:
         self._produce_output(value, 'material', 'produce')
+
+    def validate_submitted_run_rows(self, value: _Output, current: _Output) -> None:
+        """Revalidate the same Core candidate inside the original Store frame.
+
+        No Python count, row comparison or acceptance decision substitutes for
+        the existing Core supplier. This is inspection, not a COMMIT ACK.
+        """
+        with self._lock:
+            self._owned_output(value)
+            self._host_current_ready(current)
+            code = self._call('material', 'validate_submitted_rows', value.handle)
+            callbacks = self._journal_callbacks(current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_submitted_run_rows', code)
+            self._host_current_ready(current)
+
+    def read_submitted_run_rows(self, value: _Output, current: _Output) -> bytes:
+        """Keep cached transport bytes subordinate to fresh current/Store checks."""
+        with self._lock:
+            self.validate_submitted_run_rows(value, current)
+            raw = self._read_output(value, 'material', 'length')
+            self._host_current_ready(current)
+            return raw
 
     def produce_native_command(self, value: _Output) -> None:
         self._produce_output(value, 'source', 'produce_command')
