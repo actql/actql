@@ -1,0 +1,45 @@
+{
+  "startedAt": "2026-10-12T00:05:11.957Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format only three migrated SGA callers",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/graph_match_rows_test.mbt",
+        "src/query_program/traversal_nodes_test.mbt",
+        "src/query_program/graph_delta_json_source_test.mbt"
+      ],
+      "startedAt": "2026-10-12T00:05:12.028Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:05:12.207Z",
+      "endedAt": "2026-10-12T00:05:12.209Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "dddb9ae4-469a-4198-b621-5b6f690e761a",
+    "pid": 13314,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:05:12.023Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-y8Q99a"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:05:12.271Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

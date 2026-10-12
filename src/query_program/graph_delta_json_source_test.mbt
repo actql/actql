@@ -9,24 +9,41 @@ test "JSON source Delta preserves its independent complete Program" {
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = graph_delta_source_compile(
-    (
-      #|WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), changes AS (SELECT JSON r'''{"base_graph_cid":"sha256:948061fdaf4f6ededbc57867afb844e99a2bbbf15088a20b61a0bf61a5973523","edges":{"add":[],"remove":[],"update":[]},"graph_contract_cid":"sha256:1ce33a39d7ac4c0be8fbca0c3cecb4bc3ab98d4538b8cbf022528ec3d2cad436","nodes":{"add":[],"remove":[],"update":[{"after":{"id":{"definition":"N","domain":"sha256:0b0f09975c343952c31a2792a8d2f19d0dd01455963e55277fd79c4bc4afc9c6","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"p":8}},"before":{"id":{"definition":"N","domain":"sha256:0b0f09975c343952c31a2792a8d2f19d0dd01455963e55277fd79c4bc4afc9c6","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"p":7}}}]},"target_graph_cid":"sha256:2a09607e9ca8471153d3ca36034dd99fac5fbe7dbf0357e3abfc764b7e0f90ee","version":"actql-graph-delta/0.1"}''' AS delta) FROM g |> apply_graph_delta(with: changes, field: "delta") |> node_rows() |> SELECT p, node_key |> RESULT answer
-    ),
-  )
-  assert_eq(semantic(actual), semantic(expected))
-  for program in [expected, actual] {
-    match
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      ) {
-      Checked(_) => ()
-      Rejected(diagnostic) => graph_rows_rejected(diagnostic)
-      NeedsInputs(_) => fail("literal Delta source must not acquire inputs")
+  let source =
+    #|WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), changes AS (SELECT JSON r'''{"base_graph_cid":"sha256:948061fdaf4f6ededbc57867afb844e99a2bbbf15088a20b61a0bf61a5973523","edges":{"add":[],"remove":[],"update":[]},"graph_contract_cid":"sha256:1ce33a39d7ac4c0be8fbca0c3cecb4bc3ab98d4538b8cbf022528ec3d2cad436","nodes":{"add":[],"remove":[],"update":[{"after":{"id":{"definition":"N","domain":"sha256:0b0f09975c343952c31a2792a8d2f19d0dd01455963e55277fd79c4bc4afc9c6","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"p":8}},"before":{"id":{"definition":"N","domain":"sha256:0b0f09975c343952c31a2792a8d2f19d0dd01455963e55277fd79c4bc4afc9c6","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"p":7}}}]},"target_graph_cid":"sha256:2a09607e9ca8471153d3ca36034dd99fac5fbe7dbf0357e3abfc764b7e0f90ee","version":"actql-graph-delta/0.1"}''' AS delta) FROM g |> apply_graph_delta(with: changes, field: `delta`) |> node_rows() |> SELECT p, node_key |> RESULT answer
+  for field in ["`delta`", "DELTA", "changes.delta", "CHANGES.Delta"] {
+    let actual = graph_delta_source_compile(
+      source.replace(old="field: `delta`", new="field: " + field),
+    )
+    assert_eq(semantic(actual), semantic(expected))
+    for program in [expected, actual] {
+      match
+        @check.check_parsed_with_evidence(
+          program,
+          graph_rows_environment(),
+          None,
+          [],
+          graph_rows_check_limits(),
+        ) {
+        Checked(_) => ()
+        Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+        NeedsInputs(_) => fail("literal Delta source must not acquire inputs")
+      }
     }
+  }
+  for field in ["g.delta", "missing.delta", "changes.missing", "missing"] {
+    let parsed = @query.parse_query_script(
+      source.replace(old="field: `delta`", new="field: " + field),
+      syntax_limits(),
+    ).unwrap()
+    assert_true(
+      compile_query_script(
+        parsed,
+        { ..fixture_context(), inputs: [], },
+        construction_limits(),
+      )
+      is Err(UnknownColumn),
+      msg=field,
+    )
   }
 }

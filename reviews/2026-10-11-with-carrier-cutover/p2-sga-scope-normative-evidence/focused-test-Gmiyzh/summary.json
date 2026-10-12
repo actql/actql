@@ -1,0 +1,67 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-Gmiyzh",
+  "revision": "bd38c87bfe0dd14c2de22284dfe5f4702bc83124",
+  "source": {
+    "revision": "bd38c87bfe0dd14c2de22284dfe5f4702bc83124",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T00:29:06.728Z",
+  "endedAt": "2026-10-12T00:29:14.917Z",
+  "status": "failed",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "args": [
+        "--test",
+        "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+        "scripts/sga-signature-role-identity.test.mjs",
+        "scripts/sga-query-call-contract.test.mjs",
+        "scripts/compilation-manifests.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs",
+        "scripts/frontend-profile.test.mjs"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "bd38c87bfe0dd14c2de22284dfe5f4702bc83124",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-12T00:29:06.935Z",
+      "endedAt": "2026-10-12T00:29:14.910Z",
+      "elapsedMs": 7972.689125000001,
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 1,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 89,
+        "passed": 86,
+        "failed": 3,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

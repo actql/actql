@@ -103,3 +103,55 @@ test "checked read cleanup does not claim the never-started read or acknowledge 
     finish_client_model_read_scope(scope, compiled, definition, plan, true).unwrap(),
   )
 }
+
+///|
+test "checked read stop authenticates its own scope and does not settle physical custody" {
+  let (compiled, definition, plan) = client_model_read_test_run("stop-original")
+  let make_scope = () => {
+    let ledger = @resources.create_ledger({
+      planning_work: 3,
+      attempts: 2,
+      holdings: 3,
+      transfer_bytes: 11L,
+      retained_bytes: 10L,
+      execution_bytes: 7L,
+    }).unwrap()
+    let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+    let scope = begin_client_model_read_scope(
+      compiled, definition, plan, ledger, bootstrap, 1, 0, 0,
+    ).unwrap()
+    (ledger, scope)
+  }
+  let (ledger, scope) = make_scope()
+  let (_, same_run_other_scope) = make_scope()
+  let read = prepare_client_model_read(scope, 7L, 5L).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    stop_client_model_read_checked(
+      same_run_other_scope, read, compiled, definition, plan,
+    )
+    is Err(ForeignRun),
+  )
+  assert_true(client_model_read_available(read, compiled, definition, plan))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  stop_client_model_read_checked(scope, read, compiled, definition, plan).unwrap()
+  stop_client_model_read_checked(scope, read, compiled, definition, plan).unwrap()
+  assert_false(client_model_read_available(read, compiled, definition, plan))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(
+    claim_client_model_read_preparation(
+      read, compiled, definition, plan, 7L, 5L,
+    )
+    is Err(Resource(@resources.SpentClaim)),
+  )
+  settle_client_model_read_checked(read, compiled, definition, plan, true).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 3L)
+  assert_true(
+    finish_client_model_read_scope(scope, compiled, definition, plan, true).unwrap(),
+  )
+  assert_true(
+    finish_client_model_read_scope(
+      same_run_other_scope, compiled, definition, plan, true,
+    ).unwrap(),
+  )
+}

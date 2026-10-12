@@ -1,0 +1,3 @@
+Total tests: 6, passed: 6, failed: 0.
+["moon","test","--target","js","src/query_syntax/sga_role_contract_test.mbt"]: executed; counts={"tests":6,"passed":6,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-5aDH98

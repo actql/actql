@@ -1,0 +1,5 @@
+[actql/actql] test query_program/sga_role_lowering_test.mbt:29 ("P2 selector identifiers resolve to their own operand and unchanged complete Program") failed: src/query_program/sga_role_lowering_test.mbt:6:36-6:76@actql/actql FAILED: InvalidNumber
+[actql/actql] test query_program/sga_role_lowering_test.mbt:76 ("P2 MATCH references preserve literal values and the unchanged complete Program") failed: src/query_program/sga_role_lowering_test.mbt:6:36-6:76@actql/actql FAILED: InvalidNumber
+Total tests: 3, passed: 1, failed: 2.
+["moon","test","--target","js","src/query_program/sga_role_lowering_test.mbt"]: process failed (2); counts={"tests":3,"passed":1,"failed":2,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-j7hGNR
