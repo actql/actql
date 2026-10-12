@@ -12,7 +12,6 @@ fn staged_join_range_property_expected() -> @program.Program {
   ).unwrap()
 }
 
-
 ///|
 // Complete current topology from the original typed Values/property contracts.
 // Receiver fields, nullable payloads, guards and public projection are unchanged.
