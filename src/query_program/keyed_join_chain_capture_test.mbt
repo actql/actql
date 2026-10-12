@@ -32,7 +32,11 @@ fn chain_right_catalog() -> @environment.SourceRequestContracts {
 }
 
 ///|
-fn chain_right_context(direct~ : Bool, captured~ : Bool) -> Context raise {
+fn chain_right_context(
+  direct~ : Bool,
+  captured~ : Bool,
+  parameters~ : Bool,
+) -> Context {
   let declaration = @wire.admit(
     @source.parse_json(
       if direct {
@@ -54,8 +58,26 @@ fn chain_right_context(direct~ : Bool, captured~ : Bool) -> Context raise {
   let schema = @environment.read_relation_schema_fields(
       fields, 10000, 100, 100, 100000,
     ).unwrap().0
+  let declarations = @parameters.read_declarations(
+    Some(
+      from_unpivot_public_cursor(
+        "{\"parents\":{\"type\":\"array\",\"max_items\":4,\"items\":{\"type\":\"object\",\"fields\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"items\":{\"type\":\"array\",\"nullable\":true,\"max_items\":3,\"items\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"code\":{\"type\":\"number\",\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":true}}}}}}}}",
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
   {
     ..fixture_context(),
+    parameter_declarations: if parameters {
+      Some(declarations)
+    } else {
+      None
+    },
     source_catalog: Some(chain_right_catalog()),
     captured_stage: if captured {
       Some("capture")
@@ -79,18 +101,26 @@ fn chain_right_context(direct~ : Bool, captured~ : Bool) -> Context raise {
 fn chain_right_queries() -> Array[String] {
   [
     "FROM (SELECT 1 AS id) AS l |> JOIN remote AS r ON l.id = r.id MAX_OUTPUT_ROWS 4 |> JOIN (SELECT 1 AS id) AS s ON r.id = s.id MAX_OUTPUT_ROWS 4 |> SELECT l.id AS id",
-    "WITH lefts AS (FROM UNNEST([STRUCT(1 AS id, [1] AS items)]) AS p |> SELECT id, items) FROM lefts AS l |> JOIN remote AS r ON l.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(l.items) AS n |> SELECT l.id AS id",
+    "WITH lefts AS (FROM UNNEST(@parents) p |> SELECT id, items) FROM lefts AS l |> JOIN remote AS r ON l.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(l.items) AS n WITH OFFSET position |> SELECT l.id AS id, n.*, position",
   ]
 }
 
 ///|
 fn check_keyed_chain_right(query : String) -> Unit raise {
   for captured in [false, true] {
-    let program = compile_query_script(
-      @query.parse_query_script(query, syntax_limits()).unwrap(),
-      chain_right_context(direct=false, captured~),
-      construction_limits(),
-    ).unwrap()
+    let program = match
+      compile_query_script(
+        @query.parse_query_script(query, syntax_limits()).unwrap(),
+        chain_right_context(
+          direct=false,
+          captured~,
+          parameters=query.contains("@parents"),
+        ),
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(issue) => fail(@debug.to_string(issue))
+    }
     // A keyed template omits id deliberately; Direct Select/Result use is
     // forbidden by the existing Common request/consumer classification.
     assert_eq(@program.stage_count(program), 1, msg=query)
@@ -102,11 +132,19 @@ fn check_keyed_chain_right(query : String) -> Unit raise {
 ///|
 fn check_direct_chain_right(query : String) -> Unit raise {
   for captured in [false, true] {
-    let program = compile_query_script(
-      @query.parse_query_script(query, syntax_limits()).unwrap(),
-      chain_right_context(direct=true, captured~),
-      construction_limits(),
-    ).unwrap()
+    let program = match
+      compile_query_script(
+        @query.parse_query_script(query, syntax_limits()).unwrap(),
+        chain_right_context(
+          direct=true,
+          captured~,
+          parameters=query.contains("@parents"),
+        ),
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(issue) => fail(@debug.to_string(issue))
+    }
     assert_eq(
       @program.stage_count(program),
       if captured {
