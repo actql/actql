@@ -157,6 +157,44 @@ pub fn start_client_acquired_serialization_prefix(
   workspace? : @execution.ExecutionCapacity? = None,
   keyed? : @publication_host.ClientKeyedLookupInput? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
+  start_client_acquired_serialization_prefix_owned(
+    prepared,
+    task,
+    step,
+    source,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    execution,
+    measurement,
+    ledger,
+    workspace,
+    keyed,
+    None,
+  )
+}
+
+///|
+// Original capture custody is checked again after input-binding liveness
+// callbacks and immediately before the existing reservation. Ordinary callers
+// retain their previous entry; this is not a generic callback or new Owner.
+fn start_client_acquired_serialization_prefix_owned(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  ledger : @resources.Ledger,
+  workspace : @execution.ExecutionCapacity?,
+  keyed : @publication_host.ClientKeyedLookupInput?,
+  original_capture : @row_source_host.RowSourceCapture?,
+) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   guard serialization_prefix_provider(
       prepared,
       task,
@@ -240,6 +278,15 @@ pub fn start_client_acquired_serialization_prefix(
       inputs.push(@local.managed_provider_relation_input(read))
     }
   }
+  if original_capture is Some(capture) &&
+    @row_source_host.row_capture_original_prefix_requirement(capture, ledger)
+    is None {
+    return Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState)),
+    )
+  }
+  // Capacity addition and reserve_attempt below run synchronously and invoke
+  // no capture/provider callback behind this final original-custody fence.
   start_serialization_prefix_provider(
     sequence, provider, capacity, inputs, execution, measurement, ledger, workspace,
   )
