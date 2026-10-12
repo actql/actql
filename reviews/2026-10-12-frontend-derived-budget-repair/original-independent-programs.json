@@ -1,6 +1,6 @@
 {
   "base": "b0ae22c042efc04f90c7c279e2cc51aadc4651cf",
-  "note": "Original independently authored Program oracles retained unchanged. Current oracles are authored by producer composition, not generated from implementation output.",
+  "note": "Original independently authored Program literals recovered verbatim as JSON values from the declared base fixture files. Current composed oracles stay in the tests; no expected value is generated from compiler output.",
   "oracles": [
     {
       "file": "optional_derived_alias_test.mbt",
@@ -10,7 +10,7 @@
         "id": "fixture.sql_set",
         "stages": [
           {
-            "id": "main",
+            "id": "aql_cte_0",
             "inputs": {},
             "steps": [
               {
@@ -44,10 +44,10 @@
                     }
                   ]
                 },
-                "as": "aql_script_seed_3"
+                "as": "left_rows"
               },
               {
-                "from": "aql_script_seed_3",
+                "from": "left_rows",
                 "filter": {
                   "gt": [
                     {
@@ -64,20 +64,42 @@
                   "a",
                   "b"
                 ],
-                "as": "aql_script_cte_2"
-              },
-              {
-                "from": "aql_script_cte_2",
-                "select": [
-                  "b",
-                  "a"
-                ],
-                "as": "aql_script_result"
+                "as": "aql_cte_final"
               }
             ],
             "results": {
               "rows": {
-                "from": "aql_script_result",
+                "from": "aql_cte_final",
+                "fields": [
+                  "a",
+                  "b"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "aql_query_source_0": {
+                "result": {
+                  "stage": "aql_cte_0",
+                  "result": "rows"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "aql_query_source_0",
+                "select": [
+                  "b",
+                  "a"
+                ],
+                "as": "aql_gen_0"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_gen_0",
                 "fields": [
                   "b",
                   "a"
@@ -104,7 +126,7 @@
         "id": "fixture.sql_set",
         "stages": [
           {
-            "id": "main",
+            "id": "aql_cte_0",
             "inputs": {},
             "steps": [
               {
@@ -138,10 +160,10 @@
                     }
                   ]
                 },
-                "as": "aql_script_seed_3"
+                "as": "left_rows"
               },
               {
-                "from": "aql_script_seed_3",
+                "from": "left_rows",
                 "filter": {
                   "gt": [
                     {
@@ -158,20 +180,42 @@
                   "a",
                   "b"
                 ],
-                "as": "aql_script_cte_2"
-              },
-              {
-                "from": "aql_script_cte_2",
-                "select": [
-                  "b",
-                  "a"
-                ],
-                "as": "aql_script_result"
+                "as": "aql_cte_final"
               }
             ],
             "results": {
               "rows": {
-                "from": "aql_script_result",
+                "from": "aql_cte_final",
+                "fields": [
+                  "a",
+                  "b"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "aql_query_source_0": {
+                "result": {
+                  "stage": "aql_cte_0",
+                  "result": "rows"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "aql_query_source_0",
+                "select": [
+                  "b",
+                  "a"
+                ],
+                "as": "aql_gen_0"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_gen_0",
                 "fields": [
                   "b",
                   "a"
@@ -264,7 +308,7 @@
           {
             "id": "main",
             "inputs": {
-              "orders": {
+              "aql_query_source_0": {
                 "result": {
                   "stage": "capture",
                   "result": "source"
@@ -273,16 +317,16 @@
             },
             "steps": [
               {
-                "from": "orders",
+                "from": "aql_query_source_0",
                 "select": [
                   "id"
                 ],
-                "as": "aql_script_result"
+                "as": "aql_gen_0"
               }
             ],
             "results": {
               "rows": {
-                "from": "aql_script_result",
+                "from": "aql_gen_0",
                 "fields": [
                   "id"
                 ]
@@ -365,7 +409,7 @@
             }
           },
           {
-            "id": "main",
+            "id": "aql_cte_0_aql_set_term_0",
             "inputs": {
               "orders": {
                 "result": {
@@ -392,8 +436,29 @@
                 "select": [
                   "id"
                 ],
-                "as": "aql_data_set_term_2"
-              },
+                "as": "aql_set_output_0"
+              }
+            ],
+            "results": {
+              "aql_cte_0_aql_set_term_0": {
+                "from": "aql_set_output_0",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          },
+          {
+            "id": "aql_cte_0_aql_set_term_1",
+            "inputs": {
+              "orders": {
+                "result": {
+                  "stage": "capture",
+                  "result": "source"
+                }
+              }
+            },
+            "steps": [
               {
                 "from": "orders",
                 "filter": {
@@ -411,26 +476,102 @@
                 "select": [
                   "id"
                 ],
-                "as": "aql_data_set_term_3"
+                "as": "aql_set_output_1"
+              }
+            ],
+            "results": {
+              "aql_cte_0_aql_set_term_1": {
+                "from": "aql_set_output_1",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          },
+          {
+            "id": "aql_cte_0_aql_set_merge_0",
+            "inputs": {
+              "l": {
+                "result": {
+                  "stage": "aql_cte_0_aql_set_term_0",
+                  "result": "aql_cte_0_aql_set_term_0"
+                }
               },
+              "r": {
+                "result": {
+                  "stage": "aql_cte_0_aql_set_term_1",
+                  "result": "aql_cte_0_aql_set_term_1"
+                }
+              }
+            },
+            "steps": [
               {
-                "from": "aql_data_set_term_2",
+                "from": "l",
                 "append": {
-                  "with": "aql_data_set_term_3"
+                  "with": "r"
                 },
-                "as": "aql_script_cte_1"
-              },
+                "as": "aql_set_combined_0"
+              }
+            ],
+            "results": {
+              "aql_cte_0_aql_set_merge_0": {
+                "from": "aql_set_combined_0",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          },
+          {
+            "id": "aql_cte_0",
+            "inputs": {
+              "set_rows": {
+                "result": {
+                  "stage": "aql_cte_0_aql_set_merge_0",
+                  "result": "aql_cte_0_aql_set_merge_0"
+                }
+              }
+            },
+            "steps": [
               {
-                "from": "aql_script_cte_1",
+                "from": "set_rows",
                 "select": [
                   "id"
                 ],
-                "as": "aql_script_result"
+                "as": "aql_set_final_0"
               }
             ],
             "results": {
               "rows": {
-                "from": "aql_script_result",
+                "from": "aql_set_final_0",
+                "fields": [
+                  "id"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "chosen": {
+                "result": {
+                  "stage": "aql_cte_0",
+                  "result": "rows"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "chosen",
+                "select": [
+                  "id"
+                ],
+                "as": "aql_gen_0"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_gen_0",
                 "fields": [
                   "id"
                 ]
@@ -456,7 +597,7 @@
         "id": "fixture.sql_set",
         "stages": [
           {
-            "id": "main",
+            "id": "aql_cte_0",
             "inputs": {},
             "steps": [
               {
@@ -490,10 +631,10 @@
                     }
                   ]
                 },
-                "as": "aql_script_seed_3"
+                "as": "left_rows"
               },
               {
-                "from": "aql_script_seed_3",
+                "from": "left_rows",
                 "filter": {
                   "gt": [
                     {
@@ -510,20 +651,42 @@
                   "a",
                   "b"
                 ],
-                "as": "aql_script_cte_2"
-              },
-              {
-                "from": "aql_script_cte_2",
-                "select": [
-                  "b",
-                  "a"
-                ],
-                "as": "aql_script_result"
+                "as": "aql_cte_final"
               }
             ],
             "results": {
               "rows": {
-                "from": "aql_script_result",
+                "from": "aql_cte_final",
+                "fields": [
+                  "a",
+                  "b"
+                ]
+              }
+            }
+          },
+          {
+            "id": "main",
+            "inputs": {
+              "chosen": {
+                "result": {
+                  "stage": "aql_cte_0",
+                  "result": "rows"
+                }
+              }
+            },
+            "steps": [
+              {
+                "from": "chosen",
+                "select": [
+                  "b",
+                  "a"
+                ],
+                "as": "aql_gen_0"
+              }
+            ],
+            "results": {
+              "rows": {
+                "from": "aql_gen_0",
                 "fields": [
                   "b",
                   "a"
@@ -616,7 +779,7 @@
           {
             "id": "main",
             "inputs": {
-              "orders": {
+              "chosen": {
                 "result": {
                   "stage": "capture",
                   "result": "source"
@@ -625,16 +788,16 @@
             },
             "steps": [
               {
-                "from": "orders",
+                "from": "chosen",
                 "select": [
                   "id"
                 ],
-                "as": "aql_script_result"
+                "as": "aql_gen_0"
               }
             ],
             "results": {
               "rows": {
-                "from": "aql_script_result",
+                "from": "aql_gen_0",
                 "fields": [
                   "id"
                 ]

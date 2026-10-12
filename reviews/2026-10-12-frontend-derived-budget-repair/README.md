@@ -12,7 +12,10 @@ The adopted WITH contract says naming a binding neither acquires/copies data nor
 requests placement or a task/Stage boundary. Complete independently authored
 Program comparisons remain; their obsolete per-binding Stage shells are composed
 into the existing pipeline instead. Every original independent Program is
-preserved in `original-independent-programs.json`, with its exact base SHA.
+preserved in `original-independent-programs.json`, with its exact base SHA. The integration
+review restored these six historical literals directly from Git at that base;
+the submitted archive had inadvertently contained the new composed expectations.
+Original author ancestry and the actual test expectations remain unchanged.
 
 Expected programs are authored from those original declarations/rows and the
 selected producer semantics, not parsed out of actual compiler output. Private
