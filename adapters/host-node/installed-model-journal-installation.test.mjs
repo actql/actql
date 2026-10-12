@@ -52,3 +52,18 @@ test('original journal installation uses the scope retained by the original oper
   assert.equal(f.reads(), 0);
   assert.equal(f.factsCalls(), 0);
 });
+
+test('missing installed raw Store refuses before Approval, original journal or Entry creation',async()=>{
+  let prepared=0,journals=0;
+  const controller=await installNodeModelContinuation({control:{},store:{},
+    getCheckpoints(){journals++;assert.fail('No raw Store installation');}});
+  const rawCaptureSelection={profile:{},installation:{sdk:undefined},probability:undefined,
+    retention:{},metadata:{},clock:{},data:{},selectedAt:'selected',availableUntil:'until',
+    deleteBy:'delete',extensionCeilingAt:'ceiling',metadataDeleteBy:'metadata',
+    selectionAvailable:()=>true};
+  await assert.rejects(controller.open({operation:{ioNotification:{notify(){}},
+    preparedFacts(){prepared++;assert.fail('Before original preparation');}},
+    selected:{rawCaptureSelection},plan:{},preparedCallSet:{}}),
+  {code:'InstalledModelRawStoreUnavailable'});
+  assert.equal(prepared,0);assert.equal(journals,0);
+});

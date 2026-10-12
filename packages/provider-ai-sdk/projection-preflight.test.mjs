@@ -2,15 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {setImmediate as turn} from 'node:timers/promises';
-import {createAdmittedOpenAIChatPreflight} from './_internal/original-openai-chat.mjs';
+const {createAdmittedOpenAIChatPreflight} = await import(process.env.ACTQL_RAW_PREFLIGHT_MODULE ??
+  './_internal/original-openai-chat.mjs');
 const corpus=JSON.parse(readFileSync(new URL('../../portability/corpus/openai-chat.json',import.meta.url)));
 
 // Actual pinned SDK and fixed transport; Core/persistence ports are doubles.
 // This exercises the consuming preparation shape, not public funding/admission.
-function fixture({abort,issueAt,retireFailure=false,foreignBinding=false,
+function fixture({abort,issueAt,retireFailure=false,foreignBinding=false,deferredRaw=false,
+  rawCleanup=()=>true,saveRaw,
   projectionLimits={maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000}}={}) {
   const request={},provider={},cursor={},entry={};
   const counts={starts:0,advances:0,retire:0,fetch:0,plans:0,generation:0,saves:0};
+  let bindRaw;
+  const persist=async(call,raw)=>{counts.saves++;return saveRaw===undefined?
+    {response:{call,raw}}:saveRaw(call,raw);};
+  persist.cleanup=rawCleanup;
   const projected={_0:corpus.prompt.payload.instructions,
     _1:'{"absent":null,"amount":"9007199254740993.00","text":"é\\r\\n"}',
     _2:JSON.stringify(corpus.schema),_3:corpus.task.contract_cid,
@@ -41,14 +47,15 @@ function fixture({abort,issueAt,retireFailure=false,foreignBinding=false,
     maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,signal:abort?.signal,
     notify(){},checked,profile:{},installation:{},quantities:{tokens:16n,costUnits:0n,durationMs:500n},
     responseLimits:{maxBytes:1000,maxChunkBytes:1000,maxChunks:2,maxHeaderBytes:100,observedHeaders:[]},
-    observeAt:()=> '2026-10-13T00:00:00.000Z',cleanupRaw:()=>true,
+    observeAt:()=> '2026-10-13T00:00:00.000Z',
     fetch(url,init){counts.fetch++;assert.equal(url,'https://fixture.invalid/v1/chat/completions');
       const body=JSON.parse(init.body);assert.equal(body.messages[1].content,projected._1);
       assert.deepEqual(body.response_format.json_schema.schema,corpus.schema);
       return Promise.resolve(new Response('{}',{headers:{'content-type':'application/json'}}));},
-    async persistRaw(call,raw){counts.saves++;return {response:{call,raw}};},
+    ...(deferredRaw?{rawCaptureBinder(callback){assert.equal(bindRaw,undefined);bindRaw=callback;}}
+      :{persistRaw:persist,cleanupRaw:rawCleanup}),
   });
-  return {port,counts,entry};
+  return {port,counts,entry,persist,bindRaw:(registration,persistence=persist)=>bindRaw(registration,persistence)};
 }
 async function eventually(read,predicate){for(let i=0;i<50;i++){const value=read();if(predicate(value))return value;await turn();}assert.fail('Finite preflight did not settle');}
 
@@ -124,4 +131,56 @@ test('installation bounds are snapshotted before lazy child allocation',()=>{
   assert.deepEqual(f.port.preflight.advance(),{_0:false,_1:undefined});
   assert.equal(f.counts.starts,1);assert.equal(f.counts.generation,0);
   assert.equal(f.port.preflight.cleanup(),true);
+});
+
+test('original deferred raw Store binds before Entry and cleanup retries the same responsibility',async()=>{
+  let clean=false;
+  const f=fixture({deferredRaw:true,rawCleanup:()=>clean});
+  const {_1:plan}=await eventually(()=>f.port.preflight.advance(),v=>v._0);
+  assert.equal(f.counts.fetch,0);
+  const registration={};
+  f.bindRaw(registration);
+  assert.throws(()=>f.bindRaw(registration),{message:'OriginalSdkRawBindingUnavailable'});
+  const call=plan.start(f.entry);
+  assert.equal(f.counts.fetch,1);
+  await eventually(()=>call.poll(),v=>v.kind==='saved');
+  assert.equal(f.port.preflight.cleanup(),false);
+  assert.equal(plan.start(f.entry),undefined);
+  clean=true;
+  await eventually(()=>f.port.preflight.cleanup(),Boolean);
+  assert.equal(f.counts.saves,1);
+  assert.equal(f.counts.fetch,1);
+});
+
+test('late missing raw binding at an entered attempt cannot start transport or recreate its plan',async()=>{
+  const f=fixture({deferredRaw:true});
+  const {_1:plan}=await eventually(()=>f.port.preflight.advance(),v=>v._0);
+  assert.equal(plan.start(f.entry),undefined);
+  assert.equal(f.counts.fetch,0);
+  f.bindRaw({});
+  assert.equal(plan.start(f.entry),undefined,'late custody is not a restored send gate');
+  assert.equal(f.counts.fetch,0);
+  // The actual Owner keeps this Entry Unknown. Cleanup, not re-entry, follows.
+  await eventually(()=>f.port.preflight.cleanup(),Boolean);
+  assert.throws(()=>f.bindRaw({}),{message:'OriginalSdkRawBindingUnavailable'});
+  assert.equal(plan.start(f.entry),undefined);
+  assert.equal(f.counts.plans,1);
+});
+
+test('unresolved raw save keeps the original SDK port pending through cancellation',async()=>{
+  let resolve;
+  const saving=new Promise(r=>{resolve=r;});
+  const abort=new AbortController();
+  const f=fixture({abort,deferredRaw:true,saveRaw:()=>saving});
+  const {_1:plan}=await eventually(()=>f.port.preflight.advance(),v=>v._0);
+  f.bindRaw({});
+  const call=plan.start(f.entry);
+  await eventually(()=>call.poll(),()=>f.counts.saves===1);
+  abort.abort();
+  assert.equal(f.port.preflight.cleanup(),false);
+  assert.equal(plan.start(f.entry),undefined);
+  resolve({response:{original:'saved raw double'}});
+  await eventually(()=>call.poll(),v=>v.kind==='saved');
+  await eventually(()=>f.port.preflight.cleanup(),Boolean);
+  assert.equal(f.counts.fetch,1);
 });
