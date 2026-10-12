@@ -52,7 +52,7 @@ fn event_window_common_checked(program : @program.Program) -> Unit raise {
     max_depth: 100,
     max_text_bytes: 100000,
   }).unwrap()
-  match @stage_results.check_local_program(source, {
+  assert_true(@stage_results.check_local_program(source, {
     max_stages: 10,
     max_steps: 100,
     max_results: 100,
@@ -61,10 +61,7 @@ fn event_window_common_checked(program : @program.Program) -> Unit raise {
     max_tokens: 10000,
     max_depth: 100,
     max_text_bytes: 100000,
-  }) {
-    Ok(_) => ()
-    Err(issue) => raise issue
-  }
+  }) is Ok(_), msg="independent existing window/Events contract must check")
 }
 
 ///|
