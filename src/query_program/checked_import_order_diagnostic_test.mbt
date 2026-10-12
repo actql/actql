@@ -25,14 +25,27 @@ test "independent captured JOIN Program compares strict and check-only orders" {
   }
   match @stage_results.prepare_local_program(parameters, limits) {
     Ok(_) => ()
-    Err(Order(stage, PipelineOrder(issue))) => fail("strict pipeline order stage \{stage}: " + @debug.to_string(issue.kind))
-    Err(Order(stage, ResultOrder(issue))) => fail("strict Result order stage \{stage}: " + @debug.to_string(issue.kind))
-    Err(Pipeline(stage, issue)) => fail("strict pipeline stage \{stage}: " + @debug.to_string(issue.kind))
+    Err(Order(stage, PipelineOrder(issue))) =>
+      fail(
+        "strict pipeline order stage \{stage}: " + @debug.to_string(issue.kind),
+      )
+    Err(Order(stage, ResultOrder(issue))) =>
+      fail(
+        "strict Result order stage \{stage}: " + @debug.to_string(issue.kind),
+      )
+    Err(Pipeline(stage, issue)) =>
+      fail("strict pipeline stage \{stage}: " + @debug.to_string(issue.kind))
     Err(_) => fail("strict preparation failed at another boundary")
   }
-  guard @stage_results.check_local_program(parameters, limits) is Err(Order(1, PipelineOrder(issue))) else {
+  guard @stage_results.check_local_program(parameters, limits)
+    is Err(Order(1, PipelineOrder(issue))) else {
     fail("expected current check-only imported order gap")
   }
   assert_eq(issue.kind, @pipeline.UnresolvedOrder)
-  assert_eq(@wire.cursor_path(issue.source), [Key("stages"), Index(1), Key("steps"), Index(3)])
+  assert_eq(@wire.cursor_path(issue.source), [
+    Key("stages"),
+    Index(1),
+    Key("steps"),
+    Index(3),
+  ])
 }
