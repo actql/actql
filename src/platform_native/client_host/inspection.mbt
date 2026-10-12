@@ -70,6 +70,7 @@ pub fn inspect_native_client_state(
         max_records,
         fenced: false,
         publication_read_locked: false,
+        transaction_active: false,
       }
       match journal.submitted_intent_custody() {
         Ok(_) => Ok(Retained)

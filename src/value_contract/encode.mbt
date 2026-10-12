@@ -8,7 +8,77 @@ priv enum Emission {
   TextValue(String)
   NumberValue(Double)
   BoolValue(Bool)
+  Schema(Contract)
+  SchemaShape(Shape)
+  SchemaFieldsAt(Fields, Int)
+  RequiredAt(Fields, Int)
+  Required(Fields)
+  NullSchema
+  EndArray
   End
+}
+
+///|
+pub(all) enum JsonSchemaIssue {
+  Unsupported
+  Limit
+  Closed
+} derive(Eq, Debug)
+
+///|
+/// Initial strict structured-output profile. This is a read-only projection,
+/// not Contract admission or a provider/dispatch capability.
+pub fn start_json_schema_emission(
+  contract : Contract,
+  writer : @encode.Writer,
+  max_frames : Int,
+) -> Result[CheckedEmission, JsonSchemaIssue] {
+  if contract.nullable || !(contract.shape is Object(_)) {
+    return Err(Unsupported)
+  }
+  try {
+    let cursor = start_checked_emission(contract, writer, max_frames)
+    cursor.pending = [Schema(contract)]
+    Ok(cursor)
+  } catch {
+    _ => Err(Limit)
+  }
+}
+
+///|
+fn schema_shape_supported(shape : Shape) -> Bool {
+  match shape {
+    Text({ min_length: None, max_codepoints: None, max_utf8_bytes: None, }) =>
+      true
+    Number | Boolean | Object(_) | Array(_, max_items=None) => true
+    _ => false
+  }
+}
+
+///|
+/// Uses the same bounded names, text, stack and writer as contract emission.
+/// Unsupported constraints are refused rather than erased. On any failure the
+/// incomplete document is cancelled; no partial schema can be consumed.
+pub fn advance_json_schema_emission(
+  cursor : CheckedEmission,
+) -> Result[Bool, JsonSchemaIssue] {
+  if cursor.closed || cursor.done {
+    return Err(Closed)
+  }
+  if cursor.pending.last() is Some(frame) {
+    let supported = match frame {
+      Schema(value) => schema_shape_supported(value.shape)
+      SchemaShape(shape) => schema_shape_supported(shape)
+      _ => true
+    }
+    if !supported {
+      cancel_checked_emission(cursor)
+      return Err(Unsupported)
+    }
+  }
+  Ok(advance_checked_emission(cursor)) catch {
+    _ => Err(Limit)
+  }
 }
 
 ///|
@@ -144,6 +214,79 @@ pub fn advance_checked_emission(
       NumberValue(value) => @encode.number_value(writer, value)
       BoolValue(value) => @encode.bool_value(writer, value)
       End => @encode.end_object(writer)
+      EndArray => @encode.end_array(writer)
+      NullSchema => {
+        @encode.begin_ordered_object(writer)
+        push_emission(cursor, End)
+        push_emission(cursor, TextValue("null"))
+        push_emission(cursor, Key("type"))
+      }
+      Schema(value) =>
+        if value.nullable {
+          @encode.begin_ordered_object(writer)
+          @encode.ordered_key(writer, "anyOf")
+          @encode.begin_array(writer)
+          push_emission(cursor, End)
+          push_emission(cursor, EndArray)
+          push_emission(cursor, NullSchema)
+          push_emission(cursor, SchemaShape(value.shape))
+        } else {
+          push_emission(cursor, SchemaShape(value.shape))
+        }
+      SchemaShape(shape) => {
+        // Schema callers perform the typed unsupported check before this
+        // transition. A wrong cursor API still cannot emit a weakened schema.
+        if !schema_shape_supported(shape) {
+          raise @encode.OutputLimit
+        }
+        @encode.begin_ordered_object(writer)
+        push_emission(cursor, End)
+        push_emission(cursor, TextValue(type_name(shape)))
+        push_emission(cursor, Key("type"))
+        match shape {
+          Object(fields) => {
+            push_emission(cursor, Required(fields))
+            push_emission(cursor, Key("required"))
+            push_emission(cursor, SchemaFieldsAt(fields, -1))
+            push_emission(cursor, Key("properties"))
+            push_emission(cursor, BoolValue(false))
+            push_emission(cursor, Key("additionalProperties"))
+          }
+          Array(items, ..) => {
+            push_emission(cursor, Schema(items))
+            push_emission(cursor, Key("items"))
+          }
+          _ => ()
+        }
+      }
+      SchemaFieldsAt(fields, index) =>
+        if index < 0 {
+          @encode.begin_ordered_object(writer)
+          push_emission(cursor, End)
+          if !fields.values.is_empty() {
+            push_emission(cursor, SchemaFieldsAt(fields, 0))
+          }
+        } else {
+          if index + 1 < fields.values.length() {
+            push_emission(cursor, SchemaFieldsAt(fields, index + 1))
+          }
+          let field = fields.values[index]
+          push_emission(cursor, Schema(field.contract))
+          push_emission(cursor, Key(field.name))
+        }
+      Required(fields) => {
+        @encode.begin_array(writer)
+        push_emission(cursor, EndArray)
+        if !fields.values.is_empty() {
+          push_emission(cursor, RequiredAt(fields, 0))
+        }
+      }
+      RequiredAt(fields, index) => {
+        if index + 1 < fields.values.length() {
+          push_emission(cursor, RequiredAt(fields, index + 1))
+        }
+        push_emission(cursor, TextValue(fields.values[index].name))
+      }
       FieldMap(fields) => {
         @encode.begin_ordered_object(writer)
         push_emission(cursor, End)

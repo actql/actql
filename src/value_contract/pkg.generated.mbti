@@ -12,6 +12,8 @@ import {
 // Values
 pub fn advance_checked_emission(CheckedEmission) -> Bool raise @encode_core.EncodeFailure
 
+pub fn advance_json_schema_emission(CheckedEmission) -> Result[Bool, JsonSchemaIssue]
+
 pub fn advance_type_equality(TypeEquality) -> Bool? raise RelationError
 
 pub fn array_contract(Contract, nullable~ : Bool, max_items? : Int64?) -> Contract?
@@ -65,6 +67,8 @@ pub fn read_checked_usage(@decode_core.Cursor, Limits) -> Result[(Contract, Int,
 pub fn read_parameter_syntax(@decode_core.Cursor, Limits) -> Result[ParameterSyntax, AdmissionError]
 
 pub fn start_checked_emission(Contract, @encode_core.Writer, Int) -> CheckedEmission raise @encode_core.EncodeFailure
+
+pub fn start_json_schema_emission(Contract, @encode_core.Writer, Int) -> Result[CheckedEmission, JsonSchemaIssue]
 
 pub fn start_type_equality(Contract, Contract, Int) -> TypeEquality raise RelationError
 
@@ -125,6 +129,12 @@ pub struct Field {
 }
 
 type Fields
+
+pub(all) enum JsonSchemaIssue {
+  Unsupported
+  Limit
+  Closed
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
   max_nodes : Int

@@ -13720,6 +13720,105 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-presence",
+      "statement_sha256": "c30b0dfa9b7a40908f56c3c86b000dfdfb4f3f450346711e9cbc40dea7f894b0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-instructions",
+      "statement_sha256": "3bba44bbf02ffe51dfa37daed22381eff2a5e96929ed0631e2961958bfd36e1f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-original-text",
+      "statement_sha256": "a0c19f612d5e44c4a9f512830149407c08d1f271527b3abb66e75ca484f21b56",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-mapped-input",
+      "statement_sha256": "c3db61a49cdbea92d9eae177e3b3620bcf47901a25c170fc81010ed59713e586",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-binding",
+      "statement_sha256": "b2cff075cf2bd90089c9627c2e360f15fc8643d0679e67ad04501c7953f04920",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-required",
+      "statement_sha256": "9e6a7d9eaafc15d22f497be4f1e7a001e057913028a79cfef24996b2095f3e7e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-closed",
+      "statement_sha256": "3ff134389a8409786410ace0897587c303d5a9605110dac23cf592d90ce56c07",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-constraints",
+      "statement_sha256": "f5bf4bfde85527f4948ace45521b9281030639b5abba83f22de9b94ab94ef0d2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.openai-chat-unsupported",
+      "statement_sha256": "76c43c2863e50a8e1972cb2bc6f937a03c3d78c3348ad85942de5e19d942d50f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/model-dependencies.retry-order",
       "statement_sha256": "912fe86b6ec9dbd5b460a1de9baf588a0e9e0ee5c07835143b287b48e6aceef1",
       "status": "pending",
@@ -14491,7 +14590,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "5c3f0337d0c25e91079eac26e57b729c06006418f15435f5c16d6e114fcd3fed",
+      "statement_sha256": "180bcdb925ad57d9158b56aeab969c1e78fda3aeba37b5b42fa3813b8c8ba77a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
