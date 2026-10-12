@@ -187,6 +187,8 @@ pub fn client_program_advance_model_execution(@model_execution.ModelExecution, I
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_advance_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, @model_execution.OpenAIChatProjectionIssue]
+
 pub fn client_program_allowed_effect_run_admission(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_allowed_effect_run_authorization(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
@@ -1683,6 +1685,8 @@ pub fn client_program_retire_infer_original_current_state_document(@physical_res
 
 pub fn client_program_retire_infer_original_current_state_match(@physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> Unit
 
+pub fn client_program_retire_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Unit
+
 pub fn client_program_row_content_reference_issuer(@value_admission.ReferenceIssuer, @value_admission.ReferenceIssuer) -> @value_admission.ReferenceIssuer
 
 pub fn client_program_row_reference_issuer((String, String) -> Bool, (String?, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
@@ -1970,6 +1974,8 @@ pub fn client_program_start_model_content_bytes(@model_execution.ModelContentInp
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_start_openai_chat_projection(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[@model_execution.OpenAIChatProjection, @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_start_original_generated_infer_execution(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
