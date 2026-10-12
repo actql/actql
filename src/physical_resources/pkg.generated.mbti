@@ -38,6 +38,8 @@ pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[Unit, OriginalStateWriteIssue]
+
 pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> Result[FundedReadConsumer[T], OriginalReadIssue]
 
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
