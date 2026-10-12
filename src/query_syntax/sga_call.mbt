@@ -37,6 +37,7 @@ fn sga_operation(name : String) -> Bool {
     | "row_window"
     | "window_events"
     | "watermark_events"
+    | "watermark_rows"
     | "dedupe_events"
     | "session"
     | "events"
@@ -100,7 +101,7 @@ fn carrier_call_head(token : Token) -> Bool {
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
         "to_events", "row_window", "window_events", "watermark_events", "session",
-        "events", "dedupe_events",
+        "events", "dedupe_events", "watermark_rows",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
