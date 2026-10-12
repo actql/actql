@@ -244,6 +244,20 @@ fn local_submission_start(
   if source_free && run.source_free is None {
     stop("LocalValuesInstallationRequired")
   }
+  let run = match
+    host.packaged_runtime_assets_for_submission(reference, preparation, 1000) {
+    Ok(None) => run
+    Ok(Some(assets)) => {
+      let installed = run.source_free.unwrap_or_else(() => {
+        stop("LocalValuesInstallationRequired")
+      })
+      {
+        ..run,
+        source_free: Some(local_current_values_installation(installed, assets)),
+      }
+    }
+    Err(_) => stop("LocalRuntimeSubmissionUnavailable")
+  }
   // The current installed profile must genuinely have zero semantic
   // completions. No test-side lowering or fabricated empty journal is used.
   @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {

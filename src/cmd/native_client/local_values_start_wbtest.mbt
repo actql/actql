@@ -106,3 +106,40 @@ test "CLI Values caller uses existing Native work publication and immutable poli
   ) -> String raise ClientStop = local_execute_publish_values
   caller |> ignore
 }
+
+///|
+// Pure metadata definitions, compiler-only until matching Native execution.
+test "current runtime asset selection keeps original Result Policy identity and bytes" {
+  let original : LocalValuesInstallation = {
+    registry_body: "old-registry",
+    values_body: "old-values",
+    fragment_body: Some("old-fragment"),
+    ordered_body: Some("old-ordered"),
+    result_policy_cid: "sha256:" + "a".repeat(64),
+    result_policy_wire: "original-policy\r\n",
+  }
+  let assets : @run_host.ClientLocalProductAssets = {
+    environment: "original-environment",
+    registry: "current-registry",
+    values: "current-values",
+    fragment: "current-fragment",
+    ordered: Some("current-ordered"),
+    result_policy: "original-policy\r\n",
+  }
+  let installed = local_current_values_installation(original, assets)
+  assert_eq(installed.registry_body, "current-registry")
+  assert_eq(installed.values_body, "current-values")
+  assert_eq(installed.result_policy_cid, "sha256:" + "a".repeat(64))
+  assert_eq(installed.result_policy_wire, "original-policy\r\n")
+  let rejected = try {
+    local_current_values_installation(original, {
+      ..assets,
+      result_policy: "original-policy\n",
+    })
+    |> ignore
+    false
+  } catch {
+    ClientStop(_) => true
+  }
+  assert_true(rejected)
+}
