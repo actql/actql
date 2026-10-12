@@ -27,6 +27,15 @@ const cid = value => `sha256:${createHash('sha256')
 const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const valuesAdmissions = new WeakMap();
+const originalPlans = new WeakMap();
+const originalPlanLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
+export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan);}
+
+function retainOriginalPlan(plan, compiled, preparedProgram, control) {
+  originalPlans.set(plan, control.captureOriginalClientRunPlan(
+    compiled, preparedProgram, plan.runDefinition, originalPlanLimits));
+  return plan;
+}
 // The ordinary Effect-free INFER Host profile explicitly binds unknown
 // provenance. It never relabels synthetic values or Model output as public.
 // Effect-bearing profiles retain their separate required installation policy.
@@ -455,7 +464,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     authorization: compiled.authorization.wire,
     ...(originalPolicy === undefined ? {} : {valuesHostPolicyOriginal: originalPolicy}),
   }));
-  return plan;
+  return retainOriginalPlan(plan, compiled, preparedProgram, control);
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -598,9 +607,10 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
     namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
-  return Object.freeze({...compiled, compiled, runDefinition, createdAt,
+  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
+  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control) : admitted;
 }
 
 // Multi-task source-free Programs use the common task compiler and the same
@@ -612,7 +622,7 @@ export function sourceFreeTaskPlan(options) {
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits);
-  return localPublicationPlan({control, admission: acquired.admission,
+  const plan = localPublicationPlan({control, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
@@ -620,6 +630,10 @@ export function sourceFreeTaskPlan(options) {
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled: acquired.compiled, preparedProgram});
+  valuesAdmissions.set(plan, Object.freeze({prepared: acquired.preparedEvidence.wire,
+    authorization: acquired.authorization.wire}));
+  originalPlans.set(plan, sourceFreePlanOriginal(acquired));
+  return plan;
 }
 
 // The connector/Acquisition owner supplies Source Evidence after completing
