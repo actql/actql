@@ -147,3 +147,83 @@ test('concurrent cleanup shares one original flight through persistence and fina
   assert.equal(f.owner.custody.cleanup(),first,'successful cleanup flight remains stable');
   assert.equal(f.counters.ack,1);
 });
+
+test('publication-local retirement precedes parent Model cleanup and preserves escaped originals',async()=>{
+  const f=fixture();await f.complete();
+  const bundle=f.owner.evaluationBundle(),evidence=f.owner.modelEvidence();
+  // Model output-use pin is represented by an explicit port double. This is
+  // NOT the actual capacity primitive, its settlement or a funded profile.
+  f.flags.modelCleanup=false;
+  const flight=f.owner.custody.retirePublication();
+  assert.equal(await flight,true);
+  assert.equal(f.owner.custody.retirePublication(),flight);
+  assert.equal(f.counters.cleanup,0,'local retirement does not call parent cleanup');
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  assert.equal(f.owner.modelEvidence(),undefined);
+  assert.equal(f.owner.evaluationBundle(),undefined);
+  assert.throws(()=>f.owner.retainCompleted(),/InstalledInferCaptureUnavailable/);
+  await assert.rejects(f.owner.persist(),/InstalledInferCaptureUnavailable/);
+  await assert.rejects(f.settling(),/ForeignInferSettlement/);
+  assert.equal(bundle.wire,f.bundleWire);
+  assert.equal(evidence[0].wire,'{"raw":"é\\r\\n"}');
+  assert.ok(f.stored.size>0);
+  const commits=f.counters.commit,acks=f.counters.ack;
+  assert.equal(await f.owner.custody.cleanup(),false,'parent responsibility remains pending');
+  // An actual caller must settle its same-Ledger borrow here, not use a Bool
+  // from this test or from retirement as permission to settle/send/restore.
+  f.flags.modelCleanup=true;
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(f.counters.commit,commits);assert.equal(f.counters.ack,acks);
+});
+
+test('publication-local retirement waits for the original child and physical stop',async()=>{
+  const f=fixture();await f.complete();
+  const bundle=f.owner.evaluationBundle(),evidence=f.owner.modelEvidence();
+  f.flags.stopped=false;
+  assert.equal(await f.owner.custody.retirePublication(),false);
+  assert.deepEqual(f.owner.evaluationBundle(),bundle);
+  f.flags.stopped=true;f.flags.exportCleanup=false;
+  assert.equal(await f.owner.custody.retirePublication(),false);
+  assert.deepEqual(f.owner.modelEvidence(),evidence);
+  assert.deepEqual(f.owner.evaluationBundle(),bundle);
+  assert.equal(f.counters.cleanup,0);
+  f.flags.exportCleanup=true;
+  assert.equal(await f.owner.custody.retirePublication(),true);
+  assert.equal(f.owner.modelEvidence(),undefined);
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  assert.equal(f.counters.cleanup,0);
+});
+
+test('publication-local retirement retries the same failed Store responsibility without parent cleanup',async()=>{
+  const f=fixture();let fail=true;
+  f.deferCommit(()=>{if(fail)throw Error('FixtureSameStorePending');});
+  await assert.rejects(f.settling(),/FixtureSameStorePending/);
+  await assert.rejects(f.owner.custody.retirePublication(),/FixtureSameStorePending/);
+  assert.equal(f.counters.cleanup,0);assert.equal(f.counters.ack,0);
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  fail=false;
+  assert.equal(await f.owner.custody.retirePublication(),true);
+  assert.equal(f.counters.ack,1);assert.equal(f.counters.cleanup,0);
+  assert.ok(f.stored.size>0);
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(f.counters.ack,1);
+});
+
+test('publication and parent cleanup observers share the original persistence flight',async()=>{
+  const f=fixture();let release,announced;
+  const waiting=new Promise(resolve=>{release=resolve;});
+  const entered=new Promise(resolve=>{announced=resolve;});
+  f.deferCommit(()=>{throw Error('FixtureSameOriginalPending');});
+  await assert.rejects(f.settling(),/FixtureSameOriginalPending/);
+  f.deferCommit(async()=>{announced();await waiting;});
+  f.flags.modelCleanup=false;
+  const local=f.owner.custody.retirePublication();await entered;
+  const parent=f.owner.custody.cleanup();
+  assert.equal(f.owner.custody.retirePublication(),local);
+  release();assert.equal(await local,true);assert.equal(await parent,false);
+  assert.equal(f.counters.ack,1);assert.equal(f.counters.cleanup,1);
+  assert.equal(f.owner.modelEvidence(),undefined);
+  f.flags.modelCleanup=true;
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(f.counters.ack,1);
+});
