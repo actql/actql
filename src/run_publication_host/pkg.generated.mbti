@@ -652,6 +652,8 @@ pub fn client_task_run_binding_definition_cid(ClientTaskRunBinding) -> String
 
 pub fn client_task_run_binding_result_names(ClientTaskRunBinding) -> Array[String]
 
+pub fn client_task_run_materials_compiled_original(ClientTaskRunMaterials) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
 pub fn client_task_static_plan_view(PreparedClientProgram, ClientTaskCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
 
 pub fn client_transfer_binding(ClientTransferInput) -> @remote_site_protocol.RemoteInputBinding
@@ -821,6 +823,8 @@ pub fn issue_client_model_provider_binding(String, String, String, String) -> Re
 pub fn issue_client_model_raw_capture_policy(ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, String, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, String, String, String, String, String) -> Result[@run_publication.BoundModelRawCapturePolicy, ClientModelRawCaptureIssue]
 
 pub fn issue_client_multi_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_run_policy_originals(PreparedClientProgram, compiled? : ClientCompiledRun) -> Result[String, ClientRunPolicyOriginalsIssue]
 
 pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
@@ -1150,6 +1154,8 @@ pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
 
+pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientRunPolicyOriginalsIssue]
+
 pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn recorded_client_source_cleanup_matches_producer(ClientRecordedSourceCleanup, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, String, String) -> Bool
@@ -1201,6 +1207,8 @@ pub fn start_client_result_transformation(ClientResultTransformation, @execution
 pub fn start_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
 pub fn stop_client_model_read(ClientModelReadPreparation) -> Unit
+
+pub fn stop_client_model_read_checked(ClientModelReadScope, ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn stop_client_model_read_consumer(ClientModelReadConsumer) -> Unit
 
@@ -2317,6 +2325,14 @@ pub(all) enum ClientRunMaterialsIssue {
 pub(all) enum ClientRunOpenIssue {
   Ledger(@physical_resources.LedgerIssue)
   Run(@physical_strategy.RunIssue)
+}
+
+pub(all) enum ClientRunPolicyOriginalsIssue {
+  ForeignRun
+  PublicationPolicy(@program_check.LocalDependencyBodyIssue)
+  CapacityExceeded
+  Encoding
+  CustodyLost
 }
 
 pub(all) enum ClientRunStartAction {

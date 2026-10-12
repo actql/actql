@@ -7,7 +7,7 @@ fn traversal_nodes_source() -> String {
 test "Graph traversal node source retains an independent complete Program" {
   let actual = compile_with_set(
     traversal_nodes_source() +
-    "FROM g |> traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth",
+    "FROM g |> traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', max_output_rows: 10) |> SELECT start_id, node_id, depth",
   )
   let expected = @program.parse(
     (
@@ -35,7 +35,7 @@ test "Graph traversal node source retains an independent complete Program" {
 test "Graph traversal node output continues as a Relation WITH producer" {
   let actual = compile_with_set(
     traversal_nodes_source().replace(old="seeds", new="`seed set`") +
-    ", visited AS (FROM g |> traverse(start: {from: `seed set`, id: 'element'}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'nodes') |> SELECT depth) FROM visited |> WHERE depth > 0 |> ORDER BY depth",
+    ", visited AS (FROM g |> traverse(start: {from: `seed set`, id: `element`}, hops: [{direction: 'out', edge_types: []}], path_mode: 'walk', emit: 'nodes') |> SELECT depth) FROM visited |> WHERE depth > 0 |> ORDER BY depth",
   )
   let body = semantic(actual)
   assert_true(
@@ -61,10 +61,9 @@ test "Graph traversal node output continues as a Relation WITH producer" {
 test "Graph traversal retains malformed authored bodies for common refusal" {
   for
     tail in [
-      "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 0, path_mode: 'trail', emit: 'nodes')",
-      "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'invented', emit: 'nodes')",
-      "traverse(start: {from: seeds, id: 'missing'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes')",
-      "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', extra: true)",
+      "traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: 0, max_hops: 0, path_mode: 'trail', emit: 'nodes')",
+      "traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'invented', emit: 'nodes')",
+      "traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes', extra: true)",
     ] {
     expect_with_graph_static_refusal(
       traversal_nodes_source() + "FROM g |> " + tail + " |> SELECT depth",
@@ -72,8 +71,6 @@ test "Graph traversal retains malformed authored bodies for common refusal" {
         Some(@pipeline.GraphMatch(Structure(InvalidCount)))
       } else if tail.contains("path_mode: 'invented'") {
         Some(@pipeline.GraphMatch(Structure(InvalidBody)))
-      } else if tail.contains("id: 'missing'") {
-        None
       } else {
         Some(@pipeline.InvalidBody)
       },
@@ -81,8 +78,8 @@ test "Graph traversal retains malformed authored bodies for common refusal" {
   }
   for
     tail in [
-      "traverse(start: {from: undeclared, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes')",
-      "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'invented')",
+      "traverse(start: {from: undeclared, id: `element`}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes')",
+      "traverse(start: {from: seeds, id: `element`}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'invented')",
     ] {
     let parsed = @query.parse_query_script(
       traversal_nodes_source() + "FROM g |> " + tail,
@@ -97,4 +94,21 @@ test "Graph traversal retains malformed authored bodies for common refusal" {
       is Err(_),
     )
   }
+}
+
+///|
+test "Graph traversal missing selector field is refused by operand name resolution" {
+  let parsed = @query.parse_query_script(
+    traversal_nodes_source() +
+    "FROM g |> traverse(start: {from: seeds, id: missing}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes') |> SELECT depth",
+    syntax_limits(),
+  ).unwrap()
+  assert_true(
+    compile_query_script(
+      parsed,
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    )
+    is Err(UnknownColumn),
+  )
 }

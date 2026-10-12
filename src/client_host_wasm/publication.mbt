@@ -358,7 +358,8 @@ fn advance_publication_owner(
   if record.capture is None {
     guard value.source_publications.get(record.source)
       is Some({ invocation: Some(invocation), compute, .. }) &&
-      value.computes.get(compute) is Some({ host: Some(host), attempt, .. }) &&
+      value.computes.get(compute)
+      is Some({ host: Some(host), origin: Captured(attempt), .. }) &&
       value.native_attempts.get(attempt) is Some(original) &&
       value.native_sources.get(original.configuration) is Some(source) &&
       value.runs.get(source.run)

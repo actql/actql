@@ -1469,6 +1469,8 @@ pub fn client_program_start_restored_infer_slot_replay(@run_publication_host.Pre
 
 pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
+pub fn client_program_stop_infer_original_read_preparation(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
+
 pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
 
 pub fn client_program_table_input_operation_json(@run_publication_host.ClientTableInput) -> String

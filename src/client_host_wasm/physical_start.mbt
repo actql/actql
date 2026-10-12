@@ -221,7 +221,10 @@ pub fn close_physical_start(nonce : Int64, handle : Int) -> Int {
     value.physical_starts.get(handle) is Some(record) else {
     return -2
   }
-  if value.native_attempts.values().any(attempt => attempt.start == handle) {
+  if value.native_attempts.values().any(attempt => attempt.start == handle) ||
+    value.computes
+    .values()
+    .any(compute => compute.origin is SourceFree(_, start) && start == handle) {
     return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
