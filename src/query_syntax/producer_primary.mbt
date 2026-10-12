@@ -4,6 +4,7 @@
 pub(all) enum ProducerPrimary {
   GraphValue(GraphConstructor)
   GraphGenerator(SgaCall)
+  RelationGenerator(SgaCall)
 }
 
 ///|
@@ -53,6 +54,7 @@ pub fn producer_primary(query : Query) -> ProducerPrimary? {
     match primary {
       GraphValue(mapping) => GraphValue(copy_graph_constructor(mapping))
       GraphGenerator(call) => GraphGenerator(copy_sga_call(call))
+      RelationGenerator(call) => RelationGenerator(copy_sga_call(call))
     }
   })
 }
@@ -62,6 +64,17 @@ pub fn producer_primary(query : Query) -> ProducerPrimary? {
 // No binding-only projection, normalization or acquisition is introduced.
 pub fn after_producer_primary(query : Query) -> Query {
   { ..query, primary: None, }
+}
+
+///|
+// The compiler supplies the actual generated Relation anchor. It is not an
+// authored peer/range name, and all remaining syntax retains its source owner.
+pub fn after_relation_generator(query : Query, source : NamePart) -> Query? {
+  if query.primary is Some(RelationGenerator(_)) {
+    Some({ ..query, primary: None, bound_source: Some(source), })
+  } else {
+    None
+  }
 }
 
 ///|
@@ -84,7 +97,10 @@ fn QueryParser::producer_query(
     relation: [],
     source_alias: None,
     file_listing: None,
-    graph: Some({ pattern: None, expectation: None, }),
+    graph: match primary {
+      RelationGenerator(_) => None
+      _ => Some({ pattern: None, expectation: None, })
+    },
     joins: [],
     operations: [],
     sets: [],

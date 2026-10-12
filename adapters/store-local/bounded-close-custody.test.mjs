@@ -10,7 +10,7 @@ import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('async function readBounded(path, maximum, closed) {');
+const start = source.indexOf('async function readBounded(path, maximum, closed, signal) {');
 const end = source.indexOf('\nasync function processIsAlive(', start);
 assert(start >= 0 && end > start);
 const body = source.slice(start, end);
@@ -28,7 +28,7 @@ async function fixture(t, {source = body, readFailure, closeFailures = 2, openFa
   let failure;
   const closeFailure = Object.assign(new Error('OriginalMetadataFdClosePending'), {code: 'EIO'});
   const read = runInNewContext(`(${source})`, {
-    constants, lstat, Buffer, fail,
+    constants, lstat, Buffer, fail, AbortSignal,
     quantity: value => Number.isSafeInteger(value) && value >= 0,
     async open(selected) {
       opens++;
