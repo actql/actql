@@ -45,6 +45,10 @@ class _PayloadCustody:
     workspace: _Workspace | None = None
     request: _Output | None = None
     record: _Output | None = None
+    row: ByteFence | None = None
+    capacity: CapacityReservation | None = None
+    reservation: _Output | None = None
+    writing: _Output | None = None
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -118,6 +122,8 @@ class InstalledLocalHost:
         self._pending_publication_write: OriginalCommitProjection | None = None
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
+        self._payload_capacity_attempts: set[int] = set()
+        self._payload_transition_attempts: set[int] = set()
         self._inputs: list[_Input] = []
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
@@ -910,6 +916,7 @@ class InstalledLocalHost:
             store = installation._store
             if store is None or record.ticket not in self._payload_write_attempts:
                 raise ValueError('Original Local payload write observation is unavailable')
+            observed: list[ByteFence] = []
             def consume(actual: StoredBytes | None) -> None:
                 if actual is None:
                     raise LocalStorageError('Original Local payload row is unavailable; custody remains pending')
@@ -925,12 +932,179 @@ class InstalledLocalHost:
                 if not self._core.close_input(source):
                     raise LocalProductCleanupPending(self)
                 self._inputs.remove(source)
+                observed.append(ByteFence(store.namespaced_key('payload_record', held.generation),
+                                          actual.generation, actual.payload))
             with installation.binding.fenced() as fences:
                 store.inspect_bounded_record_inspected(
                     store.namespaced_key('payload_record', held.generation), 65536, fences,
                     inspect=lambda reader, take:
                         installation.binding.inspect_reader(reader, lambda _: take()),
                     consume=consume, current=installation.binding.current)
+
+            held.row = observed[0]
+
+    def _reserve_original_payload_capacity(self, held: _PayloadCustody) -> None:
+        """Reserve physical capacity once; only Core can prepare Reserved."""
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            store = installation._store
+            results = installation._results
+            if store is None or results is None:
+                raise ValueError('Original Local payload capacity supplier is unavailable')
+            if record.ticket in self._payload_capacity_attempts:
+                raise LocalStorageError('Original capacity reservation requires lookup; replay is unavailable')
+            self._observe_original_payload_intent(held)
+            assert held.row is not None
+            with installation.binding.fenced() as metadata:
+                def inspect(reader: Any) -> None:
+                    def validate(_: _Output) -> None:
+                        self._core.read_payload_record(record, configuration.handle)
+                    installation.binding.inspect_reader(reader, validate)
+                self._payload_capacity_attempts.add(record.ticket)
+                # Physical maximums remain the installed Store/File limits.
+                # Neither inserted nor already-present is a Core transition.
+                store.reserve_capacity_inspected('publication_payload', held.row.key,
+                    held.maximum, 1, store._max_payload_bytes, results._max_files,
+                    (*metadata, held.row), inspect=inspect, current=installation.binding.current)
+            self._observe_original_payload_capacity(held)
+
+    def _observe_original_payload_capacity(self, held: _PayloadCustody) -> None:
+        """Observe the original reservation, without reserving or writing again."""
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held, pending_confirmation=True)
+            store = installation._store
+            if store is None or held.row is None or record.ticket not in self._payload_capacity_attempts:
+                raise ValueError('Original Local capacity observation is unavailable')
+            observed: list[CapacityReservation] = []
+            def consume(actual: CapacityReservation | None) -> None:
+                if actual is None:
+                    raise LocalStorageError('Original capacity observation is unavailable; custody remains pending')
+                if held.reservation is None:
+                    held.reservation = self._reserve(lambda: self._core.reserve_payload_reservation(
+                        record, cleanup=lambda: True))
+                source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                    'store_authority_cid': held.store_authority,
+                    'material_generation_cid': held.generation,
+                    'capacity_namespace': actual.namespace,
+                    'reserved_bytes': actual.reserved_bytes,
+                    'reserved_objects': actual.reserved_objects,
+                }))
+                self._core.produce_payload_reservation(held.reservation, source, configuration.handle)
+                if not self._core.close_input(source):
+                    raise LocalProductCleanupPending(self)
+                self._inputs.remove(source)
+                observed.append(actual)
+            with installation.binding.fenced() as metadata:
+                store.inspect_capacity_inspected('publication_payload', held.row.key, (*metadata, held.row),
+                    inspect=lambda reader, take:
+                        installation.binding.inspect_reader(reader, lambda _: take()),
+                    consume=consume, current=installation.binding.current)
+            held.capacity = observed[0]
+
+    def _save_original_payload_reserved(self, held: _PayloadCustody) -> None:
+        """Forward Core's original Reserved bytes and exact capacity-fenced CAS."""
+        with self._core._lock:
+            installation, configuration, _ = self._payload_original(held)
+            child = held.reservation
+            if child is None:
+                raise ValueError('Original Reserved transition is unavailable')
+            self._save_original_payload_transition(held, child,
+                lambda: self._core.read_payload_reservation(child, configuration.handle),
+                lambda: self._core.begin_payload_reservation(child, configuration.handle))
+            self._observe_original_payload_reserved(held)
+
+    def _save_original_payload_transition(self, held: _PayloadCustody, child: _Output,
+                                         read: Callable[[], bytes], begin: Callable[[], None]) -> None:
+        installation, _, _ = self._payload_original(held)
+        if child is not held.reservation and child is not held.writing:
+            raise ValueError('Foreign original payload transition child')
+        store = installation._store
+        if store is None or held.row is None or held.capacity is None:
+            raise ValueError('Original payload physical fences are unavailable')
+        if child.ticket in self._payload_transition_attempts:
+            raise LocalStorageError('Original payload transition requires lookup; replay is unavailable')
+        wire: list[bytes] = []
+        installation.binding.inspect(lambda _: wire.append(read()))
+        write = ByteWrite(held.row.key, held.row.generation, wire[0])
+        with installation.binding.fenced() as metadata:
+            self._payload_transition_attempts.add(child.ticket)
+            result = store.compare_exchange_reserved_inspected(write, held.capacity,
+                (*metadata, held.row), inspect=lambda reader:
+                    installation.binding.inspect_reader(reader, lambda _: begin()),
+                current=installation.binding.current)
+        if result is None:
+            raise LocalStorageError('Original payload transition conflicted; lookup is required')
+
+    def _observe_original_payload_transition(self, held: _PayloadCustody, child: _Output,
+                                            confirm: Callable[[_Input], None]) -> None:
+        installation, _, _ = self._payload_original(held, pending_confirmation=True)
+        if child is not held.reservation and child is not held.writing:
+            raise ValueError('Foreign original payload transition observation')
+        store = installation._store
+        if store is None or child.ticket not in self._payload_transition_attempts:
+            raise ValueError('Original payload transition observation is unavailable')
+        observed: list[ByteFence] = []
+        def consume(actual: StoredBytes | None) -> None:
+            if actual is None:
+                raise LocalStorageError('Original payload transition row is unavailable; custody remains pending')
+            source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                'store_authority_cid': held.store_authority,
+                'material_generation_cid': held.generation,
+                'physical_revision': actual.generation,
+                'record_json': actual.payload.decode('utf-8'),
+            }))
+            confirm(source)
+            if not self._core.close_input(source):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(source)
+            observed.append(ByteFence(store.namespaced_key('payload_record', held.generation),
+                                      actual.generation, actual.payload))
+        with installation.binding.fenced() as metadata:
+            store.inspect_bounded_record_inspected(store.namespaced_key('payload_record', held.generation),
+                65536, metadata, inspect=lambda reader, take:
+                    installation.binding.inspect_reader(reader, lambda _: take()),
+                consume=consume, current=installation.binding.current)
+        held.row = observed[0]
+
+    def _observe_original_payload_reserved(self, held: _PayloadCustody) -> None:
+        """Readmit the actual Reserved row through its original Core child."""
+        with self._core._lock:
+            _, configuration, _ = self._payload_original(held, pending_confirmation=True)
+            child = held.reservation
+            if child is None:
+                raise ValueError('Original Reserved transition is unavailable')
+            self._observe_original_payload_transition(held, child,
+                lambda source: self._core.confirm_payload_reservation(child, source, configuration.handle))
+
+    def _prepare_original_payload_writing(self, held: _PayloadCustody) -> None:
+        """Ask the original Core record for Writing; do not allocate a File here."""
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            if held.reservation is not None:
+                if not self._core.close_payload_reservation(held.reservation):
+                    raise LocalProductCleanupPending(self)
+                self._payload_transition_attempts.discard(held.reservation.ticket)
+                held.reservation = None
+            if held.writing is not None:
+                raise LocalStorageError('Original Writing custody is retained; use its observation path')
+            child = self._reserve(lambda: self._core.reserve_payload_writing(record, 1, cleanup=lambda: True))
+            held.writing = child
+            installation.binding.inspect(lambda _:
+                self._core.produce_payload_writing(child, None, configuration.handle))
+            self._save_original_payload_transition(held, child,
+                lambda: self._core.read_payload_writing(child, configuration.handle),
+                lambda: self._core.begin_payload_writing(child, configuration.handle))
+            self._observe_original_payload_writing(held)
+
+    def _observe_original_payload_writing(self, held: _PayloadCustody) -> None:
+        """Readmit the actual Writing row; pending close does not authorize replay."""
+        with self._core._lock:
+            _, configuration, _ = self._payload_original(held, pending_confirmation=True)
+            child = held.writing
+            if child is None:
+                raise ValueError('Original Writing transition is unavailable')
+            self._observe_original_payload_transition(held, child,
+                lambda source: self._core.confirm_payload_writing(child, source, configuration.handle))
 
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
@@ -1008,10 +1182,24 @@ class InstalledLocalHost:
                     return False
                 self._reader_facts.remove(fact)
             for held in tuple(reversed(self._payloads)):
+                if (held.record is not None and held.record.ticket in self._payload_capacity_attempts
+                        and held.capacity is None):
+                    return False
+                if held.writing is not None:
+                    if not self._core.close_payload_writing(held.writing):
+                        return False
+                    self._payload_transition_attempts.discard(held.writing.ticket)
+                    held.writing = None
+                if held.reservation is not None:
+                    if not self._core.close_payload_reservation(held.reservation):
+                        return False
+                    self._payload_transition_attempts.discard(held.reservation.ticket)
+                    held.reservation = None
                 if held.record is not None:
                     if not self._core.close_payload_record(held.record):
                         return False
                     self._payload_write_attempts.discard(held.record.ticket)
+                    self._payload_capacity_attempts.discard(held.record.ticket)
                     held.record = None
                 if held.request is not None:
                     if not self._core.close_payload_request(held.request):
