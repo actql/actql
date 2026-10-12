@@ -25,14 +25,18 @@ assert.ok(environment);
 
 export async function createGeneratedContentFixture(t, options = {}) {
   const directory = options.directory ?? await mkdtemp(join(tmpdir(), 'actql-generated-content-'));
-  if (options.directory === undefined) t.after(() => rm(directory, {recursive: true, force: true}));
-  else await mkdir(directory, {recursive: true});
+  if (options.directory !== undefined) await mkdir(directory, {recursive: true});
   const configuration = {directory, storeAuthorityCid: token('1'),
     capacityBytes: 65536, maxObjectBytes: 8192, maxObjects: 20,
     maxContractNodes: 1000, maxContractDepth: 32};
   const store = await openLocalPublicationStore(configuration,
     runtime.publicationControl, options.durability?.(directory));
-  t.after(() => store.close());
+  t.after(async () => {
+    // Erasing the ownership record first is not successful release. Keep the
+    // actual fixture/custody on failed close instead of hiding false cleanup.
+    assert.equal(await store.close(), true);
+    if (options.directory === undefined) await rm(directory, {recursive: true, force: true});
+  });
   const program = {version: 'actql/0.1', id: 'empty-content',
     stages: [{id: 'main', inputs: {}, steps: [
       {values: {schema: {id: {type: 'number', nullable: false}}, rows: []}, as: 'seed'},
