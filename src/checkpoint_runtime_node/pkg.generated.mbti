@@ -28,6 +28,8 @@ pub fn model_immediate_invocation_grant_at(String, String, String, String) -> St
 
 pub fn model_invocation_grant_at(String, String, String, String) -> String
 
+pub fn model_original_journal_identity(String, String) -> String
+
 pub fn model_original_run_admit(String) -> String
 
 pub fn model_resolution_admit(String, String, String, String, String, String, String) -> String
