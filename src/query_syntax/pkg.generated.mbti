@@ -108,6 +108,8 @@ pub fn set_part_at(Query, Int) -> SetPart?
 
 pub fn set_part_count(Query) -> Int
 
+pub fn sga_argument_origin(SgaCall, Int, @frontend_source_map.Document) -> @frontend_source_map.Origin?
+
 pub fn sga_predicate_expression(SgaPredicate) -> Expression
 
 pub fn single_query_script(Query) -> QueryScript
@@ -547,12 +549,14 @@ pub(all) enum SgaArgument {
   ListValue(Array[SgaArgument])
 } derive(Eq, @debug.Debug)
 
-pub(all) struct SgaCall {
+pub struct SgaCall {
   operation : String
   arguments : Array[(String, SgaArgument)]
   start : Int
   end : Int
-} derive(Eq, @debug.Debug)
+  // private fields
+} derive(@debug.Debug)
+pub impl Eq for SgaCall
 
 pub struct SgaPredicate {
   expression : Expression
