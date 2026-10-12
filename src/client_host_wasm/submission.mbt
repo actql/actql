@@ -53,9 +53,16 @@ pub fn reserve_submission_projection(
   }
   let handle = value.next_handle
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, if kind == 3 { 1048576 } else { 4096 }, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      if kind == 3 {
+        1048576
+      } else {
+        4096
+      },
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }
@@ -194,7 +201,8 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   if record.kind == 3 {
-    guard value.run_configurations.get(record.configuration) is Some(configuration) else {
+    guard value.run_configurations.get(record.configuration)
+      is Some(configuration) else {
       return -2
     }
     match submission_append_current(value, record, configuration) {
