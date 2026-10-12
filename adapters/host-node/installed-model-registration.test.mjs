@@ -24,6 +24,8 @@ const originalInstallation = () => ({
 test('trusted original read installation preserves exact quantities and snapshots selection', () => {
   const {moon, entry, counts} = fixture();
   const declaration = originalInstallation();
+  const probability = Object.freeze({});
+  declaration.nodeInstallation.probability = probability;
   entry.originalReadInstallation = declaration;
   const selected = installModelProviders(moon, () => [entry]).get('models/fixture');
   declaration.bootstrap.bootstrapRetainedBytes = 999n;
@@ -33,6 +35,8 @@ test('trusted original read installation preserves exact quantities and snapshot
   assert.equal(selected.originalReadInstallation.nodeInstallation.layout.retained_bytes, 7n);
   assert.equal(selected.originalReadInstallation.nodeInstallation.layout.prepared_rows, 3n);
   assert.equal(selected.originalReadInstallation.nodeInstallation.installation.sdk.version, 'fixture');
+  assert.equal(selected.originalReadInstallation.nodeInstallation.probability, probability,
+    'an opaque admitted probability profile is retained, not copied or reconstructed');
   assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
 });
 
