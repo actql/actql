@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, readFileSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {runInNewContext} from 'node:vm';
+import {transformSync} from 'esbuild';
 import test from 'node:test';
 import {deferredFunctionRuntime} from './deferred-function-runtime.mjs';
 
@@ -16,23 +18,27 @@ function fixture(t, source, options) {
   return {directory, input: pathToFileURL(input).href, output: pathToFileURL(output).href};
 }
 
-function entropy(t, callback) {
-  const original = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
-  Object.defineProperty(globalThis, 'crypto', {configurable: true,
-    value: {getRandomValues: callback}});
-  t.after(() => Object.defineProperty(globalThis, 'crypto', original));
+// An isolated module-evaluation boundary supplies its own restricted Crypto
+// port. The process Crypto object and product entropy source are never patched.
+function sandboxModule(url, crypto) {
+  const bundled = transformSync(readFileSync(fileURLToPath(url), 'utf8'), {
+    format: 'iife', globalName: '__testedModule', target: 'es2022',
+  }).code;
+  return runInNewContext(bundled + '\n__testedModule;', {crypto});
 }
 
 for (const minify of [false, true]) {
   test(`global import defers entropy and retains one original instance (minify=${minify})`, async t => {
-    let inHandler = false, calls = 0;
+    let inHandler = false, calls = 0, issuedSeed;
+    const processCrypto = globalThis.crypto;
     const forbidden = new Error('Disallowed global entropy');
-    entropy(t, bytes => {
+    const crypto = Object.freeze({getRandomValues: bytes => {
       calls++;
       if (!inHandler) throw forbidden;
-      bytes[0] = 23;
+      processCrypto.getRandomValues(bytes);
+      issuedSeed = bytes[0];
       return bytes;
-    });
+    }});
     const f = fixture(t, `
 const seed = crypto.getRandomValues(new Uint32Array(1))[0];
 const owner = new WeakMap();
@@ -47,16 +53,17 @@ export function restore(custody) {
 }
 export function selectedSeed() { return seed; }
 `, {minify});
-    await assert.rejects(import(f.input), error => error === forbidden);
+    assert.throws(() => sandboxModule(f.input, crypto), error => error === forbidden);
     calls = 0;
-    const runtime = await import(f.output);
+    const runtime = sandboxModule(f.output, crypto);
     assert.deepEqual(Object.keys(runtime), ['restore', 'retain', 'selectedSeed']);
     assert.equal(calls, 0, 'Worker global import must not request entropy');
     inHandler = true;
     const original = Object.freeze({run: 'original-run', attempt: 1});
     const custody = runtime.retain(original);
     assert.equal(runtime.restore(custody), original);
-    assert.equal(runtime.selectedSeed(), 23);
+    assert.equal(runtime.selectedSeed(), issuedSeed);
+    assert.equal(globalThis.crypto, processCrypto);
     assert.equal(calls, 1, 'The original compiled state is initialized once');
     assert.throws(() => runtime.restore({}), /Foreign custody/u);
     assert.equal(runtime.restore(custody), original);
@@ -67,12 +74,12 @@ export function selectedSeed() { return seed; }
 test('failed initialization retains the exact failure without another entropy attempt', async t => {
   let calls = 0;
   const originalFailure = new Error('Original entropy unavailable');
-  entropy(t, () => { calls++; throw originalFailure; });
+  const crypto = Object.freeze({getRandomValues: () => { calls++; throw originalFailure; }});
   const f = fixture(t, `
 const seed = crypto.getRandomValues(new Uint32Array(1))[0];
 export function selectedSeed() { return seed; }
 `);
-  const runtime = await import(f.output);
+  const runtime = sandboxModule(f.output, crypto);
   assert.equal(calls, 0);
   assert.throws(() => runtime.selectedSeed(), error => error === originalFailure);
   assert.throws(() => runtime.selectedSeed(), error => error === originalFailure);
@@ -101,9 +108,10 @@ test('generation rejects external imports; non-function exports fail only after 
   writeFileSync(input, `import {readFileSync} from 'node:fs'; export function read() { return readFileSync; }`);
   assert.throws(() => deferredFunctionRuntime(input), /Could not resolve|closed synchronous/u);
   let calls = 0;
-  entropy(t, bytes => { calls++; return bytes; });
+  const processCrypto = globalThis.crypto;
+  const crypto = Object.freeze({getRandomValues: bytes => { calls++; return processCrypto.getRandomValues(bytes); }});
   const f = fixture(t, `crypto.getRandomValues(new Uint32Array(1)); export const value = 7;`);
-  const runtime = await import(f.output);
+  const runtime = sandboxModule(f.output, crypto);
   assert.equal(calls, 0);
   assert.throws(() => runtime.value(), /synchronous function ABI/u);
   assert.equal(calls, 1, 'This is a post-initialization guard, not a compile-time proof');
