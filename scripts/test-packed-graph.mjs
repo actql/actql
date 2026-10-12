@@ -50,6 +50,7 @@ await run('npm',['install','--ignore-scripts','--no-save',...CLIENT_PACKAGES.map
 await mkdir(join(root,'fixtures'));
 for (const name of ['graph-public-host.test.mjs','check-canonical-json.mjs',
   'graph-public-failure.test.mjs',
+  'fixtures/input-stage-result.mjs',
   'fixtures/graph-snapshot-failure-store.mjs',
   'fixtures/retained-graph-observer.mjs',
   'fixtures/graph-host-cases.mjs',
