@@ -1078,6 +1078,70 @@ a numerical profile, current resource cut or journal CAS.
 ```
 <!-- model-original-storage-binding-pins:end -->
 
+### Original Model journal data identities
+
+`actql-model-journal-entry/0.1` and
+`actql-model-journal-settlement/0.1` identify admitted original journal facts.
+Their closed canonical JSON preimages preserve original string values, order
+keys lexicographically and exclude exactly `self_cid`. They are data identities,
+not acknowledgement, custody, park, current-cut, restoration or send grants.
+Neither changes the existing attempt, authority or capture preimages.
+
+An Entry contains the original `run_id`, `run_definition_cid`,
+`prepared_invocation_cid`, `scope_cid`, `provider_binding_cid`,
+`input_artifact_cid`, `task_index`, `strategy_revision`, `ordinal`, `slot_cid`,
+`attempt_index`, `attempt_cid`, `dispatch_authority_cid`, `admitted_at` and
+`model_grant_expires_at`. These map to the original admitted full Entry's
+camel-case members; `dispatch_authority_cid` names the actual original admitted
+dispatch authority (including its Run, context, policy and principal bindings).
+It is not inferred from the attempt CID. Journal integer members retain the
+existing nonnegative safe-integer domain; attempt and claim generation are
+positive. This does not change the Ledger's quantity domains.
+
+`provenance` is `immediate` or `deferred`. Exactly the corresponding nested
+object is present and the other is null. `immediate` contains the actual
+admission's `run_valid_until`, `dispatch_valid_until` and nullable
+`parent_resume_fence`. An observed parent contains exactly `checkpoint_cid`,
+`intent_id`, `claimant` and `generation`; an ordinary immediate Entry has null,
+not a fabricated approval or resolution. `deferred` contains the actual
+admission's `checkpoint_cid`, `intent_id`, `claimant`, `generation`,
+`resolution_cid`, `verified_resolution_cid`, `lease_expires_ms`,
+`prepare_attempt_id` (null for this Model admission), `kind`
+(`model_invocation`), `required_artifact_cid`, nullable `decision_subject_cid`,
+`requested_claims`, nullable `configuration_cid`, `observed_claims`,
+`authority` and `approval_expires_at`. Ordered claim strings are preserved.
+These members are projections of the original admission and continuation,
+not caller authority. Original admission/Entry/authority cross-references must
+agree before a trusted journal issuer may use this data identity.
+
+A settlement contains `entry_identity_cid`, the actual saved `state`
+(`SavedSuccess` or `SavedFailure`), `durable: true`, actual `retry_allowed`,
+`settled_at` and closed `evidence`. Its required references are
+`model_call_attempt`, `model_dispatch_authority`, `model_attempt_accounting`
+and `model_attempt_outcome`; each contains the actual `cid` and `holding_cid`.
+`model_slot_capture` and `model_capture_bundle` use that reference shape when
+observed, otherwise null. `terminal_failure` preserves an observed boolean,
+otherwise null. A partially saved failure does not lose an observed capture or
+invent an absent response, receipt or bundle. `SavedSuccess` cannot allow retry.
+Unknown/unsent attempts have no saved settlement identity. `settled_at` is the
+actual original journal row's timestamp, not a fresh observation clock value.
+
+The trusted issuer obtains these facts from the original admitted full Entry
+and saved settlement rows in the same journal. Missing or unrepresentable
+facts leave this projection unavailable and retain original custody; they are
+not repaired, classified as answer failure or generalized into a language ban.
+Shape/CID admission of copied data never authenticates the actual journal,
+Store or original resource state. A stable current cut additionally requires
+the original parked/stopping resource receipt and committed journal fences.
+Readonly observations and equal Run revisions alone do not establish that cut.
+
+<!-- model-journal-identity-pins:start -->
+```text
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_journal_entry sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_journal_settlement sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b
+```
+<!-- model-journal-identity-pins:end -->
+
 <!-- model-raw-capture-pins:start -->
 ```text
 ../../../spec/contracts/actql-run-publication.json#/schemas/model_raw_capture_policy sha256:f542a5957ce196eb56105b6b5a81aa4f51c38ccc24d335855b8df0dad3dcac21
