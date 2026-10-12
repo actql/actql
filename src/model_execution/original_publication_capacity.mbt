@@ -1,11 +1,11 @@
 ///|
 /// An additional byte-only borrow of the existing original Model owner. This
 /// is not another Ledger, a send reservation, a physical cleanup ACK or a
-/// normal installed profile. Its two fields and optional-owner representation
+/// normal installed profile. Its two optional fields and their representation
 /// must be included in the supplier's simultaneous envelope before issuance.
 struct OriginalModelPublicationCapacity {
   mut owner : ModelExecution?
-  capacity : @resources.CapacityReservation
+  mut capacity : @resources.CapacityReservation?
 }
 
 ///|
@@ -73,7 +73,7 @@ pub fn reserve_original_model_publication_capacity(
   // No callback/await separates the reservation from this original borrow.
   // Refusal above changes neither the use count nor the capacity serial.
   execution.state.output_uses += 1
-  Ok({ owner: Some(execution), capacity, })
+  Ok({ owner: Some(execution), capacity: Some(capacity), })
 }
 
 ///|
@@ -86,12 +86,13 @@ pub fn original_model_publication_capacity_current(
   scope : @publication_host.ClientInferCallScope,
 ) -> Bool {
   value.owner is Some(original) &&
+  value.capacity is Some(capacity) &&
   physical_equal(original, execution) &&
   original_model_publication_owner_current(execution, scope) &&
   check_model_original_resources_mutable(execution.state) is Ok(_) &&
   @resources.capacity_reservation_covers(
     execution.state.ledger,
-    value.capacity,
+    capacity,
     0L,
     0L,
   )
@@ -106,14 +107,15 @@ pub fn release_original_model_publication_capacity(
   value : OriginalModelPublicationCapacity,
 ) -> Result[Bool, ModelExecutionIssue] {
   guard value.owner is Some(execution) else {
-    return Ok(!@resources.capacity_reservation_open(value.capacity))
+    return if value.capacity is None { Ok(true) } else { Err(OutputIdentity) }
   }
-  guard execution.state.call_scope is Some(scope) &&
+  guard value.capacity is Some(capacity) &&
+    execution.state.call_scope is Some(scope) &&
     original_model_publication_owner_current(execution, scope) &&
     execution.state.output_uses > 0 &&
     @resources.capacity_reservation_covers(
       execution.state.ledger,
-      value.capacity,
+      capacity,
       0L,
       0L,
     ) else {
@@ -123,12 +125,15 @@ pub fn release_original_model_publication_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match @resources.settle_capacity(execution.state.ledger, value.capacity) {
+  match @resources.settle_capacity(execution.state.ledger, capacity) {
     Err(issue) => return Err(Ledger(issue))
     Ok(_) => ()
   }
   execution.state.output_uses -= 1
   // Retired handles cannot keep the original Model graph alive without funds.
   value.owner = None
+  // The closed Resource token also points back to its Ledger/inventory. Do not
+  // leave that back-reference in an escaped retired publication handle.
+  value.capacity = None
   Ok(true)
 }
