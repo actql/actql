@@ -1,0 +1,188 @@
+{
+  "status": "preimplementation source inspection; no runtime claim",
+  "head": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "tree": "1977fc5a7c4c59916ee56bd251b6aee9cbb4adbf",
+  "clean_before_preparation": true,
+  "bundle_head": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
+  "bundle": [
+    {
+      "path": "ACCEPTANCE_MATRIX.md",
+      "bytes": 17710,
+      "sha256": "cbb662088679229e8be14c7f43f487428b402a4f6364b988b573b3586872195b"
+    },
+    {
+      "path": "IMPLEMENTATION_PLAN.md",
+      "bytes": 14069,
+      "sha256": "838663432c1a005f0326a478acb6d199580e75529475ac5b91c866721865d41b"
+    },
+    {
+      "path": "LANGUAGE_CHANGES.md",
+      "bytes": 24605,
+      "sha256": "5d7e595f6e021396a787456ec17610205439b9b4a7b56b59db42614b145f6457"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4568,
+      "sha256": "cac85fb35758fe6e08f6cffd08741acf098c307d0b9df67a89dd83357e7ea99f"
+    },
+    {
+      "path": "REVIEW_DISPOSITION.md",
+      "bytes": 14771,
+      "sha256": "8f07a123ead85b1ccbe5fe81d243080e23eb6b5067fc6af17a5345d8dd1c3a8d"
+    },
+    {
+      "path": "acceptance-index.json",
+      "bytes": 2991,
+      "sha256": "5c10a955c2e35d5d454ea3b5dcc389f3ae13d5d0c1834e40667f08e4fb7faa2d"
+    },
+    {
+      "path": "implementation-queue.json",
+      "bytes": 2133,
+      "sha256": "2d61a7f0a4e93ad540669af8c34895b1dfd7139ee8ab09567bf5c433d0d74007"
+    },
+    {
+      "path": "operation-inventory.csv",
+      "bytes": 13007,
+      "sha256": "653ccce2b4ea36483e4b933efab61904ee86bb07a5afe5c3bf0dd988d1794ba1"
+    },
+    {
+      "path": "retirement-candidates.json",
+      "bytes": 72722,
+      "sha256": "8d49b49f895b85f5feaac1b1c878da3713efb6b8c9faf237c9e6145ebd20877b"
+    },
+    {
+      "path": "source-manifest.json",
+      "bytes": 14630,
+      "sha256": "152dae04a659c79bd172c026fa8f512d517b1ce0890f0ec9124c52cb1752b1a6"
+    },
+    {
+      "path": "validate_bundle.py",
+      "bytes": 3674,
+      "sha256": "a2887b7fe39e3d0947f13f4ba9ad7781701bab2fa69e557380fa93a9eb9287f2"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 983,
+      "sha256": "53710ae4d1424cf13ed6cf905ad93620a45bf0799e724cdf6f07aefcd017bc26"
+    }
+  ],
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "blob": "dd8fafc282e665e1ac9fc976de754a07762cf136",
+      "bytes": 3789,
+      "sha256": "14bf0f6ddadc663e98f5ad165e59536e16d2c6e6503396ac818ad0c5a6a39f1e"
+    },
+    {
+      "path": ".agents/skills/actql-local-verification/SKILL.md",
+      "blob": "47a589b6ad6cf3c01182a903b383ba9a8e691e13",
+      "bytes": 5978,
+      "sha256": "59140125e26d4fcb0d1b613b2847264cb103e8d98922ba93f59248082c8cb85b"
+    },
+    {
+      "path": "src/query_syntax/query.mbt",
+      "blob": "0f7e72d4ead30832e5f120e37f4c0e1124c108ea",
+      "bytes": 98653,
+      "sha256": "8a93f8fa1f49db2f102daabeb227a8f0c254179fa9d659ccb0a7de44b611e985"
+    },
+    {
+      "path": "src/query_syntax/query_script.mbt",
+      "blob": "4d11a767c4501f34fa03378db54a2234339418cc",
+      "bytes": 3319,
+      "sha256": "777e80b976bc1d6fa51ec6d45dda0d73677357409265670e9058545a3154b480"
+    },
+    {
+      "path": "src/query_syntax/graph_constructor.mbt",
+      "blob": "4b92ae4f5ee368f5edbc1485dfe451b2dd6f1c75",
+      "bytes": 6647,
+      "sha256": "228c569b3c741ae8a3c1130de4ed611c0ac2921e27cc6a5c62ef3003d370332c"
+    },
+    {
+      "path": "src/query_syntax/sga_call.mbt",
+      "blob": "fe88ec9bb3fd4ef2cb5e8bff82e641ca333eabf6",
+      "bytes": 9312,
+      "sha256": "fb8d7efb0f04f13d8ad64f3fad903ab9f705ccc455b8f718bd01bf18e83d2399"
+    },
+    {
+      "path": "src/query_program/compile.mbt",
+      "blob": "29fdbc2057521becc197a387fbd3dffcc75d46c4",
+      "bytes": 328720,
+      "sha256": "1f97fcf459a11129945807eb4da3f7f295123592a4fcf655c1da7df0295ed5b1"
+    },
+    {
+      "path": "src/query_program/query_cte_scope.mbt",
+      "blob": "8876e438cca4345a116c1541e4ad45e7fcc3d266",
+      "bytes": 4468,
+      "sha256": "afb852594525dc0093ffbcff0ac85ac6d92a67d3cf5d0dd25084dbb46fc832b6"
+    },
+    {
+      "path": "src/query_program/query_script_program.mbt",
+      "blob": "3a3edff41a300723474d704467692933b8316b96",
+      "bytes": 22456,
+      "sha256": "7c79a40671e7fe7dc0de28517789d270f39ffbc180870993309696c431712482"
+    },
+    {
+      "path": "src/query_program/query_script_inputs.mbt",
+      "blob": "eb4bd6d7f97b5b5e72e021c6aa0912fd8f12c0b1",
+      "bytes": 4398,
+      "sha256": "2bc6a818e32ac08a68c341492291838ee4c5a8a14780a8c35896b8d0ff1c8845"
+    },
+    {
+      "path": "src/query_program/keyed_graph_program.mbt",
+      "blob": "8dc0311085ae6c79a8c21be780241210843f8fdb",
+      "bytes": 20666,
+      "sha256": "2ac1fd948d622643c53d301b2ed3a2c7c92847a19146ea3c63cfd2f35dc305f3"
+    },
+    {
+      "path": "src/query_program/graph_constructor_program.mbt",
+      "blob": "330bc53885e0e03e1aec43520696c4acf18f8984",
+      "bytes": 5697,
+      "sha256": "74bda5fe48ab172444ebde3fc3c149eba0ae1df6d31610a4e5dbd48aff084ffb"
+    },
+    {
+      "path": "src/source_frontend/lower.mbt",
+      "blob": "11deb049569a9e2b4e58fdfbe2fab600a7d8295f",
+      "bytes": 11040,
+      "sha256": "16df104effc1906139ab21611dbd98094346ae1964f326030d88dabc806aba52"
+    },
+    {
+      "path": "src/pipeline_typing/types.mbt",
+      "blob": "908df7198dd78e259b5d06483a90bfcfb33d54f0",
+      "bytes": 16020,
+      "sha256": "c1914280952f2a9754260e731eb2c931c86c3cafe5ca919fe04e1fcb8a7b64f6"
+    },
+    {
+      "path": "src/pipeline_typing/check.mbt",
+      "blob": "32dd3bbf1e32439b5d1181f3a17923af54f08deb",
+      "bytes": 78304,
+      "sha256": "31a33feddcd54d2f4dc0ca288983bda984a87aa01a3e317b1b53bbf8c8682b20"
+    },
+    {
+      "path": "src/pipeline_typing/property_construction.mbt",
+      "blob": "e5860917be2a910e3776fa5a13b6b5f9984f5385",
+      "bytes": 13291,
+      "sha256": "562119a0f38a2535a9b77bdba06144653020dd19460d6321f71dd01f6c17bc99"
+    },
+    {
+      "path": "spec/grammar/actql-query-0.1.ebnf",
+      "blob": "35e2b458ad64e2bc29d67bd5eb232e94e8689dc8",
+      "bytes": 13872,
+      "sha256": "d1e2192d1e9ef55d11a167bc5a05c45fe961a992496b81e42154a26b5df439cd"
+    },
+    {
+      "path": "spec/manifests/actql-grammar-0.1.json",
+      "blob": "e3ac7069aac7c4cda47c2421d9c8a18a4d9944e5",
+      "bytes": 2224,
+      "sha256": "7685a8d2357c0fb9123f62390a2f01c7f35cf7f57c0a98b8fec5c7d0ae463853"
+    },
+    {
+      "path": "scripts/fixtures/graph-source-input.mjs",
+      "blob": "f61181f63d22f1af5af97f2bc6a602b4c319a2b0",
+      "bytes": 17114,
+      "sha256": "5ae876357e8690945531fd0ef2911e346a88ef3c04f6d949b8d2ca86d1350bf5"
+    }
+  ],
+  "schedule_override": "User removes INFER/Debug prerequisites. Adopt integrated submitted Frontend main before product editing. Root owns design-bundle scheduling updates.",
+  "runtime": "not executed",
+  "heavy": "not reserved or started"
+}

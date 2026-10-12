@@ -203,7 +203,7 @@ test "authored public grouping sources pass ordinary script admission and checki
         "\"fields\":[\"x\",\"n\"]",
       ),
       (
-        "DATA seed = FROM records |> SELECT id; SELECT l.id AS id, COUNT(*) AS n FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id GROUP BY id ORDER BY id",
+        "WITH seed AS (FROM records |> SELECT id) SELECT l.id AS id, COUNT(*) AS n FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id GROUP BY id ORDER BY id",
         "\"fields\":[\"id\",\"n\"]",
       ),
     ] {

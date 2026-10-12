@@ -2,14 +2,14 @@
 test "uppercase Graph node binding matches an independent complete Program" {
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","bindings":{"identity":"Element"},"where":{"literal":true},"fields":["Element","p"]},"as":"aql_sga_3"},{"from":"aql_sga_3","select":["Element","p"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["Element","p"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","match_nodes":{"definition":"N","bindings":{"identity":"Element"},"where":{"literal":true},"fields":["Element","p"]},"as":"aql_sga_3"},{"from":"aql_sga_3","select":["Element","p"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["Element","p"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
   ).unwrap()
   check_graph_union_source(expected)
   for bindings in ["IDENTITY: 'Element'", "`Identity`: 'Element'"] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       graph_union_prefix() +
       "FROM g |> MATCH_NODES(DEFINITION: 'N', BINDINGS: {" +
       bindings +
@@ -22,8 +22,8 @@ test "uppercase Graph node binding matches an independent complete Program" {
 
 ///|
 test "uppercase Graph edge roles retain distinct typed endpoints" {
-  let actual = compile_data_set(
-    graph_rows_prefix() +
+  let actual = compile_with_set(
+    "WITH n AS (SELECT 2 AS node_key, 'B' AS name UNION ALL SELECT 1 AS node_key, 'A' AS name), e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (name)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) " +
     "FROM g |> MATCH_EDGES(DEFINITION: 'E', BINDINGS: {IDENTITY: 'Edge', `Source`: 'Source', TARGET: 'Target'}, FIELDS: ['Target', 'Edge', 'Source']) |> SELECT Target, Edge, Source",
   )
   let body = semantic(actual)

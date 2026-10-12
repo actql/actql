@@ -948,7 +948,6 @@ fn resolve_query_members(
             stage_index,
             prefix,
             catalog,
-            names,
             context.model_tasks,
           )
         } else if tag == "infer" &&

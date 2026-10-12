@@ -25,6 +25,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/contract_reference" @contract_ref,
   "actql/actql/pipeline_check_context" @check_context,
+  "actql/actql/sourceview_input" @sourceviews,
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/pipeline_parameters",
@@ -39,8 +40,8 @@ import {
   "moonbitlang/core/debug",
   "actql/actql/lowering_relation" @lower,
   "actql/actql/relation_evidence" @evidence,
-  "actql/actql/relation_results",
   "actql/actql/source_frontend" @frontend,
+  "actql/actql/relation_results",
 } for "test"
 
 import {

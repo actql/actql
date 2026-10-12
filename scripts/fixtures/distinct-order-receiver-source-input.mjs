@@ -3,7 +3,7 @@
 const nullableNumber = {type: 'number', nullable: true};
 const sourceRows = [{id: 1, amount: 10}, {id: 2, amount: 20},
   {id: 1, amount: 10}, {id: 3, amount: null}, {id: 0, amount: 99}];
-const data = 'DATA objects = SELECT amount AS score FROM records WHERE id > 0; ';
+const binding = 'WITH objects AS (SELECT amount AS score FROM records WHERE id > 0) ';
 const select = 'SELECT DISTINCT score AS original_score, -score AS payload ';
 const from = 'FROM objects AS payload ORDER BY ';
 const expected = [{original_score: 10, payload: -10},
@@ -35,7 +35,7 @@ export const distinctOrderReceiverInvalidProgram = {
   }],
 };
 const success = (name, query, extra = {}) => ({name: 'distinct-order-receiver-' + name,
-  format: 'aql-text', text: data + query, sourceRows,
+  format: 'aql-text', text: binding + query, sourceRows,
   sourceReadSessionCount: 1, expected, columns, ...extra});
 export const distinctOrderReceiverSuccesses = [
   success('independent-json', '', {format: 'json', text: JSON.stringify(distinctOrderReceiverProgram)}),

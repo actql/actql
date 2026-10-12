@@ -43,9 +43,9 @@ const program = {version: 'actql/0.1', id: 'fixture.graph_reach',
     b: {from: 'b', fields: ['start_id', 'node_id', 'depth']}}}],
   results: {a: {from: {stage: 'main', result: 'a'}},
     b: {from: {stage: 'main', result: 'b'}}}};
-const source = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
-  '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
-const seeds = 'DATA seeds = FROM g |> node_rows() |> SELECT id AS element; ';
+const source = 'WITH n AS (SELECT 1 AS node_key) , g AS (GRAPH ' +
+  '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
+const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
 const call = "reach(start: {from: seeds, id: 'element'}, direction: 'out', max_depth: 1)";
 const tail = ' |> SELECT start_id, node_id, depth |> WHERE depth >= 0 |> ORDER BY depth |> RESULT reached';
 
@@ -88,11 +88,11 @@ const connectedProgram = direction => ({version: 'actql/0.1', id: 'fixture.graph
 // The public profile allows 32 physical tasks. A finite array expresses the
 // same three nodes without spending a separate Values/derive/select chain
 // for each row; neither the topology nor the Host limit is weakened.
-const connectedSource = 'DATA n = SELECT node_key, node_key AS seed FROM UNNEST([3, 2, 1]) node_key; ' +
-  'DATA e = SELECT 13 AS edge_key, 2 AS src, 3 AS dst UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst ' +
-  'UNION ALL SELECT 11 AS edge_key, 1 AS src, 2 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) ' +
-  'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
+const connectedSource = 'WITH n AS (SELECT node_key, node_key AS seed FROM UNNEST([3, 2, 1]) node_key) ' +
+  ', e AS (SELECT 13 AS edge_key, 2 AS src, 3 AS dst UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst ' +
+  'UNION ALL SELECT 11 AS edge_key, 1 AS src, 2 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst) ' +
+  ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) ' +
+  'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES))) ';
 export const graphReachSourceSuccesses = [
   {name: 'graph-reach-json-raw-identity-two-consumers', format: 'json',
     text: JSON.stringify(program), results: {a: result(jsonDomain), b: result(jsonDomain)}, sourceReadCount: 0},
@@ -100,14 +100,14 @@ export const graphReachSourceSuccesses = [
     text: source + seeds + 'FROM g |> ' + call + tail,
     results: {reached: result(sourceDomain)}, sourceReadCount: 0},
   {name: 'graph-reach-aql-data-predicate', format: 'aql-text',
-    text: source + "DATA reached = FROM g |> reach(start: {where: 'true'}, direction: 'both', max_depth: 2); " +
+    text: source + ", reached AS (FROM g |> reach(start: {where: 'true'}, direction: 'both', max_depth: 2)) " +
       'FROM reached' + tail,
     results: {reached: result(sourceDomain)}, sourceReadCount: 0},
   {name: 'graph-reach-aql-empty-predicate', format: 'aql-text',
     text: source + "FROM g |> reach(start: {where: 'false'}, direction: 'in', max_depth: 1)" + tail,
     results: {reached: result(sourceDomain, true)}, sourceReadCount: 0},
   {name: 'graph-reach-aql-empty-relation', format: 'aql-text',
-    text: source + 'DATA seeds = FROM g |> node_rows() |> WHERE node_key > 1 |> SELECT id AS element; ' +
+    text: source + ', seeds AS (FROM g |> node_rows() |> WHERE node_key > 1 |> SELECT id AS element) ' +
       'FROM g |> ' + call + tail,
     results: {reached: result(sourceDomain, true)}, sourceReadCount: 0},
   ...['out', 'in'].flatMap(direction => [
@@ -115,8 +115,8 @@ export const graphReachSourceSuccesses = [
       text: JSON.stringify(connectedProgram(direction)),
       results: {reached: {rows: connectedRows(direction), columns}}, sourceReadCount: 0},
     {name: 'graph-reach-aql-connected-' + direction, format: 'aql-text',
-      text: connectedSource + "DATA reached = FROM g |> reach(start: {where: 'seed = 1'}, direction: '" +
-        direction + "', max_depth: 2); FROM reached |> SELECT depth |> ORDER BY depth |> RESULT reached",
+      text: connectedSource + ", reached AS (FROM g |> reach(start: {where: 'seed = 1'}, direction: '" +
+        direction + "', max_depth: 2)) FROM reached |> SELECT depth |> ORDER BY depth |> RESULT reached",
       results: {reached: {rows: (direction === 'out' ? [0, 1, 2] : [0]).map(depth => ({depth})),
         columns: [{name: 'depth', contract: number}]}}, sourceReadCount: 0},
   ]),

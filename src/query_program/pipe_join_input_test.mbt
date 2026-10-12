@@ -1,10 +1,10 @@
 ///|
 test "projected Pipe JOIN agrees with an independent complete existing Program" {
   // One additional ordinary projection binds the left producer. Source-free
-  // Values, both DATA producers, the cross join and Result remain shared IR.
+  // Values, both WITH producers, the cross join and Result remain shared IR.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_data_0"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_3","derive":{"aql_query_expr_0":{"literal":2}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_data_2"},{"from":"aql_data_0","select":["id"],"as":"aql_script_cte_5"},{"from":"aql_script_cte_5","cross_join":{"with":"aql_data_2","max_output_rows":10,"select":{"a":"left.id","b":"right.id"}},"as":"aql_join_output_7"},{"from":"aql_join_output_7","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_script_cte_0"},{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_3","derive":{"aql_query_expr_0":{"literal":2}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_script_cte_2"},{"from":"aql_script_cte_0","select":["id"],"as":"aql_script_cte_4"},{"from":"aql_script_cte_4","cross_join":{"with":"aql_script_cte_2","max_output_rows":10,"select":{"a":"left.id","b":"right.id"}},"as":"aql_join_output_7"},{"from":"aql_join_output_7","select":["a","b"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["a","b"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -21,10 +21,10 @@ test "projected Pipe JOIN agrees with an independent complete existing Program" 
       "SELECT id FROM lefts |> AS l |> CROSS JOIN rights AS r MAX_OUTPUT_ROWS 10 |> SELECT l.id AS a, r.id AS b",
       "FROM lefts AS old |> SELECT id |> AS discarded |> AS `L` |> CROSS JOIN rights AS r MAX_OUTPUT_ROWS 10 |> SELECT l.id AS a, r.id AS b",
     ] {
-    let program = checked_data_join(
-      "DATA lefts = SELECT 1 AS id; DATA rights = SELECT 2 AS id; DATA paired = " +
+    let program = checked_with_join(
+      "WITH lefts AS (SELECT 1 AS id), rights AS (SELECT 2 AS id), paired AS (" +
       body +
-      "; FROM paired |> SELECT a, b",
+      ") FROM paired |> SELECT a, b",
       { ..fixture_context(), inputs: [], },
     )
     assert_eq(semantic(program), semantic(expected))
@@ -104,7 +104,9 @@ test "projected Pipe JOIN cannot revive removed columns or displaced aliases" {
     if text.contains("AS l ON") {
       assert_true(result is Err(AmbiguousRelation), msg=text)
     } else {
-      assert_true(result is Err(AmbiguousColumn), msg=text)
+      // Terminal AS exports only the projected columns. The ordinary single
+      // JOIN owner reports an absent qualifier/field as UnknownColumn.
+      assert_true(result is Err(UnknownColumn), msg=text)
     }
   }
 }

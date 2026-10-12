@@ -68,6 +68,7 @@ This option is not a connected Remote Client request or authorization grant.
 ## Short Local queries
 
 ```js
+// Run after npm install @actql/node. No endpoint, token or Cloud login is needed.
 import {open} from '@actql/node';
 const db = await open({stateDir: '.actql'});
 try {
@@ -76,6 +77,12 @@ try {
   await db.close();
 }
 ```
+
+Expected output: `[ { id: 1 } ]`. The same code is valid TypeScript; `open`,
+`sql`, `all` and awaited `close` are part of the shipped declarations.
+`@actql/sdk` is the Remote-only package and needs an existing Host and token.
+An `actql://...` connection string also selects a network Host, including when
+its hostname is `localhost`; it does not select this embedded Local entry.
 
 `open()` is a thin entry into the existing installed Local Host and its private
 connection lease. Its default is CWD/.actql, and `db.info.stateDir` reports the

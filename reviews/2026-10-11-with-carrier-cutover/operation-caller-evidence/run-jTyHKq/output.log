@@ -1,0 +1,6 @@
+[actql/actql] test query_program/traversal_nodes_test.mbt:61 ("Graph traversal retains malformed authored bodies for common refusal") failed: src/query_program/graph_union_source_test.mbt:153:27-153:58@actql/actql FAILED: `GraphMatch(Structure(InvalidCount)) != InvalidBody`
+diff:
+-GraphMatch(Structure(InvalidCount)) +InvalidBody
+Total tests: 11, passed: 10, failed: 1.
+["moon","test","--target","js","src/query_program/graph_diagnostics_test.mbt","src/query_program/traversal_nodes_test.mbt"]: process failed (2); counts={"tests":11,"passed":10,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yIF1S7

@@ -19,6 +19,19 @@ try {
 }
 ```
 
+Set both `ACTQL_ENDPOINT` (the existing Host's HTTPS origin, such as
+`https://host.example/`) and `ACTQL_TOKEN` (its bearer credential) before running
+this Remote example. Neither value is created by installing the SDK. For a
+first Local query without a Host or authentication setup, install `@actql/node`
+and use its `open()` entry instead.
+
+Configuration failures retain their existing `ClientError.code` and message.
+The optional `error.hint` names missing fields and shows a fixed accepted
+configuration example, without copying options, connection strings or parser
+causes. For example, a Remote connection missing both settings reports
+`Missing connection options: endpoint, token.` in its hint. Inspect that hint
+instead of logging your connection options or credential.
+
 ## Workspace connection strings
 
 An installed Host can expose an explicit service Workspace. Connect with the

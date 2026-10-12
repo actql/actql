@@ -1,0 +1,202 @@
+{
+  "source": "bc738e9b46d75cdb839e8255b6e1a860bddb2d3c",
+  "parent": "0783279498e1ccc6b9b283a8eca50c3374e01320",
+  "files": [
+    "src/query_program/group_scope_test.mbt",
+    "src/query_program/order_property_paths_test.mbt",
+    "src/query_program/table_effect_program_test.mbt",
+    "src/query_program/unnest_join_continuation_test.mbt",
+    "src/query_program/unpivot_multicolumn_public_source_test.mbt"
+  ],
+  "jsActual": 28,
+  "guard": "run-weoNyZ",
+  "focused": "focused-test-lN4g4G",
+  "clean": true,
+  "ownerAndGroupAbsent": true,
+  "locksAbsent": true,
+  "originalExpectationsAndLimitsUnchanged": true,
+  "wholePublicAcceptance": false,
+  "guardSummary": {
+    "startedAt": "2026-10-11T22:34:17.281Z",
+    "status": "passed",
+    "complete": true,
+    "steps": [
+      {
+        "name": "Exact clean caller source",
+        "command": [
+          "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+          "--input-type=module",
+          "-e",
+          "import assert from 'node:assert/strict';import{execFileSync}from'node:child_process';assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),process.argv[1]);assert.equal(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}),'');",
+          "bc738e9b46d75cdb839e8255b6e1a860bddb2d3c"
+        ],
+        "startedAt": "2026-10-11T22:34:17.366Z",
+        "status": "passed",
+        "streamsComplete": true,
+        "code": 0,
+        "signal": null,
+        "exitedAt": "2026-10-11T22:34:17.582Z",
+        "endedAt": "2026-10-11T22:34:17.584Z"
+      },
+      {
+        "name": "Actual five original Core caller files on JS",
+        "command": [
+          "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+          "--input-type=module",
+          "-e",
+          "import{runFocusedTests}from'./scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',JSON.parse(process.argv[1]),{cwd:process.cwd(),timeout:45000});",
+          "[\"--target\",\"js\",\"src/query_program/order_property_paths_test.mbt\",\"src/query_program/unpivot_multicolumn_public_source_test.mbt\",\"src/query_program/group_scope_test.mbt\",\"src/query_program/table_effect_program_test.mbt\",\"src/query_program/unnest_join_continuation_test.mbt\"]"
+        ],
+        "startedAt": "2026-10-11T22:34:17.666Z",
+        "status": "passed",
+        "streamsComplete": true,
+        "code": 0,
+        "signal": null,
+        "exitedAt": "2026-10-11T22:34:34.886Z",
+        "endedAt": "2026-10-11T22:34:34.888Z"
+      },
+      {
+        "name": "Readonly exact changed Moon formatting",
+        "command": [
+          "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+          "--input-type=module",
+          "-e",
+          "import assert from'node:assert/strict';import{readFileSync}from'node:fs';import{execFileSync}from'node:child_process';for(const p of process.argv.slice(1))assert.equal(execFileSync('moonfmt',[p],{encoding:'utf8'}),readFileSync(p,'utf8'));",
+          "src/query_program/order_property_paths_test.mbt",
+          "src/query_program/unpivot_multicolumn_public_source_test.mbt",
+          "src/query_program/group_scope_test.mbt",
+          "src/query_program/table_effect_program_test.mbt",
+          "src/query_program/unnest_join_continuation_test.mbt"
+        ],
+        "startedAt": "2026-10-11T22:34:35.017Z",
+        "status": "passed",
+        "streamsComplete": true,
+        "code": 0,
+        "signal": null,
+        "exitedAt": "2026-10-11T22:34:35.258Z",
+        "endedAt": "2026-10-11T22:34:35.260Z"
+      },
+      {
+        "name": "Whitespace",
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "startedAt": "2026-10-11T22:34:35.356Z",
+        "status": "passed",
+        "streamsComplete": true,
+        "code": 0,
+        "signal": null,
+        "exitedAt": "2026-10-11T22:34:35.426Z",
+        "endedAt": "2026-10-11T22:34:35.428Z"
+      },
+      {
+        "name": "Exact clean caller source",
+        "command": [
+          "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+          "--input-type=module",
+          "-e",
+          "import assert from 'node:assert/strict';import{execFileSync}from'node:child_process';assert.equal(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),process.argv[1]);assert.equal(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}),'');",
+          "bc738e9b46d75cdb839e8255b6e1a860bddb2d3c"
+        ],
+        "startedAt": "2026-10-11T22:34:35.570Z",
+        "status": "passed",
+        "streamsComplete": true,
+        "code": 0,
+        "signal": null,
+        "exitedAt": "2026-10-11T22:34:35.807Z",
+        "endedAt": "2026-10-11T22:34:35.813Z"
+      }
+    ],
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+    "heavy": false,
+    "timeoutSeconds": 60,
+    "graceSeconds": 5,
+    "owner": {
+      "token": "2c5610e7-957e-4898-b66e-58ba3e23c98b",
+      "pid": 33902,
+      "uid": 501,
+      "host": "dyson",
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+      "startedAt": "2026-10-11T22:34:17.362Z",
+      "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure/_build/local-checks/attempts/run-weoNyZ"
+    },
+    "locks": [
+      "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-86f50fb468ed2b96a8d031b7d8924edc0aa17d5129036d3b6858bd949b9546b0.lock"
+    ],
+    "endedAt": "2026-10-11T22:34:35.898Z",
+    "outputComplete": true,
+    "exitCode": 0,
+    "locksReleased": true,
+    "callerOutputComplete": true
+  },
+  "focusedSummary": {
+    "version": "actql-command-evidence/0.1",
+    "invocationId": "focused-test-lN4g4G",
+    "revision": "bc738e9b46d75cdb839e8255b6e1a860bddb2d3c",
+    "source": {
+      "revision": "bc738e9b46d75cdb839e8255b6e1a860bddb2d3c",
+      "root": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+      "dirty": false
+    },
+    "github": {
+      "runId": null,
+      "runAttempt": null,
+      "eventSha": null,
+      "job": null
+    },
+    "startedAt": "2026-10-11T22:34:18.028Z",
+    "endedAt": "2026-10-11T22:34:34.876Z",
+    "status": "passed",
+    "complete": true,
+    "commands": [
+      {
+        "id": "001",
+        "command": "moon",
+        "args": [
+          "test",
+          "--target",
+          "js",
+          "src/query_program/order_property_paths_test.mbt",
+          "src/query_program/unpivot_multicolumn_public_source_test.mbt",
+          "src/query_program/group_scope_test.mbt",
+          "src/query_program/table_effect_program_test.mbt",
+          "src/query_program/unnest_join_continuation_test.mbt"
+        ],
+        "cwd": {
+          "path": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+          "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+          "device": "16777233",
+          "inode": "337093445"
+        },
+        "source": {
+          "revision": "bc738e9b46d75cdb839e8255b6e1a860bddb2d3c",
+          "root": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+          "dirty": false
+        },
+        "startedAt": "2026-10-11T22:34:18.295Z",
+        "endedAt": "2026-10-11T22:34:34.872Z",
+        "elapsedMs": 16571.769,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "complete": true,
+        "verificationStatus": 0,
+        "outputComplete": true,
+        "outputLimitBytes": 67108864,
+        "counts": {
+          "tests": 28,
+          "passed": 28,
+          "failed": 0,
+          "cancelled": null,
+          "skipped": null,
+          "todo": null
+        }
+      }
+    ],
+    "tarballs": [],
+    "artifactsRemoved": false,
+    "evidenceErrors": []
+  }
+}

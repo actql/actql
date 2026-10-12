@@ -1,0 +1,68 @@
+{
+  "startedAt": "2026-10-11T18:47:56.151Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "with-graph-rows-independent-node",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/graph-row-positional-set.test.mjs",
+        "scripts/graph-refusal-classification-source-input.test.mjs"
+      ],
+      "startedAt": "2026-10-11T18:47:56.251Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:47:57.182Z",
+      "endedAt": "2026-10-11T18:47:57.184Z"
+    },
+    {
+      "name": "with-graph-rows-lowering-common-checker",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/graph_rows_test.mbt",
+        "src/query_program/graph_rows_positional_set_test.mbt"
+      ],
+      "startedAt": "2026-10-11T18:47:57.268Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:48:06.989Z",
+      "endedAt": "2026-10-11T18:48:06.994Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "4fa9491b-4983-4910-af2a-e2023d401608",
+    "pid": 18185,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:47:56.238Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-MVeI02"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:48:07.074Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

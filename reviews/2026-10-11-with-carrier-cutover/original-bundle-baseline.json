@@ -1,0 +1,66 @@
+{
+  "bundle_head": "b01943f47a3107bb1e3e7207356f0fdb9afd19c0",
+  "bundle": [
+    {
+      "path": "ACCEPTANCE_MATRIX.md",
+      "bytes": 17710,
+      "sha256": "cbb662088679229e8be14c7f43f487428b402a4f6364b988b573b3586872195b"
+    },
+    {
+      "path": "IMPLEMENTATION_PLAN.md",
+      "bytes": 14069,
+      "sha256": "838663432c1a005f0326a478acb6d199580e75529475ac5b91c866721865d41b"
+    },
+    {
+      "path": "LANGUAGE_CHANGES.md",
+      "bytes": 24605,
+      "sha256": "5d7e595f6e021396a787456ec17610205439b9b4a7b56b59db42614b145f6457"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4568,
+      "sha256": "cac85fb35758fe6e08f6cffd08741acf098c307d0b9df67a89dd83357e7ea99f"
+    },
+    {
+      "path": "REVIEW_DISPOSITION.md",
+      "bytes": 14771,
+      "sha256": "8f07a123ead85b1ccbe5fe81d243080e23eb6b5067fc6af17a5345d8dd1c3a8d"
+    },
+    {
+      "path": "acceptance-index.json",
+      "bytes": 2991,
+      "sha256": "5c10a955c2e35d5d454ea3b5dcc389f3ae13d5d0c1834e40667f08e4fb7faa2d"
+    },
+    {
+      "path": "implementation-queue.json",
+      "bytes": 2133,
+      "sha256": "2d61a7f0a4e93ad540669af8c34895b1dfd7139ee8ab09567bf5c433d0d74007"
+    },
+    {
+      "path": "operation-inventory.csv",
+      "bytes": 13007,
+      "sha256": "653ccce2b4ea36483e4b933efab61904ee86bb07a5afe5c3bf0dd988d1794ba1"
+    },
+    {
+      "path": "retirement-candidates.json",
+      "bytes": 72722,
+      "sha256": "8d49b49f895b85f5feaac1b1c878da3713efb6b8c9faf237c9e6145ebd20877b"
+    },
+    {
+      "path": "source-manifest.json",
+      "bytes": 14630,
+      "sha256": "152dae04a659c79bd172c026fa8f512d517b1ce0890f0ec9124c52cb1752b1a6"
+    },
+    {
+      "path": "validate_bundle.py",
+      "bytes": 3674,
+      "sha256": "a2887b7fe39e3d0947f13f4ba9ad7781701bab2fa69e557380fa93a9eb9287f2"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 983,
+      "sha256": "53710ae4d1424cf13ed6cf905ad93620a45bf0799e724cdf6f07aefcd017bc26"
+    }
+  ],
+  "status": "original inspected design retained; prior scheduling is superseded"
+}

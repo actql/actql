@@ -1,0 +1,399 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Current WITH keyed Graph constructor and scope caller retirement only. Existing Graph semantics and independent complete mapping controls retained. No product/common API change.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-graph-keyed-scope-original-callers.json",
+  "independent_derivation": "with-graph-keyed-scope-derivation.json",
+  "runs": [
+    {
+      "run": "run-h4fqXb",
+      "source": "dce35be0689dda16284d585752f944f4b161cf11",
+      "tree": "46803b498376a5747e00e7ae7cc635db4c1c93c0",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 10730,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_program_wbtest.mbt",
+          "src/query_program/keyed_graph_program_wbtest.mbt",
+          "src/query_program/graph_definition_scope_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-h4fqXb/local-checks/summary.json",
+          "sha256": "a1f340f730495e117ee9291629db790aee6e5090d3620803384611659cf0a07e"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-h4fqXb/local-checks/output.log",
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        }
+      },
+      "formatter": "one-file whitespace-only changes"
+    },
+    {
+      "run": "run-qIfdda",
+      "source": "c1ede91db590cbdaea7ac841afca40da734c4bac",
+      "tree": "19e0131eb5fb82857a2fbb5d473868429e219524",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 12619,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_program_wbtest.mbt",
+          "src/query_program/keyed_graph_program_wbtest.mbt",
+          "src/query_program/graph_definition_scope_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/local-checks/summary.json",
+          "sha256": "51936b5d13c5b612960260b4ac2eca69ba0944425c591b465c035b019e857694"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/local-checks/output.log",
+          "sha256": "33854578608dbb6e55854132d0d427bfa23fec0ed63b35ba58de4bc0203fe081"
+        },
+        "focused-test-dkVYsH/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/0001.summary.json",
+          "sha256": "0e0dfb8879f9b8867f5283b0c27ef3e6eb574d45880332b8c2c729ab010a008b"
+        },
+        "focused-test-dkVYsH/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/summary.json",
+          "sha256": "760b57bf8d7efc8cc076b649569c568979cab5495e1c7c28f0bb3ce1d94e6e06"
+        },
+        "focused-test-dkVYsH/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/001.stdout.log",
+          "sha256": "0608e65beb0b250aa0852e909e811e578e4a9a7e7dfac9cbc4a6fc2d0a58edee"
+        },
+        "focused-test-dkVYsH/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/001.started.json",
+          "sha256": "f5334d717f170d5780b23609dfc47c2eafb4e055faf8bec43bfd9e738712c7b0"
+        },
+        "focused-test-dkVYsH/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/001.result.json",
+          "sha256": "efa5b69e8a53b2b50881248688de16eb6aaebfa168dff6efb203187e828bc5e4"
+        },
+        "focused-test-dkVYsH/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-dkVYsH/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/0002.summary.json",
+          "sha256": "602fc550b68a35eb054bee2db73e61fb4f1d121429fa3b42f636318ae0ad8c60"
+        },
+        "focused-test-dkVYsH/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/0004.summary.json",
+          "sha256": "760b57bf8d7efc8cc076b649569c568979cab5495e1c7c28f0bb3ce1d94e6e06"
+        },
+        "focused-test-dkVYsH/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-qIfdda/focused-test-dkVYsH/0003.summary.json",
+          "sha256": "bdaa1235467733c08e8ae3da85f0077c61f6636d16767d1c492d2b4a220bed94"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 16,
+        "passed": 12,
+        "failed": 4,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    },
+    {
+      "run": "run-q49rSl",
+      "source": "2e83c86e17f509da0ff2f94a5689e43e6b4be0f3",
+      "tree": "70ed16101c6f24c8136cb20c02355b282fd2a4cb",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 13263,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_program_wbtest.mbt",
+          "src/query_program/keyed_graph_program_wbtest.mbt",
+          "src/query_program/graph_definition_scope_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/local-checks/summary.json",
+          "sha256": "3725c705aae5d4ec292caa0d7d0fbbab0e9fdc2b2f27cf3e4e8b7b83e2f504b8"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/local-checks/output.log",
+          "sha256": "3b1907495aa36e26ae036830e1f55a6380db42f8460800d041cfd8595aa3192b"
+        },
+        "focused-test-nK764J/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/0001.summary.json",
+          "sha256": "ff1ab861c5697ec00f18347f650f83a3a03f0b893c5b443a8e6f379a19266170"
+        },
+        "focused-test-nK764J/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/summary.json",
+          "sha256": "e8cb14f4ef1928fab378ff87990c899939b8c418c5ea964fa448499b95cf2720"
+        },
+        "focused-test-nK764J/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/001.stdout.log",
+          "sha256": "69a8932d824b113b5088ef64643b422c9bab915783359abbf30595cd3edd0397"
+        },
+        "focused-test-nK764J/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/001.started.json",
+          "sha256": "5e35253300082081c139bc3a213ed3c5caec0386f177ee40cec45170eb95f115"
+        },
+        "focused-test-nK764J/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/001.result.json",
+          "sha256": "95a780ae8a16a5891c92562155c3c4a1b01e0b73e15d63739a0ec0e3b32e21d1"
+        },
+        "focused-test-nK764J/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-nK764J/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/0002.summary.json",
+          "sha256": "fd72f506b966ce54426fd7af3e27dfd1e65a5510ab6360b26b330c5157dca59e"
+        },
+        "focused-test-nK764J/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/0004.summary.json",
+          "sha256": "e8cb14f4ef1928fab378ff87990c899939b8c418c5ea964fa448499b95cf2720"
+        },
+        "focused-test-nK764J/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-q49rSl/focused-test-nK764J/0003.summary.json",
+          "sha256": "fbbb9cc29c3361500b438e830629df9c9ac0254e09b7f9ceb1476dfc00f85bcb"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 16,
+        "passed": 15,
+        "failed": 1,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    },
+    {
+      "run": "run-Cbqpmg",
+      "source": "315fb7cde2bfe1d71c77fa0745d02f6761306883",
+      "tree": "5dd468f91ab875546929a3cbd39857f56dfe7e51",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 13624,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_program_wbtest.mbt",
+          "src/query_program/keyed_graph_program_wbtest.mbt",
+          "src/query_program/graph_definition_scope_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/local-checks/summary.json",
+          "sha256": "63313a9af202cd3157f4659ef691eaf7e17e5ee108640cd55a0dfb7f9fe53051"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/local-checks/output.log",
+          "sha256": "96a674d60abf657a998f3bb4caf79fca865545102681521e6d1446a368d83181"
+        },
+        "focused-test-z9CUFB/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/0001.summary.json",
+          "sha256": "d21f3932877db43be7062b5477ffc76c0346fa3319c9c6933a73d79d1f9cbd75"
+        },
+        "focused-test-z9CUFB/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/summary.json",
+          "sha256": "65e0f8c1b792fa8f516e7d3c346dc84abae29e2d6275300434accfb95bd34066"
+        },
+        "focused-test-z9CUFB/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/001.stdout.log",
+          "sha256": "45880eb587d9dd9746341ce018cdf939b78d44298bd247de151a759fd9044962"
+        },
+        "focused-test-z9CUFB/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/001.started.json",
+          "sha256": "8f502c477149287ec452b0cc3cd2910243ee941f78fcba1615f4cd9599c2ff9f"
+        },
+        "focused-test-z9CUFB/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/001.result.json",
+          "sha256": "59e38dac72f11bfbe8d01ce072895f03279b13839cf18cb88deb01eb23ce322d"
+        },
+        "focused-test-z9CUFB/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-z9CUFB/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/0002.summary.json",
+          "sha256": "b45c71ad0d48ef97b14629c11ed8b56e425238c8d8e1d6453e8cc5cc56506c22"
+        },
+        "focused-test-z9CUFB/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/0004.summary.json",
+          "sha256": "65e0f8c1b792fa8f516e7d3c346dc84abae29e2d6275300434accfb95bd34066"
+        },
+        "focused-test-z9CUFB/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-Cbqpmg/focused-test-z9CUFB/0003.summary.json",
+          "sha256": "cd915f2e23668822f45da25425f46803cd5d154939ec48f4844a23fd8f14bb93"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 16,
+        "passed": 15,
+        "failed": 1,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    },
+    {
+      "run": "run-wLr6Ij",
+      "source": "a3c80c2de2edcc6f24dd13bcde8568bcdb821805",
+      "tree": "dc99408e79b02daa0addd11c4e61303b5f8015b4",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 14557,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_program_wbtest.mbt",
+          "src/query_program/keyed_graph_program_wbtest.mbt",
+          "src/query_program/graph_definition_scope_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/local-checks/summary.json",
+          "sha256": "f5082ad078a458cdff959cc35fad0ba71fec11268881ec7a282749e13f3d02fe"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/local-checks/output.log",
+          "sha256": "ae33ae0c58b1c183150ab94fb1cd398dbb23da8883c8cc1ff91b3261f6cfb0d2"
+        },
+        "focused-test-weZlW7/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/0001.summary.json",
+          "sha256": "4f41380ab9e4089788cd6e413efb706714ece79c6472a059557b7158578fb98d"
+        },
+        "focused-test-weZlW7/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/summary.json",
+          "sha256": "175f1c8952d511f3805125b22a16a4752300dffe0b874e1064639c11c464de94"
+        },
+        "focused-test-weZlW7/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/001.stdout.log",
+          "sha256": "f50ce06797bc93504dd0ac75cc2d752711467886b159ce549d1def601b31b490"
+        },
+        "focused-test-weZlW7/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/001.started.json",
+          "sha256": "498943b3f8957ed0b9edfe0b71a27a476cfce7143592de47f986a9c58905a9c4"
+        },
+        "focused-test-weZlW7/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/001.result.json",
+          "sha256": "e18eeec8cbef13e85b4136ceb3c6215a0f6a61ed7c0c101f8a1ea1e50f8aca13"
+        },
+        "focused-test-weZlW7/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-weZlW7/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/0002.summary.json",
+          "sha256": "5642d4121c2ee9becd39803cf9adf237d166229935ef3d2254e0d79b07097e3d"
+        },
+        "focused-test-weZlW7/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/0004.summary.json",
+          "sha256": "175f1c8952d511f3805125b22a16a4752300dffe0b874e1064639c11c464de94"
+        },
+        "focused-test-weZlW7/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-wLr6Ij/focused-test-weZlW7/0003.summary.json",
+          "sha256": "ee7a071fd39d2e5c7ca59d6c8b7c0446c4fb67fe85a71c01a8141d14111015f5"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 16,
+        "passed": 16,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    },
+    {
+      "run": "run-6uM8R8",
+      "source": "a3c80c2de2edcc6f24dd13bcde8568bcdb821805",
+      "tree": "dc99408e79b02daa0addd11c4e61303b5f8015b4",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 14889,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_program_wbtest.mbt",
+          "src/query_program/keyed_graph_program_wbtest.mbt",
+          "src/query_program/graph_definition_scope_wbtest.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-6uM8R8/local-checks/summary.json",
+          "sha256": "c7f2dafa78ad9825a7943369123723d1372ba97c0fb957be0e63ee49e903abe5"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-keyed-scope-retirement-evidence/run-6uM8R8/local-checks/output.log",
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        }
+      },
+      "formatter": "one-file whitespace-only changes"
+    }
+  ],
+  "initial_failures": [
+    "c1ede JS12/16: direct constructor retained retired PROPERTY GRAPH, and authored span derivation accidentally used a different labeled query.",
+    "2e83 JS15/16: only direct constructor corrected; authored span remained wrong.",
+    "315fb JS15/16: origin corrected; retired LABELS caller still unwraps parser refusal.",
+    "Sandbox launch at c1ede exited 1 before any run receipt or tests: Cannot inspect owned process group with ps. Normal authorized Owner-check path used unchanged guard; not a test pass."
+  ],
+  "unexecuted": [
+    "Host Local/HTTPS values/schema/order",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ]
+}

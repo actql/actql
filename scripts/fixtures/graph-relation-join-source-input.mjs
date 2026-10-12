@@ -9,11 +9,11 @@ const mapping = {version: 'actql-graph-constructor/0.1',
   edges: [{name: 'E', from: 'n', key: ['node_key'],
     source: {definition: 'N', key: ['node_key']}, target: {definition: 'N', key: ['node_key']},
     labels: [{name: 'R', properties: property[0].properties}]}]};
-const source = 'DATA n = SELECT 1 AS node_key, 7 AS p; '
-  + 'DATA r = SELECT 20 AS tag UNION ALL SELECT 10 AS tag; '
-  + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) '
+const source = 'WITH n AS (SELECT 1 AS node_key, 7 AS p) '
+  + ', r AS (SELECT 20 AS tag UNION ALL SELECT 10 AS tag) '
+  + ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) '
   + 'EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N '
-  + 'DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); ';
+  + 'DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p)))) ';
 const tail = (field, bound = 10) => ' |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS ' + bound
   + ' |> SELECT l.' + field + ' AS value, rr.tag AS tag |> ORDER BY tag';
 const operations = [
@@ -71,7 +71,7 @@ for (const [name, format] of [['json-parallel-unchanged', 'json'], ['terminal-se
     text = JSON.stringify(program);
   } else {
     text = existing.text.replace('FROM g |> graph_diff(with: g) |> SELECT delta |> RESULT changes',
-      'DATA r = SELECT 20 AS tag UNION ALL SELECT 10 AS tag; FROM g |> graph_diff(with: g)' + tail('delta'));
+      ', r AS (SELECT 20 AS tag UNION ALL SELECT 10 AS tag) FROM g |> graph_diff(with: g)' + tail('delta'));
   }
   graphRelationJoinSuccesses.push(success('graph_diff-' + format, text,
     rows({$json: existing.results.changes.rows[0].delta}), {type: 'json', nullable: false}, {format}));

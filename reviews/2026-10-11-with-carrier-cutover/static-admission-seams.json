@@ -1,0 +1,48 @@
+{
+  "source": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "status": "Source-inspected API and constraints; no common checker or product execution",
+  "existing_apis": [
+    {
+      "symbol": "src/pipeline_typing/check.mbt::check_with_evidence",
+      "input": "Original pipeline Cursor, named InputContract owners, supplied parameter declarations/profiles/ModelTasks and existing bounded Limits",
+      "output": "CheckedPipeline or existing typed Issue",
+      "retain": "InputContract original admission handle, producer keys/order/literals/window/delta/ranking and outstanding validation/resource obligations",
+      "boundary": "Static checking is not data validation, permission to acquire, a physical reservation, or Program/Plan/Run publication."
+    },
+    {
+      "symbol": "src/pipeline_typing/produced_input.mbt::produced_input",
+      "input": "CheckedPipeline and its actual Target",
+      "output": "Conditional successful ProducedInput owner retaining carrier/evidence/debts",
+      "retain": "Immutable producer pipeline and target, not a frontend reconstructed schema, count or uniqueness assertion",
+      "boundary": "Use only an actual common-issued producer. Binding or scope wrappers add no projection/normalization."
+    },
+    {
+      "symbol": "src/pipeline_typing/types.mbt::InputContract",
+      "input": "ProducedInput, SourceViewInput, CarrierInput or existing explicit evidence variants",
+      "output": "Original input admission representation",
+      "retain": "SourceViewInput retains Stage, declaration name, original declaration Cursor and common SourceViewCarrier",
+      "boundary": "check_impl requires the pipeline Cursor to be that Stage's steps and the retained declaration to belong to its inputs. Never forge a new fragment owner by copying a schema or reusing a stale Cursor."
+    }
+  ],
+  "frontend_change": {
+    "current_symbol": "src/query_program/query_cte_scope.mbt::validate_cte_scope",
+    "current_rule": "Unused declarations are refused because the frontend cannot yet perform complete checking without acquisition scheduling.",
+    "target": "Resolve and statically lower every authored binding against supplied metadata/common contracts, then emit only final/explicit Result/Effect reachable bindings. Keep semantic argument occurrences separate from deduplicated reachability edges.",
+    "owner": "B frontend connection",
+    "do_not": [
+      "Delete the unused-refusal check before replacing its complete semantic checking responsibility.",
+      "Execute a Source or Model to discover a schema.",
+      "Promote structural CarrierInput to key/provenance evidence.",
+      "Reinterpret checked conditional evidence as successful dynamic validation.",
+      "Issue a synthetic public Program/Run to check a dead declaration.",
+      "Drop earlier explicit Result/Effect obligations or dynamic assertions inside a demanded body."
+    ]
+  },
+  "concrete_controls": [
+    {"id": "D07", "source": "WITH unused AS (SELECT id FROM records) SELECT 1 AS id", "expected": "supplied schema permits full static checking; unused Source I/O zero"},
+    {"id": "D08", "source": "WITH unused AS (SELECT missing FROM records) SELECT 1 AS id", "expected": "unresolved field before Program issuance/provider I/O"},
+    {"id": "D09", "expected": "duplicate complete Graph key remains a pending dynamic obligation when unused; the existing common owner refuses it when demanded"},
+    {"id": "D12", "expected": "missing metadata, invisible metadata and explicit static denial remain distinct internal causes; public non-disclosure follows current policy"}
+  ],
+  "remaining": "Actual binding lowerer and temporary syntax-owner lifetime must be implemented after integrated main adoption. If an existing admission API is insufficient, record the minimal Cursor/input contract and exact common refusal before proposing a finite common extension; do not claim the source inspection establishes complete admission."
+}

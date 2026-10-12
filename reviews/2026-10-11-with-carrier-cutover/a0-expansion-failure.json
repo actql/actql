@@ -1,0 +1,11 @@
+{
+  "status": "failed static preparation consistency check; no product execution",
+  "exit": 1,
+  "first_error": "AssertionError: declared operation count did not equal unique operation names",
+  "cause": "B appended two existing seed operations instead of reading the full seed first. Their authored rows duplicated existing profiles.",
+  "original_metadata_sha256": "0ebeab719649ed0e92b2d0d625ce1253227f6dacf207b28a1c25e8fe72140b9a",
+  "original_declared_operations": 47,
+  "actual_unique_operations": 45,
+  "correction": "Remove duplicate inventory rows, preserve all original 45 operation identities and profile obligations; no semantic oracle or product source changed.",
+  "product_execution": 0
+}

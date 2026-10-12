@@ -47,7 +47,7 @@ fn QueryParser::window_expression(
       syntax_nodes: 0,
       source_depth: 0,
       synthetic_sources: serial[0],
-      cte_scopes: [],
+      binding_scopes: [],
     }
     let window_head = match parser.peek().value {
       Word(name) | QuotedName(name) =>

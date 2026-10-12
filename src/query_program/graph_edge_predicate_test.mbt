@@ -44,7 +44,7 @@ fn edge_predicate_context() -> Context {
 
 ///|
 fn edge_predicate_prefix() -> String {
-  "DATA g = PROPERTY GRAPH (NODE TABLES (vertices AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (links AS E KEY (edge_id) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (weight, payload))); "
+  "WITH g AS (GRAPH (NODE TABLES (vertices AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (links AS E KEY (edge_id) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (weight, payload)))) "
 }
 
 ///|
@@ -98,7 +98,7 @@ fn edge_predicate_expected(
     links[:links.length() - 1].to_owned() +
     ",\"as\":\"aql_script_seed_4\"}," +
     (
-      #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_seed_3","key":["id"],"labels":[{"name":"Node","properties":{"mode":"no_properties"}}]}],"edges":[{"name":"E","from":"aql_script_seed_4","key":["edge_id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"columns","columns":[{"from":"weight","to":"weight"},{"from":"payload","to":"payload"}]}}]}]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","where":{"literal":true},"bindings":{"identity":"aql_keyed_identity_0"},"fields":["aql_keyed_identity_0"],"label":"Node"},"as":"aql_keyed_seeds_5"},{"from":"aql_data_2","traverse":{"start":{"from":"aql_keyed_seeds_5","id":"aql_keyed_identity_0"},"path_mode":"walk","emit":"paths",
+      #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_seed_3","key":["id"],"labels":[{"name":"Node","properties":{"mode":"no_properties"}}]}],"edges":[{"name":"E","from":"aql_script_seed_4","key":["edge_id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"columns","columns":[{"from":"weight","to":"weight"},{"from":"payload","to":"payload"}]}}]}]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","match_nodes":{"definition":"N","where":{"literal":true},"bindings":{"identity":"aql_keyed_identity_0"},"fields":["aql_keyed_identity_0"],"label":"Node"},"as":"aql_keyed_seeds_5"},{"from":"aql_with_graph_2","traverse":{"start":{"from":"aql_keyed_seeds_5","id":"aql_keyed_identity_0"},"path_mode":"walk","emit":"paths",
     ) +
     traversal +
     (
@@ -210,23 +210,10 @@ test "edge predicates refuse foreign receivers and projection names during lower
 test "invalid edge property types belong to the common traversal checker" {
   for
     predicate in ["payload.missing > 0", "weight.score > 0", "weight = 'high'"] {
-    let program = checked_edge_predicate_compile(
-      "-[:R WHERE " + predicate + "]->",
+    let kind = with_graph_predicate_refusal(
+      edge_predicate_compile("-[:R WHERE " + predicate + "]->"),
     )
-    guard @check.check_parsed(
-        program,
-        graph_rows_environment(),
-        None,
-        graph_rows_check_limits(),
-      )
-      is Rejected(diagnostic) else {
-      fail("Invalid edge property typing must be rejected")
-    }
-    guard @check.diagnostic_cause(diagnostic)
-      is Source(SourceView(Program(Program(Pipeline(_, issue))))) else {
-      fail("Edge predicate typing belongs to the ordinary pipeline")
-    }
-    assert_true(issue.kind is @pipeline.GraphMatch(_))
+    assert_true(kind is @pipeline.GraphMatch(_))
   }
 }
 

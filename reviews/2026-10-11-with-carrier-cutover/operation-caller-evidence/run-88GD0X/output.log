@@ -1,0 +1,74 @@
+TAP version 13
+# Subtest: only independently proven Graph support gaps gain exact implementation-limit expectations
+ok 1 - only independently proven Graph support gaps gain exact implementation-limit expectations
+  ---
+  duration_ms: 1.331375
+  type: 'test'
+  ...
+# Subtest: WITH Graph row refusals preserve their existing rejection policy
+ok 2 - WITH Graph row refusals preserve their existing rejection policy
+  ---
+  duration_ms: 1.091958
+  type: 'test'
+  ...
+# Subtest: WITH Graph core refusals preserve independent rejection policy
+ok 3 - WITH Graph core refusals preserve independent rejection policy
+  ---
+  duration_ms: 0.530959
+  type: 'test'
+  ...
+# Subtest: WITH diagnostic refusals retain complete input policy
+ok 4 - WITH diagnostic refusals retain complete input policy
+  ---
+  duration_ms: 0.221375
+  type: 'test'
+  ...
+# Subtest: Shortest oracles preserve zero-hop, independent identities and all selection modes
+ok 5 - Shortest oracles preserve zero-hop, independent identities and all selection modes
+  ---
+  duration_ms: 2.182125
+  type: 'test'
+  ...
+# Subtest: Shortest packed profile includes external public transports and fresh-process rereads
+ok 6 - Shortest packed profile includes external public transports and fresh-process rereads
+  ---
+  duration_ms: 6.866542
+  type: 'test'
+  ...
+# Subtest: WITH Graph operation callers preserve all independent public obligations
+ok 7 - WITH Graph operation callers preserve all independent public obligations
+  ---
+  duration_ms: 2.033708
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 143.941541
+ACTQL_TEST_CASE {"name":"only independently proven Graph support gaps gain exact implementation-limit expectations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph row refusals preserve their existing rejection policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph core refusals preserve independent rejection policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH diagnostic refusals retain complete input policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Shortest oracles preserve zero-hop, independent identities and all selection modes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-shortest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Shortest packed profile includes external public transports and fresh-process rereads","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-shortest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph operation callers preserve all independent public obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-operation-caller.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":4,"failed":0,"passed":4,"cancelled":0,"skipped":0,"todo":0,"topLevel":4,"suites":0},"duration_ms":11.296084,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":15.633375,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-shortest-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":1,"failed":0,"passed":1,"cancelled":0,"skipped":0,"todo":0,"topLevel":1,"suites":0},"duration_ms":8.212208,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-operation-caller.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":7,"failed":0,"passed":7,"cancelled":0,"skipped":0,"todo":0,"topLevel":7,"suites":0},"duration_ms":143.941541}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-graph-operation-caller.test.mjs","scripts/graph-shortest-source-input.test.mjs","scripts/graph-refusal-classification-source-input.test.mjs"]: executed; counts={"tests":7,"passed":7,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-RPCCln
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"program_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"program_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"expression_type_mismatch","facts":{"expected_type":"number"}}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":60,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"expression_type_mismatch","facts":{"expected_type":"number"}}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":153,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"query_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+ACTQL_BINDING_CHECK_REPORT {"outcome":"completed","report":{"context_ref":"ctx:binding","coverage":{"limits":[],"unresolved":[]},"inputs":[{"byte_length":153,"document_id":"source","kind":"text","revision":"rev:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"reasons":[{"code":"query_invalid"}],"requirements":[],"scope":{"kind":"bound_input"},"verdict":"invalid"},"reason_schema_cid":"sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac","outcome_schema_cid":"sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f","version":"actql-check-outcome/0.1"}
+Total tests: 25, passed: 25, failed: 0.
+["moon","test","--target","js","src/query_program/graph_diagnostics_test.mbt","src/query_program/traversal_nodes_test.mbt","src/query_program/traverse_hop_vocabulary_test.mbt","src/query_program/traversal_join_input_test.mbt","src/query_program/graph_shortest_source_test.mbt","src/connectors_builtin_node/client_source_preparation_wbtest.mbt","src/connectors_builtin_node/client_check_binding_preparation_wbtest.mbt"]: executed; counts={"tests":25,"passed":25,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-ZHspgX

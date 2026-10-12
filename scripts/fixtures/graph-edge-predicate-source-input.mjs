@@ -6,15 +6,15 @@ const payload = {type: 'object', nullable: true,
   fields: {score: nullableNumber}};
 const declarations = {a: payload, b: payload, c: payload};
 const parameters = {a: {score: 10}, b: {score: 20}, c: null};
-const data = 'DATA n = SELECT 1 AS id; DATA e = '
+const data = 'WITH n AS (SELECT 1 AS id) , e AS ('
   + 'SELECT 10 AS edge_key, 1 AS src, 1 AS dst, 10 AS weight, @a AS payload '
   + 'UNION ALL SELECT 11 AS edge_key, 1 AS src, 1 AS dst, 20 AS weight, @b AS payload '
-  + 'UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst, CAST(NULL AS FLOAT64) AS weight, @c AS payload; ';
+  + 'UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst, CAST(NULL AS FLOAT64) AS weight, @c AS payload) ';
 const edgeDefinition = 'e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N '
   + 'DESTINATION KEY (dst) REFERENCES N LABEL R PROPERTIES (weight, payload)';
-const mapping = (edges = edgeDefinition) => 'DATA g = PROPERTY GRAPH ('
+const mapping = (edges = edgeDefinition) => ', g AS (GRAPH ('
   + 'NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) '
-  + 'EDGE TABLES (' + edges + ')); ';
+  + 'EDGE TABLES (' + edges + '))) ';
 const query = (edge, mode = 'WALK') => 'FROM GRAPH g |> MATCH p = ' + mode
   + ' (:Node)' + edge + '(:Node) |> SELECT PATH_LENGTH(p) AS depth '
   + '|> ORDER BY depth |> RESULT paths';
@@ -57,7 +57,7 @@ const machine = bounded => ({version: 'actql/0.1', id: 'fixture.graph_edge_predi
   results: {paths: {from: {stage: 'main', result: 'rows'}}}});
 // S has no properties and no rows. Actual row emptiness cannot make its
 // statically missing weight eligible for an unfiltered traversal predicate.
-const heterogeneousData = data + 'DATA empty_edges = FROM e |> WHERE edge_key < 0; ';
+const heterogeneousData = data + ', empty_edges AS (FROM e |> WHERE edge_key < 0) ';
 const heterogeneousMapping = mapping(edgeDefinition + ', empty_edges AS F KEY (edge_key) '
   + 'SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL S NO PROPERTIES');
 export const graphEdgePredicateSuccesses = [

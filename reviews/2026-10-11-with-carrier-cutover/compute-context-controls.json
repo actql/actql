@@ -1,0 +1,81 @@
+{
+  "bundle": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
+  "status": "Authored placement and continuation expectations; parser/lowering/runtime/public unexecuted",
+  "rule": "W uses one bounded token parenthesis index: only a first opening pair whose matching close reaches the CTAS input end is a Compute wrapper. Other grouped primaries remain Pure. No catalog or type lookup selects the parse branch.",
+  "cases": [
+    {
+      "id": "S25-whole-result",
+      "source": "CREATE TABLE output AS (SELECT 1 AS id |> RESULT before_write)",
+      "whole_compute_wrapper": true,
+      "expected_placement": "accepted Compute input",
+      "expected_write_rows": [{"id": 1}],
+      "expected_named_results": {"before_write": [{"id": 1}]}
+    },
+    {
+      "id": "S25-result-after-group",
+      "source": "CREATE TABLE output AS (SELECT 1 AS id) |> RESULT before_write",
+      "whole_compute_wrapper": false,
+      "expected_placement": "accepted Compute continuation of a Pure grouped primary",
+      "expected_write_rows": [{"id": 1}],
+      "expected_named_results": {"before_write": [{"id": 1}]}
+    },
+    {
+      "id": "S25-result-inside-nonwrapper",
+      "source": "CREATE TABLE output AS (SELECT 1 AS id |> RESULT forbidden) |> WHERE id > 0",
+      "whole_compute_wrapper": false,
+      "expected_placement": "refuse RESULT in Pure primary before Program issuance or I/O"
+    },
+    {
+      "id": "S25-double-group",
+      "source": "CREATE TABLE output AS ((SELECT 1 AS id |> RESULT forbidden))",
+      "whole_compute_wrapper": true,
+      "expected_placement": "refuse RESULT in inner Pure primary; outer Compute does not promote it"
+    },
+    {
+      "id": "S25-set-continuation",
+      "source": "CREATE TABLE output AS (SELECT 2 AS id) UNION ALL (SELECT 1 AS id) ORDER BY id",
+      "whole_compute_wrapper": false,
+      "expected_placement": "accepted Compute query with Pure set operands",
+      "expected_write_rows": [{"id": 1}, {"id": 2}],
+      "obligation": "Retain UNION ALL, both operands and the final ORDER."
+    },
+    {
+      "id": "S25-pipe-continuation",
+      "source": "CREATE TABLE output AS (SELECT 1 AS id) |> WHERE id = 2",
+      "whole_compute_wrapper": false,
+      "expected_placement": "accepted Compute query with Pure grouped primary",
+      "expected_write_rows": []
+    },
+    {
+      "id": "S25-retained-result-demand",
+      "source": "CREATE TABLE output AS (SELECT 1 AS id |> RESULT before_write |> WHERE id = 2)",
+      "whole_compute_wrapper": true,
+      "expected_placement": "accepted Compute input",
+      "expected_write_rows": [],
+      "expected_named_results": {"before_write": [{"id": 1}]},
+      "obligation": "An earlier explicit Result remains a demand root; final write input is the filtered continuation."
+    },
+    {
+      "id": "S25-token-string-close",
+      "source": "CREATE TABLE output AS (SELECT ')' AS value);",
+      "whole_compute_wrapper": true,
+      "expected_placement": "accepted Compute input; quoted close is a string token",
+      "expected_write_rows": [{"value": ")"}]
+    },
+    {
+      "id": "S25-token-comment-close",
+      "source": "CREATE TABLE output AS (SELECT 1 AS id /* ) */) |> WHERE id = 2;",
+      "whole_compute_wrapper": false,
+      "expected_placement": "accepted Compute continuation; comment close is not a token",
+      "expected_write_rows": []
+    },
+    {
+      "id": "S14-with-result",
+      "source": "WITH unused AS (SELECT 1 AS id |> RESULT forbidden) SELECT 2 AS id",
+      "expected_placement": "refuse RESULT in Pure binding even though unused; zero Run admission and provider I/O"
+    }
+  ],
+  "columns": [{"name": "id", "contract": {"type": "number", "nullable": false}}],
+  "exception": "token-string-close exposes value as non-null string bounded by its existing literal contract; no new contract or serializer is introduced",
+  "evidence_boundary": "These cases test placement, retained obligations and continuation. Actual Table Effect authorization/approval/execution remains the existing owner responsibility. Authored expectations do not establish execution or replace complete independent Program comparisons at implementation."
+}

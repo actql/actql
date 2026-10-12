@@ -4,8 +4,8 @@
 fn has_pipe_range_input(query : @query.Query) -> Bool {
   let pending = [query]
   while pending.pop() is Some(current) {
-    for index in 0..<@query.cte_count(current) {
-      let cte = @query.cte_at(current, index).unwrap()
+    for index in 0..<@query.query_binding_count(current) {
+      let cte = @query.query_binding_at(current, index).unwrap()
       if cte.carry_ranges {
         return true
       }

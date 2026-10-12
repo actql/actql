@@ -1,0 +1,32 @@
+{
+  "status": "bounded metadata consistency only; no compiler/checker/runtime/public execution",
+  "source": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "bundle": "b5d03b1d38912c52a9ad333a4734155edbec0c70",
+  "operation_count": 45,
+  "profile_count": 82,
+  "caller_count": 100,
+  "acceptance_ids": 130,
+  "independent_preimages": 3,
+  "authored_internal_pipelines": 2,
+  "missing_local_links": [],
+  "product_execution": 0,
+  "file_sha256": {
+    "README.md": "0e6e5f1bc4c96341e52ce6a300264854591e60b6da65828324148a1cdcc698b8",
+    "a0-expansion-failure.json": "1fe46a778c046b57f893ec5dfbdf95ed34426e88c0b41e490b2cd09de629b89c",
+    "a0-expansion-static.json": "f57d2290be510ebaab480574558c8171cf193d36a240a86eae047ab8e0169165",
+    "acceptance-id-inventory.json": "90291719b85240a728a6cd2dc5e785ca7495304bd6bd52a3f67807f983651527",
+    "four-carrier-controls.json": "38e288752e355beec0c333aedd2b5d55ad08b402735eaa359df166a9c68ebb41",
+    "four-carrier-preparation-failure.json": "7735e6d92b1c6ed7d82fdda304cd5aed6e3c1bf02a9c3586bc7e4cf8b58c3ca7",
+    "graph-definition-preimages.json": "0d77c1f70f7036d6e38ef0ab423156f4488cb5b9ca1bef0b7fe9def9bf517088",
+    "handoff-state.json": "db3e64eea9f6908c81c049c7b95b55c3cf1d3b17caf01e0cc3990827e10fbdf1",
+    "operation-profile-index.json": "2a37e6b779f16bf2ddaf30dbef4498c117baeff513efcd018281759482910bfe",
+    "original-bundle-baseline.json": "ecb468f2736d5290afe8c722912a2344738d0e88a901c90495c739a283e3e02a",
+    "p1-seams.json": "f2aa5deb6ef203ff7c05e1e0245e3980a7f6106d1ead29dcd50358b8e143dded",
+    "parallel-edge-controls.json": "625fc223019a72274a9447696d883fdfaac8281ce71b3ccd5f6775d2402ba58f",
+    "preparation-failure.json": "efb8f44f9b1f5443eba053886f197fbf2a67f6d7d9a149bf291223ac3d341d7e",
+    "preparation-static.json": "b6342e2df9e8b066a9e50be948dbe88bd71572c21f748d136d891df23bd4e946",
+    "retired-entry-callers.json": "d56a1aaf70c558072748a44039ad35452f05caab989849a1bd5b0f587452b650",
+    "scope-demand-controls.json": "685555e008653d618c4177207b7a906d0b87968a6e379117cd2fada5ad7b4193",
+    "source-baseline.json": "1c4e50dc4de3c8ebabb71266b5802081caf1d7f22cb5d72a109b86e5d802c829"
+  }
+}

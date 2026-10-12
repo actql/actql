@@ -1,0 +1,26 @@
+{
+  "status": "static preparation metadata only; no parser/checker/runtime/public execution",
+  "source": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "distinct_operations": 45,
+  "profile_rows": 82,
+  "caller_paths": 100,
+  "independent_preimage_vectors": 3,
+  "missing_local_links": [],
+  "product_execution": 0,
+  "file_sha256": {
+    "handoff-state.json": "db3e64eea9f6908c81c049c7b95b55c3cf1d3b17caf01e0cc3990827e10fbdf1",
+    "acceptance-id-inventory.json": "90291719b85240a728a6cd2dc5e785ca7495304bd6bd52a3f67807f983651527",
+    "p1-seams.json": "f2aa5deb6ef203ff7c05e1e0245e3980a7f6106d1ead29dcd50358b8e143dded",
+    "source-baseline.json": "1c4e50dc4de3c8ebabb71266b5802081caf1d7f22cb5d72a109b86e5d802c829",
+    "original-bundle-baseline.json": "ecb468f2736d5290afe8c722912a2344738d0e88a901c90495c739a283e3e02a",
+    "README.md": "a13e27230e280737c290904b0e0309013ea6e1f80aa447ee6907e3ed34431e2c",
+    "a0-expansion-failure.json": "1fe46a778c046b57f893ec5dfbdf95ed34426e88c0b41e490b2cd09de629b89c",
+    "operation-profile-index.json": "2a37e6b779f16bf2ddaf30dbef4498c117baeff513efcd018281759482910bfe",
+    "graph-definition-preimages.json": "0d77c1f70f7036d6e38ef0ab423156f4488cb5b9ca1bef0b7fe9def9bf517088",
+    "preparation-failure.json": "efb8f44f9b1f5443eba053886f197fbf2a67f6d7d9a149bf291223ac3d341d7e",
+    "preparation-static.json": "b6342e2df9e8b066a9e50be948dbe88bd71572c21f748d136d891df23bd4e946",
+    "retired-entry-callers.json": "d56a1aaf70c558072748a44039ad35452f05caab989849a1bd5b0f587452b650",
+    "scope-demand-controls.json": "685555e008653d618c4177207b7a906d0b87968a6e379117cd2fada5ad7b4193",
+    "parallel-edge-controls.json": "625fc223019a72274a9447696d883fdfaac8281ce71b3ccd5f6775d2402ba58f"
+  }
+}

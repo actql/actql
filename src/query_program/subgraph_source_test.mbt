@@ -23,12 +23,12 @@ test "independent common Subgraph control is already checked" {
 
 ///|
 test "Subgraph source preserves its Relation selector in an independent complete Program" {
-  let actual = compile_data_set(
-    "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA selected = FROM g |> node_rows() |> SELECT id; DATA slice = FROM g |> subgraph(nodes: {from: selected, id: 'id'}); FROM slice |> node_rows() |> SELECT p, node_key",
+  let actual = compile_with_set(
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), selected AS (FROM g |> node_rows() |> SELECT id), slice AS (FROM g |> subgraph(nodes: {from: selected, id: 'id'})) FROM slice |> node_rows() |> SELECT p, node_key",
   )
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","node_rows":true,"as":"aql_sga_4"},{"from":"aql_sga_4","select":["id"],"as":"aql_data_3"},{"from":"aql_data_2","subgraph":{"nodes":{"from":"aql_data_3","id":"id"}},"as":"aql_sga_6"},{"from":"aql_sga_6","node_rows":true,"as":"aql_sga_7"},{"from":"aql_sga_7","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","node_rows":true,"as":"aql_sga_4"},{"from":"aql_sga_4","select":["id"],"as":"aql_script_cte_3"},{"from":"aql_with_graph_2","subgraph":{"nodes":{"from":"aql_script_cte_3","id":"id"}},"as":"aql_sga_5"},{"from":"aql_sga_5","node_rows":true,"as":"aql_sga_6"},{"from":"aql_sga_6","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -51,7 +51,7 @@ test "Subgraph source preserves its Relation selector in an independent complete
 ///|
 test "Subgraph predicate parameters preserve the independent expression Program" {
   let script = @query.parse_query_script(
-    "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA selected = FROM g |> node_rows() |> SELECT id; DATA slice = FROM g |> subgraph(nodes: {from: selected, id: 'id'}, edges: {gt: [@p, {literal: 0}]}); FROM slice |> node_rows() |> SELECT p, node_key",
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), selected AS (FROM g |> node_rows() |> SELECT id), slice AS (FROM g |> subgraph(nodes: {from: selected, id: 'id'}, edges: {gt: [@p, {literal: 0}]})) FROM slice |> node_rows() |> SELECT p, node_key",
     syntax_limits(),
   ).unwrap()
   let actual = compile_query_script(
@@ -65,7 +65,7 @@ test "Subgraph predicate parameters preserve the independent expression Program"
   ).unwrap()
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","params":{"p":{"type":"number"}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","node_rows":true,"as":"aql_sga_4"},{"from":"aql_sga_4","select":["id"],"as":"aql_data_3"},{"from":"aql_data_2","subgraph":{"nodes":{"from":"aql_data_3","id":"id"},"edges":{"gt":[{"$param":"p"},{"literal":0}]}},"as":"aql_sga_6"},{"from":"aql_sga_6","node_rows":true,"as":"aql_sga_7"},{"from":"aql_sga_7","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","params":{"p":{"type":"number"}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_script_cte_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_cte_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","node_rows":true,"as":"aql_sga_4"},{"from":"aql_sga_4","select":["id"],"as":"aql_script_cte_3"},{"from":"aql_with_graph_2","subgraph":{"nodes":{"from":"aql_script_cte_3","id":"id"},"edges":{"gt":[{"$param":"p"},{"literal":0}]}},"as":"aql_sga_5"},{"from":"aql_sga_5","node_rows":true,"as":"aql_sga_6"},{"from":"aql_sga_6","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -112,18 +112,18 @@ test "Subgraph typed identity keys use query identifiers rather than JSON String
 }
 
 ///|
-test "Subgraph source preserves predicates across inline, DATA and MATCH boundaries" {
+test "Subgraph source preserves predicates across inline, WITH and MATCH boundaries" {
   let prefix = graph_rows_prefix() +
-    "DATA selected = FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id; "
+    ", selected AS (FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id) "
   for
     suffix in [
       "FROM g |> subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: false}) |> node_rows() |> SELECT node_key, name",
-      "DATA `slice` = FROM g |> normalize_graph() |> subgraph(nodes: {from: selected, id: 'id'}); FROM `slice` |> edge_rows() |> SELECT edge_key",
+      ", `slice` AS (FROM g |> normalize_graph() |> subgraph(nodes: {from: selected, id: 'id'})) FROM `slice` |> edge_rows() |> SELECT edge_key",
       "FROM GRAPH g |> subgraph(nodes: {from: selected, id: 'id'}) |> MATCH WALK (a:Node) |> SELECT a.name",
       "FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_nodes(definition: 'n', bindings: {identity: 'element'}, where: {literal: true}, fields: ['name', 'element']) |> SELECT name, element",
-      "DATA matched = FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_edges(definition: 'E', label: 'r', bindings: {identity: 'edge', source: 'source', target: 'target'}, fields: ['target', 'edge', 'source']); FROM matched |> SELECT target, edge, source",
+      ", matched AS (FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_edges(definition: 'E', label: 'r', bindings: {identity: 'edge', source: 'source', target: 'target'}, fields: ['target', 'edge', 'source'])) FROM matched |> SELECT target, edge, source",
     ] {
-    let actual = compile_data_set(prefix + suffix)
+    let actual = compile_with_set(prefix + suffix)
     match
       @check.check_parsed_with_evidence(
         actual,
@@ -150,23 +150,40 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
       // authored expression and let that owner reject it before admission.
        "subgraph(nodes: {where: {literal: true}})",
     ] {
-    let actual = compile_data_set(
-      graph_rows_prefix() +
-      "DATA selected = FROM g |> node_rows() |> SELECT id, node_key; FROM g |> " +
+    let source = graph_rows_prefix() +
+      ", selected AS (FROM g |> node_rows() |> SELECT id, node_key) FROM g |> " +
       call +
-      " |> node_rows() |> SELECT node_key",
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        actual,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=call,
-    )
+      " |> node_rows() |> SELECT node_key"
+    // The current WITH owner statically checks every authored binding and
+    // continuation. Preserve the malformed body and its common typed cause.
+    match classified_graph_source(source) {
+      Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
+        match call {
+          "subgraph()"
+          | "subgraph(nodes: {from: selected, id: 'id'}, extra: true)" =>
+            assert_eq(issue.kind, @pipeline.InvalidBody)
+          "subgraph(nodes: {ids: []})" =>
+            assert_eq(issue.kind, @pipeline.GraphMatch(Structure(InvalidBody)))
+          "subgraph(nodes: {from: selected, id: 'missing'})" =>
+            assert_eq(
+              issue.kind,
+              @pipeline.GraphMatch(Structure(UnknownMatchField("missing"))),
+            )
+          "subgraph(nodes: {from: selected, id: 'node_key'})" =>
+            assert_true(
+              issue.kind is @pipeline.GraphMatch(Structure(ContractMismatch(_))),
+            )
+          "subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: 1})" =>
+            assert_eq(issue.kind, @pipeline.GraphMatch(ExpectedBoolean))
+          "subgraph(nodes: {where: {literal: true}})" =>
+            assert_eq(
+              issue.kind,
+              @pipeline.GraphMatch(Structure(UnsupportedGraphOperation)),
+            )
+          _ => fail("undeclared malformed Subgraph control")
+        }
+      _ => fail("expected common static Subgraph refusal: " + call)
+    }
   }
 }
 
@@ -179,7 +196,7 @@ test "Subgraph source keeps producer references and Carrier transitions scoped" 
         "missing",
       ),
       (
-        "DATA slice = FROM g |> subgraph(nodes: {from: later, id: 'id'}); DATA later = FROM g |> node_rows(); FROM slice |> node_rows() |> SELECT node_key",
+        ", slice AS (FROM g |> subgraph(nodes: {from: later, id: 'id'})), later AS (FROM g |> node_rows()) FROM slice |> node_rows() |> SELECT node_key",
         "later",
       ),
       (

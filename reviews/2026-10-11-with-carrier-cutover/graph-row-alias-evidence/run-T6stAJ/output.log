@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: baseline preimages and changed normative pins independently determine the Run CID
+ok 1 - baseline preimages and changed normative pins independently determine the Run CID
+  ---
+  duration_ms: 609.362916
+  type: 'test'
+  ...
+# Subtest: current contract inputs independently determine the Values Run and consuming fixtures
+ok 2 - current contract inputs independently determine the Values Run and consuming fixtures
+  ---
+  duration_ms: 437.865541
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1167.958875
+ACTQL_TEST_CASE {"name":"baseline preimages and changed normative pins independently determine the Run CID","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"current contract inputs independently determine the Values Run and consuming fixtures","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":1056.798542,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":1167.958875}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","--test-name-pattern","^(baseline preimages and changed normative pins independently determine the Run CID|current contract inputs independently determine the Values Run and consuming fixtures)$","scripts/client-values-run-materials-vector.test.mjs"]: executed; counts={"tests":2,"passed":2,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4H9nKg
+Error: [0011]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/connectors_builtin_node/client_check.mbt:314:7 ]
+     │
+ 314 │       match issue {
+     │       ──────┬──────  
+     │             ╰──────── Error Warning (partial_match): Partial match, some hints:
+QueryLowering(RangeAliasRequiresRelation | BindingPreparation(_))
+─────╯
+Warning: [0009]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/model_execution/prepared_capacity.mbt:6:13 ]
+   │
+ 6 │ priv struct PreparedModelCapacity {
+   │             ──────────┬──────────  
+   │                       ╰──────────── Warning (struct_never_constructed): The struct PreparedModelCapacity is never constructed
+───╯
+["moon","test","--target","js","src/query_syntax/with_graph_alias_test.mbt","src/query_program/with_graph_range_alias_test.mbt","src/query_program/graph_rows_test.mbt","src/query_program/graph_rows_positional_set_test.mbt","src/source_frontend/with_graph_binding_test.mbt","src/connectors_builtin_node/client_source_preparation_wbtest.mbt","src/run_publication_host/client_values_run_materials_wbtest.mbt"]: process failed (1); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-Mxk07n
