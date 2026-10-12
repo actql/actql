@@ -445,6 +445,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       entries: new Map()};
     let installedJournalPort;
     let originalInvalidation;
+    function originalResourceReadCurrent(park) {
+      const originalScope = operation.originalResourceScope?.();
+      if (!owner.available || originalPreparation === undefined ||
+          originalScope === undefined || originalScope !== originalPreparation.scope ||
+          checkpoints() !== cp || operation.originalResourceParkCurrent(park) !== park) {
+        fail('ModelOriginalResourceReadUnavailable');
+      }
+      return originalScope;
+    }
     function originalJournalInstallation() {
       if (originalPreparation === undefined ||
           live.get(preparedCallSet) !== owner ||
@@ -559,15 +568,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
       async readOriginalResourceState(park, storageBinding, receipt) {
-        const originalScope = operation.originalResourceScope?.();
-        const current = () => {
-          if (!owner.available || originalPreparation === undefined ||
-              originalScope === undefined || originalScope !== originalPreparation.scope ||
-              checkpoints() !== cp || operation.originalResourceParkCurrent(park) !== park) {
-            fail('ModelOriginalResourceReadUnavailable');
-          }
-        };
-        current();
+        const originalScope = originalResourceReadCurrent(park);
         if (typeof cp.readOriginalModelStateSelected !== 'function') {
           fail('InferOriginalMetadataAcquisitionUnavailable');
         }
@@ -576,16 +577,42 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         const acquisition = operation.originalMetadataAcquisition(park);
         const document = await cp.readOriginalModelStateSelected({runDefinition: plan.runDefinition,
           storageBinding, receipt}, acquisition);
-        current();
+        originalResourceReadCurrent(park);
         // Actual Store custody is rechecked by CP. Match the twelve checked
         // originals separately; schema/CID equality alone cannot prove them.
         const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
-        current();
+        originalResourceReadCurrent(park);
         control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
           plan.runDefinition, selected.graph, originalScope, park, document,
           originalPreparation.nodeInstallation, storage);
-        current();
+        originalResourceReadCurrent(park);
         return document;
+      },
+      async confirmOriginalResourceStateSaved(park, storageBinding, receipt) {
+        const originalScope = originalResourceReadCurrent(park);
+        if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function') {
+          fail('InferOriginalMetadataAcquisitionUnavailable');
+        }
+        // Only this installed operation supplies the acquisition and original
+        // checked inventory. Callers cannot insert a different Scope identity.
+        const acquisition = operation.originalMetadataAcquisition(park);
+        const saved = await cp.confirmOriginalModelStateSavedSelected({
+          runDefinition: plan.runDefinition, storageBinding, receipt,
+          identity: select(inventory, scopeKeys)}, acquisition);
+        originalResourceReadCurrent(park);
+        const savedFacts = cp.originalModelStateSavedFacts(saved);
+        // Saved facts are historical Store observations, not a Resource grant.
+        // Re-admit their original bytes through the Common closed reader before
+        // checking all twelve checked originals against this same live Scope.
+        const document = control.readModelOriginalResourceDocument(savedFacts.documentWire,
+          {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+        const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+        originalResourceReadCurrent(park);
+        control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
+          plan.runDefinition, selected.graph, originalScope, park, document,
+          originalPreparation.nodeInstallation, storage);
+        originalResourceReadCurrent(park);
+        return saved;
       },
       async originalResourceOrigin(storageBinding) {
         const originalScope = operation.originalResourceScope?.();
