@@ -23,8 +23,8 @@ test "independent captured JOIN Program agrees under strict and check-only prepa
     max_depth: 100,
     max_text_bytes: 100000,
   }
-  match @stage_results.prepare_local_program(parameters, limits) {
-    Ok(_) => ()
+  let strict = match @stage_results.prepare_local_program(parameters, limits) {
+    Ok((wiring, _)) => wiring
     Err(Order(stage, PipelineOrder(issue))) =>
       fail(
         "strict pipeline order stage \{stage}: " + @debug.to_string(issue.kind),
@@ -44,7 +44,37 @@ test "independent captured JOIN Program agrees under strict and check-only prepa
   let first = @stage_results.topology_stage_at(checked, 0).unwrap()
   let inputs = @stage_results.topology_stage_results(first)
   let publication = @relation_results.checked_input_publication(inputs, 0).unwrap()
+  let strict_port = @relation_results.port_at(
+    @stage_results.stage_port_publications(
+      @stage_results.wiring_stage_at(strict, 0).unwrap(),
+    ),
+    0,
+  ).unwrap()
+  let strict_publication = @relation_results.port_publication(strict_port)
   assert_true(@pipeline.publication_strategy(publication) is CandidateKey)
+  assert_eq(
+    @pipeline.publication_strategy(publication),
+    @pipeline.publication_strategy(strict_publication),
+  )
+  assert_eq(
+    @pipeline.publication_target(publication),
+    @pipeline.publication_target(strict_publication),
+  )
+  assert_eq(
+    @pipeline.publication_term_count(publication),
+    @pipeline.publication_term_count(strict_publication),
+  )
+  assert_eq(
+    @pipeline.publication_term_at(publication, 0).unwrap().field,
+    @pipeline.publication_term_at(strict_publication, 0).unwrap().field,
+  )
+  let key = @pipeline.publication_key(publication).unwrap()
+  assert_eq(@evidence.key_field_count(key), 1)
+  assert_eq(@evidence.key_field_at(key, 0).unwrap().name, Unqualified("id"))
+  assert_eq(
+    @relation.projection(@pipeline.publication_projection(publication)).length(),
+    @relation_results.port_projection_count(strict_port),
+  )
   assert_true(@relation_results.checked_input_order_pending(inputs, 0) is None)
   let input = @relation_results.checked_input_at(inputs, 0).unwrap()
   assert_true(
