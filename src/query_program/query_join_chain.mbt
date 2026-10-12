@@ -121,6 +121,7 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
         | Drop(_)
         | Rename(_)
         | Distinct
+        | Nearest(_)
       ) {
       return true
     }
@@ -286,6 +287,8 @@ fn compile_join_chain_steps(
   parameter_declarations? : @parameters.Declarations? = None,
   prefix_steps? : Array[@builder.Node] = [],
   prefix_context? : Context? = None,
+  nearest_inputs? : Array[Input] = [],
+  nearest_vectors? : Array[(String, @carrier.Vectors)] = [],
   positional_set_output? : Bool = false,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
@@ -639,6 +642,8 @@ fn compile_join_chain_steps(
     parameter_declarations~,
     prefix_steps=prefix_steps + steps,
     prefix_context~,
+    nearest_inputs~,
+    nearest_vectors~,
     positional_set_output~,
   )
   steps.append(tail)

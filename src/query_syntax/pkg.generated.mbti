@@ -10,13 +10,15 @@ import {
 // Values
 pub fn after_first_query_operation(Query) -> Query?
 
-pub fn after_graph_calls(Query) -> Query
+pub fn after_graph_calls(Query, current_source? : NamePart?) -> Query
 
-pub fn after_graph_row_calls(Query, Int) -> Query?
+pub fn after_graph_row_calls(Query, Int, current_source? : NamePart?) -> Query?
 
 pub fn after_producer_primary(Query) -> Query
 
 pub fn after_query_bindings(Query) -> Query
+
+pub fn bound_source(Query) -> NamePart?
 
 pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
 
