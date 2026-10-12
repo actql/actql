@@ -161,23 +161,24 @@ class LocalDistributionTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         minimum = struct.pack('<6I', 0x32, 24, 1, 11 << 16, 11 << 16, 0)
-        for name, accepted in [(b'/usr/lib/libSystem.B.dylib', True),
-                               (b'/System/Library/Frameworks/Security.framework/Security', True),
-                               (b'@loader_path/node_modules/native.dylib', False),
-                               (b'/opt/homebrew/lib/libduckdb.dylib', False),
-                               (b'@rpath/libc++.dylib', False)]:
-            padded = name + b'\0' * (4 - len(name) % 4)
-            dependency = struct.pack('<6I', 0xc, 24 + len(padded), 24, 0, 0, 0) + padded
-            commands = minimum + dependency
-            binary = struct.pack('<8I', 0xfeedfacf, 0x0100000c, 0, 6, 2, len(commands), 0, 0) + commands
-            library = self.directory / 'linked-fixture.dylib'
-            library.write_bytes(binary)
-            with self.subTest(name=name):
-                if accepted:
-                    module.library_target(library)
-                else:
-                    with self.assertRaisesRegex(ValueError, 'unbundled'):
+        for command in (0xc, 0x80000018, 0x8000001f, 0x20, 0x80000023):
+            for name, accepted in [(b'/usr/lib/libSystem.B.dylib', True),
+                                   (b'/System/Library/Frameworks/Security.framework/Security', True),
+                                   (b'@loader_path/node_modules/native.dylib', False),
+                                   (b'/opt/homebrew/lib/libduckdb.dylib', False),
+                                   (b'@rpath/libc++.dylib', False)]:
+                padded = name + b'\0' * (4 - len(name) % 4)
+                dependency = struct.pack('<6I', command, 24 + len(padded), 24, 0, 0, 0) + padded
+                commands = minimum + dependency
+                binary = struct.pack('<8I', 0xfeedfacf, 0x0100000c, 0, 6, 2, len(commands), 0, 0) + commands
+                library = self.directory / 'linked-fixture.dylib'
+                library.write_bytes(binary)
+                with self.subTest(command=command, name=name):
+                    if accepted:
                         module.library_target(library)
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'unbundled'):
+                            module.library_target(library)
 
     def test_runtime_import_has_no_engine_or_sdk_dependency(self):
         spec = importlib.util.spec_from_file_location('runtime_package',
