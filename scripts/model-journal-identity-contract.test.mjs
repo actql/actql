@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {machineCid} from './actql-spec-family.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
+import {occurrences, violations} from './check-owned-contract-versions.mjs';
 import {modelJournalIdentitySchemas, applyModelJournalIdentitySchemas,
   checkModelJournalIdentitySchemas} from './model-journal-identity-contract.mjs';
 import {checkJournalIdentityVectors, originalEntry, originalSettlement}
@@ -36,6 +37,25 @@ test('generated descriptor chunks share one array and retain original root numbe
   assert(segments.every(segment => segment.split('\n').length < 16384));
   const capacity = Number(/Array\(capacity=(\d+)\)/u.exec(source)[1]);
   assert.equal([...source.matchAll(/nodes\.push\(/gu)].length, capacity);
+});
+
+test('reviewed descriptor and native refusal contexts have no spare allowance', () => {
+  const inventory = JSON.parse(readFileSync('scripts/owned-contract-version-legacy.json', 'utf8'));
+  for (const [path, expectedCount] of [
+    ['src/run_publication/protocol_schema.generated.mbt', 6],
+    ['src/run_publication_host/client_journal_row_decoding_wbtest.mbt', 1],
+  ]) {
+    const found = occurrences(readFileSync(path, 'utf8'), path);
+    assert.equal(found.length, expectedCount);
+    const registered = inventory.entries.filter(entry => entry.path === path);
+    assert.equal(registered.reduce((total, entry) => total + entry.count, 0), expectedCount);
+    assert.deepEqual(violations(found, inventory), []);
+    assert.equal(violations([...found, found[0]], inventory).length, 1);
+    assert.equal(violations(found.map(entry => ({...entry,
+      contextSha256: '0'.repeat(64)})), inventory).length, expectedCount);
+    assert.equal(violations(found.map(entry => ({...entry,
+      path: 'src/model_execution/unreviewed_writer.mbt'})), inventory).length, expectedCount);
+  }
 });
 
 test('original journal independent canonical vectors and generated consumer are fresh', () => {
