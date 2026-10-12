@@ -187,6 +187,8 @@ pub fn client_program_advance_model_execution(@model_execution.ModelExecution, I
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_advance_native_decision_projection(@model_execution.NativeDecisionProjection) -> Result[@model_execution.NativeDecisionRequest?, @model_execution.NativeDecisionProjectionIssue]
+
 pub fn client_program_advance_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_allowed_effect_run_admission(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
@@ -738,6 +740,8 @@ pub fn client_program_effect_table_managed_input_finish(ClientEffectManagedInput
 pub fn client_program_effect_table_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
+
+pub fn client_program_encode_model_original_resource_document(String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
@@ -1393,6 +1397,8 @@ pub fn client_program_model_provider_admission_issue_kind(@model_execution.Model
 
 pub fn client_program_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_model_raw_selection_originals(@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Array[(String, String, String)]
+
 pub fn client_program_model_request_generation(@model_execution.ModelRequest) -> (String, Double, Double, Int64, Int64?)?
 
 pub fn client_program_model_request_input(@model_execution.ModelRequest, String) -> String?
@@ -1408,6 +1414,18 @@ pub fn client_program_model_response(@model_execution.ModelRequest, String, Stri
 pub fn client_program_model_scoped_private_holding_cid(@run_publication.PublicationContract, String, String, String, String, Int, String, String) -> String?
 
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
+
+pub fn client_program_native_decision_option_id(@model_execution.NativeDecisionRequest, Int, Int) -> String?
+
+pub fn client_program_native_decision_projection_issue_kind(@model_execution.NativeDecisionProjectionIssue) -> String
+
+pub fn client_program_native_decision_question_id(@model_execution.NativeDecisionRequest, Int) -> String?
+
+pub fn client_program_native_decision_request_binding(@model_execution.NativeDecisionRequest) -> (String, String, String, String)?
+
+pub fn client_program_native_decision_request_matches(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest) -> Bool
+
+pub fn client_program_native_decision_request_wires(@model_execution.NativeDecisionRequest) -> (String, String)?
 
 pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[@model_execution.ModelRawCaptureSave, @model_execution.ModelRawCaptureSaveIssue]
 
@@ -1686,6 +1704,10 @@ pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResul
 pub fn client_program_retire_infer_original_current_state_document(@physical_resources.OriginalCurrentStateDocument) -> Unit
 
 pub fn client_program_retire_infer_original_current_state_match(@physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> Unit
+
+pub fn client_program_retire_native_decision_projection(@model_execution.NativeDecisionProjection) -> Unit
+
+pub fn client_program_retire_native_decision_request(@model_execution.NativeDecisionRequest) -> Unit
 
 pub fn client_program_retire_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Unit
 
@@ -1976,6 +1998,8 @@ pub fn client_program_start_model_content_bytes(@model_execution.ModelContentInp
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_start_native_decision_projection(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[@model_execution.NativeDecisionProjection, @model_execution.NativeDecisionProjectionIssue]
 
 pub fn client_program_start_openai_chat_projection(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[@model_execution.OpenAIChatProjection, @model_execution.OpenAIChatProjectionIssue]
 
