@@ -55,6 +55,9 @@ fn select_source_acquisition_rows(
           None,
           max_work - work,
           max_work - work,
+          source_requests=requests.inputs.sourceviews.map(views => {
+            @sourceviews.catalog(@sourceviews.pipeline_resolution(views))
+          }),
         ) {
         Ok(value) => value
         Err(CandidateBudget) => return Err(BudgetExceeded)
@@ -62,6 +65,8 @@ fn select_source_acquisition_rows(
           return Err(Rows(Target(stage, index, error)))
         Err(CandidateMembership(error)) =>
           return Err(Producers(Membership(stage, index, error)))
+        Err(CandidateSourceInput(error)) =>
+          return Err(Rows(SourceInput(stage, index, error)))
       }
       work += used
       let mut best : @capacity.TargetMembership? = None
@@ -77,11 +82,7 @@ fn select_source_acquisition_rows(
         if value <= 0 {
           continue
         }
-        let cid = @wire.cid(
-          @wire.program_proof_witness(
-            @step_bounds.checked_proof(@step_bounds.target_rows_bound(bound)),
-          ),
-        )
+        let cid = @step_bounds.target_rows_candidate_cid(bound)
         if cid.length() > max_work - work {
           return Err(BudgetExceeded)
         }

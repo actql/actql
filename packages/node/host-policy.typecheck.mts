@@ -1,4 +1,4 @@
-import {connect, type HostCapacityPolicy} from '@actql/node';
+import {connect, type HostCapacityPolicy, type HostLookupExecutionPolicy} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 const policy: HostCapacityPolicy = {
   "max_aggregate_array_items": 1000,
@@ -37,3 +37,16 @@ void connect({mode: 'local', owner: 'local', installation: {sourceSelectorNamesp
 void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', sourceSelectorNamespace: 'registrations'});
 // @ts-expect-error Namespace completeness is not a caller-supplied success flag.
 void connect({mode: 'local', owner: 'local', installation: {sourceSelectorNamespace: {name: 'registrations', complete: true}}});
+
+const lookup: HostLookupExecutionPolicy = {
+  version: 'actql-lookup-execution-policy/0.1', max_network_attempts_per_request: 3,
+  max_request_bytes_per_attempt: 4096, max_total_request_bytes: 32768,
+  max_total_response_bytes: 32768, max_total_decoded_response_bytes: 32768,
+  max_total_duration_ms: 30000,
+};
+void connect({mode: 'local', owner: 'local', installation: {hostLookupExecutionPolicy: lookup}});
+void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only', authenticate: () => 'owner', hostLookupExecutionPolicy: lookup});
+// @ts-expect-error Lookup ceilings are a complete closed contract, not a partial map.
+void connect({mode: 'local', owner: 'local', installation: {hostLookupExecutionPolicy: {max_total_request_bytes: 1}}});
+// @ts-expect-error A caller cannot mutate the captured policy through its public type.
+lookup.max_total_response_bytes = 1;

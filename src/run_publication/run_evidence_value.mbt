@@ -31,6 +31,9 @@ fn run_evidence_identity_field(name : String) -> String? {
     "prepared_invocation" => Some("prepared_invocation_cid")
     "run_authorization" => Some("run_authorization_cid")
     "observation_set" => Some("observation_set_cid")
+    "content_generation" => Some("generation_cid")
+    "content_evidence" => Some("evidence_cid")
+    "content_input_artifact" => Some("input_artifact_cid")
     "normalization_journal" => Some("journal_cid")
     "source_evidence" => Some("source_evidence_cid")
     "source_input_logical" => Some("input_logical_cid")
@@ -49,7 +52,8 @@ fn run_evidence_identity_field(name : String) -> String? {
     | "model_dispatch_authority"
     | "model_call_attempt"
     | "model_attempt_accounting"
-    | "model_attempt_outcome" => Some("self_cid")
+    | "model_attempt_outcome"
+    | "model_attachment_admission" => Some("self_cid")
     "run_review_projection" => Some("review_projection_cid")
     "model_effective_inputs" => Some("effective_inputs_cid")
     "model_input_artifact" => Some("input_artifact_cid")
@@ -243,6 +247,10 @@ pub fn issue_run_invocation(
   if model_template_requires_slots(template) ||
     @json.object_field(observation.value, "model_slot_capture_cids") is Some(_) {
     return Err(RunEvidenceReferenceMismatch("model_slot_capture_cids"))
+  }
+  if content_template_requires_generation(template) ||
+    @json.object_field(observation.value, "content_generation_cids") is Some(_) {
+    return Err(RunEvidenceReferenceMismatch("content_generation_cids"))
   }
   issue_run_invocation_owned(
     template, observation, max_wire_bytes, max_nodes, max_depth,

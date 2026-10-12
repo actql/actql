@@ -30,7 +30,7 @@ pub fn work(Declarations) -> Int
 // Types and methods
 pub(all) enum Constraint {
   Resource(String)
-  Artifact(String?)
+  Content(String?)
 } derive(Eq, @debug.Debug)
 
 pub struct Declaration {

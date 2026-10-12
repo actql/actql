@@ -66,8 +66,11 @@ pub fn prepare_duckdb_native_issuer(
 ///|
 pub fn prepare_issued_duckdb_native_attempt(
   issuer : DuckDBNativeIssuer,
-  choice : @planning.AcquisitionChoice,
-  candidate : @planning.PreparedAcquisition[DuckDBNativePreparation],
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
+  candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
+    DuckDBNativePreparation,
+  ],
   physical : @duckdb.PhysicalResultLimits,
   max_metadata_work : Int,
   measurement : @execution.FixedInputGuardMeasureLimits,

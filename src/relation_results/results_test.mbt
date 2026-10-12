@@ -78,7 +78,7 @@ test "order domains follow AuthorOrderable rather than canonical ordering" {
       ),
       ("\"type\":\"object\",\"fields\":{}", false),
       ("\"type\":\"vector\",\"dimensions\":3", false),
-      ("\"type\":\"artifact_ref\"", false),
+      ("\"type\":\"content_ref\"", false),
     ] {
     let c = @contract.read_author(
       cursor(

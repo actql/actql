@@ -226,6 +226,7 @@ fn document_reservation(
 fn document_header(
   c : @decode.Cursor,
   bounds : (Int, Int, Int),
+  phase? : String = "reading",
 ) -> OriginalLedgerSnapshot raise OriginalStateDocumentFailure {
   document_array(c, 12)
   if @decode.text(document_at(c, 0)) != Ok("actql-original-ledger-state/0.1") {
@@ -246,7 +247,7 @@ fn document_header(
     !document_bool(document_at(inventory, 3)) ||
     !document_bool(document_at(inventory, 4)) ||
     document_bool(document_at(inventory, 5)) ||
-    @decode.text(document_at(inventory, 6)) != Ok("reading") ||
+    @decode.text(document_at(inventory, 6)) != Ok(phase) ||
     !document_bool(document_at(inventory, 7)) {
     raise BadDocument
   }

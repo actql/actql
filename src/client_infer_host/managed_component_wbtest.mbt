@@ -54,6 +54,7 @@ test "Local component keeps composed INFER work deltas and output custody" {
   }
   let child = local_component(active, project).unwrap()
   assert_true(local_component(active, project) is Err(InvalidAdvance))
+  assert_true(advance_root(active, 1) is Err(InvalidAdvance))
   assert_true(!@local.cleanup_managed_provider(child).unwrap())
   let mut output = None
   let mut charged = 0L

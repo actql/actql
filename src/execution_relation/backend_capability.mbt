@@ -28,7 +28,7 @@ fn supported_comparison(
     ResourceRef(resource_kind=left_kind) =>
       right.shape is @contract.ResourceRef(resource_kind=right_kind) &&
       left_kind == right_kind
-    ArtifactRef(..) => right.shape is @contract.ArtifactRef(..)
+    ContentRef(..) => right.shape is @contract.ContentRef(..)
     Json | Array(_, ..) | Object(_) | Vector(..) => false
   }
 }
@@ -40,7 +40,7 @@ fn supported_binary_comparison(
   right : @contract.Contract,
 ) -> Bool {
   match left.shape {
-    ResourceRef(..) | ArtifactRef(..) =>
+    ResourceRef(..) | ContentRef(..) =>
       supported_comparison(left, right) &&
       (
         operation is Equal ||

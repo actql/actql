@@ -20,6 +20,7 @@ import {effectHost, moon} from
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {createLocalAuthorizationGate} from './local-account-config.mjs';
 import {installNodeClientEffectProgramPreparation} from './client-program-preparation.mjs';
+import {currentEffectLiteralKeyVectors} from '../../scripts/effect-literal-key-vectors.mjs';
 
 const target = 'connector://fixture/records';
 const connection = 'fixture:records';
@@ -388,8 +389,7 @@ for (const entrance of ['program', 'json', 'yaml']) {
 }
 
 
-const literalKeyVectors = JSON.parse(await readFile(new URL(
-  '../../portability/corpus/effect-literal-key-identities.json', import.meta.url), 'utf8'));
+const literalKeyVectors = {cases: currentEffectLiteralKeyVectors()};
 
 async function literalPreparation(payloadContract) {
   const {environmentWire} = await mappingEnvironment(payloadContract);

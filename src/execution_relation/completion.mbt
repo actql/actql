@@ -8,6 +8,7 @@ struct CompletedSequence {
   result_identity : Ref[Unit]
   // A readmitted fact may supply a producer, not complete a pending task.
   readmitted : Bool
+  serialization_output : Int?
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   store : CompletedStore
@@ -398,9 +399,60 @@ pub fn completed_output_matches_port(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
 ) -> Bool {
+  if output.target is Step(index) &&
+    output.completion.serialization_output != Some(index) &&
+    @lower.sequence_serialization_input_kernel(
+      output.completion.sequence,
+      index,
+    )
+    is Some(_) {
+    // The private sorted Relation is not the Content metadata output, even
+    // though both belong to the same checked barrier coordinate.
+    return false
+  }
   physical_equal(@lower.sequence_owner(output.completion.sequence), owner) &&
   output.target == target &&
   completed_output_available(output)
+}
+
+///|
+/// Physical completion of the exact compiler-prepared serialization sort.
+/// Equal schemas/rows or a completion of the unsorted input are insufficient.
+pub fn completed_output_matches_serialization_sort(
+  output : CompletedOutput,
+  barrier : @lower.PreparedSerialization,
+) -> Bool {
+  let step = @lower.serialization_step(barrier)
+  !output.completion.readmitted &&
+  output.completion.serialization_output is None &&
+  completed_output_available(output) &&
+  output.target == Step(step) &&
+  physical_equal(
+    @lower.sequence_owner(output.completion.sequence),
+    @lower.serialization_owner(barrier),
+  ) &&
+  @lower.sequence_serialization_input_kernel(output.completion.sequence, step)
+  is Some(kernel) &&
+  @pipeline.serialization_sort(@lower.serialization_checked(barrier))
+  is Some(sort) &&
+  physical_equal(@lower.kernel_checked(kernel), sort)
+}
+
+///|
+fn completed_output_relation_schema(output : CompletedOutput) -> @schema.Schema {
+  if output.target is Step(index) &&
+    output.completion.serialization_output != Some(index) &&
+    @lower.sequence_serialization_input_kernel(
+      output.completion.sequence,
+      index,
+    )
+    is Some(kernel) {
+    return @lower.kernel_output_schema(kernel)
+  }
+  @lower.preparation_schema_at(
+    @lower.bound_preparation(@lower.sequence_owner(output.completion.sequence)),
+    output.target,
+  ).unwrap()
 }
 
 ///|

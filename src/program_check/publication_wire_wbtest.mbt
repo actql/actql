@@ -193,7 +193,7 @@ test "publication arithmetic context comes from retained application membership"
       @step_bounds.checked_proof(
         @step_bounds.target_rows_bound(
           @capacity.target_membership_rows(candidate.membership),
-        ),
+        ).unwrap(),
       ),
     )
     let converted = publication_proof_at(execution, i).unwrap()
@@ -211,7 +211,7 @@ test "publication arithmetic context comes from retained application membership"
         proof_application(converted),
         @step_bounds.target_rows_bound(
           @capacity.target_membership_rows(candidate.membership),
-        ),
+        ).unwrap(),
       ),
     )
     assert_false(@wire.cid(original) == @wire.cid(witness))

@@ -89,6 +89,10 @@ pub fn bind_effect_program_static_preview(EffectProgramStaticCandidate, Int, @ru
 
 pub fn bind_effect_program_static_run(EffectProgramStaticCandidate, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[EffectProgramRunCandidate, EffectProgramRunIssue]
 
+pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
+
+pub fn bind_host_verified_request_value_policy_cid(SourceExecution, String, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
+
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
@@ -125,7 +129,7 @@ pub fn checked_program_has_effects(CheckedProgram) -> Bool
 
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
-pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?) -> CheckEnvironment
+pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?, request_value_policies? : Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
 pub fn checking_environment_cid(CheckEnvironment) -> String
 
@@ -134,6 +138,8 @@ pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.
 pub fn checking_environment_profile_selection(CheckEnvironment) -> CheckProfileSelection
 
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
+
+pub fn checking_environment_with_request_value_policies(CheckEnvironment, Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
@@ -335,9 +341,11 @@ pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_c
 
 pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
 
+pub fn keyed_input_proof_acquired(KeyedInputProof) -> ReidentifiedSourceInput?
+
 pub fn keyed_input_proof_at(CheckedProgram, Int) -> KeyedInputProof?
 
-pub fn keyed_input_proof_bound(KeyedInputProof) -> ReidentifiedStep
+pub fn keyed_input_proof_bound(KeyedInputProof) -> ReidentifiedStep?
 
 pub fn keyed_input_proof_count(CheckedProgram) -> Int
 
@@ -400,6 +408,8 @@ pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironm
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
+
+pub fn prepare_serialization_output_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_source_catalog(CheckEnvironment, SourceCatalogLimits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
 
@@ -532,6 +542,18 @@ pub fn publication_rows(PublicationExecution) -> @capacity_witness.LimitClaim
 pub fn publication_selection(PublicationExecution) -> @pipeline_check_context.PublicationRowLimit
 
 pub fn publication_source_policy(PublicationExecution) -> PublicationSourcePolicy?
+
+pub fn reidentified_source_input_original(ReidentifiedSourceInput) -> @capacity_program_step.SourceInputRows
+
+pub fn reidentified_source_input_reference(ReidentifiedSourceInput) -> String
+
+pub fn reidentified_source_input_rows(ReidentifiedSourceInput) -> @capacity_witness.LimitClaim
+
+pub fn reidentified_source_input_unit(ReidentifiedSourceInput) -> String
+
+pub fn request_value_policy_subject_wire(SourceExecution, Int, Int, Int, Int) -> String raise UnitBuildFailure
+
+pub fn request_value_policy_subject_wires(Array[SourceExecution], Int, Int, Int, Int) -> Array[String] raise UnitBuildFailure
 
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 
@@ -978,6 +1000,7 @@ pub struct DirectSourcePolicy {
   response_cid : String
   classification : @check_environment.DataClassification
   unknown_provenance : Bool
+  request_value_policy : @check_environment.SourceDataPolicy?
 }
 
 type EffectComputationCandidate
@@ -1034,6 +1057,8 @@ type GroupLimit
 type GroupNumericSlot
 
 type GroupStringLimit
+
+type HostRequestValuePolicyEvidence
 
 pub struct InferItemLimit {
   owner : CheckedProgram
@@ -1298,6 +1323,8 @@ pub struct PublicationSourcePolicy {
 
 type ReidentifiedGraphInput
 
+type ReidentifiedSourceInput
+
 type ReidentifiedStep
 
 pub enum ScopedCheckOutcome {
@@ -1372,6 +1399,7 @@ pub struct SourceExecutionSubject {
   response_policy : SourceResponsePolicy
   response_policy_cid : String
   direct_policy : DirectSourcePolicy?
+  request_value_policy : @check_environment.SourceDataPolicy?
   authority : SourceReadAuthority
 }
 

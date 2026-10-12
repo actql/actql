@@ -32,6 +32,7 @@ priv struct OperationOrderIndex {
   mut analytic : @pipeline.ContextualOrder?
   mut aggregates : @pipeline.ContextualOrder?
   mut nest : @pipeline.ContextualOrder?
+  mut serialization : @pipeline.ContextualOrder?
 }
 
 ///|
@@ -44,6 +45,7 @@ fn empty_operation_orders() -> OperationOrderIndex {
     analytic: None,
     aggregates: None,
     nest: None,
+    serialization: None,
   }
 }
 
@@ -53,6 +55,11 @@ fn retain_operation_order(
   order : @pipeline.ContextualOrder,
 ) -> Bool {
   let previous = match order {
+    Serialization(_) => {
+      let old = v.serialization
+      v.serialization = Some(order)
+      old
+    }
     InputSequence(_) => {
       let old = v.input
       v.input = Some(order)
@@ -102,7 +109,8 @@ fn select_operation_order(
       // Exactly one of authored sort, top-k completion, or group-local orders.
       let choices = (if v.sort is Some(_) { 1 } else { 0 }) +
         (if v.key is Some(_) { 1 } else { 0 }) +
-        (if v.aggregates is Some(_) { 1 } else { 0 })
+        (if v.aggregates is Some(_) { 1 } else { 0 }) +
+        (if v.serialization is Some(_) { 1 } else { 0 })
       if choices != 1 {
         None
       } else {
@@ -111,7 +119,12 @@ fn select_operation_order(
           None =>
             match v.key {
               Some(_) => v.key
-              None => v.aggregates
+              None =>
+                if v.serialization is Some(_) {
+                  v.serialization
+                } else {
+                  v.aggregates
+                }
             }
         }
       }

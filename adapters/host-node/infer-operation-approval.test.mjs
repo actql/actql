@@ -3,6 +3,184 @@ import test from 'node:test';
 import {openNodeInferOperation} from './infer-operation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 
+for (const route of ['plain', 'composed', 'keyed']) {
+  const composed = route !== 'plain', keyed = route === 'keyed';
+  test(`restored ${route} INFER forwards the current issuer without deriving authority from saved rows`, async () => {
+    const issuer = {}, active = {}, savedScope = {};
+    const prefix = {}, ledger = {}, suffix = {};
+    const token = {available: true};
+    const snapshot = {binding: 'original-binding', descriptorWire: 'original-descriptor',
+      rows: ['original-row']};
+    let opens = 0, stopped = false;
+    const start = (...args) => {
+      opens++;
+      const index = composed ? 4 : 6;
+      assert.equal(args[index], snapshot.binding);
+      assert.equal(args[index + 1], snapshot.descriptorWire);
+      assert.equal(args[index + 2], snapshot.rows);
+      assert.equal(args[index + 3](), true);
+      token.available = false;
+      assert.equal(args[index + 3](), false, 'restoration cannot freeze original custody as available');
+      assert.equal(args[index + 4], savedScope);
+      assert.equal(args[index + (composed ? 5 : 7)], issuer,
+        'only the current Host issuer reaches common readmission');
+      if (composed) {
+        assert.equal(args[2], prefix);
+        assert.equal(args[index + 6], keyed ? ledger : undefined,
+          'only the keyed root reserves on the original receiving Ledger');
+        assert.equal(args[index + 7], keyed ? suffix : undefined,
+          'root construction receives the checked suffix before allocation');
+        assert.equal(args.length, 12);
+      } else {
+        assert.equal(args[index + 5], 'fragment');
+        assert.equal(args[index + 6], 'ordered');
+        assert.equal(args.length, 14);
+      }
+      return {$tag: 1, _0: active};
+    };
+    const moon = {
+      clientProgramStartRestoredInferInput: composed ? () => assert.fail('wrong occurrence route') : start,
+      clientProgramStartRestoredComposedInferInput: composed ? start : () => assert.fail('wrong occurrence route'),
+      clientProgramCancelInferExecution: owner => { assert.equal(owner, active); stopped = true; },
+      clientProgramInferExecutionStopped: () => stopped,
+      clientProgramCleanupInferExecution: () => ({$tag: 1, _0: true}),
+      clientProgramRestrictInferSendSlots: () => ({$tag: 1, _0: undefined}),
+      clientProgramAdvanceInferRoot: () => assert.fail('cleanup must not resume Compute'),
+      clientProgramBindInferComputeSuffix: () => assert.fail('root suffix cannot be bound after allocation'),
+    };
+    const operation = openNodeInferOperation({moon, preparedProgram: {}, graph: {}, provider: {},
+      registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
+      restoredInput: {token, snapshot, savedScope}, restoredReferenceIssuer: issuer,
+      ...(keyed ? {keyedInput: {occurrence: {}, prefix, ledger}, computeSuffix: suffix}
+        : composed ? {composedInput: {occurrence: {}, prefix}} : {})});
+    await operation.close();
+    assert.equal(opens, 1, 'cleanup never repeats restored input admission');
+  });
+}
+
+test('restored reference authority cannot be supplied to fresh or generated input routes', () => {
+  for (const serializedInput of [undefined, {control: {}}]) {
+    assert.throws(() => openNodeInferOperation({moon: {}, provider: {},
+      restoredReferenceIssuer: {}, ...(serializedInput === undefined ? {} : {
+        restoredInput: {token: {}, snapshot: {}}, serializedInput,
+      })}), /InvalidRestoredInferReferenceIssuer/);
+  }
+});
+
+test('serialized input adopts the original generation and joint observation under existing operation custody', async () => {
+  const active = {}, compiled = {}, generation = {}, issued = {}, ledger = {};
+  const capturedRecovery = {originalInventory: true};
+  const capturedBinding = {originalSourceBinding: true};
+  const events = [];
+  let stopped = false;
+  const control = {
+    startCheckedClientGeneratedInferExecution(run, original) {
+      assert.equal(run, compiled);
+      assert.equal(original, generation);
+      events.push('borrow');
+      events.push('start');
+      return active;
+    },
+    startCheckedClientContentInferObservation(run, executions, originals, actualLedger, limits) {
+      assert.equal(run, compiled);
+      assert.deepEqual(executions, [active]);
+      assert.deepEqual(originals, [generation]);
+      assert.equal(actualLedger, ledger);
+      assert.deepEqual(limits, {maxSlots: 1, maxWireBytes: 4096, maxWork: 4});
+      return issued;
+    },
+  };
+  const moon = {
+    clientProgramStartScopedInferExecution() { throw new Error('No pure-prefix fallback'); },
+    clientProgramStartSerializedInferExecution() { throw new Error('No bare output fallback'); },
+    clientProgramCancelInferExecution(owner) {
+      assert.equal(owner, active);
+      events.push('stop');
+      stopped = true;
+    },
+    clientProgramInferExecutionStopped: () => stopped,
+    clientProgramCleanupInferExecution: () => ({$tag: 1, _0: true}),
+    clientProgramStartInferObservationIssuance() { throw new Error('No Model-only fallback'); },
+  };
+  const operation = openNodeInferOperation({moon, preparedProgram: {}, step: 3,
+    graph: {}, provider: {}, serializedInput: {control, compiled, generation, capturedRecovery, capturedBinding},
+    retainOperation(value) { assert.equal(typeof value.close, 'function'); events.push('retain'); }});
+  assert.deepEqual(events, ['borrow', 'start', 'retain']);
+  assert.equal(operation.capturedContentRecovery(), capturedRecovery,
+    'Model fixed-input persistence receives the original capture inventory, not a regenerated envelope');
+  assert.equal(operation.capturedContentBinding(), capturedBinding,
+    'physical Source binding follows the same generation rather than current candidate selection');
+  assert.equal(operation.startObservation({ledger, maxSlots: 1, maxWireBytes: 4096, maxWork: 4}), issued);
+  await operation.close();
+  assert.equal(events.includes('stop'), true);
+});
+
+for (const other of ['acquiredInput', 'composedInput', 'restoredInput', 'savedCapture', 'savedSlots']) {
+  test(`serialized input cannot silently replace the ${other} recovery/input owner`, () => {
+    let starts = 0;
+    const moon = {clientProgramStartSerializedInferExecution() { starts++; }};
+    assert.throws(() => openNodeInferOperation({moon, provider: {}, [other]: {},
+      serializedInput: {control: {startCheckedClientGeneratedInferExecution() { starts++; }}}}),
+    TypeError);
+    assert.equal(starts, 0);
+  });
+}
+
+test('generated Model child borrows the actual Local inputs and cannot drive a second executor', async () => {
+  const active = {}, compiled = {}, generation = {}, graph = {}, provider = {}, ledger = {}, issued = {};
+  const inputs = [Object.freeze({originalProducer: true})];
+  let stopped = false, opened = 0, advances = 0;
+  const control = {
+    startCheckedClientGeneratedInferInputs(run, original, selected, actualInputs, physical) {
+      assert.equal(run, compiled);
+      assert.equal(original, generation);
+      assert.equal(selected, graph);
+      assert.equal(actualInputs, inputs);
+      assert.equal(physical, provider);
+      opened++;
+      return active;
+    },
+    startCheckedClientGeneratedInferExecution() { throw new Error('No producer replay'); },
+    startCheckedClientContentInferObservation(run, executions, originals, actualLedger) {
+      assert.equal(run, compiled);
+      assert.deepEqual(executions, [active]);
+      assert.deepEqual(originals, [generation]);
+      assert.equal(actualLedger, ledger);
+      return issued;
+    },
+  };
+  const moon = {
+    clientProgramStartScopedInferExecution() { throw new Error('No pure Program fallback'); },
+    clientProgramAdvanceInferExecution() { advances++; throw new Error('Local alone advances'); },
+    clientProgramCancelInferExecution(owner) { assert.equal(owner, active); stopped = true; },
+    clientProgramInferExecutionStopped: () => stopped,
+    clientProgramCleanupInferExecution: () => ({$tag: 1, _0: true}),
+    clientProgramStartInferObservationIssuance() { throw new Error('No Model-only evidence'); },
+  };
+  const operation = openNodeInferOperation({moon, graph, provider,
+    serializedInput: {control, compiled, generation, inputs}});
+  assert.equal(opened, 1);
+  assert.equal(operation.contentGenerationCount, 1);
+  assert.deepEqual(operation.contentGenerations(), [generation]);
+  await assert.rejects(operation.run(), /InferComponentDrivenByLocal/);
+  assert.equal(advances, 0);
+  assert.equal(operation.startObservation({ledger, maxSlots: 1, maxWireBytes: 4096, maxWork: 4}), issued);
+  await operation.close();
+  assert.equal(opened, 1);
+});
+
+test('generated Model child refuses malformed inputs and unconnected restored input before opening', () => {
+  let opened = 0;
+  const control = {startCheckedClientGeneratedInferInputs() { opened++; }};
+  for (const inputs of [null, {}, 'rows']) {
+    assert.throws(() => openNodeInferOperation({moon: {}, graph: {}, provider: {},
+      serializedInput: {control, compiled: {}, generation: {}, inputs}}), TypeError);
+  }
+  assert.throws(() => openNodeInferOperation({moon: {}, graph: {}, provider: {}, restoredInput: {},
+    serializedInput: {control, compiled: {}, generation: {}, inputs: []}}), TypeError);
+  assert.equal(opened, 0);
+});
+
 for (const [name, text] of [['decomposed', 'e\u0301'], ['composed', '\u00e9'],
   ['carriage return', '\r'], ['line feed', '\n'], ['CRLF', '\r\n'],
   ['nested mixed text', 'nested e\u0301 \u00e9\r\n\r\n']]) {

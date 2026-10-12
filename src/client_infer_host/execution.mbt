@@ -107,6 +107,8 @@ pub struct Execution {
   mut final_quantity_usage : @resources.QuantityUsage?
   mut acquired_input : @publication_host.ClientInferCapturedInput?
   composed_sources : @publication_host.ClientInferComposedSources?
+  mut serialized_output : @relation.CompletedOutput?
+  mut serialized_generation : @publication_host.ClientSerializationGeneration?
 }
 
 ///|
@@ -145,6 +147,286 @@ pub fn start(
     fragment_body~,
     ordered_body~,
   )
+}
+
+///|
+/// Consume the authentic checked Content producer once. Its Store lifetime
+/// remains with the caller; this owner retains only the existing bounded
+/// input mapping/suffix and still requires ordinary Run/dispatch admission.
+pub fn start_serialized(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  plan : @publication_host.ClientInferPlanGraph,
+  output : @relation.CompletedOutput,
+  provider : @model.ModelProvider,
+  limits : Limits,
+) -> Result[Execution, Issue] {
+  guard @publication_host.prepared_client_infer_execution_occurrence(
+      prepared, step,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_infer_occurrence_matches_plan(occurrence, plan) &&
+    @publication_host.client_infer_plan_graph_serialization(plan) is Some(_) else {
+    return Err(Input(@input.UnsupportedProgram))
+  }
+  if @publication_host.client_infer_occurrence_has_captured_sources(occurrence) {
+    return Err(CallScope(ForeignInput))
+  }
+  start_serialized_occurrence(
+    prepared, occurrence, plan, output, provider, limits,
+  )
+}
+
+///|
+/// A sourced Content input requires the original generation closure, not just
+/// its completed row. Retain it with this same input/Model owner until cleanup.
+pub fn start_generated(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  provider : @model.ModelProvider,
+  limits : Limits,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_serialization_generation_infer_occurrence(
+      generation, compiled, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_infer_occurrence_matches(occurrence, prepared) &&
+    @publication_host.client_serialization_generation_output_for(
+      generation, compiled,
+    )
+    is Some(output) else {
+    return Err(CallScope(ForeignInput))
+  }
+  start_serialized_occurrence(
+    prepared, occurrence, plan, output, provider, limits,
+  ).map(active => {
+    active.serialized_generation = Some(generation)
+    active
+  })
+}
+
+///|
+/// Start only the Model boundary after the Local chain has completed the
+/// original post-generation prefix. Retain its authentic generation closure
+/// for call-scope evidence; do not execute that prefix a second time.
+pub fn start_generated_inputs(
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  limits : Limits,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_serialization_generation_infer_occurrence(
+      generation, compiled, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_serialization_generation_output_for(
+      generation, compiled,
+    )
+    is Some(_) &&
+    inputs.length() == 1 &&
+    inputs[0] is @local.RelationInput(read) else {
+    return Err(CallScope(ForeignInput))
+  }
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  guard @relation.infer_completed_producer_input(owner, step, read)
+    is Some(output) else {
+    return Err(CallScope(ForeignInput))
+  }
+  start_occurrence(
+    occurrence,
+    None,
+    Physical(provider),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+    limits => {
+      @input.start_client_completed_infer_input(
+        occurrence,
+        output,
+        limits.mapping,
+      )
+    },
+  ).map(active => {
+    active.serialized_generation = Some(generation)
+    active
+  })
+}
+
+///|
+// Enter the original one-shot consumer before the existing generated input
+// constructor. No fallible post-start bind or independent root reserve exists.
+pub fn start_original_generated(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  provider : @model.ModelProvider,
+  limits : Limits,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_serialization_generation_infer_occurrence(
+      generation, compiled, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_infer_occurrence_matches(occurrence, prepared) &&
+    @publication_host.client_serialization_generation_output_for(
+      generation, compiled,
+    )
+    is Some(_) else {
+    return Err(CallScope(ForeignInput))
+  }
+  match
+    enter_original_model_preparation(
+      occurrence, compiled, definition, plan, consumer, read_retained_bytes, read_execution_bytes,
+      model_retained_bytes, model_execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The checked original producer/port and bounded serialization segment
+  // still belong to start_generated; do not duplicate their input execution.
+  start_generated(prepared, compiled, generation, plan, provider, limits).map(active => {
+    retain_original_model_preparation(
+      active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+    )
+    active
+  })
+}
+
+///|
+// The Local producer has already completed this exact checked edge. Model
+// input allocation still requires its own original consumer entry first.
+pub fn start_original_generated_inputs(
+  compiled : @publication_host.ClientCompiledRun,
+  generation : @publication_host.ClientSerializationGeneration,
+  plan : @publication_host.ClientInferPlanGraph,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  limits : Limits,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_serialization_generation_infer_occurrence(
+      generation, compiled, plan,
+    )
+    is Some(occurrence) &&
+    @publication_host.client_serialization_generation_output_for(
+      generation, compiled,
+    )
+    is Some(_) &&
+    inputs.length() == 1 &&
+    inputs[0] is @local.RelationInput(read) else {
+    return Err(CallScope(ForeignInput))
+  }
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  guard @relation.infer_completed_producer_input(owner, step, read) is Some(_) else {
+    return Err(CallScope(ForeignInput))
+  }
+  match
+    enter_original_model_preparation(
+      occurrence, compiled, definition, plan, consumer, read_retained_bytes, read_execution_bytes,
+      model_retained_bytes, model_execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  start_generated_inputs(compiled, generation, plan, inputs, provider, limits).map(active => {
+      retain_original_model_preparation(
+        active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+      )
+      active
+    },
+  )
+}
+
+///|
+fn start_serialized_occurrence(
+  prepared : @publication_host.PreparedClientProgram,
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+  output : @relation.CompletedOutput,
+  provider : @model.ModelProvider,
+  limits : Limits,
+) -> Result[Execution, Issue] {
+  guard @publication_host.client_infer_plan_graph_serialization(plan)
+    is Some(component) else {
+    return Err(Input(@input.UnsupportedProgram))
+  }
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  let (task, producer) = @publication_host.client_serialization_plan_graph_coordinates(
+    component,
+  )
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  if task != @publication_host.client_infer_occurrence_coordinates(occurrence).0 ||
+    producer >= step ||
+    !@relation.completed_output_matches_port(
+      output,
+      owner,
+      @pipeline.Step(producer),
+    ) {
+    return Err(CallScope(ForeignInput))
+  }
+  start_occurrence(
+    occurrence,
+    Some(prepared),
+    Physical(provider),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+    limits => {
+      if producer + 1 == step {
+        @input.start_client_completed_infer_input(
+          occurrence,
+          output,
+          limits.mapping,
+        )
+      } else {
+        guard @relation.prepare_serialization_infer_input_segment(
+            output,
+            step,
+            @publication_host.prepared_client_values_sequence_limits(prepared),
+            limits.input.max_work,
+            limits.input.rows.metadata_entries,
+          )
+          is Some(segment) else {
+          return Err(@input.UnsupportedProgram)
+        }
+        @input.start_client_serialized_infer_input(
+          occurrence,
+          segment,
+          producer,
+          output,
+          limits.input,
+          limits.measurement,
+          limits.mapping,
+        )
+      }
+    },
+  ).map(active => {
+    active.serialized_output = Some(output)
+    active
+  })
 }
 
 ///|
@@ -364,7 +646,17 @@ fn start_occurrence(
   ],
   acquired_input? : @publication_host.ClientInferCapturedInput? = None,
   composed_sources? : @publication_host.ClientInferComposedSources? = None,
+  root? : (
+    @relation.GeneratedSequence,
+    @relation.GeneratedSequence?,
+    @resources.Ledger,
+  )? = None,
 ) -> Result[Execution, Issue] {
+  // A caller-supplied Ledger/root tuple is not the original read/consumer.
+  // The checked generated branch enters that same Owner before construction.
+  if root is Some(_) {
+    return Err(OriginalCapacity(@publication_host.ForeignInput))
+  }
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
   )
@@ -428,8 +720,7 @@ fn start_occurrence(
   } else {
     limits
   }
-  let started_input = start_input(limits)
-  let input = match started_input {
+  let input = match start_input(limits) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
@@ -439,6 +730,8 @@ fn start_occurrence(
     input,
     acquired_input,
     composed_sources,
+    serialized_output: None,
+    serialized_generation: None,
     source,
     fixed_request_cid,
     step,
@@ -451,7 +744,7 @@ fn start_occurrence(
     model: None,
     capture: None,
     output: None,
-    suffix_sequence: None,
+    suffix_sequence: root.bind(value => value.1),
     suffix: None,
     completed: None,
     phase: Phase::Input,
@@ -498,6 +791,7 @@ pub fn start_composed(
   provider : @model.ModelProvider,
   limits : Limits,
   sources? : @publication_host.ClientInferComposedSources? = None,
+  root? : (@relation.GeneratedSequence?, @resources.Ledger)? = None,
 ) -> Result[Execution, Issue] {
   if sources is Some(value) &&
     !@publication_host.client_infer_composed_sources_matches(value, occurrence) {
@@ -522,10 +816,57 @@ pub fn start_composed(
         limits.input,
         limits.measurement,
         limits.mapping,
+        keyed=sources.bind(value => {
+          @publication_host.client_infer_composed_keyed_lookup(
+            value, occurrence,
+          )
+        }),
       )
     },
     composed_sources=sources,
+    root=root.map(value => (prefix, value.0, value.1)),
   )
+}
+
+///|
+/// Open the original keyed input as one installed Model root, not a Local
+/// component or a caller-supplied dense Relation. The same Source closure and
+/// input owner enforce the original lookup and both capture observations.
+pub fn start_keyed(
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+  prefix : @relation.GeneratedSequence,
+  provider : @model.ModelProvider,
+  limits : Limits,
+  sources : @publication_host.ClientInferComposedSources,
+  suffix : @relation.GeneratedSequence?,
+  ledger : @resources.Ledger,
+) -> Result[Execution, Issue] {
+  if @publication_host.client_infer_composed_keyed_lookup(sources, occurrence)
+    is None {
+    return Err(CallScope(ForeignInput))
+  }
+  start_composed(
+    occurrence,
+    plan,
+    prefix,
+    [],
+    provider,
+    limits,
+    sources=Some(sources),
+    root=Some((suffix, ledger)),
+  )
+}
+
+///|
+/// Installed root stepping and Local component stepping are mutually
+/// exclusive. The existing execution retains the binding; no adapter flag can
+/// grant a second driver authority over a component already bound to Local.
+pub fn advance_root(active : Execution, quantum : Int) -> Result[Poll, Issue] {
+  if active.local_component_bound {
+    return Err(InvalidAdvance)
+  }
+  advance(active, quantum)
 }
 
 ///|
@@ -822,6 +1163,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             100,
             captured=active.acquired_input,
             sources=active.composed_sources,
+            generation=active.serialized_generation,
           )
       }
       active.call_scope = match scoped {
@@ -1419,6 +1761,10 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       active.rows = None
       active.call_scope = None
       active.acquired_input = None
+      // Release only our borrowed root after the existing input owner settles.
+      // Reclamation of the generated bytes remains with their original owner.
+      active.serialized_output = None
+      active.serialized_generation = None
       // Core retirement does not prove original FD/Store cleanup. The original
       // read owner retains this stopped ticket until its own physical cleanup
       // settles the read and severs both nominal back-references.

@@ -31,6 +31,7 @@ fn construct_local(
   effect_headers? : @syntax.EffectHeaders? = None,
   graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -156,7 +157,13 @@ fn construct_local(
   ) catch {
     e => raise Closure(e)
   }
-  let units = build_units(contracts, requirements, gates, remaining) catch {
+  let units = build_units(
+    contracts,
+    requirements,
+    gates,
+    remaining,
+    request_value_policies~,
+  ) catch {
     e => raise Units(e)
   }
   let conversion = proof_conversion(units, remaining) catch {

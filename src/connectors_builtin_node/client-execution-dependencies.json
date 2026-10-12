@@ -1,10 +1,6 @@
 {
   "imports": [
     {
-      "path": "actql/actql/value_contract",
-      "alias": "parameter_contract"
-    },
-    {
       "path": "actql/actql/connectors/duckdb/acquisition",
       "alias": "duckdb_query"
     }

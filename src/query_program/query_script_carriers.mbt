@@ -342,7 +342,10 @@ fn lower_script_carrier_calls(
     }
     sources.carriers[name] = carrier
   }
-  let tail = @query.after_graph_calls(query)
+  let tail = @query.after_graph_calls(
+    query,
+    current_source=Some({ value: input.name, quoted: true, }),
+  )
   if @query.operation_at(tail, 0) is Some(Nearest(_)) {
     let peers = known.map(peer => {
       if input_relation_matches(@query.relation(tail), peer) {

@@ -89,7 +89,7 @@ fn type_name(shape : Shape) -> String {
     Object(_) => "object"
     Vector(..) => "vector"
     ResourceRef(..) => "resource_ref"
-    ArtifactRef(..) => "artifact_ref"
+    ContentRef(..) => "content_ref"
   }
 }
 
@@ -196,7 +196,7 @@ pub fn advance_checked_emission(
           }
           ResourceRef(resource_kind~) =>
             members.push(("resource_kind", TextValue(resource_kind)))
-          ArtifactRef(media_type~) =>
+          ContentRef(media_type~) =>
             if media_type is Some(media) {
               members.push(("media_type", TextValue(media)))
             }

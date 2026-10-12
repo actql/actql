@@ -1,7 +1,7 @@
 ///|
 pub(all) enum Constraint {
   Resource(String)
-  Artifact(String?)
+  Content(String?)
 } derive(Eq, Debug)
 
 ///|
@@ -132,7 +132,7 @@ pub fn prepare(
         let kind = read(@decode.text(type_source))
         let allowed = match kind {
           "resource_ref" => ["type", "resource_kind", "meta"]
-          "artifact_ref" => ["type", "media_type", "meta"]
+          "content_ref" => ["type", "media_type", "meta"]
           _ => raise Stop(UnknownType(type_source))
         }
         ignore(read(@decode.closed_object(source, allowed)))
@@ -166,7 +166,7 @@ pub fn prepare(
               Some(value)
             }
           }
-          Artifact(media)
+          Content(media)
         }
         entries.push({ name, constraint, source, })
       }
@@ -235,13 +235,13 @@ pub fn emit_declaration(
       @encode.key(writer, "type")
       @encode.string_value(writer, "resource_ref")
     }
-    Artifact(media) => {
+    Content(media) => {
       if media is Some(media) {
         @encode.key(writer, "media_type")
         @encode.string_value(writer, media)
       }
       @encode.key(writer, "type")
-      @encode.string_value(writer, "artifact_ref")
+      @encode.string_value(writer, "content_ref")
     }
   }
   @encode.end_object(writer)

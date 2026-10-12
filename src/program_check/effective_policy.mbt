@@ -29,13 +29,15 @@ fn prepare_effective_policy(
   let mut unknown_provenance = unknown
   for policy in owned {
     identity_charge(budget, 2)
-    let (response, response_cid, contribution, missing) = match policy {
+    let (response, response_cid, contribution, missing, request_policy) = match
+      policy {
       DirectPolicy(policy) =>
         (
           policy.response,
           policy.response_cid,
           policy.classification,
           policy.unknown_provenance,
+          policy.request_value_policy,
         )
       KeyedResponsePolicy(check) => {
         guard check.kind is KeyedResponse(binding) &&
@@ -43,17 +45,18 @@ fn prepare_effective_policy(
           physical_equal(request, @sourceviews.keyed_join_request(binding.join)) else {
           raise ForeignOwner
         }
-        // Correlation provenance is retained separately through the checked
-        // left edge. Static request values do not carry policy attestations.
+        // Correlation remains separate from Host-verified static request values.
         let missing = @sourceviews.parameterized_keyed_request_field_count(
             request,
           ) >
-          0
+          0 &&
+          check.subject.request_value_policy is None
         (
           check.subject.response_policy,
           check.subject.response_policy_cid,
           check.subject.response_policy.classification,
           missing,
+          check.subject.request_value_policy,
         )
       }
     }
@@ -68,6 +71,20 @@ fn prepare_effective_policy(
       ),
     )
     responses.push((response_cid, ()))
+    if request_policy is Some(selected) {
+      sources.push(
+        (
+          @environment.contract_identity(
+            @environment.data_policy_envelope(selected),
+          ).2,
+          (),
+        ),
+      )
+      classification = combine_classification(
+        classification,
+        @environment.data_classification(selected),
+      )
+    }
     classification = combine_classification(classification, contribution)
     unknown_provenance = unknown_provenance || missing
   }

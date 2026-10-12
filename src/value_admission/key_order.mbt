@@ -80,8 +80,8 @@ fn compare_nonnull_order_values(
     | (
       Reference(a),
       Reference(b),
-      @contract.ArtifactRef(..),
-      @contract.ArtifactRef(..),
+      @contract.ContentRef(..),
+      @contract.ContentRef(..),
     ) => {
       if !reference_available(a) || !reference_available(b) {
         return Err(UnavailableReference)

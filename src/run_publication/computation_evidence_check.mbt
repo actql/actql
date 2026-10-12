@@ -26,6 +26,8 @@ priv enum ComputationEvidencePhase {
   Prelude
   PreludeCheck(ComputationPreludePreparation)
   ContextHash(@json.CanonicalEmit, String)
+  Content
+  ContentCheck(ContentCaptureCheck)
   Inventory
   InventoryCheck(CaptureInventoryPreparation)
   Artifact(Int)
@@ -164,10 +166,33 @@ fn ComputationEvidenceCheck::step(
           if "sha256:" + digest != identity {
             return Err(EvidenceEmbeddedIdentity("effect_context_cid"))
           }
-          self.phase = Inventory
+          self.phase = Content
         }
       } catch {
         _ => return Err(EvidenceEmbeddedIdentity("effect_context_cid"))
+      }
+    }
+    Content => {
+      if self.max_workspace - self.live < 12 {
+        return Err(EvidenceEncoding)
+      }
+      self.phase = ContentCheck(
+        start_content_capture_check(
+          inputs,
+          self.prelude.unwrap().effect_context,
+          self.max_workspace - self.live,
+        ),
+      )
+    }
+    ContentCheck(child) => {
+      let (done, _) = match child.advance(1) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      self.peak = Int::max(self.peak, self.live + child.peak)
+      if done {
+        child.cancel()
+        self.phase = Inventory
       }
     }
     Inventory => {
@@ -388,6 +413,7 @@ pub fn ComputationEvidenceCheck::cancel(
     PreludeCheck(child) => child.cancel()
     InventoryCheck(child) => child.cancel()
     SuffixCheck(child) => child.cancel()
+    ContentCheck(child) => child.cancel()
     ContextHash(cursor, _) => @json.cancel_emit(cursor)
     Rows(_, child) => child.cancel()
     _ => ()

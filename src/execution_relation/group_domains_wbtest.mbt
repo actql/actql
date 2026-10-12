@@ -108,7 +108,7 @@ test "group compares every key domain including owned references" {
       "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false," +
+      "{\"type\":\"content_ref\",\"nullable\":false," +
       "\"media_type\":\"application/json\"}",
       "",
       "artifact",

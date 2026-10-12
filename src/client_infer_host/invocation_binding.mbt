@@ -45,6 +45,13 @@ pub fn bind_run(
     @publication_host.client_compiled_run_has_infer(compiled, plan) else {
     return Err(ForeignRun)
   }
+  if active.serialized_generation is Some(generation) &&
+    @publication_host.client_serialization_generation_capture_for(
+      generation, compiled, definition,
+    )
+    is None {
+    return Err(ForeignRun)
+  }
   if active.saved_call_scope is Some(saved) &&
     !@publication_host.client_infer_saved_call_scope_matches_run(
       saved, compiled, definition,
@@ -127,6 +134,15 @@ pub fn issued_slot_capture(
 }
 
 ///|
+pub fn issued_attachment_admission(
+  active : Execution,
+  slot : Int,
+) -> Result[@publication.RunEvidenceValue?, @model.ModelExecutionIssue] {
+  guard active.model is Some(model) else { return Err(@model.OutputIdentity) }
+  @model.model_execution_issued_attachment_admission(model, slot)
+}
+
+///|
 /// Bind without preparing another Program, compiling again or traversing all
 /// slots synchronously. The bounded verifier must have checked this execution.
 /// Acquire output custody only after every binding check succeeds.
@@ -193,14 +209,26 @@ pub fn bind_invocation(
 pub fn invocation_binding_output(
   binding : InvocationBinding,
 ) -> @relation.CompletedOutput? {
+  if !invocation_binding_available(binding) {
+    return None
+  }
   output(binding.output_use)
+}
+
+///|
+fn invocation_binding_available(binding : InvocationBinding) -> Bool {
+  !binding.output_use.released &&
+  !binding.output_use.owner.reclaimed &&
+  binding.issuance
+  .map(issued => observation_issuance_value(issued) is Some(_))
+  .unwrap_or(true)
 }
 
 ///|
 pub fn invocation_binding_observation(
   binding : InvocationBinding,
 ) -> @publication.RunEvidenceValue? {
-  if binding.output_use.released || binding.output_use.owner.reclaimed {
+  if !invocation_binding_available(binding) {
     None
   } else {
     Some(binding.observation)
@@ -211,7 +239,7 @@ pub fn invocation_binding_observation(
 pub fn invocation_binding_invocation(
   binding : InvocationBinding,
 ) -> @publication.PublicationContract? {
-  if binding.output_use.released || binding.output_use.owner.reclaimed {
+  if !invocation_binding_available(binding) {
     None
   } else {
     Some(binding.invocation)

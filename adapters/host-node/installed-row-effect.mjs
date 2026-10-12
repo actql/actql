@@ -1,11 +1,13 @@
 // The standard Host's provider-neutral installed Effect for connectors whose
 // writes change one provider object per row through a checked execution
-// Mapping (see installed-row-source.mjs for the common Mapping generator and
-// the credential Site). Capture, the Effect Set Preview, the Effect Ledger
+// Mapping or a checked Command contract (see installed-row-source.mjs for the
+// common Mapping generator and the credential Site). Capture, the Effect Set Preview, the Effect Ledger
 // claims, apply, the Receipt, publication and recovery are the common
 // owners'. The path of a member is selected by its Mapping's checked
 // `effect_kind`: a `create` has no target; an `update` or `upsert` selects
 // an existing target whose observed version guards the write.
+// A `command` binds its exact ResourceRef and input payload; its row states
+// are not applicable, not an approximation of an update.
 //
 // A connector supplies a write driver. Every kind:
 // - `kinds`: the effect kinds it writes.
@@ -53,6 +55,9 @@
 //   request's identity. The three come together. Retained data is checked,
 //   never authority: every rebuilt request must be exactly the one its claim
 //   and approved Preview row name.
+// Commands require recheckRequests and all three recovery hooks. Target
+// validation must use current reference authority; a parsed envelope alone
+// is not an authority decision. An asynchronous recheck is awaited before send.
 //
 // The identities this factory issues (dispatch, recovery, unit, source,
 // target check and continuation) use the versions of the installation's
@@ -95,10 +100,20 @@ const defaultProfile = Object.freeze({
   targetCheck: 'actql-installed-row-effect-check/0.1',
   unit: 'actql-installed-row-effect-unit/0.1',
 });
-const kinds = Object.freeze(['create', 'update', 'upsert']);
+const kinds = Object.freeze(['create', 'update', 'upsert', 'command']);
 // A guarded write selects an existing target and is guarded by its observed
 // version.
-const guarded = kind => kind !== 'create';
+const guarded = kind => kind === 'update' || kind === 'upsert';
+// Commands select a ResourceRef, but do not invent a row version guard or
+// before/after state. The checked payload and current target authority are
+// independent obligations.
+const targeted = kind => guarded(kind) || kind === 'command';
+const contractCidOf = member => member.kind === 'command'
+  ? member.command.commandCid : member.mapping.mappingCid;
+const approvalOf = member => member.kind === 'command'
+  ? member.command.approval : member.mapping.approval;
+const approvedValue = (kind, row) => kind === 'command'
+  ? row.intended_changes?.value : row.after?.value;
 const footprintKinds = Object.freeze(['exact_targets', 'collection',
   'opaque']);
 
@@ -169,6 +184,11 @@ function checkDriver(driver) {
         typeof driver.observeTargets !== 'function' ||
         typeof driver.recoverRequests !== 'function' ||
         typeof driver.requestCid !== 'function')) ||
+      (driver.kinds.includes('command') &&
+        (typeof driver.recheckRequests !== 'function' ||
+          typeof driver.recoveryEntry !== 'function' ||
+          typeof driver.recoverRequests !== 'function' ||
+          typeof driver.requestCid !== 'function')) ||
       ((driver.recoveryEntry === undefined) !==
         (driver.recoverRequests === undefined)) ||
       // Recovery identifies each rebuilt request by `requestCid`.
@@ -221,6 +241,10 @@ export function installedRowEffectDescriptors(moon, prepared, compilation) {
       prepared, unit.stageIndex, effectId, defaultLimits.planWork));
     const tableBinding = checkedTableWriteBinding(moon, prepared,
       unit.stageIndex, effectId, defaultLimits.planWork);
+    if (descriptor._2 === 'command') {
+      return Object.freeze({effectId: descriptor._1, kind: 'command',
+        target: descriptor._3, commandRef: descriptor._4, commandCid: descriptor._5});
+    }
     return Object.freeze({effectId: descriptor._1, kind: descriptor._2,
       target: descriptor._3, mappingRef: descriptor._4, mappingCid: descriptor._5,
       ...(tableBinding === undefined ? {} : {capabilityCid: tableBinding._4})});
@@ -233,7 +257,7 @@ export function installedRowEffectDescriptors(moon, prepared, compilation) {
 // `installation` is the connector's installed table entry, whose registered
 // identity profile names the identities issued here; `continuationBinding`
 // is the value the continuation binds the installation by.
-export async function createInstalledRowEffect({moon, mappings,
+export async function createInstalledRowEffect({moon, mappings = [], commands = [],
   environmentWire, connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver,
   ledgerRoot, installation, continuationBinding = bindingCid,
@@ -241,7 +265,8 @@ export async function createInstalledRowEffect({moon, mappings,
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   const owned = checkDriver(driver);
   const profile = profileOf(installation);
-  if (!moon || !Array.isArray(mappings) || mappings.length === 0 ||
+  if (!moon || !Array.isArray(mappings) || !Array.isArray(commands) ||
+      mappings.length + commands.length === 0 ||
       !text(environmentWire) || !text(connectorId) ||
       !text(connectorRegistration) || !text(connectorRevision) ||
       (installation !== undefined &&
@@ -267,6 +292,24 @@ export async function createInstalledRowEffect({moon, mappings,
       rules: Object.freeze(body.permission_rules ?? []),
       approval: body.minimum_approval});
   }));
+  const installedCommands = Object.freeze(commands.map(command => {
+    const body = JSON.parse(command.body);
+    const {contract_cid: selfCid, ...preimage} = body;
+    if (!text(command.resource) || !text(command.commandRef) ||
+        !cidPattern.test(command.commandCid ?? '') ||
+        body.command_id !== command.commandRef || selfCid !== command.commandCid ||
+        cid(preimage) !== selfCid || body.connector_id !== connectorId ||
+        !text(body.target?.resource_kind) ||
+        !Array.isArray(body.permissions) ||
+        !['required', 'none'].includes(body.minimum_approval)) {
+      fail('InvalidInstalledRowEffectCommand');
+    }
+    return Object.freeze({...command, target: body.target.resource_kind,
+      permissions: Object.freeze([...body.permissions]),
+      approval: body.minimum_approval});
+  }));
+  if (new Set(installedCommands.map(item => item.commandRef)).size !==
+      installedCommands.length) fail('InvalidInstalledRowEffectCommand');
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   const effect = runtimeCore(moon).effectApplicationControl;
   const openLedger = identity => openEffectLedger({moon, root: ledgerRoot,
@@ -276,6 +319,7 @@ export async function createInstalledRowEffect({moon, mappings,
   const scopes = members => Object.freeze(members.map(member =>
     Object.freeze({connection, resource: member.resource})));
   const permissionsOf = member => {
+    if (member.kind === 'command') return [...member.command.permissions];
     const rule = member.mapping.rules.find(item =>
       item.effect_kind === member.kind);
     if (!Array.isArray(rule?.permissions)) {
@@ -291,6 +335,16 @@ export async function createInstalledRowEffect({moon, mappings,
   const resolveMember = (prepared, {stageIndex, effectId}) => {
     const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
       prepared, stageIndex, effectId, limits.planWork));
+    if (descriptor._2 === 'command') {
+      const command = installedCommands.find(candidate =>
+        candidate.commandCid === descriptor._5 &&
+        candidate.commandRef === descriptor._4 && candidate.target === descriptor._3);
+      if (command === undefined || !owned.kinds.includes('command') ||
+          descriptor._6 === undefined) fail('InstalledRowEffectCommandNotInstalled');
+      return Object.freeze({stageIndex, effectId: descriptor._1,
+        memberIndex: descriptor._0, kind: 'command', command,
+        resource: command.resource});
+    }
     const mapping = installed.find(candidate =>
       candidate.mappingCid === descriptor._5 &&
       candidate.mappingRef === descriptor._4);
@@ -331,7 +385,7 @@ export async function createInstalledRowEffect({moon, mappings,
     if (!request || !cidPattern.test(requestCid ?? '') ||
         facts === null || typeof facts !== 'object' ||
         facts.value === null || typeof facts.value !== 'object' ||
-        guarded(member.kind) === (facts.target === undefined)) {
+        targeted(member.kind) === (facts.target === undefined)) {
       fail('InvalidInstalledRowEffectRequest');
     }
     return Object.freeze({request, requestCid, value: facts.value,
@@ -346,7 +400,7 @@ export async function createInstalledRowEffect({moon, mappings,
       selector: row.selector, current});
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
     if (!sameValue(entry.value, row.value) ||
-        (guarded(member.kind) && !sameValue(entry.target, row.selector))) {
+        (targeted(member.kind) && !sameValue(entry.target, row.selector))) {
       fail('ForeignInstalledRowEffectRequest');
     }
     return entry;
@@ -361,7 +415,8 @@ export async function createInstalledRowEffect({moon, mappings,
       connector_revision: connectorRevision,
       runtime_bundle_cid: runtimeBundleCid, binding_cid: bindingCid,
       connection, resource: member.resource,
-      mapping_cid: member.mapping.mappingCid,
+      ...(member.kind === 'command'
+        ? {command_cid: contractCidOf(member)} : {mapping_cid: contractCidOf(member)}),
       operation: owned.writeOperation(member),
       route: 'single_serial', idempotency: 'unavailable',
       request_cids: entries.map(entry => entry.requestCid)}),
@@ -527,7 +582,7 @@ export async function createInstalledRowEffect({moon, mappings,
   // alone is not an approval. Decided from the commit decision before the
   // row's claim, so the Set's prepared intents show nothing was sent.
   const requireApproval = (member, decision) => {
-    if (member.mapping.approval === 'required' &&
+    if (approvalOf(member) === 'required' &&
         (decision?.basis !== 'resumed' || !text(decision.checkpointCid) ||
           !text(decision.resolutionCid))) {
       throw refusedEffectPreparation(Object.assign(
@@ -542,8 +597,8 @@ export async function createInstalledRowEffect({moon, mappings,
   const admitRow = ({applyPreview, memberIndex, rowIndex, claim, member,
     entry, previewRow}) => {
     if (claim.canonicalRequestCid !== entry.requestCid ||
-        !sameValue(entry.value, previewRow.after?.value) ||
-        (guarded(member.kind) &&
+        !sameValue(entry.value, approvedValue(member.kind, previewRow)) ||
+        (targeted(member.kind) &&
           !sameValue(entry.target, previewRow.target_row_identity))) {
       fail('ForeignInstalledRowEffectRequest');
     }
@@ -568,8 +623,9 @@ export async function createInstalledRowEffect({moon, mappings,
         fail('InvalidInstalledRowEffectRoute');
       }
       for (const member of members) {
-        if (!installed.some(mapping =>
-          mapping.mappingCid === member.mapping.mappingCid)) {
+        const available = member.kind === 'command'
+          ? installedCommands.includes(member.command) : installed.includes(member.mapping);
+        if (!available) {
           fail('InstalledRowEffectMappingNotInstalled');
         }
       }
@@ -587,7 +643,7 @@ export async function createInstalledRowEffect({moon, mappings,
           await owned.describe({member, runInvocationCid,
             dispatchRequestCid: dispatches[index], label: `apply-${index}`,
             approval: reads[index]?.approval, signal});
-        owned.recheckRequests?.({member, entries: entries[index],
+        await owned.recheckRequests?.({member, entries: entries[index],
           current: description});
         fresh.push(description);
       }
@@ -633,7 +689,7 @@ export async function createInstalledRowEffect({moon, mappings,
         const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
           claim, member, entry,
           previewRow: previewRows[memberIndex][rowIndex]});
-        owned.recheckRequests?.({member, entries: [entry],
+        await owned.recheckRequests?.({member, entries: [entry],
           current: now[memberIndex]});
         const grant = site.issueEffectGrant({
           operation: owned.writeOperation(member),
@@ -668,12 +724,12 @@ export async function createInstalledRowEffect({moon, mappings,
 
   const basePreflight = ({effects, members, requestScope, keys}) => ({
     sources: effects.map(member => member.source_binding_cid),
-    contracts: members.map(member => member.mapping.mappingCid),
+    contracts: members.map(contractCidOf),
     capabilities: effects.map(member => member.capability_evidence_cid),
     authorities: effects.map(() => moon.clientProgramEffectRequestAuthority(
       requestScope)),
-    observedRows: effects.flatMap(member => member.effect_kind === 'create'
-      ? [] : member.row_order),
+    observedRows: effects.flatMap(member => guarded(member.effect_kind)
+      ? member.row_order : []),
     guardVersions: [], routes: [],
     risk: undefined, reviewProjectionCid: '', authorityScopeCid: '',
     policyCid: '', validityCid: '', issuerCid: '', authenticationCid: '',
@@ -689,7 +745,9 @@ export async function createInstalledRowEffect({moon, mappings,
     program_id: unit.programId, stage_id: unit.stageId,
     request: plan.request, attempt: plan.attempt,
     members: members.map((member, index) => ({
-      effect_id: member.effectId, mapping_cid: member.mapping.mappingCid,
+      effect_id: member.effectId,
+      ...(member.kind === 'command'
+        ? {command_cid: contractCidOf(member)} : {mapping_cid: contractCidOf(member)}),
       dispatch_request_cid: dispatches[index]}))});
 
   // A member's create rows in the common canonical create order, each with
@@ -737,7 +795,9 @@ export async function createInstalledRowEffect({moon, mappings,
         version: 'actql-installed-row-effect-identity-scheme/0.1',
         connector_registration: connectorRegistration,
         resource: member.resource,
-        primary_identity: member.mapping.primaryIdentity}),
+        ...(member.kind === 'command'
+          ? {command_cid: contractCidOf(member)}
+          : {primary_identity: member.mapping.primaryIdentity})}),
       provider_object_identity_cids: []};
   };
 
@@ -776,8 +836,10 @@ export async function createInstalledRowEffect({moon, mappings,
         maxNodes, maxDepth));
       return {
         effect_id: descriptor._1, effect_kind: descriptor._2,
-        target: descriptor._3, mapping: descriptor._4,
-        resolved_mapping_contract_cid: descriptor._5,
+        target: descriptor._3,
+        ...(member.kind === 'command'
+          ? {contract: descriptor._4, resolved_command_contract_cid: descriptor._5}
+          : {mapping: descriptor._4, resolved_mapping_contract_cid: descriptor._5}),
         effect_identity_cid: identity.identity,
         source_result: descriptor._6,
         ...(planCid === undefined ? {} : {effect_plan_logical_cid: planCid}),
@@ -791,13 +853,19 @@ export async function createInstalledRowEffect({moon, mappings,
         write_footprint: footprints[index],
         count: rows.length, max_items: rows.length,
         required_permissions: permissionsOf(member),
-        approval: member.mapping.approval,
+        approval: approvalOf(member),
         on_item_failure: descriptor._7,
         changes: rows.map(row => member.kind === 'create' ? {
           target_row_identity: row.identity,
           target_guard: {state: 'not_applicable'},
           before: {state: 'absent'},
           after: {state: 'present', value: row.entry.value},
+          intended_changes: {state: 'present', value: row.entry.value},
+          row_preview_cid: pendingCid, row_idempotency_key: pendingCid,
+        } : member.kind === 'command' ? {
+          target_row_identity: row.entry.target,
+          target_guard: {state: 'not_applicable'},
+          before: {state: 'not_applicable'}, after: {state: 'not_applicable'},
           intended_changes: {state: 'present', value: row.entry.value},
           row_preview_cid: pendingCid, row_idempotency_key: pendingCid,
         } : {
@@ -927,12 +995,18 @@ export async function createInstalledRowEffect({moon, mappings,
       const entries = requestsOf(member, proposals[index].map(proposal => {
         const changes = JSON.parse(proposal.changesWire);
         return {value: changes.value,
-          selector: guarded(member.kind)
+          selector: targeted(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
       }), description);
       if (member.kind === 'create') {
         // Rows are put in canonical order before anything is derived.
         rowsOf.push(canonicalRows(entries));
+        observations.push(undefined);
+        continue;
+      }
+      if (member.kind === 'command') {
+        await owned.recheckRequests({member, entries, current: description});
+        rowsOf.push(Object.freeze(entries.map(entry => Object.freeze({entry}))));
         observations.push(undefined);
         continue;
       }
@@ -969,8 +1043,8 @@ export async function createInstalledRowEffect({moon, mappings,
     body.effects.forEach((member, index) => {
       if (member.changes.length !== entries[index].length ||
           member.changes.some((change, row) =>
-            !sameValue(change.after?.value, entries[index][row].value) ||
-            (guarded(members[index].kind) && !sameValue(
+            !sameValue(approvedValue(members[index].kind, change), entries[index][row].value) ||
+            (targeted(members[index].kind) && !sameValue(
               change.target_row_identity, entries[index][row].target)))) {
         fail('InstalledRowEffectPreviewOrderMismatch');
       }
@@ -994,7 +1068,8 @@ export async function createInstalledRowEffect({moon, mappings,
         limits.preview.maxWireBytes, limits.preview.maxNodes,
         limits.preview.maxDepth, members.length, limits.maxRows,
         limits.maxWork, limits.maxWork)));
-    // An update's write plan is verified against its pinned input.
+    // Every non-create member is verified against its pinned input. Command
+    // proofs bind exact target/input but are not Mapping Plan documents.
     const plans = [];
     for (const member of members) {
       if (member.kind === 'create') continue;
@@ -1009,7 +1084,8 @@ export async function createInstalledRowEffect({moon, mappings,
           maxDepth: limits.preview.maxDepth,
           maxUtf16Units: limits.preview.maxWireBytes},
         onChunk: chunk => { chunks.push(chunk); }, signal});
-      plans.push({name: member.effectId, wire: chunks.join(''),
+      plans.push({name: member.effectId,
+        ...(member.kind === 'command' ? {} : {wire: chunks.join('')}),
         proof: verified.proof});
     }
     const connectorRecovery = owned.recoveryEntry === undefined ? [] :
@@ -1025,7 +1101,8 @@ export async function createInstalledRowEffect({moon, mappings,
       normalizationJournal: plan.normalizationJournal, authoringContext,
       receiptEvidence: plan.receiptEvidence,
       captureEvidence: plan.captureEvidence, preview: admittedPreview,
-      plans: plans.map(({name, wire}) => ({name, wire})),
+      plans: plans.filter(item => item.wire !== undefined)
+        .map(({name, wire}) => ({name, wire})),
       effectSourceHoldings: holdings, connectorRecovery,
       contractLimits: plan.contractLimits, signal});
     for (const payload of sourceSet.payloads) {
@@ -1148,6 +1225,19 @@ export async function createInstalledRowEffect({moon, mappings,
     }
     return Object.freeze(body.effects.map((member, index) => {
       const saved = provider.members[index];
+      if (member.effect_kind === 'command') {
+        const command = installedCommands.find(candidate =>
+          candidate.commandCid === member.resolved_command_contract_cid &&
+          candidate.commandRef === member.contract && candidate.target === member.target);
+        if (saved?.effect_id !== member.effect_id ||
+            saved.command_cid !== member.resolved_command_contract_cid ||
+            Object.hasOwn(saved, 'mapping_cid')) fail('InstalledEffectContinuationMismatch');
+        if (command === undefined || !owned.kinds.includes('command')) {
+          fail('InstalledRowEffectCommandNotInstalled');
+        }
+        return Object.freeze({effectId: member.effect_id, memberIndex: index,
+          kind: 'command', command, resource: command.resource});
+      }
       const mapping = installed.find(candidate =>
         candidate.mappingCid === member.resolved_mapping_contract_cid);
       if (saved?.effect_id !== member.effect_id ||
@@ -1190,8 +1280,8 @@ export async function createInstalledRowEffect({moon, mappings,
       }
       rows.forEach((entry, row) => {
         if (entry.requestCid !== claims[row].canonicalRequestCid ||
-            !sameValue(entry.value, changes[row].after?.value) ||
-            (guarded(member.kind) && !sameValue(entry.target,
+            !sameValue(entry.value, approvedValue(member.kind, changes[row])) ||
+            (targeted(member.kind) && !sameValue(entry.target,
               changes[row].target_row_identity))) {
           fail('ForeignInstalledRowEffectRequest');
         }
@@ -1360,11 +1450,17 @@ export async function createInstalledRowEffect({moon, mappings,
     mappings: Object.freeze(installed.map(mapping => Object.freeze({
       resource: mapping.resource, target: mapping.target,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
-    effectSelectors: Object.freeze(installed.flatMap(mapping =>
+    commands: Object.freeze(installedCommands.map(command => Object.freeze({
+      resource: command.resource, target: command.target,
+      commandRef: command.commandRef, commandCid: command.commandCid}))),
+    effectSelectors: Object.freeze([...installed.flatMap(mapping =>
       [...new Set(owned.kinds)].filter(kind =>
         mapping.rules.some(rule => rule.effect_kind === kind)).map(kind =>
         Object.freeze({kind, target: mapping.target,
-          mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid})))),
+          mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
+    ...(!owned.kinds.includes('command') ? [] : installedCommands.map(command =>
+      Object.freeze({kind: 'command', target: command.target,
+        commandRef: command.commandRef, commandCid: command.commandCid})))]),
     prepareCaptured, prepareRecovered,
     close: () => site.close(),
   });

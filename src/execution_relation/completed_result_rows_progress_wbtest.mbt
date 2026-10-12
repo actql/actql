@@ -45,6 +45,7 @@ test "Named Result row preparation splits long Text comparison without changing 
     for _ in 0..<5000 {
       let (finished, used) = advance_completed_result_rows(cursor, quantum).unwrap()
       assert_true(used >= 0 && used <= quantum)
+      assert_eq(cursor.poll_work, used)
       steps += used
       if finished {
         done = true
@@ -288,6 +289,8 @@ test "Named Result preparation rejects availability reentry and revocation befor
     if holder.val is Some(preparation) {
       rejected_reentry.val = rejected_reentry.val &&
         advance_completed_result_relation_export(preparation, 1) is Err(Closed) &&
+        advance_completed_result_relation_export_progress(preparation, 1)
+        is (false, 0, Some(Closed)) &&
         finish_completed_result_relation_export_preparation(preparation)
         is Err(Closed)
       reentries.val += 1

@@ -110,7 +110,7 @@ test "array aggregate selection retains Program input bounds after sparse Host s
           let membership = group_array_limit_candidate_at(limit, 0).unwrap()
           let claim = if host_first { 1 } else { 0 }
           assert_eq(
-            @capacity.target_membership_coordinates(membership),
+            @capacity.target_membership_coordinates(membership).unwrap(),
             (0, claim, 0),
           )
           assert_true(

@@ -118,7 +118,7 @@ test "derive preserves every result domain across snapshot and ordered forms" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
     ("{\"type\":\"number\",\"nullable\":true}", "null", "ordinary"),

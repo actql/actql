@@ -12,7 +12,7 @@
       "id": "two verified reference identities",
       "declarations": {
         "target_file": {"type": "resource_ref", "resource_kind": "example.file"},
-        "asset": {"type": "artifact_ref", "media_type": "application/json"}
+        "asset": {"type": "content_ref", "media_type": "application/json"}
       },
       "bindings": {
         "target_file": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",

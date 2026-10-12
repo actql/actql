@@ -9,6 +9,8 @@ struct PreparedSequence {
 ///|
 pub enum PreparedStep {
   InferBoundary(Int)
+  SerializationBoundary(Int)
+  CompletedProducerBoundary(Int)
   ValuesStep(PreparedValues)
   TimeSeriesStep(PreparedTimeSeries)
   WindowStep(PreparedWindow)
@@ -93,6 +95,24 @@ pub fn sequence_step(value : PreparedSequence, index : Int) -> PreparedStep? {
 }
 
 ///|
+/// Identify only the compiler-prepared internal sort, never a normal Content
+/// metadata output at the same logical barrier coordinate.
+pub fn sequence_serialization_input_kernel(
+  value : PreparedSequence,
+  index : Int,
+) -> PreparedKernel? {
+  guard value.owner.prepared.nodes.get(index) is Some(node) &&
+    node.payload is Serialize(checked) &&
+    @pipeline.serialization_sort(checked) is Some(sort) &&
+    value.steps.get(index) is Some(RowStep(kernel)) &&
+    physical_equal(kernel.checked, sort) &&
+    kernel.body is StableSort(Some(_)) else {
+    return None
+  }
+  Some(kernel)
+}
+
+///|
 pub fn prepare_sequence(
   owner : BoundPrepared,
   limits : SequenceLimits,
@@ -116,6 +136,28 @@ pub fn prepare_sequence_prefix(
 }
 
 ///|
+/// The physical Relation prefix of an exact Content barrier, including its
+/// checked internal ORDER BY when present. The byte barrier is not executed or
+/// emitted as Compute; the resulting Relation still needs completion binding.
+pub fn prepare_serialization_input_sequence(
+  barrier : PreparedSerialization,
+  limits : SequenceLimits,
+) -> Result[PreparedSequence, SequenceIssue] {
+  if @pipeline.serialization_sort(barrier.checked) is None {
+    guard @pipeline.serialization_order_input(barrier.order) is Step(terminal) else {
+      return Err(KernelFailure(barrier.step, InvalidKernelWiring))
+    }
+    return prepare_sequence_prefix(barrier.owner, terminal, limits)
+  }
+  prepare_sequence_count(
+    barrier.owner,
+    barrier.step + 1,
+    limits,
+    serialization_input=Some(barrier.step),
+  )
+}
+
+///|
 /// Retain one installed acquisition boundary while preparing its surrounding
 /// Compute operations. The marker has no evaluator or AoA Compute encoding;
 /// its output must come from the separate checked ModelTask owner.
@@ -123,15 +165,99 @@ pub fn prepare_sequence_with_infer_boundary(
   owner : BoundPrepared,
   step : Int,
   limits : SequenceLimits,
+  serialization? : Int? = None,
 ) -> Result[PreparedSequence, SequenceIssue] {
   guard owner.prepared.nodes.get(step) is Some(node) && node.payload is Infer(_) else {
     return Err(KernelFailure(step, MissingKernelNode))
+  }
+  if serialization is Some(content) {
+    guard content < step &&
+      owner.prepared.nodes.get(content) is Some(node) &&
+      node.payload is Serialize(_) else {
+      return Err(KernelFailure(content, MissingKernelNode))
+    }
   }
   prepare_sequence_count(
     owner,
     owner.prepared.nodes.length(),
     limits,
     infer_boundary=Some(step),
+    serialization_boundary=serialization,
+  )
+}
+
+///|
+/// Retain the exact checked Content barrier for installed provider selection.
+/// This marker is neither the encoder nor a producer completion. Prefix and
+/// suffix coordinates keep their ordinary kernels; pure execution and AoA
+/// emission must still refuse the whole sequence.
+pub fn prepare_sequence_with_serialization_boundary(
+  owner : BoundPrepared,
+  step : Int,
+  limits : SequenceLimits,
+) -> Result[PreparedSequence, SequenceIssue] {
+  guard owner.prepared.nodes.get(step) is Some(node) &&
+    node.payload is Serialize(_) else {
+    return Err(KernelFailure(step, MissingKernelNode))
+  }
+  prepare_sequence_count(
+    owner,
+    owner.prepared.nodes.length(),
+    limits,
+    serialization_boundary=Some(step),
+  )
+}
+
+///|
+/// Prepare only the pure segment following an already completed Serialize.
+/// Earlier coordinates remain non-executable boundaries, not VALUES or no-op
+/// kernels. The consuming driver must bind the authentic producer completion
+/// and select just this range; whole-sequence execution continues to refuse.
+pub fn prepare_serialization_infer_input_sequence(
+  owner : BoundPrepared,
+  serialization_step : Int,
+  infer_step : Int,
+  limits : SequenceLimits,
+) -> Result[PreparedSequence, SequenceIssue] {
+  guard serialization_step >= 0 &&
+    serialization_step + 1 < infer_step &&
+    owner.prepared.nodes.get(serialization_step) is Some(producer) &&
+    producer.payload is Serialize(_) &&
+    owner.prepared.nodes.get(infer_step) is Some(consumer) &&
+    consumer.payload is Infer(_) else {
+    return Err(KernelFailure(infer_step, MissingKernelNode))
+  }
+  prepare_serialization_consumer_sequence(
+    owner,
+    serialization_step,
+    infer_step - 1,
+    limits,
+  )
+}
+
+///|
+/// Prepare a pure consumer range after an authentic completed Content barrier.
+/// The earlier steps remain non-executable markers. A driver still has to
+/// bind the original producer completion and select only the consumer range;
+/// this preparation neither generates bytes nor proves producer completion.
+pub fn prepare_serialization_consumer_sequence(
+  owner : BoundPrepared,
+  serialization_step : Int,
+  terminal : Int,
+  limits : SequenceLimits,
+) -> Result[PreparedSequence, SequenceIssue] {
+  guard serialization_step >= 0 &&
+    terminal > serialization_step &&
+    terminal < owner.prepared.nodes.length() &&
+    owner.prepared.nodes.get(serialization_step) is Some(producer) &&
+    producer.payload is Serialize(_) else {
+    return Err(KernelFailure(terminal, MissingKernelNode))
+  }
+  prepare_sequence_count(
+    owner,
+    terminal + 1,
+    limits,
+    completed_producer=Some(serialization_step),
   )
 }
 
@@ -141,6 +267,9 @@ fn prepare_sequence_count(
   count : Int,
   limits : SequenceLimits,
   infer_boundary? : Int? = None,
+  serialization_boundary? : Int? = None,
+  serialization_input? : Int? = None,
+  completed_producer? : Int? = None,
 ) -> Result[PreparedSequence, SequenceIssue] {
   let e = limits.expressions
   if limits.max_steps < 0 ||
@@ -165,12 +294,54 @@ fn prepare_sequence_count(
   let mut names = limits.max_name_bytes
   let mut expressions = limits.expressions
   for i = 0; i < count; i = i + 1 {
+    if completed_producer is Some(producer) && i <= producer {
+      steps.push(CompletedProducerBoundary(i))
+      continue
+    }
     let step = match owner.prepared.nodes[i].payload {
       Infer(_) => {
         guard infer_boundary == Some(i) else {
           return Err(KernelFailure(i, MissingKernelNode))
         }
         InferBoundary(i)
+      }
+      // A retained-content barrier cannot execute as a pure Relation kernel.
+      // Its dedicated bounded preparation selects the exact checked node.
+      Serialize(_) => {
+        if serialization_boundary == Some(i) {
+          steps.push(SerializationBoundary(i))
+          continue
+        }
+        guard serialization_input == Some(i) && i == count - 1 else {
+          return Err(KernelFailure(i, MissingKernelNode))
+        }
+        let barrier = match
+          prepare_serialization(owner, i, max_work=expressions.max_work) {
+          Ok(barrier) => barrier
+          Err(_) => return Err(KernelFailure(i, KernelBudgetExceeded))
+        }
+        let preparation_work = serialization_preparation_work(barrier)
+        let kernel = match
+          prepare_serialization_sort_kernel(
+            barrier,
+            max_bindings=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work - preparation_work,
+          ) {
+          Ok(kernel) => kernel
+          Err(issue) => return Err(KernelFailure(i, issue))
+        }
+        let terms = kernel_sort_term_count(kernel)
+        bindings -= terms
+        for term in 0..<terms {
+          let (field, _, _) = kernel_sort_term_at(kernel, term).unwrap()
+          names -= @utf8.encode(@schema.reference_name(field)).length()
+        }
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - preparation_work - terms,
+        }
+        RowStep(kernel)
       }
       InnerJoin(_) => {
         let kernel = match prepare_join_kernel(owner, i, bindings, names) {
@@ -588,7 +759,9 @@ pub fn emit_sequence_node(
     raise @encode.InvalidStructure
   }
   match step {
-    InferBoundary(_) => raise @encode.InvalidStructure
+    InferBoundary(_)
+    | SerializationBoundary(_)
+    | CompletedProducerBoundary(_) => raise @encode.InvalidStructure
     ValuesStep(v) => emit_values_node(v, out)
     TimeSeriesStep(v) => emit_time_series_node(v, out)
     WindowStep(v) => emit_window_node(v, out)

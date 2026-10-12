@@ -210,6 +210,18 @@ pub fn wire_emit_pending_frames(cursor : WireEmitCursor) -> Int {
 }
 
 ///|
+/// Borrow only the opaque authority at the next semantic value frame. The
+/// caller may retain it beside the exact row being exported; bytes or another
+/// equal envelope cannot manufacture this handle. Peeking does not advance or
+/// issue a reference, and reference-envelope serialization is not a new value.
+pub fn wire_emit_next_reference(cursor : WireEmitCursor) -> ReferenceValue? {
+  match cursor.pending.last() {
+    Some(Read(Reference(reference))) => Some(reference)
+    _ => None
+  }
+}
+
+///|
 /// Emit one frame. Returns true once the value is completely written.
 pub fn advance_wire_emit(
   cursor : WireEmitCursor,

@@ -18,6 +18,7 @@ pub(all) enum RequestIssueKind {
   CorrelationField(String)
   IncompatibleParameter(String)
   IncompatibleBinding(String)
+  InvalidFileListSelector
   Literal(@value.Issue)
 } derive(Eq, Debug)
 
@@ -253,7 +254,7 @@ fn check_request_body(
               request_charge(b, kind.length(), at)
               a == kind
             }
-            (@bindings.Artifact(a), @contract.ArtifactRef(media_type=expected)) => {
+            (@bindings.Content(a), @contract.ContentRef(media_type=expected)) => {
               if a is Some(s) {
                 request_charge(b, s.length(), at)
               }
@@ -283,6 +284,10 @@ fn check_request_body(
           Some(input.declaration.request.unwrap_or(input.declaration.source)),
         )
       }
+    }
+    if @environment.source_request_file_listing(input.selected.contract)
+      is Some(profile) {
+      check_file_listing_selector(profile, fields, b, source)
     }
     Ok({
       context,

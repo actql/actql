@@ -28,7 +28,7 @@ pub fn operation_profile_id(profile : OperationProfile) -> String {
 fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? {
   Some(
     match operation {
-      Infer(_) => return None
+      Infer(_) | Serialize(_) => return None
       Unary(op) =>
         match @relation.operation(op) {
           Derive
@@ -103,7 +103,7 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
 /// array. Calendar additionally requires TEA; text-rank does not imply VecA or
 /// the complete text-time claim. Expression and acquisition demands are separate.
 pub fn operation_profile_count(operation : CheckedOperation) -> Int {
-  if operation is Infer(_) {
+  if operation is Infer(_) || operation is Serialize(_) {
     0
   } else if operation is Calendar(_) {
     2

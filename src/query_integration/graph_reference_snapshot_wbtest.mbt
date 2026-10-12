@@ -5,7 +5,7 @@ fn reference_snapshot_contract(resource : Bool) -> @value_contract.Contract {
       if resource {
         "{\"nullable\":false,\"resource_kind\":\"Issue\",\"type\":\"resource_ref\"}"
       } else {
-        "{\"media_type\":\"text/plain\",\"nullable\":false,\"type\":\"artifact_ref\"}"
+        "{\"media_type\":\"text/plain\",\"nullable\":false,\"type\":\"content_ref\"}"
       },
     ),
     { max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
@@ -25,9 +25,9 @@ fn reference_snapshot_wire(resource : Bool) -> String {
     "3".repeat(64) +
     "\",\"provider_namespace\":\"fixture\",\"resource_kind\":\"Issue\",\"version\":\"actql-resource-ref/0.1\"}"
   } else {
-    "{\"$actql_ref\":\"artifact\",\"artifact_ref_cid\":\"sha256:" +
+    "{\"$actql_ref\":\"content\",\"content_ref_cid\":\"sha256:" +
     "5".repeat(64) +
-    "\",\"media_type\":\"text/plain\",\"metadata\":{},\"version\":\"actql-artifact-ref/0.1\"}"
+    "\",\"media_type\":\"text/plain\",\"metadata\":{},\"version\":\"actql-content-ref/0.1\"}"
   }
 }
 

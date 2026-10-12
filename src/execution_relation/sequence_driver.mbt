@@ -706,6 +706,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
   Ok({
     result_identity: Ref(()),
     readmitted: false,
+    serialization_output: None,
     contracts: invocation.contracts,
     sequence: invocation.sequence,
     store: wrap(invocation.store),
@@ -1007,6 +1008,8 @@ fn[T : RelationRows] run_sequence_steps(
       @lower.EventStep(_) => return Err(InputSet)
       @lower.CarrierProjectionStep(_) => return Err(InputSet)
       @lower.InferBoundary(_) => return Err(InputSet)
+      @lower.SerializationBoundary(_) => return Err(InputSet)
+      @lower.CompletedProducerBoundary(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {
         let route = store.wiring.routes[i]
         if route.length() != 1 {

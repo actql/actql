@@ -668,9 +668,11 @@ fn compile_join_chain_stage_body(
   let selected = [selected_input(query, scoped, limits)]
   for index in 0..<@query.join_part_count(query) {
     selected.push(
-      selected_relation(
-        @query.join_part_at(query, index).unwrap().relation,
+      selected_join_input(
+        query,
+        @query.join_part_at(query, index).unwrap(),
         scoped,
+        limits,
       ),
     )
   }
@@ -756,9 +758,11 @@ fn compile_join_chain_query(
     let selected = [selected_input(query, context, limits)]
     for index in 0..<@query.join_part_count(query) {
       selected.push(
-        selected_relation(
-          @query.join_part_at(query, index).unwrap().relation,
+        selected_join_input(
+          query,
+          @query.join_part_at(query, index).unwrap(),
           context,
+          limits,
         ),
       )
     }

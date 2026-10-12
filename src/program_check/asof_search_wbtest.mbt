@@ -97,7 +97,7 @@ test "formal asof Program retains Unit search limits and original proof graphs" 
                 0,
               ).unwrap(),
             ),
-          ),
+          ).unwrap(),
         ),
       )
     }
@@ -290,7 +290,7 @@ test "imported asof search retains producer Unit proofs without consumer copies"
         ).unwrap()
         assert_eq(@capacity.target_membership_consumer_visit(membership), 0)
         assert_eq(
-          @capacity.target_membership_coordinates(membership),
+          @capacity.target_membership_coordinates(membership).unwrap(),
           (index + 1, 0, index + 1),
         )
       }

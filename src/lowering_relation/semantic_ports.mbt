@@ -103,6 +103,10 @@ pub fn node_accepts_managed_carrier_view(
 /// fused; this rule does not depend on the neighboring operation's name.
 pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
   match node.payload {
+    // The installed Content family executes this exact boundary with an
+    // immutable Relation input. Selection still requires that actual provider;
+    // this does not make generation a portable AoA Relation kernel.
+    Serialize(_) => true
     Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
@@ -365,6 +369,10 @@ pub fn node_accepts_managed_relation_view(
     return false
   }
   match node.payload {
+    // Both explicit sorting and PRESERVE ORDER consume the exact checked
+    // Relation port. This metadata does not supply a byte-generation evaluator:
+    // a boundary still requires its exact registered Content or Model provider.
+    Serialize(_) | Infer(_) => true
     EventValue(_) =>
       operation(node) == "BRIDGE.rows.to_events" ||
       (

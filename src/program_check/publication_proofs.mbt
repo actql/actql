@@ -16,7 +16,7 @@ fn publication_proofs(
   let proofs : Array[ReidentifiedStep] = []
   for i in 0..<count {
     let candidate = @context.publication_row_limit_program_at(selected, i).unwrap()
-    let bound = @step_bounds.target_rows_bound(
+    let bound = require_step_target_rows(
       @capacity.target_membership_rows(candidate.membership),
     )
     proofs.push(reidentify_step_graph(units, bound, budget, conversion~))

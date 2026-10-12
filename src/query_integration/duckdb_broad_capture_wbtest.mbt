@@ -3,8 +3,11 @@ priv struct BroadIssuerFixture {
   issuer : @duckdb_query.DuckDBQueryIssuer
   requirement : @planning.QueryRequirement
   sequence : @query.QuerySequence
-  choice : @planning.AcquisitionChoice
-  prepared : @planning.PreparedAcquisition[@duckdb_query.DuckDBQueryPreparation]
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement]
+  prepared : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
+    @duckdb_query.DuckDBQueryPreparation,
+  ]
   transport : Array[@duckdb_query.DuckDBBroadAttempt]
 }
 
