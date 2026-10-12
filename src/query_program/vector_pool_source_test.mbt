@@ -169,7 +169,15 @@ test "P2 prepared two-member public pool sources retain derived grouping and emp
         "), pooled AS (FROM members |> pool_vectors(by: [COHORT], method: \"mean\", output_id: pooled_id" +
         (if relation { ", vector: EMBEDDING" } else { "" }) +
         ")), rows AS (FROM pooled |> vectors()) SELECT cohort, pooled_id, embedding, member_count FROM rows ORDER BY cohort"
-      let actual = with_carrier_program(text, nearest_context()).unwrap()
+      let actual = match with_carrier_program(text, nearest_context()) {
+        Ok(program) => program
+        Err(UnsupportedGraph) => fail("Carrier call follows Relation projection")
+        Err(UnknownColumn) => fail("Unknown derived group column")
+        Err(UnsupportedProjection) => fail("Unsupported derived group projection")
+        Err(BindingPreparation(LocalProgram(Pipeline(index, diagnostic)))) =>
+          fail(index.to_string() + ": " + @debug.to_string(diagnostic.kind))
+        Err(_) => fail("Other pool preparation failure")
+      }
       let expected = vector_pool_control("mean", relation, cohort=true)
       vector_pool_checked(expected)
       vector_pool_checked(actual)
