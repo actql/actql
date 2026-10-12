@@ -116,20 +116,19 @@ test "top level RESULT consumes evaluated CTE and JOIN output through the shared
 }
 
 ///|
-test "RESULT inside a CTE or derived query cannot publish a statement Result" {
-  for
-    text in [
-      "WITH chosen AS (FROM pair |> RESULT saved) SELECT x FROM chosen", "SELECT x FROM (FROM pair |> RESULT saved) AS chosen",
-    ] {
-    assert_true(
-      compile(
-        @query.parse_query(text, syntax_limits()).unwrap(),
-        pair_context(),
-        construction_limits(),
-      )
-      is Err(InvalidQuery),
-      msg=text,
-    )
+test "RESULT inside a Pure body is refused at syntax admission" {
+  for (text, offset) in [
+    ("WITH chosen AS (FROM pair |> RESULT saved) SELECT x FROM chosen", 28),
+    ("SELECT x FROM (FROM pair |> RESULT saved) AS chosen", 27),
+  ] {
+    match @query.parse_query(text, syntax_limits(), source_path="result.sql") {
+      Err({ issue: Syntax(message), span: Some(span), }) => {
+        assert_eq(message, "RESULT is not allowed in a producer body")
+        assert_eq(span.source_path, "result.sql")
+        assert_eq(span.start_byte, offset)
+      }
+      _ => fail(text)
+    }
   }
 }
 

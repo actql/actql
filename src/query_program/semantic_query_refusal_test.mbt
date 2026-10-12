@@ -1,8 +1,24 @@
 ///|
-test "authored CTE and grouped projection violations are not lowering gaps" {
+test "Pure WITH and derived bodies refuse Result at the authored token" {
+  for (text, offset) in [
+    ("WITH chosen AS (FROM t |> RESULT saved) SELECT x FROM chosen", 25),
+    ("SELECT x FROM (FROM t |> RESULT saved) AS chosen", 24),
+  ] {
+    match @query.parse_query(text, syntax_limits(), source_path="pure.sql") {
+      Err({ issue: Syntax(message), span: Some(span), }) => {
+        assert_eq(message, "RESULT is not allowed in a producer body")
+        assert_eq(span.source_path, "pure.sql")
+        assert_eq(span.start_byte, offset)
+      }
+      _ => fail(text)
+    }
+  }
+}
+
+///|
+test "grouped projection violations retain the exact lowering refusal" {
   for
     text in [
-      "WITH chosen AS (FROM t |> RESULT saved) SELECT x FROM chosen", "SELECT x FROM (FROM t |> RESULT saved) AS chosen",
       "SELECT * FROM t GROUP BY x", "SELECT *, COUNT(*) AS y FROM t GROUP BY x",
       "SELECT *, COUNT(*) AS n FROM t", "SELECT original.* FROM t AS original GROUP BY x",
       "SELECT * EXCEPT (x) FROM t GROUP BY x",
@@ -53,18 +69,27 @@ test "CTE binding preserves outer resolution witnesses and existing producers" {
 }
 
 ///|
-test "unimplemented CTE checking and theta joins remain lowering gaps" {
-  assert_true(
-    compile(
-      @query.parse_query(
-        "WITH unused AS (SELECT x FROM t), chosen AS (SELECT x FROM t) SELECT x FROM chosen",
-        syntax_limits(),
-      ).unwrap(),
-      join_order_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedCte),
-  )
+test "valid unused WITH is checked and pruned while theta JOIN stays unsupported" {
+  let actual = compile(
+    @query.parse_query(
+      "WITH unused AS (SELECT x FROM t WHERE y = 20), chosen AS (SELECT x FROM t WHERE x > 0) SELECT x FROM chosen",
+      syntax_limits(),
+    ).unwrap(),
+    join_order_context(),
+    construction_limits(),
+  ).unwrap()
+  let body = semantic(actual)
+  // Independent predicates distinguish demand pruning from leaking the unused
+  // binding's filter into the shared Values input. Rows remain [1, 2].
+  assert_true(body.contains("\"gt\":[{\"field\":\"x\"},{\"literal\":0}]"))
+  assert_false(body.contains("\"eq\":[{\"field\":\"y\"},{\"literal\":20}]"))
+  assert_false(body.contains("\"as\":\"unused\""))
+  assert_eq(@program.stage_count(actual), 1)
+  match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    _ => fail("closed Values and demanded WITH use the ordinary checker")
+  }
   assert_true(
     compile(
       @query.parse_query(
