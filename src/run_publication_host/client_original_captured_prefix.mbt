@@ -22,7 +22,8 @@ pub fn borrow_client_original_captured_prefix_ledger(
     plan.serialization is Some(selected) &&
     physical_equal(component, selected) &&
     physical_equal(component.owner, prepared) &&
-    component.task == task && component.step == step &&
+    component.task == task &&
+    component.step == step &&
     prepared_client_acquisition_count(prepared) == 1 &&
     client_serialization_single_capture_shape(prepared, task) &&
     client_single_direct_observation_covers_sources(prepared) &&

@@ -25,7 +25,9 @@ pub fn row_capture_original_prefix_requirement(
     physical.dag is None &&
     physical.holding is Some(holding) &&
     @resources.original_captured_prefix_available(
-      ledger, physical.reservation, holding,
+      ledger,
+      physical.reservation,
+      holding,
     ) else {
     return None
   }
