@@ -121,16 +121,18 @@ for (const [name, change] of [
   });
 }
 
-for (const [name, change] of [
-  ['gzip metadata', {metadata: {contentEncoding: 'gzip'}}],
-  ['gzip media', {mediaResponse: {headers: [['content-encoding', 'gzip']]}}],
-  ['range media', {mediaResponse: {headers: [['content-range', 'bytes 0-8/10']]}}],
+for (const [name, change, expectedCalls] of [
+  ['gzip metadata', {metadata: {contentEncoding: 'gzip'}}, 1],
+  ['gzip media', {mediaResponse: {headers: [['content-encoding', 'gzip']]}}, 2],
+  ['range media', {mediaResponse: {headers: [['content-range', 'bytes 0-8/10']]}}, 2],
 ]) {
   test(`${name} refuses representation without decompression or handoff`, async () => {
     const {options, state} = fixture(change);
     await assert.rejects(readGcsVersionedContent(options), {code: 'GcsContentRepresentationUnsupported'});
+    assert.equal(state.calls.length, expectedCalls);
+    assert.equal(state.charges.length, expectedCalls);
+    assert.deepEqual(state.verificationBytes, []);
     assert.equal(state.handoffs.length, 0);
-    assert.equal(state.charges.length, state.calls.length);
   });
 }
 
@@ -159,6 +161,10 @@ for (const [name, change, code] of [
     await assert.rejects(readGcsVersionedContent(options), {code});
     assert.equal(state.handoffs.length, 0);
     assert.equal(state.charges.length, state.calls.length);
+    if (name === 'partial status') {
+      assert.equal(state.calls.length, 2);
+      assert.deepEqual(state.verificationBytes, []);
+    }
   });
 }
 
