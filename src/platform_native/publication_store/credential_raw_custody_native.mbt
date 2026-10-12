@@ -74,7 +74,6 @@ fn PrivateEffectEvidenceCustody::retire_preparation(
 ///|
 struct LocalPreparationRawCustody {
   binding : LocalPreparationRawBinding
-  holding : String
   private_custody : PrivateEffectEvidenceCustody
 }
 
@@ -127,7 +126,6 @@ fn prepare_local_raw_custody(
   }
   Ok({
     binding,
-    holding,
     private_custody: {
       store,
       crypto,
