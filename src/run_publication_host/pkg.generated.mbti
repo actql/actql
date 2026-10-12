@@ -779,6 +779,8 @@ pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_tr
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding) -> Result[Bytes, ClientJournalEncodingIssue]
 
+pub fn client_saved_submission_admission_wire(ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedSubmissionViewIssue]
+
 pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
 
 pub fn client_saved_submission_revision(ClientSavedSubmissionSnapshot) -> Int64
@@ -3022,7 +3024,15 @@ pub struct ClientSavedSubmissionSnapshot {
   record : ClientSubmittedJournalEncoding
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
+  inspection : ClientRunJournalInspection?
 }
+
+pub(all) enum ClientSavedSubmissionViewIssue {
+  NotAdmitted
+  CustodyLost
+  UnrepresentableRevision
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub struct ClientSerializationCapturedInput {
   owner : PreparedClientProgram

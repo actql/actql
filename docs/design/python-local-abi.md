@@ -1968,3 +1968,22 @@ Unknown and never triggers replay. This route supplies no scope, Allow, status
 decision or execution implementation. Installed factory/public `open`, original
 Owner wire projections and the actual public runtime/wheel scenario still have
 to connect before this is a delivered Local Client.
+
+Private ABI53 exposes the original saved admission through
+`actql_journal_admission_length` and the existing reserved buffer transfer.
+The existing retained-Run validator's nominal inspection is held with the
+actual same-Store snapshot; definition namespace, request authority scope and
+immutable admission revision come from those originals. Preparing/missing
+observations cannot issue this view. The full Int64 remains in the journal; an
+unsafe public JSON revision is refused rather than rounded or replaced by a
+later Run/control revision. No wire/schema version or identity preimage changes.
+
+The original current/epoch/configuration frame is checked before producing or
+reading cached admission bytes, and after production/physical copying. Python
+attaches only the original same-Store reader for that call and detaches it on
+all exits; exceptions and cleanup failure preserve the same parent/ticket.
+This read-only transfer issues no new admission, COMMIT ACK, dispatch permit,
+publication or Result. The durable Host's actual saved-row observation and
+current authority are separate from its write candidate and later control
+state. Installed public Host assembly and wheel acceptance remain separate
+from this private bridge.
