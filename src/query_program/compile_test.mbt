@@ -1203,12 +1203,12 @@ test "CTE JOIN body shares scalar projection and post-join filter lowering" {
   let wire = semantic(program)
   assert_true(
     wire.contains(
-      "\"add\":[{\"field\":\"aql_chain_column_2\"},{\"field\":\"aql_chain_column_4\"}]",
+      "\"add\":[{\"field\":\"aql_join_input_5\"},{\"field\":\"aql_join_input_6\"}]",
     ),
   )
   assert_true(
     wire.contains(
-      "\"filter\":{\"gt\":[{\"field\":\"aql_chain_column_4\"},{\"literal\":0}]}",
+      "\"filter\":{\"gt\":[{\"field\":\"aql_join_input_6\"},{\"literal\":0}]}",
     ),
   )
   assert_eq(@program.stage_count(program), 1)
@@ -1253,9 +1253,9 @@ test "CTE JOIN uses the same hidden ORDER and visible Result projection" {
     let wire = semantic(program)
     if text.contains("r.b DESC") {
       assert_true(
-        wire.contains("\"field\":\"aql_chain_column_5\",\"nulls\":\"last\""),
+        wire.contains("\"aql_join_sort_5\":{\"field\":\"aql_join_input_7\"}"),
       )
-      assert_true(wire.contains("\"select\":[{\"x\":\"aql_chain_column_2\"}]"))
+      assert_true(wire.contains("aql_join_visible_"))
     }
     assert_true(wire.contains("\"fields\":[\"x\"]"))
     match
@@ -1342,7 +1342,7 @@ test "one CTE lowers to a shared checked Stage Result" {
       ..construction_limits(),
       max_join_output_rows: 0L,
     })
-    is Err(UnsupportedJoin),
+    is Err(UnsupportedCte),
   )
   match @check.check_parsed(joined, check_environment(), None, check_limits()) {
     Checked(_) => ()
@@ -1570,10 +1570,31 @@ test "CTE join body consumes prior checked results without source replay" {
     NeedsInputs(_) => fail("CTE join body should use prior checked Results")
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
+  // An outer producer remains visible alongside a prior binding. Both resolve
+  // to the one installed Values producer; naming base does not hide orders.
+  let outer_query = @query.parse_query(
+    "WITH base AS (SELECT id FROM orders), matched AS (SELECT l.id AS id FROM orders AS l JOIN base AS r ON l.id = r.id) SELECT id FROM matched",
+    syntax_limits(),
+  ).unwrap()
+  let outer_program = compile(
+    outer_query,
+    values_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(@program.stage_count(outer_program), 1)
+  assert_eq(semantic(outer_program).split("\"values\"").length(), 2)
+  assert_true(
+    @check.check_parsed(
+      outer_program,
+      check_environment(),
+      None,
+      check_limits(),
+    )
+    is Checked(_),
+  )
   for
     text in [
       "WITH base AS (SELECT id FROM orders), matched AS (SELECT l.id AS id FROM base AS l JOIN later AS r ON l.id = r.id), later AS (SELECT id FROM base) SELECT id FROM matched",
-      "WITH base AS (SELECT id FROM orders), matched AS (SELECT l.id AS id FROM orders AS l JOIN base AS r ON l.id = r.id) SELECT id FROM matched",
     ] {
     let rejected = @query.parse_query(text, syntax_limits()).unwrap()
     assert_true(
