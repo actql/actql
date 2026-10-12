@@ -49,6 +49,19 @@
         "GraphUnionStep",
         "GraphSubtractionStep"
       ]
+    },
+    {
+      "revision": "2bff752cb0eef171aa8f7ba614b301e052b7dff3",
+      "digest": "e83ea639a0fb84d02487471adb496181d1d847b0d902e00d0e0cf98e39a3c261",
+      "additionalExclusions": [
+        "GraphUnionStep",
+        "GraphSubtractionStep",
+        "GraphMeanStep"
+      ],
+      "constructorRename": true,
+      "boundaryExclusions": true,
+      "previousRevision": "4fd03c918b8e125fd712904c58dbef9fbc1dbe82",
+      "previousDigest": "4fe922203e2da77f52d97d6e2e4467cf4859c8a63302d4e01b3bd3d7098f5cfd"
     }
   ],
   "wrapperDigests": {
@@ -74,7 +87,8 @@
     "Opaque row bindings, unique keys and projection extend only the constant-size support guard. Removing the exact four-view guard still yields the same previously reviewed whole source; constructor captures, bodies and conditional component bytes are unchanged.",
     "The lower binding-rows cleanup transition Bool is converted through cleanup_pending to managed completion. Only that existing cleanup branch changes; construction and capture fields remain identical.",
     "The existing pure scratch-eligibility helper additionally admits detached Values and UNNEST completion. Its exact reviewed body changes no construction, allocation or callback capture; accepted output and pending cleanup responsibility require separately executed lifetime cases.",
-    "Append, analytic rows and UNPIVOT add exactly three pure scratch-eligibility branches after the Values/UNNEST review. Removing these three additions yields the entire eb3a7a78a7426a9be397b62545e76984a25aba43 source byte-for-byte. Factory, callback captures, parent state, capacity and cleanup bodies remain identical; runtime output/cancellation/cleanup retry require separate execution evidence, and no constructor lifetime or physical upper bound is inferred."
+    "Append, analytic rows and UNPIVOT add exactly three pure scratch-eligibility branches after the Values/UNNEST review. Removing these three additions yields the entire eb3a7a78a7426a9be397b62545e76984a25aba43 source byte-for-byte. Factory, callback captures, parent state, capacity and cleanup bodies remain identical; runtime output/cancellation/cleanup retry require separate execution evidence, and no constructor lifetime or physical upper bound is inferred.",
+    "The selected step dispatch adds InferBoundary and SerializationBoundary as exactly two callback-execution alternatives. Removing their exact alternatives restores the complete 10ad17b09e17d7696e664c90dc88d98f1b7d0c73 source. The generated row-kernel predicate excludes SerializationBoundary and CompletedProducerBoundary in its existing false branch; removing exactly those alternatives restores the complete 4fd03c918b8e125fd712904c58dbef9fbc1dbe82 source. Constructor/capture/state/capacity bodies, eleven candidate records, four callbacks, three capture inputs and all numeric premises remain unchanged. This does not authorize either operation or prove callback execution, file lifetime or physical capacity."
   ],
   "nativeCensus": {
     "sourceRevision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0",
@@ -113,5 +127,12 @@
       "appendRevision": "ead7a4a041ed5e39e69467809a9f0278eee6266c",
       "scope": "Exact source correspondence only; no new physical lifetime or complete capacity guarantee"
     }
+  },
+  "boundaryDispatchReview": {
+    "selectedRevision": "db70188c9ccfa2201f7b636c67eb30fc8c6ae98a",
+    "selectedDigest": "9c5251e962f4114801bc99c8deb3dc836a16773bd0eebef5aa2c4dcdefe17409",
+    "previousSelectedRevision": "10ad17b09e17d7696e664c90dc88d98f1b7d0c73",
+    "recipeDigest": "0dbf82c532e3682e7cab313f0e5123e94039744e1ab4a7b684e2dcb7cbf38296",
+    "scope": "Exact callback-execution support alternatives only; selected factory, parent state, capacity, callbacks and captures remain byte-identical; no new constructor extent or lifetime guarantee"
   }
 }
