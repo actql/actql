@@ -1,0 +1,426 @@
+{
+  "testedSource": "9f806131a6e36678c9a0738af643af2b9173e9bb",
+  "rawEvidencePublished": false,
+  "files": [
+    {
+      "path": "_build/local-checks/attempts/run-DsJZHb/output.log",
+      "sha256": "017f82e17c6f81a6638e340ff33d70e4647705443d2dc0ef5933282ee14e47c8",
+      "bytes": 45,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-DsJZHb/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-DsJZHb/summary.json",
+      "sha256": "100052c9b9790f8b8b96499b9d00a17627bcbff42a83607de580325a009605f5",
+      "bytes": 1501,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-DsJZHb/summary.json"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-BjdbOl/output.log",
+      "sha256": "85e758a948a82d9fe6b339a42138fd3f832c0a225a3abbb91133ee8fbeccda14",
+      "bytes": 6911,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-BjdbOl/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-BjdbOl/summary.json",
+      "sha256": "5c05bce55a536e3bfdec2a723fa26f679daae683ecd89b700b72daf616a5e4c4",
+      "bytes": 1745,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-BjdbOl/summary.json"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-neU8gt/output.log",
+      "sha256": "81a1ca19f6919e610531089cf64bebe3f485663e941738b5d89c223257b9bb11",
+      "bytes": 710,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-neU8gt/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-neU8gt/summary.json",
+      "sha256": "e93ac113c711eb627a65fb852372f2a866b392cb2cf6471fa0f2c1518e58aea3",
+      "bytes": 1745,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-neU8gt/summary.json"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-KajyLh/output.log",
+      "sha256": "7c0ca6d55278be62396ca07b358694eab26f6695662dadebe8c222ddb1ea88ba",
+      "bytes": 674,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-KajyLh/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-KajyLh/summary.json",
+      "sha256": "cf7cb4006d81f543b99a0c45967936dc3cf8dc12f0b0bb6f777555b368a6e265",
+      "bytes": 1621,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-KajyLh/summary.json"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-KLu6y4/output.log",
+      "sha256": "482d3d9d3384e692870e3dd88ce351fa0932fe0e402aefe61b67d6bf4878d606",
+      "bytes": 1459,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-KLu6y4/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-KLu6y4/summary.json",
+      "sha256": "120f0b0c96617e699f1f83955aedad66fa86c37986d894e6f969fcbdc06e620b",
+      "bytes": 1689,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-KLu6y4/summary.json"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-ByJVfq/output.log",
+      "sha256": "67b4f1ffa4aecba001e8679b9bfaf9a86af0fbec651940f7167556b69ac25a47",
+      "bytes": 457,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-ByJVfq/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-ByJVfq/summary.json",
+      "sha256": "ecf63f01f78a14f62ff0958b72898d466debd8c94ca91d680296933bdc8a95ed",
+      "bytes": 1734,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-ByJVfq/summary.json"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-V3vtVS/output.log",
+      "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331",
+      "bytes": 44,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-V3vtVS/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-V3vtVS/summary.json",
+      "sha256": "1ad5e44175edbf4c98aaf6f81213cc5d88fe7a781190780a63a0353b8a4d1356",
+      "bytes": 1445,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-V3vtVS/summary.json"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-HmoFIf/output.log",
+      "sha256": "bc9e3a9c249db4f39d00cf7b4e745898b01c01ce6a9df291c2d59618df456a66",
+      "bytes": 457,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-HmoFIf/output.log"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-HmoFIf/summary.json",
+      "sha256": "5b5fe384ee48cf639b7c325f8c327ed7147cdf92da11d646f8e7eec95ac03475",
+      "bytes": 1734,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/local-checks/attempts/run-HmoFIf/summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/0001.summary.json",
+      "sha256": "ddda11096528cb1d6e8001dda083e36b372a2aa0a5fa563d05e919dfeef6e6fe",
+      "bytes": 630,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/0001.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/0002.summary.json",
+      "sha256": "4bdf428ba7347dac6758910ee8aa63fd8d312df6f404483f9ba224e958a6e276",
+      "bytes": 1681,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/0002.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/0003.summary.json",
+      "sha256": "b52fdae16320618a3681e62bc646b3bc3abae7f43b3fceedf6e0d698fd372b6e",
+      "bytes": 1907,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/0003.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/0004.summary.json",
+      "sha256": "a3851cb5b1eda2dd249f7b5ac215b219eb2d2927c69c403eb26f923aa0d1e5a3",
+      "bytes": 1928,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/0004.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/001.result.json",
+      "sha256": "74da7a0516fad68099dc6003075ef1b93acd3e85984ed970286027dfbbfa9903",
+      "bytes": 1110,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/001.result.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/001.started.json",
+      "sha256": "4dc766ac3907b5524c7a6debc83fb1c5e9e32bb3bdac8bcb16927cb163090eb1",
+      "bytes": 920,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/001.started.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/001.stderr.log",
+      "sha256": "3bf52e20f9e961266bb549a4543e2603f34dbb7920be3a3d0af75ea83c2537e7",
+      "bytes": 468,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/001.stderr.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/001.stdout.log",
+      "sha256": "77692272a4d94169701eddcbb387feebf7c0d0f9da286961afb0cb498aeb3715",
+      "bytes": 6008,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/001.stdout.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-C026rp/summary.json",
+      "sha256": "a3851cb5b1eda2dd249f7b5ac215b219eb2d2927c69c403eb26f923aa0d1e5a3",
+      "bytes": 1928,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-C026rp/summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/0001.summary.json",
+      "sha256": "7ff4e0a8f094b22378609cc3904c3d818dad1081230e50539c523cdd65537e61",
+      "bytes": 630,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/0001.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/0002.summary.json",
+      "sha256": "9069b3dda28c2be3111462f469ca66d9cf88bc6de87f6a879395f13aa314f530",
+      "bytes": 1681,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/0002.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/0003.summary.json",
+      "sha256": "09edc1420b838b11ad285f4c6970427e68fa8cbd883db80df4cde28c023de669",
+      "bytes": 1900,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/0003.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/0004.summary.json",
+      "sha256": "248fdeffaf9e9d25ba7c0639a9c7c1420da7352403960794e549c1c782a004ca",
+      "bytes": 1921,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/0004.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/001.result.json",
+      "sha256": "6bbd7999e6de1ffa988b48e3faeba67eb22d35d57f396d501511a89c20ddb713",
+      "bytes": 1103,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/001.result.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/001.started.json",
+      "sha256": "a9aa07af406ad92f14619d9b1e86bdebbfc6f5b89e17265922121212bcc94b96",
+      "bytes": 920,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/001.started.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/001.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/001.stderr.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/001.stdout.log",
+      "sha256": "b4476362206ac2f8ec988d798b3bca25b9430141d6f489eb256a31ec7ff70a67",
+      "bytes": 275,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/001.stdout.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-7VJK4g/summary.json",
+      "sha256": "248fdeffaf9e9d25ba7c0639a9c7c1420da7352403960794e549c1c782a004ca",
+      "bytes": 1921,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-7VJK4g/summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/0001.summary.json",
+      "sha256": "5e8d4728a3fd3251d9392ec689b7a1f40c40c478983d01f875f07a0f67805281",
+      "bytes": 630,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/0001.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/0002.summary.json",
+      "sha256": "9fe4043284ea829719c077c30ab02ebd16c05943e95f84b40bca34046ff7fb28",
+      "bytes": 1557,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/0002.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/0003.summary.json",
+      "sha256": "948e44f46b6b38faf8e9a4f5d26498d12a2b854c2123d30ff82dba99da997371",
+      "bytes": 1773,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/0003.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/0004.summary.json",
+      "sha256": "9ee0cfb6772a5cd899f2fe121da9447ff7136290283ddee773276d0ffda594a2",
+      "bytes": 1794,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/0004.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/001.result.json",
+      "sha256": "a0e3aaa01159b3abb8eb43012cca03445dcfbbe1b449ed2e2d90cd68be739a84",
+      "bytes": 984,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/001.result.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/001.started.json",
+      "sha256": "6b01411551b1f6ded1b10baac5646f4a523e2137bd2d32a3ced586d8e6eeadd0",
+      "bytes": 804,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/001.started.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/001.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/001.stderr.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/001.stdout.log",
+      "sha256": "514c19ef7961efac9b62684a0bc0ba2f619496e59c665d0171cd89bb2e78d19e",
+      "bytes": 345,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/001.stdout.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0m5uA8/summary.json",
+      "sha256": "9ee0cfb6772a5cd899f2fe121da9447ff7136290283ddee773276d0ffda594a2",
+      "bytes": 1794,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0m5uA8/summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/0001.summary.json",
+      "sha256": "26a2260b8456679a144ab462a528357a31837ebd3a28afa0953ea2ddc472c396",
+      "bytes": 630,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/0001.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/0002.summary.json",
+      "sha256": "df44fc29e51ea41e8994bf32a9f8ca548e8164e5a0e93c422882d46657bde7ef",
+      "bytes": 1625,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/0002.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/0003.summary.json",
+      "sha256": "a888ede7a15eb03b29f4f3f0cc9c38187fe328ea05e854a97441829e4af4fbdb",
+      "bytes": 1711,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/0003.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/0004.summary.json",
+      "sha256": "7ddc0017e44539d410c92531c5f7af1d49b4c9bbb9ffc1ec908fb999ad0e00a4",
+      "bytes": 1732,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/0004.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/001.result.json",
+      "sha256": "40551850da86695e2871b722d3591f1505f33092a4c7389cc161fb0d64e67bc5",
+      "bytes": 946,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/001.result.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/001.started.json",
+      "sha256": "4ee8862909450cced41b98e56c8f95eb1db604d044e1a807986d8a03263de05a",
+      "bytes": 868,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/001.started.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/001.stderr.log",
+      "sha256": "b4f32f507a6a5c46eed1ecd7e6e8c034f3911d8c0afa2c967f456ea99eab9524",
+      "bytes": 1092,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/001.stderr.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/001.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/001.stdout.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-0bFfmv/summary.json",
+      "sha256": "7ddc0017e44539d410c92531c5f7af1d49b4c9bbb9ffc1ec908fb999ad0e00a4",
+      "bytes": 1732,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-0bFfmv/summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/0001.summary.json",
+      "sha256": "799b4861791704d2fedb8f588ae3515fbc727eb23baf6540424771a2f3e33b72",
+      "bytes": 630,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/0001.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/0002.summary.json",
+      "sha256": "3027ee8bb5fe7c2541c1f258b81bffa9e73cffdaaac155ad64334704e01806ff",
+      "bytes": 1671,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/0002.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/0003.summary.json",
+      "sha256": "00f47d99fa949f6f647dd9c11e08c63a9daabc70a2a5b80900d667f1e15f66ba",
+      "bytes": 1898,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/0003.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/0004.summary.json",
+      "sha256": "3be8189636ae834b86a8fbb44c4f4894715f92fd4c67807edb64704197ff7c01",
+      "bytes": 1918,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/0004.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/001.result.json",
+      "sha256": "01e0d97a944e6ff0c3caea51bf7fbae328fdba97e53189dc21a01b9e3b4e468d",
+      "bytes": 1101,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/001.result.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/001.started.json",
+      "sha256": "54fe0ba3970d388ae3fa3397a50de3aaefc80a07d12a7f710ec9c02b8bd49fe0",
+      "bytes": 910,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/001.started.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/001.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/001.stderr.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/001.stdout.log",
+      "sha256": "93c9e82a1dd3b474b47ec50aaa8d469426ac678830197ac3f32118be93f2c7ff",
+      "bytes": 40,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/001.stdout.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-EzYSVt/summary.json",
+      "sha256": "3be8189636ae834b86a8fbb44c4f4894715f92fd4c67807edb64704197ff7c01",
+      "bytes": 1918,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-EzYSVt/summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/0001.summary.json",
+      "sha256": "779b31b87214c696994db8db93359ee606208a84e74aa8da187c5da2d2f2bec2",
+      "bytes": 630,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/0001.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/0002.summary.json",
+      "sha256": "ef3e8b8a5b7417fabefddc94777cfbc2ca266bbe626bbbae3e17e9b15cc54bc0",
+      "bytes": 1671,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/0002.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/0003.summary.json",
+      "sha256": "67c65a5340d7dbc1192a9f31397c350b2d80d6fbffe3425179d1a7f90b0ea964",
+      "bytes": 1892,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/0003.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/0004.summary.json",
+      "sha256": "5f9fecbeadbbec4819cd170b7fd2fb6b975ed7c601822fe3c0397a5ca09b7c27",
+      "bytes": 1912,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/0004.summary.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/001.result.json",
+      "sha256": "e5959b8a59e28a391875eff5768458fb7c9bf5be15c0317198c29183937a758c",
+      "bytes": 1095,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/001.result.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/001.started.json",
+      "sha256": "3f1e613d04c21e93740e96aeb7bc7ee14ec1ea80d3fecb4000ae6b48ad147407",
+      "bytes": 910,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/001.started.json"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/001.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/001.stderr.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/001.stdout.log",
+      "sha256": "93c9e82a1dd3b474b47ec50aaa8d469426ac678830197ac3f32118be93f2c7ff",
+      "bytes": 40,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/001.stdout.log"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-5vTQtW/summary.json",
+      "sha256": "5f9fecbeadbbec4819cd170b7fd2fb6b975ed7c601822fe3c0397a5ca09b7c27",
+      "bytes": 1912,
+      "preservedCopy": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/source-catalog/_build/focused-evidence/focused-test-5vTQtW/summary.json"
+    }
+  ]
+}

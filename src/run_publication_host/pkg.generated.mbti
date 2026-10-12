@@ -52,6 +52,8 @@ pub fn admit_client_infer_composed_sources(ClientInferOccurrence, Array[@executi
 
 pub fn admit_client_infer_occurrence_egress(ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> ClientInferEgressObservation?) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue]
 
+pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
+
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_client_request_identity_record_wire(String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -460,6 +462,8 @@ pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScop
 
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
+pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDecodingIssue]
+
 pub fn client_local_completion_free_catalog_cid() -> String
 
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
@@ -479,6 +483,12 @@ pub fn client_model_read_consumer_available(ClientModelReadConsumer, ClientCompi
 pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
+
+pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+
+pub fn client_native_local_runtime_members(ClientNativeLocalRuntime) -> Array[ClientNativeLocalRuntimeMember]
+
+pub fn client_native_local_runtime_original(ClientNativeLocalRuntime) -> String
 
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
@@ -753,6 +763,8 @@ pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
 pub fn client_values_static_plan_view(PreparedClientProgram, ClientValuesCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
 
 pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
+
+pub fn decode_client_run_journal_row(Bytes) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
@@ -1927,6 +1939,10 @@ pub(all) enum ClientInteractivePlanIssue {
   Contract(@run_publication.PublicationContractIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ClientJournalDecodingIssue {
+  CustodyLost
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientJournalEncodingIssue {
   Encoding
   CapacityExceeded
@@ -2024,6 +2040,28 @@ pub(all) enum ClientModelReadPreparationIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientModelReadScope
+
+pub struct ClientNativeLocalRuntime {
+  wire : String
+  source_sha : String
+  platform : String
+  members : Array[ClientNativeLocalRuntimeMember]
+}
+
+pub(all) enum ClientNativeLocalRuntimeIssue {
+  InvalidIdentity
+  InvalidManifest
+  InvalidMember
+  InvalidClosure
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientNativeLocalRuntimeMember {
+  role : String
+  path : String
+  bytes : Int64
+  sha256 : String
+}
 
 pub(all) struct ClientNodeModelPreparationLayout {
   response_profile : @check_environment.ModelResponseProfile

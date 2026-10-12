@@ -15,6 +15,15 @@ struct PublishedInput {
 }
 
 ///|
+/// Conditional Result order preparation without a runtime port or completed Result.
+struct PublicationPreparation {
+  input : ProducedInput
+  publication : ResultPublication?
+  pending : @decode.Cursor?
+  usage : Usage
+}
+
+///|
 /// Resolve publication from actual producer facts and a no-alias Result
 /// projection. Source Program membership and runtime completion remain separate.
 pub fn publish_produced_input(
@@ -24,6 +33,33 @@ pub fn publish_produced_input(
   authored : @decode.Cursor?,
   limits : Limits,
 ) -> Result[PublishedInput, Issue] {
+  try {
+    let prepared = match
+      prepare_produced_publication(
+        pipeline, target, projection, authored, limits,
+      ) {
+      Ok(prepared) => prepared
+      Err(issue) => raise Stop(issue)
+    }
+    guard prepared.publication is Some(publication) else {
+      fail(prepared.pending.unwrap(), UnresolvedOrder)
+    }
+    Ok({ input: prepared.input, publication, usage: prepared.usage, })
+  } catch {
+    Stop(issue) => Err(issue)
+  }
+}
+
+///|
+/// Retain resolved or pending publication from actual producer facts and a no-alias Result
+/// projection. Source Program membership and runtime completion remain separate.
+pub fn prepare_produced_publication(
+  pipeline : CheckedPipeline,
+  target : Target,
+  projection : @relation.CheckedOperation,
+  authored : @decode.Cursor?,
+  limits : Limits,
+) -> Result[PublicationPreparation, Issue] {
   let source = @relation.source(projection)
   try {
     let projected = match
@@ -98,8 +134,8 @@ pub fn publish_produced_input(
         Some(out)
       }
     }
-    let decision = match
-      @publication.decide(
+    let resolved = match
+      @publication.resolve(
         source,
         schema,
         @relation.output_schema(projection),
@@ -122,8 +158,22 @@ pub fn publish_produced_input(
           },
         )
     }
-    b.work -= decision.work
-    b.text -= decision.text_bytes
+    b.work -= resolved.work
+    b.text -= resolved.text_bytes
+    let usage = {
+      work: limits.max_work - b.work,
+      text_bytes: limits.max_text_bytes - b.text,
+      nodes: limits.max_nodes - b.nodes,
+      tokens: 0,
+    }
+    guard resolved.decision is Some(decision) else {
+      return Ok({
+        input: projected.input,
+        publication: None,
+        pending: resolved.pending,
+        usage,
+      })
+    }
     let publication = { pipeline, target, projection, authored, decision, }
     let order : LogicalOrder = {
       origin: target,
@@ -138,13 +188,9 @@ pub fn publish_produced_input(
     }
     Ok({
       input: { ..projected.input, order: Some(order), },
-      publication,
-      usage: {
-        work: limits.max_work - b.work,
-        text_bytes: limits.max_text_bytes - b.text,
-        nodes: limits.max_nodes - b.nodes,
-        tokens: 0,
-      },
+      publication: Some(publication),
+      pending: None,
+      usage,
     })
   } catch {
     Stop(e) => Err(e)
@@ -219,4 +265,30 @@ pub fn publication_prior_order(value : ResultPublication) -> LogicalOrder? {
 ///|
 pub fn publication_key(value : ResultPublication) -> @evidence.KeyedRelation? {
   value.decision.key
+}
+
+///|
+pub fn prepared_publication_input(
+  value : PublicationPreparation,
+) -> ProducedInput {
+  value.input
+}
+
+///|
+pub fn prepared_publication_usage(value : PublicationPreparation) -> Usage {
+  value.usage
+}
+
+///|
+pub fn prepared_publication_order(
+  value : PublicationPreparation,
+) -> ResultPublication? {
+  value.publication
+}
+
+///|
+pub fn prepared_publication_pending(
+  value : PublicationPreparation,
+) -> @decode.Cursor? {
+  value.pending
 }

@@ -9,7 +9,7 @@ test "captured Pipe JOIN chain uses the existing shared source binding" {
         text.strip_prefix("FROM records AS l").unwrap().to_owned()
       _ => text
     }
-    let lowered = match lower(source, format, Some(test_context())) {
+    let lowered = match lower(source, format, Some(registered_test_context())) {
       Ok(value) => value
       Err(QueryLowering(@query.UnsupportedCte)) => fail("UnsupportedCte")
       Err(QueryLowering(@query.UnsupportedJoin)) => fail("UnsupportedJoin")
