@@ -122,7 +122,7 @@ test "P2 dedupe common refusals keep wrong Carrier and exact OrderKey causes" {
   }
   for
     order in [
-      "[{missing: 'asc'}]", "[{`SCORE`: 'asc'}]", "[{field: missing, dir: 'asc', nulls: 'last'}]",
+      "[{missing: 'asc'}]", "[{field: missing, dir: 'asc', nulls: 'last'}]",
     ] {
     assert_true(
       with_carrier_program(event_dedupe_source("[]", order), {
@@ -161,4 +161,11 @@ test "P2 dedupe cannot resurrect a dropped grouping field or range alias" {
       msg=call,
     )
   }
+}
+
+///|
+test "P2 dedupe quoted columns preserve ordinary case insensitive lookup" {
+  let actual = with_carrier_program(event_dedupe_source("[]", "[{`SCORE`: 'asc'}]"), {..pair_context(), inputs: [],}).unwrap()
+  assert_eq(with_carrier_argument(actual, "dedupe_events"), with_carrier_argument(event_dedupe_control("[]", "[{\"score\":\"asc\"}]"), "dedupe_events"))
+  event_window_common_checked(actual)
 }
