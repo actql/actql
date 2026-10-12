@@ -1,5 +1,6 @@
 import {checked} from './runtime-result.mjs';
 import {publicationAction} from './publication-action.mjs';
+import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {
   resultOutputLimitFields,
   validOutputLimits,
@@ -1803,6 +1804,7 @@ function publicationControl(moon) {
   const modelOriginalDocumentTokens = new WeakMap();
   const admissionTokens = new WeakMap();
   const compiledRunTokens = new WeakMap();
+  const originalRunPlanTokens = new WeakMap();
   const serializationPlanTokens = new WeakMap();
   const serializationGenerationTokens = new WeakMap();
   const serializationInputEvidenceTokens = new WeakMap();
@@ -2238,6 +2240,71 @@ function publicationControl(moon) {
       return compiledRunResult(project(checkedProgram, compiled,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostStaticPlanRejected');
+    },
+    captureOriginalClientRunPlan(compiled, original, definition, limits) {
+      issuanceLimits(limits, 'Original Run plan');
+      if (limits.maxWireBytes < 1 || limits.maxNodes < 1 || limits.maxDepth < 1) {
+        throw new TypeError('Invalid Original Run plan issuance limits');
+      }
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined ||
+          !moon.clientProgramCompiledRunMatches(value, original) ||
+          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Foreign Client original plan compilation');
+      }
+      if (typeof moon.clientProgramCompiledRunStaticPlanView !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
+      }
+      const wire = compiledRunResult(moon.clientProgramCompiledRunStaticPlanView(
+        value, original, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostOriginalPlanRejected');
+      const originalBytes = Object.freeze({compiledPlanWire: compiled.compiledPlan.wire,
+        planViewWire: wire});
+      const programCid = moon.clientProgramDefinitionCid(original);
+      control.readStoredRunPlanOriginal(originalBytes, definition, programCid, limits);
+      const selected = Object.freeze({});
+      originalRunPlanTokens.set(selected, Object.freeze({original: originalBytes,
+        runDefinitionCid: definition.identity, programCid,
+        prepared: compiled.preparedEvidence.wire, authorization: compiled.authorization.wire}));
+      return selected;
+    },
+    originalRunPlanAdmissionEvidence(selected, definition, programCid, evidence) {
+      const retained = originalRunPlanTokens.get(selected);
+      // Exact first-admission provenance is independent of current read or
+      // control permission. A copied wire/CID cannot create this selection.
+      token(definition);
+      if (retained === undefined || retained.runDefinitionCid !== definition.identity ||
+          retained.programCid !== programCid || retained.prepared !== evidence?.prepared ||
+          retained.authorization !== evidence?.authorization) {
+        throw new TypeError('Foreign Client original plan admission');
+      }
+      return retained.original;
+    },
+    readStoredRunPlanOriginal(original, definition, programCid, limits) {
+      token(definition);
+      issuanceLimits(limits, 'Original Run plan');
+      if (original === null || typeof original !== 'object' || Array.isArray(original) ||
+          Object.keys(original).sort().join(',') !== 'compiledPlanWire,planViewWire' ||
+          limits.maxWireBytes < 1 || limits.maxNodes < 1 || limits.maxDepth < 1 ||
+          ['compiledPlanWire', 'planViewWire'].some(field =>
+            typeof original[field] !== 'string' || Buffer.byteLength(original[field]) > limits.maxWireBytes)) {
+        throw new TypeError('Invalid Client original plan evidence');
+      }
+      const plan = control.admit('compiled_plan', original.compiledPlanWire, limits);
+      const view = JSON.parse(original.planViewWire);
+      if (!validWirePlanViewShape(view) ||
+          plan.identity !== JSON.parse(definition.wire).compiled_plan_cid ||
+          view.compiled_plan_cid !== plan.identity ||
+          JSON.parse(plan.wire).program_definition_cid !== programCid) {
+        throw new TypeError('Foreign Client original plan evidence');
+      }
+      if (typeof moon.clientProgramCheckLogicalMapBinding !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
+      }
+      const map = control.admitRunEvidence('logical_map', JSON.stringify(view.logical_map), limits);
+      compiledRunResult(moon.clientProgramCheckLogicalMapBinding(evidenceToken(map), token(plan),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostOriginalMapRejected');
+      return original.planViewWire;
     },
     prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {

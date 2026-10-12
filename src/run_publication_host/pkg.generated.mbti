@@ -165,6 +165,8 @@ pub fn bind_client_effect_producer_artifact(PreparedClientEffectRun, @physical_s
 
 pub fn bind_client_effect_source_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[PreparedClientEffectRun, ClientEffectSourceDispatchIssue]
 
+pub fn[Store, E] bind_client_local_adopted_host_material(Store, () -> Result[ClientLocalAdoptionCurrentObservation[Store], E]) -> Result[ClientLocalAdoptedHostMaterial[Store, E], ClientLocalAdoptedCurrentIssue[E]]
+
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
 pub fn bind_client_model_raw_response(ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelRawResponse, ClientModelRawCaptureIssue]
@@ -581,7 +583,37 @@ pub fn client_keyed_request_value(ClientKeyedRequest, ClientKeyedAcquisition) ->
 
 pub fn client_keyed_request_wire(ClientKeyedRequest, Int, Int, Int) -> Result[String, ClientKeyedRequestIssue]
 
+pub fn[Store, E] client_local_adopted_account_outcome(ClientLocalAdoptedHostMaterial[Store, E], Store, @execution_authorization.AccessTuple) -> Result[@execution_authorization.AccountOutcome, ClientLocalAdoptedCurrentIssue[E]]
+
+pub fn[Store, E] client_local_adopted_authority_scope_body(ClientLocalAdoptedHostMaterial[Store, E], Store, String, String) -> Result[Bytes, ClientLocalAdoptedCurrentIssue[E]]
+
+pub fn[Store, E] client_local_adopted_current_account(ClientLocalAdoptedHostMaterial[Store, E], Store) -> Result[@execution_authorization.AdmittedAccountConfiguration, ClientLocalAdoptedCurrentIssue[E]]
+
+pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccountConfiguration, String, String, String) -> Result[Bytes, ClientLocalAuthorityScopeIssue]
+
 pub fn client_local_completion_free_catalog_cid() -> String
+
+pub fn client_local_configuration_custody_body(Bytes, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_configuration_custody_record(String, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_initialization_body(@execution_authorization.AdmittedAccountConfiguration, Bytes, Bytes, ClientLocalInitializationPhysical) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_initialization_record_body(Array[String]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_journal_custody_body(Bytes, Bytes, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_journal_custody_record(String, String, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_original_record_body(Array[(String, String)]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_original_record_fields(Bytes, Array[String]) -> Result[Array[String], ClientLocalOriginalCodecIssue]
+
+pub fn client_local_product_assets() -> ClientLocalProductAssets
+
+pub fn client_local_product_bootstrap_originals(String, String) -> Result[ClientLocalProductBootstrapOriginals, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
@@ -982,6 +1014,8 @@ pub fn handoff_client_model_read_capacity(ClientModelReadPreparation, ClientComp
 pub fn handoff_client_model_read_consumer_input_capacity(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
 
 pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
+
+pub fn[E] inspect_client_empty_cancellation_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], E, E) -> Result[Unit, E]
 
 pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteEffectTaskProgress, ClientRemoteEffectTaskProgressIssue]
 
@@ -2299,6 +2333,47 @@ pub enum ClientKeyedRequestPoll {
 
 type ClientKeyedRequestPreparation
 
+pub(all) enum ClientLocalAdoptedCurrentIssue[E] {
+  Physical(E)
+  NotAdopted
+  CommitUnknown
+  InvalidOriginal
+  ForeignStore
+  ChangedCurrent
+  Scope(ClientLocalAuthorityScopeIssue)
+}
+
+pub struct ClientLocalAdoptedHostMaterial[Store, E] {
+  store : Store
+  account : @execution_authorization.AdmittedAccountConfiguration
+  account_original : Bytes
+  adoption : ClientJournalPhysicalRow
+  generation : (UInt64, UInt64)
+  current : () -> Result[ClientLocalAdoptionCurrentObservation[Store], E]
+}
+
+pub(all) enum ClientLocalAdoptionCurrentObservation[Store] {
+  NotAdopted
+  CommitUnknown
+  Observed(Store, @execution_authorization.AdmittedAccountConfiguration, Bytes, ClientJournalPhysicalRow, (UInt64, UInt64))
+}
+
+pub(all) enum ClientLocalAuthorityScopeIssue {
+  InvalidInput
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalInitializationPhysical {
+  nonce : String
+  parent : (UInt64, UInt64)
+  root : (UInt64, UInt64)
+  source_root : (UInt64, UInt64)
+  source_file : String
+  source_path : String
+  source_generation : (UInt64, UInt64, Int64)
+  state_name : String
+}
+
 type ClientLocalNormalization
 
 pub(all) enum ClientLocalNormalizationIssue {
@@ -2309,6 +2384,26 @@ pub(all) enum ClientLocalNormalizationIssue {
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
 
+pub(all) enum ClientLocalOriginalCodecIssue {
+  Encoding
+  InvalidOriginal
+  ConfigurationLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalOriginalConfigurationFile {
+  content_cid : String
+  device : UInt64
+  inode : UInt64
+  name : String
+  size : Int64
+}
+
+pub(all) struct ClientLocalOriginalManagedRoot {
+  device : UInt64
+  inode : UInt64
+  path : String
+}
+
 pub(all) struct ClientLocalProductAssets {
   environment : String
   registry : String
@@ -2316,6 +2411,12 @@ pub(all) struct ClientLocalProductAssets {
   fragment : String
   ordered : String?
   result_policy : String
+}
+
+pub(all) struct ClientLocalProductBootstrapOriginals {
+  common : ClientLocalProductCommonOriginals
+  environment : String
+  compute : String
 }
 
 pub(all) struct ClientLocalProductCommonOriginals {

@@ -1,0 +1,370 @@
+///|
+fn physical_journal_current(ticket : Int) -> Int = "actql_host" "journal_current"
+
+///|
+fn physical_journal_begin(
+  ticket : Int,
+  mode : Int,
+  namespace_bytes : Int,
+  key_bytes : Int,
+) -> Int = "actql_host" "journal_begin"
+
+///|
+fn physical_journal_query_byte(ticket : Int, index : Int, byte : Int) -> Int = "actql_host" "journal_query_byte"
+
+///|
+fn physical_journal_query(ticket : Int) -> Int = "actql_host" "journal_query"
+
+///|
+fn physical_journal_length(ticket : Int, field : Int) -> Int = "actql_host" "journal_length"
+
+///|
+fn physical_journal_byte(ticket : Int, field : Int, index : Int) -> Int = "actql_host" "journal_byte"
+
+///|
+fn physical_journal_revision(ticket : Int) -> Int64 = "actql_host" "journal_revision"
+
+///|
+fn physical_journal_release(ticket : Int) -> Int = "actql_host" "journal_release"
+
+///|
+/// Original Core inputs and transient physical query custody only. The Host
+/// keeps the same SQLite transaction and epoch/config/current fences borrowed.
+priv struct StoredJournalObservation {
+  material : Int
+  configuration : Int
+  physical : Int
+  slot : @buffers.BufferSlot
+  mut invoked : Bool
+  mut closing : Bool
+  mut outcome : Result[@local_run.LocalSavedSubmissionObservation, Int]?
+}
+
+///|
+fn journal_current(
+  value : Instance,
+  child : StoredJournalObservation,
+  plan : @local_run.LocalRunPlan,
+) -> Result[Unit, Int] {
+  if value.closing || value.runtime_closing || child.closing {
+    return Err(-5)
+  }
+  guard value.run_configurations.get(child.configuration) is Some(current) else {
+    return Err(-2)
+  }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  let permit = @authorization.bind_dispatch_authorization(
+    current.account,
+    current.tuple,
+    @authorization.Activation,
+    @host.prepared_client_identity(@local_run.local_run_prepared(plan)).program_definition_cid,
+    current.context_cid,
+  )
+  guard permit is Ok(permit) &&
+    @local_run.authorize_local_compute_configuration(
+      plan,
+      permit,
+      current.account,
+      current.tuple,
+      current.context_cid,
+    )
+    is Ok(_) else {
+    return Err(-32)
+  }
+  // A trusted physical epoch/config/transaction fence, not a caller grant.
+  if physical_journal_current(child.physical) == 0 {
+    Ok(())
+  } else {
+    Err(-41)
+  }
+}
+
+///|
+fn journal_query_row(
+  value : Instance,
+  child : StoredJournalObservation,
+  plan : @local_run.LocalRunPlan,
+  mode : Int,
+  table_name : String,
+  key : String,
+) -> Result[@host.ClientJournalPhysicalRow?, Int] {
+  physical_journal_row(
+    child.physical,
+    () => journal_current(value, child, plan),
+    mode,
+    table_name,
+    key,
+  )
+}
+
+///|
+/// Shared physical transfer for an original scoped namespace-reader loan.
+/// The owning caller supplies its existing typed current fence before/after
+/// every query. This transfer cannot issue scope, completeness or permission.
+fn physical_journal_row(
+  physical : Int,
+  current : () -> Result[Unit, Int],
+  mode : Int,
+  table_name : String,
+  key : String,
+) -> Result[@host.ClientJournalPhysicalRow?, Int] {
+  match current() {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  let namespace_bytes = @utf8.encode(table_name)
+  let key_bytes = @utf8.encode(key)
+  if namespace_bytes.length() > 4096 ||
+    key_bytes.length() > 4096 ||
+    physical_journal_begin(
+      physical,
+      mode,
+      namespace_bytes.length(),
+      key_bytes.length(),
+    ) !=
+    0 {
+    return Err(-41)
+  }
+  let mut ordinal = 0
+  for bytes in [namespace_bytes, key_bytes] {
+    for index in 0..<bytes.length() {
+      if physical_journal_query_byte(physical, ordinal, bytes[index].to_int()) !=
+        0 {
+        return Err(-41)
+      }
+      ordinal += 1
+    }
+  }
+  let code = physical_journal_query(physical)
+  if code == 1 {
+    if physical_journal_release(physical) != 0 {
+      return Err(-41)
+    }
+    return current().map(_ => None)
+  }
+  if code != 0 {
+    return Err(-41)
+  }
+  let key_length = physical_journal_length(physical, 0)
+  let body_length = physical_journal_length(physical, 1)
+  let revision = physical_journal_revision(physical)
+  if key_length <= 0 ||
+    key_length > 4096 ||
+    body_length < 0 ||
+    body_length > 262144 ||
+    revision < 0L {
+    return Err(-41)
+  }
+  let fields : Array[Bytes] = []
+  for (field, length) in [(0, key_length), (1, body_length)] {
+    let bytes : FixedArray[Byte] = FixedArray::make(length, 0)
+    for index in 0..<length {
+      let byte = physical_journal_byte(physical, field, index)
+      if byte < 0 || byte > 255 {
+        return Err(-41)
+      }
+      bytes[index] = byte.to_byte()
+    }
+    fields.push(Bytes::from_array(bytes[:]))
+  }
+  let actual_key = @utf8.decode(fields[0]) catch { _ => return Err(-41) }
+  if physical_journal_release(physical) != 0 {
+    return Err(-41)
+  }
+  match current() {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  Ok(Some({ key: actual_key, body: fields[1], revision, }))
+}
+
+///|
+/// Reserve the physical query/decoder holding before allocating/calling it.
+/// The original material's input borrow owns the Reference and checked rows.
+#export_name("actql_journal_reserve")
+pub fn reserve_journal_observation(
+  nonce : Int64,
+  material : Int,
+  configuration : Int,
+  physical_ticket : Int,
+  physical_copy_bytes : Int64,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.materials.get(material) is Some(parent) &&
+    parent.produced &&
+    parent.submission is Some({ rows: Some(_), .. }) &&
+    value.run_configurations.contains(configuration) else {
+    return -2
+  }
+  if value.closing || value.runtime_closing || parent.output_closed {
+    return -5
+  }
+  if physical_ticket <= 0 ||
+    value.next_handle == 2147483647 ||
+    value.copies.values().any(pair => pair.1 == physical_ticket) ||
+    value.workspaces.values().any(pair => pair.0 == physical_ticket) ||
+    value.native_commands
+    .values()
+    .any(command => command.physical_ticket == physical_ticket) ||
+    value.result_chunks
+    .values()
+    .any(chunk => chunk.physical_ticket == physical_ticket) {
+    return -3
+  }
+  let slot = match
+    @buffers.reserve_output_buffer(value.pool, 1048576, physical_copy_bytes, () => {
+      physical_input_cleanup(physical_ticket) == 0
+    }) {
+    Ok(value) => value
+    Err(issue) => return issue_code(issue)
+  }
+  let handle = value.next_handle
+  value.journal_observations[handle] = {
+    material,
+    configuration,
+    physical: physical_ticket,
+    slot,
+    invoked: false,
+    closing: false,
+    outcome: None,
+  }
+  value.copies[handle] = (slot, physical_ticket)
+  value.next_handle += 1
+  handle
+}
+
+///|
+/// Core chooses each query and validates the same original saved snapshot.
+/// Completion here is inspection only; physical COMMIT/Store ACK is separate.
+#export_name("actql_journal_inspect")
+pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) &&
+    value.materials.get(child.material) is Some(material) &&
+    material.submission is Some({ rows: Some(rows), .. }) &&
+    value.runs.get(material.run) is Some(record) &&
+    record.outcome is Some(Ok(plan)) &&
+    value.preparations.get(record.preparation)
+    is Some({ submitted: Some(original), .. }) else {
+    return -2
+  }
+  if child.invoked {
+    return -33
+  }
+  match journal_current(value, child, plan) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  child.invoked = true
+  let scan = (table_name, cursor) => {
+    journal_query_row(value, child, plan, 0, table_name, cursor)
+  }
+  let read = (table_name, key) => {
+    journal_query_row(value, child, plan, 1, table_name, key)
+  }
+  let outcome = @local_run.inspect_local_saved_submission(
+    rows,
+    plan,
+    original,
+    1024,
+    scan,
+    read,
+    row => {
+      let record = match @host.decode_client_run_journal_row(row.body) {
+        Ok(value) => value
+        Err(_) => return Err(-31)
+      }
+      if record.checkpoint is Some(_) ||
+        record.effect_material_originals is Some(_) {
+        return Err(-42)
+      }
+      if record.publication_policy_originals is Some(wire) &&
+        @host.read_client_run_policy_originals(wire) is Err(_) {
+        return Err(-31)
+      }
+      Ok({
+        request: record.request,
+        definition: record.definition,
+        checkpoint: None,
+      })
+    },
+    () => {
+      @host.inspect_client_empty_cancellation_inventory(
+        1024, scan, read, -31, -42,
+      )
+    },
+    -31,
+  ).map_err(issue => {
+    match issue {
+      Inspection(code) => code
+      UnresolvedHistory => -43
+      NotAdmitted => -44
+      Rows(_) => -31
+    }
+  })
+  match journal_current(value, child, plan) {
+    Ok(_) => ()
+    Err(code) => {
+      child.outcome = Some(Err(code))
+      return code
+    }
+  }
+  child.outcome = Some(outcome)
+  match outcome {
+    Ok(_) => 0
+    Err(code) => code
+  }
+}
+
+///|
+#export_name("actql_journal_revision")
+pub fn journal_observation_revision(
+  nonce : Int64,
+  handle : Int,
+  field : Int,
+) -> Int64 {
+  guard selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) &&
+    !child.closing &&
+    child.outcome is Some(Ok(observed)) &&
+    value.materials.get(child.material) is Some(material) &&
+    material.submission is Some({ rows: Some(rows), .. }) &&
+    value.runs.get(material.run) is Some(record) &&
+    record.outcome is Some(Ok(plan)) &&
+    value.preparations.get(record.preparation)
+    is Some({ submitted: Some(original), .. }) &&
+    journal_current(value, child, plan) is Ok(_) else {
+    return -1L
+  }
+  match
+    @local_run.local_saved_submission_revisions(observed, rows, plan, original) {
+    Ok((admission, run, submission)) =>
+      match field {
+        0 => admission
+        1 => run
+        2 => submission
+        _ => -1L
+      }
+    Err(_) => -1L
+  }
+}
+
+///|
+#export_name("actql_journal_close")
+pub fn close_journal_observation(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) else {
+    return -2
+  }
+  child.closing = true
+  child.outcome = None
+  let result = status(@buffers.close_buffer(value.pool, child.slot))
+  if result == 0 {
+    value.journal_observations.remove(handle) |> ignore
+    value.copies.remove(handle) |> ignore
+  }
+  result
+}
