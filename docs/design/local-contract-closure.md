@@ -200,7 +200,7 @@ and proof status remain those explicitly recorded in the adopted manifest.
 Each Local input declaration selects the existing
 `actql-local-relation-snapshot-contract/0.1` interpretation body at
 `spec/contracts/actql-local-relation-snapshot.json`, pointer `""`, CID
-`sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701`.
+`sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c`.
 Selection includes unused declarations and does not depend on whether concrete
 materialization is already supplied. Its two declared dependencies select the
 canonical value grammar and `actql-local-source-reference/0.1`, CID

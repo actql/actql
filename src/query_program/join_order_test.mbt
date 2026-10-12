@@ -59,7 +59,7 @@ test "JOIN ORDER references output aliases inside expressions" {
     // The alias denotes left.x; input left.y must never be selected for this sort.
     assert_false(wire.contains("left.y"))
     assert_true(wire.contains("\"fields\":[\"y\"]"))
-    assert_true(wire.contains("\"aql_join_visible\""))
+    assert_true(wire.contains("\"aql_join_visible_13\""))
   }
 }
 
@@ -97,7 +97,7 @@ test "JOIN ORDER qualified input bypasses the output alias" {
   )
   assert_true(wire.contains("left.y"))
   assert_true(wire.contains("\"fields\":[\"y\"]"))
-  assert_true(wire.contains("\"aql_join_visible\""))
+  assert_true(wire.contains("\"aql_join_visible_13\""))
 }
 
 ///|

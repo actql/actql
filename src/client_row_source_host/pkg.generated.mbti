@@ -146,6 +146,8 @@ pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequi
 
 pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64
 
+pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger) -> @query_planning.QueryRequirement?
+
 pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
 pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
