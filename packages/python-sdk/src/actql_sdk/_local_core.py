@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 50
+LOCAL_CORE_ABI = 51
 
 
 class LocalCoreError(RuntimeError):
@@ -206,6 +206,7 @@ _PROGRAM_SIGNATURES = {
 _RUN_SIGNATURES = {
     'dispatch_action': ('i64 i32 i32 i32', 'i32'),
     'install_configuration': ('i64 i32', 'i32'),
+    'install_current_configuration': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i32', 'i32'),
     'prepare': ('i64 i32', 'i32'),
     'restore': ('i64 i32 i32', 'i32'),

@@ -247,6 +247,10 @@ pub fn authorize_publisher(
   if !stored_preflight_current(value, parent, current.account) {
     return -32
   }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
   let (selected_stage, index) = match stage {
     0 if publication == 0 => (@publication.Request, None)
     1 | 2 => {

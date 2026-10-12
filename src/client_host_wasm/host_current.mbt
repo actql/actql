@@ -318,6 +318,11 @@ pub fn close_host_current(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.run_configurations
+    .values()
+    .any(configuration => configuration.host_current == Some(handle)) {
+    return -9
+  }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))
     if result != 0 {

@@ -1842,3 +1842,21 @@ before returning the original input borrow; failure retains the same ticket and
 parent. No global memory, full Host adoption, public Local, runtime/wheel or
 Store-ACK completion follows from this component connection. The default 100M
 fuel and original Root limits are unchanged.
+
+Private ABI51 adds `actql_run_install_current_configuration` for product
+assembly. It uses the original live `actql_current_*` material and only the
+retained namespace and original Result Policy setup input. The existing Common
+Owner supplies Account and authority scope; its original Account CID is the
+policy CID and its scope is the authorization context, matching the Native
+product setup. Python cannot supply replacements for those CIDs or the Account.
+The existing Result Policy Owner still admits the exact original body/CID.
+
+The typed configuration retains its current parent and input. Parent close
+rejects while configurations use it. Preparation, restoration, submission
+projection, dispatch/start, Source-free Compute and publisher callbacks recheck
+the same current material before protected work. Cleanup retains its existing
+paths when current is unavailable. This configuration is not a Run acceptance,
+publisher grant or Store ACK. The low-level trusted configuration entry remains
+for existing private component/Host uses; product Local assembly does not use
+it as a fallback. Public assembly and real runtime/wheel acceptance are separate
+remaining connections.

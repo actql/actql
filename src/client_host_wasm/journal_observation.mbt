@@ -52,6 +52,10 @@ fn journal_current(
   guard value.run_configurations.get(child.configuration) is Some(current) else {
     return Err(-2)
   }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
   let permit = @authorization.bind_dispatch_authorization(
     current.account,
     current.tuple,

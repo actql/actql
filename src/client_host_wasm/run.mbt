@@ -10,6 +10,7 @@ priv struct StoredRunConfiguration {
   policy_cid : String
   run_namespace : String
   source_free_result_policy : (String, String)?
+  host_current : Int?
 }
 
 ///|
@@ -104,9 +105,106 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
     policy_cid,
     run_namespace,
     source_free_result_policy,
+    host_current: None,
   }
   value.next_handle += 1
   handle
+}
+
+///|
+/// Product assembly uses original current material; no Account/scope/context
+/// or policy CID supplied by Python can stand in for that existing Owner.
+#export_name("actql_run_install_current_configuration")
+pub fn install_current_run_configuration(
+  nonce : Int64,
+  current : Int,
+  input : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.host_currents.get(current) is Some(original) &&
+    original.material is Some(material) &&
+    original.principal is Some(principal) &&
+    original.connection is Some(connection) &&
+    value.copies.get(input) is Some((slot, physical)) else {
+    return -2
+  }
+  if value.next_handle == 2147483647 {
+    return -4
+  }
+  let account = match
+    @host.client_local_adopted_current_account(material, original.store) {
+    Ok(account) => account
+    Err(issue) => return host_current_issue(issue)
+  }
+  let body = match
+    @host.client_local_adopted_authority_scope_body(
+      material,
+      original.store,
+      principal,
+      connection,
+    ) {
+    Ok(body) => body
+    Err(issue) => return host_current_issue(issue)
+  }
+  guard input_cursor(value, slot) is Some(cursor) &&
+    @decode.closed_object(cursor, ["namespace", "source_free_result_policy"])
+    is Ok(object) &&
+    required_text(object, "namespace") is Some(run_namespace) &&
+    @decode.required(object, "source_free_result_policy") is Ok(policy_cursor) &&
+    @decode.closed_object(policy_cursor, ["cid", "body"]) is Ok(policy_object) &&
+    required_text(policy_object, "cid") is Some(cid) &&
+    required_text(policy_object, "body") is Some(policy_body) &&
+    @host.admit_source_free_result_policy_body(
+      cid, policy_body, 65536, 8192, 64,
+    )
+    is Ok(_) else {
+    return -30
+  }
+  // Native's existing product setup uses this original authority scope as the
+  // authorization context and the actual admitted Account CID as its policy.
+  let authority_scope_cid = "sha256:" + @sha.hex(body)
+  let handle = value.next_handle
+  let borrow = match
+    @buffers.borrow_buffer(value.pool, slot, () => {
+      physical_reader_stop(physical, handle) == 0
+    }) {
+    Ok(borrow) => borrow
+    Err(issue) => return issue_code(issue)
+  }
+  value.run_configurations[handle] = {
+    borrow,
+    account,
+    tuple: { principal, connection, resource: "run", operation: "submit", },
+    authority_scope_cid,
+    context_cid: authority_scope_cid,
+    policy_cid: account.configuration_cid(),
+    run_namespace,
+    source_free_result_policy: Some((cid, policy_body)),
+    host_current: Some(current),
+  }
+  value.next_handle += 1
+  handle
+}
+
+///|
+/// Recheck the existing original current supplier before protected Core work.
+/// Low-level installed configurations retain their original trusted Host use;
+/// product Local assembly never falls back to that raw input entry.
+fn run_configuration_current(
+  value : Instance,
+  configuration : StoredRunConfiguration,
+) -> Result[Unit, Int] {
+  match configuration.host_current {
+    None => Ok(())
+    Some(handle) => {
+      let code = validate_host_current(value.nonce, handle)
+      if code == 0 {
+        Ok(())
+      } else {
+        Err(code)
+      }
+    }
+  }
 }
 
 ///|
@@ -174,6 +272,10 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
   }
   if record.invoked {
     return -33
+  }
+  match run_configuration_current(value, configuration) {
+    Ok(_) => ()
+    Err(code) => return code
   }
   record.invoked = true
   guard input_cursor(value, record.slot) is Some(cursor) &&
@@ -257,6 +359,10 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
     restoration.outcome is Some(Ok(restored)) &&
     restoration.expected_definition_cid is Some(definition_cid) else {
     return -2
+  }
+  match run_configuration_current(value, configuration) {
+    Ok(_) => ()
+    Err(code) => return code
   }
   if (record.restoration is Some(previous) && previous != materials) ||
     (record.invoked && record.restoration is None) {

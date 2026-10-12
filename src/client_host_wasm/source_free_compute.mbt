@@ -97,6 +97,10 @@ fn configure_source_free_compute(
   if record.invoked {
     return -33
   }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
   record.current_configuration = Some(current_configuration)
   record.invoked = true
   guard input_cursor(value, record.borrow.slot) is Some(cursor) &&

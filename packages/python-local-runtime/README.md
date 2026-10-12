@@ -8,7 +8,7 @@ installation keeps its existing dependencies.
 This source directory is a recipe, not a shipped runtime. It contains no Wasm
 module or native library. A release producer must supply the exact committed
 source artifact and its independent build and execution receipts. The existing
-Core loader validates ABI50; an older module is not a fallback. Component
+Core loader validates ABI51; an older module is not a fallback. Component
 checksums establish package integrity, not current publication permission,
 Run admission, durable ACK, or product acceptance.
 
@@ -27,7 +27,7 @@ The supplied directory contains `artifact.json`, `client_host_wasm.wasm`,
 - `source_sha`: the complete clean recipe/source commit.
 - `package_version`: the SDK/runtime release cohort version.
 - `platform`: `darwin-arm64`.
-- `core_abi`: the existing private Core ABI, currently 50.
+- `core_abi`: the existing private Core ABI, currently 51.
 - `wasmtime_version`: `38.0.0`.
 - `module` and `duckdb`: `{file, bytes, sha256}`, with the fixed filenames above.
 - `duckdb_version`: the actual library's `vMAJOR.MINOR.PATCH` string, independently
