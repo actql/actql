@@ -61,6 +61,23 @@ cannot start transport or regain the consumed attempt when a late binding arrive
 It keeps the original Unknown/cleanup responsibility. This is the initial private
 one-Slot connection, not accepted public funding or multi-Slot raw persistence.
 
+The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
+`registerModelProviders` entry from trusted, already retained installation
+selections. It does not load packages, derive a numerical profile or reconstruct
+opaque Owners from CIDs. Missing originals or a missing consuming runtime hook
+refuse before Provider installation. Exact Task/selector/payload selection is a
+byte/string comparison; Common retains schema interpretation and validation.
+Projection, request and response bounds are distinct immutable declarations.
+The selected SDK, endpoint, generation completion basis, original raw profile,
+quantity and read selections stay with their existing Host/Model Owners.
+
+This is private assembler preparation, not the public user installation API:
+the package still has no public exports. The Host must verify actual builder,
+codec, build/lock and validator originals and supply justified complete physical
+funding before public use. Frozen objects, matching declarations and fixture
+allowances do not establish those facts. The public entry and external-package
+example remain dependent on that original installation/funding acceptance.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final
