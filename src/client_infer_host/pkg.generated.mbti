@@ -6,6 +6,7 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
+  "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
   "actql/actql/physical_resources",
@@ -24,6 +25,8 @@ pub fn acquire_output(Execution) -> OutputUse?
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
 pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
+
+pub fn advance_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], Int) -> @physical_resources.OriginalStateWritePoll
 
 pub fn advance_result_publication(ResultPublication, Int) -> Result[(Bool, Int), ResultPublicationIssue]
 
@@ -117,6 +120,8 @@ pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn park_original_model_resources(Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Issue]
 
+pub fn park_original_model_resources_for_state_write(Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Issue]
+
 pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
@@ -158,6 +163,8 @@ pub fn start_complete_observation_issuance(Array[Execution], @physical_resources
 pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
+
+pub fn start_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
 pub fn start_original_model_preparation(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 

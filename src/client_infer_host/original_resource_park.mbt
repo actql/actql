@@ -6,6 +6,25 @@ pub fn park_original_model_resources(
   active : Execution,
   scope : @publication_host.ClientModelReadScope,
 ) -> Result[@publication_host.ClientModelResourcePark, Issue] {
+  park_original_model_resources_impl(active, scope, false)
+}
+
+///|
+// Explicit prepaid current-census operation. This does not reinterpret an
+// ordinary park or adopt physical Writer/Store funding from logical work.
+pub fn park_original_model_resources_for_state_write(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+) -> Result[@publication_host.ClientModelResourcePark, Issue] {
+  park_original_model_resources_impl(active, scope, true)
+}
+
+///|
+fn park_original_model_resources_impl(
+  active : Execution,
+  scope : @publication_host.ClientModelReadScope,
+  write_state : Bool,
+) -> Result[@publication_host.ClientModelResourcePark, Issue] {
   guard !active.advancing && !active.cancelled && !active.reclaimed &&
     active.phase is Model && active.rows is Some(rows) &&
     active.call_scope is Some(call_scope) && active.model is Some(model) &&
@@ -20,9 +39,16 @@ pub fn park_original_model_resources(
   }
   // A successful park is returned directly to its existing caller/custody.
   // Do not add a fallible post-fence bind that could discard its only handle.
-  @publication_host.park_client_model_read_consumer(
-    scope, consumer, bound.compiled, bound.definition, plan,
-  ).map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
+  let result = if write_state {
+    @publication_host.park_client_model_read_consumer_for_state_write(
+      scope, consumer, bound.compiled, bound.definition, plan,
+    )
+  } else {
+    @publication_host.park_client_model_read_consumer(
+      scope, consumer, bound.compiled, bound.definition, plan,
+    )
+  }
+  result.map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
 }
 
 ///|
