@@ -1707,6 +1707,30 @@
       "line": 7,
       "count": 1,
       "reason": "Reviewed WITH terminology-cutover snapshot of the already adopted October 11 ModelTask 0.2 specification. Preserve its original document bytes and digest; this exact historical source context does not authorize another writer or contract."
+    },
+    {
+      "path": "scripts/fixtures/python-local-payload-record.json",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "c009fbf8de034d50caddc311d08a966e14dd142d6680e3ca6b21d3d119d75ffb",
+      "line": 3,
+      "count": 1,
+      "reason": "Existing independent private Python ABI fixture for the unchanged legacy publication payload record. Frozen source context only; no new writer or version adoption."
+    },
+    {
+      "path": "scripts/fixtures/python-local-payload-reservation.json",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "97946af22db98459b1fdc86920d721d93741217e28733ceff764c6364e7370a2",
+      "line": 7,
+      "count": 1,
+      "reason": "Existing independent private Python ABI fixture for the unchanged legacy publication payload record. Frozen source context only; no new writer or version adoption."
+    },
+    {
+      "path": "scripts/fixtures/python-local-payload-writing.json",
+      "token": "actql-publication-payload-record/0.2",
+      "contextSha256": "0ae9451564dfb79a24165029f511a97e74a88e050ef4743ecb2e8e54fded58ae",
+      "line": 7,
+      "count": 1,
+      "reason": "Existing independent private Python ABI fixture for the unchanged legacy publication payload record. Frozen source context only; no new writer or version adoption."
     }
   ]
 }
