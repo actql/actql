@@ -1,0 +1,96 @@
+{
+  "startedAt": "2026-10-12T02:41:37.588Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Read-only check-actql-spec-family",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs"
+      ],
+      "startedAt": "2026-10-12T02:41:37.743Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:41:41.875Z",
+      "endedAt": "2026-10-12T02:41:41.894Z"
+    },
+    {
+      "name": "Read-only check-canonical-json",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs"
+      ],
+      "startedAt": "2026-10-12T02:41:42.153Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:41:46.461Z",
+      "endedAt": "2026-10-12T02:41:46.464Z"
+    },
+    {
+      "name": "Exact authored MoonBit formatting",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import assert from'node:assert/strict';import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';for(const path of process.argv.slice(1))assert.equal(execFileSync('moonfmt',[path],{encoding:'utf8',maxBuffer:4194304}),readFileSync(path,'utf8'),path);",
+        "src/query_program/row_watermark_source_test.mbt",
+        "src/query_program/query_script_carriers.mbt",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/sga_argument_roles.mbt"
+      ],
+      "startedAt": "2026-10-12T02:41:46.566Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:41:46.831Z",
+      "endedAt": "2026-10-12T02:41:46.834Z"
+    },
+    {
+      "name": "Product and specification whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "c3045502f",
+        "HEAD",
+        "--",
+        ".",
+        ":(exclude)reviews/**"
+      ],
+      "startedAt": "2026-10-12T02:41:46.964Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:41:47.161Z",
+      "endedAt": "2026-10-12T02:41:47.165Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "0284b631-0859-456e-9fae-b3fae31ee130",
+    "pid": 33562,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T02:41:37.731Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ZTU6kF"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T02:41:47.296Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

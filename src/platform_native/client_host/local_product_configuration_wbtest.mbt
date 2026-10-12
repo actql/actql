@@ -249,3 +249,81 @@ test "reopening or repeating product staging never infers first creation from ab
   )
   assert_true(reopened.close())
 }
+
+///|
+#borrow(root)
+extern "C" fn product_test_parent_mode(
+  root : @filesystem.Root,
+  mode : Int,
+) -> Bool = "actql_native_filesystem_test_private_mode"
+
+///|
+test "product configuration uses trusted HOME-like parent and retains private child" {
+  let path = product_test_parent("product-home-parent")
+  let parent = @filesystem.open_root(path).unwrap()
+  assert_true(product_test_parent_mode(parent, 0o750))
+  assert_true(parent.private_ownership() is Err(@filesystem.RootOpen(_)))
+  let crypto = epoch_test_crypto()
+  let originals = [("config.json", b"{}")]
+  let session = begin_native_local_product_configuration(
+    path, "product-home", originals, crypto,
+  ).unwrap()
+  session.stage_configuration().unwrap()
+  let child = parent.open_child("product-home").unwrap()
+  let generation = child.inspect_generation("config.json").unwrap()
+  let intent = local_adoption_read(parent, "product-initialization.json", 8192L).unwrap()
+  let witness = local_adoption_read(
+    parent, "product-directory-custody.json", 8192L,
+  ).unwrap()
+  assert_true(session.close())
+  let restored = restore_native_local_product_configuration(
+    path, "product-home", crypto,
+  ).unwrap()
+  assert_eq(restored.originals, originals)
+  assert_eq(child.private_ownership().unwrap(), restored.root_ownership)
+  assert_eq(child.inspect_generation("config.json").unwrap(), generation)
+  assert_eq(
+    local_adoption_read(parent, "product-initialization.json", 8192L).unwrap(),
+    intent,
+  )
+  assert_eq(
+    local_adoption_read(parent, "product-directory-custody.json", 8192L).unwrap(),
+    witness,
+  )
+  assert_true(restored.close())
+}
+
+///|
+test "HOME-like restore refuses missing intent without recreating original custody" {
+  let path = product_test_parent("product-home-missing-intent")
+  let parent = @filesystem.open_root(path).unwrap()
+  assert_true(product_test_parent_mode(parent, 0o750))
+  let crypto = epoch_test_crypto()
+  let session = begin_native_local_product_configuration(
+    path,
+    "product-home-missing",
+    [("config.json", b"{}")],
+    crypto,
+  ).unwrap()
+  session.stage_configuration().unwrap()
+  let child = parent.open_child("product-home-missing").unwrap()
+  let generation = child.inspect_generation("config.json").unwrap()
+  assert_true(session.close())
+  parent
+  .reclaim_generation(
+    "product-initialization.json",
+    parent.inspect_generation("product-initialization.json").unwrap().unwrap(),
+  )
+  .unwrap()
+  assert_true(
+    restore_native_local_product_configuration(
+      path, "product-home-missing", crypto,
+    )
+    is Err(CustodyLost),
+  )
+  assert_eq(
+    parent.inspect_generation("product-initialization.json").unwrap(),
+    None,
+  )
+  assert_eq(child.inspect_generation("config.json").unwrap(), generation)
+}

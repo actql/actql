@@ -1,0 +1,3 @@
+Total tests: 3, passed: 3, failed: 0.
+["moon","test","--target","js","src/query_program/row_watermark_source_test.mbt"]: executed; counts={"tests":3,"passed":3,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-rivfE8
