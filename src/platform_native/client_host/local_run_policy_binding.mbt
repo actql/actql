@@ -8,8 +8,16 @@ struct NativeLocalRunPolicyBinding {
   connection : String
   scope : String
   files : Array[NativeLocalSelectedFile]
+  read_file : NativeLocalSelectedFile
+  origin : NativeLocalRunPolicyOrigin
   profile : @host.ClientLocalRunPolicyProfile
   read_selection_cid : String
+}
+
+///|
+priv enum NativeLocalRunPolicyOrigin {
+  Selected
+  Upgraded(Bytes, String)
 }
 
 ///|
@@ -159,6 +167,8 @@ pub fn NativeLocalHostConnection::bind_run_policy_profile(
     connection,
     scope,
     files,
+    read_file: files[1],
+    origin: Selected,
     profile,
     read_selection_cid: files[1].content_cid,
   }
@@ -192,6 +202,19 @@ fn NativeLocalRunPolicyBinding::current_for(
   for file in self.files {
     if !(self.host.selected_configuration(file.name) is Ok(body) &&
       body == file.body) {
+      return false
+    }
+  }
+  if self.origin is Upgraded(packet, _) {
+    guard self.host.database.read(
+        "client_local_installation_originals", local_policy_upgrade_key,
+      )
+      is Ok(row) &&
+      row.revision == 0L &&
+      row.body == packet else {
+      return false
+    }
+    if self.host.with_installation_custody(() => Ok(())) is Err(_) {
       return false
     }
   }
@@ -571,4 +594,38 @@ pub fn NativeLocalRunPolicyBinding::lookup_submitted_run_policy(
     }
     Ok(original)
   })
+}
+
+///|
+/// Mode correspondence only, under current read authority. A Boolean here is
+/// never a read grant; both delivery paths still use the original read Owner.
+pub fn NativeLocalRunPolicyBinding::original_run_requires_finite_policy(
+  self : NativeLocalRunPolicyBinding,
+  request : @host.ClientRequestIdentity,
+) -> Result[Bool, NativeClientRunJournalIssue] {
+  if !self.current_for(self.host.journal, Some(request), false) {
+    return Err(AuthorizationDenied)
+  }
+  let run = match self.host.journal.retained(request) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
+  }
+  let finite = match run.local_run_policy_originals {
+    Some(_) => true
+    None => {
+      if self.origin is Selected {
+        return Err(CustodyLost)
+      }
+      match self.host.require_original_legacy_policy(request) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      false
+    }
+  }
+  if !self.current_for(self.host.journal, Some(request), false) {
+    return Err(AuthorizationDenied)
+  }
+  Ok(finite)
 }
