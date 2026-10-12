@@ -1,5 +1,8 @@
 ///|
-fn staged_join_pipe_edit_expected(tail : String, fields : String) -> @program.Program {
+fn staged_join_pipe_edit_expected(
+  tail : String,
+  fields : String,
+) -> @program.Program {
   // Independent ordinary JOIN, evaluated-value edits and projection. The two
   // input definitions and all explicit key/ceiling premises are retained.
   @program.parse(
@@ -19,12 +22,14 @@ fn staged_join_pipe_edit_expected(tail : String, fields : String) -> @program.Pr
   ).unwrap()
 }
 
-
 ///|
 // Build the complete current topology from the original named Values and
 // unchanged authored continuation. Binding names follow the installed seed
 // roles; no compiler output is used to generate this control.
-fn join_pipe_edit_expected(tail : String, fields : String) -> @program.Program raise {
+fn join_pipe_edit_expected(
+  tail : String,
+  fields : String,
+) -> @program.Program raise {
   check_staged_values_join_oracle(staged_join_pipe_edit_expected(tail, fields))
   @program.parse(
     (
@@ -33,7 +38,8 @@ fn join_pipe_edit_expected(tail : String, fields : String) -> @program.Program r
     shared_values_chain_tail_oracle(tail) +
     (
       #|],"results":{"rows":{"from":"aql_chain_result_5","fields":
-    ) + fields +
+    ) +
+    fields +
     (
       #|}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
@@ -41,7 +47,6 @@ fn join_pipe_edit_expected(tail : String, fields : String) -> @program.Program r
     format=Json,
   ).unwrap()
 }
-
 
 ///|
 fn check_join_pipe_edit(

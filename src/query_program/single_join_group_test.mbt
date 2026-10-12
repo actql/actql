@@ -28,8 +28,7 @@ test "single JOIN GROUP agrees with an independent complete Program" {
   // This fixture uses existing join/group/filter/sort/select contracts. The
   // authored ceiling is 10; physical names only bind the scoped input values.
   let staged = staged_single_join_group_expected()
-  match
-    @check.check_parsed(staged, check_environment(), None, check_limits()) {
+  match @check.check_parsed(staged, check_environment(), None, check_limits()) {
     Checked(_) => ()
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("the original staged JOIN GROUP oracle must remain closed")

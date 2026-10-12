@@ -20,6 +20,7 @@ pub suberror SourceFailure {
   UnsupportedBindings(@decode.Cursor)
   UnsupportedEffects(@decode.Cursor)
   Requests(@context.PrepareSourcesIssue)
+  RequestForm(@sourceviews.RequestFormIssue)
   Checks(@context.PrepareChecksIssue)
   Identity(@context.SourcePreparationIssue)
   Declarations(@stages.Issue)

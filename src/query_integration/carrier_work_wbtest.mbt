@@ -47,7 +47,9 @@ test "Carrier work bounds no-expansion classification and predecessor scans" {
       @strategy.expand_internal_carrier_tasks(graph, 0, work) is Err(WorkLimit),
     )
   }
-  let same = checkpoint_graph_issue(@strategy.expand_internal_carrier_tasks(graph, 0, 15))
+  let same = checkpoint_graph_issue(
+    @strategy.expand_internal_carrier_tasks(graph, 0, 15),
+  )
   assert_true(physical_equal(same, graph))
 }
 

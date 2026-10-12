@@ -65,7 +65,9 @@ test "bounded binary Relation branch remains one checked physical task" {
       @strategy.expand_internal_carrier_tasks(graph, 0, work) is Err(WorkLimit),
     )
   }
-  let same = checkpoint_graph_issue(@strategy.expand_internal_carrier_tasks(graph, 0, 25))
+  let same = checkpoint_graph_issue(
+    @strategy.expand_internal_carrier_tasks(graph, 0, 25),
+  )
   assert_true(physical_equal(same, graph))
   assert_true(physical_equal(@strategy.graph_program(same), checked))
   for task in 0..<2 {

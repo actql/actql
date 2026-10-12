@@ -125,7 +125,7 @@ def correlated(value, schema, request_id):
 
 
 def check_outcome(value):
-    if not valid(value, 'check_outcome'):
+    if not valid(value, 'check_outcome') or value['outcome_schema_cid'] != CONTRACT['check_outcome_schema_cid']:
         return False
     report = value.get('report', value.get('partial_report'))
     if report is None:
