@@ -129,6 +129,19 @@ fn original_prefix_execution_fixture(
   let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
     prepared,
   ).unwrap()
+  if serialization_coordinate is Some(_) {
+    let (stage, task, step) = @publication_host.client_infer_occurrence_coordinates(
+      occurrence,
+    )
+    println(
+      "keyed fixture Infer stage=" +
+      stage.to_string() +
+      ", task=" +
+      task.to_string() +
+      ", step=" +
+      step.to_string(),
+    )
+  }
   let execution_wire =
     #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
   let execution = @publication_host.read_client_infer_occurrence_model_execution(
@@ -138,9 +151,31 @@ fn original_prefix_execution_fixture(
     { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
     100000,
   ).unwrap()
-  let plan = @publication_host.issue_prepared_client_serialized_infer_plan_graph(
-    occurrence, content, execution, sequence, 1000000, 100000, 100,
-  ).unwrap()
+  let plan = match
+    @publication_host.issue_prepared_client_serialized_infer_plan_graph(
+      occurrence, content, execution, sequence, 1000000, 100000, 100,
+    ) {
+    Ok(value) => value
+    Err(@publication_host.UnsupportedProgram) =>
+      abort("fixture serialized Infer: UnsupportedProgram")
+    Err(@publication_host.ForeignExecution) =>
+      abort("fixture serialized Infer: ForeignExecution")
+    Err(@publication_host.InvalidDependency) =>
+      abort("fixture serialized Infer: InvalidDependency")
+    Err(@publication_host.Execution(_)) =>
+      abort("fixture serialized Infer: Execution")
+    Err(@publication_host.Input(_)) => abort("fixture serialized Infer: Input")
+    Err(@publication_host.Mapping(_)) =>
+      abort("fixture serialized Infer: Mapping")
+    Err(@publication_host.Result(_)) =>
+      abort("fixture serialized Infer: Result")
+    Err(@publication_host.Encoding) =>
+      abort("fixture serialized Infer: Encoding")
+    Err(@publication_host.ItemLimit(_)) =>
+      abort("fixture serialized Infer: ItemLimit")
+    Err(@publication_host.Serialization(_)) =>
+      abort("fixture serialized Infer: Serialization")
+  }
   let manifests = @publication_host.admit_client_compilation_manifests(
     @environment.compiler_grammar_manifest_wire(),
     @environment.compiler_barrier_contract_manifest_wire(),
