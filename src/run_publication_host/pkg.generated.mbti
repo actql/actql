@@ -63,6 +63,8 @@ pub fn admit_client_local_run_policy_profile(String, ClientLocalProductCommonOri
 
 pub fn admit_client_local_run_policy_upgrade(Bytes, ClientLocalRunPolicyProfile, String, String, String, String, Array[(String, String)]) -> Result[ClientLocalRunPolicyUpgrade, ClientLocalRunPolicyProfileIssue]
 
+pub fn admit_client_local_runtime_policy_upgrade(Bytes, ClientLocalRunPolicyProfile, String, String, String, String, Array[(String, String)], ClientNativeLocalScalarRuntimePair) -> Result[ClientLocalRuntimePolicyUpgrade, ClientLocalRunPolicyProfileIssue]
+
 pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
 
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -178,6 +180,8 @@ pub fn[Store, E] bind_client_local_adopted_host_material(Store, () -> Result[Cli
 pub fn bind_client_local_run_policy_original(ClientLocalRunPolicyProfile, ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String) -> Result[ClientLocalRunPolicyOriginal, ClientLocalRunPolicyProfileIssue]
 
 pub fn bind_client_local_run_policy_upgrade(ClientLocalRunPolicyProfile, String, String, String, String, Array[(String, String)], Array[ClientLocalLegacyPolicyRun]) -> Result[ClientLocalRunPolicyUpgrade, ClientLocalRunPolicyProfileIssue]
+
+pub fn bind_client_local_runtime_policy_upgrade(ClientLocalRunPolicyUpgrade, ClientNativeLocalScalarRuntimePair) -> Result[ClientLocalRuntimePolicyUpgrade, ClientLocalRunPolicyProfileIssue]
 
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
@@ -637,6 +641,8 @@ pub fn client_local_product_finite_originals(String, String, String, String, Cli
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
+pub fn client_local_run_policy_metadata_cursor(Bytes) -> Result[@decode_core.Cursor, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
 
 pub fn client_local_run_policy_original_issued_at(ClientLocalRunPolicyOriginal) -> String
@@ -656,6 +662,12 @@ pub fn client_local_run_policy_upgrade_body(ClientLocalRunPolicyUpgrade) -> Byte
 pub fn client_local_run_policy_upgrade_legacy_runs(ClientLocalRunPolicyUpgrade) -> Array[ClientLocalLegacyPolicyRun]
 
 pub fn client_local_run_policy_upgrade_read_wire(ClientLocalRunPolicyUpgrade) -> String
+
+pub fn client_local_runtime_policy_upgrade_body(ClientLocalRuntimePolicyUpgrade) -> Bytes
+
+pub fn client_local_runtime_policy_upgrade_policy(ClientLocalRuntimePolicyUpgrade) -> ClientLocalRunPolicyUpgrade
+
+pub fn client_local_runtime_policy_upgrade_runtime(ClientLocalRuntimePolicyUpgrade) -> ClientNativeLocalScalarRuntimePair
 
 pub fn client_model_current_state_match_current(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]?
 
@@ -2581,6 +2593,8 @@ pub(all) enum ClientLocalRunPolicyProfileIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientLocalRunPolicyUpgrade
+
+type ClientLocalRuntimePolicyUpgrade
 
 pub(all) enum ClientModelInputCapacityIssue {
   ForeignCallScope
