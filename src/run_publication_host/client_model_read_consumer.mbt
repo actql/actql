@@ -113,8 +113,12 @@ pub fn handoff_client_model_read_consumer_input_capacity(
 }
 
 ///|
-pub fn stop_client_model_read_consumer(value : ClientModelReadConsumer) -> Unit {
-  @resources.stop_funded_read_consumer(value.consumer)
+pub fn stop_client_model_read_consumer(
+  value : ClientModelReadConsumer,
+) -> Result[Unit, ClientModelReadPreparationIssue] {
+  @resources.stop_funded_read_consumer(value.consumer).map_err(issue => {
+    Resource(issue)
+  })
 }
 
 ///|

@@ -1036,6 +1036,16 @@ pub fn advance(active : Execution, quantum : Int) -> Result[Poll, Issue] {
 
 ///|
 pub fn cancel(active : Execution) -> Bool {
+  if active.reclaimed || active.phase is Terminal {
+    return false
+  }
+  if active.original_preparation is Some(original) &&
+    original.read is Claimed(consumer) {
+    match @publication_host.stop_client_model_read_consumer(consumer) {
+      Ok(_) => ()
+      Err(_) => return false
+    }
+  }
   if active.cancelled &&
     !active.reclaimed &&
     active.phase is Model &&
@@ -1044,14 +1054,10 @@ pub fn cancel(active : Execution) -> Bool {
     // finish the already-fenced child; it never authorizes another send.
     @model.request_model_cancel(model) |> ignore
   }
-  if active.cancelled || active.reclaimed || active.phase is Terminal {
+  if active.cancelled {
     return false
   }
   active.cancelled = true
-  if active.original_preparation is Some(original) &&
-    original.read is Claimed(consumer) {
-    @publication_host.stop_client_model_read_consumer(consumer)
-  }
   match active.phase {
     Input => @input.cancel_client_infer_input(active.input) |> ignore
     Identity =>
@@ -1344,6 +1350,15 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
   if active.advancing || !(active.phase is Terminal) || active.output_uses > 0 {
     return Ok(false)
   }
+  // Refusal retains every original child and borrow before cleanup mutates it.
+  // Stopping this ticket is not physical cleanup or reservation settlement.
+  if active.original_preparation is Some(original) &&
+    original.read is Claimed(consumer) {
+    match @publication_host.stop_client_model_read_consumer(consumer) {
+      Ok(_) => ()
+      Err(issue) => return Err(OriginalCapacity(@publication_host.Read(issue)))
+    }
+  }
   if active.suffix is Some(child) {
     match @local.cleanup_managed_provider(child) {
       Ok(true) => ()
@@ -1403,10 +1418,6 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       // Core retirement does not prove original FD/Store cleanup. The original
       // read owner retains this stopped ticket until its own physical cleanup
       // settles the read and severs both nominal back-references.
-      if active.original_preparation is Some(original) &&
-        original.read is Claimed(consumer) {
-        @publication_host.stop_client_model_read_consumer(consumer)
-      }
       active.original_preparation = None
       active.reclaimed = true
       Ok(true)
