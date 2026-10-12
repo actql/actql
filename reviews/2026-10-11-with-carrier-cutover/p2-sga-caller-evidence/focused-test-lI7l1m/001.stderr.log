@@ -1,0 +1,7 @@
+Error: [4029]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_rows_test.mbt:155:14 ]
+     │
+ 155 │     ) is Err(WrongQueryForm),
+     │              ───────┬──────  
+     │                     ╰──────── The type @actql/actql/query_syntax.Diagnostic is a struct type and not an enum or enumview, so it does not have any constructor patterns.
+─────╯

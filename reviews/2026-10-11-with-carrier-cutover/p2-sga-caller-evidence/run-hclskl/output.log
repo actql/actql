@@ -1,0 +1,4 @@
+[actql/actql] test query_program/graph_delta_json_source_test.mbt:4 ("JSON source Delta preserves its independent complete Program") failed: src/query_program/graph_delta_source_test.mbt:11:15-11:50@actql/actql FAILED: Unexpected lowering failure
+Total tests: 11, passed: 10, failed: 1.
+["moon","test","--target","js","src/query_program/graph_match_rows_test.mbt","src/query_program/traversal_nodes_test.mbt","src/query_program/graph_delta_json_source_test.mbt"]: process failed (2); counts={"tests":11,"passed":10,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-mtUOp0

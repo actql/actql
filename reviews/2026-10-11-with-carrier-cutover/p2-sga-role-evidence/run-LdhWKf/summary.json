@@ -1,0 +1,48 @@
+{
+  "startedAt": "2026-10-11T23:56:01.286Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format only SGA role adapter and independent counterexamples",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/sga_argument_roles.mbt",
+        "src/query_syntax/sga_role_contract_test.mbt",
+        "src/query_program/traversal_nodes_program.mbt",
+        "src/query_program/graph_match_rows_program.mbt",
+        "src/query_program/sga_role_lowering_test.mbt"
+      ],
+      "startedAt": "2026-10-11T23:56:01.360Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T23:56:01.506Z",
+      "endedAt": "2026-10-11T23:56:01.507Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "2a7946e6-8f8a-4eb7-827f-d1250873ff14",
+    "pid": 5111,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T23:56:01.347Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-LdhWKf"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T23:56:01.557Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

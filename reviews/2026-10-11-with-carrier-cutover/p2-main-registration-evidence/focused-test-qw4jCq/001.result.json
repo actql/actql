@@ -1,0 +1,42 @@
+{
+  "id": "001",
+  "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "args": [
+    "--test",
+    "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+    "scripts/sga-signature-role-identity.test.mjs",
+    "scripts/sga-query-call-contract.test.mjs",
+    "scripts/compilation-manifests.test.mjs",
+    "scripts/client-values-run-materials-vector.test.mjs",
+    "scripts/frontend-profile.test.mjs"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "c906508d4354088ef0aaff27eb57149df21a0030",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-12T00:49:42.568Z",
+  "endedAt": "2026-10-12T00:49:48.623Z",
+  "elapsedMs": 6052.693,
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "complete": true,
+  "verificationStatus": 0,
+  "outputComplete": true,
+  "outputLimitBytes": 67108864,
+  "counts": {
+    "tests": 89,
+    "passed": 89,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  }
+}

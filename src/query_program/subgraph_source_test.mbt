@@ -24,7 +24,7 @@ test "independent common Subgraph control is already checked" {
 ///|
 test "Subgraph source preserves its Relation selector in an independent complete Program" {
   let actual = compile_with_set(
-    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), selected AS (FROM g |> node_rows() |> SELECT id), slice AS (FROM g |> subgraph(nodes: {from: selected, id: 'id'})) FROM slice |> node_rows() |> SELECT p, node_key",
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), selected AS (FROM g |> node_rows() |> SELECT id), slice AS (FROM g |> subgraph(nodes: {from: selected, id: `id`})) FROM slice |> node_rows() |> SELECT p, node_key",
   )
   let expected = @program.parse(
     (
@@ -51,7 +51,7 @@ test "Subgraph source preserves its Relation selector in an independent complete
 ///|
 test "Subgraph predicate parameters preserve the independent expression Program" {
   let script = @query.parse_query_script(
-    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), selected AS (FROM g |> node_rows() |> SELECT id), slice AS (FROM g |> subgraph(nodes: {from: selected, id: 'id'}, edges: {gt: [@p, {literal: 0}]})) FROM slice |> node_rows() |> SELECT p, node_key",
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))), selected AS (FROM g |> node_rows() |> SELECT id), slice AS (FROM g |> subgraph(nodes: {from: selected, id: `id`}, edges: {gt: [@p, {literal: 0}]})) FROM slice |> node_rows() |> SELECT p, node_key",
     syntax_limits(),
   ).unwrap()
   let actual = compile_query_script(
@@ -117,11 +117,11 @@ test "Subgraph source preserves predicates across inline, WITH and MATCH boundar
     ", selected AS (FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id) "
   for
     suffix in [
-      "FROM g |> subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: false}) |> node_rows() |> SELECT node_key, name",
-      ", `slice` AS (FROM g |> normalize_graph() |> subgraph(nodes: {from: selected, id: 'id'})) FROM `slice` |> edge_rows() |> SELECT edge_key",
-      "FROM GRAPH g |> subgraph(nodes: {from: selected, id: 'id'}) |> MATCH WALK (a:Node) |> SELECT a.name",
-      "FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_nodes(definition: 'n', bindings: {identity: 'element'}, where: {literal: true}, fields: ['name', 'element']) |> SELECT name, element",
-      ", matched AS (FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_edges(definition: 'E', label: 'r', bindings: {identity: 'edge', source: 'source', target: 'target'}, fields: ['target', 'edge', 'source'])) FROM matched |> SELECT target, edge, source",
+      "FROM g |> subgraph(nodes: {from: selected, id: `id`}, edges: {literal: false}) |> node_rows() |> SELECT node_key, name",
+      ", `slice` AS (FROM g |> normalize_graph() |> subgraph(nodes: {from: selected, id: `id`})) FROM `slice` |> edge_rows() |> SELECT edge_key",
+      "FROM GRAPH g |> subgraph(nodes: {from: selected, id: `id`}) |> MATCH WALK (a:Node) |> SELECT a.name",
+      "FROM g |> subgraph(nodes: {from: selected, id: `id`}) |> match_nodes(definition: 'n', bindings: {identity: `element`}, where: {literal: true}, fields: [`name`, `element`]) |> SELECT name, element",
+      ", matched AS (FROM g |> subgraph(nodes: {from: selected, id: `id`}) |> match_edges(definition: 'E', label: 'r', bindings: {identity: `edge`, source: `source`, target: `target`}, fields: [`target`, `edge`, `source`])) FROM matched |> SELECT target, edge, source",
     ] {
     let actual = compile_with_set(prefix + suffix)
     match
@@ -143,9 +143,9 @@ test "Subgraph source preserves predicates across inline, WITH and MATCH boundar
 test "Subgraph source retains malformed and unadapted bodies for common refusal" {
   for
     call in [
-      "subgraph()", "subgraph(nodes: {ids: []})", "subgraph(nodes: {from: selected, id: 'missing'})",
-      "subgraph(nodes: {from: selected, id: 'node_key'})", "subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: 1})",
-      "subgraph(nodes: {from: selected, id: 'id'}, extra: true)",
+      "subgraph()", "subgraph(nodes: {ids: []})", "subgraph(nodes: {from: selected, id: `missing`})",
+      "subgraph(nodes: {from: selected, id: `node_key`})", "subgraph(nodes: {from: selected, id: `id`}, edges: {literal: 1})",
+      "subgraph(nodes: {from: selected, id: `id`}, extra: true)",
       // The adopted where selector is a separate common support gap. Keep its
       // authored expression and let that owner reject it before admission.
        "subgraph(nodes: {where: {literal: true}})",
@@ -156,24 +156,23 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
       " |> node_rows() |> SELECT node_key"
     // The current WITH owner statically checks every authored binding and
     // continuation. Preserve the malformed body and its common typed cause.
+    if call == "subgraph(nodes: {from: selected, id: `missing`})" {
+      assert_true(classified_graph_source(source) is Err(UnknownColumn))
+      continue
+    }
     match classified_graph_source(source) {
       Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
         match call {
           "subgraph()"
-          | "subgraph(nodes: {from: selected, id: 'id'}, extra: true)" =>
+          | "subgraph(nodes: {from: selected, id: `id`}, extra: true)" =>
             assert_eq(issue.kind, @pipeline.InvalidBody)
           "subgraph(nodes: {ids: []})" =>
             assert_eq(issue.kind, @pipeline.GraphMatch(Structure(InvalidBody)))
-          "subgraph(nodes: {from: selected, id: 'missing'})" =>
-            assert_eq(
-              issue.kind,
-              @pipeline.GraphMatch(Structure(UnknownMatchField("missing"))),
-            )
-          "subgraph(nodes: {from: selected, id: 'node_key'})" =>
+          "subgraph(nodes: {from: selected, id: `node_key`})" =>
             assert_true(
               issue.kind is @pipeline.GraphMatch(Structure(ContractMismatch(_))),
             )
-          "subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: 1})" =>
+          "subgraph(nodes: {from: selected, id: `id`}, edges: {literal: 1})" =>
             assert_eq(issue.kind, @pipeline.GraphMatch(ExpectedBoolean))
           "subgraph(nodes: {where: {literal: true}})" =>
             assert_eq(
@@ -192,15 +191,15 @@ test "Subgraph source keeps producer references and Carrier transitions scoped" 
   for
     (suffix, reference) in [
       (
-        "FROM g |> subgraph(nodes: {from: missing, id: 'id'}) |> node_rows() |> SELECT node_key",
+        "FROM g |> subgraph(nodes: {from: missing, id: `id`}) |> node_rows() |> SELECT node_key",
         "missing",
       ),
       (
-        ", slice AS (FROM g |> subgraph(nodes: {from: later, id: 'id'})), later AS (FROM g |> node_rows()) FROM slice |> node_rows() |> SELECT node_key",
+        ", slice AS (FROM g |> subgraph(nodes: {from: later, id: `id`})), later AS (FROM g |> node_rows()) FROM slice |> node_rows() |> SELECT node_key",
         "later",
       ),
       (
-        "FROM g |> subgraph(nodes: {from: g, id: 'id'}) |> node_rows() |> SELECT node_key",
+        "FROM g |> subgraph(nodes: {from: g, id: `id`}) |> node_rows() |> SELECT node_key",
         "g",
       ),
     ] {

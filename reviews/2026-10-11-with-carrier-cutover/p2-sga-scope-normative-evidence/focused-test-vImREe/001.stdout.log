@@ -1,0 +1,597 @@
+TAP version 13
+# Subtest: merged Frontend and exact-String predecessor vectors retain their historical pins
+ok 1 - merged Frontend and exact-String predecessor vectors retain their historical pins
+  ---
+  duration_ms: 10.077208
+  type: 'test'
+  ...
+# Subtest: Values bridge identities retain the pre-String closure and follow current contracts separately
+ok 2 - Values bridge identities retain the pre-String closure and follow current contracts separately
+  ---
+  duration_ms: 165.101916
+  type: 'test'
+  ...
+# Subtest: pre-String Values identities need no installed contract files
+ok 3 - pre-String Values identities need no installed contract files
+  ---
+  duration_ms: 7.626334
+  type: 'test'
+  ...
+# Subtest: baseline preimages and changed normative pins independently determine the Run CID
+ok 4 - baseline preimages and changed normative pins independently determine the Run CID
+  ---
+  duration_ms: 247.396375
+  type: 'test'
+  ...
+# Subtest: pre-pivot Values closure preserves its complete independent preimages
+ok 5 - pre-pivot Values closure preserves its complete independent preimages
+  ---
+  duration_ms: 0.499375
+  type: 'test'
+  ...
+# Subtest: pre-scalar-batch Values closure preserves every complete identity preimage
+ok 6 - pre-scalar-batch Values closure preserves every complete identity preimage
+  ---
+  duration_ms: 0.439125
+  type: 'test'
+  ...
+# Subtest: pre-STRPOS Values closure preserves every complete identity preimage
+ok 7 - pre-STRPOS Values closure preserves every complete identity preimage
+  ---
+  duration_ms: 0.577166
+  type: 'test'
+  ...
+# Subtest: pre-PIVOT integration scalar Run retains its previous complete closure
+ok 8 - pre-PIVOT integration scalar Run retains its previous complete closure
+  ---
+  duration_ms: 0.187084
+  type: 'test'
+  ...
+# Subtest: current contract inputs independently determine the Values Run and consuming fixtures
+ok 9 - current contract inputs independently determine the Values Run and consuming fixtures
+  ---
+  duration_ms: 233.697959
+  type: 'test'
+  ...
+# Subtest: pre-ABS fixture validation rejects changed stored bodies and dependency claims
+ok 10 - pre-ABS fixture validation rejects changed stored bodies and dependency claims
+  ---
+  duration_ms: 4.732209
+  type: 'test'
+  ...
+# Subtest: baseline and pre-ABS Run preimages retain their original contract closures
+ok 11 - baseline and pre-ABS Run preimages retain their original contract closures
+  ---
+  duration_ms: 25.499833
+  type: 'test'
+  ...
+# Subtest: submitted ABS parent retains its original complete Values Run preimage
+ok 12 - submitted ABS parent retains its original complete Values Run preimage
+  ---
+  duration_ms: 0.490625
+  type: 'test'
+  ...
+# Subtest: both UNPIVOT integration parents retain independently hashed Run preimages
+ok 13 - both UNPIVOT integration parents retain independently hashed Run preimages
+  ---
+  duration_ms: 1.252333
+  type: 'test'
+  ...
+# Subtest: both PIVOT integration parents retain independently hashed Run preimages
+ok 14 - both PIVOT integration parents retain independently hashed Run preimages
+  ---
+  duration_ms: 1.189625
+  type: 'test'
+  ...
+# Subtest: pre-ROUND/TRUNC Values dependencies and complete Run preimages remain immutable
+ok 15 - pre-ROUND/TRUNC Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 121.153542
+  type: 'test'
+  ...
+# Subtest: pre-TRIM Values dependencies and complete Run preimages remain immutable
+ok 16 - pre-TRIM Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 125.341208
+  type: 'test'
+  ...
+# Subtest: pre-LTRIM/RTRIM Values dependencies and complete Run preimages remain immutable
+ok 17 - pre-LTRIM/RTRIM Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 141.876667
+  type: 'test'
+  ...
+# Subtest: pre-explicit-trim-set Values dependencies and complete Run preimages remain immutable
+ok 18 - pre-explicit-trim-set Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 154.331833
+  type: 'test'
+  ...
+# Subtest: pre-SUBSTR/SUBSTRING Values dependencies and complete Run preimages remain immutable
+ok 19 - pre-SUBSTR/SUBSTRING Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 169.301416
+  type: 'test'
+  ...
+# Subtest: pre-SAFE-arithmetic Values dependencies and complete Run preimages remain immutable
+ok 20 - pre-SAFE-arithmetic Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 204.743834
+  type: 'test'
+  ...
+# Subtest: pre-PIVOT scalar-argument grammar retains complete independent Values Run preimages
+ok 21 - pre-PIVOT scalar-argument grammar retains complete independent Values Run preimages
+  ---
+  duration_ms: 1.2575
+  type: 'test'
+  ...
+# Subtest: pre-PIVOT-COUNT-star complete grammar-bound Values Run remains immutable
+ok 22 - pre-PIVOT-COUNT-star complete grammar-bound Values Run remains immutable
+  ---
+  duration_ms: 1.17825
+  type: 'test'
+  ...
+# Subtest: accepted scalar PIVOT predecessor keeps its full independent grammar-bound Run
+ok 23 - accepted scalar PIVOT predecessor keeps its full independent grammar-bound Run
+  ---
+  duration_ms: 0.981833
+  type: 'test'
+  ...
+# Subtest: pre-FROM-PIVOT grammar preserves complete independently authored Values Run preimages
+ok 24 - pre-FROM-PIVOT grammar preserves complete independently authored Values Run preimages
+  ---
+  duration_ms: 0.536958
+  type: 'test'
+  ...
+# Subtest: accepted combined PIVOT grammar retains its complete prior Run identity
+ok 25 - accepted combined PIVOT grammar retains its complete prior Run identity
+  ---
+  duration_ms: 0.740167
+  type: 'test'
+  ...
+# Subtest: pre-optional-table-alias grammar retains its complete independent Run closure
+ok 26 - pre-optional-table-alias grammar retains its complete independent Run closure
+  ---
+  duration_ms: 1.411167
+  type: 'test'
+  ...
+# Subtest: pre-derived-value-table-alias rules preserve complete independent Run preimages
+ok 27 - pre-derived-value-table-alias rules preserve complete independent Run preimages
+  ---
+  duration_ms: 0.837084
+  type: 'test'
+  ...
+# Subtest: pre-whole-row-range rules retain complete independent Run preimages
+ok 28 - pre-whole-row-range rules retain complete independent Run preimages
+  ---
+  duration_ms: 0.695625
+  type: 'test'
+  ...
+# Subtest: pre-range-name-precedence values retain their independently rebuilt Run
+ok 29 - pre-range-name-precedence values retain their independently rebuilt Run
+  ---
+  duration_ms: 0.599959
+  type: 'test'
+  ...
+# Subtest: pre-JOIN integration preserves the complete adopted range-precedence Run
+ok 30 - pre-JOIN integration preserves the complete adopted range-precedence Run
+  ---
+  duration_ms: 1.121625
+  type: 'test'
+  ...
+# Subtest: pre-joined-row rules retain the integrated grammar and complete Run closure
+ok 31 - pre-joined-row rules retain the integrated grammar and complete Run closure
+  ---
+  duration_ms: 0.569375
+  type: 'test'
+  ...
+# Subtest: pre-integration derived scope stack retains the complete combined COUNT-star and FROM-PIVOT Run
+ok 32 - pre-integration derived scope stack retains the complete combined COUNT-star and FROM-PIVOT Run
+  ---
+  duration_ms: 0.459958
+  type: 'test'
+  ...
+# Subtest: pre-decimal-position-ROUND/TRUNC Values dependencies and complete Run preimages remain immutable
+ok 33 - pre-decimal-position-ROUND/TRUNC Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 183.729
+  type: 'test'
+  ...
+# Subtest: pre-finite-math Values dependencies and complete Run preimages remain immutable
+ok 34 - pre-finite-math Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 228.104959
+  type: 'test'
+  ...
+# Subtest: pre-FROM-UNPIVOT grammar retains its independently authored Values Run
+ok 35 - pre-FROM-UNPIVOT grammar retains its independently authored Values Run
+  ---
+  duration_ms: 182.169459
+  type: 'test'
+  ...
+# Subtest: pre-UNPIVOT-row-label grammar retains complete independent Values Run preimages
+ok 36 - pre-UNPIVOT-row-label grammar retains complete independent Values Run preimages
+  ---
+  duration_ms: 180.956833
+  type: 'test'
+  ...
+# Subtest: multi-column UNPIVOT retains the preceding complete Values identity preimages
+ok 37 - multi-column UNPIVOT retains the preceding complete Values identity preimages
+  ---
+  duration_ms: 1.20125
+  type: 'test'
+  ...
+# Subtest: pre-number-extrema Values dependencies and complete Run preimages remain immutable
+ok 38 - pre-number-extrema Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 177.024875
+  type: 'test'
+  ...
+# Subtest: pre-pad-sides Values dependencies and complete Run preimages remain immutable
+ok 39 - pre-pad-sides Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 178.873167
+  type: 'test'
+  ...
+# Subtest: pre-split Values dependencies and complete Run preimages remain immutable
+ok 40 - pre-split Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 183.292791
+  type: 'test'
+  ...
+# Subtest: pre-unicode-scalars Values dependencies and complete Run preimages remain immutable
+ok 41 - pre-unicode-scalars Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 184.322417
+  type: 'test'
+  ...
+# Subtest: pre-repeat-reverse Values dependencies and complete Run preimages remain immutable
+ok 42 - pre-repeat-reverse Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 173.753125
+  type: 'test'
+  ...
+# Subtest: pre-cbrt Values dependencies and complete Run preimages remain immutable
+ok 43 - pre-cbrt Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 187.03525
+  type: 'test'
+  ...
+# Subtest: pre-direct-trig Values dependencies and complete Run preimages remain immutable
+ok 44 - pre-direct-trig Values dependencies and complete Run preimages remain immutable
+  ---
+  duration_ms: 161.976583
+  type: 'test'
+  ...
+# Subtest: grouped PIVOT Strings retain the complete predecessor Values identity preimages
+ok 45 - grouped PIVOT Strings retain the complete predecessor Values identity preimages
+  ---
+  duration_ms: 1.957666
+  type: 'test'
+  ...
+# Subtest: grouped PIVOT integration retains the exact adopted main preimages
+ok 46 - grouped PIVOT integration retains the exact adopted main preimages
+  ---
+  duration_ms: 150.957583
+  type: 'test'
+  ...
+# Subtest: grouped STRING_AGG delimiter retains the complete adopted predecessor preimages
+ok 47 - grouped STRING_AGG delimiter retains the complete adopted predecessor preimages
+  ---
+  duration_ms: 161.169875
+  type: 'test'
+  ...
+# Subtest: grouped STRING_AGG integration retains the exact adopted main preimages
+ok 48 - grouped STRING_AGG integration retains the exact adopted main preimages
+  ---
+  duration_ms: 151.838
+  type: 'test'
+  ...
+# Subtest: pre-zero-ROWS main retains its complete independent grammar and Run preimages
+ok 49 - pre-zero-ROWS main retains its complete independent grammar and Run preimages
+  ---
+  duration_ms: 140.889625
+  type: 'test'
+  ...
+# Subtest: zero ROWS integration retains the exact adopted main preimages
+ok 50 - zero ROWS integration retains the exact adopted main preimages
+  ---
+  duration_ms: 139.881792
+  type: 'test'
+  ...
+# Subtest: pre-grouped-LIMIT full normative identity closure remains reproducible
+ok 51 - pre-grouped-LIMIT full normative identity closure remains reproducible
+  ---
+  duration_ms: 1.62025
+  type: 'test'
+  ...
+# Subtest: grouped LIMIT integration retains the exact adopted main preimages
+ok 52 - grouped LIMIT integration retains the exact adopted main preimages
+  ---
+  duration_ms: 136.156583
+  type: 'test'
+  ...
+# Subtest: hex integer syntax retains complete pre-extension Values identity preimages
+ok 53 - hex integer syntax retains complete pre-extension Values identity preimages
+  ---
+  duration_ms: 132.587042
+  type: 'test'
+  ...
+# Subtest: hex integer integration retains complete adopted main identity preimages
+ok 54 - hex integer integration retains complete adopted main identity preimages
+  ---
+  duration_ms: 141.438958
+  type: 'test'
+  ...
+# Subtest: hex integer integration retains complete actual current main preimages
+ok 55 - hex integer integration retains complete actual current main preimages
+  ---
+  duration_ms: 149.528833
+  type: 'test'
+  ...
+# Subtest: positive navigation offset closure retains complete adopted main preimages
+ok 56 - positive navigation offset closure retains complete adopted main preimages
+  ---
+  duration_ms: 144.158458
+  type: 'test'
+  ...
+# Subtest: positive navigation integration retains complete actual current main preimages
+ok 57 - positive navigation integration retains complete actual current main preimages
+  ---
+  duration_ms: 147.630583
+  type: 'test'
+  ...
+# Subtest: positive LIMIT operands retain the complete predecessor Values identity preimages
+ok 58 - positive LIMIT operands retain the complete predecessor Values identity preimages
+  ---
+  duration_ms: 147.754834
+  type: 'test'
+  ...
+# Subtest: positive LIMIT integration retains complete actual current main preimages
+ok 59 - positive LIMIT integration retains complete actual current main preimages
+  ---
+  duration_ms: 141.427416
+  type: 'test'
+  ...
+# Subtest: grouped ROWS retains both complete predecessor Values preimages
+ok 60 - grouped ROWS retains both complete predecessor Values preimages
+  ---
+  duration_ms: 459.327125
+  type: 'test'
+  ...
+# Subtest: WITH cutover preserves the old complete Values closure and independently pins the new Run
+ok 61 - WITH cutover preserves the old complete Values closure and independently pins the new Run
+  ---
+  duration_ms: 95.23975
+  type: 'test'
+  ...
+# pre-String Values identity: removed _build/values-history-tests/isolated-xw6NB5 (2 files, 0.0 MiB before removal)
+# Subtest: public source closure has no legacy parser or formatter dependency
+ok 62 - public source closure has no legacy parser or formatter dependency
+  ---
+  duration_ms: 38.155291
+  type: 'test'
+  ...
+# Subtest: retired text is distinct from retained machine input and migration completion
+ok 63 - retired text is distinct from retained machine input and migration completion
+  ---
+  duration_ms: 1.935708
+  type: 'test'
+  ...
+# Subtest: machine Program vocabulary matches the current closed inventory
+ok 64 - machine Program vocabulary matches the current closed inventory
+  ---
+  duration_ms: 184.403292
+  type: 'test'
+  ...
+# Subtest: adoption decisions retain conditions and explicit case or fixture gaps
+ok 65 - adoption decisions retain conditions and explicit case or fixture gaps
+  ---
+  duration_ms: 1.067208
+  type: 'test'
+  ...
+# Subtest: frozen imported requirements retain their baseline, not document-check passes
+ok 66 - frozen imported requirements retain their baseline, not document-check passes
+  ---
+  duration_ms: 1.169583
+  type: 'test'
+  ...
+# Subtest: INFER and NEAREST source lowering do not claim executed KEEP outcomes
+ok 67 - INFER and NEAREST source lowering do not claim executed KEEP outcomes
+  ---
+  duration_ms: 0.26525
+  type: 'test'
+  ...
+# Subtest: independent fixtures and historical CID oracles retain their baseline bytes
+ok 68 - independent fixtures and historical CID oracles retain their baseline bytes
+  ---
+  duration_ms: 2.3815
+  type: 'test'
+  ...
+# Subtest: exact String parameter vectors preserve every unrelated historical expectation
+ok 69 - exact String parameter vectors preserve every unrelated historical expectation
+  ---
+  duration_ms: 0.988792
+  type: 'test'
+  ...
+# Subtest: membership machine controls never emit empty parameter declarations
+ok 70 - membership machine controls never emit empty parameter declarations
+  ---
+  duration_ms: 1.02725
+  type: 'test'
+  ...
+# Subtest: WITH cutover grammar and current guidance have one producer surface
+ok 71 - WITH cutover grammar and current guidance have one producer surface
+  ---
+  duration_ms: 1.734666
+  type: 'test'
+  ...
+# Subtest: SGA query grammar pin matches an independent normative preimage
+ok 72 - SGA query grammar pin matches an independent normative preimage
+  ---
+  duration_ms: 140.22625
+  type: 'test'
+  ...
+# Subtest: combined PIVOT argument roles only change source grammar and lowering rules pins
+ok 73 - combined PIVOT argument roles only change source grammar and lowering rules pins
+  ---
+  duration_ms: 0.6555
+  type: 'test'
+  ...
+# Subtest: FROM PIVOT only changes source grammar and source-lowering rules
+ok 74 - FROM PIVOT only changes source grammar and source-lowering rules
+  ---
+  duration_ms: 0.782833
+  type: 'test'
+  ...
+# Subtest: optional table aliases change only source grammar/rules pins
+ok 75 - optional table aliases change only source grammar/rules pins
+  ---
+  duration_ms: 0.766459
+  type: 'test'
+  ...
+# Subtest: derived value-table alias changes source rules but keeps syntax/common contracts
+ok 76 - derived value-table alias changes source rules but keeps syntax/common contracts
+  ---
+  duration_ms: 0.466291
+  type: 'test'
+  ...
+# Subtest: ordinary row expression changes only source rules, preserving syntax and common contracts
+ok 77 - ordinary row expression changes only source rules, preserving syntax and common contracts
+  ---
+  duration_ms: 0.509833
+  type: 'test'
+  ...
+# Subtest: range precedence changes only query rules, not common contracts or syntax
+ok 78 - range precedence changes only query rules, not common contracts or syntax
+  ---
+  duration_ms: 0.621916
+  type: 'test'
+  ...
+# Subtest: joined row scope changes query rules without a new expression or JOIN contract
+ok 79 - joined row scope changes query rules without a new expression or JOIN contract
+  ---
+  duration_ms: 1.464
+  type: 'test'
+  ...
+# Subtest: PIVOT scalar argument only changes its source grammar and lowering rules pins
+ok 80 - PIVOT scalar argument only changes its source grammar and lowering rules pins
+  ---
+  duration_ms: 1.455084
+  type: 'test'
+  ...
+# Subtest: integrated derived scopes preserve common contracts and both historical parent closures
+ok 81 - integrated derived scopes preserve common contracts and both historical parent closures
+  ---
+  duration_ms: 1.180583
+  type: 'test'
+  ...
+# Subtest: WITH cutover changes query grammar/rules without changing machine contracts
+ok 82 - WITH cutover changes query grammar/rules without changing machine contracts
+  ---
+  duration_ms: 0.981542
+  type: 'test'
+  ...
+# Subtest: SGA role syntax retains the complete predecessor and independently changes grammar-bound Run identity
+ok 83 - SGA role syntax retains the complete predecessor and independently changes grammar-bound Run identity
+  ---
+  duration_ms: 172.134416
+  type: 'test'
+  ...
+1..83
+# tests 83
+# suites 0
+# pass 83
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6224.674958
+ACTQL_TEST_CASE {"name":"merged Frontend and exact-String predecessor vectors retain their historical pins","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"Values bridge identities retain the pre-String closure and follow current contracts separately","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-String Values identities need no installed contract files","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"baseline preimages and changed normative pins independently determine the Run CID","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-pivot Values closure preserves its complete independent preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-scalar-batch Values closure preserves every complete identity preimage","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-STRPOS Values closure preserves every complete identity preimage","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-PIVOT integration scalar Run retains its previous complete closure","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"current contract inputs independently determine the Values Run and consuming fixtures","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-ABS fixture validation rejects changed stored bodies and dependency claims","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"baseline and pre-ABS Run preimages retain their original contract closures","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"submitted ABS parent retains its original complete Values Run preimage","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"both UNPIVOT integration parents retain independently hashed Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"both PIVOT integration parents retain independently hashed Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-ROUND/TRUNC Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-TRIM Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-LTRIM/RTRIM Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-explicit-trim-set Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-SUBSTR/SUBSTRING Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-SAFE-arithmetic Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-PIVOT scalar-argument grammar retains complete independent Values Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-PIVOT-COUNT-star complete grammar-bound Values Run remains immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"accepted scalar PIVOT predecessor keeps its full independent grammar-bound Run","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-FROM-PIVOT grammar preserves complete independently authored Values Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"accepted combined PIVOT grammar retains its complete prior Run identity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-optional-table-alias grammar retains its complete independent Run closure","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-derived-value-table-alias rules preserve complete independent Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-whole-row-range rules retain complete independent Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-range-name-precedence values retain their independently rebuilt Run","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-JOIN integration preserves the complete adopted range-precedence Run","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-joined-row rules retain the integrated grammar and complete Run closure","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-integration derived scope stack retains the complete combined COUNT-star and FROM-PIVOT Run","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-decimal-position-ROUND/TRUNC Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-finite-math Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-FROM-UNPIVOT grammar retains its independently authored Values Run","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-UNPIVOT-row-label grammar retains complete independent Values Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"multi-column UNPIVOT retains the preceding complete Values identity preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-number-extrema Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-pad-sides Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-split Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-unicode-scalars Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-repeat-reverse Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-cbrt Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-direct-trig Values dependencies and complete Run preimages remain immutable","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped PIVOT Strings retain the complete predecessor Values identity preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped PIVOT integration retains the exact adopted main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped STRING_AGG delimiter retains the complete adopted predecessor preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped STRING_AGG integration retains the exact adopted main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-zero-ROWS main retains its complete independent grammar and Run preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"zero ROWS integration retains the exact adopted main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"pre-grouped-LIMIT full normative identity closure remains reproducible","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped LIMIT integration retains the exact adopted main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"hex integer syntax retains complete pre-extension Values identity preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"hex integer integration retains complete adopted main identity preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"hex integer integration retains complete actual current main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positive navigation offset closure retains complete adopted main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positive navigation integration retains complete actual current main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positive LIMIT operands retain the complete predecessor Values identity preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"positive LIMIT integration retains complete actual current main preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"grouped ROWS retains both complete predecessor Values preimages","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH cutover preserves the old complete Values closure and independently pins the new Run","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"public source closure has no legacy parser or formatter dependency","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"retired text is distinct from retained machine input and migration completion","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"machine Program vocabulary matches the current closed inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"adoption decisions retain conditions and explicit case or fixture gaps","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"frozen imported requirements retain their baseline, not document-check passes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"INFER and NEAREST source lowering do not claim executed KEEP outcomes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent fixtures and historical CID oracles retain their baseline bytes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"exact String parameter vectors preserve every unrelated historical expectation","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"membership machine controls never emit empty parameter declarations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH cutover grammar and current guidance have one producer surface","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA query grammar pin matches an independent normative preimage","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"combined PIVOT argument roles only change source grammar and lowering rules pins","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"FROM PIVOT only changes source grammar and source-lowering rules","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"optional table aliases change only source grammar/rules pins","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"derived value-table alias changes source rules but keeps syntax/common contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary row expression changes only source rules, preserving syntax and common contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"range precedence changes only query rules, not common contracts or syntax","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"joined row scope changes query rules without a new expression or JOIN contract","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"PIVOT scalar argument only changes its source grammar and lowering rules pins","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"integrated derived scopes preserve common contracts and both historical parent closures","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH cutover changes query grammar/rules without changing machine contracts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"SGA role syntax retains the complete predecessor and independently changes grammar-bound Run identity","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-signature-role-identity.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":61,"failed":0,"passed":61,"cancelled":0,"skipped":0,"todo":0,"topLevel":61,"suites":0},"duration_ms":6119.830291,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":10,"failed":0,"passed":10,"cancelled":0,"skipped":0,"todo":0,"topLevel":10,"suites":0},"duration_ms":239.772125,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":11,"failed":0,"passed":11,"cancelled":0,"skipped":0,"todo":0,"topLevel":11,"suites":0},"duration_ms":162.525708,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":1,"failed":0,"passed":1,"cancelled":0,"skipped":0,"todo":0,"topLevel":1,"suites":0},"duration_ms":187.8445,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-signature-role-identity.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":83,"failed":0,"passed":83,"cancelled":0,"skipped":0,"todo":0,"topLevel":83,"suites":0},"duration_ms":6224.674958}

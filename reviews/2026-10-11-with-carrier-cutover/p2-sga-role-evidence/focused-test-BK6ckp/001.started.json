@@ -1,0 +1,30 @@
+{
+  "id": "001",
+  "command": "moon",
+  "args": [
+    "test",
+    "--target",
+    "js",
+    "src/query_syntax/sga_role_contract_test.mbt"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "066b4ac4ef17c00a002605c74761ffb4a4587547",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-11T23:02:15.523Z",
+  "endedAt": null,
+  "elapsedMs": null,
+  "status": null,
+  "signal": null,
+  "error": null,
+  "complete": false,
+  "verificationStatus": null,
+  "outputComplete": false
+}

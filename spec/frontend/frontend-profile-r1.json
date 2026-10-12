@@ -1606,5 +1606,33 @@
   },
   "retired_public_profiles": [
     "actql-text/0.1"
-  ]
+  ],
+  "named_call_argument_roles": {
+    "status": "syntax_and_lowering_subset_not_public_execution_evidence",
+    "roles": [
+      "ProducerRef",
+      "FieldRef",
+      "OutputName",
+      "Expression",
+      "Enum/Literal",
+      "ClosedRecord/List",
+      "WholeParameter"
+    ],
+    "selector_qualification": "declared_operand_lexical_identity",
+    "literal_subtrees": "opaque_exact_data",
+    "retired_reference_strings": true,
+    "signed_numeric_token": "installed_common_numeric_admission",
+    "common_obligations": [
+      "type",
+      "presence",
+      "identity",
+      "order",
+      "parameter",
+      "capacity"
+    ],
+    "remaining": [
+      "complete_VecA_TEA_signature_connection",
+      "public_Local_HTTPS_acceptance"
+    ]
+  }
 }

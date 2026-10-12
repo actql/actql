@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-12T00:29:06.400Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "Independent role grammar and complete Values identities",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/sga-signature-role-identity.test.mjs",
+        "scripts/sga-query-call-contract.test.mjs",
+        "scripts/compilation-manifests.test.mjs",
+        "scripts/client-values-run-materials-vector.test.mjs",
+        "scripts/frontend-profile.test.mjs"
+      ],
+      "startedAt": "2026-10-12T00:29:06.458Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:29:14.932Z",
+      "endedAt": "2026-10-12T00:29:14.937Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "dcbb71a7-5253-422d-a25b-d5e5037fd053",
+    "pid": 34177,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:29:06.454Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Vlguzf"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:29:15.020Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

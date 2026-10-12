@@ -47,9 +47,9 @@ const sourceCase = (name, query, rows, expectedColumns = nodeColumns, extra = {}
   parameterDeclarations: declarations, parameters, sourceReadCount: 0,
   results: result(rows, expectedColumns), ...extra,
 });
-const nodeCall = "match_nodes(definition: 'N', label: 'Person', where: {gt: [{field: 'p'}, {literal: 10}]}, fields: ['p', 'node_key'])";
+const nodeCall = "match_nodes(definition: 'N', label: 'Person', where: {gt: [{field: `p`}, {literal: 10}]}, fields: [`p`, `node_key`])";
 const nodeTail = ' |> SELECT p, node_key |> ORDER BY node_key |> RESULT matched';
-const edgeCall = "match_edges(definition: 'E', label: 'R', fields: ['weight', 'edge_key'])";
+const edgeCall = "match_edges(definition: 'E', label: 'R', fields: [`weight`, `edge_key`])";
 const edgeTail = ' |> SELECT weight, edge_key |> ORDER BY edge_key |> RESULT matched';
 const one = [{p: 20, node_key: 1}];
 const parallel = [{weight: 20, edge_key: 10}, {weight: 10, edge_key: 11}];
@@ -75,9 +75,9 @@ const bindingControl = (operation, body, derived, fields, order) => {
   program.stages[0].steps.splice(4, 1, {from: 'matched', derive: derived}, {select: fields});
   return JSON.stringify(program);
 };
-const boundNodeCall = "MATCH_NODES(DEFINITION: 'N', LABEL: 'Person', BINDINGS: {IDENTITY: 'Element'}, WHERE: {literal: true}, FIELDS: ['Element', 'p', 'node_key'])";
+const boundNodeCall = "MATCH_NODES(DEFINITION: 'N', LABEL: 'Person', BINDINGS: {IDENTITY: `Element`}, WHERE: {literal: true}, FIELDS: [`Element`, `p`, `node_key`])";
 const boundNodeTail = ' |> SELECT node_key, p, Element IS NOT NULL AS bound |> ORDER BY node_key |> RESULT matched';
-const boundEdgeCall = "MATCH_EDGES(DEFINITION: 'E', LABEL: 'R', BINDINGS: {`Identity`: 'Edge', `Source`: 'Source', `Target`: 'Target'}, FIELDS: ['Edge', 'Source', 'Target', 'weight', 'edge_key'])";
+const boundEdgeCall = "MATCH_EDGES(DEFINITION: 'E', LABEL: 'R', BINDINGS: {`Identity`: `Edge`, `Source`: `Source`, `Target`: `Target`}, FIELDS: [`Edge`, `Source`, `Target`, `weight`, `edge_key`])";
 const boundEdgeTail = ' |> SELECT edge_key, weight, Edge IS NOT NULL AS bound, Source IS NOT NULL AS source_bound, Target IS NOT NULL AS target_bound |> ORDER BY edge_key |> RESULT matched';
 const endpointControl = role => JSON.stringify({
   version: 'actql/0.1', id: 'fixture.graph_match_binding_' + role,
@@ -108,15 +108,15 @@ export const graphMatchSourceSuccesses = [
   sourceCase('edge-quoted-bindings', 'FROM g |> ' + boundEdgeCall + boundEdgeTail,
     boundEdgeRows, boundEdgeColumns),
   sourceCase('node-quoted-binding-empty', 'FROM g |> ' + boundNodeCall
-    .replace("IDENTITY: 'Element'", "`Identity`: 'Element'")
-    .replace('WHERE: {literal: true}', "WHERE: {gt: [{field: 'p'}, {literal: 100}]}") + boundNodeTail,
+    .replace("IDENTITY: `Element`", "`Identity`: `Element`")
+    .replace('WHERE: {literal: true}', "WHERE: {gt: [{field: `p`}, {literal: 100}]}") + boundNodeTail,
     [], boundNodeColumns),
   ...[['Source', 20, 1], ['Target', 10, 2]].flatMap(([role, p, node_key]) => [
     {name: 'graph-match-' + role.toLowerCase() + '-selector-independent-json', format: 'json',
       text: endpointControl(role), results: result([{p, node_key}], nodeColumns), sourceReadCount: 0},
     sourceCase(role.toLowerCase() + '-binding-selector',
-      ", endpoints AS (FROM g |> MATCH_EDGES(DEFINITION: 'E', BINDINGS: {SOURCE: 'Source', `Target`: 'Target'}, FIELDS: ['Source', 'Target'])) " +
-      `FROM g |> subgraph(nodes: {from: endpoints, id: '${role}'}) |> match_nodes(definition: 'N', where: {literal: true}, fields: ['p', 'node_key'])` + nodeTail,
+      ", endpoints AS (FROM g |> MATCH_EDGES(DEFINITION: 'E', BINDINGS: {SOURCE: `Source`, `Target`: `Target`}, FIELDS: [`Source`, `Target`])) " +
+      `FROM g |> subgraph(nodes: {from: endpoints, id: \`${role}\`}) |> match_nodes(definition: 'N', where: {literal: true}, fields: [\`p\`, \`node_key\`])` + nodeTail,
       [{p, node_key}]),
   ]),
   {name: 'graph-match-node-independent-json', format: 'json',
@@ -124,7 +124,7 @@ export const graphMatchSourceSuccesses = [
     results: result(one, nodeColumns), sourceReadCount: 0},
   sourceCase('node-predicate-and-field-order', 'FROM g |> ' + nodeCall + nodeTail, one),
   sourceCase('node-null-property', 'FROM g |> ' + nodeCall.replace(
-    "{gt: [{field: 'p'}, {literal: 10}]}", "{is_null: {field: 'p'}}") + nodeTail,
+    "{gt: [{field: `p`}, {literal: 10}]}", "{is_null: {field: `p`}}") + nodeTail,
     [{p: null, node_key: 3}]),
   sourceCase('node-empty-typed', 'FROM g |> ' + nodeCall.replace('literal: 10', 'literal: 100') + nodeTail, []),
   sourceCase('node-parameter', 'FROM g |> ' + nodeCall.replace('{literal: 10}', '@minimum') + nodeTail,
@@ -140,20 +140,20 @@ export const graphMatchSourceSuccesses = [
   sourceCase('edge-parallel-multiplicity', 'FROM g |> ' + edgeCall + edgeTail, parallel, edgeColumns),
   sourceCase('edge-empty-types', 'FROM g |> ' + edgeCall.replace("label: 'R'", "label: 'R', types: []") + edgeTail, [], edgeColumns),
   sourceCase('edge-predicate', 'FROM g |> ' + edgeCall.replace("label: 'R'",
-    "label: 'R', where: {gt: [{field: 'weight'}, {literal: 10}]}") + edgeTail,
+    "label: 'R', where: {gt: [{field: `weight`}, {literal: 10}]}") + edgeTail,
     [parallel[0]], edgeColumns),
 ];
 export const graphMatchSourceRefusals = [
   ['unknown-definition', nodeCall.replace("'N'", "'missing'")],
   ['unknown-label', nodeCall.replace("'Person'", "'missing'")],
   ['missing-definition', nodeCall.replace("definition: 'N', ", '')],
-  ['missing-predicate', nodeCall.replace("where: {gt: [{field: 'p'}, {literal: 10}]}, ", '')],
-  ['missing-property', nodeCall.replace("field: 'p'", "field: 'missing'")],
-  ['nonboolean-predicate', nodeCall.replace("{gt: [{field: 'p'}, {literal: 10}]}", '{literal: 1}')],
-  ['missing-selected-field', nodeCall.replace("fields: ['p', 'node_key']", "fields: ['missing']")],
-  ['duplicate-selected-field', nodeCall.replace("fields: ['p', 'node_key']", "fields: ['p', 'p']")],
-  ['empty-fields', nodeCall.replace("fields: ['p', 'node_key']", 'fields: []')],
-  ['identity-property-collision', nodeCall.replace("label: 'Person'", "label: 'Person', bindings: {identity: 'p'}")],
+  ['missing-predicate', nodeCall.replace("where: {gt: [{field: `p`}, {literal: 10}]}, ", '')],
+  ['missing-property', nodeCall.replace("field: `p`", "field: `missing`")],
+  ['nonboolean-predicate', nodeCall.replace("{gt: [{field: `p`}, {literal: 10}]}", '{literal: 1}')],
+  ['missing-selected-field', nodeCall.replace("fields: [`p`, `node_key`]", "fields: [`missing`]")],
+  ['duplicate-selected-field', nodeCall.replace("fields: [`p`, `node_key`]", "fields: [`p`, `p`]")],
+  ['empty-fields', nodeCall.replace("fields: [`p`, `node_key`]", 'fields: []')],
+  ['identity-property-collision', nodeCall.replace("label: 'Person'", "label: 'Person', bindings: {identity: `p`}")],
   ['extra-argument', nodeCall.replace("label: 'Person'", "label: 'Person', extra: true")],
   ['wrong-edge-type', edgeCall.replace("label: 'R'", "label: 'R', types: [1]")],
   ['relation-is-not-graph', nodeCall, 'n'],
@@ -167,10 +167,10 @@ export const graphMatchSourceRefusals = [
 }));
 
 graphMatchSourceRefusals.push(...[
-  ['duplicate-node-binding-role', "match_nodes(definition: 'N', bindings: {identity: 'Element', IDENTITY: 'Other'}, where: {literal: true}, fields: ['Element'])"],
-  ['duplicate-edge-binding-role', "match_edges(definition: 'E', bindings: {source: 'Source', `Source`: 'Other'}, fields: ['Source'])"],
-  ['forbidden-node-binding-role', "match_nodes(definition: 'N', bindings: {IDENTITY: 'Element', SOURCE: 'Source'}, where: {literal: true}, fields: ['Element'])"],
-  ['binding-output-collision', "match_edges(definition: 'E', bindings: {IDENTITY: 'Element', SOURCE: 'Element'}, fields: ['Element'])"],
+  ['duplicate-node-binding-role', "match_nodes(definition: 'N', bindings: {identity: `Element`, IDENTITY: `Other`}, where: {literal: true}, fields: [`Element`])"],
+  ['duplicate-edge-binding-role', "match_edges(definition: 'E', bindings: {source: `Source`, `Source`: `Other`}, fields: [`Source`])"],
+  ['forbidden-node-binding-role', "match_nodes(definition: 'N', bindings: {IDENTITY: `Element`, SOURCE: `Source`}, where: {literal: true}, fields: [`Element`])"],
+  ['binding-output-collision', "match_edges(definition: 'E', bindings: {IDENTITY: `Element`, SOURCE: `Element`}, fields: [`Element`])"],
 ].map(([name, call]) => ({name: 'graph-match-' + name, format: 'aql-text',
   text: prefix + 'FROM g |> ' + call, parameterDeclarations: declarations, parameters,
   expectedCode: 'ClientProgramInvalidInput'})));

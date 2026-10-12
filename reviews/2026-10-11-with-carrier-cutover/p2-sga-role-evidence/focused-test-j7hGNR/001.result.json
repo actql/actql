@@ -1,0 +1,39 @@
+{
+  "id": "001",
+  "command": "moon",
+  "args": [
+    "test",
+    "--target",
+    "js",
+    "src/query_program/sga_role_lowering_test.mbt"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "f3ca0d3d91eac7a0530bf46899d3b0164bf62dad",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-11T23:46:43.990Z",
+  "endedAt": "2026-10-11T23:46:57.111Z",
+  "elapsedMs": 13111.695,
+  "status": 2,
+  "signal": null,
+  "error": null,
+  "complete": true,
+  "verificationStatus": 2,
+  "outputComplete": true,
+  "outputLimitBytes": 67108864,
+  "counts": {
+    "tests": 3,
+    "passed": 1,
+    "failed": 2,
+    "cancelled": null,
+    "skipped": null,
+    "todo": null
+  }
+}

@@ -176,8 +176,12 @@ import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
 import {matchWithProducerSuccesses, matchWithProducerRefusals}
   from './match-with-producer-source-input.mjs';
-import {graphMatchSourceSuccesses, graphMatchSourceRefusals}
+import {graphMatchSourceSuccesses as originalGraphMatchSourceSuccesses,
+  graphMatchSourceRefusals as originalGraphMatchSourceRefusals}
   from './graph-match-source-input.mjs';
+import {sgaOutputNameSuccesses, sgaOutputNameRefusals} from './sga-output-name-source.mjs';
+const graphMatchSourceSuccesses = [...originalGraphMatchSourceSuccesses, ...sgaOutputNameSuccesses];
+const graphMatchSourceRefusals = [...originalGraphMatchSourceRefusals, ...sgaOutputNameRefusals];
 import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './graph-row-source-input.mjs';
 import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
