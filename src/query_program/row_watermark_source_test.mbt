@@ -77,3 +77,34 @@ test "P2 row watermark whole Parameters keep declarations and threshold referenc
     event_window_common_checked(actual)
   }
 }
+
+///|
+test "P2 row watermark retains common threshold and policy refusal reasons" {
+  for call in [
+    "watermark_rows(time: at, late_policy: 'mark')",
+    "watermark_rows(time: at, late_policy: 'mark', watermark_ms: 0, max_skew: 1)",
+    "watermark_rows(time: at, late_policy: 'MARK', watermark_ms: 0)",
+  ] {
+    assert_eq(event_window_issue(row_watermark_source(call)), Operation(InvalidBody))
+  }
+  for threshold in ["max_skew: 0", "max_skew: -1", "max_skew: 1.5"] {
+    assert_eq(
+      event_window_issue(row_watermark_source("watermark_rows(time: at, late_policy: 'mark', " + threshold + ")")),
+      Operation(InvalidCount),
+    )
+  }
+}
+
+///|
+test "P2 row watermark cannot resurrect dropped time or old aliases" {
+  for time in ["at", "old.at"] {
+    assert_true(with_carrier_program(
+      "WITH rows AS (SELECT 1 AS id, 10 AS at) FROM rows |> AS old |> SELECT id |> watermark_rows(time: " + time + ", late_policy: 'mark', watermark_ms: 0)",
+      { ..pair_context(), inputs: [], },
+    ) is Err(UnknownColumn))
+  }
+  assert_true(with_carrier_program(
+    row_watermark_source("watermark_rows(time: at, late_policy: 'mark', watermark_ms: 0, policy: 'drop')"),
+    { ..pair_context(), inputs: [], },
+  ) is Err(InvalidQuery))
+}
