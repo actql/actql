@@ -31,6 +31,41 @@ pub(all) enum OriginalStateWritePoll {
 } derive(Eq, Debug)
 
 ///|
+fn original_state_write_preparation_inventory(
+  identity : OriginalLedgerIdentity,
+) -> Result[LedgerOriginalInventory, OriginalStateWriteIssue] {
+  let ledger = identity.ledger
+  guard ledger.original_inventory is Some(inventory) &&
+    physical_equal(identity, inventory.identity) &&
+    physical_equal(identity.bootstrap, inventory.bootstrap) else {
+    return Err(Original(ForeignOrigin))
+  }
+  if inventory.descriptor_issued || inventory.read_claimed {
+    return Err(Original(SpentClaim))
+  }
+  if inventory.closing ||
+    !original_read_bootstrap_available(ledger, identity.bootstrap) {
+    return Err(Original(ChangedOriginalState))
+  }
+  Ok(inventory)
+}
+
+///|
+// Check the existing opaque identity before allocating a dedicated Writer.
+// This synchronous, non-consuming check neither admits byte capacity nor
+// issues a descriptor, read claim, restoration authority or send permission.
+// Its caller still funds validation/control and the Writer through the original
+// bootstrap. Preparation repeats these same lifecycle checks after allocation.
+pub fn check_original_state_write_preparation(
+  identity : OriginalLedgerIdentity,
+) -> Result[Unit, OriginalStateWriteIssue] {
+  match original_state_write_preparation_inventory(identity) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(())
+  }
+}
+
+///|
 // Private integration candidate: the existing original Run owns bootstrap,
 // census and this dedicated Writer before calling. Its complete reviewed
 // envelope pays for validation, snapshots, control/backing and overlap first.
@@ -49,17 +84,9 @@ pub fn[T] prepare_original_state_write(
   OriginalStateWriteIssue,
 ] {
   let ledger = identity.ledger
-  guard ledger.original_inventory is Some(inventory) &&
-    physical_equal(identity, inventory.identity) &&
-    physical_equal(identity.bootstrap, inventory.bootstrap) else {
-    return Err(Original(ForeignOrigin))
-  }
-  if inventory.descriptor_issued || inventory.read_claimed {
-    return Err(Original(SpentClaim))
-  }
-  if inventory.closing ||
-    !original_read_bootstrap_available(ledger, identity.bootstrap) {
-    return Err(Original(ChangedOriginalState))
+  let inventory = match original_state_write_preparation_inventory(identity) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
   if retained_bytes <= 0L || execution_bytes <= 0L {
     return Err(Resource(InvalidCharge))

@@ -16,3 +16,5 @@ target/
 /packages/run-host-core/dist/
 /packages/coordinator-core/dist/
 /packages/transfer-core/dist/
+/packages/explorer/dist/
+/packages/explorer-ui/dist/
