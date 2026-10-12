@@ -55,15 +55,17 @@ test "bounded binary Relation branch remains one checked physical task" {
   // Two discovery visits + the outer Result visit = 3. The branch helper
   // adds one Result visit, four bitmap slots reserved before allocation,
   // four Steps, six input ports and three reachability visits = 18 more.
-  // Exact total 21; task ceiling zero stays valid because nothing is expanded.
-  // 3 refuses before the helper's Result; 7 cannot reserve the bitmap;
-  // 8 refuses before its first Step; 20 refuses before its last reachability.
-  for work in [0, 2, 3, 4, 7, 8, 18, 20] {
+  // The Content-fusion probe visits the four compute Steps before this
+  // branch decision. No Serialize occurs, so the complete total is 21 + 4
+  // = 25; task ceiling zero stays valid because nothing is expanded.
+  // Retain the former low-budget refusals; 24 now stops before the last
+  // reachability visit after the independently charged fusion probe.
+  for work in [0, 2, 3, 4, 7, 8, 18, 20, 21, 24] {
     assert_true(
       @strategy.expand_internal_carrier_tasks(graph, 0, work) is Err(WorkLimit),
     )
   }
-  let same = @strategy.expand_internal_carrier_tasks(graph, 0, 21).unwrap()
+  let same = checkpoint_graph_issue(@strategy.expand_internal_carrier_tasks(graph, 0, 25))
   assert_true(physical_equal(same, graph))
   assert_true(physical_equal(@strategy.graph_program(same), checked))
   for task in 0..<2 {

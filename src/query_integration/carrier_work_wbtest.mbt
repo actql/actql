@@ -39,13 +39,15 @@ test "Carrier work bounds no-expansion classification and predecessor scans" {
   ).unwrap()
   // Two stage visits, one Result, two Steps and two ports, one predecessor
   // edge, the source Stage and its two Steps, its missing predecessor scan,
-  // then one suffix Step: 13 entries, despite there being nothing to split.
-  for work in [0, 3, 8, 10, 11, 12] {
+  // then one suffix Step: 13 entries. The adopted Content fusion probe
+  // visits both compute Steps before classification: 13 + 2 = 15.
+  // No Serialize occurs, so neither visit returns early.
+  for work in [0, 3, 8, 10, 11, 12, 13, 14] {
     assert_true(
       @strategy.expand_internal_carrier_tasks(graph, 0, work) is Err(WorkLimit),
     )
   }
-  let same = @strategy.expand_internal_carrier_tasks(graph, 0, 13).unwrap()
+  let same = checkpoint_graph_issue(@strategy.expand_internal_carrier_tasks(graph, 0, 15))
   assert_true(physical_equal(same, graph))
 }
 

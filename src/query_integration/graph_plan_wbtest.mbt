@@ -89,7 +89,7 @@ test "formal Graph Plan retains typed graph ports and keyed parallel-edge constr
   // The current contract is a pinned machine preimage, not a product-generated expectation.
   assert_true(
     compiled.contains(
-      "\"aoa_contract_cid\":\"sha256:08826f64b2224dc908b42b6fbb94b1c1e989c6e8f64185d36c108028ff4e0b45\"",
+      "\"aoa_contract_cid\":\"sha256:8af884906323059938ad32b129f7918f18d3c2e852f4ec36072c3b681c7423e4\"",
     ),
   )
   assert_eq(
@@ -217,10 +217,13 @@ test "retained external Relation selector splits only its Carrier consumer" {
   // task mapping 8; edge mapping 33; controls 2; operations 36; Result 1.
   // The full retained-selector scan costs five even when its match is last.
   // Preserve previous low limits, including the former 153-unit success.
-  // The inventory is spent before classification: 122 stops before the
-  // selector's first edge and 126 before its fifth. 208 is one short of
-  // the complete graph; 209 succeeds without changing any output/owner.
-  for work in [0, 43, 66, 70, 99, 122, 126, 152, 153, 208] {
+  // Preserve the original pre-fusion-scan 122/126 cutpoints as refusals.
+  // With that former accounting, 208 was one short of
+  // the former complete graph. The adopted Content-fusion probe scans
+  // two rows Steps, two selections Steps and three query Steps: seven
+  // additional visits. No intermediate root Result and no Serialize occurs.
+  // 216 succeeds; retain 209 and the new one-short 215 as refusals.
+  for work in [0, 43, 66, 70, 99, 122, 126, 152, 153, 208, 209, 215] {
     assert_true(
       @strategy.prepare_checked_dag(
         program,
@@ -232,13 +235,13 @@ test "retained external Relation selector splits only its Carrier consumer" {
       is Err(WorkLimit),
     )
   }
-  let bounded = @strategy.prepare_checked_dag(
+  let bounded = checkpoint_graph_issue(@strategy.prepare_checked_dag(
     program,
     owners,
     20,
-    209,
+    216,
     source_free_root=true,
-  ).unwrap()
+  ))
   assert_true(physical_equal(@strategy.graph_program(bounded), program))
   assert_eq(@strategy.graph_task_count(bounded), 5)
   for task, expected in [None, None, Some(0), Some(1), Some(2)] {

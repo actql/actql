@@ -62,20 +62,28 @@ fn check_carrier_analytic_shape(
   // For N selected nodes and P internal ports: admission 9 + R;
   // classification 3 + 3 * (N + P), including exactly one full shape scan;
   // task mapping 3 + N; edges 2 + N + P; control 1; operations 2 + R;
-  // final Result 1. Thus the independent bound is 21 + 5N + 4P + 2R.
+  // final Result 1. The Content-fusion probe visits all N Steps (none
+  // Serialize), adding N to the former 21 + 5N + 4P + 2R calculation.
+  // Thus the independent current bound is 21 + 6N + 4P + 2R.
   // The shape scan alone is respectively 7, 8, and 10 visits below.
   assert_eq(
     expected_work,
     21 +
-    5 * expected_operations.length() +
+    6 * expected_operations.length() +
     4 * expected_edges.length() +
     2 * requirements,
+  )
+  // Retain the exact former bound as a refusal, not a weaker graph oracle.
+  assert_true(
+    @strategy.prepare_checked_dag(
+      program, owners, 10, expected_work - expected_operations.length(),
+    ) is Err(WorkLimit),
   )
   assert_true(
     @strategy.prepare_checked_dag(program, owners, 10, expected_work - 1)
     is Err(WorkLimit),
   )
-  let graph = @strategy.prepare_checked_dag(program, owners, 10, expected_work).unwrap()
+  let graph = checkpoint_graph_issue(@strategy.prepare_checked_dag(program, owners, 10, expected_work))
   assert_eq(@strategy.graph_task_count(graph), expected_operations.length() + 1)
   assert_eq(@strategy.graph_task_selected_step(graph, 0), None)
   assert_eq(@strategy.graph_task_operation_count(graph, 0), Some(0))
@@ -131,7 +139,7 @@ test "later analytic classification sees a Values root after the analytic" {
     "late_values",
     [1, 4, 1, 4],
     [(0, 1, 0), (1, 3, 0), (2, 3, 1)],
-    73,
+    77,
   )
 }
 
@@ -141,7 +149,7 @@ test "later analytic classification sees a binary consumer after the analytic" {
     "late_binary",
     [1, 4, 0, 4],
     [(0, 1, 0), (1, 2, 0), (2, 3, 0), (0, 3, 1)],
-    75,
+    79,
   )
 }
 
@@ -151,7 +159,7 @@ test "later analytic classification charges the complete shape only once" {
     "repeated_analytic",
     [1, 4, 4, 0, 4],
     [(0, 1, 0), (1, 2, 0), (2, 3, 0), (3, 4, 0), (0, 4, 1)],
-    92,
+    97,
   )
 }
 
@@ -176,10 +184,14 @@ test "later analytic classification sees a Carrier output after the analytic" {
   // Admission 29; classification: two stage visits, one Result, two selected
   // inquiries, the complete six-node/five-port shape scan, one suffix visit.
   // A Relation prefix must not hide the later Graph output. No remap occurs.
-  assert_true(
-    @strategy.prepare_checked_dag(program, owners, 10, 45) is Err(WorkLimit),
-  )
-  let graph = @strategy.prepare_checked_dag(program, owners, 10, 46).unwrap()
+  // Content-fusion scans all six Steps before that classification: 46 + 6
+  // = 52. None of the six operations is Serialize.
+  for work in [45, 46, 51] {
+    assert_true(
+      @strategy.prepare_checked_dag(program, owners, 10, work) is Err(WorkLimit),
+    )
+  }
+  let graph = checkpoint_graph_issue(@strategy.prepare_checked_dag(program, owners, 10, 52))
   assert_eq(@strategy.graph_task_count(graph), 2)
   assert_eq(@strategy.graph_task_selected_step(graph, 1), None)
   assert_eq(@strategy.graph_task_prefix_end(graph, 1), None)
