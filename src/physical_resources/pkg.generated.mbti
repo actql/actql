@@ -2,15 +2,20 @@
 package "actql/actql/physical_resources"
 
 import {
+  "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn[T] advance_original_state_write(OriginalStateWrite[T], Int) -> OriginalStateWritePoll
+
 pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocation, LedgerIssue]
 
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
+
+pub fn[T] cancel_original_state_write(OriginalStateWrite[T]) -> Unit
 
 pub fn capacity_reservation_covers(Ledger, CapacityReservation, Int64, Int64) -> Bool
 
@@ -77,6 +82,8 @@ pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, Ledge
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
 pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
+
+pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
 
 pub fn quantity_configuration_matches(Ledger, QuantityAmounts?) -> Bool
 
@@ -198,6 +205,22 @@ pub(all) enum OriginalReadIssue {
   SpentClaim
   CleanupPending
   Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+type OriginalStateWrite[T]
+
+pub(all) enum OriginalStateWriteIssue {
+  InvalidQuantum
+  Original(OriginalReadIssue)
+  Resource(LedgerIssue)
+  Encoding
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OriginalStateWritePoll {
+  StateWriteContinue(work~ : Int)
+  StateWriteComplete(work~ : Int)
+  StateWriteFailed(OriginalStateWriteIssue, work~ : Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct QuantityAmounts {
