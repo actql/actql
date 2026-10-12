@@ -94,6 +94,10 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
   if value.closing || value.runtime_closing || record.output_closed {
     return -5
   }
+  match run_configuration_current(value, configuration) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
   record.invoked = true
   let borrow = match record.borrow {
     Ok(borrow) => borrow
