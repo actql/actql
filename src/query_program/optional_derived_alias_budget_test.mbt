@@ -28,8 +28,10 @@ test "optional derived alias preserves the existing budget with fused producers"
       structure: { ..original.compilation.structure, steps: 1, },
     },
   }
-  match @check.check_parsed(p, check_environment(numeric=true), None, too_small) {
-    Rejected(issue) => assert_eq(@check.diagnostic_category(issue), @check.CompileLimit)
+  match
+    @check.check_parsed(p, check_environment(numeric=true), None, too_small) {
+    Rejected(issue) =>
+      assert_eq(@check.diagnostic_category(issue), @check.CompileLimit)
     _ => fail("the ordinary checker must retain its structural step limit")
   }
 }
@@ -64,8 +66,10 @@ test "named derived alias preserves the same predicate limit and budget" {
       structure: { ..original.compilation.structure, steps: 1, },
     },
   }
-  match @check.check_parsed(p, check_environment(numeric=true), None, too_small) {
-    Rejected(issue) => assert_eq(@check.diagnostic_category(issue), @check.CompileLimit)
+  match
+    @check.check_parsed(p, check_environment(numeric=true), None, too_small) {
+    Rejected(issue) =>
+      assert_eq(@check.diagnostic_category(issue), @check.CompileLimit)
     _ => fail("the ordinary checker must retain its structural step limit")
   }
 }

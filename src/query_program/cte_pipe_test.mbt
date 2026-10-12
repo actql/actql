@@ -88,7 +88,11 @@ test "captured WHERE-only and source-only CTEs bind the retained producer" {
     ] {
     let query = @query.parse_query(text, syntax_limits()).unwrap()
     let program = compile(query, context, construction_limits()).unwrap()
-    let expected = if text.contains("AS fresh") { expected_alias } else { expected }
+    let expected = if text.contains("AS fresh") {
+      expected_alias
+    } else {
+      expected
+    }
     assert_eq(semantic(program), semantic(expected))
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
