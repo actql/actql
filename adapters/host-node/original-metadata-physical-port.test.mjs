@@ -9,7 +9,8 @@ import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {currentResourceFixture} from './model-current-resource.fixture.mjs';
-import {openContinuationEvidence} from './local-continuation-evidence.mjs';
+import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
+  openContinuationEvidence} from './local-continuation-evidence.mjs';
 
 const unavailable = {code: 'InferOriginalMetadataAcquisitionUnavailable'};
 const keyId = 'sha256:' + '2'.repeat(64);
@@ -153,4 +154,25 @@ test('original metadata Port retains same failed FD in existing queue and retrie
   assert.equal(attempts, 3);
   assert.strictEqual(f.operation.originalResourceParkCurrent(f.park), f.park);
   assert.equal(f.sends(), 0);
+});
+
+test('ordinary non-Model Source capture keeps encrypted exact bytes across the shared Port refactor', async t => {
+  const state = await mkdtemp(join(tmpdir(), 'actql-c-ordinary-evidence-regression-'));
+  await createPrivateEvidenceKey(state);
+  const key = await loadPrivateEvidenceKey(state);
+  const options = {stateDirectory: state, ...key,
+    contractControl: runtimeCore(moon).publicationControl,
+    preparation: () => ({status: 'run_created', runStatus: 'needs_reconciliation'}),
+    isTerminalRunOutcome: () => false};
+  let port = openContinuationEvidence(options);
+  t.after(async () => { await port.close(); await rm(state, {recursive: true, force: true}); });
+  const wire = '{"values":["e\u0301",null,17]}';
+  const [capture] = await port.hold('ordinary-source', 'sha256:' + '3'.repeat(64),
+    [{name: 'source_capture', wire}]);
+  await port.close();
+  port = openContinuationEvidence(options);
+  const opened = await port.open('ordinary-source');
+  assert.equal((await opened.bytes('source_capture', capture, {maxBytes: 256})).toString('utf8'), wire);
+  assert.deepEqual(await port.settle(), {retired: [], pending: []});
+  assert.equal((await opened.bytes('source_capture', capture, {maxBytes: 256})).toString('utf8'), wire);
 });
