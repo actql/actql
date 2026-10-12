@@ -87,8 +87,19 @@ test "policy packet refuses substituted root and altered body CID" {
 
 ///|
 test "policy packet rejects unknown fields duplicate keys and missing body" {
+  let valid_prefix = policy_original_packet[0:policy_original_packet.length() -
+  1].to_owned()
   for
     wire in [
+      valid_prefix + ",\"accepted\":true}",
+      valid_prefix +
+      ",\"root_policy_cid\":\"" +
+      source_free_original_policy_cid +
+      "\"}",
+      policy_original_packet.replace(
+        old=",\"kind\":\"data_policy\"}",
+        new=",\"kind\":\"data_policy\",\"accepted\":true}",
+      ),
       "{\"bodies\":[],\"root_policy_cid\":\"x\"}",
       "{\"bodies\":[],\"bodies\":[],\"root_policy_cid\":\"x\"}",
       "{\"bodies\":[],\"root_policy_cid\":\"x\",\"accepted\":true}",
