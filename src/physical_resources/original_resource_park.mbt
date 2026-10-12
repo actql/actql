@@ -17,6 +17,9 @@ struct OriginalResourcePark[T] {
   mut origin : T?
   mut fence : OriginalResourceParkFence?
   mut previous : FundedReadPhase[T]?
+  // One prepaid codec operation, not a capacity/send or journal grant. This
+  // reference is resident in normal parks too and belongs in their inventory.
+  mut state_write_work : Int?
 }
 
 ///|
@@ -42,6 +45,26 @@ pub fn[T] park_original_resource_consumer(
   consumer : FundedReadConsumer[T],
   origin : T,
 ) -> Result[OriginalResourcePark[T], OriginalReadIssue] {
+  park_original_resource_consumer_impl(consumer, origin, false)
+}
+
+///|
+// The existing Run funds Writer/control/backing overlap before this entry.
+// Only logical encoding work is admitted here, on its actual original Ledger
+// BEFORE freezing it. This supplies no physical coefficient or Store authority.
+pub fn[T] park_original_resource_consumer_for_state_write(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+) -> Result[OriginalResourcePark[T], OriginalReadIssue] {
+  park_original_resource_consumer_impl(consumer, origin, true)
+}
+
+///|
+fn[T] park_original_resource_consumer_impl(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  write_state : Bool,
+) -> Result[OriginalResourcePark[T], OriginalReadIssue] {
   guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
@@ -65,12 +88,36 @@ pub fn[T] park_original_resource_consumer(
   if inventory.park is Some(_) {
     return Err(Resource(ResourceParked))
   }
+  let state_write_work = if write_state {
+    let n = inventory.reservations.length()
+    let h = inventory.holdings.length()
+    let d = inventory.delegations.length()
+    if n > inventory.max_reservations ||
+      h > inventory.max_holdings ||
+      d > inventory.max_delegations ||
+      n > 2147483631 ||
+      h > 2147483631 - n ||
+      d > 2147483631 - n - h {
+      return Err(IncompleteInventory)
+    }
+    // Nine header blocks and seven container/close blocks. The current
+    // census already includes the read token; do not append it a second time.
+    let work = 16 + n + h + d
+    match charge_planning(ledger, work) {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => ()
+    }
+    Some(work)
+  } else {
+    None
+  }
   let fence : OriginalResourceParkFence = { identity: inventory.identity, }
   let value : OriginalResourcePark[T] = {
     consumer: Some(consumer),
     origin: Some(origin),
     fence: Some(fence),
     previous: Some(claim.phase),
+    state_write_work,
   }
   // No await or mutating callback between checks and this synchronous fence.
   inventory.park = Some(fence)
@@ -152,6 +199,7 @@ pub fn[T] retire_original_resource_park(
     return Err(CleanupPending)
   }
   value.previous = None
+  value.state_write_work = None
   value.fence = None
   value.origin = None
   value.consumer = None

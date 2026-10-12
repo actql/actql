@@ -199,6 +199,7 @@ test "original Resource park rejects foreign copied phase and repeated handles a
     origin: park.origin,
     fence: park.fence,
     previous: park.previous,
+    state_write_work: park.state_write_work,
   }
   assert_true(original_resource_park_current(copy, origin) is None)
   assert_true(original_resource_park_current_for_ledger(copy, ledger) is None)
