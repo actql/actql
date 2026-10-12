@@ -14,11 +14,31 @@ priv struct StoredPreparation {
   slot : @buffers.BufferSlot
   environment : Int
   kind : Int
+  mut submitted : @preparation.LocalSubmittedPreparation?
   mut started : Bool
   mut outcome : Result[
     @preparation.LocalPreparedInput,
     @preparation.LocalPreparationIssue,
   ]?
+}
+
+///|
+/// Submitted readiness must retain the exact prepared Owner belonging to its
+/// original intent, rather than another independently prepared document.
+fn stored_preparation_input(
+  record : StoredPreparation,
+) -> @preparation.LocalPreparedInput? {
+  guard record.outcome is Some(Ok(input)) else { return None }
+  if record.kind == 3 {
+    guard record.submitted is Some(submitted) &&
+      physical_equal(
+        input,
+        @preparation.local_submitted_preparation_input(submitted),
+      ) else {
+      return None
+    }
+  }
+  Some(input)
 }
 
 ///|
@@ -181,7 +201,7 @@ pub fn reserve_preparation(
   if value.next_handle == 2147483647 {
     return -4
   }
-  if kind != 1 && kind != 2 {
+  if kind != 1 && kind != 2 && kind != 3 {
     return -3
   }
   let handle = value.next_handle
@@ -197,6 +217,7 @@ pub fn reserve_preparation(
     slot,
     environment,
     kind,
+    submitted: None,
     started: false,
     outcome: None,
   }
@@ -206,6 +227,7 @@ pub fn reserve_preparation(
 
 ///|
 /// kind=1 is structured JSON; kind=2 is original AQL carried as a JSON string.
+/// kind=3 keeps the original SDK submitted-intent envelope and bindings.
 /// Readiness is not Run admission. A completed call is not silently repeated.
 #export_name("actql_program_prepare")
 pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
@@ -225,6 +247,28 @@ pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   record.started = true
   let slot = record.slot
   let kind = record.kind
+  if kind == 3 {
+    guard @buffers.buffer_wire(value.pool, slot) is Some(wire) else {
+      return -5
+    }
+    let wire = @utf8.decode(wire) catch { _ => return -12 }
+    record.outcome = Some(
+      match
+        @preparation.prepare_local_submitted_input(
+          wire,
+          configuration.environment,
+          Some(configuration.context),
+          @host.client_standard_program_preparation_limits(),
+        ) {
+        Ok(submitted) => {
+          record.submitted = Some(submitted)
+          Ok(@preparation.local_submitted_preparation_input(submitted))
+        }
+        Err(issue) => Err(issue)
+      },
+    )
+    return 0
+  }
   let document = if kind == 1 {
     guard @buffers.buffer_wire(value.pool, slot) is Some(wire) else {
       return -5

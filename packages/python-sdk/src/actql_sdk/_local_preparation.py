@@ -93,7 +93,7 @@ class LocalPreparation:
             return value
 
     def reserve(self, environment: _Environment, input: _Input, *,
-                format: Literal['program', 'text']) -> _Preparation:
+                format: Literal['program', 'text', 'submitted']) -> _Preparation:
         """Issue custody before entering the existing parser/lowerer/Checker.
 
         Program wire and JSON-string text wire remain opaque original bytes.
@@ -103,9 +103,9 @@ class LocalPreparation:
             self._active()
             self._environment(environment)
             self._core._owned_input(input)
-            if format not in ('program', 'text'):
+            if format not in ('program', 'text', 'submitted'):
                 raise ValueError('Invalid Local input format')
-            kind = 1 if format == 'program' else 2
+            kind = {'program': 1, 'text': 2, 'submitted': 3}[format]
             handle = self._core._call('program', 'reserve_preparation',
                                       environment.handle, input.handle, kind)
             if handle <= 0:
