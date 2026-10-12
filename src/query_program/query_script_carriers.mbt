@@ -70,7 +70,8 @@ fn script_prefix_carrier(
 fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-    "to_events", "row_window", "window_events", "watermark_events", "session", "events",
+    "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
+    "session", "events",
   ].contains(name)
 }
 
@@ -96,6 +97,24 @@ fn script_carrier_columns(carrier : @carrier.Carrier) -> Array[String] {
 }
 
 ///|
+// Carrier fields use the same retained scope as ordinary FieldRef selectors.
+// A miss must never fall back to an input range removed by a projection.
+fn script_carrier_field_name(
+  path : Array[@query.NamePart],
+  query : @query.Query,
+  input : Input,
+  sources : ScriptSources,
+) -> String raise Abort {
+  let resolved = match
+    script_input_scope(sources, input.name, query_range_name(query)) {
+    Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
+    None => resolve_column(path, query, input, columns(input))
+  }
+  guard resolved is Some(name) else { raise Abort(UnknownColumn) }
+  name
+}
+
+///|
 // A field reference is distinct from a String value. Reuse ordinary column
 // resolution for a Relation range; Vectors/Events have no row-range alias.
 fn script_carrier_field(
@@ -106,17 +125,8 @@ fn script_carrier_field(
   sources : ScriptSources,
 ) -> @builder.Node raise Abort {
   match argument {
-    FieldReference(path) => {
-      let resolved = match
-        script_input_scope(sources, input.name, query_range_name(query)) {
-        // Use the same continuation scope as ordinary FieldRef selectors.
-        // A miss in this scope must not fall back to a removed input range.
-        Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
-        None => resolve_column(path, query, input, columns(input))
-      }
-      guard resolved is Some(name) else { raise Abort(UnknownColumn) }
-      construction.text(name)
-    }
+    FieldReference(path) =>
+      construction.text(script_carrier_field_name(path, query, input, sources))
     ListValue(items) =>
       construction.array(
         items.map(item => {
@@ -124,6 +134,53 @@ fn script_carrier_field(
         }),
       )
     _ => raise Abort(InvalidQuery)
+  }
+}
+
+///|
+// Resolve only the field roles. Direction, NULL placement, partition equality
+// and top-tie obligations are checked by the existing common Event owner.
+fn script_carrier_order(
+  construction : Construction,
+  argument : @query.SgaArgument,
+  query : @query.Query,
+  input : Input,
+  sources : ScriptSources,
+  known : Array[Input],
+  limits : Limits,
+) -> @builder.Node raise Abort {
+  match argument {
+    ListValue(items) =>
+      construction.array(
+        items.map(item => {
+          script_carrier_order(
+            construction, item, query, input, sources, known, limits,
+          )
+        }),
+      )
+    FieldMapValue(fields) =>
+      construction.object(
+        fields.map(field => {
+          (
+            script_carrier_field_name(field.0, query, input, sources),
+            script_traversal_argument(construction, field.1, known, limits),
+          )
+        }),
+      )
+    ObjectValue(fields) =>
+      construction.object(
+        fields.map(field => {
+          (
+            field.0,
+            if field.0 == "field" {
+              script_carrier_field(construction, field.1, query, input, sources)
+            } else {
+              script_traversal_argument(construction, field.1, known, limits)
+            },
+          )
+        }),
+      )
+    _ => script_traversal_argument(construction, argument, known, limits)
   }
 }
 
@@ -182,6 +239,7 @@ fn lower_script_carrier_calls(
       "pool_vectors" => ["by", "vector"]
       "to_events" => ["id", "time"]
       "row_window" => ["time"]
+      "dedupe_events" => ["by"]
       "session" =>
         if carrier is @carrier.Relation(_) {
           ["id", "time", "by"]
@@ -198,6 +256,7 @@ fn lower_script_carrier_calls(
       "row_window" => ["kind", "time", "size", "step", "offset"]
       "window_events" => ["kind", "size", "step", "offset"]
       "watermark_events" => ["watermark_ms", "policy"]
+      "dedupe_events" => ["by", "order_by"]
       _ => []
     }
     // Optional pool roles are preserved as authored. The common pool owner
@@ -234,6 +293,17 @@ fn lower_script_carrier_calls(
               query,
               input,
               sources,
+            )
+          } else if call.operation == "dedupe_events" &&
+            argument.0 == "order_by" {
+            script_carrier_order(
+              construction,
+              argument.1,
+              query,
+              input,
+              sources,
+              known,
+              limits,
             )
           } else {
             script_traversal_argument(construction, argument.1, known, limits)
