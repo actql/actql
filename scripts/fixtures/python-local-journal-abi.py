@@ -27,7 +27,7 @@ request_id = 'sha256:60829347a8a67a0290d02e6fc991daaec4bb8097d27c611bd9f6c572ba2
 core = LocalCore(module, digest=digest, transfer_capacity=12 * 1024 * 1024, slots=64,
                  resources=LocalCoreResources(100000, 64, 64, 32000000, 200000000,
                                               16 * 1024 * 1024 + 12 * 1024 * 1024))
-assert core._exports['actql_host_abi_version'](core._store) == 53
+assert core._exports['actql_host_abi_version'](core._store) == 54
 inputs = []
 children = []
 material = None

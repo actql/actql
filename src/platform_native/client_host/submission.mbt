@@ -161,32 +161,38 @@ fn NativeClientRunJournal::submitted_intent_custody(
       client_journal_scan(self.database, table_name, cursor)
     },
     (table_name, key) => client_journal_read(self.database, table_name, key),
-    row => {
-      let original = match @host.decode_client_submitted_journal_row(row.body) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
-      let record : NativeClientSubmittedIntentRecord = {
-        reference: native_submission_reference_record(original.reference),
-        intent: original.intent,
-        run_admission: original.run_admission.map(value => {
-          request: value.0,
-          run_definition_cid: value.1,
-          revision: value.2,
-        }),
-        revision: row.revision,
-      }
-      if record.reference.request_id != row.key {
-        return Err(CustodyLost)
-      }
-      match self.validate_submitted_run_admission(record) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
-      }
-      Ok(original)
-    },
+    row => self.inspect_submitted_intent_row(row),
     CustodyLost,
   )
+}
+
+///|
+fn NativeClientRunJournal::inspect_submitted_intent_row(
+  self : NativeClientRunJournal,
+  row : @host.ClientJournalPhysicalRow,
+) -> Result[@host.ClientSubmittedJournalEncoding, NativeClientRunJournalIssue] {
+  let original = match @host.decode_client_submitted_journal_row(row.body) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let record : NativeClientSubmittedIntentRecord = {
+    reference: native_submission_reference_record(original.reference),
+    intent: original.intent,
+    run_admission: original.run_admission.map(value => {
+      request: value.0,
+      run_definition_cid: value.1,
+      revision: value.2,
+    }),
+    revision: row.revision,
+  }
+  if record.reference.request_id != row.key {
+    return Err(CustodyLost)
+  }
+  match self.validate_submitted_run_admission(record) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  Ok(original)
 }
 
 ///|
@@ -289,47 +295,69 @@ pub fn NativeClientRunJournal::record_submitted_intent(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let (count, retained_bytes, revision) = match
-      self.submitted_intent_custody() {
+    let original_reference = match
+      @host.admit_client_submission_reference_record(reference.wire) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(_) => return Err(CustodyLost)
     }
-    match self.retained_submission(reference) {
-      Ok(Some(record)) => {
-        if @host.client_submitted_intent_cid(record.intent) !=
-          @host.client_submitted_intent_cid(intent) {
-          return Err(ChangedIntent)
-        }
-        return Ok(record)
+    let plan = match
+      @host.prepare_client_submitted_journal_append(
+        original_reference,
+        intent,
+        validity,
+        self.max_records,
+        (table, cursor) => client_journal_scan(self.database, table, cursor),
+        (table, key) => client_journal_read(self.database, table, key),
+        row => self.inspect_submitted_intent_row(row),
+        row => {
+          let record = match
+            read_run_record({ body: row.body, revision: row.revision, }) {
+            Ok(value) => value
+            Err(_) => return Err(CustodyLost)
+          }
+          Ok({
+            request: record.request,
+            definition: record.definition,
+            checkpoint: record.checkpoint.map(value => value.effect_ledger),
+          })
+        },
+        CustodyLost,
+      ) {
+      Ok(@host.Retained(snapshot)) => {
+        let original = @host.client_saved_submission_record(snapshot)
+        return Ok({
+          reference: native_submission_reference_record(original.reference),
+          intent: original.intent,
+          run_admission: original.run_admission.map(value => {
+            request: value.0,
+            run_definition_cid: value.1,
+            revision: value.2,
+          }),
+          revision: @host.client_saved_submission_revision(snapshot),
+        })
       }
-      Ok(None) => ()
-      Err(issue) => return Err(issue)
+      Ok(@host.Append(plan)) => plan
+      Err(@host.Observation(issue)) => return Err(issue)
+      Err(@host.ChangedIntent) => return Err(ChangedIntent)
+      Err(@host.EpochRejected(validity)) =>
+        return Err(SubmissionEpochRejected(validity))
+      Err(@host.CapacityExceeded) => return Err(CapacityExceeded)
+      Err(@host.Encoding(@host.Encoding)) => return Err(Encoding)
+      Err(@host.Encoding(@host.CapacityExceeded)) =>
+        return Err(CapacityExceeded)
     }
-    if validity != @scope.Admissible {
-      return Err(SubmissionEpochRejected(validity))
-    }
-    let bytes = @utf8.encode(@host.client_submitted_intent_wire(intent))
-      .length()
-      .to_int64()
-    if count == self.max_records || bytes > 67108864L - retained_bytes {
-      return Err(CapacityExceeded)
-    }
-    let body = match submitted_intent_body(reference, intent) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
+    let (key, body, revision, issued_body) = @host.client_submitted_journal_append_rows(
+      plan,
+    )
     match
       self.database.compare_exchange(
-        "client_submitted_intent_custody",
-        "issued",
-        revision,
-        @utf8.encode((count + 1).to_string()),
+        "client_submitted_intent_custody", "issued", revision, issued_body,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(Physical(issue))
     }
     self.database
-    .insert("client_submitted_intents", reference.request_id, body)
+    .insert("client_submitted_intents", key, body)
     .map(revision => { reference, intent, run_admission: None, revision, })
     .map_err(issue => Physical(issue))
   })

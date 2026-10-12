@@ -1987,3 +1987,32 @@ publication or Result. The durable Host's actual saved-row observation and
 current authority are separate from its write candidate and later control
 state. Installed public Host assembly and wheel acceptance remain separate
 from this private bridge.
+# Original submitted-intent append projection
+
+Private ABI54 adds submission projection kind 3 and
+`actql_submission_validate_append(nonce, handle, current) -> i32`. The original
+typed current configuration supplies its same-Store namespace-reader callback.
+The physical Host authenticates the exact epoch before projection; Core checks
+its authority scope and validity, the original complete Run and submitted-intent
+inventories and the existing empty-cancellation profile, and the existing saved-row validators. Core then
+emits either the retained original row or the original issued-row CAS and
+preparing-row insertion candidate. Neither output is a Run admission, permission
+to dispatch, physical write, COMMIT acknowledgement or resend permission.
+
+The existing BufferPool reserves the candidate output and physical copies before
+production. Validation rereads the actual transaction's inventory and compares
+the original candidate before cached transport reads and physical CAS. A changed
+candidate, wrong current handle, closed input/output, unsupported Effect custody
+or query failure refuses without silently narrowing the inspection. Nonempty
+cancellation custody is explicitly unsupported at this connection and remains
+part of the product cancellation work. The Python
+assembly submits the two original writes through `compare_exchange_many_inspected`
+in one fenced SQLite transaction. COMMIT uncertainty retains the original
+Store and loans; it does not replay the writes. Explicit lookup is separate.
+
+This projection does not issue a finite Run Policy. First acceptance must select
+the adopted Common finite profile and persist its original issuedAt/Policy packet
+with the original Run/intent transaction. Lookup and restoration reuse that saved
+packet without extending prior Result, grant or receipt deadlines. Those Owner
+connections and actual runtime/wheel acceptance remain separate from this ABI's
+compiler and scalar physical-port checks.
