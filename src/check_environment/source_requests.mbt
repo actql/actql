@@ -11,6 +11,8 @@ pub(all) enum SourceRequestIssueKind {
   RoleLimit
   InvalidRequestContract
   InvalidAcquisition
+  InvalidFileListProfile
+  InvalidFileContentProfile
   UnsupportedResponseCarrier
   MismatchedArity
   UnknownRequestField(String)
@@ -61,6 +63,8 @@ struct SourceViewRequestContract {
   schema : @row.Schema
   correlation : SourceCorrelation?
   batching : SourceBatching?
+  file_listing : FileListProfile?
+  file_content : FileContentProfile?
 }
 
 ///|
@@ -268,6 +272,21 @@ pub fn check_source_request_contracts(
         schema,
         correlation,
         batching,
+        file_listing: read_file_list_profile(
+          view.item,
+          reference.catalog,
+          carriers,
+          schema,
+          b,
+        ),
+        file_content: read_file_content_profile(
+          view.item,
+          reference.catalog,
+          carriers,
+          schema,
+          correlation,
+          b,
+        ),
       }
       views.push(checked)
       by_view[member_index(view.item)] = checked

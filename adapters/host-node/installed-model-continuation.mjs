@@ -35,8 +35,39 @@ const originalKeys = ['originalRunWire', 'preparedInvocationWire', 'scopeWire',
   'providerBindingWire', 'inputArtifactWire', 'slotWires', 'expectedBoundary'];
 // Hash opaque original wires without the configuration canonicalizer's text normalization.
 const originalDigest = originals => bytesCid(Buffer.from(canonicalJson(select(originals, originalKeys))));
+// This validates only the closed durable transport. Current Source authority,
+// typed reference admission and actual Store custody remain receiving duties.
+const checkCapturedInventory = (value, runDefinitionCid, binding) => {
+  if (value === undefined) return;
+  const closed = (item, keys) => item !== null && typeof item === 'object' &&
+    !Array.isArray(item) && Object.keys(item).sort().join(',') === keys;
+  if (!closed(value, 'entries,runDefinitionCid,version') ||
+      value.version !== 'actql-installed-captured-content-inventory/0.1' ||
+      value.runDefinitionCid !== runDefinitionCid || !Array.isArray(value.entries)) {
+    fail('ModelCapturedInventoryMismatch');
+  }
+  const seen = new Set();
+  if (!closed(binding, 'bindingCid,connection,connectorRegistration,connectorRevision,physicalBindingCid,selectionCid,version') ||
+      binding.version !== 'actql-installed-keyed-read-binding/0.1' ||
+      ['selectionCid', 'physicalBindingCid', 'bindingCid'].some(key =>
+        !/^sha256:[0-9a-f]{64}$/u.test(binding[key] ?? '')) ||
+      ['connection', 'connectorRegistration', 'connectorRevision'].some(key =>
+        typeof binding[key] !== 'string' || binding[key].length === 0)) {
+    fail('ModelCapturedBindingMismatch');
+  }
+  for (const entry of value.entries) {
+    if (!closed(entry, 'captureAuthorityCid,referenceWire') ||
+        typeof entry.referenceWire !== 'string' || entry.referenceWire.length === 0 ||
+        Buffer.byteLength(entry.referenceWire) > MAX_MODEL_INPUT_BYTES ||
+        typeof entry.captureAuthorityCid !== 'string' ||
+        !/^sha256:[0-9a-f]{64}$/u.test(entry.captureAuthorityCid) || seen.has(entry.referenceWire)) {
+      fail('ModelCapturedInventoryMismatch');
+    }
+    seen.add(entry.referenceWire);
+  }
+};
 const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_outcome',
-  'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle'];
+  'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle', 'model_attachment_admission'];
 
 export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
   authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation, inferEvidence}) {
@@ -55,6 +86,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     retainedInputs, retainedInputBytes, retainedInventoryScopes: inventories.size});
   const changed = () => diagnostic('model_input_custody_changed', usage());
   function retain(receiptWire, receipt, snapshot, bytes) {
+    immutableInput(receipt);
+    immutableInput(snapshot);
     let tokens = custody.get(receiptWire);
     if (tokens === undefined) custody.set(receiptWire, tokens = new Set());
     const state = {available: true, snapshot};
@@ -66,6 +99,30 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     retainedInputBytes += bytes;
     changed();
     return token;
+  }
+  function ownedInput(token, runDefinitionCid) {
+    const lease = leases.get(token);
+    if (lease === undefined || !lease.state.available ||
+        lease.tokens.has(token) !== true || token.receipt.runDefinitionCid !== runDefinitionCid) {
+      fail('ModelFixedInputCustodyUnavailable');
+    }
+    return token.snapshot;
+  }
+  // The authenticated receipt covers these exact values. Borrowers may not
+  // replace a captured reference or scope after receipt verification. Walk
+  // the already byte-bounded decoded tree without another serialized copy.
+  function immutableInput(value) {
+    const pending = [value];
+    while (pending.length > 0) {
+      const next = pending.pop();
+      if (next !== null && typeof next === 'object') {
+        for (const child of Object.values(next)) {
+          if (child !== null && typeof child === 'object') pending.push(child);
+        }
+        Object.freeze(next);
+      }
+    }
+    return value;
   }
   function release(token) {
     const lease = leases.get(token);
@@ -175,6 +232,14 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         evidence: {...evidence, terminalFailure: true}, retryAllowed: false};
     }
     const capture = control.admitRunEvidence('model_slot_capture', bodies.model_slot_capture, limits);
+    // The physical Model owner seals this inventory into its slot capture.
+    // Store schema admission alone cannot substitute another Ref or call.
+    checked(moon.clientProgramVerifyInferAttachmentAdmission(
+      checked(moon.strategyRunEvidenceAdmit('model_slot_capture', capture.wire, 16384, 1024, 20)),
+      checked(moon.strategyRunEvidenceAdmit('model_dispatch_authority', authorityWire, 16384, 1024, 20)),
+      bodies.model_attachment_admission === undefined ? undefined : checked(
+        moon.strategyRunEvidenceAdmit('model_attachment_admission', bodies.model_attachment_admission,
+          16384, 1024, 20))));
     const outcome = JSON.parse(capture.wire).outcome;
     const bundle = checked(moon.clientProgramReadInferCaptureBundle(bodies.model_capture_bundle,
       evidence.model_capture_bundle.cid));
@@ -244,6 +309,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     if (snapshot.version !== 'actql-installed-model-input/0.1' ||
         snapshot.scopeCid !== record.scopeCid || receipt.runId !== record.inventory.runId ||
         receipt.runDefinitionCid !== record.inventory.runDefinitionCid) fail('ModelSnapshotBindingMismatch');
+    checkCapturedInventory(snapshot.capturedContent, receipt.runDefinitionCid, snapshot.capturedContentBinding);
     const token = retain(receiptWire, receipt, snapshot, bytes.byteLength);
     try {
       admittedInventory(record.originals, record.checkpointCid === null, token);
@@ -331,12 +397,21 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         preparedInvocationWire: plan.compiled.preparedEvidence.wire, scopeWire: scope.wire,
         providerBindingWire: binding.wire, inputArtifactWire: input.wire,
         slotWires: [...facts.slotWires], expectedBoundary};
+      const contentGeneration = operation.contentRecovery?.();
+      const capturedContent = operation.capturedContentRecovery?.();
+      const capturedContentBinding = operation.capturedContentBinding?.();
+      checkCapturedInventory(capturedContent, plan.runDefinition.identity, capturedContentBinding);
+      if (operation.contentGenerationCount > 0 && contentGeneration === undefined) {
+        fail('ModelContentGenerationCustodyMissing');
+      }
       let snapshot = {version: 'actql-installed-model-input/0.1', scopeCid: scope.identity,
         inputArtifactCid: input.identity, originals, binding: fixedBinding,
         descriptorWire: exported.descriptorWire, rows: [...exported.rows],
         callScopeSnapshotWire: facts.callScopeSnapshotWire,
         providerOriginals: binding.originals, submission,
-        ...(sourceContinuation === undefined ? {} : {sourceContinuation})};
+        ...(sourceContinuation === undefined ? {} : {sourceContinuation}),
+        ...(contentGeneration === undefined ? {} : {contentGeneration}),
+        ...(capturedContent === undefined ? {} : {capturedContent, capturedContentBinding})};
       let bodyWire = canonicalJson(snapshot);
       const receipt = await withPreparedInferEvidence({configuration: inferEvidence,
         moon, control, plan, selected, preparedCallSet, operation, authorityScopeCid,
@@ -751,16 +826,29 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     }
   }
   return Object.freeze({verifier, open, prime, release, usage, observe,
+    capturedContent: (token, runDefinitionCid) =>
+      ownedInput(token, runDefinitionCid).capturedContent,
+    capturedContentBinding: (token, runDefinitionCid) =>
+      ownedInput(token, runDefinitionCid).capturedContentBinding,
     retire: record => retireReceipt(record.originals.fixedInputReceiptWire),
     discover: runId => checkpoints().journal.discoverModelCallSets({runId, limit: 100}),
     unresolved: runId => checkpoints().journal.hasUnresolvedModelCalls(runId),
     state: identity => checkpoints().journal.readModelCalls(identity),
-    savedScope: (plan, preparedProgram, selected, token) => selected.occurrence !== undefined
-      ? control.readCheckedClientComposedInferSavedInputScope(plan.compiled, plan.runDefinition,
-        selected.occurrence, selected.graph, token.snapshot.callScopeSnapshotWire,
-        authorityScopeCid, () => token.available)
-      : control.readCheckedClientInferSavedInputScope(plan.compiled, plan.runDefinition,
-        preparedProgram, selected.step, selected.graph, token.snapshot.callScopeSnapshotWire,
-        authorityScopeCid, () => token.available),
+    savedScope(plan, preparedProgram, selected, token) {
+      const snapshot = ownedInput(token, plan.runDefinition.identity);
+      // A copied envelope or a lease from another continuation is not custody.
+      // Recheck the original lease when the common saved-input owner borrows it.
+      const available = () => {
+        try { ownedInput(token, plan.runDefinition.identity); return true; }
+        catch { return false; }
+      };
+      return selected.occurrence !== undefined
+        ? control.readCheckedClientComposedInferSavedInputScope(plan.compiled, plan.runDefinition,
+          selected.occurrence, selected.graph, snapshot.callScopeSnapshotWire,
+          authorityScopeCid, available)
+        : control.readCheckedClientInferSavedInputScope(plan.compiled, plan.runDefinition,
+          preparedProgram, selected.step, selected.graph, snapshot.callScopeSnapshotWire,
+          authorityScopeCid, available);
+    },
   });
 }

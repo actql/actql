@@ -86,6 +86,15 @@ pub fn model_execution_issued_slot_capture(
     }
     @encode.key(writer, "attachment_admission_cids")
     @encode.begin_array(writer)
+    match model_execution_issued_attachment_admission(execution, slot) {
+      Err(issue) => return Err(issue)
+      Ok(None) => ()
+      Ok(Some(record)) =>
+        @encode.string_value(
+          writer,
+          @publication.run_evidence_value_identity(record),
+        )
+    }
     @encode.end_array(writer)
     @encode.end_object(writer)
     @publication.seal_run_evidence_value(

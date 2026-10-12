@@ -277,8 +277,8 @@ test "typed JSON stepped wire reserves its envelope continuation exactly" {
 ///|
 test "stepped Reference wire accounts nested canonical cursor custody" {
   let live = Ref(true)
-  let checked = issued_artifact_value(
-    select_checked_contract("{\"type\":\"artifact_ref\",\"nullable\":false}"),
+  let checked = issued_content_value(
+    select_checked_contract("{\"type\":\"content_ref\",\"nullable\":false}"),
     live,
   )
   guard checked.value is @admitted.Reference(reference) else {

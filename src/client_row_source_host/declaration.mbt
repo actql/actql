@@ -27,6 +27,7 @@ pub struct RowDeclaredView {
   fields : Array[String]
   carrier_schema_cid : String
   data_policy_cid : String
+  classification : String
 }
 
 ///|
@@ -48,6 +49,7 @@ pub(all) enum RowDeclarationIssue {
   InvalidConnectorId
   InvalidRegistration
   InvalidView
+  InvalidAcquisition
   UnsupportedType(String)
   DuplicateName(String)
   OutputLimit
@@ -255,6 +257,8 @@ pub fn generate_row_declaration(
     connector_version,
     views,
     None,
+    None,
+    None,
     limits,
   )
 }
@@ -269,6 +273,8 @@ fn generate_row_declaration_impl(
   connector_version : String,
   views : Array[RowViewSpec],
   schemas : Array[Json]?,
+  requests : Array[(Json, Json, Json?)]?,
+  classifications : Array[@environment.DataClassification]?,
   limits : RowDeclarationLimits,
 ) -> Result[RowDeclaration, RowDeclarationIssue] {
   if !valid_connector_id(connector_id) {
@@ -282,6 +288,12 @@ fn generate_row_declaration_impl(
     return Err(InvalidView)
   }
   if schemas is Some(bodies) && bodies.length() != views.length() {
+    return Err(InvalidView)
+  }
+  if requests is Some(bodies) && bodies.length() != views.length() {
+    return Err(InvalidView)
+  }
+  if classifications is Some(values) && values.length() != views.length() {
     return Err(InvalidView)
   }
   let resources = []
@@ -321,7 +333,19 @@ fn generate_row_declaration_impl(
     }
     let declared = []
     let members = []
+    let mut acquisition_work = limits.max_nodes
     for view_index, view in views {
+      let classification = match classifications {
+        None => "unknown"
+        Some(values) =>
+          match values[view_index] {
+            @environment.Public => "public"
+            @environment.Internal => "internal"
+            @environment.Confidential => "confidential"
+            @environment.Restricted => "restricted"
+            @environment.Unknown => "unknown"
+          }
+      }
       let source_ref = "connector://" +
         connector_id +
         "/" +
@@ -331,12 +355,16 @@ fn generate_row_declaration_impl(
       let request = envelopes.add(
         name + "/request",
         "request_schema",
-        object([
-          ("type", "object".to_json()),
-          ("nullable", false.to_json()),
-          ("additional_properties", false.to_json()),
-          ("fields", object([])),
-        ]),
+        match requests {
+          Some(bodies) => bodies[view_index].0
+          None =>
+            object([
+              ("type", "object".to_json()),
+              ("nullable", false.to_json()),
+              ("additional_properties", false.to_json()),
+              ("fields", object([])),
+            ])
+        },
       )
       let row = envelopes.add(
         name + "/row",
@@ -365,14 +393,21 @@ fn generate_row_declaration_impl(
             ])
         },
       )
-      let facts = envelopes.add(name + "/facts", "carrier_facts", object([]))
+      let facts = envelopes.add(
+        name + "/facts",
+        "carrier_facts",
+        match requests {
+          Some(bodies) => bodies[view_index].1
+          None => object([])
+        },
+      )
       let policy = envelopes.add(
         name + "/policy",
         "data_policy",
         object([
           ("version", "actql-source-data-policy/0.1".to_json()),
           ("source_ref", source_ref.to_json()),
-          ("classification", "unknown".to_json()),
+          ("classification", classification.to_json()),
         ]),
       )
       // Only projection is pushed: the common admission keeps the fields the
@@ -386,6 +421,20 @@ fn generate_row_declaration_impl(
           ("operations", Json::array(["projection".to_json()])),
         ]),
       )
+      let acquisition_spec = match requests {
+        Some(bodies) => bodies[view_index].2
+        None => None
+      }
+      let acquisition = match
+        row_acquisition_body(
+          acquisition_spec, request, limits, acquisition_work,
+        ) {
+        Ok((body, used)) => {
+          acquisition_work -= used
+          body
+        }
+        Err(issue) => return Err(issue)
+      }
       let (body, view_cid) = seal(
         [
           ("schema", "actql.source_view/0.1".to_json()),
@@ -394,24 +443,7 @@ fn generate_row_declaration_impl(
           ("resource_kind", view.resource_kind.to_json()),
           ("view_id", "records".to_json()),
           ("view_version", connector_version.to_json()),
-          (
-            "acquisition",
-            object([
-              ("kind", "scan".to_json()),
-              ("authority", "read_content".to_json()),
-              ("request_schema", request),
-              (
-                "modes",
-                Json::array([
-                  object([
-                    ("mode", "snapshot".to_json()),
-                    ("bounded", true.to_json()),
-                  ]),
-                ]),
-              ),
-              ("default_mode", "snapshot".to_json()),
-            ]),
-          ),
+          ("acquisition", acquisition),
           (
             "request_processing",
             object([("mutates_business_state", false.to_json())]),
@@ -444,6 +476,7 @@ fn generate_row_declaration_impl(
         fields: view.fields.map(field => field.name),
         carrier_schema_cid: ref_cid(row),
         data_policy_cid: ref_cid(policy),
+        classification,
       })
     }
     members.sort_by((a, b) => {
@@ -542,7 +575,7 @@ pub fn row_declaration_evidence_members(
     for
       (key, value) in [
         ("carrier_schema_contract_cid", view.carrier_schema_cid),
-        ("data_classification", "unknown"),
+        ("data_classification", view.classification),
         ("output_carrier", "relation"),
         ("read_mode", "snapshot"),
         ("source_contract_cid", view.view_cid),

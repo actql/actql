@@ -145,7 +145,7 @@ test "append lowers every normative relation value contract" {
     "{\"type\":\"json\",\"nullable\":true}", "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
     "{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}",
     "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":2,\"element_type\":\"f32\"}",
-    "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"file\"}", "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+    "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"file\"}", "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
   ]
   for body in contracts {
     let owner = append_input_owner(append_contract(body))
@@ -189,7 +189,7 @@ test "append preserves every relation value domain and NULL" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -207,7 +207,7 @@ test "append preserves every relation value domain and NULL" {
           contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           live,
         ).value
-      "artifact" => issued_artifact_value(contract, live).value
+      "artifact" => issued_content_value(contract, live).value
       _ =>
         @admitted.admit(contract, input_cursor(wire), {
           max_nodes: 100,

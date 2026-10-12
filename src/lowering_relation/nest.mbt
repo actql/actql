@@ -191,7 +191,7 @@ fn nest_expansion_has_role(
 fn nest_schema_has_references(schema : @schema.Schema) -> Bool {
   for index in 0..<@schema.field_count(schema) {
     match @schema.field_at(schema, index).unwrap().contract.shape {
-      @contract.ResourceRef(..) | @contract.ArtifactRef(..) => return true
+      @contract.ResourceRef(..) | @contract.ContentRef(..) => return true
       _ => ()
     }
   }
@@ -292,7 +292,7 @@ pub fn prepare_nest_kernel(
       let field = @schema.field_at(schema, index).unwrap()
       let identity_field = match field.contract.shape {
         @contract.ResourceRef(..) => "identity_cid"
-        @contract.ArtifactRef(..) => "artifact_ref_cid"
+        @contract.ContentRef(..) => "content_ref_cid"
         _ => continue
       }
       let projected_name = "__actql_nest_ref_" + index.to_string()

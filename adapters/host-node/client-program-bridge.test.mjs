@@ -4471,6 +4471,19 @@ test('admitted source-free Effect Run computes through the installed Host',
           connectorRecovery: [],
           contractLimits: publicationLimits,
         };
+        // Receipt and durable capture must refer to the same owned generation
+        // inventory, not merely equally shaped caller-authored values.
+        for (const [receiptContents, capturedContents] of [
+          [[{}], undefined], [undefined, []], [[{}], [{}]], [[], [{}]],
+        ]) {
+          await assert.rejects(issueCompletedEffectfulComputationEvidence({
+            ...captureOptions,
+            receiptEvidence: {...captureOptions.receiptEvidence,
+              ...(receiptContents === undefined ? {} : {contentGenerations: receiptContents})},
+            captureEvidence: {...captureOptions.captureEvidence,
+              ...(capturedContents === undefined ? {} : {contentGenerations: capturedContents})},
+          }), {code: 'InvalidCompletedEffectfulComputationOptions'});
+        }
         await assert.rejects(issueCompletedEffectfulComputationEvidence({
           ...captureOptions,
           store: {...store,

@@ -1,4 +1,39 @@
 ///|
+test "completed import keeps both admission passes and partial failed work after reclamation" {
+  let owner = capture_fixture()
+  let live = Ref(true)
+  let (source, _) = retained_fixture(owner, live)
+  let conversion = prepare_completed_output_import(
+    source,
+    2,
+    { ..stream_value_limits(), max_work: 8, },
+    row_wire_limits(),
+    64,
+    deferred_reclamation=true,
+  ).unwrap()
+  assert_eq(completed_output_import_cumulative_work(conversion), 0L)
+  append_completed_output_import(conversion, output_fixture_row(owner, 0)).unwrap()
+  // Each first-row pass is 7; receiving and verifying both consume it.
+  assert_eq(completed_output_import_cumulative_work(conversion), 14L)
+  assert_true(
+    append_completed_output_import(conversion, output_fixture_row(owner, 1))
+    is Err(Admission(CaptureLimit)),
+  )
+  // Receiving consumes the second row root (1) before refusing its name;
+  // verification never starts the rejected row: 8 + 7 = 15, not 16 or 32.
+  assert_eq(completed_output_import_cumulative_work(conversion), 15L)
+  assert_true(finish_completed_output_import(conversion) is Err(Closed))
+  while !advance_cancel_completed_output_import(conversion, 1) {
+
+  }
+  assert_true(advance_cancel_completed_output_import(conversion, 1))
+  assert_eq(completed_output_import_cumulative_work(conversion), 15L)
+  assert_eq(completed_output_import_cumulative_work(conversion), 15L)
+  assert_true(completed_output_available(source))
+  assert_true(live.val)
+}
+
+///|
 test "explicit retained conversion enables Local and survives source copy loss" {
   let owner = capture_fixture()
   let live = Ref(true)

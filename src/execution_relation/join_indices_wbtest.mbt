@@ -364,9 +364,9 @@ test "join indices accept every KeyComparable value domain" {
     ).value,
   )
   let artifact_contract = select_checked_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
   )
-  let artifact = capture(issued_artifact_value(artifact_contract, live).value)
+  let artifact = capture(issued_content_value(artifact_contract, live).value)
   for
     (left, right, expected) in [
       ([Number(1), Number(2)], [Number(1)], 0),

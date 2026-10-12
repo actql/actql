@@ -38,6 +38,7 @@ fn reidentify_sequence_limit(
   unit : String,
   budget : IdentityBudget,
   guard_witness? : @wire.WireWitness? = None,
+  enforcement? : @wire.Enforcement = @wire.EngineAtomic,
 ) -> @wire.LimitClaim raise UnitBuildFailure {
   let original_arithmetic = @wire.limit_claims(original)
   let minimum = @wire.limit_minimum(original)
@@ -116,7 +117,17 @@ fn reidentify_sequence_limit(
       @encode.key(w, "effective_max")
       @encode.number_value(w, maximum.to_double())
       @encode.key(w, "enforcement")
-      @encode.string_value(w, "engine_atomic")
+      @encode.string_value(
+        w,
+        match enforcement {
+          Static => "static"
+          UnitPreflight => "unit_preflight"
+          BeforeProviderDispatch => "before_provider_dispatch"
+          BeforeEffectCommit => "before_effect_commit"
+          StreamingAtomic => "streaming_atomic"
+          EngineAtomic => "engine_atomic"
+        },
+      )
       if cid is Some(cid) {
         @encode.key(w, "resolved_limit_cid")
         @encode.string_value(w, cid)

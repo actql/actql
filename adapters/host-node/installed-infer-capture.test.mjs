@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readInstalledInferCapture} from './installed-infer-capture.mjs';
 
-function fixture({missing, rejectReplay = false} = {}) {
+function fixture({missing, rejectReplay = false, attachments = false,
+  rejectAttachment = false, unconfirmed} = {}) {
   const reads = [];
   let released = 0;
   const bundle = {};
@@ -38,12 +39,20 @@ function fixture({missing, rejectReplay = false} = {}) {
     async readPrivateEvidence(name, semantic, holding) {
       assert.equal(semantic, holding);
       return Buffer.from(name === 'observation_set'
-        ? '{"model_slot_capture_cids":["slot"]}' : '{}');
+        ? '{"model_slot_capture_cids":["slot"]}' : name === 'model_slot_capture'
+        ? JSON.stringify({attachment_admission_cids: attachments ? ['attachment'] : []}) : '{}');
     },
-    async confirmPrivateEvidence() {},
+    async confirmPrivateEvidence({name}) { return name === unconfirmed ? undefined : {}; },
   };
   const moon = {
     strategyRunEvidenceAdmit: () => ({$tag: 1, _0: {}}),
+    clientProgramVerifyInferAttachmentAdmission(capture, authority, admission) {
+      assert.ok(capture);
+      assert.ok(authority);
+      assert.equal(admission !== undefined, attachments);
+      if (rejectAttachment) return {$tag: 0, _0: 'ForeignAttachmentAdmission'};
+      return {$tag: 1};
+    },
     clientProgramInferAttemptRecords: (...leaves) => {
       assert.equal(leaves.length, 4);
       return {};
@@ -104,6 +113,22 @@ test('missing or rejected source custody never opens the model capture', async (
       missing === undefined ? /SourceBindingRejected/ :
         {code: 'InstalledInferCaptureUnavailable'});
     assert.deepEqual(value.reads, ['observation_set:-1', 'source_evidence:0']);
+    assert.equal(value.released(), 0);
+  }
+});
+
+test('saved attachment inventory is read and verified before opening a replay bundle', async () => {
+  const value = fixture({attachments: true});
+  assert.equal(await readInstalledInferCapture(value.options), value.verified);
+  assert.deepEqual(value.reads.slice(-2), ['model_attachment_admission:0', 'model_capture_bundle:-1']);
+});
+
+test('missing unconfirmed or foreign attachment custody cannot become a replay or send', async () => {
+  for (const options of [{missing: 'model_attachment_admission:0'},
+    {unconfirmed: 'model_attachment_admission'}, {rejectAttachment: true}]) {
+    const value = fixture({attachments: true, ...options});
+    await assert.rejects(readInstalledInferCapture(value.options));
+    assert.equal(value.reads.includes('model_capture_bundle:-1'), false);
     assert.equal(value.released(), 0);
   }
 });

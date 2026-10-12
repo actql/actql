@@ -371,7 +371,7 @@ test "dedupe preserves every relation value payload domain" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -409,7 +409,7 @@ test "dedupe compares every key domain including owned references" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]

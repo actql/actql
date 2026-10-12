@@ -192,7 +192,9 @@ fn bounded_relation_step_provider(
     Some(@lower.TimeSeriesStep(_))
     | Some(@lower.IntervalJoinStep(_))
     | Some(@lower.AsOfJoinStep(_))
-    | Some(@lower.SequenceMatchStep(_)) => true
+    | Some(@lower.SequenceMatchStep(_))
+    | Some(@lower.InferBoundary(_))
+    | Some(@lower.SerializationBoundary(_)) => true
     Some(@lower.EventStep(event)) =>
       @carrier.kind(@lower.event_output_carrier(event)) == @carrier.RelationKind &&
       @execution.generated_sequence_step_index_at(selected, 0)

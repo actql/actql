@@ -1,6 +1,6 @@
 import type {HostInstallation} from './index.js';
 import type {HostObservationConnection} from './observation.js';
-export type {HostCapacityPolicy} from './host-policy.js';
+export type {HostCapacityPolicy, HostLookupExecutionPolicy} from './host-policy.js';
 export type InstalledRemoteHostOptions = HostInstallation & Readonly<{
   directory: string;
   /** Stable service Workspace ID. Omission refuses asserted Workspace connections. */

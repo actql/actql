@@ -45,12 +45,7 @@ pub fn issue_prepared_client_infer_bound_template(
     max_wire_bytes,
     max_nodes,
     max_depth,
-    required_profiles=[
-      (
-        "actql-infer/0.1",
-        @environment.compiler_inference_barrier_contract_cid(),
-      ),
-    ],
+    required_profiles=client_infer_required_profiles(graph),
   ).map_err(issue => Template(issue))
 }
 

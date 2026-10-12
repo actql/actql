@@ -3,6 +3,7 @@ package "actql/actql/connectors_builtin_node"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/capacity_policy",
   "actql/actql/check_environment",
   "actql/actql/client_infer_host",
   "actql/actql/client_local_host",
@@ -21,6 +22,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/logical_request_scope",
+  "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/model_execution",
   "actql/actql/physical_host",
@@ -65,6 +67,10 @@ pub fn client_cancellation_intent_cid(@run_publication_host.ClientCancellationId
 
 pub fn client_cancellation_operation_action(@run_publication_host.ClientCancellationIdentity, @run_publication_host.ClientCancellationIdentity, Bool, @run_publication.PublicationContract, Int, Bool, Bool, Bool) -> Int
 
+pub fn client_captured_content_generation_count(@run_publication.PublicationContract) -> Result[Int, String]
+
+pub fn client_captured_content_generation_storage(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Int) -> Result[(String, String, String, Int64, Array[(String, String, String, String)]), String]
+
 pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCallSettlement) -> Bool
 
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
@@ -85,7 +91,13 @@ pub fn client_program_acquired_effect_invocation(@run_publication_host.ClientEff
 
 pub fn client_program_acquired_effect_request_cid(@run_publication_host.ClientEffectAcquiredEvidence) -> String
 
+pub fn client_program_acquired_serialization_plan_component(@run_publication_host.PreparedClientProgram, Int, Int, Int, Int) -> Result[@run_publication_host.ClientSerializationPlanGraph, @run_publication_host.ClientSerializationPlanGraphIssue]
+
+pub fn client_program_acquired_serialization_plan_graph(@run_publication_host.PreparedClientProgram, Int, Int, Int, Int) -> Result[@run_publication_host.ClientSerializationPlanGraph, @run_publication_host.ClientSerializationPlanGraphIssue]
+
 pub fn client_program_acquisition_count(@run_publication_host.PreparedClientProgram) -> Int
+
+pub fn client_program_acquisition_ledger(Int, Int, Int64, Int64, Int64, Int?) -> Result[@physical_resources.Ledger, @physical_resources.LedgerIssue]
 
 pub fn client_program_admit_allowed_effect_run(@run_publication_host.ClientEffectCompilation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication_host.ClientEffectAllowedRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
@@ -93,7 +105,7 @@ pub fn client_program_admit_compiled_run_definition(@run_publication_host.Client
 
 pub fn client_program_admit_composed_infer_egress(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
 
-pub fn client_program_admit_composed_infer_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
+pub fn client_program_admit_composed_infer_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
@@ -104,6 +116,8 @@ pub fn client_program_admit_effect_local_dependency_body(@run_publication_host.P
 pub fn client_program_admit_effect_publication(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
 
 pub fn client_program_admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[@effect_application.EffectRiskAcceptanceBody, @effect_application.EffectRiskAcceptanceIssue]
+
+pub fn client_program_admit_effect_serialization_captured_input(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
 
@@ -137,6 +151,8 @@ pub fn client_program_admit_publication_witnesses(@run_publication_host.Prepared
 
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
+pub fn client_program_admit_serialization_captured_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Result[(String, String, String), @run_publication_host.ClientCompiledRunIssue]
 
 pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
@@ -163,6 +179,8 @@ pub fn client_program_advance_infer_original_current_state_decode(@client_infer_
 
 pub fn client_program_advance_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateWriter, Int) -> @physical_resources.OriginalStateWritePoll
 
+pub fn client_program_advance_infer_root(@client_infer_host.Execution, Int) -> Result[@client_infer_host.Poll, @client_infer_host.Issue]
+
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
@@ -188,6 +206,8 @@ pub fn client_program_bind_compiled_infer_result_policy(@run_publication_host.Cl
 pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, ClientEffectPreviewInputLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientEffectPreviewInputIssue]
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
+
+pub fn client_program_bind_host_verified_request_value_policy(@run_publication_host.PreparedClientProgram, Int, String) -> @program_check.HostRequestValuePolicyEvidence?
 
 pub fn client_program_bind_infer_compute_suffix(@client_infer_host.Execution, @execution_relation.GeneratedSequence) -> Result[Unit, @client_infer_host.Issue]
 
@@ -253,6 +273,18 @@ pub fn client_program_captured_acquisition_capacity(@actql/actql/connectors/duck
 
 pub fn client_program_captured_broad_configuration(@actql/actql/connectors/duckdb/host.BroadHostConfiguration) -> @actql/actql/connectors/duckdb/host.CaptureConfiguration
 
+pub fn client_program_captured_content_candidate(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
+
+pub fn client_program_captured_content_cid(@run_publication_host.ClientCapturedContent) -> String
+
+pub fn client_program_captured_content_holding_cid(@run_publication_host.ClientCapturedContent) -> String?
+
+pub fn client_program_captured_content_reissuer((String?, String) -> @value_admission.CheckedValue?) -> @value_admission.ReferenceIssuer
+
+pub fn client_program_captured_content_storage(@run_publication_host.ClientCapturedContent) -> (String, String, String, Int)
+
+pub fn client_program_captured_content_wire(@run_publication_host.ClientCapturedContent) -> String
+
 pub fn client_program_captured_native_configuration(@actql/actql/connectors/duckdb/host.NativeHostConfiguration) -> @actql/actql/connectors/duckdb/host.CaptureConfiguration
 
 pub fn client_program_captured_source_dependency_bodies(@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedInputSource) -> (String, String)?
@@ -298,6 +330,8 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 pub fn client_program_check_environment_with_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
+
+pub fn client_program_check_environment_with_request_value_policies(@program_check.CheckEnvironment, Array[@program_check.HostRequestValuePolicyEvidence]) -> @program_check.CheckEnvironment
 
 pub fn client_program_check_infer_original_parked_storage_origin(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @run_publication.ModelOriginalResourceDocument, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, @run_publication_host.ClientModelOriginalOriginIssue]
 
@@ -345,7 +379,7 @@ pub fn client_program_cleanup_model_output(@model_execution.ModelOutputPreparati
 
 pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
-pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture) -> Bool
+pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture, Int?) -> Bool
 
 pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -363,9 +397,13 @@ pub fn client_program_compile_local_infer(@run_publication_host.PreparedClientPr
 
 pub fn client_program_compile_local_infers(@run_publication_host.PreparedClientProgram, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
 
+pub fn client_program_compile_local_serialization(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientSerializationPlanGraph) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
+
 pub fn client_program_compile_local_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
 
 pub fn client_program_compile_local_values(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientProgramValuesCompilationBridgeIssue]
+
+pub fn client_program_compiled_effect_program(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation) -> @run_publication_host.PreparedClientProgram?
 
 pub fn client_program_compiled_run_admission(@run_publication_host.ClientCompiledRun) -> @run_publication.RunPublicationAdmission
 
@@ -375,6 +413,8 @@ pub fn client_program_compiled_run_effect_matches(@run_publication_host.ClientCo
 
 pub fn client_program_compiled_run_evaluation_policy(@run_publication_host.ClientCompiledRun) -> (String, String, String)?
 
+pub fn client_program_compiled_run_has_serialization(@run_publication_host.ClientCompiledRun) -> Bool
+
 pub fn client_program_compiled_run_matches(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn client_program_compiled_run_plan(@run_publication_host.ClientCompiledRun) -> @run_publication.PublicationContract
@@ -383,9 +423,13 @@ pub fn client_program_compiled_run_prepared(@run_publication_host.ClientCompiled
 
 pub fn client_program_compiled_run_result_transformation(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultTransformation?, @run_publication_host.ClientCompiledRunIssue]
 
+pub fn client_program_compiled_run_serialization_graph(@run_publication_host.ClientCompiledRun) -> @run_publication_host.ClientSerializationPlanGraph?
+
 pub fn client_program_compiled_run_source_free_result_policy(@run_publication_host.ClientCompiledRun) -> (String, String, String)?
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_complete_content_step(@client_local_host.ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
 pub fn client_program_complete_infer_original_journal_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, OriginalModelJournalReference, OriginalModelJournalReference, OriginalModelJournalReference, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, @client_infer_host.Issue]
 
@@ -394,6 +438,18 @@ pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparat
 pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
 
 pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedClientProgram) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
+
+pub fn client_program_content_step_acknowledge_piece(@client_local_host.ClientLocalContentStep, Int) -> Bool
+
+pub fn client_program_content_step_byte_completion(@client_local_host.ClientLocalContentStep) -> @run_publication.ContentByteCompletion?
+
+pub fn client_program_content_step_generation(@client_local_host.ClientLocalContentStep) -> @run_publication_host.ClientSerializationGeneration?
+
+pub fn client_program_content_step_generation_input(@client_local_host.ClientLocalContentStep) -> (@run_publication_host.ClientSerializationInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.ContentByteEncoder)?
+
+pub fn client_program_content_step_pending_piece(@client_local_host.ClientLocalContentStep) -> (Int, String)?
+
+pub fn client_program_content_step_workspace(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> @client_local_host.ClientSerializationWorkspaceLimits?
 
 pub fn client_program_create_infer_call_entry_persistence(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet, () -> @model_execution.ModelEntryPersistenceObservation) -> @model_execution.ModelCallEntryPersistence?
 
@@ -429,6 +485,8 @@ pub fn client_program_effect_allowed_infer_run(@run_publication_host.ClientEffec
 
 pub fn client_program_effect_allowed_infer_run_with_policy_body(@run_publication_host.ClientEffectAllowedRun, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
+pub fn client_program_effect_allowed_serialization_run(@run_publication_host.ClientEffectAllowedRun) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
+
 pub fn client_program_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[@effect_application.EffectApplyCapabilityObservation, @effect_application.EffectApplyCapabilityIssue]
 
 pub fn client_program_effect_apply_capability_idempotency_mode(@effect_application.EffectApplyCapabilityObservation) -> String
@@ -438,6 +496,8 @@ pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_applic
 pub fn client_program_effect_apply_member_count(@physical_strategy.CapturedEffectPreviewInputs) -> Int?
 
 pub fn client_program_effect_apply_subject_cid(@physical_strategy.CapturedEffectPreviewInputs) -> String?
+
+pub fn client_program_effect_bind_host_verified_request_value_policy(@run_publication_host.PreparedClientEffectComputation, Int, String) -> @program_check.HostRequestValuePolicyEvidence?
 
 pub fn client_program_effect_capture_result_import(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectResultImport, @physical_strategy.RunIssue]
 
@@ -460,6 +520,10 @@ pub fn client_program_effect_compilation_result_transformation(@run_publication_
 pub fn client_program_effect_compilation_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
 pub fn client_program_effect_compilation_unit_id(@run_publication_host.ClientEffectCompilation) -> String
+
+pub fn client_program_effect_content_ledger_limits(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?, @local.ManagedProvider) -> @physical_resources.LedgerLimits?
+
+pub fn client_program_effect_content_local_provider(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?, @client_local_host.ClientSerializationWorkspaceLimits, () -> Bool, () -> Bool, () -> Bool, (@client_local_host.ClientLocalContentStep) -> Bool, @client_local_host.ClientRetainedContentOutput?) -> @local.ManagedProvider?
 
 pub fn client_program_effect_create_row_inventory(Array[String], Int, Int, Int, Int) -> Result[Array[(Int, String)], @run_publication.EffectPreviewIdentityIssue]
 
@@ -517,6 +581,8 @@ pub fn client_program_effect_issue_captured_source_logical(@run_publication_host
 
 pub fn client_program_effect_issue_captured_source_logical_at(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
+pub fn client_program_effect_keyed_lookup_join_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientKeyedLookupInput, String, String, String?, String?) -> @client_local_host.ClientKeyedJoinPreparation?
+
 pub fn client_program_effect_local_dependency_body(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int, Int) -> Result[@program_check.CheckedLocalDependencyBody, @program_check.LocalDependencyBodyIssue]
 
 pub fn client_program_effect_local_dependency_body_cid(@program_check.CheckedLocalDependencyBody) -> String
@@ -557,6 +623,8 @@ pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport
 
 pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), @run_publication_host.ClientEffectMemberDescriptorIssue]
 
+pub fn client_program_effect_member_descriptor_issue_code(@run_publication_host.ClientEffectMemberDescriptorIssue) -> String
+
 pub fn client_program_effect_plan_advance(ClientEffectPlanPreparation, Int) -> Result[(Bool, Int), ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_plan_cancel(ClientEffectPlanCursor) -> Unit
@@ -589,6 +657,8 @@ pub fn client_program_effect_preparation_ready(ClientEffectProgramBridgeOutcome)
 
 pub fn client_program_effect_preparation_result_presence_field(ClientEffectProgramBridgeOutcome) -> String?
 
+pub fn client_program_effect_prepare_keyed_acquisition(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int?) -> Result[@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedAcquisitionIssue]
+
 pub fn client_program_effect_prepare_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
 pub fn client_program_effect_prepare_query_acquisition(@run_publication_host.PreparedClientEffectComputation, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
@@ -619,6 +689,8 @@ pub fn client_program_effect_request_identity(@run_publication_host.PreparedClie
 
 pub fn client_program_effect_request_scope(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> @logical_request_scope.LogicalRequestScope?
 
+pub fn client_program_effect_request_value_policy_subjects(@run_publication_host.PreparedClientEffectComputation) -> Array[String] raise @program_check.UnitBuildFailure
+
 pub fn client_program_effect_result_count(@run_publication_host.PreparedClientEffectComputation) -> Int
 
 pub fn client_program_effect_result_import_count(@run_publication_host.PreparedClientEffectComputation, Int) -> Int?
@@ -634,6 +706,8 @@ pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.Effec
 pub fn client_program_effect_run_start_current(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Bool
 
 pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String
+
+pub fn client_program_effect_serialization_occurrences(@run_publication_host.PreparedClientEffectComputation) -> Array[(Int, Int)]
 
 pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
@@ -659,9 +733,13 @@ pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedC
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_export_content_generation_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String) -> Result[(String, String, Array[String]), @client_local_host.ClientInferRetainedInputIssue]
+
 pub fn client_program_export_infer_prepared_input(@client_infer_host.Execution, @model_execution.ModelPreparedCallSet, String) -> Result[@client_local_host.ClientInferRetainedInputExport, @client_local_host.ClientInferRetainedInputIssue]
 
 pub fn client_program_export_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[@client_local_host.ClientSourceCaptureExport, @client_local_host.ClientSourceCaptureIssue]
+
+pub fn client_program_export_source_original_read(@execution_relation.SuppliedRelationRead) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
 
 pub fn client_program_finish_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIdentityScanIssue]
 
@@ -670,6 +748,18 @@ pub fn client_program_finish_infer_node_read_state(@run_publication_host.ClientN
 pub fn client_program_finish_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateWriter) -> Result[String, @physical_resources.OriginalStateWriteIssue]
 
 pub fn client_program_finish_infer_original_read_scope(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Bool, @run_publication_host.ClientModelReadPreparationIssue]
+
+pub fn client_program_finish_model_content_bytes(@model_execution.ModelContentByteCheck) -> Result[@model_execution.ModelContentAdmission, @model_execution.ModelContentIssue]
+
+pub fn client_program_generated_content_candidate(@run_publication.ContentByteEncoder, String, Int, Int, Int, Int) -> Result[@run_publication.GeneratedContentReference, @run_publication.GeneratedContentReferenceIssue]
+
+pub fn client_program_generated_content_candidate_cid(@run_publication.GeneratedContentReference) -> String
+
+pub fn client_program_generated_content_candidate_wire(@run_publication.GeneratedContentReference) -> String
+
+pub fn client_program_generated_content_storage(@run_publication.GeneratedContentReference) -> (String, String, String, Int)
+
+pub fn client_program_generated_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
 
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
@@ -725,6 +815,8 @@ pub fn client_program_infer_evaluation_request(@client_infer_host.Execution, Int
 
 pub fn client_program_infer_execution_capture(@client_infer_host.Execution) -> @model_execution.ModelCaptureBundle?
 
+pub fn client_program_infer_execution_content_issue(@client_infer_host.Issue) -> String?
+
 pub fn client_program_infer_execution_handoff_pending(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_infer_execution_material(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferPlanGraph) -> Result[@run_publication_host.ClientExecutionMaterial, ClientProgramInferMaterialBridgeIssue]
@@ -756,6 +848,8 @@ pub fn client_program_infer_invocation_binding_observation(@client_infer_host.In
 pub fn client_program_infer_invocation_binding_output(@client_infer_host.InvocationBinding) -> @execution_relation.CompletedOutput?
 
 pub fn client_program_infer_invocation_evidence(@client_infer_host.Execution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn client_program_infer_media_dependency_references(@check_environment.ModelExecutionContract) -> Array[(String, String)]
 
 pub fn client_program_infer_model_dependency_issue_kind(@check_environment.ModelDependencyIssue) -> String
 
@@ -806,6 +900,8 @@ pub fn client_program_infer_plan_graph(@run_publication_host.PreparedClientProgr
 pub fn client_program_infer_plan_graph_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
 pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferPlanGraph) -> String
+
+pub fn client_program_infer_plan_serialization_graph(@run_publication_host.ClientInferPlanGraph) -> @run_publication_host.ClientSerializationPlanGraph?
 
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
 
@@ -899,6 +995,8 @@ pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/
 
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
+pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
+
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_issue_acquired_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
@@ -911,6 +1009,8 @@ pub fn client_program_issue_acquired_local_effect_invocation(@run_publication_ho
 
 pub fn client_program_issue_allowed_effect_run(@run_publication_host.ClientEffectCompilation, String, String, String) -> Result[@run_publication_host.ClientEffectAllowedRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
+pub fn client_program_issue_captured_content(@run_publication_host.ClientCapturedContent, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @run_publication.GeneratedContentReferenceIssue]
+
 pub fn client_program_issue_captured_effect_input_local_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
 pub fn client_program_issue_captured_effect_input_local_result_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
@@ -920,6 +1020,8 @@ pub fn client_program_issue_captured_effect_table_input_local_definition(@run_pu
 pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_captured_task_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
+
+pub fn client_program_issue_compiled_keyed_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, String, String, @run_publication_host.ClientKeyedLookupObservation, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_issue_compiled_multi_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
@@ -957,11 +1059,15 @@ pub fn client_program_issue_effect_values_fragment(@run_publication_host.Prepare
 
 pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
 
+pub fn client_program_issue_generated_content(@run_publication.GeneratedContentReference, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @run_publication.GeneratedContentReferenceIssue]
+
 pub fn client_program_issue_imported_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[@run_publication_host.ClientEffectResultImportObservation], Int, Int, Int) -> Result[@run_publication_host.ClientEffectImportedEvidence, @run_publication_host.ClientEffectImportedEvidenceIssue]
 
 pub fn client_program_issue_imported_effect_local_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectImportedEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_issue_imported_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[@run_publication_host.ClientEffectResultImportObservation], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
+
+pub fn client_program_issue_infer_attachment_admission(@client_infer_host.Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_issue_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]
 
@@ -993,6 +1099,8 @@ pub fn client_program_issue_result_row_contract(@run_publication_host.PreparedCl
 
 pub fn client_program_issue_scoped_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication.BoundModelInvocationScope, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]
 
+pub fn client_program_issue_serialization_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationGeneration, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_issue_source_free_exported_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_issue_source_free_local_effect_identity(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalIdentity, @run_publication_host.ClientEffectLocalIdentityIssue]
@@ -1002,6 +1110,8 @@ pub fn client_program_issue_source_free_local_effect_invocation(@run_publication
 pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
 
 pub fn client_program_issue_source_free_local_effect_table_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
+pub fn client_program_issue_stored_generated_content(@run_publication.StoredGeneratedContentReference, @value_admission.ReferenceIssuer, Int, Int, Int, Int) -> Result[@value_admission.CheckedValue, @run_publication.GeneratedContentReferenceIssue]
 
 pub fn client_program_issue_task_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
@@ -1014,6 +1124,144 @@ pub fn client_program_issue_task_plan_graph(@run_publication_host.PreparedClient
 pub fn client_program_issue_unpublished_run_state(String, String, Array[String], Bool, Bool) -> String?
 
 pub fn client_program_issue_values_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
+
+pub fn client_program_keyed_acquisition_coordinates(@run_publication_host.ClientKeyedAcquisition) -> Array[Int]
+
+pub fn client_program_keyed_acquisition_input_coordinates(@run_publication_host.ClientKeyedAcquisition) -> Array[Int]?
+
+pub fn client_program_keyed_acquisition_matches_effect_program(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.PreparedClientEffectComputation) -> Bool
+
+pub fn client_program_keyed_acquisition_matches_program(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.PreparedClientProgram) -> Bool
+
+pub fn client_program_keyed_acquisition_source_evidence_facts(@run_publication_host.ClientKeyedAcquisition) -> Result[Array[String], String]
+
+pub fn client_program_keyed_capture_left_read(@run_publication_host.ClientKeyedAcquisition, @execution_query.CapturedInputSource) -> Result[@run_publication_host.ClientKeyedLeftRead, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_direct_acquisition_coordinates(@run_publication_host.ClientKeyedAcquisition) -> (Int, Int, Int)?
+
+pub fn client_program_keyed_file_locator_advance(@run_publication_host.ClientKeyedFileLocator) -> Result[String?, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_file_locator_cancel(@run_publication_host.ClientKeyedFileLocator) -> Unit
+
+pub fn client_program_keyed_file_locator_start(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, @execution_query.CapturedInputSource, @execution_relation.SuppliedRelationRead) -> Result[@run_publication_host.ClientKeyedFileLocator, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_join_output_export_begin(@execution_relation.CompletedOutput) -> Result[@execution_relation.CompletedOutputExport, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_keyed_join_output_export_close(@execution_relation.CompletedOutputExport) -> Unit
+
+pub fn client_program_keyed_join_output_export_finish(@execution_relation.CompletedOutputExport) -> Result[(Array[String], String, String), @execution_relation.CompletedExportIssue]
+
+pub fn client_program_keyed_join_output_export_next(@execution_relation.CompletedOutputExport) -> Result[String?, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_keyed_left_matches_acquisition(@run_publication_host.ClientKeyedLeftRead, @run_publication_host.ClientKeyedAcquisition) -> Bool
+
+pub fn client_program_keyed_left_read_rows(@run_publication_host.ClientKeyedLeftRead) -> Int?
+
+pub fn client_program_keyed_lookup_accept_capture(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture) -> Result[Unit, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_advance(@run_publication_host.ClientKeyedLookupInput, Int) -> Result[Bool, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_capacity(@run_publication_host.ClientKeyedAcquisition, Int, Int) -> (Int64, Int64, Int64, Int64)?
+
+pub fn client_program_keyed_lookup_charge_verification(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, Int) -> Result[Unit, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_cleanup(@run_publication_host.ClientKeyedLookupInput, Int) -> Result[Bool, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_dag_inputs(@physical_strategy.CapturedDAG, Int) -> Result[(@execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), @physical_strategy.RunIssue]
+
+pub fn client_program_keyed_lookup_dag_join_start(@client_local_host.ClientKeyedJoinPreparation, @physical_strategy.CapturedDAG) -> Result[@local.ManagedProviderExecution, @client_local_host.ClientQueryResidualIssue]
+
+pub fn client_program_keyed_lookup_dag_stop(@physical_strategy.CapturedDAG) -> Unit
+
+pub fn client_program_keyed_lookup_find(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest) -> Result[Int, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_identity(@run_publication_host.ClientKeyedLookupInput) -> String?
+
+pub fn client_program_keyed_lookup_issue_observation(@run_publication_host.ClientKeyedLookupInput, String, String) -> Result[@run_publication_host.ClientKeyedLookupObservation, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_join_advance(@local.ManagedProviderExecution, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
+
+pub fn client_program_keyed_lookup_join_cancel(@local.ManagedProviderExecution) -> Bool
+
+pub fn client_program_keyed_lookup_join_capacity(@client_local_host.ClientKeyedJoinPreparation) -> Array[Int64]
+
+pub fn client_program_keyed_lookup_join_cleanup(@local.ManagedProviderExecution) -> Result[Bool, @connector_sdk.FixedComputeIssue]
+
+pub fn client_program_keyed_lookup_join_prepare(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedLookupInput, String, String, String?, String?) -> @client_local_host.ClientKeyedJoinPreparation?
+
+pub fn client_program_keyed_lookup_join_start(@client_local_host.ClientKeyedJoinPreparation) -> Result[@local.ManagedProviderExecution, @client_local_host.ClientQueryResidualIssue]
+
+pub fn client_program_keyed_lookup_join_work(@local.ManagedProviderExecution) -> Result[Int64, @local.ManagedProviderWorkIssue]
+
+pub fn client_program_keyed_lookup_observation_wires(@run_publication_host.ClientKeyedLookupObservation) -> (String, String)?
+
+pub fn client_program_keyed_lookup_open_dag(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedLookupInput, @physical_resources.Ledger) -> Result[@physical_strategy.CapturedDAG, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_open_local_host(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedLookupInput, @physical_resources.Ledger, String, String, String?, String?, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+pub fn client_program_keyed_lookup_read(@run_publication_host.ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_request_advance(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequestPreparation) -> (Int, Int, @run_publication_host.ClientKeyedRequest?, @run_publication_host.ClientKeyedRequestIssue?)
+
+pub fn client_program_keyed_lookup_request_start(@run_publication_host.ClientKeyedLookupInput, Int) -> Result[@run_publication_host.ClientKeyedRequestPreparation, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_reuse(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, Int) -> Result[Unit, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_start(@run_publication_host.ClientKeyedLeftRead, @physical_resources.Ledger, Int, Int) -> Result[@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_lookup_stop(@run_publication_host.ClientKeyedLookupInput) -> Unit
+
+pub fn client_program_keyed_lookup_task_layout(@run_publication_host.PreparedClientProgram) -> Array[(Int, Int?, Int?, Int?)]
+
+pub fn client_program_keyed_lookup_usage(@run_publication_host.ClientKeyedLeftRead) -> Array[Int64]
+
+pub fn client_program_keyed_lookup_work(@run_publication_host.ClientKeyedLookupInput) -> Int64
+
+pub fn client_program_keyed_request_advance(@run_publication_host.ClientKeyedRequestPreparation) -> (Int, Int, @run_publication_host.ClientKeyedRequest?, @run_publication_host.ClientKeyedRequestIssue?)
+
+pub fn client_program_keyed_request_cancel(@run_publication_host.ClientKeyedRequestPreparation) -> Unit
+
+pub fn client_program_keyed_request_fail_io(@run_publication_host.ClientKeyedRequest) -> Unit
+
+pub fn client_program_keyed_request_finish_io(@run_publication_host.ClientKeyedRequest, Int64) -> Result[Unit, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_request_observe_attempt(@run_publication_host.ClientKeyedRequest, Int64, Int64) -> Result[Unit, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_request_remaining_ms(@run_publication_host.ClientKeyedRequest, Int64) -> Result[Int64, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_request_start(@run_publication_host.ClientKeyedLeftRead, Int, Int, Int) -> Result[@run_publication_host.ClientKeyedRequestPreparation, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_request_wire(@run_publication_host.ClientKeyedRequest, Int) -> Result[String, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_request_work(@run_publication_host.ClientKeyedRequestPreparation) -> Int
+
+pub fn client_program_keyed_response_observe(@run_publication_host.ClientKeyedRequest, Int64, Int64, Int64) -> Result[Unit, @run_publication_host.ClientKeyedRequestIssue]
+
+pub fn client_program_keyed_row_advance_page(@client_row_source_host.RowRun, Int) -> Result[Array[Int], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_begin(@client_row_source_host.RowRun, @value_admission.ReferenceIssuer?) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_begin_charged_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Bytes) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_begin_page(@client_row_source_host.RowRun, Bytes) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_capacity_bytes(@client_row_source_host.RowKeyedCapacity) -> (Int64, Int64)
+
+pub fn client_program_keyed_row_capacity_target(@client_row_source_host.RowKeyedCapacity, @client_row_source_host.RowDeclaration) -> Result[Array[String], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_capture_identity(@client_row_source_host.RowKeyedSourceCapture) -> Result[String, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_capture_read(@client_row_source_host.RowKeyedSourceCapture) -> Result[@execution_relation.SuppliedRelationRead, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_prepare_acquisition(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowDeclaration, Int, Int, Int) -> Result[@client_row_source_host.RowKeyedAcquisition, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_prepare_capacity(@run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, Int, Int, Int) -> Result[@client_row_source_host.RowKeyedCapacity, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_retain(@client_row_source_host.RowRun) -> Result[@client_row_source_host.RowKeyedSourceCapture, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_start_accounted(@client_row_source_host.RowKeyedAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_keyed_row_target(@client_row_source_host.RowKeyedAcquisition) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
@@ -1089,11 +1337,25 @@ pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientV
 
 pub fn client_program_local_values_unit_source_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesUnitSourceIssue]
 
+pub fn client_program_matches_request_identity(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Bool
+
 pub fn client_program_model_async_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model_execution.ModelCaptureBundle?
 
 pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) -> String?
+
+pub fn client_program_model_content_input(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, String, Int) -> Result[@model_execution.ModelContentInput?, @model_execution.ModelContentIssue]
+
+pub fn client_program_model_content_input_description(@model_execution.ModelContentInput) -> (String, String, String, Int64, String)
+
+pub fn client_program_model_content_request_preflight((Int) -> (Result[(Bool, @model_execution.ModelPhysicalRequestPlan?), @model_execution.ModelContentIssue], Int), () -> Bool) -> @model_execution.ModelRequestPreflight
+
+pub fn client_program_model_execution_content_issue(@model_execution.ModelExecutionIssue) -> String?
+
+pub fn client_program_model_execution_poll_issue(@model_execution.ModelObservation) -> @model_execution.ModelExecutionIssue?
+
+pub fn client_program_model_media_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, Array[@model_execution.ModelContentAdmission], () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_original_resource_origin_field(@run_publication.ModelOriginalResourceDocument, String) -> String?
 
@@ -1137,6 +1399,10 @@ pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCa
 
 pub fn client_program_open_captured_composed_infer_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, String?, String?, Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_open_captured_content_effect_host(@run_publication_host.PreparedClientEffectRun, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?, @local.ManagedProvider) -> ClientLocalEffectHost?
+
+pub fn client_program_open_captured_family_effect_host(@run_publication_host.PreparedClientEffectRun, @execution_query.CapturedInputSource, @physical_resources.Ledger, String, String, String?, String?, Array[@local.ManagedProvider]) -> ClientLocalEffectHost?
+
 pub fn client_program_open_captured_local_effect_host(@run_publication_host.PreparedClientEffectRun, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
 
 pub fn client_program_open_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
@@ -1177,7 +1443,11 @@ pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publ
 
 pub fn client_program_prepare_captured_source_identity_scan(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceIdentityScan, @execution_query.CapturedSourceIdentityScanIssue]
 
+pub fn client_program_prepare_composed_infer_compute_suffix(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferOccurrence, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
+
 pub fn client_program_prepare_composed_infer_segments(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferOccurrence, String, String, String, String) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?), @client_infer_host.Issue]
+
+pub fn client_program_prepare_content_effect_capture_ledger(@run_publication_host.PreparedClientEffectComputation, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, String, String, String?, String?, @local.ManagedProvider) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@actql/actql/connectors/duckdb/host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
 
@@ -1195,6 +1465,8 @@ pub fn client_program_prepare_effect_free_with_parameters(String, String, @progr
 
 pub fn client_program_prepare_effect_infer_segments(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, String, String) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?), @client_infer_host.Issue]
 
+pub fn client_program_prepare_family_effect_capture_ledger(@run_publication_host.PreparedClientEffectComputation, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, String, String, String?, String?, Array[@local.ManagedProvider]) -> @physical_resources.Ledger?
+
 pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
 
 pub fn client_program_prepare_infer_node_read_layout(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelPreparationLayoutIssue]
@@ -1204,6 +1476,14 @@ pub fn client_program_prepare_infer_node_read_state(@run_publication_host.Client
 pub fn client_program_prepare_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int, Int, Int) -> Result[@client_infer_host.OriginalModelCurrentStateWriter, @physical_resources.OriginalStateWriteIssue]
 
 pub fn client_program_prepare_infer_response_reconciliation(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@model_execution.ModelResponseReconciliation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_prepare_keyed_acquisition(@run_publication_host.PreparedClientProgram, Int, Int, Int?) -> Result[@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedAcquisitionIssue]
+
+pub fn client_program_prepare_keyed_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, Bool?) -> @physical_resources.Ledger?
+
+pub fn client_program_prepare_keyed_infer_captured_ledger(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferOccurrence, @client_local_host.ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, Bool?) -> @physical_resources.Ledger?
+
+pub fn client_program_prepare_keyed_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, Int, Int, Int64, Int64, Bool?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
@@ -1223,9 +1503,15 @@ pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
+pub fn client_program_prepare_retained_content_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String, String, String, Array[String], () -> Bool) -> Result[@client_local_host.ClientRetainedContentOutput, @client_local_host.ClientInferRetainedInputIssue]
+
 pub fn client_program_prepare_salesforce_declared_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[(@catalog.ReadProjection, @client_row_source_host.RowAcquisition), @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
+pub fn client_program_prepare_serialization(@run_publication_host.PreparedClientProgram, Int, Int, Int) -> Result[@lowering_relation.PreparedSerialization, @run_publication_host.ClientSerializationPreparationIssue]
+
+pub fn client_program_prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
@@ -1271,6 +1557,8 @@ pub fn client_program_read_infer_capture_bundle(String, String) -> Result[@run_p
 
 pub fn client_program_read_infer_model_dependencies(@check_environment.ModelExecutionContract, String?, String?, String?) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
 
+pub fn client_program_read_infer_model_dependencies_with_media(@check_environment.ModelExecutionContract, String?, String?, String?, Array[(String, String)]) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
+
 pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
@@ -1286,6 +1574,8 @@ pub fn client_program_read_saved_composed_infer_input_scope(@run_publication_hos
 pub fn client_program_read_saved_infer_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_read_verified_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[@model_execution.ModelAttemptRecords], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_readmit_serialization_generation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferSavedCallScope, String, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
 pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
@@ -1309,6 +1599,8 @@ pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> 
 
 pub fn client_program_register_infer_raw_capture(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, AuthorizationAccount, String, String, () -> Bool, () -> AuthorizationAccount, () -> String, AuthorizationDecision?) -> Result[@run_publication_host.ClientModelRawCaptureRegistration, @run_publication_host.ClientModelRawCaptureIssue]
 
+pub fn client_program_release_captured_content_workspace(@physical_resources.Ledger, @physical_resources.Reservation) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInput) -> Bool
 
 pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInputs) -> Bool
@@ -1331,9 +1623,15 @@ pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
+pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
+
 pub fn client_program_require_infer_call_entry(@client_infer_host.Execution) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_reserve_captured_content_workspace(@physical_resources.Ledger, Int, Int) -> Result[@physical_resources.Reservation, @physical_resources.LedgerIssue]
+
 pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_resources.Ledger, @physical_resources.Reservation), @physical_resources.LedgerIssue]
+
+pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
 
 pub fn client_program_restore_infer_captured_input(@run_publication_host.ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
 
@@ -1341,7 +1639,7 @@ pub fn client_program_restore_infer_prepared_call(@model_execution.ModelPrepared
 
 pub fn client_program_restore_infer_prepared_unknown(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, @model_execution.ModelExecutionIssue]
 
-pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientDuckDBCaptureCapacity, () -> Bool) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
+pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_restrict_infer_send_slots(@client_infer_host.Execution, Array[Bool]) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
@@ -1367,6 +1665,10 @@ pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResul
 
 pub fn client_program_retire_infer_original_current_state_document(@physical_resources.OriginalCurrentStateDocument) -> Unit
 
+pub fn client_program_row_content_reference_issuer(@value_admission.ReferenceIssuer, @value_admission.ReferenceIssuer) -> @value_admission.ReferenceIssuer
+
+pub fn client_program_row_reference_issuer((String, String) -> Bool, (String?, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
+
 pub fn client_program_row_source_accept_charged_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_accept_charged_values(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
@@ -1375,11 +1677,25 @@ pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Byt
 
 pub fn client_program_row_source_accept_values(@client_row_source_host.RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
 
-pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int, Int) -> Result[Bool, @client_row_source_host.RowHostIssue]
+pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int, Int, @value_admission.ReferenceIssuer?) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_begin_listing_page(@client_row_source_host.RowRun, Bytes, Int64, @client_row_source_host.RowPageCharge?) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_begin_listing_request(@client_row_source_host.RowRun, String?, Int64) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_capture(@client_row_source_host.RowRun) -> Result[@client_row_source_host.RowSourceCapture, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_capture_advance(@client_row_source_host.RowRun, Int) -> Result[(Bool, Int64), @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_capture_begin(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_capture_cleanup(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_capture_cleanup_advance(@client_row_source_host.RowRun, Int) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_capture_source(@client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
@@ -1395,11 +1711,19 @@ pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDec
 
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisition) -> Bool
+
 pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]
 
-pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
+pub fn client_program_row_source_listing_complete(@client_row_source_host.RowRun) -> Bool
+
+pub fn client_program_row_source_original_read(@client_row_source_host.RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
+
+pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
+
+pub fn client_program_row_source_request_wire(@client_row_source_host.RowAcquisition) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
 
@@ -1412,6 +1736,8 @@ pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, S
 pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
+
+pub fn client_program_run_captured_content_candidate(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 
 pub fn client_program_run_observation_key(String, Int64, Bool, Bool, Bool, Bool) -> String?
 
@@ -1451,6 +1777,8 @@ pub fn client_program_salesforce_source_target(@actql/actql/connectors/salesforc
 
 pub fn client_program_select_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, @client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionEstimate, Array[String]) -> Result[@client_local_host.ClientDuckDBAcquisitionSelection, @client_local_host.ClientDuckDBAcquisitionIssue]
 
+pub fn client_program_select_single_keyed_acquisition(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientKeyedAcquisition?, @run_publication_host.ClientKeyedAcquisitionIssue]
+
 pub fn client_program_selected_infer_step(@run_publication_host.PreparedClientProgram) -> Int?
 
 pub fn client_program_semantic_document_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
@@ -1458,6 +1786,98 @@ pub fn client_program_semantic_document_json(@run_publication_host.PreparedClien
 pub fn client_program_semantics_cid(@run_publication_host.PreparedClientProgram) -> String
 
 pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
+
+pub fn client_program_serialization_advance(@run_publication.ContentByteEncoder, Int) -> (Bool, String, Int, @run_publication.ContentSerializationIssue?)
+
+pub fn client_program_serialization_bind_input(@lowering_relation.PreparedSerialization, @execution_relation.CompletedOutput, @run_publication.ContentByteEncoder) -> Result[@run_publication_host.ClientSerializationInput, @run_publication_host.ClientSerializationInputIssue]
+
+pub fn client_program_serialization_byte_holding_cid(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String) -> Result[String, String]
+
+pub fn client_program_serialization_cancel(@run_publication.ContentByteEncoder) -> Unit
+
+pub fn client_program_serialization_capacity_bytes(@execution_relation.ExecutionCapacity) -> (Int64, Int64)
+
+pub fn client_program_serialization_capture(@run_publication_host.ClientSerializationGeneration) -> Result[@run_publication.BoundContentGeneration, String]
+
+pub fn client_program_serialization_encoder(@lowering_relation.PreparedSerialization, Int, Int, Int, Int, Int) -> Result[@run_publication.ContentByteEncoder, @run_publication.ContentSerializationIssue]
+
+pub fn client_program_serialization_finish(@run_publication.ContentByteEncoder) -> Result[(String, String, String, Int, Int), @run_publication.ContentSerializationIssue]
+
+pub fn client_program_serialization_generation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInput, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
+
+pub fn client_program_serialization_generation_derivation(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue?
+
+pub fn client_program_serialization_generation_evidence(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue?
+
+pub fn client_program_serialization_generation_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun) -> @execution_relation.CompletedOutput?
+
+pub fn client_program_serialization_input_artifact(@run_publication_host.ClientSerializationInputEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_serialization_input_identity_advance(@execution_relation.CompletedRelationIdentityScan, Int) -> (Bool, Int64, @execution_relation.CompletedExportIssue?)
+
+pub fn client_program_serialization_input_identity_bind(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationInput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int, @run_publication_host.ClientSerializationCapturedInput?) -> Result[@run_publication_host.ClientSerializationInputEvidence, @run_publication.RunEvidenceValueIssue]
+
+pub fn client_program_serialization_input_identity_cancel(@execution_relation.CompletedRelationIdentityScan) -> Bool
+
+pub fn client_program_serialization_input_identity_finish(@execution_relation.CompletedRelationIdentityScan) -> Result[@execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_serialization_input_identity_receipt_cancel(@execution_relation.CompletedRelationExportReceipt) -> Unit
+
+pub fn client_program_serialization_input_identity_start(@run_publication_host.ClientSerializationInput, @run_publication_host.PublicationOutputExportLimits, Int, Int) -> Result[@execution_relation.CompletedRelationIdentityScan, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_serialization_input_row(@run_publication_host.ClientSerializationInput, Int) -> Result[Unit, @run_publication_host.ClientSerializationInputIssue]
+
+pub fn client_program_serialization_input_rows(@run_publication_host.ClientSerializationInput) -> Int
+
+pub fn client_program_serialization_occurrences(@run_publication_host.PreparedClientProgram) -> Array[(Int, Int)]
+
+pub fn client_program_serialization_output(@run_publication_host.ClientSerializationInput, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, Int, Int, Int, Int, Int) -> Result[@execution_relation.CompletedOutput, @run_publication_host.ClientSerializationOutputIssue]
+
+pub fn client_program_serialization_output_available(@execution_relation.CompletedOutput) -> Bool
+
+pub fn client_program_serialization_output_issue_code(@run_publication_host.ClientSerializationOutputIssue) -> String
+
+pub fn client_program_serialization_output_row_wire(@execution_relation.CompletedOutput, Int, Int, Int) -> Result[String, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_serialization_plan_component(@run_publication_host.PreparedClientProgram, Int, Int, String, String, Int, Int) -> Result[@run_publication_host.ClientSerializationPlanGraph, @run_publication_host.ClientSerializationPlanGraphIssue]
+
+pub fn client_program_serialization_plan_graph(@run_publication_host.PreparedClientProgram, Int, Int, String, String, Int, Int) -> Result[@run_publication_host.ClientSerializationPlanGraph, @run_publication_host.ClientSerializationPlanGraphIssue]
+
+pub fn client_program_serialization_plan_graph_coordinates(@run_publication_host.ClientSerializationPlanGraph) -> (Int, Int)
+
+pub fn client_program_serialization_plan_graph_wire(@run_publication_host.ClientSerializationPlanGraph) -> String
+
+pub fn client_program_serialization_policy_body(@run_publication_host.ClientCompiledRun) -> (String, String, String)?
+
+pub fn client_program_serialization_prefix_advance(@client_local_host.ClientSerializationPrefix, Int) -> Result[(@execution_relation.CompletedOutput?, Int64, Int64, Bool, @connector_sdk.FixedComputeIssue?), @connector_sdk.FixedComputeIssue]
+
+pub fn client_program_serialization_prefix_cancel(@client_local_host.ClientSerializationPrefix) -> Bool
+
+pub fn client_program_serialization_prefix_capacity(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, Int, Int, Int, Int, Int, Int, Int, Bool) -> (Int64, Int64)?
+
+pub fn client_program_serialization_prefix_cleanup(@client_local_host.ClientSerializationPrefix) -> Result[Bool, @client_local_host.ClientSerializationPrefixIssue]
+
+pub fn client_program_serialization_prefix_work(@client_local_host.ClientSerializationPrefix) -> Result[Int64, @local.ManagedProviderWorkIssue]
+
+pub fn client_program_serialization_recovery_bindings(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, String) -> Result[Array[(String, String, String, String)], String]
+
+pub fn client_program_serialization_result_advance(@run_publication_host.ClientResultTransformationPreparation, Int) -> Result[(Bool, Int), @run_publication_host.ClientResultTransformationIssue]
+
+pub fn client_program_serialization_result_cancel(@run_publication_host.ClientResultTransformationPreparation) -> Bool
+
+pub fn client_program_serialization_result_finish(@run_publication_host.ClientResultTransformationPreparation) -> Result[StrategyHostOutputExport, @run_publication_host.ClientResultTransformationIssue]
+
+pub fn client_program_serialization_result_occurrence(@run_publication_host.PreparedClientProgram, Int, Int, Int, Int) -> Result[(String, Int, @run_publication.PublicationContract), @run_publication_host.ClientResultTransformationIssue]
+
+pub fn client_program_serialization_result_progress(@run_publication_host.ClientResultTransformationPreparation, Int) -> (Bool, Int, @run_publication_host.ClientResultTransformationIssue?)
+
+pub fn client_program_serialization_result_start(@run_publication_host.PreparedClientProgram, Int, @execution_relation.CompletedOutput, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.ClientResultTransformationPreparation, @run_publication_host.ClientResultTransformationIssue]
+
+pub fn client_program_serialization_row(@lowering_relation.PreparedSerialization, @execution_relation.CompletedOutput, Int, @run_publication.ContentByteEncoder) -> Result[Unit, @run_publication_host.ClientSerializationInputIssue]
+
+pub fn client_program_serialization_workspace_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_serialized_infer_plan_graph(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientSerializationPlanGraph, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_settle_infer_node_read_state(@run_publication_host.ClientNodeModelStateWriter, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
 
@@ -1472,6 +1892,8 @@ pub fn client_program_source_capture_export_descriptor(@client_local_host.Client
 pub fn client_program_source_capture_export_requirement(@client_local_host.ClientSourceCaptureExport) -> String
 
 pub fn client_program_source_capture_export_rows(@client_local_host.ClientSourceCaptureExport) -> Array[String]
+
+pub fn client_program_source_capture_original_read(@client_local_host.ClientAccountedSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
 pub fn client_program_source_capture_retain_task(@client_local_host.ClientAccountedSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue]
 
@@ -1497,6 +1919,14 @@ pub fn client_program_start_complete_infer_observation_issuance(Array[@client_in
 
 pub fn client_program_start_composed_infer_execution(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, @run_publication_host.ClientInferComposedSources?) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
+pub fn client_program_start_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @run_publication_host.ClientInferComposedSources?) -> Result[@client_local_host.ClientInferInputExecution, @client_local_host.ClientInferInputIssue]
+
+pub fn client_program_start_content_infer_observation_issuance(Array[@client_infer_host.Execution], Array[@run_publication_host.ClientSerializationGeneration], @physical_resources.Ledger, Int, Int, Int) -> Result[@client_infer_host.ObservationIssuance, @client_infer_host.Issue]
+
+pub fn client_program_start_generated_infer_execution(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_generated_infer_inputs(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
 pub fn client_program_start_infer_call_settlement_export(@model_execution.ModelCallSettlement, Int, Int) -> Result[@model_execution.ModelCaptureExport, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_infer_capture_export(@model_execution.VerifiedModelCapture, Int, Int) -> Result[@model_execution.ModelCaptureExport, @model_execution.ModelExecutionIssue]
@@ -1515,15 +1945,27 @@ pub fn client_program_start_infer_original_current_state_decode(@client_infer_ho
 
 pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.VerifiedModelCapture, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
+pub fn client_program_start_keyed_infer_execution(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, @run_publication_host.ClientInferComposedSources, @execution_relation.GeneratedSequence?, @physical_resources.Ledger) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_model_content_bytes(@model_execution.ModelContentInput, String, String, Int64?, Int64?, () -> Bool) -> Result[@model_execution.ModelContentByteCheck, @model_execution.ModelContentIssue]
+
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_start_original_generated_infer_execution(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_original_generated_infer_inputs(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
 pub fn client_program_start_original_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
-pub fn client_program_start_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+pub fn client_program_start_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope, @value_admission.ReferenceIssuer?, @physical_resources.Ledger?, @execution_relation.GeneratedSequence?) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
-pub fn client_program_start_restored_infer_input(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+pub fn client_program_start_restored_generated_infer_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_restored_generated_infer_inputs(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, String, String, () -> Bool) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_restored_infer_input(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope, String, String, @value_admission.ReferenceIssuer?) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_restored_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @run_publication.ModelCaptureBundleRead, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
@@ -1531,9 +1973,21 @@ pub fn client_program_start_restored_infer_slot_replay(@run_publication_host.Pre
 
 pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
+pub fn client_program_start_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, Int, Int, Int, Int, Int, Int, Int, @physical_resources.Ledger, @execution_relation.ExecutionCapacity?, @execution_query.CapturedInputSource?, @run_publication_host.ClientKeyedLookupInput?) -> Result[@client_local_host.ClientSerializationPrefix, @client_local_host.ClientSerializationPrefixIssue]
+
+pub fn client_program_start_serialized_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelProvider) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
 pub fn client_program_stop_infer_node_read_state(@run_publication_host.ClientNodeModelStateWriter, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
 
 pub fn client_program_stop_infer_original_read_preparation(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
+
+pub fn client_program_stored_generated_content_candidate(String, String, Int, Int, Int, Int) -> Result[@run_publication.StoredGeneratedContentReference, @run_publication.GeneratedContentReferenceIssue]
+
+pub fn client_program_stored_generated_content_candidate_wire(@run_publication.StoredGeneratedContentReference) -> String
+
+pub fn client_program_stored_generated_content_storage(@run_publication.StoredGeneratedContentReference) -> (String, String, String, String, Int)
+
+pub fn client_program_stored_run_captured_content_candidate(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, String, String, Int, Int, Int, Int) -> Result[@run_publication_host.ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 
 pub fn client_program_table_input_matches_source(@run_publication_host.ClientTableInput, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalIdentity) -> Bool
 
@@ -1577,6 +2031,8 @@ pub fn client_program_task_static_plan_view(@run_publication_host.PreparedClient
 
 pub fn client_program_terminal_infer_step(@run_publication_host.PreparedClientProgram) -> Int?
 
+pub fn client_program_update_model_content_bytes(@model_execution.ModelContentByteCheck, Bytes) -> Result[Int, @model_execution.ModelContentIssue]
+
 pub fn client_program_uses_graph_carrier(@run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn client_program_values_fragment_logical_cid(@run_publication_host.ClientValuesFragmentNode) -> String
@@ -1584,6 +2040,8 @@ pub fn client_program_values_fragment_logical_cid(@run_publication_host.ClientVa
 pub fn client_program_values_max_rows(@run_publication_host.PreparedClientProgram) -> Int
 
 pub fn client_program_values_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
+
+pub fn client_program_verify_infer_attachment_admission(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue?) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_with_values_row_limit(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PreparedClientProgram?
 
@@ -1733,13 +2191,13 @@ pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Byte
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
-pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int) -> @run_publication.CapturedRunIssuancePreparation
+pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation
 
 pub fn strategy_begin_effect_free_chain_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.ComputationEvidenceCheck
 
 pub fn strategy_begin_effect_free_commit_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.PublicationCommitPreparation
 
-pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
+pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
 
 pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
 
@@ -2001,6 +2459,8 @@ pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_
 
 pub fn strategy_host_output_export_admit_captured_result_snapshot(StrategyHostOutputExport, Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
+pub fn strategy_host_output_export_advance(StrategyHostOutputExport, Int) -> (String?, Bool, Int, @run_publication_host.PublicationOutputExportIssue?)
+
 pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_output_export_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
@@ -2034,6 +2494,8 @@ pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -
 pub fn strategy_host_output_export_result_schema_wire(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_rows(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_rows_complete(StrategyHostOutputExport) -> Bool raise NodeHostFailure
 
 pub fn strategy_host_output_export_schema_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
@@ -2191,7 +2653,7 @@ pub fn strategy_issue_durable_result_binding(@run_publication.PublicationContrac
 
 pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
-pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 

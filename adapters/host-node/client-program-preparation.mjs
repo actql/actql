@@ -4,6 +4,7 @@ import {validCheckOutcome, validSubmitPreparationError} from
   '../../packages/client-wire/index.mjs';
 import {installNodePublicSourcePreparation} from
   './public-source-preparation.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 const issueCodes = Object.freeze({
   invalid_format: 'ClientProgramInvalidInput',
@@ -83,7 +84,8 @@ function serializeProgram({kind, input, parameters}) {
 }
 
 export function installNodeClientProgramPreparation({moon, environment,
-  allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check}) {
+  allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check,
+  verifyRequestValuePolicy}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
@@ -91,6 +93,13 @@ export function installNodeClientProgramPreparation({moon, environment,
       environment === undefined || typeof allowEffects !== 'boolean' ||
       !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
       (check !== undefined && typeof check !== 'function') ||
+      (verifyRequestValuePolicy !== undefined &&
+        (typeof verifyRequestValuePolicy !== 'function' ||
+          typeof moon.clientProgramRequestValuePolicySubjects !== 'function' ||
+          typeof moon.clientProgramBindHostVerifiedRequestValuePolicy !== 'function' ||
+          typeof moon.clientProgramCheckEnvironmentWithRequestValuePolicies !== 'function' ||
+          allowEffects && (typeof moon.clientProgramEffectRequestValuePolicySubjects !== 'function' ||
+            typeof moon.clientProgramEffectBindHostVerifiedRequestValuePolicy !== 'function'))) ||
       (allowEffects &&
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
           'function'))) {
@@ -109,16 +118,20 @@ export function installNodeClientProgramPreparation({moon, environment,
     installNodeClientEffectProgramPreparation({moon,
       environment, evidence: installedEvidence});
   let sourcePreparation;
-  const prepare = request => {
+  const prepare = (request, selectedEnvironment = environment) => {
     const {document, format, supplied, declarations} =
       serializeProgram(request);
     let outcome;
     const sourceFormat = ['aql-text', 'sql'].includes(format);
     if (sourceFormat) {
-      sourcePreparation ??= installNodePublicSourcePreparation({moon,
-        environment, publication: sourcePublication, allowEffects,
+      const currentSourcePreparation = selectedEnvironment === environment
+        ? (sourcePreparation ??= installNodePublicSourcePreparation({moon,
+          environment, publication: sourcePublication, allowEffects,
+          effectEvidence: installedEvidence}))
+        : installNodePublicSourcePreparation({moon,
+        environment: selectedEnvironment, publication: sourcePublication, allowEffects,
         effectEvidence: installedEvidence});
-      const source = sourcePreparation.prepare({document, format, declarations,
+      const source = currentSourcePreparation.prepare({document, format, declarations,
         supplied});
       if (source.kind === 'effectful') {
         const effect = effectPreparation(moon, source.outcome);
@@ -128,7 +141,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       outcome = source.outcome;
     } else {
       outcome = moon.clientProgramPrepareEffectFreeWithParameters(
-        document, format, environment, supplied);
+        document, format, selectedEnvironment, supplied);
     }
     let prepared = moon.clientProgramPreparationReady(outcome);
     if (prepared !== undefined) {
@@ -142,7 +155,9 @@ export function installNodeClientProgramPreparation({moon, environment,
     const issue = moon.clientProgramPreparationIssue(outcome);
     const category = moon.clientProgramPreparationIssueCode(outcome);
     if (!sourceFormat && category === 'effect_not_supported' && prepareEffect !== undefined) {
-      const effect = prepareEffect(request);
+      const effect = (selectedEnvironment === environment ? prepareEffect :
+        installNodeClientEffectProgramPreparation({moon,
+          environment: selectedEnvironment, evidence: installedEvidence}))(request);
       effectOwned.add(effect);
       return effect;
     }
@@ -194,7 +209,43 @@ export function installNodeClientProgramPreparation({moon, environment,
       fail('ClientProgramRejected', error);
     }
   };
-  return Object.freeze(Object.assign(disclosed, {
+  // Only a trusted installation supplies this verifier. Public Program fields
+  // never provide policy evidence, and no response classification is a default.
+  // Recheck through the common owner before Model selection or any Source I/O.
+  const verified = verifyRequestValuePolicy === undefined ? disclosed : async request => {
+    const original = await disclosed(request);
+    request.signal?.throwIfAborted();
+    const effectful = effectOwned.has(original);
+    const readSubjects = effectful ? moon.clientProgramEffectRequestValuePolicySubjects :
+      moon.clientProgramRequestValuePolicySubjects;
+    const bindPolicy = effectful ? moon.clientProgramEffectBindHostVerifiedRequestValuePolicy :
+      moon.clientProgramBindHostVerifiedRequestValuePolicy;
+    const subjects = checked(readSubjects(original));
+    if (!Array.isArray(subjects) || subjects.length > 1024 ||
+        subjects.some(value => typeof value !== 'string') ||
+        subjects.reduce((bytes, value) => bytes + Buffer.byteLength(value), 0) > 1048576) {
+      fail('ClientProgramPreparationFailure');
+    }
+    const evidence = [];
+    for (const [index, wire] of subjects.entries()) {
+      request.signal?.throwIfAborted();
+      const subject = immutablePolicySubject(JSON.parse(wire));
+      const policyCid = await verifyRequestValuePolicy(subject, {signal: request.signal});
+      request.signal?.throwIfAborted();
+      if (policyCid === undefined) continue;
+      if (typeof policyCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(policyCid)) {
+        fail('ClientProgramPreparationFailure');
+      }
+      const proof = bindPolicy(original, index, policyCid);
+      if (proof === undefined) fail('ClientProgramPreparationFailure');
+      evidence.push(proof);
+    }
+    if (evidence.length === 0) return original;
+    const selected = moon.clientProgramCheckEnvironmentWithRequestValuePolicies(environment, evidence);
+    if (selected === undefined) fail('ClientProgramPreparationFailure');
+    return prepare(request, selected);
+  };
+  return Object.freeze(Object.assign(verified, {
     sourceCheckFailure(error) {return sourceCheckFailures.has(error);},
     assertOwned(prepared) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
@@ -207,6 +258,14 @@ export function installNodeClientProgramPreparation({moon, environment,
       throw new TypeError('Foreign Client preparation');
     },
   }));
+}
+
+function immutablePolicySubject(value) {
+  if (value !== null && typeof value === 'object') {
+    for (const item of Object.values(value)) immutablePolicySubject(item);
+    Object.freeze(value);
+  }
+  return value;
 }
 
 function effectPreparation(moon, outcome) {

@@ -52,7 +52,7 @@ actql-tea/0.1    event algebra
 actql-infer/0.1  bounded structured model acquisition
 actql-text-time/0.1 composable pure text, UTC time, and regular expressions
 actql-lookup/0.1 bounded acquisition for a keyed external join
-actql-artifact/0.1 bounded Artifact serialization
+actql-content/0.1 bounded Artifact serialization
 actql-text-rank/0.1 pure lexical ranking over a finite corpus
 actql-search/0.1 bounded external ranked candidate acquisition
 actql-calendar/0.1 explicit-zone Gregorian buckets and series
@@ -199,7 +199,7 @@ provider-specific semantic escape hatch:
 | Infer | typed relation -> bounded structured model acquisition -> captured evidence -> explicit relation join/effect |
 | Text/time | typed relation -> bounded Unicode/UTC/closed-regex transforms -> relation/effect |
 | Lookup | bounded left Relation -> keyed external join -> deduplicated/batched/paged SourceView acquisition -> checked joined Relation |
-| Artifact | totally ordered relation -> bounded canonical CSV/JSONL capture -> ArtifactRef relation -> typed command |
+| Artifact | totally ordered relation -> bounded canonical CSV/JSONL capture -> ContentRef relation -> typed command |
 
 The normative operation and law inventory for these flows is published by
 `ACTQL_MODULES`.

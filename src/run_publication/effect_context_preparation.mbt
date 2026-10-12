@@ -7,6 +7,7 @@ priv struct EffectContextInputs {
   advances : Array[PendingSourceStateAdvance]
   authoring : RunEvidenceValue
   models : Array[RunEvidenceValue]
+  content_generations : Array[BoundContentGeneration]
   preview : EffectPreviewIdentity?
   plans : Array[(String, @json.CanonicalValue)]
 }
@@ -25,6 +26,8 @@ priv enum EffectContextPhase {
   SectionValue(Int, Int)
   ArrayStart(Int, Int)
   ArrayNext(Int, Int, Int)
+  ContentField(Int, Int)
+  ContentValue(Int, Int)
   Parse(@source.JsonParse, Bool)
   Decode(@decode.Admission, Bool)
   Canonical(@json.CursorAdmission, Bool)
@@ -67,6 +70,7 @@ fn start_effect_context_preparation(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+  content_generations? : Array[BoundContentGeneration] = [],
 ) -> Result[EffectContextPreparation, CapturedRunIssuanceIssue] {
   if max_workspace < 12 {
     return Err(CaptureIssuanceEncoding)
@@ -83,6 +87,7 @@ fn start_effect_context_preparation(
       advances,
       authoring,
       models,
+      content_generations,
       preview,
       plans,
     }),
@@ -185,6 +190,7 @@ fn effect_context_field(index : Int) -> String {
     11 => "result_artifacts"
     12 => "result_fields"
     13 => "result_values"
+    16 => "content_generations"
     _ => "version"
   }
 }
@@ -258,9 +264,13 @@ fn EffectContextPreparation::step(
     }
     SectionStart(kind) =>
       match kind {
-        0 => self.emit(inputs.authoring.value, Field(1))
+        0 =>
+          self.emit(
+            inputs.authoring.value,
+            Field(if inputs.content_generations.is_empty() { 1 } else { 16 }),
+          )
         1 => self.parse(inputs.dependencies.wire, false)
-        8 | 9 | 10 => self.phase = ArrayStart(kind, 0)
+        8 | 9 | 10 | 16 => self.phase = ArrayStart(kind, 0)
         14 => self.text("actql-run-effect-context/0.1", Field(15))
         _ => {
           @encode.begin_ordered_object(writer)
@@ -331,12 +341,15 @@ fn EffectContextPreparation::step(
       let count = match kind {
         8 | 9 => inputs.models.length()
         10 => inputs.advances.length()
+        16 => inputs.content_generations.length()
         _ => inputs.snapshots[snapshot].fields.length()
       }
       if index == count {
         @encode.end_array(writer)
         self.phase = if kind == 12 {
           SectionNext(kind, snapshot + 1)
+        } else if kind == 16 {
+          Field(1)
         } else {
           Field(kind + 1)
         }
@@ -346,9 +359,39 @@ fn EffectContextPreparation::step(
           8 => self.emit(inputs.models[index].value, next)
           9 => self.text(inputs.models[index].identity, next)
           10 => self.emit(inputs.advances[index].value, next)
+          16 => {
+            @encode.begin_ordered_object(writer)
+            self.phase = ContentField(index, 0)
+          }
           _ => self.text(inputs.snapshots[snapshot].fields[index], next)
         }
       }
+    }
+    ContentField(index, field) =>
+      if field == 5 {
+        @encode.end_object(writer)
+        self.phase = ArrayNext(16, index + 1, 0)
+      } else {
+        self.key(
+          match field {
+            0 => "content_evidence"
+            1 => "content_generation"
+            2 => "content_input_artifact"
+            3 => "content_reference"
+            _ => "invocation_template"
+          },
+          ContentValue(index, field),
+        )
+      }
+    ContentValue(index, field) => {
+      guard content_generation_capture_field(
+          inputs.content_generations[index],
+          field,
+        )
+        is Some(value) else {
+        raise @encode.InvalidStructure
+      }
+      self.emit(value, ContentField(index, field + 1))
     }
     Parse(parser, body) =>
       match @source.advance_json_parse(parser, 1) {

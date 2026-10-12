@@ -3545,7 +3545,11 @@ fn start_bounded_binding_rows_with_input(
   }
   guard bounded_binding_input_available(input) &&
     bounded_binding_input_row_count(input) <= max_rows &&
-    @lower.preparation_schema_at(prepared, target) is Some(output_schema) else {
+    completion_preparation_schema(
+      generated_completion_preparation(generated),
+      target,
+    )
+    is Some(output_schema) else {
     return Err(InvalidExecution)
   }
   let input_schema = bounded_binding_input_schema(input)
@@ -4033,7 +4037,9 @@ fn start_bounded_binding_rows_with_input(
     }
   }
   let output = match
-    prepare_bounded_admitted_output(owner, target, max_rows, values) {
+    prepare_bounded_sequence_admitted_output(
+      generated, target, max_rows, values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }

@@ -6,6 +6,7 @@ import {
   "actql/actql/connectors/local",
   "actql/actql/connector_sdk" @connector,
   "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/run_publication" @publication,
   "actql/actql/client_local_host" @input,
   "actql/actql/model_execution" @model,
@@ -17,9 +18,11 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
+  "actql/actql/value_admission" @admitted,
 }
 
 import {
+  "actql/actql/connectors_builtin_node" @node_fixture,
   "actql/actql/value_admission" @admitted,
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/sha256" @sha,

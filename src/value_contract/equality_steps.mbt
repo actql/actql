@@ -99,7 +99,7 @@ pub fn advance_type_equality(
       match (left.shape, right.shape) {
         (ResourceRef(resource_kind=a), ResourceRef(resource_kind=b)) =>
           cursor.pending.push(ParameterText(a, b, 0))
-        (ArtifactRef(media_type=Some(a)), ArtifactRef(media_type=Some(b))) =>
+        (ContentRef(media_type=Some(a)), ContentRef(media_type=Some(b))) =>
           cursor.pending.push(ParameterText(a, b, 0))
         _ => {
           if !compatible(left, right, Equal) {

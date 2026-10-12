@@ -21,6 +21,10 @@
       "unit": "effect_items",
       "law_id": "actql.host.effect-items"
     },
+    "max_file_listing_items": {
+      "unit": "rows",
+      "law_id": "actql.host.file-listing-items"
+    },
     "max_graph_input_edges": {
       "unit": "edges",
       "law_id": "actql.host.graph-input-edges"
@@ -86,6 +90,11 @@
       "version"
     ],
     "properties": {
+      "max_file_listing_items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
       "max_graph_construction_input_rows": {
         "type": "integer", "minimum": 1, "maximum": 9007199254740991
       },

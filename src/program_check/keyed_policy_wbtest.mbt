@@ -107,8 +107,8 @@ test "formal checking of two keyed joins retains their own response occurrences"
   assert_eq(keyed_input_proof_count(programs[0]), 2)
   assert_true(
     physical_equal(
-      keyed_input_proof_bound(keyed_input_proof_at(programs[0], 0).unwrap()),
-      keyed_input_proof_bound(keyed_input_proof_at(programs[0], 1).unwrap()),
+      keyed_input_proof_bound(keyed_input_proof_at(programs[0], 0).unwrap()).unwrap(),
+      keyed_input_proof_bound(keyed_input_proof_at(programs[0], 1).unwrap()).unwrap(),
     ),
   )
   audit_source_execution(inventory, unit.source_execution, {

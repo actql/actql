@@ -6,6 +6,7 @@ pub enum AuthoringPublicationIssue {
   MissingHostCeiling(String)
   RowTarget(Int, @step_bounds.TargetRowsIssue)
   RowMembership(Int, @capacity.TargetMembershipIssue)
+  SourceInput(Int, @step_bounds.SourceInputRowsIssue)
 }
 
 ///|
@@ -100,6 +101,7 @@ pub fn prepare_authoring_publications(
       Ok(value) => value
       Err(CandidateBudget) => return Err(BudgetExceeded)
       Err(CandidateTarget(issue)) => return Err(RowTarget(index, issue))
+      Err(CandidateSourceInput(issue)) => return Err(SourceInput(index, issue))
       Err(CandidateMembership(issue)) => return Err(RowMembership(index, issue))
     }
     work += used

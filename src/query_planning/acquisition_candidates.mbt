@@ -1,40 +1,42 @@
 ///|
 /// Typed provider payload retained outside the common comparison interface.
 /// Only this exact preparation can resolve a proposed choice to its payload.
-struct PreparedAcquisition[T] {
-  candidate : AcquisitionCandidate
+/// The requirement type preserves its original checked acquisition profile;
+/// a keyed request must not be reconstructed as a Direct query to enter here.
+struct PreparedAcquisition[Q, T] {
+  candidate : AcquisitionCandidate[Q]
   payload : T
 }
 
 ///|
-struct AcquisitionCandidate {
-  requirement : QueryRequirement
+struct AcquisitionCandidate[Q] {
+  requirement : Q
   registration : @connector.CapabilityRegistration
   duration : @cost.DurationEstimate
   quantities : @connector.QueryQuantities
 }
 
 ///|
-struct AcquisitionChoice {
-  candidate : AcquisitionCandidate
+struct AcquisitionChoice[Q] {
+  candidate : AcquisitionCandidate[Q]
   reason : @cost.CostChoice
 }
 
 ///|
-pub enum AcquisitionSelection {
-  Proposed(AcquisitionChoice)
+pub enum AcquisitionSelection[Q] {
+  Proposed(AcquisitionChoice[Q])
   Deferred
   NoCandidates
 }
 
 ///|
-pub fn[T] bind_acquisition_candidate(
+pub fn[Q, T] bind_acquisition_candidate(
   registration : @connector.CapabilityRegistration,
-  requirement : QueryRequirement,
+  requirement : Q,
   payload : T,
   duration : @cost.DurationEstimate,
   quantities : @connector.QueryQuantities,
-) -> Result[PreparedAcquisition[T], QueryPlanningIssue] {
+) -> Result[PreparedAcquisition[Q, T], QueryPlanningIssue] {
   if duration is @cost.Complete(value) && value < 0L {
     return Err(NegativeQuantity)
   }
@@ -56,18 +58,18 @@ pub fn[T] bind_acquisition_candidate(
 }
 
 ///|
-pub fn[T] prepared_acquisition_candidate(
-  prepared : PreparedAcquisition[T],
-) -> AcquisitionCandidate {
+pub fn[Q, T] prepared_acquisition_candidate(
+  prepared : PreparedAcquisition[Q, T],
+) -> AcquisitionCandidate[Q] {
   prepared.candidate
 }
 
 ///|
 /// Typed dispatch recovery, not I/O authority. Equal payloads or registrations
 /// cannot substitute for the exact candidate selected by the common planner.
-pub fn[T] acquisition_choice_payload(
-  choice : AcquisitionChoice,
-  prepared : PreparedAcquisition[T],
+pub fn[Q, T] acquisition_choice_payload(
+  choice : AcquisitionChoice[Q],
+  prepared : PreparedAcquisition[Q, T],
 ) -> T? {
   if @connector.capability_registration_available(
       prepared.candidate.registration,
@@ -83,13 +85,13 @@ pub fn[T] acquisition_choice_payload(
 /// Cost proposal only: source authorization, execution, retention and capture
 /// remain pending. No I/O or fallback is performed. All candidates belong to
 /// the exact same requirement, not just an equal canonical CID.
-pub fn choose_acquisition_candidate(
+pub fn[Q] choose_acquisition_candidate(
   registry : @connector.CapabilityRegistry,
-  requirement : QueryRequirement,
-  candidates : Array[AcquisitionCandidate],
+  requirement : Q,
+  candidates : Array[AcquisitionCandidate[Q]],
   host_priority : Array[Int]?,
   max_entries : Int,
-) -> Result[AcquisitionSelection, QueryPlanningIssue] {
+) -> Result[AcquisitionSelection[Q], QueryPlanningIssue] {
   if max_entries < 0 {
     return Err(InvalidLimits)
   }
@@ -126,36 +128,36 @@ pub fn choose_acquisition_candidate(
 }
 
 ///|
-pub fn acquisition_choice_candidate(
-  choice : AcquisitionChoice,
-) -> AcquisitionCandidate {
+pub fn[Q] acquisition_choice_candidate(
+  choice : AcquisitionChoice[Q],
+) -> AcquisitionCandidate[Q] {
   choice.candidate
 }
 
 ///|
-pub fn acquisition_choice_reason(
-  choice : AcquisitionChoice,
+pub fn[Q] acquisition_choice_reason(
+  choice : AcquisitionChoice[Q],
 ) -> @cost.CostChoice {
   choice.reason
 }
 
 ///|
-pub fn acquisition_candidate_registration(
-  candidate : AcquisitionCandidate,
+pub fn[Q] acquisition_candidate_registration(
+  candidate : AcquisitionCandidate[Q],
 ) -> @connector.CapabilityRegistration {
   candidate.registration
 }
 
 ///|
-pub fn acquisition_candidate_duration(
-  candidate : AcquisitionCandidate,
+pub fn[Q] acquisition_candidate_duration(
+  candidate : AcquisitionCandidate[Q],
 ) -> @cost.DurationEstimate {
   candidate.duration
 }
 
 ///|
-pub fn acquisition_candidate_quantities(
-  candidate : AcquisitionCandidate,
+pub fn[Q] acquisition_candidate_quantities(
+  candidate : AcquisitionCandidate[Q],
 ) -> @connector.QueryQuantities {
   candidate.quantities
 }

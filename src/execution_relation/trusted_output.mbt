@@ -279,7 +279,7 @@ fn start_trusted_output_preparation(
     _ => None
   }
   guard id is Some(id) &&
-    @lower.preparation_schema_at(prepared, target) is Some(schema) else {
+    completion_preparation_schema(generated, target) is Some(schema) else {
     return Err(InvalidTarget)
   }
   // This bridge publishes only the completed final target, never intermediate
@@ -480,7 +480,8 @@ pub fn[P] complete_trusted_output(
     return Err(ForeignOutput)
   }
   let prepared = @lower.bound_preparation(owner)
-  guard @lower.preparation_schema_at(prepared, port.target) is Some(schema) &&
+  guard completion_preparation_schema(port.generated, port.target)
+    is Some(schema) &&
     physical_equal(schema, rows.schema) else {
     return Err(ForeignOutput)
   }
@@ -508,6 +509,7 @@ pub fn[P] complete_trusted_output(
   let completion : CompletedSequence = {
     result_identity: Ref(()),
     readmitted: false,
+    serialization_output: port.generated.serialization_output,
     contracts: port.generated.contracts,
     sequence: port.generated.sequence,
     store: ImportedStore(

@@ -19,6 +19,16 @@ const fail = (code, cause) => {
 const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+const contentEvidenceKeys = (value, keys) => exactKeys(value,
+  [...keys, ...(Object.hasOwn(value ?? {}, 'contentGenerations') ? ['contentGenerations'] : [])]);
+const matchingContentEvidence = (receipt, capture) => {
+  if (!Object.hasOwn(receipt, 'contentGenerations') &&
+      !Object.hasOwn(capture, 'contentGenerations')) return true;
+  const left = receipt.contentGenerations, right = capture.contentGenerations;
+  return Array.isArray(left) && Array.isArray(right) &&
+    left.length === right.length &&
+    left.every((value, index) => value === right[index]);
+};
 const member = (value, name) => {
   try {
     return value !== null &&
@@ -72,10 +82,10 @@ function validateOptions(options) {
     'outputLimits', 'contractLimits', 'now', 'signal',
   ];
   if (!exactKeys(options, keys) || !Array.isArray(options.results) ||
-      !exactKeys(options.receiptEvidence, [
+      !contentEvidenceKeys(options.receiptEvidence, [
         'bindings', 'sourceEvidence', 'modelEvidence',
         'barrierAttemptReceiptCids',
-      ]) || !exactKeys(options.captureEvidence, [
+      ]) || !contentEvidenceKeys(options.captureEvidence, [
         'pendingSourceStateAdvances', 'modelEvidence',
       ]) || !Array.isArray(options.receiptEvidence.bindings) ||
       !Array.isArray(options.receiptEvidence.sourceEvidence) ||
@@ -83,6 +93,9 @@ function validateOptions(options) {
       !Array.isArray(options.receiptEvidence.barrierAttemptReceiptCids) ||
       !Array.isArray(options.captureEvidence.pendingSourceStateAdvances) ||
       !Array.isArray(options.captureEvidence.modelEvidence)) {
+    fail('InvalidCompletedRunPublicationOptions');
+  }
+  if (!matchingContentEvidence(options.receiptEvidence, options.captureEvidence)) {
     fail('InvalidCompletedRunPublicationOptions');
   }
   validateExecution(options.execution);
@@ -560,13 +573,14 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
         'effectComputationRecordHoldingCid',
         'effectPrivateEvidenceBinding'].every(name =>
         typeof control?.[name] === 'function') ||
-      !exactKeys(receiptEvidence, [
+      !contentEvidenceKeys(receiptEvidence, [
         'bindings', 'sourceEvidence', 'modelEvidence',
         'barrierAttemptReceiptCids',
       ]) ||
-      !exactKeys(captureEvidence, [
+      !contentEvidenceKeys(captureEvidence, [
         'pendingSourceStateAdvances', 'modelEvidence',
       ]) ||
+      !matchingContentEvidence(receiptEvidence, captureEvidence) ||
       !['issueResultManifest', 'issueEffectFreeRunReceipt',
         'issueEffectfulCapturedRun'].every(name =>
         typeof control?.[name] === 'function')) {
@@ -650,6 +664,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       captureEvidence.pendingSourceStateAdvances,
     authoringContext,
     modelEvidence: captureEvidence.modelEvidence,
+    contentGenerations: captureEvidence.contentGenerations,
     effectSources: ownedHoldings.map(value => value.source),
     localEffectSources: ownedHoldings.map(value => value.localEvidence),
     dependencyInventoryWire: owner.effectDependencyInventoryWire,
@@ -1409,6 +1424,9 @@ export async function publishCompletedEffectFreeRun(options) {
         captureEvidence.pendingSourceStateAdvances,
       authoringContext,
       modelEvidence: captureEvidence.modelEvidence,
+      ...(captureEvidence.contentGenerations === undefined ? {} : {
+        contentGenerations: captureEvidence.contentGenerations,
+      }),
     }, contractLimits, signal);
     const evidence = Object.freeze({
       runDefinition,

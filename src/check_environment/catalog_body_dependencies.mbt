@@ -4,6 +4,8 @@ pub(all) enum CatalogBodyAdmission {
   CarrierBody(CarrierSchema)
   DataPolicyBody(SourceDataPolicy)
   LookupFactsBody(LookupFacts)
+  ListingFactsBody(LookupFacts, FileListProfile)
+  ContentFactsBody(LookupFacts, FileContentProfile)
   PushdownBody(PushdownContract)
 }
 
@@ -90,8 +92,69 @@ pub fn check_lookup_body_dependencies(
 }
 
 ///|
+/// Interpret only a listing component already checked against this exact
+/// SourceView's Request and output schema. A matching CID in another admitted
+/// environment cannot substitute its owner. Unknown fact extensions stay refused.
+pub fn check_listing_body_dependencies(
+  requests : SourceRequestContracts,
+  view : SourceViewRequestContract,
+  facts : LookupCapacities,
+  envelope : ContractEnvelope,
+) -> Result[CatalogBodyDependencies, BodyDependencyIssue] {
+  let environment = member_environment(envelope.item)
+  if !physical_equal(environment, member_environment(view.item)) ||
+    !physical_equal(environment, facts.references.contents.registry.environment) ||
+    source_request_for(requests, view.item) is None {
+    return Err(ForeignEnvironment)
+  }
+  if envelope.kind != "carrier_facts" {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  guard facts.by_cid.get(envelope.cid) is Some(admitted) &&
+    view.file_listing is Some(profile) &&
+    profile.facts_cid == envelope.cid else {
+    return Err(MissingBodyAdmission)
+  }
+  let known = 1 + (if admitted.capacity is Some(_) { 1 } else { 0 })
+  if @decode.object_length(envelope.body) != Some(known) {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  Ok({ envelope, admission: ListingFactsBody(admitted, profile), })
+}
+
+///|
 pub fn catalog_body_contract(v : CatalogBodyDependencies) -> ContractEnvelope {
   v.envelope
+}
+
+///|
+/// Only the exact SourceView-owned strict capture profile discharges this
+/// complete carrier-facts body. Uninterpreted extensions remain refused.
+pub fn check_content_body_dependencies(
+  requests : SourceRequestContracts,
+  view : SourceViewRequestContract,
+  facts : LookupCapacities,
+  envelope : ContractEnvelope,
+) -> Result[CatalogBodyDependencies, BodyDependencyIssue] {
+  let environment = member_environment(envelope.item)
+  if !physical_equal(environment, member_environment(view.item)) ||
+    !physical_equal(environment, facts.references.contents.registry.environment) ||
+    source_request_for(requests, view.item) is None {
+    return Err(ForeignEnvironment)
+  }
+  if envelope.kind != "carrier_facts" {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  guard facts.by_cid.get(envelope.cid) is Some(admitted) &&
+    admitted.capacity is Some(_) &&
+    view.file_content is Some(profile) &&
+    profile.facts_cid == envelope.cid else {
+    return Err(MissingBodyAdmission)
+  }
+  if @decode.object_length(envelope.body) != Some(2) {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  Ok({ envelope, admission: ContentFactsBody(admitted, profile), })
 }
 
 ///|
@@ -125,7 +188,11 @@ pub fn catalog_body_admission(
 /// Reference roles remain separate even when both Graph law CIDs are equal.
 pub fn catalog_body_dependency_count(v : CatalogBodyDependencies) -> Int {
   match v.admission {
-    ValueBody(_) | DataPolicyBody(_) | LookupFactsBody(_) => 1
+    ValueBody(_)
+    | DataPolicyBody(_)
+    | LookupFactsBody(_)
+    | ListingFactsBody(_, _)
+    | ContentFactsBody(_, _) => 1
     PushdownBody(body) =>
       1 +
       (if body.operations.length() > 0 { 1 } else { 0 }) +
@@ -153,7 +220,10 @@ pub fn catalog_body_dependency_at(
         role: GoverningGrammar,
         cid: body_dependency_at(value, 0).unwrap(),
       })
-    DataPolicyBody(_) | LookupFactsBody(_) =>
+    DataPolicyBody(_)
+    | LookupFactsBody(_)
+    | ListingFactsBody(_, _)
+    | ContentFactsBody(_, _) =>
       Some({ role: GoverningGrammar, cid: catalog_body_grammar_cid(), })
     PushdownBody(_) =>
       match index {

@@ -109,6 +109,7 @@ fn[T : IndexedRows] hash_row_wire(
   table : T,
   names : Array[String],
   limits : RowWireLimits,
+  logical? : Bool = false,
 ) -> Result[(String, Int, Int), RowWireIssue] {
   if !row_wire_valid_limits(limits) {
     return Err(InvalidLimits)
@@ -128,6 +129,12 @@ fn[T : IndexedRows] hash_row_wire(
       limits.max_nodes,
       limits.max_depth,
     )
+    if logical {
+      @encode.begin_object(writer)
+      @encode.key(writer, "sort")
+      @encode.string_value(writer, "relation")
+      @encode.key(writer, "value")
+    }
     @encode.begin_array(writer)
     for row in 0..<table.row_count() {
       if table.row_width(row) != width {
@@ -145,6 +152,9 @@ fn[T : IndexedRows] hash_row_wire(
     }
     let (hash, bytes, nodes) = {
       @encode.end_array(writer)
+      if logical {
+        @encode.end_object(writer)
+      }
       @encode.finish_hash_usage(writer)
     }
     Ok(("sha256:" + hash, bytes, nodes))
@@ -174,6 +184,37 @@ pub fn identify_captured_rows(
     max_order_work: limits.max_order_work - width,
   }).map(value => {
     owner: CapturedSource(rows),
+    cid: value.0,
+    bytes: value.1,
+    nodes: value.2,
+    rows: captured_row_count(rows),
+  })
+}
+
+///|
+/// Hash the exact admitted input with the registered logical Relation
+/// preimage, sharing value/presence/order emission with ordered-row identity.
+/// This is not a completed Compute output or physical Source observation.
+pub fn identify_captured_relation(
+  rows : CapturedRows,
+  limits : RowWireLimits,
+) -> Result[LogicalRelationIdentity, RowWireIssue] {
+  if !row_wire_valid_limits(limits) {
+    return Err(InvalidLimits)
+  }
+  let width = @schema.field_count(rows.schema)
+  if width > limits.max_columns || width > limits.max_order_work {
+    return Err(OrderLimit)
+  }
+  let names = Array::makei(width, i => {
+    @schema.reference_name(@schema.field_at(rows.schema, i).unwrap().name)
+  })
+  hash_row_wire(
+    CapturedWireRows::{ rows, },
+    names,
+    { ..limits, max_order_work: limits.max_order_work - width, },
+    logical=true,
+  ).map(value => {
     cid: value.0,
     bytes: value.1,
     nodes: value.2,

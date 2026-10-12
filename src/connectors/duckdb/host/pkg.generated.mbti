@@ -65,9 +65,9 @@ pub fn complete_broad_host_bounded_residual(BroadHostRun, @execution_query.Query
 
 pub fn complete_native_host(NativeHostRun, @acquisition.DuckDBNativeCompletionLimits) -> Result[@acquisition.DuckDBNativeObservation, NativeHostIssue]
 
-pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBQueryPreparation], BroadHostLimits) -> BroadHostConfiguration
+pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice[@query_planning.QueryRequirement], @query_planning.PreparedAcquisition[@query_planning.QueryRequirement, @acquisition.DuckDBQueryPreparation], BroadHostLimits) -> BroadHostConfiguration
 
-pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
+pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice[@query_planning.QueryRequirement], @query_planning.PreparedAcquisition[@query_planning.QueryRequirement, @acquisition.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
 
 pub fn configured_broad_capacity(BroadHostConfiguration) -> NativeCapacity?
 
@@ -79,7 +79,7 @@ pub fn configured_capture_requirement(CaptureConfiguration) -> @query_planning.Q
 
 pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
-pub fn configured_native_host_choice(NativeHostConfiguration) -> @query_planning.AcquisitionChoice
+pub fn configured_native_host_choice(NativeHostConfiguration) -> @query_planning.AcquisitionChoice[@query_planning.QueryRequirement]
 
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
 
@@ -129,7 +129,7 @@ pub fn start_configured_broad_host(BroadHostConfiguration, String, (@acquisition
 
 pub fn start_configured_native_host(NativeHostConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
-pub fn start_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBNativePreparation], String, Int, @adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
+pub fn start_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice[@query_planning.QueryRequirement], @query_planning.PreparedAcquisition[@query_planning.QueryRequirement, @acquisition.DuckDBNativePreparation], String, Int, @adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
 pub fn verify_native_host(NativeHostRun, @acquisition.DuckDBNativeObservation) -> Bool
 

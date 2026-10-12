@@ -4,7 +4,7 @@ pub fn mock_acquisition_candidate(
   requirement : @planning.QueryRequirement,
   offer : QueryOffer,
 ) -> Result[
-  @planning.PreparedAcquisition[QueryOffer],
+  @planning.PreparedAcquisition[@planning.QueryRequirement, QueryOffer],
   @planning.QueryPlanningIssue,
 ] {
   if !physical_equal(
@@ -28,8 +28,11 @@ pub fn mock_acquisition_candidate(
 /// Preserve the common selection reason when entering the existing mock driver;
 /// do not run a second, mock-only comparison after Host selection.
 pub fn mock_acquisition_strategy(
-  choice : @planning.AcquisitionChoice,
-  prepared : @planning.PreparedAcquisition[QueryOffer],
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
+  prepared : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
+    QueryOffer,
+  ],
 ) -> QueryStrategy? {
   @planning.acquisition_choice_payload(choice, prepared).map(offer => {
     offer,

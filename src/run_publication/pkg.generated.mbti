@@ -4,6 +4,8 @@ package "actql/actql/run_publication"
 import {
   "actql/actql/canonical_json",
   "actql/actql/encode_core",
+  "actql/actql/relation_schema",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -74,6 +76,8 @@ pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValu
 
 pub fn admit_source_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
+pub fn advance_content_bytes(ContentByteEncoder, Int) -> ContentBytePoll
+
 pub fn author_effect_preview_semantic_wire(String, String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
 pub fn begin_result_access_progress() -> ResultAccessProgress
@@ -81,6 +85,10 @@ pub fn begin_result_access_progress() -> ResultAccessProgress
 pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
 pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
+
+pub fn bind_content_byte_input(ContentByteEncoder, Int, () -> Bool) -> Result[Unit, ContentSerializationIssue]
+
+pub fn bind_generated_content_observation(RunEvidenceValue, String, String, String, RunEvidenceValue, GeneratedContentReference, @value_admission.CheckedValue, Int, Int, Int) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
 pub fn bind_model_invocation_saved_call(BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
 
@@ -94,13 +102,39 @@ pub fn bind_model_slot_attempt_evidence(BoundModelSlotCapture, RunEvidenceValue,
 
 pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
 
+pub fn bound_content_generation_availability(BoundContentGeneration) -> String?
+
+pub fn bound_content_generation_derivation(BoundContentGeneration) -> RunEvidenceValue?
+
+pub fn bound_content_generation_input_artifact(BoundContentGeneration) -> RunEvidenceValue?
+
+pub fn bound_content_generation_location(BoundContentGeneration) -> (String, String)?
+
+pub fn bound_content_generation_reference(BoundContentGeneration) -> String?
+
+pub fn bound_content_generation_reference_reissuer(BoundContentGeneration) -> @value_admission.ReferenceIssuer?
+
+pub fn bound_content_generation_value(BoundContentGeneration) -> RunEvidenceValue?
+
 pub fn bound_model_slot_capture_outcome(BoundModelSlotCapture) -> String?
 
 pub fn bound_model_slot_capture_value(BoundModelSlotCapture) -> RunEvidenceValue
 
+pub fn cancel_content_byte_encoder(ContentByteEncoder) -> Unit
+
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
 pub fn canonical_effect_preview_draft_wire(String, Int, Int, Int) -> Result[String, PublicationContractIssue]
+
+pub fn captured_content_generation_count(PublicationContract) -> Int?
+
+pub fn captured_content_generation_storage(PublicationContract, PublicationContract, String, Int) -> (String, String, String, Int64, Array[(String, String, String, String)])?
+
+pub fn captured_content_reference_identity(CapturedContentReference) -> String
+
+pub fn captured_content_reference_storage(CapturedContentReference) -> (String, String, String, Int)
+
+pub fn captured_content_reference_wire(CapturedContentReference) -> String
 
 pub fn captured_effect_dependency_body_cid(CapturedEffectDependencyBody) -> String
 
@@ -201,6 +235,20 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[String, EffectPreviewIdentityIssue]
 
 pub fn computation_evidence_check_fixture_phase(ComputationEvidenceCheck) -> String
+
+pub fn content_byte_completed_rows(ContentByteEncoder) -> Int
+
+pub fn content_byte_generation_limits(ContentByteEncoder) -> (Int, Int)
+
+pub fn content_byte_profile_matches(ContentByteEncoder, ContentSerializationProfile) -> Bool
+
+pub fn content_generation_private_holding_cid(PublicationContract, String, String, String) -> String?
+
+pub fn content_serialization_media_type(ContentSerializationProfile) -> String
+
+pub fn content_serialization_name(ContentSerializationProfile) -> String
+
+pub fn content_serialization_profile_work(ContentSerializationProfile) -> Int
 
 pub fn delivery_attempt_lookup_matches_scope(PublicationContract, PublicationContract, DeliveryAttemptLookupScope) -> Result[Bool, DeliveryIssuanceIssue]
 
@@ -348,19 +396,37 @@ pub fn effect_source_artifact_preview_binding(PublicationContract, String, Strin
 
 pub fn effect_table_input_artifact_preview_binding(PublicationContract, String, String, String) -> Result[(String, String), EffectSourceArtifactIssue]
 
+pub fn emit_content_serialization_options(ContentSerializationProfile, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn empty_initial_input_artifact_set_cid() -> String
 
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
 
+pub fn finish_content_bytes(ContentByteEncoder) -> Result[ContentByteCompletion, ContentSerializationIssue]
+
 pub fn finish_durable_result_row_frames(DurableResultRowFrames) -> Result[DurableResultRowFrameSummary, DurableResultRowFrameIssue]
 
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
+pub fn generated_content_issuer_evidence_cid(GeneratedContentReference) -> String
+
+pub fn generated_content_reference_completion_for(GeneratedContentReference, ContentByteEncoder) -> ContentByteCompletion?
+
+pub fn generated_content_reference_identity(GeneratedContentReference) -> String
+
+pub fn generated_content_reference_policy(GeneratedContentReference) -> String
+
+pub fn generated_content_reference_storage(GeneratedContentReference) -> (String, String, String, Int)
+
+pub fn generated_content_reference_wire(GeneratedContentReference) -> String
+
 pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[(String, Int), CapturedRunIssuanceIssue]
 
 pub fn install_publication_publisher_port(PublicationContract, PublicationContract, String, () -> Bool, (PublicationPublisherAuthorization) -> Bool) -> Result[PublicationPublisherPort, PublicationPublisherIssue]
+
+pub fn issue_captured_content_reference(CapturedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
 pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], CapturedEffectDependencyLimits, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
@@ -372,6 +438,10 @@ pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEviden
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
+pub fn issue_content_model_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundModelSlotCapture], Array[BoundContentGeneration], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
+
+pub fn issue_content_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundContentGeneration], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
+
 pub fn issue_delivery_attempt(PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, Int, String, Int?, String?, PublicationContract?, String?, String, Array[String], Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
@@ -380,9 +450,9 @@ pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence,
 
 pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
 
-pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
-pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
 pub fn issue_effect_free_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int, cancelled_before_start? : Bool, observed_terminal_outcome? : RunOutcomeStatus?, execution_unknown? : Bool) -> Result[String, RunStateIssue]
 
@@ -401,6 +471,8 @@ pub fn issue_effect_table_input_artifact(PublicationContract, PublicationContrac
 pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
+
+pub fn issue_generated_content_reference(GeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
@@ -435,6 +507,8 @@ pub fn issue_run_definition(RunPublicationAdmission, String, String, String, Str
 pub fn issue_run_invocation(RunEvidenceValue, RunEvidenceValue, Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
 pub fn issue_single_source_acquisition_scope(String, String, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+
+pub fn issue_stored_generated_content_reference(StoredGeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
 pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvailability], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
@@ -524,6 +598,8 @@ pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[Stri
 
 pub fn normalize_control_amount_decimal(String) -> Result[String, RunControlMoneyIssue]
 
+pub fn parse_content_reference_binding(String, @value_admission.ReferenceLimits) -> Result[GeneratedContentBinding, GeneratedContentReferenceIssue]
+
 pub fn parse_control_amount_micro(String) -> Result[Int64, RunControlMoneyIssue]
 
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
@@ -532,9 +608,13 @@ pub fn parse_effect_preview_shape(String, Int, Int, Int) -> Result[@canonical_js
 
 pub fn parse_interactive_run_control_shape(String, String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
+pub fn prepare_captured_content_reference(GeneratedContentBinding, String, String, Int, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]
+
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
 pub fn prepare_committed_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
+
+pub fn prepare_content_serialization_profile(ContentFormat, @relation_schema.Schema, Array[String], String, ContentProfileLimits) -> Result[ContentSerializationProfile, ContentSerializationIssue]
 
 pub fn prepare_delivery_failure_terminal(Bool) -> DeliveryFailureTerminalAction
 
@@ -551,6 +631,10 @@ pub fn prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> Result[Dura
 pub fn prepare_effect_capture_holding_binding(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Int, Int, Int) -> Result[EffectCaptureHoldingBinding, RunEvidenceChainIssue]
 
 pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDeliveryAttemptAction
+
+pub fn prepare_generated_content_reference(ContentByteEncoder, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[GeneratedContentReference, GeneratedContentReferenceIssue]
+
+pub fn prepare_generated_content_reference_from_binding(ContentByteEncoder, String, @value_admission.ReferenceLimits) -> Result[GeneratedContentReference, GeneratedContentReferenceIssue]
 
 pub fn prepare_publication_attempt_step(PublicationContract?, Bool, Bool) -> PublicationAttemptRuntimeAction
 
@@ -573,6 +657,10 @@ pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, Res
 pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
 
 pub fn prepare_result_material_holds_step(ResultMaterialHolds, String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
+
+pub fn prepare_stored_captured_content_reference(String, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]
+
+pub fn prepare_stored_generated_content_reference(String, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[StoredGeneratedContentReference, GeneratedContentReferenceIssue]
 
 pub fn prepare_superseded_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
 
@@ -641,6 +729,8 @@ pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> I
 pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelCaptureBundleRead, RunEvidenceValueIssue]
 
 pub fn read_model_original_resource_document(String, Int, Int, Int) -> Result[ModelOriginalResourceDocument, PublicationContractIssue]
+
+pub fn readmit_generated_content_observation(RunEvidenceValue, String, String, String, String, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
 pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
@@ -730,6 +820,8 @@ pub fn retain_model_capture_bundle_read(ModelCaptureBundleRead) -> ModelCaptureB
 
 pub fn run_definition_has_empty_initial_input_artifact_set(PublicationContract) -> Bool
 
+pub fn run_definition_lifetime(PublicationContract) -> (String, String)?
+
 pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn run_evidence_value_document(RunEvidenceValue, Int, Int, Int) -> @encode_core.EncodedDocument raise @encode_core.EncodeFailure
@@ -756,6 +848,8 @@ pub fn run_publication_start_current(RunPublicationAdmission, PublicationContrac
 
 pub fn run_publication_template_cid(RunPublicationAdmission) -> String
 
+pub fn seal_completed_source_observation(CompletedSourceObservationBody) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
+
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
@@ -764,13 +858,23 @@ pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(Str
 
 pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
 
-pub fn start_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, Int) -> CapturedRunIssuancePreparation
+pub fn start_content_byte_encoder(ContentSerializationProfile, max_rows~ : Int, max_bytes~ : Int, max_value_nodes~ : Int, max_value_depth~ : Int, max_frames~ : Int) -> Result[ContentByteEncoder, ContentSerializationIssue]
+
+pub fn start_content_byte_row(ContentByteEncoder, (Int) -> @value_admission.CheckedValue?) -> Result[Unit, ContentSerializationIssue]
+
+pub fn start_content_runtime_row(ContentByteEncoder, (Int) -> ContentInputCell, () -> Bool) -> Result[Unit, ContentSerializationIssue]
+
+pub fn start_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> CapturedRunIssuancePreparation
 
 pub fn start_effect_free_publication_commit_check(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> PublicationCommitPreparation
 
 pub fn start_effect_free_run_evidence_check(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> ComputationEvidenceCheck
 
-pub fn start_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> CapturedRunIssuancePreparation
+pub fn start_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?, content_generations? : Array[BoundContentGeneration]) -> CapturedRunIssuancePreparation
+
+pub fn stored_generated_content_reference_storage(StoredGeneratedContentReference) -> (String, String, String, String, Int)
+
+pub fn stored_generated_content_reference_wire(StoredGeneratedContentReference) -> String
 
 pub fn trusted_clock_not_before(String?, String) -> Bool
 
@@ -816,6 +920,8 @@ pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailabil
 
 pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
 
+pub fn verify_model_slot_attachment_admission(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn verify_model_slot_capture_bundle(Array[BoundModelSlotCapture], ModelCaptureBundleRead) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn verify_model_slot_no_response_failure(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
@@ -832,6 +938,8 @@ pub(all) enum AcquisitionRelationIssue {
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+type BoundContentGeneration
 
 pub struct BoundModelAttemptEvidence {
   slot : BoundModelSlotCapture
@@ -857,6 +965,8 @@ pub struct BoundModelSlotCapture {
   call : RunEvidenceValue
   capture : RunEvidenceValue
 }
+
+type CapturedContentReference
 
 type CapturedEffectDependencyBody
 
@@ -940,10 +1050,83 @@ pub(all) struct CommittedResultRead {
   physical_sha256 : String
 }
 
+pub(all) struct CompletedSourceObservationBody {
+  input : RunEvidenceValue
+  source_ref : String
+  source_contract_cid : String
+  schema_evidence_cid : String
+  capability_evidence_cid : String
+  authority_scope_cid : String
+  source_data_policy_cid : String
+  data_classification : String
+  source_view_contract_cid : String
+  observed_at : String
+  snapshot_ref : String
+}
+
 type ComputationEvidenceCheck
 pub fn ComputationEvidenceCheck::advance(Self, Int) -> Result[(Bool, Int), RunEvidenceChainIssue]
 pub fn ComputationEvidenceCheck::cancel(Self) -> Unit
 pub fn ComputationEvidenceCheck::finish(Self) -> Result[Unit, RunEvidenceChainIssue]
+
+pub(all) struct ContentByteCompletion {
+  name : String
+  media_type : String
+  size_bytes : Int
+  row_count : Int
+  content_cid : String
+} derive(Eq, @debug.Debug)
+
+type ContentByteEncoder
+
+pub enum ContentBytePoll {
+  ContentBytesContinue(String, work~ : Int)
+  ContentBytesReady(String, work~ : Int)
+  ContentBytesFailed(ContentSerializationIssue, work~ : Int)
+}
+
+pub(all) enum ContentFormat {
+  ContentCsv
+  ContentJsonl
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ContentInputCell {
+  ContentAbsent
+  ContentPresent(@value_admission.Value)
+  ContentText(String)
+  ContentInputUnavailable
+}
+
+pub(all) struct ContentProfileLimits {
+  max_fields : Int
+  max_name_bytes : Int
+  max_work : Int
+  max_options_bytes : Int
+  max_options_nodes : Int
+  max_options_depth : Int
+}
+
+pub(all) enum ContentSerializationIssue {
+  ContentInvalidLimits
+  ContentInvalidOptions
+  ContentMissingOption(String)
+  ContentUnknownOption(String)
+  ContentInvalidOption(String)
+  ContentInvalidFields
+  ContentConditionalCsv(String)
+  ContentMissingRequired(Int)
+  ContentForeignValue(Int)
+  ContentReferenceUnavailable
+  ContentInputUnavailableIssue
+  ContentIncompleteInput
+  ContentRowLimit
+  ContentByteLimit
+  ContentValueEncoding
+  ContentClosed
+  ContentBusy
+} derive(Eq, @debug.Debug)
+
+type ContentSerializationProfile
 
 pub(all) struct DeliveryAttemptLookupScope {
   namespace_id : String
@@ -1280,6 +1463,29 @@ pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryRejectUnresolvedAttempt
   DeliveryRejectTerminalAttempt
   ExistingDeliveryAttemptInvalid
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GeneratedContentBinding {
+  content_store_id : String
+  content_store_cid : String
+  workspace_scope_cid : String
+  storage_scope : String
+  retention_class : String
+  expires_at : String?
+  availability_evidence_cid : String
+  effective_data_policy_cid : String
+  data_classification : String
+  issuer_contract_cid : String
+  capture_authority_cid : String
+}
+
+type GeneratedContentReference
+
+pub(all) enum GeneratedContentReferenceIssue {
+  GenerationIncomplete
+  InvalidBinding(String)
+  Encoding
+  Issuance(@value_admission.ReferenceIssue)
 } derive(Eq, @debug.Debug)
 
 pub struct ModelCaptureBundleRead {
@@ -1847,6 +2053,8 @@ pub(all) enum SourceInputObservationIssue {
   Mismatch(String)
   InvalidOrdering
 } derive(Eq, @debug.Debug)
+
+type StoredGeneratedContentReference
 
 // Type aliases
 

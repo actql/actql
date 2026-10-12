@@ -46,11 +46,19 @@ fn park_original_model_resources_impl(
   // Do not add a fallible post-fence bind that could discard its only handle.
   let result = if write_state {
     @publication_host.park_client_model_read_consumer_for_state_write(
-      scope, consumer, bound.compiled, bound.definition, plan,
+      scope,
+      consumer,
+      bound.compiled,
+      bound.definition,
+      plan,
     )
   } else {
     @publication_host.park_client_model_read_consumer(
-      scope, consumer, bound.compiled, bound.definition, plan,
+      scope,
+      consumer,
+      bound.compiled,
+      bound.definition,
+      plan,
     )
   }
   result.map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
@@ -97,11 +105,16 @@ pub fn begin_original_model_resource_invalidation(
   park : @publication_host.ClientModelResourcePark,
 ) -> Result[@publication_host.ClientModelResourceInvalidationRequest, Issue] {
   guard original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     return Err(InvalidAdvance)
   }
   @publication_host.begin_client_model_resource_invalidation(
-    park, scope, bound.compiled, bound.definition, plan,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
   ).map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
 }
 
@@ -113,11 +126,17 @@ pub fn original_model_resource_invalidation_current(
   request : @publication_host.ClientModelResourceInvalidationRequest,
 ) -> @publication_host.ClientModelResourceInvalidationRequest? {
   guard original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     return None
   }
   @publication_host.client_model_resource_invalidation_current(
-    request, park, scope, bound.compiled, bound.definition, plan,
+    request,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
   )
 }
 
@@ -134,11 +153,18 @@ pub fn consume_original_model_resource_invalidation(
 ) -> Result[Unit, Issue] {
   guard original_model_resource_invalidation_current(
       active, scope, park, request,
-    ) is Some(_) && active.run_binding is Some(bound) &&
+    )
+    is Some(_) &&
+    active.run_binding is Some(bound) &&
     active.plan is Some(plan) else {
     return Err(InvalidAdvance)
   }
   @publication_host.consume_client_model_resource_invalidation(
-    request, park, scope, bound.compiled, bound.definition, plan,
+    request,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
   ).map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
 }

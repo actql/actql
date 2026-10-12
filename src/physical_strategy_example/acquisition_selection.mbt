@@ -4,8 +4,8 @@
 /// Native/Broad Host. This does not change the public Client's fixed policy.
 struct ApplicationAcquisitionSelection {
   requirement : @planning.QueryRequirement
-  candidates : Array[@planning.AcquisitionCandidate]
-  outcome : @planning.AcquisitionSelection
+  candidates : Array[@planning.AcquisitionCandidate[@planning.QueryRequirement]]
+  outcome : @planning.AcquisitionSelection[@planning.QueryRequirement]
   native : @acquisition_host.NativeHostConfiguration?
   broad : @acquisition_host.BroadHostConfiguration?
   limits : @acquisition_host.NativeHostLimits

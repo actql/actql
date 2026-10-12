@@ -43,7 +43,7 @@ fn emit_property_key_type(
     }
     Some(@carrier.ArtifactKey(media_type~)) => {
       @encode.key(out, "kind")
-      @encode.string_value(out, "artifact_ref")
+      @encode.string_value(out, "content_ref")
       @encode.key(out, "media_type")
       match media_type {
         Some(value) => @encode.string_value(out, value)
@@ -488,7 +488,7 @@ fn property_lookup_key(
       value
     }
     (@value.Object(fields), @contract.ResourceRef(_))
-    | (@value.Object(fields), @contract.ArtifactRef(_)) => {
+    | (@value.Object(fields), @contract.ContentRef(_)) => {
       guard @value.element_count(fields) == 1 &&
         @value.element_at(fields, 0) is Some(("identity", @value.Text(cid))) &&
         cid.has_prefix("sha256:") &&

@@ -12,7 +12,8 @@ pub(all) enum TargetRowsIssue {
 struct TargetRows {
   pipeline : @pipeline.CheckedPipeline
   target : @pipeline.Target
-  bound : StepBound
+  bound : StepBound?
+  source : SourceInputRows?
   work : Int
 }
 
@@ -79,7 +80,7 @@ pub fn check_target_rows_usage(
       }
     }
   }
-  (Ok({ pipeline, target, bound, work, }), work)
+  (Ok({ pipeline, target, bound: Some(bound), source: None, work, }), work)
 }
 
 ///|
@@ -93,13 +94,92 @@ pub fn target_rows_target(v : TargetRows) -> @pipeline.Target {
 }
 
 ///|
-pub fn target_rows_bound(v : TargetRows) -> StepBound {
+pub fn target_rows_bound(v : TargetRows) -> StepBound? {
   v.bound
 }
 
 ///|
 pub fn target_rows_value(v : TargetRows) -> Int64 {
-  @wire.value(@wire.program_proof_witness(v.bound.proof))
+  match v.bound {
+    Some(bound) => @wire.value(@wire.program_proof_witness(bound.proof))
+    None => @environment.file_listing_rows_maximum(v.source.unwrap().rows)
+  }
+}
+
+///|
+pub fn target_rows_source(v : TargetRows) -> SourceInputRows? {
+  v.source
+}
+
+///|
+/// Stable candidate ordering within this checked owner, not persistent Unit
+/// proof identity. A source ceiling and an ordinary producer remain distinct.
+pub fn target_rows_candidate_cid(v : TargetRows) -> String {
+  match v.bound {
+    Some(bound) => @wire.cid(@wire.program_proof_witness(bound.proof))
+    None =>
+      @wire.limit_cid(
+        @environment.file_listing_rows_claim(v.source.unwrap().rows),
+      )
+  }
+}
+
+///|
+/// Trace only non-expanding edges to the exact admitted Source input. A same-
+/// named or same-schema input in another pipeline cannot discharge this bound.
+pub fn check_source_target_rows_usage(
+  pipeline : @pipeline.CheckedPipeline,
+  target : @pipeline.Target,
+  source : SourceInputRows,
+  max_work : Int,
+) -> (Result[TargetRows, TargetRowsIssue], Int) {
+  if max_work < 0 {
+    return (Err(InvalidLimits), 0)
+  }
+  let mut owner = pipeline
+  let mut current = target
+  let mut work = 0
+  while true {
+    if work == max_work {
+      return (Err(WorkLimit), work)
+    }
+    work += 1
+    match current {
+      @pipeline.Step(index) => {
+        guard @pipeline.step_at(owner, index) is Some(step) else {
+          return (Err(InvalidTarget), work)
+        }
+        current = match forwarded_input(step, @arithmetic.Rows) {
+          Some(target) => target
+          None => return (Err(UnrelatedBound), work)
+        }
+      }
+      @pipeline.Input(index) => {
+        if @pipeline.input_at(owner, index) is None {
+          return (Err(InvalidTarget), work)
+        }
+        if physical_equal(owner, source.pipeline) && index == source.input {
+          break
+        }
+        guard @pipeline.input_producer(owner, index) is Some(producer) else {
+          return (Err(MissingProducer), work)
+        }
+        owner = @pipeline.producer_pipeline(producer)
+        current = @pipeline.producer_target(producer)
+      }
+    }
+  }
+  (Ok({ pipeline, target, bound: None, source: Some(source), work, }), work)
+}
+
+///|
+pub fn check_source_target_rows(
+  pipeline : @pipeline.CheckedPipeline,
+  target : @pipeline.Target,
+  source : SourceInputRows,
+  max_work : Int,
+) -> Result[TargetRows, TargetRowsIssue] {
+  check_source_target_rows_usage(pipeline, target, source, max_work).0
 }
 
 ///|

@@ -27,11 +27,11 @@ fn issued_reference_value(
 }
 
 ///|
-fn issued_artifact_value(
+fn issued_content_value(
   contract : @contract.Contract,
   live : Ref[Bool],
 ) -> @admitted.CheckedValue {
-  let wire = "{\"$actql_ref\":\"artifact\",\"artifact_ref_cid\":\"sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff\",\"media_type\":\"application/json\",\"metadata\":{\"artifact_store_id\":\"fixture\",\"availability_evidence_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"capture_authority\":\"read_content\",\"content_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"data_classification\":\"internal\",\"effective_data_policy_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"issuer_evidence\":{},\"media_type\":\"application/json\",\"retention_class\":\"fixture\",\"size_bytes\":3,\"storage_scope\":\"workspace\",\"truncated\":false},\"version\":\"actql-artifact-ref/0.1\"}"
+  let wire = "{\"$actql_ref\":\"content\",\"content_ref_cid\":\"sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff\",\"media_type\":\"application/json\",\"metadata\":{\"availability_evidence_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"capture_authority\":\"read_content\",\"content_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"content_store_id\":\"fixture\",\"data_classification\":\"internal\",\"effective_data_policy_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"issuer_evidence\":{},\"media_type\":\"application/json\",\"retention_class\":\"fixture\",\"size_bytes\":3,\"storage_scope\":\"workspace\",\"truncated\":false},\"version\":\"actql-content-ref/0.1\"}"
   issued_reference_value(contract, wire, live)
 }
 
@@ -84,14 +84,14 @@ test "owned references preserve identity equality and current authorization" {
 }
 
 ///|
-test "select preserves owned resource and artifact references and NULL" {
+test "select preserves owned resource and content references and NULL" {
   let owner = capture_fixture()
-  for kind in ["resource", "artifact"] {
+  for kind in ["resource", "content"] {
     let contract = select_checked_contract(
       if kind == "resource" {
         "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"mail/message\"}"
       } else {
-        "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}"
+        "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}"
       },
     )
     let schema = @schema.from_fields(
@@ -106,7 +106,7 @@ test "select preserves owned resource and artifact references and NULL" {
         live,
       ).value
     } else {
-      issued_artifact_value(contract, live).value
+      issued_content_value(contract, live).value
     }
     let null = @admitted.admit(contract, input_cursor("null"), {
         max_nodes: 1,
@@ -152,13 +152,13 @@ test "select preserves owned resource and artifact references and NULL" {
 }
 
 ///|
-test "append preserves owned resource and artifact references and NULL" {
-  for kind in ["resource", "artifact"] {
+test "append preserves owned resource and content references and NULL" {
+  for kind in ["resource", "content"] {
     let contract = append_contract(
       if kind == "resource" {
         "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"mail/message\"}"
       } else {
-        "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}"
+        "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}"
       },
     )
     let owner = append_input_owner(contract)
@@ -173,7 +173,7 @@ test "append preserves owned resource and artifact references and NULL" {
         live,
       ).value
     } else {
-      issued_artifact_value(contract, live).value
+      issued_content_value(contract, live).value
     }
     let null = @admitted.admit(contract, input_cursor("null"), {
         max_nodes: 1,

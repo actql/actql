@@ -172,7 +172,7 @@ test "shared subtrees and nested references do not bypass traversal" {
     "BudgetExceeded",
   )
   let c = contract(
-    "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"artifact_ref\",\"nullable\":true}}",
+    "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"content_ref\",\"nullable\":true}}",
   )
   match @value_admission.admit(c, owned(parsed("[{}]")), limits()) {
     Err(
@@ -527,7 +527,7 @@ test "non-null reference values require issuer evidence even under nullable cont
   for
     spec in [
       "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"record\"}",
-      "{\"type\":\"artifact_ref\",\"nullable\":true}",
+      "{\"type\":\"content_ref\",\"nullable\":true}",
     ] {
     assert_eq(
       outcome(

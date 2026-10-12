@@ -149,6 +149,37 @@
       },
       "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"contract_violation\",\"failure\":\"budget_exceeded\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
       "expected_cid": "sha256:b5738bbd95eaaec73222e004087888fc3231d799410687d031745d6683d13a2d"
+    },
+    {
+      "kind": "model_attachment_admission",
+      "body": {
+        "version": "actql-model-attachment-admission/0.1",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "model_task_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "fixed_request_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "authority_evidence_cid": "sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a",
+        "attachments": [
+          {
+            "role": "document",
+            "item": -1,
+            "content_ref_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "content_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "media_input_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "policy_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "media_type": "application/pdf",
+            "size_bytes": 3,
+            "classification": "internal",
+            "region": "fixture-region",
+            "egress_scope_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "pages": 1,
+            "frames": null,
+            "complete": true,
+            "transfer_method": "inline_bytes"
+          }
+        ]
+      },
+      "expected_canonical_bytes": "{\"attachments\":[{\"classification\":\"internal\",\"complete\":true,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-1,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":1,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":3,\"transfer_method\":\"inline_bytes\"}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+      "expected_cid": "sha256:e24637b4a3c2e152ce2f9af8efff0679856870c5e4f2d4a4239ecae5e963667a"
     }
   ]
 }

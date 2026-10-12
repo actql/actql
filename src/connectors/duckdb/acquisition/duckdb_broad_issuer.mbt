@@ -3,13 +3,21 @@
 /// verifies exact grant/port/read-view/settled transport ownership outside this
 /// package. It must never accept a CID, path, SQL-success bool or JSON as proof.
 struct DuckDBQueryIssuer {
-  registration : @planning.QueryEvidenceRegistration[DuckDBBroadAttempt]
+  registration : @planning.QueryEvidenceRegistration[
+    @planning.QueryEvidenceContracts,
+    @planning.QueryRequirement,
+    DuckDBBroadAttempt,
+  ]
 }
 
 ///|
 priv struct DuckDBBroadAuthority {
   issuer : DuckDBQueryIssuer
-  token : @planning.QueryEvidenceAttemptAuthority[DuckDBBroadAttempt]
+  token : @planning.QueryEvidenceAttemptAuthority[
+    @planning.QueryEvidenceContracts,
+    @planning.QueryRequirement,
+    DuckDBBroadAttempt,
+  ]
 }
 
 ///|
@@ -55,8 +63,11 @@ pub fn prepare_duckdb_query_issuer(
 /// authority to an already executed unissued attempt.
 pub fn prepare_issued_duckdb_broad_attempt(
   issuer : DuckDBQueryIssuer,
-  choice : @planning.AcquisitionChoice,
-  prepared : @planning.PreparedAcquisition[DuckDBQueryPreparation],
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
+  prepared : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
+    DuckDBQueryPreparation,
+  ],
 ) -> Result[DuckDBBroadAttempt, DuckDBEvidenceIssue] {
   let (preparation, token) = match
     @planning.reserve_selected_query_evidence_attempt(

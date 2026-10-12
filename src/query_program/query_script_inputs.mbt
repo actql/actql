@@ -32,6 +32,7 @@ fn bind_script_input(
   steps : Array[@builder.Node],
   reserved : Array[String],
   predicate? : @builder.Node? = None,
+  capture? : Bool = true,
 ) -> Input raise Abort {
   let fields = columns(input)
   match input.source {
@@ -72,7 +73,8 @@ fn bind_script_input(
         return bound
       }
       let imported = import_query_cursor(construction, declaration)
-      let reference = match context.captured_stage {
+      let capture_stage = if capture { context.captured_stage } else { None }
+      let reference = match capture_stage {
         None => imported
         Some(base) => {
           let stage_id = if sources.stages.is_empty() {
