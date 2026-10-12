@@ -454,15 +454,21 @@ fn[T] start_task_execution(
   }
   match @connector.start_prepared_execution_lifecycle(prepared) {
     Err(issue) => {
-      if resident is Some(resource) {
-        abandon_resident_execution(resource)
-      }
-      @resources.settle_reservation(run.ledger, reservation) |> ignore
       let failure = match issue {
         Candidate(issue) => RunIssue::Compute(issue)
         Implementation(issue) => issue
       }
+      // Preserve the actual start failure even if same-owner retirement is
+      // currently fenced. The pending resident handle and original census
+      // retain cleanup responsibility; a cleanup refusal is not settlement.
       fail_captured_task(run, task, failure)
+      if resident is Some(resource) {
+        match abandon_resident_execution(resource) {
+          Err(_) => return Err(failure)
+          Ok(_) => ()
+        }
+      }
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
       Err(failure)
     }
     Ok((payload, hooks)) => {

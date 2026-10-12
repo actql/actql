@@ -49,6 +49,7 @@ priv enum FundedReadPhase[T] {
   ConsumerHandedOff(FundedReadConsumer[T])
   Stopping
   ConsumerStopping(FundedReadConsumer[T])
+  ConsumerParked(FundedReadConsumer[T], OriginalResourcePark[T])
   Reclaimed
 }
 
@@ -374,6 +375,7 @@ pub fn[T] funded_read_available(claim : FundedReadClaim[T], origin : T) -> Bool 
 
 ///|
 fn[T] funded_read_state_matches(claim : FundedReadClaim[T], origin : T) -> Bool {
+  check_original_resources_mutable(claim.descriptor.ledger) is Ok(_) &&
   physical_equal(origin, claim.descriptor.origin) &&
   capacity_reservation_open(claim.read) &&
   capacity_reservation_open(claim.descriptor.bootstrap) &&
@@ -532,15 +534,23 @@ pub fn[T] handoff_funded_read_capacity(
 }
 
 ///|
-pub fn[T] stop_funded_read(claim : FundedReadClaim[T]) -> Unit {
+pub fn[T] stop_funded_read(
+  claim : FundedReadClaim[T],
+) -> Result[Unit, OriginalReadIssue] {
+  match check_original_resources_mutable(claim.descriptor.ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
   match claim.phase {
     Reading | Written | HandedOff => claim.phase = Stopping
     Writing(writer) => cancel_original_state_write(writer)
     Preparing(consumer)
     | ConsumerStarted(consumer)
     | ConsumerHandedOff(consumer) => claim.phase = ConsumerStopping(consumer)
+    ConsumerParked(_, _) => return Err(Resource(ResourceParked))
     Stopping | ConsumerStopping(_) | Reclaimed => ()
   }
+  Ok(())
 }
 
 ///|
@@ -554,13 +564,19 @@ pub fn[T] settle_funded_read(
   if claim.phase is Reclaimed {
     return Err(SpentClaim)
   }
+  if claim.phase is ConsumerParked(_, _) {
+    return Err(Resource(ResourceParked))
+  }
   // A live encoding cursor still borrows the census/read graph. Explicit stop
   // or cancellation retires it before physical owning cleanup can settle read.
   if physical_cleanup_complete && claim.phase is Writing(_) {
     return Err(CleanupPending)
   }
   if !physical_cleanup_complete {
-    stop_funded_read(claim)
+    match stop_funded_read(claim) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
     return Err(CleanupPending)
   }
   let ledger = claim.descriptor.ledger
@@ -583,6 +599,7 @@ pub fn[T] settle_funded_read(
     | ConsumerStarted(consumer)
     | ConsumerHandedOff(consumer)
     | ConsumerStopping(consumer) => consumer.claim = None
+    ConsumerParked(_, _) => abort("parked original cleanup was not admitted")
     _ => ()
   }
   // The original Run's final cleanup retires the census/bootstrap separately.
@@ -630,11 +647,14 @@ pub fn[T] funded_read_consumer_origin(consumer : FundedReadConsumer[T]) -> T? {
 }
 
 ///|
-pub fn[T] stop_funded_read_consumer(consumer : FundedReadConsumer[T]) -> Unit {
+pub fn[T] stop_funded_read_consumer(
+  consumer : FundedReadConsumer[T],
+) -> Result[Unit, OriginalReadIssue] {
   if consumer.claim is Some(claim) &&
     funded_read_claim_has_consumer(claim, consumer) {
-    stop_funded_read(claim)
+    return stop_funded_read(claim)
   }
+  Ok(())
 }
 
 ///|
@@ -671,6 +691,7 @@ fn[T] funded_read_claim_has_consumer(
     | ConsumerStarted(current)
     | ConsumerHandedOff(current)
     | ConsumerStopping(current) => physical_equal(current, consumer)
+    ConsumerParked(current, _) => physical_equal(current, consumer)
     _ => false
   }
 }
