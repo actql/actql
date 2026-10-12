@@ -7,6 +7,8 @@ import sqlite3
 import stat
 from threading import RLock, get_ident
 
+from ._local_files import LocalFileRoot, _PayloadFile
+
 _APPLICATION_ID = 0x41514C42
 _SCHEMA = '''CREATE TABLE core_bytes (
     key TEXT PRIMARY KEY COLLATE BINARY NOT NULL,
@@ -35,6 +37,7 @@ class _NamespaceReader:
     read: Callable[[str, str, _NamespaceConsumer], None]
     owner: 'LocalByteStore'
     current: Callable[[], None]
+    check_fences: Callable[['_NamespaceReader', tuple['ByteFence', ...]], None]
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -106,7 +109,8 @@ class LocalByteStore:
     """
 
     def __init__(self, path: Path, *, max_records: int,
-                 max_record_bytes: int, max_payload_bytes: int) -> None:
+                 max_record_bytes: int, max_payload_bytes: int,
+                 _new_file: tuple[LocalFileRoot, _PayloadFile] | None = None) -> None:
         if (type(max_records) is not int or not 1 <= max_records <= 1024
                 or type(max_record_bytes) is not int
                 or not 1 <= max_record_bytes <= 1_048_576
@@ -132,23 +136,32 @@ class LocalByteStore:
         self._physical_parent = (parent.st_dev, parent.st_ino)
         self._physical_original: tuple[int, int] | None = None
         self._physical_owner = self
-        try:
-            self._opening_descriptor = os.open(
-                path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            metadata = path.lstat()
-            if (not stat.S_ISREG(metadata.st_mode)
-                    or metadata.st_mode & 0o077
-                    or metadata.st_uid != os.getuid()):
-                raise LocalStorageError('Local physical storage must be a private owned file')
-            self._physical_original = self._file_generation(metadata)
-        else:
+        if _new_file is not None:
+            if (type(_new_file) is not tuple or len(_new_file) != 2
+                    or type(_new_file[0]) is not LocalFileRoot
+                    or type(_new_file[1]) is not _PayloadFile):
+                raise ValueError('Invalid original empty Local Store acquisition')
+            observed = _new_file[0].claim_empty_store_file(_new_file[1], path)
             self._created = True
+            self._physical_original = (observed.device, observed.inode)
+        else:
             try:
-                self._physical_original = self._file_generation(os.fstat(self._opening_descriptor))
-                self._close_descriptor()
-            except BaseException as original:
-                raise LocalStorageInitializationError(self) from original
+                self._opening_descriptor = os.open(
+                    path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                metadata = path.lstat()
+                if (not stat.S_ISREG(metadata.st_mode)
+                        or metadata.st_mode & 0o077
+                        or metadata.st_uid != os.getuid()):
+                    raise LocalStorageError('Local physical storage must be a private owned file')
+                self._physical_original = self._file_generation(metadata)
+            else:
+                self._created = True
+                try:
+                    self._physical_original = self._file_generation(os.fstat(self._opening_descriptor))
+                    self._close_descriptor()
+                except BaseException as original:
+                    raise LocalStorageInitializationError(self) from original
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False)
         try:
@@ -160,6 +173,8 @@ class LocalByteStore:
                 application = self._connection.execute('PRAGMA application_id').fetchone()[0]
                 version = self._connection.execute('PRAGMA user_version').fetchone()[0]
                 if not schema and application == 0 and version == 0:
+                    if not self._created:
+                        raise LocalStorageError('Reopened empty Local Store has no initialization custody')
                     self._connection.execute(_SCHEMA)
                     self._connection.execute(_CAPACITY_SCHEMA)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
@@ -185,6 +200,25 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    @classmethod
+    def initialize_owned_file(cls, path: Path, root: LocalFileRoot, original: _PayloadFile, *,
+                              max_records: int, max_record_bytes: int,
+                              max_payload_bytes: int) -> 'LocalByteStore':
+        """Open the same newly acquired file after the Host's durable marker.
+
+        The original File Owner supplies the one-time physical claim, never a
+        caller boolean or a later pathname. The caller retains that writer until
+        explicit stop and keeps partial files/marker on failure. This creates
+        the existing physical schema only; original key/adoption rows and Core
+        verification remain separate. Reopen cannot use this entry to repair
+        missing custody or retry unknown initialization.
+        """
+        if type(root) is not LocalFileRoot:
+            raise ValueError('Invalid original Local Store file root')
+        with root._lock:
+            return cls(path, max_records=max_records, max_record_bytes=max_record_bytes,
+                       max_payload_bytes=max_payload_bytes, _new_file=(root, original))
 
     @staticmethod
     def _file_generation(metadata: os.stat_result) -> tuple[int, int]:
@@ -708,6 +742,21 @@ class LocalByteStore:
                 failure = error
                 raise
 
+        def check_fences(view: _NamespaceReader, required: tuple[ByteFence, ...]) -> None:
+            nonlocal failure
+            try:
+                if view is not reader or type(required) is not tuple:
+                    raise ValueError('Copied or foreign Local inventory snapshot')
+                current_snapshot()
+                if required:
+                    self._validate_metadata_fences(required, ())
+                if (any(value not in fences for value in required)
+                        or any(write.key == value.key for write in successors for value in required)):
+                    raise LocalStorageError('Original Local snapshot is missing required physical fences')
+            except BaseException as error:
+                failure = error
+                raise
+
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
                     scan: bool) -> None:
             nonlocal reading, reads, copied, failure
@@ -770,12 +819,13 @@ class LocalByteStore:
 
         try:
             fence()
-            result = inspect(_NamespaceReader(
+            reader = _NamespaceReader(
                 scan_after=lambda namespace, after, consume:
                     observe(namespace, after, consume, scan=True),
                 read=lambda namespace, key, consume:
                     observe(namespace, key, consume, scan=False),
-                owner=self, current=current_snapshot))
+                owner=self, current=current_snapshot, check_fences=check_fences)
+            result = inspect(reader)
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:
