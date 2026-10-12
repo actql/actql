@@ -824,6 +824,8 @@ pub fn issue_client_model_raw_capture_policy(ClientInferDispatchAdmission, @run_
 
 pub fn issue_client_multi_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
+pub fn issue_client_run_policy_originals(PreparedClientProgram, compiled? : ClientCompiledRun) -> Result[String, ClientRunPolicyOriginalsIssue]
+
 pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn issue_client_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
@@ -1151,6 +1153,8 @@ pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Ar
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
+
+pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientRunPolicyOriginalsIssue]
 
 pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
@@ -2321,6 +2325,14 @@ pub(all) enum ClientRunMaterialsIssue {
 pub(all) enum ClientRunOpenIssue {
   Ledger(@physical_resources.LedgerIssue)
   Run(@physical_strategy.RunIssue)
+}
+
+pub(all) enum ClientRunPolicyOriginalsIssue {
+  ForeignRun
+  PublicationPolicy(@program_check.LocalDependencyBodyIssue)
+  CapacityExceeded
+  Encoding
+  CustodyLost
 }
 
 pub(all) enum ClientRunStartAction {
