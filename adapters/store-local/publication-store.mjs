@@ -780,6 +780,7 @@ export async function openLocalPublicationStore(
   let reservedBytes = 0;
   let reservedObjects = 0;
   let closed = false;
+  let closeRequested = false, closeFlight;
   const preparedObjects = new Map();
   const preparedSchemas = new Map();
   const preparedObjectOwners = new WeakMap();
@@ -846,7 +847,7 @@ export async function openLocalPublicationStore(
       `${cidHex(resultDefinitionCid)}.json`,
     );
   const active = () => {
-    if (closed) fail('PublicationStoreClosed');
+    if (closed || closeRequested) fail('PublicationStoreClosed');
   };
 
   const parsePhysicalHolding = bytes => {
@@ -5723,6 +5724,8 @@ export async function openLocalPublicationStore(
       });
     },
     close() {
+      if (closeFlight !== undefined) return closeFlight;
+      if (closed) return Promise.resolve(true);
       if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
           preparedSchemas.size !== 0 ||
           reclaimableCustodies.size !== 0 ||
@@ -5737,10 +5740,17 @@ export async function openLocalPublicationStore(
           'PublicationStoreCleanupPending',
         ));
       }
-      closed = true;
-      return Promise.resolve(ownership.release()).finally(() => {
+      // Refuse new Store work once retirement starts, but do not report closed
+      // or erase the original key until the SAME ownership confirms release.
+      // A failed/false release retains this Owner for close-only retry.
+      closeRequested = true;
+      closeFlight = Promise.resolve().then(() => ownership.release()).then(released => {
+        if (released !== true) fail('PublicationStoreOwnershipLost');
+        closed = true;
         configuration.privateEvidenceKey?.fill(0);
-      });
+        return true;
+      }).finally(() => { closeFlight = undefined; });
+      return closeFlight;
     },
   });
   } catch (cause) {
