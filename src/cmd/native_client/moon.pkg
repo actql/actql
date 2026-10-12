@@ -41,9 +41,5 @@ import {
 
 options(
   "native-stub": [ "stdout_stub.c" ],
-  link: {
-    "native": {
-      "cc-flags": "-O1",
-    },
-  },
+  link: { "native": { "cc-flags": "-O1" } },
 )
