@@ -6,12 +6,14 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/source_value",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -27,7 +29,13 @@ pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
 pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
 
+pub fn advance_original_model_current_state_comparison(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalStateComparisonPoll, @run_publication_host.ClientModelReadPreparationIssue]
+
+pub fn advance_original_model_current_state_decode(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], OriginalModelCurrentStateDecode, Int) -> OriginalModelCurrentStateDecodePoll
+
 pub fn advance_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], Int) -> @physical_resources.OriginalStateWritePoll
+
+pub fn advance_original_model_current_state_writer(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], OriginalModelCurrentStateWriter, Int) -> @physical_resources.OriginalStateWritePoll
 
 pub fn advance_result_publication(ResultPublication, Int) -> Result[(Bool, Int), ResultPublicationIssue]
 
@@ -73,6 +81,10 @@ pub fn cancel(Execution) -> Bool
 
 pub fn cancel_observation_issuance(ObservationIssuance) -> Bool
 
+pub fn cancel_original_model_current_state_decode(OriginalModelCurrentStateDecode) -> Unit
+
+pub fn cancel_original_model_current_state_writer(OriginalModelCurrentStateWriter) -> Unit
+
 pub fn cancel_result_publication(ResultPublication) -> Bool
 
 pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
@@ -94,6 +106,8 @@ pub fn execution_quantity_usage(Execution) -> @physical_resources.QuantityUsage?
 pub fn execution_stopped(Execution) -> Bool
 
 pub fn export_prepared_input(Execution, @model_execution.ModelPreparedCallSet, String) -> Result[@client_local_host.ClientInferRetainedInputExport, @client_local_host.ClientInferRetainedInputIssue]
+
+pub fn finish_original_model_current_state_writer(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], OriginalModelCurrentStateWriter) -> Result[String, @physical_resources.OriginalStateWriteIssue]
 
 pub fn finish_result_publication(ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, ResultPublicationIssue]
 
@@ -123,6 +137,8 @@ pub fn model_cleanup_progress(Execution) -> Int
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
+pub fn original_model_parked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int64, Int64) -> Bool
+
 pub fn original_model_preparation_available(@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64) -> Bool
 
 pub fn original_model_resource_invalidation_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]?
@@ -138,6 +154,8 @@ pub fn park_original_model_resources_for_state_write(Execution, @run_publication
 pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
+
+pub fn prepare_original_model_current_state_writer(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int, Int, Int) -> Result[OriginalModelCurrentStateWriter, @physical_resources.OriginalStateWriteIssue]
 
 pub fn prepared_call_set(Execution) -> @model_execution.ModelPreparedCallSet?
 
@@ -186,6 +204,10 @@ pub fn start_observation_issuance(Execution, @physical_resources.Ledger, Observa
 pub fn start_original_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[Execution, Issue]
 
 pub fn start_original_generated_inputs(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[Execution, Issue]
+
+pub fn start_original_model_current_state_comparison(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateDocument, Int) -> Result[@physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalStateComparisonIssue]
+
+pub fn start_original_model_current_state_decode(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], String, @source_value.ParseLimits, @decode_core.Limits, Int) -> Result[OriginalModelCurrentStateDecode, OriginalModelCurrentStateDecodeIssue]
 
 pub fn start_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
@@ -324,6 +346,28 @@ pub(all) struct ObservationIssuanceLimits {
 }
 
 type ObservationIssuanceState
+
+type OriginalModelCurrentStateDecode
+
+pub(all) enum OriginalModelCurrentStateDecodeIssue {
+  Original(@physical_resources.OriginalReadIssue)
+  Parse(@source_value.ParseError)
+  Admission(@decode_core.Issue)
+  Read(@physical_resources.OriginalCurrentStateReadIssue)
+  InvalidBounds
+  InvalidQuantum
+  InvalidRecord
+  WorkLimit
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub enum OriginalModelCurrentStateDecodePoll {
+  CurrentDecodeContinue(work~ : Int)
+  CurrentDecodeComplete(@physical_resources.OriginalCurrentStateDocument, work~ : Int)
+  CurrentDecodeFailed(OriginalModelCurrentStateDecodeIssue, work~ : Int)
+}
+
+type OriginalModelCurrentStateWriter
 
 type OriginalModelPreparation
 

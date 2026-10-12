@@ -114,6 +114,8 @@ pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : I
 
 pub fn[T] original_current_state_comparison_current(OriginalCurrentStateComparison[T], OriginalResourcePark[T]) -> OriginalCurrentStateComparison[T]?
 
+pub fn[T] original_current_state_read_bounds(OriginalResourcePark[T], T) -> Result[OriginalCurrentStateReadBounds, OriginalReadIssue]
+
 pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], OriginalResourcePark[T]) -> OriginalCurrentStateWrite[T]?
 
 pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
@@ -127,6 +129,8 @@ pub fn[T] original_resource_park_current(OriginalResourcePark[T], T) -> Original
 pub fn[T] original_resource_park_current_for_ledger(OriginalResourcePark[T], Ledger) -> OriginalResourcePark[T]?
 
 pub fn[T] original_resource_park_origin(OriginalResourcePark[T]) -> T?
+
+pub fn[T] original_resource_park_read_capacity_covers(OriginalResourcePark[T], T, Int64, Int64) -> Bool
 
 pub fn[T] original_state_document_block_matches(FundedReadClaim[T], T, OriginalStateDocument, Int) -> Result[Bool, OriginalReadIssue]
 
@@ -201,6 +205,8 @@ pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 pub fn[T] start_original_current_state_comparison(OriginalResourcePark[T], T, OriginalCurrentStateDocument, Int) -> Result[OriginalCurrentStateComparison[T], OriginalStateComparisonIssue]
 
 pub fn start_original_current_state_document_read(@decode_core.Cursor, Int, Int, Int, Int, @decode_core.Limits) -> Result[OriginalCurrentStateDocumentRead, OriginalStateDocumentIssue]
+
+pub fn[T] start_original_current_state_document_read_for_park(OriginalResourcePark[T], T, @decode_core.Cursor, Int, @decode_core.Limits) -> Result[OriginalCurrentStateDocumentRead, OriginalCurrentStateReadIssue]
 
 pub fn[T] start_original_current_state_write(OriginalResourcePark[T], T, @encode_core.Writer) -> Result[OriginalCurrentStateWrite[T], OriginalStateWriteIssue]
 
@@ -280,6 +286,21 @@ pub enum OriginalCurrentStateDocumentPoll {
 }
 
 type OriginalCurrentStateDocumentRead
+
+pub(all) struct OriginalCurrentStateReadBounds {
+  max_reservations : Int
+  max_holdings : Int
+  max_delegations : Int
+  reservations : Int
+  holdings : Int
+  delegations : Int
+  reader_work : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum OriginalCurrentStateReadIssue {
+  Original(OriginalReadIssue)
+  Document(OriginalStateDocumentIssue)
+} derive(Eq, @debug.Debug)
 
 type OriginalCurrentStateWrite[T]
 
