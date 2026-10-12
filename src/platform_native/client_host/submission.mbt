@@ -21,17 +21,31 @@ pub fn native_client_submission_request_id(
 }
 
 ///|
-fn submission_value(wire : String) -> @canonical.CanonicalValue? {
-  let source = @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-    max_input_bytes: 4096,
-    max_nodes: 32,
-    max_depth: 4,
-  }).to_option()
-  source.bind(value => {
-    Some(@canonical.from_source(value, 32, 4, 4096, data_keys=true)) catch {
-      _ => None
-    }
-  })
+fn native_submission_reference_record(
+  value : @host.ClientSubmissionReferenceRecord,
+) -> NativeClientSubmissionReference {
+  let epoch = @host.client_submission_reference_record_epoch(value)
+  {
+    epoch: {
+      body: @host.client_submission_epoch_token_body(epoch),
+      tag: @host.client_submission_epoch_token_tag(epoch),
+      wire: @host.client_submission_epoch_token_wire(epoch),
+    },
+    request_id: @host.client_submission_reference_record_request_id(value),
+    wire: @host.client_submission_reference_record_wire(value),
+  }
+}
+
+///|
+fn native_submission_reference_issue(
+  issue : @host.ClientSubmissionReferenceRecordIssue,
+) -> NativeClientRunJournalIssue {
+  match issue {
+    @host.InvalidReference => InvalidSubmission
+    @host.Encoding => Encoding
+    @host.Epoch(@host.Unverifiable) => Epoch(Unverifiable)
+    @host.Epoch(@host.Identity(issue)) => Epoch(Identity(issue))
+  }
 }
 
 ///|
@@ -39,52 +53,27 @@ pub fn prepare_native_client_submission_reference(
   epoch : NativeClientSubmissionEpoch,
   nonce : String,
 ) -> Result[NativeClientSubmissionReference, NativeClientRunJournalIssue] {
-  let request_id = match @scope.submission_request_id(epoch.body, nonce) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidSubmission)
-  }
-  guard submission_value(epoch.wire) is Some(body) else {
+  // Preserve the original typed nonce rejection before token serialization.
+  if @scope.submission_request_id(epoch.body, nonce) is Err(_) {
     return Err(InvalidSubmission)
   }
-  try {
-    let writer = @encode.writer(4096, 32, 4)
-    @encode.begin_object(writer)
-    @encode.key(writer, "epoch")
-    @canonical.emit_value(body, writer)
-    @encode.key(writer, "nonce")
-    @encode.string_value(writer, nonce)
-    @encode.end_object(writer)
-    let wire = @encode.finish(writer)
-    // Retain canonical token bytes without normalizing any nonce value.
-    let epoch_wire = @canonical.stringify_value(body, 4096, 32, 4)
-    let epoch = match admit_native_client_submission_epoch(epoch_wire) {
-      Ok(value) => value
-      Err(issue) => return Err(Epoch(issue))
-    }
-    Ok({ epoch, request_id, wire, })
-  } catch {
-    _ => Err(Encoding)
+  let token = match @host.admit_client_submission_epoch_token(epoch.wire) {
+    Ok(value) => value
+    Err(@host.Unverifiable) => return Err(Epoch(Unverifiable))
+    Err(@host.Identity(issue)) => return Err(Epoch(Identity(issue)))
   }
+  @host.prepare_client_submission_reference_record(token, nonce)
+  .map(native_submission_reference_record)
+  .map_err(native_submission_reference_issue)
 }
 
 ///|
 pub fn admit_native_client_submission_reference(
   wire : String,
 ) -> Result[NativeClientSubmissionReference, NativeClientRunJournalIssue] {
-  guard submission_value(wire) is Some(value) &&
-    @canonical.object_field_count(value) == Some(2) &&
-    @canonical.object_field(value, "epoch") is Some(epoch) &&
-    @canonical.object_field(value, "nonce") is Some(@canonical.String(nonce)) else {
-    return Err(InvalidSubmission)
-  }
-  let epoch_wire = @canonical.stringify_value(epoch, 4096, 32, 4) catch {
-    _ => return Err(InvalidSubmission)
-  }
-  let epoch = match admit_native_client_submission_epoch(epoch_wire) {
-    Ok(value) => value
-    Err(issue) => return Err(Epoch(issue))
-  }
-  prepare_native_client_submission_reference(epoch, nonce)
+  @host.admit_client_submission_reference_record(wire)
+  .map(native_submission_reference_record)
+  .map_err(native_submission_reference_issue)
 }
 
 ///|
@@ -238,20 +227,10 @@ fn NativeClientRunJournal::submitted_intent_custody(
     Ok(value) => value
     _ => return Err(CustodyLost)
   }
-  let text = @utf8.decode(custody.body) catch { _ => return Err(CustodyLost) }
-  if text.is_empty() || text.length() > 4 {
-    return Err(CustodyLost)
-  }
-  let mut count = 0
-  for unit in text {
-    let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 {
-      return Err(CustodyLost)
-    }
-    count = count * 10 + digit
-  }
-  if count > self.max_records || count.to_string() != text {
-    return Err(CustodyLost)
+  let count = match
+    @host.client_journal_issuance_count(custody.body, self.max_records) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
   }
   let mut cursor = ""
   let mut observed = 0

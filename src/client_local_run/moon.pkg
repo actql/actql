@@ -24,4 +24,5 @@ import {
 import {
   "actql/actql/canonical_json" @identity,
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
 } for "wbtest"

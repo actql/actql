@@ -178,3 +178,16 @@ export function admitInstalledLocalRuntime({root, expected, metadata}) {
     throw Object.assign(Error('Native Local runtime identity or dependency mismatch; reinstall the fixed package cohort.'), {exitCode: 65});
   }
 }
+
+// Launcher metadata is not permission. Native rechecks exact physical members
+// and binds the manifest to the existing explicit adoption originals.
+export function installedLocalRuntimeEnvironment({root, expected, metadata, platformFacts, environment}) {
+  const manifest = admitInstalledLocalRuntime({root, expected, metadata});
+  admitLocalRuntimePlatform(manifest, platformFacts);
+  const result = {...environment};
+  result.ACTQL_NATIVE_LOCAL_RUNTIME = JSON.stringify({
+    root, sourceSha: manifest.sourceSha, platform: manifest.platform,
+    manifestSha256: metadata.sha256,
+  });
+  return result;
+}

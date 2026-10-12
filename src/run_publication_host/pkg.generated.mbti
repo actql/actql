@@ -52,6 +52,8 @@ pub fn admit_client_infer_composed_sources(ClientInferOccurrence, Array[@executi
 
 pub fn admit_client_infer_occurrence_egress(ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> ClientInferEgressObservation?) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue]
 
+pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
+
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_client_request_identity_record_wire(String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -61,6 +63,10 @@ pub fn admit_client_retained_task_input(@remote_site_protocol.RemoteInputBinding
 pub fn admit_client_retained_task_route(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputEdge, @remote_site_protocol.DispatchRequest, Int, Int, Int, Int64) -> Result[ClientRetainedTaskRoute, ClientRetainedTaskInputIssue]
 
 pub fn admit_client_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientRunMaterials, ClientRunMaterialsIssue]
+
+pub fn admit_client_submission_epoch_token(String) -> Result[ClientSubmissionEpochToken, ClientSubmissionEpochTokenIssue]
+
+pub fn admit_client_submission_reference_record(String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
 
 pub fn admit_client_submitted_run_admission_wire(String) -> Result[(ClientRequestIdentity, String, Int64), ClientSubmittedRunRecordIssue]
 
@@ -456,7 +462,11 @@ pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScop
 
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
+pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDecodingIssue]
+
 pub fn client_local_completion_free_catalog_cid() -> String
+
+pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
@@ -471,6 +481,12 @@ pub fn client_model_read_consumer_available(ClientModelReadConsumer, ClientCompi
 pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
+
+pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+
+pub fn client_native_local_runtime_members(ClientNativeLocalRuntime) -> Array[ClientNativeLocalRuntimeMember]
+
+pub fn client_native_local_runtime_original(ClientNativeLocalRuntime) -> String
 
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
@@ -610,6 +626,20 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
+pub fn client_submission_epoch_token_body(ClientSubmissionEpochToken) -> @logical_request_scope.SubmissionEpoch
+
+pub fn client_submission_epoch_token_tag(ClientSubmissionEpochToken) -> Bytes
+
+pub fn client_submission_epoch_token_wire(ClientSubmissionEpochToken) -> String
+
+pub fn client_submission_reference_matches_request(ClientSubmissionReferenceRecord, ClientRequestIdentity) -> Bool
+
+pub fn client_submission_reference_record_epoch(ClientSubmissionReferenceRecord) -> ClientSubmissionEpochToken
+
+pub fn client_submission_reference_record_request_id(ClientSubmissionReferenceRecord) -> String
+
+pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) -> String
+
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
 pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?) -> Result[Bytes, ClientJournalEncodingIssue]
@@ -731,6 +761,8 @@ pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
 pub fn client_values_static_plan_view(PreparedClientProgram, ClientValuesCompilation, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientInteractivePlanIssue]
 
 pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
+
+pub fn decode_client_run_journal_row(Bytes) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
@@ -1063,6 +1095,8 @@ pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIde
 pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRunStartIssue]
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
+
+pub fn prepare_client_submission_reference_record(ClientSubmissionEpochToken, String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
 
 pub fn prepare_client_submitted_intent(String, Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
 
@@ -1901,6 +1935,10 @@ pub(all) enum ClientInteractivePlanIssue {
   Contract(@run_publication.PublicationContractIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ClientJournalDecodingIssue {
+  CustodyLost
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientJournalEncodingIssue {
   Encoding
   CapacityExceeded
@@ -1923,6 +1961,14 @@ pub(all) struct ClientLocalProductAssets {
   fragment : String
   ordered : String?
   result_policy : String
+}
+
+pub(all) struct ClientLocalProductCommonOriginals {
+  account : Bytes
+  retention_dependencies : Bytes
+  retention_policy : Bytes
+  store : Bytes
+  result_policy : Bytes
 }
 
 pub(all) enum ClientLocalProductConfigurationIssue {
@@ -1983,6 +2029,28 @@ pub(all) enum ClientModelReadPreparationIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientModelReadScope
+
+pub struct ClientNativeLocalRuntime {
+  wire : String
+  source_sha : String
+  platform : String
+  members : Array[ClientNativeLocalRuntimeMember]
+}
+
+pub(all) enum ClientNativeLocalRuntimeIssue {
+  InvalidIdentity
+  InvalidManifest
+  InvalidMember
+  InvalidClosure
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientNativeLocalRuntimeMember {
+  role : String
+  path : String
+  bytes : Int64
+  sha256 : String
+}
 
 pub(all) struct ClientNodeModelPreparationLayout {
   response_profile : @check_environment.ModelResponseProfile
@@ -2440,6 +2508,30 @@ pub(all) enum ClientStageOwnerIssue {
   MissingStageIdentity(Int)
   Lowering(@lowering_relation.Issue)
   Binding(@lowering_relation.BindingIssue)
+}
+
+pub struct ClientSubmissionEpochToken {
+  body : @logical_request_scope.SubmissionEpoch
+  authority_scope_cid : String
+  tag : Bytes
+  wire : String
+}
+
+pub(all) enum ClientSubmissionEpochTokenIssue {
+  Unverifiable
+  Identity(@logical_request_scope.SubmissionIdentityIssue)
+}
+
+pub struct ClientSubmissionReferenceRecord {
+  epoch : ClientSubmissionEpochToken
+  request_id : String
+  wire : String
+}
+
+pub(all) enum ClientSubmissionReferenceRecordIssue {
+  InvalidReference
+  Encoding
+  Epoch(ClientSubmissionEpochTokenIssue)
 }
 
 type ClientSubmittedIntent derive(Eq, @debug.Debug)

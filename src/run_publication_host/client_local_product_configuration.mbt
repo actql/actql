@@ -12,6 +12,29 @@ pub(all) struct ClientLocalProductAssets {
 }
 
 ///|
+/// Common original bodies only, not a Native profile or authority token.
+/// Persist these at explicit adoption; restore the authenticated originals
+/// instead of invoking the assembler again to replace custody or expiry.
+pub(all) struct ClientLocalProductCommonOriginals {
+  account : Bytes
+  retention_dependencies : Bytes
+  retention_policy : Bytes
+  store : Bytes
+  result_policy : Bytes
+}
+
+///|
+priv struct ProductCommonAssembly {
+  account : String
+  retention_dependencies : String
+  retention_policy : String
+  store : String
+  result_policy : String
+  evidence : String
+  expires : String
+}
+
+///|
 pub(all) enum ClientLocalProductConfigurationIssue {
   InvalidLocation
   InvalidObservationTime
@@ -93,17 +116,12 @@ fn product_cid(wire : String) -> String {
 /// Assemble the source-free baseline once using the actual selected paths,
 /// clock and packaged bodies. Restoration must use the retained originals;
 /// it must not call this function to refresh expiry or replace lost custody.
-fn product_assemble_originals(
+fn product_assemble_common(
   configuration_root : String,
-  sqlite_library : String,
-  signature_library : String,
   observed_at : String,
   assets : ClientLocalProductAssets,
-) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
-  if !product_absolute_location(configuration_root) ||
-    !product_absolute_location(sqlite_library) ||
-    !product_absolute_location(signature_library) ||
-    sqlite_library == signature_library {
+) -> Result[ProductCommonAssembly, ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
+  if !product_absolute_location(configuration_root) {
     return Err(InvalidLocation)
   }
   guard @values.timestamp_epoch_milliseconds(observed_at) is Some(now) else {
@@ -313,6 +331,39 @@ fn product_assemble_originals(
   } catch {
     _ => return Err(ConfigurationLimit)
   }
+  Ok({
+    account,
+    retention_dependencies: product_require(
+      product_wire(Json::array(dependencies)),
+    ),
+    retention_policy: @publication.publication_contract_json(retention),
+    store: store_original,
+    result_policy: assets.result_policy,
+    evidence,
+    expires,
+  })
+}
+
+///|
+fn product_assemble_originals(
+  configuration_root : String,
+  sqlite_library : String,
+  signature_library : String,
+  observed_at : String,
+  assets : ClientLocalProductAssets,
+) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
+  if !product_absolute_location(configuration_root) ||
+    !product_absolute_location(sqlite_library) ||
+    !product_absolute_location(signature_library) ||
+    sqlite_library == signature_library {
+    return Err(InvalidLocation)
+  }
+  let common = product_require(
+    product_assemble_common(configuration_root, observed_at, assets),
+  )
+  let principal = "local-cli"
+  let connection = "local"
+  let policy = product_cid(common.result_policy)
   let source_free = product_object([
     ("registry", Json::string(assets.registry)),
     ("values", Json::string(assets.values)),
@@ -335,20 +386,12 @@ fn product_assemble_originals(
               product_object([
                 ("namespace_id", Json::string("local")),
                 ("store_name", Json::string("results")),
-                (
-                  "store_authority_cid",
-                  Json::string(product_cid(store_original)),
-                ),
+                ("store_authority_cid", Json::string(product_cid(common.store))),
                 ("store_capacity_bytes", Json::number(1048576)),
                 ("store_objects", Json::number(8)),
                 ("store_record_bytes", Json::number(1048576)),
                 ("result_payload_bytes", Json::number(65536)),
-                (
-                  "retention_policy_wire",
-                  Json::string(
-                    @publication.publication_contract_json(retention),
-                  ),
-                ),
+                ("retention_policy_wire", Json::string(common.retention_policy)),
                 ("source_free", source_free),
               ]),
             ),
@@ -377,7 +420,7 @@ fn product_assemble_originals(
                 ("data_policy_cids", product_texts([policy])),
                 ("max_bytes", Json::number(65536)),
                 ("max_uses", Json::number(1)),
-                ("expires_at", Json::string(expires)),
+                ("expires_at", Json::string(common.expires)),
               ]),
             ),
           ]),
@@ -398,7 +441,7 @@ fn product_assemble_originals(
               "check_environment",
               product_object([
                 ("file", Json::string("environment.json")),
-                ("evidence_bundle_cid", Json::string(evidence)),
+                ("evidence_bundle_cid", Json::string(common.evidence)),
               ]),
             ),
             (
@@ -431,16 +474,13 @@ fn product_assemble_originals(
     ),
   )
   Ok([
-    ("account.json", @utf8.encode(account)),
+    ("account.json", @utf8.encode(common.account)),
     ("config.json", @utf8.encode(configuration)),
     ("environment.json", @utf8.encode(assets.environment)),
     ("run.json", @utf8.encode(run)),
     ("read.json", @utf8.encode(read)),
-    (
-      "retention.json",
-      @utf8.encode(product_require(product_wire(Json::array(dependencies)))),
-    ),
-    ("store.json", @utf8.encode(store_original)),
+    ("retention.json", @utf8.encode(common.retention_dependencies)),
+    ("store.json", @utf8.encode(common.store)),
   ])
 }
 
@@ -472,6 +512,35 @@ pub fn client_local_product_originals(
   product_assemble_originals(
     configuration_root, sqlite_library, signature_library, observed_at, assets,
   ) catch {
+    ProductConfigurationFailure(issue) => Err(issue)
+  }
+}
+
+///|
+/// Assemble the shared bounded originals without requiring Native library
+/// paths, Native configuration or a CLI read purpose. This is first-adoption
+/// metadata only; each Host must still enforce current Account, Policy, Store
+/// and custody checks through the existing Owners.
+pub fn client_local_product_common_originals(
+  configuration_root : String,
+  observed_at : String,
+  assets : ClientLocalProductAssets,
+) -> Result[
+  ClientLocalProductCommonOriginals,
+  ClientLocalProductConfigurationIssue,
+] {
+  try {
+    let common = product_require(
+      product_assemble_common(configuration_root, observed_at, assets),
+    )
+    Ok({
+      account: @utf8.encode(common.account),
+      retention_dependencies: @utf8.encode(common.retention_dependencies),
+      retention_policy: @utf8.encode(common.retention_policy),
+      store: @utf8.encode(common.store),
+      result_policy: @utf8.encode(common.result_policy),
+    })
+  } catch {
     ProductConfigurationFailure(issue) => Err(issue)
   }
 }

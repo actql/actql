@@ -437,7 +437,14 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const {grammar_manifest_cid: previousWithCid, ...previousWithBody} = previousWith;
   assert.equal(cid(previousWithBody), previousWithCid);
   assert.equal(previousWithCid, 'sha256:c74b336ae4363e26b12e7af399b46791ce463755f66e47f12f557d1e7e72eab8');
-  const currentExpected = 'sha256:7c9347a89c7a097c608edbbd162631a438cd49e7e6822ac4d2a5dc800bf625eb';
+  // Keep the submitted SGA closure under its original identity. Later window,
+  // watermark and dedupe connections change the current normative preimage.
+  const {grammar_manifest_cid: submittedSgaCid, ...submittedSgaBody} =
+    read('scripts/fixtures/submitted-sga-signature-role-values-identities.json').grammar;
+  assert.equal(cid(submittedSgaBody), submittedSgaCid);
+  assert.equal(submittedSgaCid,
+    'sha256:7c9347a89c7a097c608edbbd162631a438cd49e7e6822ac4d2a5dc800bf625eb');
+  const currentExpected = 'sha256:255ae7c2de7279c3924f3f72fbdc7303ef0fc02af42064393f646068b2f8e992';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
