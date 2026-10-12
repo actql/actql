@@ -751,3 +751,49 @@ control. Its existing description/rows, attach/resend/lookup, counter and close
 checks remain required. This is preparation only: no fresh package producer,
 Local/HTTPS Host, VecA runtime rows, Provider, Heavy or Hosted CI was executed.
 Full P2-V/P2-T and the four-Carrier public cutover remain incomplete.
+
+## P2-T: explicit window and watermark source connection
+
+The adopted `row_window`, `window_events` and `watermark_events` calls now
+use the existing named-argument parser and Carrier lowerer. FieldRef time,
+exact String kind/policy, numeric/duration/whole-Parameter sizes and signed
+offsets remain distinct roles. Fixed-window authored step is retained and
+validated; omission does not insert step/offset into the Program. Relation
+and Events stay separate, with an explicit `events()` bridge before rows.
+No clock conversion, membership, identity, order, profile or capacity rule is
+implemented again in the frontend.
+
+At clean `415b1f407`, the independently authored JSON window/Parameter/
+watermark control passed while all three source tests failed in the parser
+(JS1/4). The missing compiler PATH and test-helper error each executed zero
+tests and remain failures. The later JS18/19 refusal-test failure predicted
+the window checker's WrongCarrier instead of the pipeline's earlier existing
+WrongCarrier boundary. Source `pipeline_typing/check.mbt` establishes that
+boundary; only the test expectation changed, with no common product repair.
+
+After normal adoption of main `90cffffa12ea55f1b1b6eaa5dbb1de3159eb0a2c`
+(including merged #1588), clean `7258f04951320c58c9541badb955158b53f5273d`,
+tree `8dcf9649ec90d0c22c1e2cdb27bc48cc9e28c8e5`, executes JS19/19,
+canonical consumer JS1/1, Node82/82 and four read-only freshness checks in
+`run-YhFDbK`. Earlier `278bc9bd3` JS19+1/Node80 and `9856abab9` fixture
+Node2/read-only format remain exact-source evidence. Every guard uses
+60s/grace5/nonHeavy; actual Owners/groups/own-lock absence was observed.
+[The complete execution record](p2-event-window-execution.json) retains all
+original raw receipts/logs and their hashes.
+
+Existing generators align grammar/family/metadata/canonical only. Frozen
+pooling grammar/rules and full preimages preserve its Run `663b66b4...`.
+The independent event-window oracle reseals the same Values Program,
+dependencies and limits into current Run
+`sha256:04a7dab8cbc36acd31b768288dce3bf69d8924a17561c6dcd1a923dd3216b81f`.
+Neither vector comes from product execution output or reinterprets old data.
+
+`scripts/fixtures/event-window-source-input.mjs` prepares 12 normal and
+8 refusal cases for the existing `exercisePublicQueryInput` consumer.
+Independent rows distinguish offset grids, fixed ignored-but-validated step,
+sliding multiplicity, threshold equality, mark/drop and typed empty output.
+The consumer's full description/rows, attach/resend/lookup, no Source reads
+and close observations remain required. There are no new package/tarball,
+Host/public Local/HTTPS, runtime rows/schema, Provider, Heavy, Native/Wasm
+execution or Hosted CI results. These connections do not complete the TEA
+module or the full four-Carrier cutover.

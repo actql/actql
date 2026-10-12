@@ -1,0 +1,55 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-woNU3G",
+  "revision": "9e88074cccabad73e261d1cb09d124bc19509d4f",
+  "source": {
+    "revision": "9e88074cccabad73e261d1cb09d124bc19509d4f",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T01:39:36.962Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "moon",
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "src/query_program/event_window_source_test.mbt"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "9e88074cccabad73e261d1cb09d124bc19509d4f",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-12T01:39:37.087Z",
+      "endedAt": null,
+      "elapsedMs": null,
+      "status": null,
+      "signal": null,
+      "error": null,
+      "complete": false,
+      "verificationStatus": null,
+      "outputComplete": false
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

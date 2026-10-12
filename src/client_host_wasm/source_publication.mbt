@@ -1,8 +1,9 @@
 ///|
-/// A child of the exact acquisition/Compute custody. This is Source evidence,
-/// not terminal Run publication or a new durable completion record.
-priv struct StoredSourcePublication {
+/// Invocation custody of the exact Compute and original input. Captured Source
+/// evidence and source-free invocation retain their distinct original facts.
+priv struct StoredRunInvocation {
   compute : Int
+  source_free : Bool
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
   mut preparation : @local_run.LocalSourcePublicationPreparation?
@@ -42,6 +43,21 @@ pub fn reserve_source_publication(
     value.copies.get(input) is Some((input_slot, physical)) else {
     return -2
   }
+  reserve_run_invocation_output(
+    value, compute, input_slot, physical, physical_ticket, physical_copy_bytes, false,
+  )
+}
+
+///|
+fn reserve_run_invocation_output(
+  value : Instance,
+  compute : Int,
+  input_slot : @buffers.BufferSlot,
+  physical : Int,
+  physical_ticket : Int,
+  physical_copy_bytes : Int64,
+  source_free : Bool,
+) -> Int {
   if value.closing || value.runtime_closing {
     return -5
   }
@@ -68,8 +84,9 @@ pub fn reserve_source_publication(
   let borrow = @buffers.borrow_buffer(value.pool, input_slot, () => {
     physical_reader_stop(physical, handle) == 0
   })
-  value.source_publications[handle] = {
+  value.run_invocations[handle] = {
     compute,
+    source_free,
     borrow,
     slot,
     preparation: None,
@@ -98,7 +115,8 @@ pub fn prepare_source_publication(
   current_configuration : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(handle) is Some(record) &&
+    value.run_invocations.get(handle) is Some(record) &&
+    !record.source_free &&
     value.computes.get(record.compute)
     is Some(
       {
@@ -177,7 +195,8 @@ pub fn advance_source_publication(
   quantum : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(handle) is Some(record) &&
+    value.run_invocations.get(handle) is Some(record) &&
+    !record.source_free &&
     record.preparation is Some(preparation) else {
     return -2
   }
@@ -207,7 +226,8 @@ pub fn source_publication_progress(
   field : Int,
 ) -> Int64 {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(handle) is Some(record) &&
+    value.run_invocations.get(handle) is Some(record) &&
+    !record.source_free &&
     record.preparation is Some(preparation) else {
     return -2L
   }
@@ -230,7 +250,8 @@ pub fn finish_source_publication(
   current_configuration : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(handle) is Some(record) &&
+    value.run_invocations.get(handle) is Some(record) &&
+    !record.source_free &&
     record.preparation is Some(preparation) &&
     record.observed_at is Some(observed_at) &&
     record.capture_interval is Some((capture_started_at, capture_completed_at)) &&
@@ -314,8 +335,17 @@ pub fn finish_source_publication(
 #export_name("actql_source_publication_length")
 pub fn source_publication_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(handle) is Some(record) else {
+    value.run_invocations.get(handle) is Some(record) &&
+    !record.source_free else {
     return -2
+  }
+  run_invocation_length(value, record)
+}
+
+///|
+fn run_invocation_length(value : Instance, record : StoredRunInvocation) -> Int {
+  if record.closing || !record.produced {
+    return -33
   }
   match @buffers.buffer_length(value.pool, record.slot) {
     Some(length) => length
@@ -327,9 +357,19 @@ pub fn source_publication_length(nonce : Int64, handle : Int) -> Int {
 #export_name("actql_source_publication_close")
 pub fn close_source_publication(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(handle) is Some(record) else {
+    value.run_invocations.get(handle) is Some(record) &&
+    !record.source_free else {
     return -2
   }
+  close_run_invocation(value, handle, record)
+}
+
+///|
+fn close_run_invocation(
+  value : Instance,
+  handle : Int,
+  record : StoredRunInvocation,
+) -> Int {
   record.closing = true
   if record.pending {
     return -33
@@ -353,7 +393,7 @@ pub fn close_source_publication(nonce : Int64, handle : Int) -> Int {
     Err(_) => 0
   }
   if result == 0 {
-    value.source_publications.remove(handle) |> ignore
+    value.run_invocations.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }
   result
