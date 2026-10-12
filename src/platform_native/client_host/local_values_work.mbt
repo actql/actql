@@ -1,0 +1,320 @@
+///|
+/// Direct Local assembly of the existing Values task and original Run journal.
+/// This holds their original cleanup responsibility; it introduces no Run,
+/// scheduler, approval, Source, publication receipt or read grant of its own.
+struct NativeClientValuesWork {
+  start : NativeClientWorkFirstStart
+  prepared : @host.PreparedClientProgram
+  compiled : @host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  normalization : @host.ClientLocalNormalization
+  run : @strategy.CapturedDAG
+  execution : @local.LocalValuesExecution
+  current : () -> Bool
+}
+
+///|
+pub(all) enum NativeClientValuesWorkIssue {
+  AuthorizationDenied
+  UnsupportedProfile
+  Configuration
+  Journal(NativeClientRunJournalIssue)
+  Start(NativeClientSourceWorkIssue)
+  Normalization(@host.ClientLocalNormalizationIssue)
+  Execution(@local.LocalValuesExecutionIssue)
+  Export(@local.LocalValuesResultExportIssue)
+}
+
+///|
+/// A failed occurrence keeps its original cleanup handle. Retrying this handle
+/// neither renews authority nor repeats Compute or a physical start claim.
+struct NativeClientValuesWorkFailure {
+  issue : NativeClientValuesWorkIssue
+  cleanup : () -> Bool
+  mut cleaned : Bool
+}
+
+///|
+pub fn native_client_values_work_failure_issue(
+  failure : NativeClientValuesWorkFailure,
+) -> NativeClientValuesWorkIssue {
+  failure.issue
+}
+
+///|
+pub fn NativeClientValuesWorkFailure::close(
+  self : NativeClientValuesWorkFailure,
+) -> Bool {
+  if !self.cleaned {
+    self.cleaned = (self.cleanup)()
+  }
+  self.cleaned
+}
+
+///|
+fn local_values_work_failure(
+  issue : NativeClientValuesWorkIssue,
+  cleanup? : () -> Bool = () => true,
+) -> NativeClientValuesWorkFailure {
+  { issue, cleanup, cleaned: false, }
+}
+
+///|
+fn native_local_values_profile(prepared : @host.PreparedClientProgram) -> Bool {
+  let graph = @host.prepared_client_graph(prepared)
+  @host.prepared_client_acquisition_count(prepared) == 0 &&
+  !@host.prepared_client_uses_graph_carrier(prepared) &&
+  !@strategy.graph_program_has_effects(graph) &&
+  @strategy.graph_source_free_inputs_complete(graph) &&
+  @strategy.graph_task_count(graph) == 1 &&
+  @host.prepared_client_infer_execution_occurrence(prepared, 0) is None
+}
+
+///|
+fn stop_unstarted_values_setup(run : @strategy.CapturedDAG) -> Unit {
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+}
+
+///|
+fn open_native_client_local_values_work(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  current : () -> Bool,
+) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
+  if !current() {
+    return Err(local_values_work_failure(AuthorizationDenied))
+  }
+  if !native_local_values_profile(prepared) ||
+    finalization_quantum <= 0 ||
+    max_finalization_rounds <= 0 {
+    return Err(local_values_work_failure(UnsupportedProfile))
+  }
+  match
+    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    Ok(_) => ()
+    Err(issue) => return Err(local_values_work_failure(Journal(issue)))
+  }
+  // The existing acceptance transaction must already own this exact Run.
+  // Unresolved history cannot be repaired by installing a supplied definition.
+  match journal.lookup(request, current()) {
+    Ok(Retained(record)) => {
+      if @publication.publication_contract_identity(record.definition) !=
+        @publication.publication_contract_identity(definition) {
+        return Err(local_values_work_failure(Journal(ForeignRun)))
+      }
+      if record.physical_start_claimed ||
+        record.cancellation_requested ||
+        record.checkpoint is Some(_) {
+        return Err(
+          local_values_work_failure(Start(NeedsOriginalReconciliation)),
+        )
+      }
+    }
+    Ok(UnresolvedHistory) =>
+      return Err(local_values_work_failure(Start(NeedsOriginalReconciliation)))
+    Err(issue) => return Err(local_values_work_failure(Journal(issue)))
+  }
+  let normalization = match
+    @host.issue_prepared_client_local_normalization(prepared) {
+    Ok(value) => value
+    Err(issue) => return Err(local_values_work_failure(Normalization(issue)))
+  }
+  guard @local.open_source_free_local_retained_host(
+      prepared,
+      registry_body,
+      values_body,
+      1L,
+      0L,
+      0L,
+      0L,
+      fragment_body~,
+      ordered_body~,
+    )
+    is Some(setup) else {
+    return Err(local_values_work_failure(Configuration))
+  }
+  let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
+  // Claim only the accepted immutable Run through its existing journal.
+  if !current() {
+    stop_unstarted_values_setup(run)
+    return Err(local_values_work_failure(AuthorizationDenied))
+  }
+  let start = match
+    claim_native_client_retained_work_first_start(journal, request, current) {
+    Ok(value) => value
+    Err(issue) => {
+      stop_unstarted_values_setup(run)
+      return Err(local_values_work_failure(Start(issue)))
+    }
+  }
+  let execution = match
+    @local.execute_source_free_values_guarded(
+      setup,
+      finalization_quantum,
+      max_finalization_rounds,
+      () => start.require_current(journal, request, current) is Ok(_),
+    ) {
+    Ok(value) => value
+    Err(failure) =>
+      return Err(
+        local_values_work_failure(
+          Execution(@local.local_values_execution_failure_issue(failure)),
+          cleanup=() => {
+            @local.retry_local_values_execution_failure_cleanup(failure)
+          },
+        ),
+      )
+  }
+  Ok({
+    start,
+    prepared,
+    compiled,
+    definition,
+    normalization,
+    run,
+    execution,
+    current,
+  })
+}
+
+///|
+/// Submit scope comes from the currently adopted Host/Account, not the Program
+/// or a caller allow flag. A source-free Run needs no installed Source or Source
+/// read permission. Result publication and delivery still have their own gates.
+pub fn NativeLocalHostConnection::open_values_work(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
+  let authority = match
+    native_local_policy_authority(
+      self,
+      crypto,
+      principal,
+      connection,
+      request,
+      None,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(local_values_work_failure(Journal(issue)))
+  }
+  open_native_client_local_values_work(
+    self.journal,
+    request,
+    prepared,
+    compiled,
+    definition,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    finalization_quantum,
+    max_finalization_rounds,
+    () => authority.current_for(self.journal, request),
+  )
+}
+
+///|
+pub fn NativeClientValuesWork::prepare_result_export(
+  self : NativeClientValuesWork,
+  result_index : Int,
+  row_limits : @execution.RetainedRowDecodeLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+  limits : @host.PublicationOutputExportLimits,
+) -> Result[@local.LocalValuesResultExport, NativeClientValuesWorkIssue] {
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let output = match
+    self.execution.prepare_result_export(
+      result_index, row_limits, max_entries, max_name_bytes, limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Export(issue))
+  }
+  match self.require_current() {
+    Ok(_) => Ok(output)
+    Err(issue) => {
+      output.close()
+      Err(issue)
+    }
+  }
+}
+
+///|
+fn NativeClientValuesWork::require_current(
+  self : NativeClientValuesWork,
+) -> Result[Unit, NativeClientValuesWorkIssue] {
+  match
+    validate_native_client_run_binding(
+      self.start.request,
+      self.prepared,
+      self.compiled,
+      self.definition,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  self.start
+  .require_current(self.start.journal, self.start.request, self.current)
+  .map_err(issue => Start(issue))
+}
+
+///|
+/// The original checked Owner supplies the audit. It is never inferred from
+/// success, missing material or the absence of a Source installation.
+pub fn NativeClientValuesWork::normalization_evidence(
+  self : NativeClientValuesWork,
+) -> Result[@publication.RunEvidenceValue, NativeClientValuesWorkIssue] {
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let evidence = match
+    @host.prepared_client_local_normalization_evidence(
+      self.prepared,
+      self.normalization,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Normalization(issue))
+  }
+  self.require_current().map(_ => evidence)
+}
+
+///|
+pub fn NativeClientValuesWork::usage(
+  self : NativeClientValuesWork,
+) -> @resources.LedgerUsage {
+  @resources.ledger_usage(@strategy.captured_dag_ledger(self.run))
+}
+
+///|
+/// No authority is required to finish the original temporary cleanup. False
+/// preserves the same existing execution handle for retry, without rerunning it.
+pub fn NativeClientValuesWork::close(self : NativeClientValuesWork) -> Bool {
+  self.execution.close()
+}

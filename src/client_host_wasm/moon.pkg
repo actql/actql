@@ -24,6 +24,7 @@ import {
   "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/string",
 }
 
 options(

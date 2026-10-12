@@ -583,6 +583,30 @@ pub fn[T] settle_funded_read(
 }
 
 ///|
+// Original Run finalization is separate from this read child's physical
+// cleanup. Do not expose the descriptor's Ledger just to close its census.
+// Both read retirement and the original owning Run's separate acknowledgement
+// are required; the existing finalizer also checks every recorded live child,
+// including zero-byte tokens/holdings. Unknown quantities and spent serials
+// are neither cleared nor recreated. Pending returns retain the same custody.
+pub fn[T] finish_funded_read_inventory(
+  claim : FundedReadClaim[T],
+  origin : T,
+  original_run_cleanup_complete : Bool,
+) -> Result[Bool, OriginalReadIssue] {
+  if !physical_equal(origin, claim.descriptor.origin) {
+    return Err(ForeignOrigin)
+  }
+  if !(claim.phase is Reclaimed) {
+    return Err(CleanupPending)
+  }
+  finish_original_ledger_inventory(
+    claim.descriptor.ledger,
+    original_run_cleanup_complete,
+  )
+}
+
+///|
 // A bounded borrow of the original opaque binding; no Ledger or token escapes.
 // Retired controls return None. Availability and current fences are checked by
 // the consuming Host, so this is neither send permission nor restored authority.

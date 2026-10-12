@@ -18,7 +18,7 @@ import importlib.abc
 import sys
 class BlockLocal(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in ('wasmtime', 'duckdb'):
+        if fullname.split('.')[0] in ('wasmtime', 'duckdb', 'actql_local_runtime'):
             raise AssertionError('Remote import attempted Local runtime dependency')
 sys.meta_path.insert(0, BlockLocal())
 import actql_sdk

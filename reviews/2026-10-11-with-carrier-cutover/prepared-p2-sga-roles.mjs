@@ -1,6 +1,9 @@
 import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
 const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});';
 const steps = process.argv.includes('--info') ? [{name:'Generate actual changed SGA syntax interfaces',command:'moon',args:['info','--target','js','src/query_syntax','src/query_program']}]
+ : process.argv.includes('--merged-core') ? [
+ {name:'Merged source SGA signature roles and independent complete Programs',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/query_syntax/sga_role_contract_test.mbt','src/query_syntax/producer_scope_wbtest.mbt','src/query_program/sga_role_lowering_test.mbt','src/run_publication_host/client_values_run_materials_wbtest.mbt']},
+ {name:'Regenerated changed grammar manifest canonical consumer only',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/canonical_json/identity_vectors.generated_test.mbt','--filter','contract spec/manifests/actql-grammar-0.1.json#']}]
  : process.argv.includes('--identity-consumer') ? [{name:'Actual grammar-bound Values Run identity consumer',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/run_publication_host/client_values_run_materials_wbtest.mbt']}]
  : process.argv.includes('--unblocked-normative-node') ? [{name:'Independent SGA grammar and Values preimages excluding the separately blocked canonical generated artifact',command:'node',args:['--input-type=module','-e',runner,'node','scripts/sga-signature-role-identity.test.mjs','scripts/sga-query-call-contract.test.mjs','scripts/client-values-run-materials-vector.test.mjs','scripts/frontend-profile.test.mjs']}]
  : process.argv.includes('--grammar-readonly') ? [

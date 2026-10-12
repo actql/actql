@@ -56,11 +56,21 @@ Values consumer passed JS2/2, independent Node83/83 passed, and two read-only
 freshness commands passed at `94204b746`. Original failed selections remain:
 Node86/89 is not relabeled as Node89 success.
 
-Family generation is blocked by the existing unowned
-`spec/contracts/actql-run-publication.json#/schemas/compiled_plan`. It was
-reported to the integration owner; the validator was not relaxed or bypassed.
-Canonical regeneration was not reached, and its generated manifest assertion
-remains stale. No public Local/HTTPS, new package producer, Provider, Heavy,
+That earlier source was blocked by the then-unowned
+`spec/contracts/actql-run-publication.json#/schemas/compiled_plan`; family and
+canonical generation stopped. The original receipts remain failed. Root fixed
+registration in #1575 without changing schema/generator bodies or versions.
+
+[Main-registration adoption evidence](p2-main-registration-execution.json)
+records normal adoption of main `1133df9ae78831b95bd2163eb43481be30374fe4`
+through merge `ac631909e`, preserving submitted `b99590438`. The existing
+manifest, independent oracle, metadata, family and canonical generators
+completed. Generated family imports and the grammar canonical consumer were
+updated from the combined authored inputs; historical preimages are unchanged.
+Clean verification source `c906508d4354088ef0aaff27eb57149df21a0030`
+passed JS16/16 plus the changed canonical JS1/1, Node89/89 and four read-only
+freshness commands. These results are separate from prior Node86/89 and
+Node83/83 evidence. All actual Owners/groups/ownlocks were absent after exit. No public Local/HTTPS, new package producer, Provider, Heavy,
 Native/Wasm execution or hosted CI ran. Complete name-admission/VecA/TEA adapter
 coverage and the full P2 public matrix remain separate unfinished boundaries.
 All eight exact guards ended and actual Owner/group/ownlock absence was checked.

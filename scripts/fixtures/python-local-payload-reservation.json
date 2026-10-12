@@ -1,0 +1,25 @@
+{
+  "description": "Independent private original Reserved transition and exact SQLite capacity fence; not filesystem Store install, publication or public Run recovery. Physical cases are unexecuted until consumed by a fixed ABI29 module.",
+  "capacity_namespace": "publication_payload",
+  "max_record_bytes": 65536,
+  "physical_copy_bytes": 131300,
+  "reserved_fields": {
+    "version": "actql-publication-payload-record/0.2",
+    "state": "reserved",
+    "revision": "1",
+    "actual_bytes": "-1",
+    "device": "",
+    "inode": "",
+    "ownership_device": "",
+    "ownership_inode": "",
+    "physical_digest": ""
+  },
+  "cases": [
+    "unconfirmed_original_intent_cannot_prepare_reserved_transition",
+    "closed_capacity_shape_and_foreign_facts_never_advance_original_record",
+    "prepared_successor_is_original_reserved_bytes_without_commit",
+    "unknown_original_cas_retains_child_parent_input_and_same_capacity",
+    "exact_original_successor_confirms_once_with_current_authority",
+    "same_cleanup_retry_returns_transport_without_releasing_durable_capacity"
+  ]
+}
