@@ -1,0 +1,10 @@
+Total tests: 17, passed: 17, failed: 0.
+["moon","test","--target","js","src/query_syntax/with_graph_alias_test.mbt","src/query_program/with_graph_range_alias_test.mbt","src/query_program/graph_rows_test.mbt","src/query_program/graph_rows_positional_set_test.mbt","src/source_frontend/with_graph_binding_test.mbt","src/run_publication_host/client_values_run_materials_wbtest.mbt"]: executed; counts={"tests":17,"passed":17,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PgaJiB
+{"grammar_manifest_cid":"sha256:f9006fa913e4abfee8c8348a093db8405eb546bf39a625824d42079441a843c4","barrier_contract_manifest_cid":"sha256:37d13c552a2a923fe135961e3fd859ed6439c90d8900b0f52310bdb97e871fda"}
+{
+  "changes": [],
+  "writes": false
+}
+{"documents":10,"requirements":1513,"document_imports":23,"machine_imports":318,"informative_references":52,"conformance":false}
+554 canonical JSON identities verified; generated tests match their inputs.

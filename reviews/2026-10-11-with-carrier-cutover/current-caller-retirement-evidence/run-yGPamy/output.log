@@ -1,0 +1,576 @@
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/bounded_graph_modes_test.mbt:11:18 ]
+    │
+ 11 │     let actual = compile_data_set(
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/data_positional_set_test.mbt:45:16 ]
+    │
+ 45 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_any_direction_test.mbt:48:17 ]
+    │
+ 48 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_diagnostics_test.mbt:73:18 ]
+    │
+ 73 │     let actual = compile_data_set(
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_diagnostics_test.mbt:103:17 ]
+     │
+ 103 │   let program = compile_data_set(
+     │                 ────────┬───────  
+     │                         ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_diagnostics_test.mbt:243:18 ]
+     │
+ 243 │     let actual = compile_data_set(
+     │                  ────────┬───────  
+     │                          ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_difference_rows_test.mbt:47:17 ]
+    │
+ 47 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_difference_rows_test.mbt:56:17 ]
+    │
+ 56 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_equality_test.mbt:30:16 ]
+    │
+ 30 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_equality_test.mbt:38:17 ]
+    │
+ 38 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_equality_test.mbt:63:16 ]
+    │
+ 63 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_graft_source_test.mbt:11:16 ]
+    │
+ 11 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_graft_source_test.mbt:17:15 ]
+    │
+ 17 │   let bound = compile_data_set(
+    │               ────────┬───────  
+    │                       ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_hop_node_predicate_test.mbt:226:17 ]
+     │
+ 226 │   let program = compile_data_set(
+     │                 ────────┬───────  
+     │                         ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_hop_node_predicate_test.mbt:251:17 ]
+     │
+ 251 │   let program = compile_data_set(
+     │                 ────────┬───────  
+     │                         ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_binding_vocabulary_test.mbt:12:18 ]
+    │
+ 12 │     let actual = compile_data_set(
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_binding_vocabulary_test.mbt:25:16 ]
+    │
+ 25 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_paths_integration_test.mbt:40:26 ]
+    │
+ 40 │   let missing_selector = compile_data_set(
+    │                          ────────┬───────  
+    │                                  ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_rows_test.mbt:26:16 ]
+    │
+ 26 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_rows_test.mbt:58:18 ]
+    │
+ 58 │     let actual = compile_data_set(graph_rows_prefix() + suffix)
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_match_rows_test.mbt:87:18 ]
+    │
+ 87 │     let actual = compile_data_set(graph_rows_prefix() + "FROM g |> " + call)
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_mean_source_test.mbt:10:16 ]
+    │
+ 10 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_mean_source_test.mbt:40:17 ]
+    │
+ 40 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_merge_vocabulary_test.mbt:5:16 ]
+   │
+ 5 │   let actual = compile_data_set(
+   │                ────────┬───────  
+   │                        ╰───────── The value identifier compile_data_set is unbound.
+───╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_merge_vocabulary_test.mbt:17:16 ]
+    │
+ 17 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_reach_source_test.mbt:10:18 ]
+    │
+ 10 │   let terminal = compile_data_set(
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_reach_source_test.mbt:17:14 ]
+    │
+ 17 │   let data = compile_data_set(
+    │              ────────┬───────  
+    │                      ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_reach_source_test.mbt:28:19 ]
+    │
+ 28 │     let program = compile_data_set(
+    │                   ────────┬───────  
+    │                           ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_relation_join_input_test.mbt:39:9 ]
+    │
+ 39 │         compile_data_set(source),
+    │         ────────┬───────  
+    │                 ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_relation_join_input_test.mbt:116:18 ]
+     │
+ 116 │     let actual = compile_data_set(source)
+     │                  ────────┬───────  
+     │                          ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_row_selection_test.mbt:3:16 ]
+   │
+ 3 │   let actual = compile_data_set(
+   │                ────────┬───────  
+   │                        ╰───────── The value identifier compile_data_set is unbound.
+───╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_row_selection_test.mbt:24:19 ]
+    │
+ 24 │     let program = compile_data_set(prefix + suffix)
+    │                   ────────┬───────  
+    │                           ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_row_selection_test.mbt:65:19 ]
+    │
+ 65 │     let program = compile_data_set(prefix + suffix)
+    │                   ────────┬───────  
+    │                           ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_row_selection_test.mbt:78:17 ]
+    │
+ 78 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_row_selection_test.mbt:98:17 ]
+    │
+ 98 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_row_selection_test.mbt:121:19 ]
+     │
+ 121 │     let program = compile_data_set(
+     │                   ────────┬───────  
+     │                           ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_rows_join_input_test.mbt:28:16 ]
+    │
+ 28 │   let actual = compile_data_set(source)
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_rows_join_input_test.mbt:61:18 ]
+    │
+ 61 │     let actual = compile_data_set(source)
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_rows_test.mbt:77:16 ]
+    │
+ 77 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_rows_test.mbt:92:17 ]
+    │
+ 92 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_rows_test.mbt:115:17 ]
+     │
+ 115 │   let program = compile_data_set(
+     │                 ────────┬───────  
+     │                         ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_shortest_source_test.mbt:18:5 ]
+    │
+ 18 │     compile_data_set(
+    │     ────────┬───────  
+    │             ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_subtraction_source_test.mbt:16:16 ]
+    │
+ 16 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_subtraction_source_test.mbt:26:17 ]
+    │
+ 26 │   let program = compile_data_set(
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_subtraction_source_test.mbt:105:5 ]
+     │
+ 105 │     compile_data_set(
+     │     ────────┬───────  
+     │             ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_subtraction_source_test.mbt:110:5 ]
+     │
+ 110 │     compile_data_set(
+     │     ────────┬───────  
+     │             ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_subtraction_source_test.mbt:115:5 ]
+     │
+ 115 │     compile_data_set(
+     │     ────────┬───────  
+     │             ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_union_source_test.mbt:37:16 ]
+    │
+ 37 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_union_source_test.mbt:138:17 ]
+     │
+ 138 │   let program = compile_data_set(
+     │                 ────────┬───────  
+     │                         ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/match_data_producer_test.mbt:27:16 ]
+    │
+ 27 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/match_data_producer_test.mbt:47:16 ]
+    │
+ 47 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/match_data_producer_test.mbt:69:18 ]
+    │
+ 69 │     let actual = compile_data_set(match_data_prefix() + suffix)
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/match_data_producer_test.mbt:168:18 ]
+     │
+ 168 │     let actual = compile_data_set(text)
+     │                  ────────┬───────  
+     │                          ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/positional_aggregate_duplicates_test.mbt:160:16 ]
+     │
+ 160 │   let actual = compile_data_set(
+     │                ────────┬───────  
+     │                        ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/positional_anonymous_window_test.mbt:117:16 ]
+     │
+ 117 │   let actual = compile_data_set(
+     │                ────────┬───────  
+     │                        ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/positional_duplicate_columns_test.mbt:120:16 ]
+     │
+ 120 │   let actual = compile_data_set(
+     │                ────────┬───────  
+     │                        ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/positional_window_duplicates_test.mbt:154:16 ]
+     │
+ 154 │   let actual = compile_data_set(
+     │                ────────┬───────  
+     │                        ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/set_by_name_list_test.mbt:104:18 ]
+     │
+ 104 │   let bad_type = compile_data_set(
+     │                  ────────┬───────  
+     │                          ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/set_corresponding_test.mbt:38:16 ]
+    │
+ 38 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/set_corresponding_test.mbt:78:14 ]
+    │
+ 78 │   let data = compile_data_set("DATA e = " + sql + "; FROM e |> SELECT x")
+    │              ────────┬───────  
+    │                      ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/set_corresponding_test.mbt:88:14 ]
+    │
+ 88 │   let pipe = compile_data_set(
+    │              ────────┬───────  
+    │                      ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/set_inner_by_name_test.mbt:51:14 ]
+    │
+ 51 │   let data = compile_data_set("DATA e = " + sql + "; FROM e |> SELECT x")
+    │              ────────┬───────  
+    │                      ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/set_inner_by_name_test.mbt:61:14 ]
+    │
+ 61 │   let pipe = compile_data_set(
+    │              ────────┬───────  
+    │                      ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/set_projection_compaction_test.mbt:12:16 ]
+    │
+ 12 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/sga_script_test.mbt:14:16 ]
+    │
+ 14 │   let actual = compile_data_set(source)
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/sga_script_test.mbt:25:25 ]
+    │
+ 25 │   let actual = semantic(compile_data_set(source))
+    │                         ────────┬───────  
+    │                                 ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/sga_script_test.mbt:35:25 ]
+    │
+ 35 │   let actual = semantic(compile_data_set(source))
+    │                         ────────┬───────  
+    │                                 ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/sga_script_test.mbt:38:35 ]
+    │
+ 38 │   assert_eq(@program.export_count(compile_data_set(source)), 1)
+    │                                   ────────┬───────  
+    │                                           ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/subgraph_public_source_test.mbt:5:17 ]
+   │
+ 5 │   let program = compile_data_set(text)
+   │                 ────────┬───────  
+   │                         ╰───────── The value identifier compile_data_set is unbound.
+───╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/subgraph_source_test.mbt:126:18 ]
+     │
+ 126 │     let actual = compile_data_set(prefix + suffix)
+     │                  ────────┬───────  
+     │                          ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/subgraph_source_test.mbt:153:18 ]
+     │
+ 153 │     let actual = compile_data_set(
+     │                  ────────┬───────  
+     │                          ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/traversal_join_input_test.mbt:29:16 ]
+    │
+ 29 │   let actual = compile_data_set(source)
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/traversal_join_input_test.mbt:59:16 ]
+    │
+ 59 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/traversal_nodes_test.mbt:8:16 ]
+   │
+ 8 │   let actual = compile_data_set(
+   │                ────────┬───────  
+   │                        ╰───────── The value identifier compile_data_set is unbound.
+───╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/traversal_nodes_test.mbt:36:16 ]
+    │
+ 36 │   let actual = compile_data_set(
+    │                ────────┬───────  
+    │                        ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/traversal_paths_test.mbt:57:17 ]
+    │
+ 57 │   let program = compile_data_set(source)
+    │                 ────────┬───────  
+    │                         ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/traversal_paths_test.mbt:140:19 ]
+     │
+ 140 │     let program = compile_data_set(
+     │                   ────────┬───────  
+     │                           ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/traverse_hop_vocabulary_test.mbt:28:18 ]
+    │
+ 28 │     let actual = compile_data_set(
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_binding_demand_test.mbt:114:16 ]
+     │
+ 114 │   let actual = compile_data_set(
+     │                ────────┬───────  
+     │                        ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+     ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_binding_demand_test.mbt:125:16 ]
+     │
+ 125 │   let actual = compile_data_set(
+     │                ────────┬───────  
+     │                        ╰───────── The value identifier compile_data_set is unbound.
+─────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_graph_binding_test.mbt:17:18 ]
+    │
+ 17 │     let actual = compile_data_set(text)
+    │                  ────────┬───────  
+    │                          ╰───────── The value identifier compile_data_set is unbound.
+────╯
+Error: [4021]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_graph_range_alias_test.mbt:35:19 ]
+    │
+ 35 │     let program = compile_data_set(with_graph_alias_prefix() + tail)
+    │                   ────────┬───────  
+    │                           ╰───────── The value identifier compile_data_set is unbound.
+────╯
+["moon","test","--target","js","src/query_program/with_cte_composition_test.mbt","src/query_program/with_set_composition_test.mbt","src/source_frontend/graph_union_test.mbt","src/source_frontend/graph_subtraction_test.mbt"]: process failed (1); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-zeGlAA

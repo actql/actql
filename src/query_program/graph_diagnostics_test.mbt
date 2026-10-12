@@ -1,6 +1,6 @@
 ///|
 fn graph_diagnostic_prefix() -> String {
-  "DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); "
+  "WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) "
 }
 
 ///|
@@ -12,7 +12,7 @@ fn graph_diagnostic_expected(
   fields : String,
 ) -> @program.Program {
   @program.parse(
-    "{\"version\":\"actql/0.1\",\"id\":\"fixture.query_pair\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"aql_source_free_unit\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"aql_source_free_unit\":true}]},\"as\":\"aql_script_seed_1\"},{\"from\":\"aql_script_seed_1\",\"derive\":{\"aql_query_expr_0\":{\"literal\":1}}},{\"select\":[{\"node_key\":\"aql_query_expr_0\"}],\"as\":\"aql_data_0\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"aql_data_0\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[]},\"as\":\"aql_data_2\"},{\"from\":\"aql_data_2\",\"" +
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.query_pair\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"aql_source_free_unit\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"aql_source_free_unit\":true}]},\"as\":\"aql_script_seed_1\"},{\"from\":\"aql_script_seed_1\",\"derive\":{\"aql_query_expr_0\":{\"literal\":1}}},{\"select\":[{\"node_key\":\"aql_query_expr_0\"}],\"as\":\"aql_script_cte_0\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"aql_script_cte_0\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[]},\"as\":\"aql_with_graph_2\"},{\"from\":\"aql_with_graph_2\",\"" +
     operation +
     "\":" +
     body +
@@ -70,7 +70,7 @@ test "Graph diagnostics text matches independent complete machine Programs" {
         "component_size, node_id, component_id", "[\"component_size\",\"node_id\",\"component_id\"]",
       ),
     ] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       graph_diagnostic_prefix() +
       "FROM g |> " +
       operation +
@@ -99,10 +99,10 @@ test "Graph diagnostics text matches independent complete machine Programs" {
 }
 
 ///|
-test "Graph diagnostic DATA reuses the normalized producer and current columns" {
-  let program = compile_data_set(
+test "Graph diagnostic WITH reuses the normalized producer and current columns" {
+  let program = compile_with_set(
     graph_diagnostic_prefix() +
-    "DATA `stats` = FROM g |> normalize_graph() |> degree(direction: 'out'); FROM `stats` |> WHERE degree = 0 |> SELECT degree, node |> ORDER BY degree |> LIMIT 1",
+    " , `stats` AS (FROM g |> normalize_graph() |> degree(direction: 'out')) FROM `stats` |> WHERE degree = 0 |> SELECT degree, node |> ORDER BY degree |> LIMIT 1",
   )
   let body = semantic(program)
   assert_eq(body.split("\"graph\":").length(), 2)
@@ -119,7 +119,7 @@ test "Graph diagnostic DATA reuses the normalized producer and current columns" 
     ) {
     Checked(_) => ()
     Rejected(diagnostic) => graph_rows_rejected(diagnostic)
-    NeedsInputs(_) => fail("Diagnostic DATA adds no acquisition")
+    NeedsInputs(_) => fail("Diagnostic WITH adds no acquisition")
   }
 }
 
@@ -132,19 +132,8 @@ test "Graph diagnostic invalid bodies reach the existing common checker" {
       "graph_bounds(max_nodes: -1) |> SELECT kind", "graph_bounds(max_edges: 1.5) |> SELECT kind",
       "components(kind: 'invented') |> SELECT component_size", "components(kind: 'weak', max_output_rows: 0) |> SELECT component_size",
     ] {
-    let program = compile_data_set(
+    expect_with_graph_static_refusal(
       graph_diagnostic_prefix() + "FROM g |> " + operation,
-    )
-    assert_true(
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
-      msg=operation,
     )
   }
 }
@@ -153,9 +142,9 @@ test "Graph diagnostic invalid bodies reach the existing common checker" {
 test "Graph diagnostic transition rejects Graph columns and another Graph call" {
   for
     (suffix, field_range) in [
-      ("degree(direction: 'in') |> SELECT node_key", Some((163, 171))),
-      ("graph_bounds(max_nodes: 0) |> SELECT node", Some((166, 170))),
-      ("components(kind: 'weak') |> SELECT degree", Some((164, 170))),
+      ("degree(direction: 'in') |> SELECT node_key", Some((154, 162))),
+      ("graph_bounds(max_nodes: 0) |> SELECT node", Some((157, 161))),
+      ("components(kind: 'weak') |> SELECT degree", Some((155, 161))),
       ("degree(direction: 'both') |> node_rows() |> SELECT id", None),
     ] {
     let source = graph_diagnostic_prefix() + "FROM g |> " + suffix
@@ -249,15 +238,15 @@ test "Graph diagnostic typed parameters retain declarations and binding rules" {
 }
 
 ///|
-test "Graph components DATA admits both kinds and retains its current Relation schema" {
+test "Graph components WITH admits both kinds and retains its current Relation schema" {
   for kind in ["weak", "strong"] {
-    let actual = compile_data_set(
+    let actual = compile_with_set(
       graph_diagnostic_prefix() +
-      "DATA selected = FROM g |> components(kind: '" +
+      ", selected AS (FROM g |> components(kind: '" +
       kind +
-      "'); FROM selected |> SELECT node_id, component_id, component_size",
+      "')) FROM selected |> SELECT node_id, component_id, component_size",
     )
-    // DATA reserves a name before its Graph-to-Relation operation. The alias
+    // WITH reserves a name before its Graph-to-Relation operation. The alias
     // retains that producer; it does not synthesize a Graph copy or extra step.
     let expected = @program.parse(
       semantic(
@@ -284,7 +273,7 @@ test "Graph components DATA admits both kinds and retains its current Relation s
         ) {
         Checked(_) => ()
         Rejected(diagnostic) => graph_rows_rejected(diagnostic)
-        NeedsInputs(_) => fail("components DATA adds no acquisition")
+        NeedsInputs(_) => fail("components WITH adds no acquisition")
       }
     }
   }
@@ -297,26 +286,15 @@ test "Graph components invalid arguments retain exact common-checker reasons and
     ("kind: 'weak', max_output_rows: 0", Graph(InvalidCount), "max_output_rows"),
   ]
   for (arguments, expected, field) in cases {
-    let program = compile_data_set(
+    let actual = classified_graph_source(
       graph_diagnostic_prefix() +
       "FROM g |> components(" +
       arguments +
       ") |> SELECT component_size",
     )
-    guard @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(diagnostic) else {
-      fail("invalid component body was admitted")
-    }
-    guard @check.diagnostic_cause(diagnostic)
-      is Source(SourceView(Program(Program(Pipeline(stage, issue))))) else {
-      graph_rows_rejected(diagnostic)
-      fail("components must reach its common body checker")
+    guard actual
+      is Err(BindingPreparation(LocalProgram(Pipeline(stage, issue)))) else {
+      fail("components must retain its common static body refusal")
     }
     assert_eq(stage, 0)
     assert_eq(issue.kind, expected)
@@ -328,11 +306,13 @@ test "Graph components invalid arguments retain exact common-checker reasons and
       Key("components"),
       Key(field),
     ])
-    let location = @check.diagnostic_location(diagnostic).unwrap()
-    assert_eq(@check.diagnostic_location_path(location), Some(issue.path))
+    // The common issue retains the authored call span before E's diagnostic
+    // projection decides whether any public position can be disclosed.
+    let prefix = graph_diagnostic_prefix() + "FROM g |> "
+    assert_eq(issue.span.start_byte, @utf8.encode(prefix).length())
     assert_eq(
-      @check.diagnostic_location_position(location),
-      @source.Source(issue.span),
+      issue.span.end_byte,
+      @utf8.encode(prefix + "components(" + arguments + ")").length(),
     )
   }
 }

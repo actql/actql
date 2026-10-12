@@ -1,0 +1,35 @@
+{
+  "id": "001",
+  "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+  "args": [
+    "--test",
+    "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+    "scripts/with-final-current-callers.test.mjs",
+    "scripts/graph-member-source-input.test.mjs",
+    "scripts/graph-mean-source-input.test.mjs",
+    "scripts/graph-subtraction-source-input.test.mjs",
+    "scripts/distinct-aggregate-order-source-input.test.mjs",
+    "scripts/nearest-member-source-input.test.mjs",
+    "scripts/two-source-optional-effect.test.mjs"
+  ],
+  "cwd": {
+    "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "device": "16777233",
+    "inode": "333786578"
+  },
+  "source": {
+    "revision": "925aaa8dc9e22bba4b373bb779c7ea93c4e9655d",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "startedAt": "2026-10-11T23:33:21.762Z",
+  "endedAt": null,
+  "elapsedMs": null,
+  "status": null,
+  "signal": null,
+  "error": null,
+  "complete": false,
+  "verificationStatus": null,
+  "outputComplete": false
+}

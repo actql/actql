@@ -1,0 +1,45 @@
+{
+  "startedAt": "2026-10-11T21:54:32.845Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format changed WITH FULL JOIN and row scope callers",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/full_select_scope_test.mbt",
+        "src/query_program/full_join_scope_test.mbt",
+        "src/query_program/joined_row_range_test.mbt"
+      ],
+      "startedAt": "2026-10-11T21:54:32.939Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T21:54:33.103Z",
+      "endedAt": "2026-10-11T21:54:33.106Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "c3b1816c-3a6d-4a0e-9fe1-a5e54334f9dd",
+    "pid": 1613,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T21:54:32.928Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-9pi1sl"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T21:54:33.174Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

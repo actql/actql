@@ -1,0 +1,123 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Two current DATA wrappers retired into WITH with original id=id Source predicate, explicit JOIN max10 and compiler refusal at Context max9. INFER contract spelling/input/keys and all Effect/Result continuation controls unchanged.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-composition-input-original-callers.json",
+  "unexecuted": [
+    "Host Local/HTTPS Model/Effect/Named Result execution",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-lZ640a",
+      "source": "695add75e3670513013973e80f0c430e6bab9a9e",
+      "tree": "da22dcf4833958e54e0ea745c1aa7aa0fd59e1e4",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 91571,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/composition_controls_test.mbt",
+          "src/query_program/infer_input_field_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/local-checks/output.log",
+          "sha256": "b72cf05d03d14117798cb36e414299fcd008d7af0587d87c462c00d3c42b90af"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/local-checks/summary.json",
+          "sha256": "ebd97f5f4edacc319610e1f3935840b3e74e9d9a87cfe106a5e3539cee77815b"
+        },
+        "focused-test-DsPFU0/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/0001.summary.json",
+          "sha256": "ac42709b21e043ba56a98f2b44961e505d3a164fe35c4b750492e752ed8ca13b"
+        },
+        "focused-test-DsPFU0/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/0002.summary.json",
+          "sha256": "eaad19b81e56f6bee1cd636533b311323e2f0600a066c0bd33f83a2def40fee4"
+        },
+        "focused-test-DsPFU0/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/0003.summary.json",
+          "sha256": "5e4be1780b1aa591548106b9fec04cfe60700988920df3a8316fd58dbab15c87"
+        },
+        "focused-test-DsPFU0/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/0004.summary.json",
+          "sha256": "df73efeed547364cb53bd4461775e7ff4ba1a3545ab0da56eeabb1c157a0ff73"
+        },
+        "focused-test-DsPFU0/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/001.result.json",
+          "sha256": "a63021f0f46d3812ccc74cd8dc9b98df90f7a16572573812db48f346d6ad8f2d"
+        },
+        "focused-test-DsPFU0/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/001.started.json",
+          "sha256": "86cfe5ca03720be2b73bd82627441362334159fe1df4b16ace7ee67d7256f4d4"
+        },
+        "focused-test-DsPFU0/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-DsPFU0/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/001.stdout.log",
+          "sha256": "2bbf8d5bcbf8824a27ba86cfb25fbacbee7e78a130dab463b6c2354ad2f75540"
+        },
+        "focused-test-DsPFU0/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-lZ640a/focused-test-DsPFU0/summary.json",
+          "sha256": "df73efeed547364cb53bd4461775e7ff4ba1a3545ab0da56eeabb1c157a0ff73"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 9,
+        "passed": 9,
+        "failed": 0
+      }
+    },
+    {
+      "run": "run-4OGHgz",
+      "source": "695add75e3670513013973e80f0c430e6bab9a9e",
+      "tree": "da22dcf4833958e54e0ea745c1aa7aa0fd59e1e4",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 92083,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/composition_controls_test.mbt",
+          "src/query_program/infer_input_field_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-4OGHgz/local-checks/output.log",
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/composition-input-retirement-evidence/run-4OGHgz/local-checks/summary.json",
+          "sha256": "09096434fdb848ede1eba2164f6269a1a22897ec9cfda3735c76b03ceb02fb80"
+        }
+      },
+      "formatter": "completed with no source changes"
+    }
+  ]
+}

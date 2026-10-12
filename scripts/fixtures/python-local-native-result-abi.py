@@ -33,6 +33,7 @@ payload_request = '--payload-request' in sys.argv[4:]
 payload_replay = '--payload-replay' in sys.argv[4:]
 payload_record = '--payload-record' in sys.argv[4:]
 payload_reservation = '--payload-reservation' in sys.argv[4:]
+payload_parent_close = '--payload-parent-close' in sys.argv[4:]
 payload_writing = '--payload-writing' in sys.argv[4:]
 payload_allocation = '--payload-allocation' in sys.argv[4:]
 payload_sealed = '--payload-sealed' in sys.argv[4:]
@@ -52,6 +53,7 @@ assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-roo
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--commit-materials', '--commit-index-key'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--publisher-port'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-parent-close'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation'],
@@ -78,6 +80,7 @@ payload_request_cases = []
 payload_replay_cases = []
 payload_record_cases = []
 payload_reservation_cases = []
+payload_parent_close_cases = []
 payload_writing_cases = []
 payload_allocation_cases = []
 payload_sealed_cases = []
@@ -1610,6 +1613,20 @@ try:
                         assert_status('publication_commit_export', 'close', 0, commit_export)
                         commit_cases.append('candidate_parent_pin_and_same_cleanup_retry')
                 if quantum == 100:
+                    if payload_parent_close:
+                        from python_local_payload_parent_close import check_payload_parent_close
+
+                        def parent_close_output_ticket():
+                            global ticket
+                            ticket += 1
+                            fixture.inputs[ticket] = b''
+                            return ticket
+
+                        payload_parent_close_cases.extend(check_payload_parent_close(
+                            fixture, payload_facts, configuration, denied_configuration,
+                            value, preflight, result, source_pin, compute, copy, call,
+                            assert_status, parent_close_output_ticket))
+                        assert fixture.queries == expected['source_queries']
                     # Closing parents seals them but retains custody until the
                     # same child output and reader cleanup both succeed.
                     assert call('result', 'close', result) == -9
@@ -1744,6 +1761,7 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'payload_replay_cases': payload_replay_cases,
                   'payload_record_cases': payload_record_cases,
                   'payload_reservation_cases': payload_reservation_cases,
+                  'payload_parent_close_cases': payload_parent_close_cases,
                   'payload_writing_cases': payload_writing_cases,
                   'payload_allocation_cases': payload_allocation_cases,
                   'payload_sealed_cases': payload_sealed_cases,

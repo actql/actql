@@ -13,9 +13,9 @@ const parameterDeclarations = {a: payload, b: payload, c: payload,
   oa: other, ob: other, oc: other};
 const parameters = {a: rows[0].payload, b: rows[1].payload, c: null,
   oa: rows[0].other, ob: rows[1].other, oc: rows[2].other};
-const data = 'DATA objects = SELECT 2 AS id, @a AS payload, @oa AS other '
+const binding = 'WITH objects AS (SELECT 2 AS id, @a AS payload, @oa AS other '
   + 'UNION ALL SELECT 1 AS id, @b AS payload, @ob AS other '
-  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other; ';
+  + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other) ';
 const inputOrder = [{id: 2}, {id: 1}, {id: 3}];
 const aliasOrder = [{id: 1}, {id: 3}, {id: 2}];
 // Explicit expectations distinguish SELECT's original input from ORDER's
@@ -29,7 +29,7 @@ const receiverInputRows = [receiverAliasRows[2], receiverAliasRows[0], receiverA
 const receiverColumns = [columns[0],
   {name: 'original_score', contract: {...number, nullable: true}}, otherColumn];
 const textCase = (name, tail, expected = inputOrder, extra = {}) => ({
-  name: 'order-property-' + name, format: 'aql-text', text: data + tail,
+  name: 'order-property-' + name, format: 'aql-text', text: binding + tail,
   parameterDeclarations, parameters, expected, columns, sourceReadCount: 0,
   ...extra,
 });
@@ -68,4 +68,4 @@ export const orderPropertyRefusals = [
   'SELECT id FROM objects ORDER BY id.score',
   'FROM objects AS old |> AS current |> SELECT id |> ORDER BY old.payload.score',
 ].map((tail, index) => ({name: 'order-property-invalid-' + index,
-  format: 'aql-text', text: data + tail, parameterDeclarations, parameters}));
+  format: 'aql-text', text: binding + tail, parameterDeclarations, parameters}));

@@ -1,0 +1,69 @@
+{
+  "source": "2dd11d3d1afadc4a15e8b8cd482833bd90d4b92a",
+  "tree": "c4d5cd7d8a6062ef3651b097be8ea9df50190327",
+  "run": "run-Jm2aFU",
+  "mode": "Pinned JS interface compilation; no runtime tests executed",
+  "result": {
+    "startedAt": "2026-10-11T16:57:58.769Z",
+    "status": "failed",
+    "complete": false,
+    "steps": [
+      {
+        "name": "with-binding-owner-interface",
+        "command": [
+          "moon",
+          "info",
+          "--target",
+          "js",
+          "src/query_program",
+          "src/source_frontend"
+        ],
+        "startedAt": "2026-10-11T16:57:58.870Z",
+        "status": "failed",
+        "streamsComplete": true,
+        "code": 1,
+        "signal": null,
+        "exitedAt": "2026-10-11T16:57:59.883Z",
+        "endedAt": "2026-10-11T16:57:59.885Z"
+      }
+    ],
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "heavy": false,
+    "timeoutSeconds": 60,
+    "graceSeconds": 5,
+    "owner": {
+      "token": "ad0e037a-7b69-4878-bdaa-79c686058274",
+      "pid": 29881,
+      "uid": 501,
+      "host": "dyson",
+      "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+      "startedAt": "2026-10-11T16:57:58.861Z",
+      "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Jm2aFU"
+    },
+    "locks": [
+      "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+    ],
+    "endedAt": "2026-10-11T16:57:59.963Z",
+    "outputComplete": true,
+    "exitCode": 1,
+    "locksReleased": true,
+    "callerOutputComplete": true
+  },
+  "failure": "Query root was shadowed by the generated Program builder Node before query_binding_count. The compiler rejected the local call; no product execution occurred.",
+  "termination": {
+    "owner": 29881,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "earlier_owner_inspection": "An un-escalated direct ps using the wrong PID was denied by the sandbox. The actual receipt PID 29881 was then checked using the normal authorized escalation; no automatic-review rejection occurred.",
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-Jm2aFU/summary.json",
+      "sha256": "fd87b0184ad47ea895a603ab535e12d313198668a50d6ce717ea1e8e1ce5cdea"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-Jm2aFU/output.log",
+      "sha256": "181fb78a8f3cc7830e98c72c0ca72f09582c923bd68a76971558bd613f7e8bc9"
+    }
+  ]
+}

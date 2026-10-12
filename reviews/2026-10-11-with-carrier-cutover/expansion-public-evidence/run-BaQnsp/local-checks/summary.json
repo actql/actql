@@ -1,0 +1,52 @@
+{
+  "startedAt": "2026-10-11T22:55:33.064Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Independent UNNEST and tuple full fixture preservation and ordinary registration",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/with-expansion-public-fixtures.test.mjs",
+        "scripts/unpivot-multicolumn-source-input.test.mjs",
+        "scripts/unnest-source-input.test.mjs",
+        "scripts/unnest-join-source-input.test.mjs",
+        "scripts/correlated-unnest-source-input.test.mjs",
+        "scripts/joined-unnest-star-source-input.test.mjs",
+        "scripts/correlated-unnest-star-source-input.test.mjs"
+      ],
+      "startedAt": "2026-10-11T22:55:33.153Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T22:55:34.314Z",
+      "endedAt": "2026-10-11T22:55:34.320Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "abefd20a-73f7-493e-8505-01b055f1c42c",
+    "pid": 54943,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T22:55:33.146Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-BaQnsp"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T22:55:34.422Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

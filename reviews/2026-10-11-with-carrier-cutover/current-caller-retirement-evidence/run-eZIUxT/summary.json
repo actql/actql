@@ -1,0 +1,70 @@
+{
+  "startedAt": "2026-10-11T20:47:49.661Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH CTE/set and Graph caller semantics",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/with_cte_composition_test.mbt",
+        "src/query_program/with_set_composition_test.mbt",
+        "src/source_frontend/graph_union_test.mbt",
+        "src/source_frontend/graph_subtraction_test.mbt"
+      ],
+      "startedAt": "2026-10-11T20:47:49.732Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:47:58.729Z",
+      "endedAt": "2026-10-11T20:47:58.731Z"
+    },
+    {
+      "name": "Existing independent ARRAY/GROUP public fixture obligations",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/array-literal-source-input.test.mjs",
+        "scripts/group-by-all-source-input.test.mjs"
+      ],
+      "startedAt": "2026-10-11T20:47:58.810Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T20:47:59.662Z",
+      "endedAt": "2026-10-11T20:47:59.664Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "4eae920d-e33a-4c39-aa5e-34d7601032d9",
+    "pid": 48147,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T20:47:49.728Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-eZIUxT"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T20:47:59.736Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

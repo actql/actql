@@ -1,0 +1,9 @@
+Error: [4018]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/graph_property_predicate_test.mbt:10:51 ]
+    │
+ 10 │       fail("expected common pipeline refusal: " + @debug.to_string(other))
+    │                                                   ────────┬───────  
+    │                                                           ╰───────── Type @actql/actql/query_program.Issue does not implement trait @moonbitlang/core/debug.Debug: no `impl` is defined
+────╯
+["moon","test","--target","js","src/query_program/graph_property_predicate_test.mbt","src/query_program/graph_hop_node_predicate_test.mbt","src/query_program/graph_edge_predicate_test.mbt"]: process failed (1); Missing MoonBit test summary; counts=null (summary unavailable)
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-bmDTkz

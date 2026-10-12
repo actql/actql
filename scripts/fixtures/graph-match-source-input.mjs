@@ -15,14 +15,14 @@ const mapping = {version: 'actql-graph-constructor/0.1',
     target: {definition: 'N', key: ['dst_key'], references_key: ['node_key']},
     labels: [{name: 'R', properties: {mode: 'columns',
       columns: ['edge_key', 'weight'].map(name => ({from: name, to: name}))}}]}]};
-const prefix = 'DATA n = SELECT 2 AS node_key, @a AS p '
+const prefix = 'WITH n AS (SELECT 2 AS node_key, @a AS p '
   + 'UNION ALL SELECT 1 AS node_key, @b AS p '
-  + 'UNION ALL SELECT 3 AS node_key, @c AS p; '
-  + 'DATA e = SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key, 10 AS weight '
-  + 'UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key, 20 AS weight; '
-  + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (node_key, p)) '
+  + 'UNION ALL SELECT 3 AS node_key, @c AS p) '
+  + ', e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key, 10 AS weight '
+  + 'UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key, 20 AS weight) '
+  + ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (node_key, p)) '
   + 'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N '
-  + 'DESTINATION KEY (dst_key) REFERENCES N LABEL R PROPERTIES (edge_key, weight))); ';
+  + 'DESTINATION KEY (dst_key) REFERENCES N LABEL R PROPERTIES (edge_key, weight)))) ';
 const columns = (fields, contracts) => fields.map((name, index) => ({name, contract: contracts[index]}));
 const nodeColumns = columns(['p', 'node_key'], [nullableNumber, number]);
 const edgeColumns = columns(['weight', 'edge_key'], [number, number]);
@@ -115,7 +115,7 @@ export const graphMatchSourceSuccesses = [
     {name: 'graph-match-' + role.toLowerCase() + '-selector-independent-json', format: 'json',
       text: endpointControl(role), results: result([{p, node_key}], nodeColumns), sourceReadCount: 0},
     sourceCase(role.toLowerCase() + '-binding-selector',
-      "DATA endpoints = FROM g |> MATCH_EDGES(DEFINITION: 'E', BINDINGS: {SOURCE: 'Source', `Target`: 'Target'}, FIELDS: ['Source', 'Target']); " +
+      ", endpoints AS (FROM g |> MATCH_EDGES(DEFINITION: 'E', BINDINGS: {SOURCE: 'Source', `Target`: 'Target'}, FIELDS: ['Source', 'Target'])) " +
       `FROM g |> subgraph(nodes: {from: endpoints, id: '${role}'}) |> match_nodes(definition: 'N', where: {literal: true}, fields: ['p', 'node_key'])` + nodeTail,
       [{p, node_key}]),
   ]),
@@ -131,8 +131,8 @@ export const graphMatchSourceSuccesses = [
     one, nodeColumns, {parameterDeclarations: {...declarations, minimum: number},
       parameters: {...parameters, minimum: 10}}),
   sourceCase('node-quoted-data-relation',
-    'DATA `selected rows` = FROM `g` |> ' + nodeCall.replace("'N'", "'n'").replace("'Person'", "'person'")
-      + ' |> SELECT p AS score, node_key AS key; FROM `selected rows` |> WHERE key > 0 |> ORDER BY key |> RESULT matched',
+    ', `selected rows` AS (FROM `g` |> ' + nodeCall.replace("'N'", "'n'").replace("'Person'", "'person'")
+      + ' |> SELECT p AS score, node_key AS key) FROM `selected rows` |> WHERE key > 0 |> ORDER BY key |> RESULT matched',
     [{score: 20, key: 1}], columns(['score', 'key'], [nullableNumber, number])),
   {name: 'graph-match-edge-independent-json', format: 'json',
     text: jsonControl('match_edges', edgeBody, ['weight', 'edge_key'], 'edge_key'),

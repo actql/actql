@@ -95,7 +95,7 @@ def authored_executions(client):
         submission_ref=client.new_submission(nonce='python-program-' + facade))
     assert (yield run.wait())['status'] == 'succeeded'
     assert (yield run.result('out').all(max_rows=1)) == [{'n': 2}]
-    text = 'DATA seed = SELECT 1 AS n; FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer'
+    text = 'WITH seed AS (SELECT 1 AS n) FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer'
     run = yield client.start_source(text, format='aql-text',
         submission_ref=client.new_submission(nonce='python-aql-' + facade))
     assert (yield run.wait())['status'] == 'succeeded'

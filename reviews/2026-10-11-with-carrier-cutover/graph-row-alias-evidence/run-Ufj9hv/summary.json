@@ -1,0 +1,123 @@
+{
+  "startedAt": "2026-10-11T18:59:18.144Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "with-alias-independent-frontend-js",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/with_graph_alias_test.mbt",
+        "src/query_program/with_graph_range_alias_test.mbt",
+        "src/query_program/graph_rows_test.mbt",
+        "src/query_program/graph_rows_positional_set_test.mbt",
+        "src/source_frontend/with_graph_binding_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T18:59:18.233Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:59:21.979Z",
+      "endedAt": "2026-10-11T18:59:21.982Z"
+    },
+    {
+      "name": "scripts/compilation-manifests.mjs",
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs"
+      ],
+      "startedAt": "2026-10-11T18:59:22.063Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:59:22.306Z",
+      "endedAt": "2026-10-11T18:59:22.310Z"
+    },
+    {
+      "name": "scripts/generate-aql-text-vocabulary.mjs",
+      "command": [
+        "node",
+        "scripts/generate-aql-text-vocabulary.mjs"
+      ],
+      "startedAt": "2026-10-11T18:59:22.389Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:59:22.460Z",
+      "endedAt": "2026-10-11T18:59:22.462Z"
+    },
+    {
+      "name": "scripts/update-document-metadata.mjs",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs"
+      ],
+      "startedAt": "2026-10-11T18:59:22.596Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:59:24.430Z",
+      "endedAt": "2026-10-11T18:59:24.431Z"
+    },
+    {
+      "name": "scripts/check-actql-spec-family.mjs",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs"
+      ],
+      "startedAt": "2026-10-11T18:59:24.498Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:59:26.023Z",
+      "endedAt": "2026-10-11T18:59:26.025Z"
+    },
+    {
+      "name": "scripts/check-canonical-json.mjs",
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs"
+      ],
+      "startedAt": "2026-10-11T18:59:26.093Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:59:27.844Z",
+      "endedAt": "2026-10-11T18:59:27.846Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "e90f97a2-9e8f-432e-86c7-02ce62472302",
+    "pid": 38998,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:59:18.221Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Ufj9hv"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:59:27.907Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

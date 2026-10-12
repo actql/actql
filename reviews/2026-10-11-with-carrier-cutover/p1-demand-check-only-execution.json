@@ -1,0 +1,78 @@
+{
+  "product_source": "7c1e7ddb42046cc66a2369ab50994456734a00ae",
+  "product_tree": "97456ee4795d05387ba814d00d7a67af32128d0e",
+  "dependency_pr": "https://github.com/actql/actql/pull/1502",
+  "dependency_head": "1228879241363904a588ccf3dce1740eed13268e",
+  "common_product_source": "904b58f6c4ba4585d11e416c23ec7b767c55e1d1",
+  "frontend_runtime": {
+    "run": "run-O4i2U2",
+    "focused": "focused-test-IDdF7N",
+    "tests": 15,
+    "passed": 15,
+    "failed": 0,
+    "timeout_seconds": 60,
+    "grace_seconds": 5,
+    "heavy": false
+  },
+  "earlier_execution": {
+    "source": "c60c505c0bd03c240c8ca86af86fb022eb51339e",
+    "run": "run-BLZyM5",
+    "tests": 13,
+    "passed": 13
+  },
+  "receipts": [
+    {
+      "run": "run-vMYvJT",
+      "exit_code": 255,
+      "complete": false,
+      "owner": 64416,
+      "locks_released": true,
+      "summary_sha256": "29d4ba2a52500465976d6398e0f86e90b8648f01caf1e563cadbe42d6ca702fb"
+    },
+    {
+      "run": "run-BLZyM5",
+      "exit_code": 0,
+      "complete": true,
+      "owner": 64659,
+      "locks_released": true,
+      "summary_sha256": "1ed35ca044e0fdab82c29f95e0cc4aa47d5b3395853aaa5b79e0e6ca2e0c0dfd"
+    },
+    {
+      "run": "run-j5cjhb",
+      "exit_code": 0,
+      "complete": true,
+      "owner": 65200,
+      "locks_released": true,
+      "summary_sha256": "ca0c298ec35d20e21dbd72f12b5a9d76bbab6ae257141add2debfe936cd0c88c"
+    },
+    {
+      "run": "run-O4i2U2",
+      "exit_code": 0,
+      "complete": true,
+      "owner": 65847,
+      "locks_released": true,
+      "summary_sha256": "b5bdae7e9f34bdbfcdb3b32b12cd12268402e450fc7e230cfffaf1b25ad9d1ce"
+    }
+  ],
+  "runtime_coverage": [
+    "Unchanged independent full Program for an unused Source: uncaptured and captured",
+    "Nested unused captured binding and original import/stage elimination",
+    "Every explicit operation in demanded body retained",
+    "Unused inline Graph and duplicate-key validation obligation",
+    "Unused type error and missing field rejected",
+    "Missing actual Catalog refused with original common Source declaration",
+    "Shared public Text/Sql Graph lowering and source origin controls",
+    "Demanded capture UnresolvedOrder still refused by strict publication",
+    "Unused LIMIT input UnresolvedOrder still refused before pruning"
+  ],
+  "unexecuted": [
+    "packed Local/HTTPS",
+    "all P1/P2 four-Carrier profiles",
+    "current grammar/spec/pins/example cutover",
+    "Wasm/Native runtime",
+    "Hosted CI"
+  ],
+  "prior_failed_controls": "p1-demand-common-order-handoff.json and original raw receipts remain unchanged",
+  "command_failure": "run-vMYvJT referenced a nonexistent test file; tests were not executed and its exit255 receipt remains retained",
+  "termination": "Owner65847/group/own lock directly observed absent; all other recorded owners likewise confirmed absent"
+}

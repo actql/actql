@@ -41,7 +41,7 @@ test('Mean AQL oracle uses a generator, not a Pipe left operand or implicit curr
   const aql = graphMeanSourceOracles.filter(sample => sample.name.startsWith('graph-mean-aql-generator-'));
   assert.equal(aql.length, 2);
   for (const sample of aql) {
-    assert.match(sample.text, /DATA combined = mean_graphs\(with: \[g, g, g\], weights: \[1, 2, 0\]/u);
+    assert.match(sample.text, /combined AS \(mean_graphs\(with: \[g, g, g\], weights: \[1, 2, 0\]/u);
     assert.equal(sample.text.includes('FROM g |> mean_graphs'), false);
     assert.match(sample.text, /FROM combined \|> (node_rows|edge_rows)\(\)/u);
   }

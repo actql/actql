@@ -2,11 +2,11 @@
 import {aggregatePropertyOrderProgram, aggregatePropertyOrderArrayProgram, aggregatePropertyOrderSuccesses}
   from './aggregate-property-order-source-input.mjs';
 const base = aggregatePropertyOrderSuccesses.find(item => item.name === 'aggregate-property-order-sql');
-const data = 'DATA objects = SELECT id, '
+const data = 'WITH objects AS (SELECT id, '
   + "CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, "
   + 'CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, '
   + 'CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other '
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const key = {coalesce: [{property: {name: 'score', value: {field: 'payload'}}}, {literal: 0}]};
 export const aggregateConditionalOrderProgram = {
   ...aggregatePropertyOrderProgram, id: 'fixture.aggregate_conditional_order',
@@ -273,7 +273,7 @@ aggregateConditionalOrderRefusals.push(...[
   {name: 'distinct-current-snapshot', text: 'FROM objects AS before |> SET name = \'changed\' '
     + "|> AGGREGATE STRING_AGG(DISTINCT IFNULL(name, 'missing'), '|' ORDER BY IFNULL(before.name, 'missing')) AS names"},
   {name: 'distinct-member-mismatch', text: 'SELECT ARRAY_AGG(DISTINCT IFNULL(payload.score, 0) IGNORE NULLS ORDER BY IFNULL(other.score, 0)) AS ids FROM objects'},
-  {name: 'distinct-explicit-receiver', text: 'DATA colliding = SELECT id, name, payload, other, other.score AS score FROM objects; '
+  {name: 'distinct-explicit-receiver', text: ', colliding AS (SELECT id, name, payload, other, other.score AS score FROM objects) '
     + 'SELECT ARRAY_AGG(DISTINCT IFNULL((payload).score, 0) IGNORE NULLS ORDER BY IFNULL(payload.score, 0)) AS ids FROM colliding AS payload'},
 ].map(item => ({...base, ...item, name: 'aggregate-conditional-order-refuse-' + item.name,
   text: data + item.text, expectedCode: 'ClientProgramImplementationLimit'})));

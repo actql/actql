@@ -1,0 +1,60 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-Uk2Eut",
+  "revision": "7ce656021078e3a5905f971baf218899afb8c742",
+  "source": {
+    "revision": "7ce656021078e3a5905f971baf218899afb8c742",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T22:55:33.535Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "args": [
+        "--test",
+        "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+        "scripts/with-expansion-public-fixtures.test.mjs",
+        "scripts/unpivot-multicolumn-source-input.test.mjs",
+        "scripts/unnest-source-input.test.mjs",
+        "scripts/unnest-join-source-input.test.mjs",
+        "scripts/correlated-unnest-source-input.test.mjs",
+        "scripts/joined-unnest-star-source-input.test.mjs",
+        "scripts/correlated-unnest-star-source-input.test.mjs"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "7ce656021078e3a5905f971baf218899afb8c742",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-11T22:55:33.745Z",
+      "endedAt": null,
+      "elapsedMs": null,
+      "status": null,
+      "signal": null,
+      "error": null,
+      "complete": false,
+      "verificationStatus": null,
+      "outputComplete": false
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

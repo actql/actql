@@ -1,0 +1,39 @@
+{
+  "source": "542f99f7b318ef19d784b796c9eb200377719148",
+  "parent": "2e1e7de4e924cf71db64de68bd8d70859a6cfbc8",
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+  "branch": "review/with-current-caller-closure-20261012",
+  "files": [
+    "scripts/acquired-data-acceptance.test.mjs",
+    "scripts/fixtures/acquired-data-source-input.mjs",
+    "scripts/fixtures/composed-infer-effect-null-assert.aql.template",
+    "scripts/fixtures/composed-infer-effect.acceptance.md",
+    "scripts/fixtures/composed-infer-effect.aql.template",
+    "scripts/fixtures/python-client-public.py",
+    "scripts/fixtures/python_local_run_inputs.py",
+    "src/query_syntax/with_public_callers_test.mbt"
+  ],
+  "jsActual": 48,
+  "nodeActual": 25,
+  "guard": "run-f1yfQ3",
+  "focused": [
+    "focused-test-pLrmij",
+    "focused-test-9tHLUJ"
+  ],
+  "clean": true,
+  "ownerAndGroupAbsent": true,
+  "locksAbsent": true,
+  "originalExpectationsAndLimitsUnchanged": true,
+  "acquiredGraphInputsUnchanged": true,
+  "publicHostWheelProviderAcceptance": false,
+  "retainedFailure": {
+    "source": "9f79687f7ecf453460f0d8f6b8b9681cfcd27452",
+    "guard": "run-Wyt4Kl",
+    "actual": {
+      "tests": 48,
+      "passed": 43,
+      "failed": 5
+    },
+    "cause": "New test oracle incorrectly counted outer declarations only; existing nested_query_test and parser contract flatten the complete scoped projection. Five nested binding counts corrected from 1 to 2. Product/fixture inputs unchanged."
+  }
+}

@@ -1,0 +1,74 @@
+TAP version 13
+# Subtest: only independently proven Graph support gaps gain exact implementation-limit expectations
+ok 1 - only independently proven Graph support gaps gain exact implementation-limit expectations
+  ---
+  duration_ms: 3.471917
+  type: 'test'
+  ...
+# Subtest: WITH Graph row refusals preserve their existing rejection policy
+ok 2 - WITH Graph row refusals preserve their existing rejection policy
+  ---
+  duration_ms: 1.987375
+  type: 'test'
+  ...
+# Subtest: WITH Graph core refusals preserve independent rejection policy
+ok 3 - WITH Graph core refusals preserve independent rejection policy
+  ---
+  duration_ms: 1.121792
+  type: 'test'
+  ...
+# Subtest: WITH Graph core retains every original acceptance and failure obligation
+ok 4 - WITH Graph core retains every original acceptance and failure obligation
+  ---
+  duration_ms: 7.9195
+  type: 'test'
+  ...
+# Subtest: WITH Graph core keeps parallel paths and NULL exclusion independent from typed empty output
+ok 5 - WITH Graph core keeps parallel paths and NULL exclusion independent from typed empty output
+  ---
+  duration_ms: 0.336709
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 210.748834
+ACTQL_TEST_CASE {"name":"only independently proven Graph support gaps gain exact implementation-limit expectations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph row refusals preserve their existing rejection policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph core refusals preserve independent rejection policy","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph core retains every original acceptance and failure obligation","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-core-caller.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH Graph core keeps parallel paths and NULL exclusion independent from typed empty output","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-core-caller.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":27.193917,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":32.300209,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-graph-core-caller.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":5,"failed":0,"passed":5,"cancelled":0,"skipped":0,"todo":0,"topLevel":5,"suites":0},"duration_ms":210.748834}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-graph-core-caller.test.mjs","scripts/graph-refusal-classification-source-input.test.mjs"]: executed; counts={"tests":5,"passed":5,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2p07aq
+TAP version 13
+# Subtest: shared Relation controls and Graph source cases have one request each
+ok 1 - shared Relation controls and Graph source cases have one request each
+  ---
+  duration_ms: 3.422291
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 159.348875
+ACTQL_TEST_CASE {"name":"shared Relation controls and Graph source cases have one request each","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":1,"failed":0,"passed":1,"cancelled":0,"skipped":0,"todo":0,"topLevel":1,"suites":0},"duration_ms":13.441583,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-cases.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":1,"failed":0,"passed":1,"cancelled":0,"skipped":0,"todo":0,"topLevel":1,"suites":0},"duration_ms":159.348875}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","--test-name-pattern","^shared Relation controls and Graph source cases have one request each$","scripts/public-query-cases.test.mjs"]: executed; counts={"tests":1,"passed":1,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-fIVwBc
+Total tests: 3, passed: 3, failed: 0.
+["moon","test","--target","js","src/query_program/with_graph_core_wbtest.mbt"]: executed; counts={"tests":3,"passed":3,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-tK03qy

@@ -1,0 +1,265 @@
+TAP version 13
+# Subtest: correlated expansion obligations distinguish current arrays and original receivers
+ok 1 - correlated expansion obligations distinguish current arrays and original receivers
+  ---
+  duration_ms: 3.853208
+  type: 'test'
+  ...
+# Subtest: INNER expansion preserves the explicit ON filter and independently counted duplicate matches
+ok 2 - INNER expansion preserves the explicit ON filter and independently counted duplicate matches
+  ---
+  duration_ms: 1.847458
+  type: 'test'
+  ...
+# Subtest: correlated expansion is registered in normal and focused packed execution
+ok 3 - correlated expansion is registered in normal and focused packed execution
+  ---
+  duration_ms: 5.9555
+  type: 'test'
+  ...
+# Subtest: filter/LIMIT common control retains the original predicate, order and bound
+ok 4 - filter/LIMIT common control retains the original predicate, order and bound
+  ---
+  duration_ms: 0.79025
+  type: 'test'
+  ...
+# Subtest: retained schemas keep set multiplicity, CTE column order and nullable objects
+ok 5 - retained schemas keep set multiplicity, CTE column order and nullable objects
+  ---
+  duration_ms: 2.31975
+  type: 'test'
+  ...
+# Subtest: correlated SET positives project editable columns and retain their original range
+ok 6 - correlated SET positives project editable columns and retain their original range
+  ---
+  duration_ms: 4.721917
+  type: 'test'
+  ...
+# Subtest: object UNNEST before JOIN projects SET targets and preserves the saved receiver
+ok 7 - object UNNEST before JOIN projects SET targets and preserves the saved receiver
+  ---
+  duration_ms: 1.097541
+  type: 'test'
+  ...
+# Subtest: nullable object star retains duplicates, NULL receivers and declared empty schema
+ok 8 - nullable object star retains duplicates, NULL receivers and declared empty schema
+  ---
+  duration_ms: 4.154625
+  type: 'test'
+  ...
+# Subtest: scalar and object controls use ordinary parameter, UNNEST, property, sort and select owners
+ok 9 - scalar and object controls use ordinary parameter, UNNEST, property, sort and select owners
+  ---
+  duration_ms: 24.166708
+  type: 'test'
+  ...
+# Subtest: star cases are in the existing normal/focused cohort with precise preparation refusals
+ok 10 - star cases are in the existing normal/focused cohort with precise preparation refusals
+  ---
+  duration_ms: 1.349333
+  type: 'test'
+  ...
+# Subtest: JOIN star controls preserve the exact predicate ceiling and nullable duplicate rows
+ok 11 - JOIN star controls preserve the exact predicate ceiling and nullable duplicate rows
+  ---
+  duration_ms: 40.857834
+  type: 'test'
+  ...
+# Subtest: current and original JOIN columns remain separate with acquired source lifecycle checks
+ok 12 - current and original JOIN columns remain separate with acquired source lifecycle checks
+  ---
+  duration_ms: 1.724084
+  type: 'test'
+  ...
+# Subtest: joined star cases use the normal correlated cohort and precise pre-admission refusals
+ok 13 - joined star cases use the normal correlated cohort and precise pre-admission refusals
+  ---
+  duration_ms: 0.783625
+  type: 'test'
+  ...
+# Subtest: independent control expands before matching and preserves authored bounds
+ok 14 - independent control expands before matching and preserves authored bounds
+  ---
+  duration_ms: 3.5925
+  type: 'test'
+  ...
+# Subtest: NULL extension, original range and empty schemas have distinct obligations
+ok 15 - NULL extension, original range and empty schemas have distinct obligations
+  ---
+  duration_ms: 1.663209
+  type: 'test'
+  ...
+# Subtest: new positive and refusal obligations participate in normal and selected public routes
+ok 16 - new positive and refusal obligations participate in normal and selected public routes
+  ---
+  duration_ms: 0.697291
+  type: 'test'
+  ...
+# Subtest: OFFSET keeps its range until ordinary projection or a whole-column edit
+ok 17 - OFFSET keeps its range until ordinary projection or a whole-column edit
+  ---
+  duration_ms: 8.317958
+  type: 'test'
+  ...
+# Subtest: value-table ordinal fixtures distinguish physical columns from projected members
+ok 18 - value-table ordinal fixtures distinguish physical columns from projected members
+  ---
+  duration_ms: 1.887916
+  type: 'test'
+  ...
+# Subtest: scalar value-table RENAME distinguishes range names from projected columns
+ok 19 - scalar value-table RENAME distinguishes range names from projected columns
+  ---
+  duration_ms: 0.324208
+  type: 'test'
+  ...
+# Subtest: UNNEST independent fixtures preserve multiplicity, NULL and offset order on empty schemas
+ok 20 - UNNEST independent fixtures preserve multiplicity, NULL and offset order on empty schemas
+  ---
+  duration_ms: 2.235541
+  type: 'test'
+  ...
+# Subtest: ordinary packed corpus and narrow consumer both execute UNNEST source cases
+ok 21 - ordinary packed corpus and narrow consumer both execute UNNEST source cases
+  ---
+  duration_ms: 19.797042
+  type: 'test'
+  ...
+# Subtest: range/field collision controls distinguish receiver NULLs and current stars
+ok 22 - range/field collision controls distinguish receiver NULLs and current stars
+  ---
+  duration_ms: 1.205458
+  type: 'test'
+  ...
+# Subtest: scalar stars have independent typed empty expectations and preserve the DATA source
+ok 23 - scalar stars have independent typed empty expectations and preserve the DATA source
+  ---
+  duration_ms: 0.404458
+  type: 'test'
+  ...
+# Subtest: STRUCT stars use declared fields and a distinct original value receiver
+ok 24 - STRUCT stars use declared fields and a distinct original value receiver
+  ---
+  duration_ms: 0.309333
+  type: 'test'
+  ...
+# Subtest: value-table edits preserve one column, sibling input scope and exact refusals
+ok 25 - value-table edits preserve one column, sibling input scope and exact refusals
+  ---
+  duration_ms: 1.125125
+  type: 'test'
+  ...
+# Subtest: scalar receivers distinguish elements and offsets from parent columns
+ok 26 - scalar receivers distinguish elements and offsets from parent columns
+  ---
+  duration_ms: 2.446625
+  type: 'test'
+  ...
+# Subtest: AS independently preserves whole values, star layouts and nullable empty schemas
+ok 27 - AS independently preserves whole values, star layouts and nullable empty schemas
+  ---
+  duration_ms: 2.001291
+  type: 'test'
+  ...
+# Subtest: tuple oracle preserves partial NULL duplicate rows ordered contracts and empty typing
+ok 28 - tuple oracle preserves partial NULL duplicate rows ordered contracts and empty typing
+  ---
+  duration_ms: 12.905875
+  type: 'test'
+  ...
+# Subtest: tuple cases use the existing full corpus and actual completion receipts
+ok 29 - tuple cases use the existing full corpus and actual completion receipts
+  ---
+  duration_ms: 22.403333
+  type: 'test'
+  ...
+# Subtest: WITH expansion preserves complete independent unpivot-multicolumn inventory
+ok 30 - WITH expansion preserves complete independent unpivot-multicolumn inventory
+  ---
+  duration_ms: 7.259125
+  type: 'test'
+  ...
+# Subtest: WITH expansion preserves complete independent unnest inventory
+ok 31 - WITH expansion preserves complete independent unnest inventory
+  ---
+  duration_ms: 42.010833
+  type: 'test'
+  ...
+# Subtest: WITH expansion preserves complete independent unnest-join inventory
+ok 32 - WITH expansion preserves complete independent unnest-join inventory
+  ---
+  duration_ms: 8.134542
+  type: 'test'
+  ...
+# Subtest: WITH expansion preserves complete independent correlated-unnest inventory
+ok 33 - WITH expansion preserves complete independent correlated-unnest inventory
+  ---
+  duration_ms: 14.242333
+  type: 'test'
+  ...
+# Subtest: WITH expansion preserves complete independent joined-unnest-star inventory
+ok 34 - WITH expansion preserves complete independent joined-unnest-star inventory
+  ---
+  duration_ms: 2.195167
+  type: 'test'
+  ...
+# Subtest: WITH expansion preserves complete independent correlated-unnest-star inventory
+ok 35 - WITH expansion preserves complete independent correlated-unnest-star inventory
+  ---
+  duration_ms: 3.357416
+  type: 'test'
+  ...
+1..35
+# tests 35
+# suites 0
+# pass 35
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 450.636
+ACTQL_TEST_CASE {"name":"correlated expansion obligations distinguish current arrays and original receivers","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"INNER expansion preserves the explicit ON filter and independently counted duplicate matches","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"correlated expansion is registered in normal and focused packed execution","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"filter/LIMIT common control retains the original predicate, order and bound","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"retained schemas keep set multiplicity, CTE column order and nullable objects","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"correlated SET positives project editable columns and retain their original range","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"object UNNEST before JOIN projects SET targets and preserves the saved receiver","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"nullable object star retains duplicates, NULL receivers and declared empty schema","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-star-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"scalar and object controls use ordinary parameter, UNNEST, property, sort and select owners","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-star-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"star cases are in the existing normal/focused cohort with precise preparation refusals","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-star-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"JOIN star controls preserve the exact predicate ceiling and nullable duplicate rows","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/joined-unnest-star-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"current and original JOIN columns remain separate with acquired source lifecycle checks","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/joined-unnest-star-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"joined star cases use the normal correlated cohort and precise pre-admission refusals","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/joined-unnest-star-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"independent control expands before matching and preserves authored bounds","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-join-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"NULL extension, original range and empty schemas have distinct obligations","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-join-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"new positive and refusal obligations participate in normal and selected public routes","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-join-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"OFFSET keeps its range until ordinary projection or a whole-column edit","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"value-table ordinal fixtures distinguish physical columns from projected members","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"scalar value-table RENAME distinguishes range names from projected columns","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"UNNEST independent fixtures preserve multiplicity, NULL and offset order on empty schemas","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"ordinary packed corpus and narrow consumer both execute UNNEST source cases","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"range/field collision controls distinguish receiver NULLs and current stars","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"scalar stars have independent typed empty expectations and preserve the DATA source","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"STRUCT stars use declared fields and a distinct original value receiver","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"value-table edits preserve one column, sibling input scope and exact refusals","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"scalar receivers distinguish elements and offsets from parent columns","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"AS independently preserves whole values, star layouts and nullable empty schemas","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"tuple oracle preserves partial NULL duplicate rows ordered contracts and empty typing","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unpivot-multicolumn-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"tuple cases use the existing full corpus and actual completion receipts","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unpivot-multicolumn-source-input.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH expansion preserves complete independent unpivot-multicolumn inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-expansion-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH expansion preserves complete independent unnest inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-expansion-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH expansion preserves complete independent unnest-join inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-expansion-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH expansion preserves complete independent correlated-unnest inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-expansion-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH expansion preserves complete independent joined-unnest-star inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-expansion-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH expansion preserves complete independent correlated-unnest-star inventory","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-expansion-public-fixtures.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":7,"failed":0,"passed":7,"cancelled":0,"skipped":0,"todo":0,"topLevel":7,"suites":0},"duration_ms":74.075166,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":63.861958,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/correlated-unnest-star-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":87.067792,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/joined-unnest-star-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":3,"failed":0,"passed":3,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":35.638208,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-join-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":11,"failed":0,"passed":11,"cancelled":0,"skipped":0,"todo":0,"topLevel":11,"suites":0},"duration_ms":63.022209,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unnest-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":2,"failed":0,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":2,"suites":0},"duration_ms":54.645084,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/unpivot-multicolumn-source-input.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":6,"failed":0,"passed":6,"cancelled":0,"skipped":0,"todo":0,"topLevel":6,"suites":0},"duration_ms":121.575541,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/with-expansion-public-fixtures.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":true,"counts":{"tests":35,"failed":0,"passed":35,"cancelled":0,"skipped":0,"todo":0,"topLevel":35,"suites":0},"duration_ms":450.636}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","scripts/with-expansion-public-fixtures.test.mjs","scripts/unpivot-multicolumn-source-input.test.mjs","scripts/unnest-source-input.test.mjs","scripts/unnest-join-source-input.test.mjs","scripts/correlated-unnest-source-input.test.mjs","scripts/joined-unnest-star-source-input.test.mjs","scripts/correlated-unnest-star-source-input.test.mjs"]: executed; counts={"tests":35,"passed":35,"failed":0,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-Uk2Eut

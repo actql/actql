@@ -1,0 +1,35 @@
+{
+  "source": "99d987610b128e7d084a57f0010a04018a8a4398",
+  "derivation": "query_binding_program lower_script_bindings allocates n Relation cte0/seed1, Graph with_graph2, changes Relation cte3. node_rows body reserves SGA4; JSON literal changes body instead reserves seed4. In both cases reserved has five names, and compile.pipe_physical_name starts at physical.length, so apply SGA5/root rows6 remain the original independent allocation. Graph-preserving aliases reserve only their emitted SGA; bounded MATCH seed3/path4 remain original.",
+  "preserved": [
+    "typed JSON wire string and all base/target/domain/contract CIDs",
+    "no literal content normalization",
+    "start selector identity",
+    "hop0..2",
+    "WALK/default WALK/TRAIL/ACYCLIC",
+    "quoted producer binding",
+    "field/order/schema and original wrong arguments"
+  ],
+  "public_execution": "not performed; the JSON shape and actual Delta base/target admission remain runtime responsibilities",
+  "initial_failure": {
+    "source": "cf985371c477cd9cd8737d54c9fd049044f2f039",
+    "run": "run-gzb9JJ",
+    "js": {
+      "tests": 7,
+      "passed": 5,
+      "failed": 2
+    },
+    "causes": [
+      "invalid body already refused by common static preparation instead of being returned for separate checking",
+      "initial allocation prediction excluded literal seed4 from reserved names; restore the original independent SGA5/6 names"
+    ]
+  },
+  "typed_refusals": "pipeline_typing.check closed body/required with and field => InvalidBody; pipeline_typing.types read_name converts failed decode.text for field1 to InvalidBody; graph_typing.delta => Graph UnknownDeltaField missing. Original malformed sources unchanged.",
+  "compile_failure": {
+    "source": "86c373c6f9d0ebe09822c2317fae76d3ac4d26ca",
+    "run": "run-lPzmFW",
+    "exit_code": 1,
+    "tests_executed": 0,
+    "cause": "An earlier text replacement missed the formatted multiline assertion and left nonexistent pipeline.Decode(WrongType); fixed the fixture to the independently traced InvalidBody cause. No product defect."
+  }
+}

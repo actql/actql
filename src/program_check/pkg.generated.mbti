@@ -549,6 +549,10 @@ pub fn source_catalog_owner(PreparedSourceCatalog) -> CheckEnvironment
 
 pub fn source_catalog_usage(PreparedSourceCatalog) -> SourceCatalogUsage
 
+pub fn source_context_diagnostic(@pipeline_check_context.SourceViewContextIssue) -> CheckDiagnostic
+
+pub fn source_declarations_diagnostic(@stage_parameters.Issue) -> CheckDiagnostic
+
 pub fn source_egress_axis_at(SourceExecution, Int) -> SourceEgressAxis?
 
 pub fn source_egress_axis_count(SourceExecution) -> Int
@@ -574,6 +578,8 @@ pub fn source_execution_prerequisite_count(SourceExecution) -> Int
 pub fn source_execution_subject(SourceExecution) -> SourceExecutionSubject
 
 pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceIdentity
+
+pub fn source_registration_diagnostic(@pipeline_check_context.SourceRegistrationIssue) -> CheckDiagnostic
 
 pub fn template_checked_capacity(TemplateCheckedProgram) -> @check_environment.Capacity
 

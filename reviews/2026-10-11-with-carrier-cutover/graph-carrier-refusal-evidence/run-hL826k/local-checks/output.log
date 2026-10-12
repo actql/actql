@@ -1,0 +1,4 @@
+[actql/actql] test query_program/graph_refusal_classification_test.mbt:11 ("Graph argument selector and Carrier violations are distinct from support gaps") failed: src/query_program/graph_refusal_classification_test.mbt:24:5-27:6@actql/actql FAILED: , rows AS (FROM n |> node_rows()) FROM rows |> SELECT node_key
+Total tests: 5, passed: 4, failed: 1.
+["moon","test","--target","js","src/query_program/graph_refusal_classification_test.mbt"]: process failed (2); counts={"tests":5,"passed":4,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-dZADVc

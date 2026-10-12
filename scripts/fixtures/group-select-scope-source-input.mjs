@@ -120,7 +120,7 @@ export const groupKeyCollisionProgram = {
     results: {rows: {from: 'summary', fields: ['bucket', 'n']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}},
 };
-const collisionData = 'DATA colliding = SELECT amount AS x, id AS aql_group_key_0 FROM records WHERE id > 0; ';
+const collisionData = 'WITH colliding AS (SELECT amount AS x, id AS aql_group_key_0 FROM records WHERE id > 0) ';
 const collisionSql = 'SELECT x + 1 AS bucket, COUNT(*) AS n FROM colliding GROUP BY x + 1 ORDER BY bucket';
 const collision = (name, text, extra = {}) => success('private-key-' + name, 'aql-text', text, {
   sourceRows: collisionRows, expected: collisionExpected, columns: collisionColumns, ...extra,
@@ -131,7 +131,7 @@ groupSelectScopeSuccesses.push(
   collision('quoted-case', collisionData.replace('AS aql_group_key_0', 'AS `AQL_GROUP_KEY_0`') + collisionSql),
   collision('all', collisionData + collisionSql.replace('GROUP BY x + 1', 'GROUP BY ALL')),
   collision('pipe', collisionData + 'FROM colliding AS original |> AGGREGATE COUNT(*) AS n GROUP BY x + 1 AS bucket |> ORDER BY bucket'),
-  collision('output-alias', 'DATA colliding = SELECT amount AS x FROM records WHERE id > 0; '
+  collision('output-alias', 'WITH colliding AS (SELECT amount AS x FROM records WHERE id > 0) '
     + collisionSql.replace('AS n', 'AS aql_group_key_0'), {
     expected: collisionExpected.map(({bucket, n}) => ({bucket, aql_group_key_0: n})),
     columns: [number('bucket', true), number('aql_group_key_0')],

@@ -1,0 +1,207 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "WITH FULL JOIN and joined row current caller retirement; original staged independent control, real unique key premises, ON/USING, max10, row nullability and ORDER retained. No product change.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-full-row-original-callers.json",
+  "independent_derivation": "with-full-row-independent-allocation.json",
+  "unexecuted": [
+    "Host Local/HTTPS rows and runtime order",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-65uGnp",
+      "source": "2454c0d00796a6c103acf2ff7442402c4ecf8359",
+      "tree": "25126e10b307daa4fc8c2af4db5e0fcc5b5f8dcd",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 1064,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/full_select_scope_test.mbt",
+          "src/query_program/full_join_scope_test.mbt",
+          "src/query_program/joined_row_range_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/local-checks/output.log",
+          "sha256": "33fdf5dd575d87239936f6ae7862f35a82c1d7a3d727f757ede45c6daec946d1"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/local-checks/summary.json",
+          "sha256": "5e7894b17c2a1fb74d202700b23f03a3fe627f911de5683ef5755b1da6bb65ce"
+        },
+        "focused-test-7QYzqv/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/0001.summary.json",
+          "sha256": "1f540a335c1518c4d576a39b72f77aa303eb3b4b67bd64b37fa68e41150de58d"
+        },
+        "focused-test-7QYzqv/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/0002.summary.json",
+          "sha256": "89bd47c1491200b60fb5ce1fadaccaad7dc054cbf9502a1fefddca63af3993ac"
+        },
+        "focused-test-7QYzqv/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/0003.summary.json",
+          "sha256": "b336734d8f3d52e2591d854e2811b23d351a4bbdf36830342d68e587b2917054"
+        },
+        "focused-test-7QYzqv/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/0004.summary.json",
+          "sha256": "ad034dac6c35a9b0d7d6c3425067504fcbc5c6ca1d9cbc626e1bf946242abd80"
+        },
+        "focused-test-7QYzqv/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/001.result.json",
+          "sha256": "f176c43df7573e92ef706b24f4e5d9ab2e30f7c2a71f9be5b8a11bff8ebcc972"
+        },
+        "focused-test-7QYzqv/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/001.started.json",
+          "sha256": "7a6290081eeeb62418723d2af64ccc8119c80ece922c259a35234adb7b250173"
+        },
+        "focused-test-7QYzqv/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-7QYzqv/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/001.stdout.log",
+          "sha256": "9e5c5f37f70ef65252586e637e4bb180ebff369b08b0dcc40d524184994b427a"
+        },
+        "focused-test-7QYzqv/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-65uGnp/focused-test-7QYzqv/summary.json",
+          "sha256": "ad034dac6c35a9b0d7d6c3425067504fcbc5c6ca1d9cbc626e1bf946242abd80"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 13,
+        "passed": 12,
+        "failed": 1,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    },
+    {
+      "run": "run-9pi1sl",
+      "source": "dea6be3d255c11318769f5d5f39a1379c4324016",
+      "tree": "76bed9268d12c8810551ee58224f4d95227d90eb",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 1613,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/full_select_scope_test.mbt",
+          "src/query_program/full_join_scope_test.mbt",
+          "src/query_program/joined_row_range_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-9pi1sl/local-checks/output.log",
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-9pi1sl/local-checks/summary.json",
+          "sha256": "50af246e53d8bd14f0f2b967cfff24551cb4368a7b2141ada0533209cab85f4a"
+        }
+      },
+      "formatter": "Completed; full_select_scope and prior graph_delta_source fixture whitespace only. moon fmt also formatted the adjacent package fixture; no semantic change."
+    },
+    {
+      "run": "run-yVSBU0",
+      "source": "a75bcb8affbc1413261c5ccbfc9fe1f551be30aa",
+      "tree": "155f6f8fff01c361eb187f9bcf680c02a14347c7",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 2005,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/full_select_scope_test.mbt",
+          "src/query_program/full_join_scope_test.mbt",
+          "src/query_program/joined_row_range_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/local-checks/output.log",
+          "sha256": "c481d01ba2a07d31fa2fc1511aead45e89f0123316ca1c3cf9c7ceaf33016ce2"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/local-checks/summary.json",
+          "sha256": "d46f915d669411f623883886eb625461c314db7095754e78a8145f653feaabda"
+        },
+        "focused-test-esTP9k/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/0001.summary.json",
+          "sha256": "b982cbb551128a42fe4c111b1070143fef43b12032cbd5b06d40a0dd0c9fcb95"
+        },
+        "focused-test-esTP9k/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/0002.summary.json",
+          "sha256": "df13100b68ac4a92e93c5d755f5b000361497be4a0ab517da4aa7bcb0c2aea7c"
+        },
+        "focused-test-esTP9k/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/0003.summary.json",
+          "sha256": "1818261ab7e1f81615242b6d41215d75cb8d1fecbb6633dadd6bac47c152ff9d"
+        },
+        "focused-test-esTP9k/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/0004.summary.json",
+          "sha256": "982bfae1a904eab20b7d5bf39dc4befdb37fcc676d27eeb93ac8ae3e96f4fba1"
+        },
+        "focused-test-esTP9k/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/001.result.json",
+          "sha256": "e52abd4328218d017b7d29664797ce60dbfd9642c71f46db8ee94519802cf848"
+        },
+        "focused-test-esTP9k/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/001.started.json",
+          "sha256": "2f4013997c39d6decf57c2c40ef13fb5d9ba23e4bc5a277a3007bd0b74530a25"
+        },
+        "focused-test-esTP9k/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-esTP9k/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/001.stdout.log",
+          "sha256": "8a4e7a01c3f5026ef0c27a47b536bea8872fe1fab2d6d673da8ccd9aea407092"
+        },
+        "focused-test-esTP9k/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/full-row-retirement-evidence/run-yVSBU0/focused-test-esTP9k/summary.json",
+          "sha256": "982bfae1a904eab20b7d5bf39dc4befdb37fcc676d27eeb93ac8ae3e96f4fba1"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 13,
+        "passed": 13,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    }
+  ]
+}

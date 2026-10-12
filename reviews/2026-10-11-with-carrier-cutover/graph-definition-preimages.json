@@ -1,0 +1,697 @@
+{
+  "source": "d80a30d47ab0d673a0005aa95147bb625e35cb17",
+  "contract": "actql-graph-definition/0.1",
+  "rule_source": "src/pipeline_typing/property_construction.mbt::graph_element_definition_constructor / graph_element_definition_target",
+  "status": "independent authored preimages; common checker and compiled text comparison not executed",
+  "vectors": [
+    {
+      "name": "original-authored-producer-definitions",
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "id": 1
+              }
+            ]
+          },
+          "as": "n"
+        },
+        {
+          "values": {
+            "schema": {
+              "key": {
+                "type": "number",
+                "nullable": false
+              },
+              "src": {
+                "type": "number",
+                "nullable": false
+              },
+              "dst": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "key": 10,
+                "src": 1,
+                "dst": 1
+              },
+              {
+                "key": 11,
+                "src": 1,
+                "dst": 1
+              }
+            ]
+          },
+          "as": "e"
+        },
+        {
+          "graph": {
+            "version": "actql-graph-constructor/0.1",
+            "nodes": [
+              {
+                "name": "N",
+                "from": "n",
+                "key": [
+                  "id"
+                ],
+                "labels": [
+                  {
+                    "name": "Node",
+                    "properties": {
+                      "mode": "no_properties"
+                    }
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "name": "E",
+                "from": "e",
+                "key": [
+                  "key"
+                ],
+                "source": {
+                  "definition": "N",
+                  "key": [
+                    "src"
+                  ],
+                  "references_key": [
+                    "id"
+                  ]
+                },
+                "target": {
+                  "definition": "N",
+                  "key": [
+                    "dst"
+                  ],
+                  "references_key": [
+                    "id"
+                  ]
+                },
+                "labels": [
+                  {
+                    "name": "R",
+                    "properties": {
+                      "mode": "no_properties"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "as": "g"
+        }
+      ],
+      "preimage": {
+        "constructor": {
+          "version": "actql-graph-constructor/0.1",
+          "nodes": [
+            {
+              "name": "N",
+              "key": [
+                "id"
+              ],
+              "labels": [
+                {
+                  "name": "Node",
+                  "properties": {
+                    "mode": "no_properties"
+                  }
+                }
+              ],
+              "input_occurrence": 0
+            }
+          ],
+          "edges": [
+            {
+              "name": "E",
+              "key": [
+                "key"
+              ],
+              "source": {
+                "definition": "N",
+                "key": [
+                  "src"
+                ],
+                "references_key": [
+                  "id"
+                ]
+              },
+              "target": {
+                "definition": "N",
+                "key": [
+                  "dst"
+                ],
+                "references_key": [
+                  "id"
+                ]
+              },
+              "labels": [
+                {
+                  "name": "R",
+                  "properties": {
+                    "mode": "no_properties"
+                  }
+                }
+              ],
+              "input_occurrence": 1
+            }
+          ]
+        },
+        "producer_definitions": [
+          {
+            "body": {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            },
+            "dependencies": []
+          },
+          {
+            "body": {
+              "values": {
+                "schema": {
+                  "key": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "src": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "dst": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "key": 10,
+                    "src": 1,
+                    "dst": 1
+                  },
+                  {
+                    "key": 11,
+                    "src": 1,
+                    "dst": 1
+                  }
+                ]
+              }
+            },
+            "dependencies": []
+          }
+        ],
+        "version": "actql-graph-definition/0.1"
+      },
+      "canonical_utf8": "{\"constructor\":{\"edges\":[{\"input_occurrence\":1,\"key\":[\"key\"],\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}],\"name\":\"E\",\"source\":{\"definition\":\"N\",\"key\":[\"src\"],\"references_key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"],\"references_key\":[\"id\"]}}],\"nodes\":[{\"input_occurrence\":0,\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}],\"name\":\"N\"}],\"version\":\"actql-graph-constructor/0.1\"},\"producer_definitions\":[{\"body\":{\"values\":{\"rows\":[{\"id\":1}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}},\"dependencies\":[]},{\"body\":{\"values\":{\"rows\":[{\"dst\":1,\"key\":10,\"src\":1},{\"dst\":1,\"key\":11,\"src\":1}],\"schema\":{\"dst\":{\"nullable\":false,\"type\":\"number\"},\"key\":{\"nullable\":false,\"type\":\"number\"},\"src\":{\"nullable\":false,\"type\":\"number\"}}}},\"dependencies\":[]}],\"version\":\"actql-graph-definition/0.1\"}",
+      "bytes": 841,
+      "expected_domain": "sha256:43c516e5afe899d1e72d1cebd0bc316e48d6ed10a7ead84fd0d8c62fd63b2a41"
+    },
+    {
+      "name": "physical-binding-and-root-metadata-rename",
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "id": 1
+              }
+            ]
+          },
+          "as": "private_nodes"
+        },
+        {
+          "values": {
+            "schema": {
+              "key": {
+                "type": "number",
+                "nullable": false
+              },
+              "src": {
+                "type": "number",
+                "nullable": false
+              },
+              "dst": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "key": 10,
+                "src": 1,
+                "dst": 1
+              },
+              {
+                "key": 11,
+                "src": 1,
+                "dst": 1
+              }
+            ]
+          },
+          "as": "private_edges"
+        },
+        {
+          "graph": {
+            "version": "actql-graph-constructor/0.1",
+            "nodes": [
+              {
+                "name": "N",
+                "from": "private_nodes",
+                "key": [
+                  "id"
+                ],
+                "labels": [
+                  {
+                    "name": "Node",
+                    "properties": {
+                      "mode": "no_properties"
+                    }
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "name": "E",
+                "from": "private_edges",
+                "key": [
+                  "key"
+                ],
+                "source": {
+                  "definition": "N",
+                  "key": [
+                    "src"
+                  ],
+                  "references_key": [
+                    "id"
+                  ]
+                },
+                "target": {
+                  "definition": "N",
+                  "key": [
+                    "dst"
+                  ],
+                  "references_key": [
+                    "id"
+                  ]
+                },
+                "labels": [
+                  {
+                    "name": "R",
+                    "properties": {
+                      "mode": "no_properties"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "as": "private_graph",
+          "meta": {
+            "source_binding": "renamed",
+            "source_span": "new authored origin"
+          }
+        }
+      ],
+      "preimage": {
+        "constructor": {
+          "version": "actql-graph-constructor/0.1",
+          "nodes": [
+            {
+              "name": "N",
+              "key": [
+                "id"
+              ],
+              "labels": [
+                {
+                  "name": "Node",
+                  "properties": {
+                    "mode": "no_properties"
+                  }
+                }
+              ],
+              "input_occurrence": 0
+            }
+          ],
+          "edges": [
+            {
+              "name": "E",
+              "key": [
+                "key"
+              ],
+              "source": {
+                "definition": "N",
+                "key": [
+                  "src"
+                ],
+                "references_key": [
+                  "id"
+                ]
+              },
+              "target": {
+                "definition": "N",
+                "key": [
+                  "dst"
+                ],
+                "references_key": [
+                  "id"
+                ]
+              },
+              "labels": [
+                {
+                  "name": "R",
+                  "properties": {
+                    "mode": "no_properties"
+                  }
+                }
+              ],
+              "input_occurrence": 1
+            }
+          ]
+        },
+        "producer_definitions": [
+          {
+            "body": {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            },
+            "dependencies": []
+          },
+          {
+            "body": {
+              "values": {
+                "schema": {
+                  "key": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "src": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "dst": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "key": 10,
+                    "src": 1,
+                    "dst": 1
+                  },
+                  {
+                    "key": 11,
+                    "src": 1,
+                    "dst": 1
+                  }
+                ]
+              }
+            },
+            "dependencies": []
+          }
+        ],
+        "version": "actql-graph-definition/0.1"
+      },
+      "canonical_utf8": "{\"constructor\":{\"edges\":[{\"input_occurrence\":1,\"key\":[\"key\"],\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}],\"name\":\"E\",\"source\":{\"definition\":\"N\",\"key\":[\"src\"],\"references_key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"],\"references_key\":[\"id\"]}}],\"nodes\":[{\"input_occurrence\":0,\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}],\"name\":\"N\"}],\"version\":\"actql-graph-constructor/0.1\"},\"producer_definitions\":[{\"body\":{\"values\":{\"rows\":[{\"id\":1}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}},\"dependencies\":[]},{\"body\":{\"values\":{\"rows\":[{\"dst\":1,\"key\":10,\"src\":1},{\"dst\":1,\"key\":11,\"src\":1}],\"schema\":{\"dst\":{\"nullable\":false,\"type\":\"number\"},\"key\":{\"nullable\":false,\"type\":\"number\"},\"src\":{\"nullable\":false,\"type\":\"number\"}}}},\"dependencies\":[]}],\"version\":\"actql-graph-definition/0.1\"}",
+      "bytes": 841,
+      "expected_domain": "sha256:43c516e5afe899d1e72d1cebd0bc316e48d6ed10a7ead84fd0d8c62fd63b2a41"
+    },
+    {
+      "name": "true-inline-edge-definition-change",
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "id": 1
+              }
+            ]
+          },
+          "as": "n"
+        },
+        {
+          "values": {
+            "schema": {
+              "key": {
+                "type": "number",
+                "nullable": false
+              },
+              "src": {
+                "type": "number",
+                "nullable": false
+              },
+              "dst": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "key": 10,
+                "src": 1,
+                "dst": 1
+              },
+              {
+                "key": 12,
+                "src": 1,
+                "dst": 1
+              }
+            ]
+          },
+          "as": "e"
+        },
+        {
+          "graph": {
+            "version": "actql-graph-constructor/0.1",
+            "nodes": [
+              {
+                "name": "N",
+                "from": "n",
+                "key": [
+                  "id"
+                ],
+                "labels": [
+                  {
+                    "name": "Node",
+                    "properties": {
+                      "mode": "no_properties"
+                    }
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "name": "E",
+                "from": "e",
+                "key": [
+                  "key"
+                ],
+                "source": {
+                  "definition": "N",
+                  "key": [
+                    "src"
+                  ],
+                  "references_key": [
+                    "id"
+                  ]
+                },
+                "target": {
+                  "definition": "N",
+                  "key": [
+                    "dst"
+                  ],
+                  "references_key": [
+                    "id"
+                  ]
+                },
+                "labels": [
+                  {
+                    "name": "R",
+                    "properties": {
+                      "mode": "no_properties"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "as": "g"
+        }
+      ],
+      "preimage": {
+        "constructor": {
+          "version": "actql-graph-constructor/0.1",
+          "nodes": [
+            {
+              "name": "N",
+              "key": [
+                "id"
+              ],
+              "labels": [
+                {
+                  "name": "Node",
+                  "properties": {
+                    "mode": "no_properties"
+                  }
+                }
+              ],
+              "input_occurrence": 0
+            }
+          ],
+          "edges": [
+            {
+              "name": "E",
+              "key": [
+                "key"
+              ],
+              "source": {
+                "definition": "N",
+                "key": [
+                  "src"
+                ],
+                "references_key": [
+                  "id"
+                ]
+              },
+              "target": {
+                "definition": "N",
+                "key": [
+                  "dst"
+                ],
+                "references_key": [
+                  "id"
+                ]
+              },
+              "labels": [
+                {
+                  "name": "R",
+                  "properties": {
+                    "mode": "no_properties"
+                  }
+                }
+              ],
+              "input_occurrence": 1
+            }
+          ]
+        },
+        "producer_definitions": [
+          {
+            "body": {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            },
+            "dependencies": []
+          },
+          {
+            "body": {
+              "values": {
+                "schema": {
+                  "key": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "src": {
+                    "type": "number",
+                    "nullable": false
+                  },
+                  "dst": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "key": 10,
+                    "src": 1,
+                    "dst": 1
+                  },
+                  {
+                    "key": 12,
+                    "src": 1,
+                    "dst": 1
+                  }
+                ]
+              }
+            },
+            "dependencies": []
+          }
+        ],
+        "version": "actql-graph-definition/0.1"
+      },
+      "canonical_utf8": "{\"constructor\":{\"edges\":[{\"input_occurrence\":1,\"key\":[\"key\"],\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"no_properties\"}}],\"name\":\"E\",\"source\":{\"definition\":\"N\",\"key\":[\"src\"],\"references_key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"],\"references_key\":[\"id\"]}}],\"nodes\":[{\"input_occurrence\":0,\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}],\"name\":\"N\"}],\"version\":\"actql-graph-constructor/0.1\"},\"producer_definitions\":[{\"body\":{\"values\":{\"rows\":[{\"id\":1}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}},\"dependencies\":[]},{\"body\":{\"values\":{\"rows\":[{\"dst\":1,\"key\":10,\"src\":1},{\"dst\":1,\"key\":12,\"src\":1}],\"schema\":{\"dst\":{\"nullable\":false,\"type\":\"number\"},\"key\":{\"nullable\":false,\"type\":\"number\"},\"src\":{\"nullable\":false,\"type\":\"number\"}}}},\"dependencies\":[]}],\"version\":\"actql-graph-definition/0.1\"}",
+      "bytes": 841,
+      "expected_domain": "sha256:fd2cb2d97dd0a9d430796dd53a3425e120b517ef82addc8181d304df9c53eab0"
+    }
+  ],
+  "scope_wrapper_obligation": "A Graph-preserving binding imports the existing admitted Graph owner/domain. It must not rebuild a constructor, add a projection/normalization semantic step, or hash scope names. Runtime confirmation remains required.",
+  "do_not_infer": [
+    "equal rows imply equal Graph domains",
+    "independent JSON and text have identical semantic producer definitions",
+    "historical Graph/Run CID can label changed grammar or changed definitions"
+  ],
+  "unchanged": [
+    "typed keys",
+    "element definition names",
+    "label sets",
+    "constructor version",
+    "parallel-edge count"
+  ]
+}

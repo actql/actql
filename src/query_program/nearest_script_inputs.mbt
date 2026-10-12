@@ -1,5 +1,5 @@
 ///|
-// Bind candidate relations with the same DATA/capture owner used by FROM.
+// Bind candidate relations with the same WITH/capture owner used by FROM.
 // References retain their own names even when they share a physical producer.
 fn bind_script_nearest_inputs(
   construction : Construction,
