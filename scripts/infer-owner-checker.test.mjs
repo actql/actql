@@ -16,6 +16,7 @@ import {createSdkModelPreflight} from '../packages/provider-ai-sdk/_internal/mod
 import {createModelRawTransportPersistence} from '../adapters/host-node/infer-raw-capture.mjs';
 import {createInferIoNotification} from '../adapters/host-node/infer-io-notification.mjs';
 import {installModelProviders} from '../adapters/host-node/installed-model.mjs';
+import {providerBindingOriginals} from './fixtures/model-provider-binding-fixture.mjs';
 import {installNodeModelContinuation} from '../adapters/host-node/installed-model-continuation.mjs';
 import {installRemoteCheckpoints} from '../adapters/host-node/client-checkpoints.mjs';
 import {openNodeInferCaptureCustody} from '../adapters/host-node/infer-capture-custody.mjs';
@@ -232,8 +233,8 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
   let rawBindings = 0;
   const retained = [];
   const physical = installModelProviders(moon, () => [{providerId: 'models/fixture',
-    invoke: () => assert.fail('the original async plan must not invoke the synchronous provider'),
     validatePrompt: () => true, entryPersistence: 'async', rawCaptureSelection,
+    bindingOriginals: providerBindingOriginals('models/fixture', {endpoint, revision: builderCid}),
     quantityCapacity: {limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
       perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
     physicalPreflight(request, originalIo, retainRawBinder) {
@@ -294,14 +295,18 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
   const boundary = moon.clientProgramInferPlanBoundary(graph);
   const providerBinding = control.sealRunEvidence('model_provider_binding', canonicalText({
     version: 'actql-model-provider-binding/0.1', provider_id: facts.providerId,
-    installation_revision_cid: builderCid, configuration_contract_cid: cid(profileBody),
-    configuration_cid: root}), {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
+    installation_revision_cid: physical.bindingOriginals.installationRevision.cid,
+    configuration_contract_cid: physical.bindingOriginals.configurationContract.cid,
+    configuration_cid: physical.bindingOriginals.configuration.cid}),
+  {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
   const expectedBoundary = {unit_id: facts.unitId, task_index: boundary._0,
     strategy_revision: boundary._2, inference_barrier_cid: boundary._3,
     account_id: accountFacts.account_id, configuration_cid: accountFacts.configuration_cid,
     entry_id: 'model-policy', principal: 'fixture-principal', connection: facts.providerId,
-    resource: facts.modelTaskCid, context_cid: root, installation_revision_cid: builderCid,
-    configuration_contract_cid: cid(profileBody), provider_configuration_cid: root};
+    resource: facts.modelTaskCid, context_cid: root,
+    installation_revision_cid: physical.bindingOriginals.installationRevision.cid,
+    configuration_contract_cid: physical.bindingOriginals.configurationContract.cid,
+    provider_configuration_cid: physical.bindingOriginals.configuration.cid};
   const input = control.admitRunEvidence('model_input_artifact', facts.inputArtifactWire,
     {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
   const scope = control.sealRunEvidence('model_invocation_scope', canonicalText({

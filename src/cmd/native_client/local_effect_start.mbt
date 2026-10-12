@@ -116,7 +116,8 @@ fn local_effect_prepare_start(
   }
   let now = local_utc_now()
   if !@publication.result_retention_intervals_valid(run.retention) ||
-    @publication.result_read_retention_policy_cid(run.retention, now) is Err(_) {
+    !(@publication.result_retention_interval_state(run.retention, now)
+    is Ok("available")) {
     stop("LocalResultRetentionUnavailable")
   }
   let retention = @decode.open_object(

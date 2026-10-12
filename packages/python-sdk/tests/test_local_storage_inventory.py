@@ -1,5 +1,4 @@
 """Independent SQLite transport fixtures; no Core admission is asserted."""
-from collections.abc import Callable
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
@@ -9,7 +8,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import (
     ByteFence, ByteWrite, LocalByteStore, LocalStorageCommitUnknown,
-    LocalStorageError, StoredBytes,
+    LocalStorageError, StoredBytes, _NamespaceReader,
 )
 
 
@@ -38,11 +37,11 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         return LocalByteStore(self.path, max_records=records,
                               max_record_bytes=row, max_payload_bytes=total)
 
-    def original_inventory(self, read: Callable[..., None]) -> None:
+    def original_inventory(self, read: _NamespaceReader) -> None:
         # This is a fixed transport oracle, not a product state machine.
-        read('client_runs', '',
+        read.scan_after('client_runs', '',
              lambda row: self.assertEqual(row, ('run-old', StoredBytes(0, self.raw))))
-        read('client_runs', 'run-old', lambda row: self.assertIsNone(row))
+        read.scan_after('client_runs', 'run-old', lambda row: self.assertIsNone(row))
 
     def assert_unwritten(self) -> None:
         self.assertEqual(self.store.read('count'), StoredBytes(0, b'1'))
@@ -55,6 +54,90 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         self.assertEqual(self.store.read('count'), StoredBytes(1, b'2'))
         self.assertEqual(self.store.read(self.old_key), StoredBytes(0, self.raw))
         self.assertEqual(self.store.read(self.new_key), StoredBytes(0, b'original-new-row'))
+
+    def test_exact_read_and_scan_share_original_snapshot_without_neighbor_substitution(self) -> None:
+        observations: list[object] = []
+
+        def inspect(reader: _NamespaceReader) -> None:
+            reader.read('client_runs', 'run-old', observations.append)
+            reader.read('client_runs', 'run-missing', observations.append)
+            reader.read('client_runs', 'run-new', observations.append)
+            reader.scan_after('client_runs', '', observations.append)
+            reader.scan_after('client_runs', 'run-old', observations.append)
+
+        self.assertEqual(self.store.compare_exchange_many_inspected(
+            self.writes, self.fences, inspect=inspect, current=lambda: None), (1, 0))
+        self.assertEqual(observations, [
+            ('run-old', StoredBytes(0, self.raw)), None, None,
+            ('run-old', StoredBytes(0, self.raw)), None])
+        # These observations preceded the actual write, not a candidate read.
+        self.assertEqual(self.store.read(self.new_key), StoredBytes(0, b'original-new-row'))
+
+    def test_exact_namespace_key_preserves_unicode_null_and_prefix_neighbors(self) -> None:
+        namespace = 'e\u0301:/~'
+        for selected, raw in [(namespace, b'original'), ('é:/~', b'composed'),
+                               (namespace + ':', b'prefix')]:
+            self.assertEqual(self.store.compare_exchange(
+                self.store.namespaced_key(selected, 'key\x00/~'), None, raw), 0)
+
+        def inspect(reader: _NamespaceReader) -> None:
+            reader.read(namespace, 'key\x00/~', lambda row: self.assertEqual(
+                row, ('key\x00/~', StoredBytes(0, b'original'))))
+            reader.read(namespace, 'key', lambda row: self.assertIsNone(row))
+            reader.read('absent', 'key\x00/~', lambda row: self.assertIsNone(row))
+
+        self.assertEqual(self.store.compare_exchange_many_inspected(
+            self.writes, self.fences, inspect=inspect, current=lambda: None), (1, 0))
+
+    def test_exact_reads_and_scans_share_query_and_cumulative_copy_limits(self) -> None:
+        long_key = self.store.namespaced_key('long', 'row')
+        self.assertEqual(self.store.compare_exchange(long_key, None, b'x' * 64), 0)
+
+        def many(reader: _NamespaceReader) -> None:
+            for _ in range(7):
+                reader.read('empty', 'row', lambda row: self.assertIsNone(row))
+                reader.scan_after('empty', '', lambda row: self.assertIsNone(row))
+
+        def copies(reader: _NamespaceReader) -> None:
+            for _ in range(5):
+                reader.read('long', 'row', lambda row: self.assertIsNotNone(row))
+                reader.scan_after('long', '', lambda row: self.assertIsNotNone(row))
+
+        for inspect in [many, copies]:
+            with self.assertRaises(LocalStorageError):
+                self.store.compare_exchange_many_inspected(
+                    self.writes, self.fences, inspect=inspect, current=lambda: None)
+            self.assert_unwritten()
+
+    def test_exact_reader_refuses_recursive_consumption_and_expired_transaction_loan(self) -> None:
+        readers: list[_NamespaceReader] = []
+
+        def inspect(reader: _NamespaceReader) -> None:
+            readers.append(reader)
+            reader.read('client_runs', 'run-old', lambda row: self.assertEqual(
+                row, ('run-old', StoredBytes(0, self.raw))))
+
+        self.assertEqual(self.store.compare_exchange_many_inspected(
+            self.writes, self.fences, inspect=inspect, current=lambda: None), (1, 0))
+        with self.assertRaises(ValueError):
+            readers[0].read('client_runs', 'run-old', lambda row: None)
+        # Select the independently fixed successor as the next transaction fence.
+        self.writes = (ByteWrite('count', 1, b'3'),)
+        self.fences = (ByteFence('epoch', 0, b'original-epoch'),
+                       ByteFence('config', 0, b'original-config'),
+                       ByteFence('count', 1, b'2'))
+
+        def recursive(reader: _NamespaceReader) -> None:
+            try:
+                reader.read('client_runs', 'run-old', lambda row:
+                            reader.scan_after('client_runs', '', lambda nested: None))
+            except ValueError:
+                pass
+
+        with self.assertRaises(ValueError):
+            self.store.compare_exchange_many_inspected(
+                self.writes, self.fences, inspect=recursive, current=lambda: None)
+        self.assertEqual(self.store.read('count'), StoredBytes(1, b'2'))
 
     def test_unknown_extra_row_is_observed_despite_unchanged_count(self) -> None:
         extra = self.store.namespaced_key('client_runs', 'run-unknown')
@@ -76,11 +159,11 @@ class LocalInventoryTransactionTests(unittest.TestCase):
             self.assertEqual(self.store.compare_exchange(
                 self.store.namespaced_key(selected, key), None, raw), 0)
 
-        def inspect(read: Callable[..., None]) -> None:
-            read('empty', '', lambda row: self.assertIsNone(row))
-            read(namespace, '', lambda row: self.assertEqual(
+        def inspect(read: _NamespaceReader) -> None:
+            read.scan_after('empty', '', lambda row: self.assertIsNone(row))
+            read.scan_after(namespace, '', lambda row: self.assertEqual(
                 row, ('a\x00/~', StoredBytes(0, b'original-null-key'))))
-            read(namespace, 'a\x00/~', lambda row: self.assertIsNone(row))
+            read.scan_after(namespace, 'a\x00/~', lambda row: self.assertIsNone(row))
 
         self.assertEqual(self.store.compare_exchange_many_inspected(
             self.writes, self.fences, inspect=inspect, current=lambda: None), (1, 0))
@@ -96,7 +179,7 @@ class LocalInventoryTransactionTests(unittest.TestCase):
 
     def test_same_sqlite_write_transaction_excludes_interleaved_writer(self) -> None:
         with sqlite3.connect(self.path, isolation_level=None, timeout=0) as foreign:
-            def inspect(read: Callable[..., None]) -> None:
+            def inspect(read: _NamespaceReader) -> None:
                 self.original_inventory(read)
                 with self.assertRaises(sqlite3.OperationalError):
                     foreign.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
@@ -124,23 +207,27 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         self.store._connection.fail = True
         consumed: list[object] = []
 
-        def inspect(read: Callable[..., None]) -> None:
-            try:
-                read('client_runs', '', lambda row: consumed.append(row))
-            except sqlite3.OperationalError:
-                pass
+        for lookup in [False, True]:
+            def inspect(read: _NamespaceReader) -> None:
+                try:
+                    if lookup:
+                        read.read('client_runs', 'run-old', consumed.append)
+                    else:
+                        read.scan_after('client_runs', '', consumed.append)
+                except sqlite3.OperationalError:
+                    pass
 
-        with self.assertRaisesRegex(sqlite3.OperationalError, 'original query failed'):
-            self.store.compare_exchange_many_inspected(
-                self.writes, self.fences, inspect=inspect, current=lambda: None)
-        self.assertEqual(consumed, [])
-        self.assert_unwritten()
+            with self.assertRaisesRegex(sqlite3.OperationalError, 'original query failed'):
+                self.store.compare_exchange_many_inspected(
+                    self.writes, self.fences, inspect=inspect, current=lambda: None)
+            self.assertEqual(consumed, [])
+            self.assert_unwritten()
 
     def test_no_scan_and_permission_or_consumer_booleans_are_refused(self) -> None:
         for inspect, current in [
                 (lambda read: None, lambda: None),
                 (self.original_inventory, lambda: True),
-                (lambda read: read('client_runs', '', lambda row: True), lambda: None),
+                (lambda read: read.scan_after('client_runs', '', lambda row: True), lambda: None),
                 (lambda read: True, lambda: None)]:
             with self.assertRaises(ValueError):
                 self.store.compare_exchange_many_inspected(
@@ -148,31 +235,31 @@ class LocalInventoryTransactionTests(unittest.TestCase):
             self.assert_unwritten()
 
     def test_captured_reader_cannot_outlive_transaction(self) -> None:
-        readers: list[Callable[..., None]] = []
+        readers: list[_NamespaceReader] = []
 
-        def inspect(read: Callable[..., None]) -> None:
+        def inspect(read: _NamespaceReader) -> None:
             readers.append(read)
             self.original_inventory(read)
 
         self.assertEqual(self.store.compare_exchange_many_inspected(
             self.writes, self.fences, inspect=inspect, current=lambda: None), (1, 0))
         with self.assertRaises(ValueError):
-            readers[0]('client_runs', '', lambda row: None)
+            readers[0].scan_after('client_runs', '', lambda row: None)
 
     def test_recursive_or_foreign_thread_reader_failure_cannot_be_swallowed(self) -> None:
-        def recursive(read: Callable[..., None]) -> None:
+        def recursive(read: _NamespaceReader) -> None:
             try:
-                read('client_runs', '',
-                     lambda row: read('client_runs', '', lambda nested: None))
+                read.scan_after('client_runs', '',
+                     lambda row: read.scan_after('client_runs', '', lambda nested: None))
             except ValueError:
                 pass
 
-        def foreign(read: Callable[..., None]) -> None:
+        def foreign(read: _NamespaceReader) -> None:
             errors: list[BaseException] = []
 
             def worker() -> None:
                 try:
-                    read('client_runs', '', lambda row: None)
+                    read.scan_after('client_runs', '', lambda row: None)
                 except BaseException as error:
                     errors.append(error)
 
@@ -189,18 +276,18 @@ class LocalInventoryTransactionTests(unittest.TestCase):
             self.assert_unwritten()
 
     def test_repeated_queries_and_cumulative_copies_remain_bounded(self) -> None:
-        def many(read: Callable[..., None]) -> None:
+        def many(read: _NamespaceReader) -> None:
             for _ in range(13):
-                read('empty', '', lambda row: self.assertIsNone(row))
+                read.scan_after('empty', '', lambda row: self.assertIsNone(row))
 
         # Nine 64-byte copies exceed the fixed 512-byte physical copy bound.
         # Keep the original payload oracle above unchanged.
         long_key = self.store.namespaced_key('long', 'row')
         self.assertEqual(self.store.compare_exchange(long_key, None, b'x' * 64), 0)
 
-        def long_copies(read: Callable[..., None]) -> None:
+        def long_copies(read: _NamespaceReader) -> None:
             for _ in range(9):
-                read('long', '', lambda row: self.assertIsNotNone(row))
+                read.scan_after('long', '', lambda row: self.assertIsNotNone(row))
 
         for inspect in [many, long_copies]:
             with self.assertRaises(LocalStorageError):
@@ -216,7 +303,7 @@ class LocalInventoryTransactionTests(unittest.TestCase):
             with self.assertRaises((LocalStorageError, ValueError)):
                 self.store.compare_exchange_many_inspected(
                     self.writes, self.fences,
-                    inspect=lambda read: read('client_runs', '', lambda row: None),
+                    inspect=lambda read: read.scan_after('client_runs', '', lambda row: None),
                     current=lambda: None)
             self.assert_unwritten()
             with sqlite3.connect(self.path) as foreign:
@@ -229,13 +316,13 @@ class LocalInventoryTransactionTests(unittest.TestCase):
             if revoked:
                 raise PermissionError('original publisher revoked')
 
-        def inspect(read: Callable[..., None]) -> None:
+        def inspect(read: _NamespaceReader) -> None:
             def consume(row: object) -> None:
                 nonlocal revoked
                 self.assertEqual(row, ('run-old', StoredBytes(0, self.raw)))
                 revoked = True
 
-            read('client_runs', '', consume)
+            read.scan_after('client_runs', '', consume)
 
         with self.assertRaises(PermissionError):
             self.store.compare_exchange_many_inspected(
@@ -271,12 +358,12 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         self.assertIsInstance(failed.exception.__cause__, OSError)
         self.assertEqual(self.store._connection.inserts, 1)
 
-        def saved(read: Callable[..., None]) -> None:
-            read('client_runs', '', lambda row: self.assertEqual(
+        def saved(read: _NamespaceReader) -> None:
+            read.scan_after('client_runs', '', lambda row: self.assertEqual(
                 row, ('run-new', StoredBytes(0, b'original-new-row'))))
-            read('client_runs', 'run-new', lambda row: self.assertEqual(
+            read.scan_after('client_runs', 'run-new', lambda row: self.assertEqual(
                 row, ('run-old', StoredBytes(0, self.raw))))
-            read('client_runs', 'run-old', lambda row: self.assertIsNone(row))
+            read.scan_after('client_runs', 'run-old', lambda row: self.assertIsNone(row))
 
         self.assertEqual(self.store.read_exchange_many_inspected(
             self.writes, self.fences, inspect=saved, current=lambda: None),
@@ -315,7 +402,7 @@ class LocalInventoryTransactionTests(unittest.TestCase):
         with self.assertRaisesRegex(OSError, 'snapshot cleanup failed'):
             self.store.read_exchange_many_inspected(
                 self.writes, self.fences,
-                inspect=lambda read: read('empty', '', lambda row: self.assertIsNone(row)),
+                inspect=lambda read: read.scan_after('empty', '', lambda row: self.assertIsNone(row)),
                 current=lambda: None)
         self.assertEqual(self.store._connection.attempts, 1)
         self.assertTrue(self.store._connection.in_transaction)

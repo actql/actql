@@ -411,7 +411,7 @@ test "WITH public expansion joined-unnest-star-acquired-data local typing contro
 }
 
 ///|
-test "WITH captured expansion preserves required pipeline input order refusal" {
+test "WITH captured expansion reuses resolved common Result input order" {
   let declarations = @parameters.read_declarations(
     Some(
       from_unpivot_public_cursor(
@@ -443,21 +443,21 @@ test "WITH captured expansion preserves required pipeline input order refusal" {
     ],
     parameter_declarations: Some(declarations),
   }
-  guard @frontend.lower(
-      "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
-      Text,
-      Some(context),
-    )
-    is Err(
-      QueryLowering(
-        BindingPreparation(
-          SourceProgram(Program(Order(1, PipelineOrder(issue))))
-        )
-      )
-    ) else {
-    fail("expected the common required pipeline input order refusal")
-  }
-  assert_eq(issue.kind, @pipeline.UnresolvedOrder)
+  let lowered = @frontend.lower(
+    "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+    Text,
+    Some(context),
+  ).unwrap()
+  let program = lowered.program.unwrap()
+  // The canonical numeric capture Result now supplies its common publication
+  // order to JOIN and correlated UNNEST. No physical arrival order is assumed.
+  let body = semantic(program)
+  assert_eq(@program.stage_count(program), 2)
+  assert_eq(body.split("\"connector\":\"crm/main\"").length(), 2)
+  assert_true(body.contains("\"with_index\":\"aql_unnest_offset_7\""))
+  assert_true(
+    body.contains("\"fields\":[\"id\",\"code\",\"label\",\"position\"]"),
+  )
 }
 
 ///|

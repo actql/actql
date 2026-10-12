@@ -862,6 +862,7 @@
         "|> watermark_rows(time: field, late_policy: string, watermark_ms: value?, max_skew: value?)",
         "|> session(by: [fields], gap: string)",
         "|> dedupe_events(by: [fields], order_by: [OrderKeys])",
+        "|> lag(partition_by: [fields], order_by: [OrderKeys], field: field, output: name, offset: value?)",
         "|> events()"
       ],
       "canonical_lowering": "common checked producer topology, followed by demanded emission",
