@@ -973,7 +973,7 @@ test "JOIN computes SELECT expressions once after matching rows" {
   )
   let wire = semantic(program)
   assert_true(wire.contains("\"derive\":{\"total\":{\"add\""))
-  assert_true(wire.contains("\"from\":\"aql_join_derived\",\"select\""))
+  assert_true(wire.contains("\"from\":\"aql_join_derived_8\",\"select\""))
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
     Checked(_) => ()
@@ -1089,8 +1089,8 @@ test "LEFT JOIN WHERE filters null-extended rows after matching" {
   let wire = semantic(program)
   assert_true(wire.contains("\"join\":{\"kind\":\"left\""))
   assert_true(wire.contains("\"filter\":{\"is_null\""))
-  assert_true(wire.contains("\"aql_join_filtered\""))
-  assert_true(wire.contains("\"from\":\"aql_join_filtered\",\"select\""))
+  assert_true(wire.contains("\"aql_join_filtered_7\""))
+  assert_true(wire.contains("\"from\":\"aql_join_filtered_7\",\"select\""))
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
     Checked(_) => ()
@@ -1110,7 +1110,7 @@ test "JOIN output ordering and LIMIT use selected aliases" {
     let program = compile(query, set_context(), construction_limits()).unwrap()
     let wire = semantic(program)
     assert_true(wire.contains("\"sort\":[{\"dir\":\"desc\",\"field\":\"y\""))
-    assert_true(wire.contains("\"from\":\"aql_join_taken\""))
+    assert_true(wire.contains("\"from\":\"aql_join_taken_12\""))
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
       Checked(_) => ()
@@ -1131,7 +1131,7 @@ test "JOIN orders by hidden input without exposing it or weakening DISTINCT" {
     let program = compile(query, set_context(), construction_limits()).unwrap()
     let wire = semantic(program)
     assert_true(wire.contains("aql_join_sort_"))
-    assert_true(wire.contains("\"from\":\"aql_join_visible\""))
+    assert_true(wire.contains("\"from\":\"aql_join_visible_13\""))
     assert_true(wire.contains("\"fields\":[\"x\"]"))
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
@@ -1157,7 +1157,7 @@ test "Pipe WHERE before JOIN filters the left seed before null extension" {
   ).unwrap()
   let program = compile(query, set_context(), construction_limits()).unwrap()
   let wire = semantic(program)
-  assert_true(wire.contains("\"aql_join_prefiltered\""))
+  assert_true(wire.contains("\"aql_join_prefiltered_4\""))
   assert_eq(wire.split("\"filter\":").length(), 2)
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
