@@ -151,7 +151,7 @@ test "Local catalog observation has independent exact bytes identity without a S
 
 ///|
 test "Local catalog binding never accepts an equal-resource Site observation" {
-  let local = local_catalog_test_observation()
+  let local_observation = local_catalog_test_observation()
   let site = prepare_catalog_observation(
     local_catalog_test_sync(),
     observation_test_binding(),
@@ -169,11 +169,18 @@ test "Local catalog binding never accepts an equal-resource Site observation" {
     is Err(ForeignBinding),
   )
   assert_true(
-    catalog_observation_resource(local, observation_test_binding(), "Account")
+    catalog_observation_resource(
+      local_observation,
+      observation_test_binding(),
+      "Account",
+    )
     is Err(ForeignBinding),
   )
   assert_false(
-    catalog_observation_matches_binding(local, observation_test_binding()),
+    catalog_observation_matches_binding(
+      local_observation,
+      observation_test_binding(),
+    ),
   )
   assert_false(
     catalog_observation_matches_local_binding(
