@@ -445,12 +445,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       entries: new Map()};
     let installedJournalPort;
     let originalInvalidation;
-    function originalResourceReadCurrent(park) {
+    function originalResourceReadCurrent(park, acquisition) {
       const originalScope = operation.originalResourceScope?.();
       if (!owner.available || originalPreparation === undefined ||
           originalScope === undefined || originalScope !== originalPreparation.scope ||
           checkpoints() !== cp || operation.originalResourceParkCurrent(park) !== park) {
         fail('ModelOriginalResourceReadUnavailable');
+      }
+      // Repeat the same original token's complete envelope/currentness after
+      // every physical wait, including the later Store custody recheck. A
+      // current park alone does not replace cancellation or capacity covers.
+      if (acquisition !== undefined && operation.originalMetadataAcquisition(park) !== acquisition) {
+        fail('InferOriginalMetadataAcquisitionUnavailable');
       }
       return originalScope;
     }
@@ -577,15 +583,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         const acquisition = operation.originalMetadataAcquisition(park);
         const document = await cp.readOriginalModelStateSelected({runDefinition: plan.runDefinition,
           storageBinding, receipt}, acquisition);
-        originalResourceReadCurrent(park);
+        originalResourceReadCurrent(park, acquisition);
         // Actual Store custody is rechecked by CP. Match the twelve checked
         // originals separately; schema/CID equality alone cannot prove them.
         const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
-        originalResourceReadCurrent(park);
+        originalResourceReadCurrent(park, acquisition);
         control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
           plan.runDefinition, selected.graph, originalScope, park, document,
           originalPreparation.nodeInstallation, storage);
-        originalResourceReadCurrent(park);
+        originalResourceReadCurrent(park, acquisition);
         return document;
       },
       async confirmOriginalResourceStateSaved(park, storageBinding, receipt) {
@@ -599,7 +605,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         const saved = await cp.confirmOriginalModelStateSavedSelected({
           runDefinition: plan.runDefinition, storageBinding, receipt,
           identity: select(inventory, scopeKeys)}, acquisition);
-        originalResourceReadCurrent(park);
+        originalResourceReadCurrent(park, acquisition);
         const savedFacts = cp.originalModelStateSavedFacts(saved);
         // Saved facts are historical Store observations, not a Resource grant.
         // Re-admit their original bytes through the Common closed reader before
@@ -607,11 +613,11 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         const document = control.readModelOriginalResourceDocument(savedFacts.documentWire,
           {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
         const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
-        originalResourceReadCurrent(park);
+        originalResourceReadCurrent(park, acquisition);
         control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
           plan.runDefinition, selected.graph, originalScope, park, document,
           originalPreparation.nodeInstallation, storage);
-        originalResourceReadCurrent(park);
+        originalResourceReadCurrent(park, acquisition);
         return saved;
       },
       async originalResourceOrigin(storageBinding) {

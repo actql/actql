@@ -43,7 +43,8 @@ test('opened original controller reads only its own selected Scope and fixed act
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}});
   t.after(() => cp.close());
   t.diagnostic(`Original installed Store retained at ${root}`);
-  const f = await currentResourceFixture(moon, control, 'installed-resource', {metadataAcquisition: {
+  const abort = new AbortController();
+  const f = await currentResourceFixture(moon, control, 'installed-resource', {signal: abort.signal, metadataAcquisition: {
     metadata: {maxWireBytes: 4096, maxLedgerEntries: 4},
     directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
     retainedBytes: 7000n, workspaceBytes: 3000n}});
@@ -110,6 +111,12 @@ test('opened original controller reads only its own selected Scope and fixed act
   selectedCp = {...cp};
   await assert.rejects(pendingSaved, {code: 'InstalledModelJournalChanged'});
   selectedCp = cp;
+  const stoppedSaved = opened.confirmOriginalResourceStateSaved(park, storageBinding, receipt);
+  abort.abort(new Error('OriginalMetadataReadStopped'));
+  await assert.rejects(stoppedSaved, {code: 'InferOriginalMetadataAcquisitionUnavailable'});
+  // Abort refuses new metadata acquisition; it does not prove physical stop,
+  // terminal cancellation, reclaimed park or loss of a historical Store ACK.
+  assert.strictEqual(f.operation.originalResourceParkCurrent(park), park);
   assert.equal(opened.close(), false);
   assert.equal(opened.cleanupPending(), true);
   assert.equal(opened.token.available, true);
