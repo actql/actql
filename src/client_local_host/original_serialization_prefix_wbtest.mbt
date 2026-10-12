@@ -83,6 +83,32 @@ fn original_prefix_execution_fixture(
   ).unwrap()
   let content = if source {
     let (task, step) = serialization_coordinate.unwrap_or((1, 1))
+    if serialization_coordinate is Some(_) {
+      let occurrences = @publication_host.prepared_client_serialization_occurrences(
+        prepared,
+      )
+      for (actual_task, actual_step) in occurrences {
+        println(
+          "keyed fixture serialization task=" +
+          actual_task.to_string() +
+          ", step=" +
+          actual_step.to_string(),
+        )
+      }
+      if @publication_host.select_client_single_keyed_acquisition(prepared)
+        is Ok(Some(keyed)) &&
+        @publication_host.client_keyed_acquisition_coordinates(keyed)
+        is Some((stage, keyed_task, join)) {
+        println(
+          "keyed fixture acquisition stage=" +
+          stage.to_string() +
+          ", task=" +
+          keyed_task.to_string() +
+          ", join=" +
+          join.to_string(),
+        )
+      }
+    }
     @publication_host.issue_prepared_client_acquired_serialization_plan_component(
       prepared,
       task,
