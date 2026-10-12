@@ -36,6 +36,36 @@ fn[T] finish_original_state_test_writer(
 }
 
 ///|
+test "original one-shot write exact claim routing refuses foreign origin without retirement" {
+  let (ledger, identity, origin) = original_state_write_fixture(17)
+  let foreign = original_read_test_origin()
+  let writer = @encode.writer(1000, 200, 10)
+  let (claim, cursor) = prepare_original_state_write(
+    identity, origin, writer, 7L, 5L,
+  ).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(
+    advance_funded_read_state_write(claim, foreign, 1)
+    is StateWriteFailed(Original(ForeignOrigin), work=0),
+  )
+  assert_eq(@encode.writer_progress(writer), (0, 0, 0))
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(cursor.claim is Some(current) && physical_equal(current, claim))
+  assert_true(
+    advance_funded_read_state_write(claim, origin, 0)
+    is StateWriteFailed(InvalidQuantum, work=0),
+  )
+  assert_eq(finish_original_state_test_writer(cursor, 1), 17)
+  assert_true(
+    advance_funded_read_state_write(claim, origin, 1)
+    is StateWriteFailed(Terminal, work=0),
+  )
+  assert_true(funded_read_available(claim, origin))
+  settle_funded_read(claim, true).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+}
+
+///|
 test "original one-shot write independently fixes exact bytes work and quantum" {
   // Hand-written field order and original identities; never derive this from
   // product output. Strings preserve decimal Int64 exactly on every backend.
