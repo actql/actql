@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {checkoutState, CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {inventory, unpack, publicationPlan} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';
+import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
@@ -26,7 +27,8 @@ export function sharedRuntimeSourceDelta(root, hostSha, cliSha) {
 
 export async function admitNativeArtifact(directory, sourceSha) {
   const record = JSON.parse(await readFile(join(directory, 'artifact.json'), 'utf8'));
-  exact(record, ['version', 'sourceSha', 'platform', 'binarySha256', 'binaryBytes', 'generatedCSha256', 'toolchainPinSha256', 'notices', 'toolchain', 'abi', 'testedHost', 'generation']);
+  exact(record, ['version', 'sourceSha', 'platform', 'binarySha256', 'binaryBytes', 'generatedCSha256', 'toolchainPinSha256', 'notices', 'toolchain', 'abi', 'testedHost', 'generation',
+    ...(Object.hasOwn(record, 'localRuntime') ? ['localRuntime'] : [])]);
   assert.equal(record.version, 'actql-native-cli-artifact/0.1'); assert.equal(record.sourceSha, sourceSha);
   assert(platforms[record.platform]);
   for (const key of ['binarySha256', 'generatedCSha256', 'toolchainPinSha256']) assert.match(record[key], /^[a-f0-9]{64}$/u);
@@ -42,6 +44,8 @@ export async function admitNativeArtifact(directory, sourceSha) {
     assert.equal(bytes.readUInt16LE(18), 62); assert.equal(record.abi.format, 'ELF');
     assert.match(record.abi.minimumGlibc, /^\d+\.\d+$/u);
   }
+  if (record.localRuntime !== undefined) admitInstalledLocalRuntime({root: directory,
+    expected: {sourceSha, platform: record.platform, localRuntimeSha256: record.localRuntime.sha256}, metadata: record.localRuntime});
   return record;
 }
 
@@ -78,7 +82,8 @@ export async function prepareNativeCliRelease(destination, artifacts) {
       const target = platforms[record.platform];
       const metadata = {name, version: cli.version, description: 'ActQL Native Remote transport executable',
         license: 'Apache-2.0', os: [target.os], cpu: [target.cpu], ...(target.libc ? {libc: [target.libc]} : {}),
-        files: ['bin', 'artifact.json', 'LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'],
+        files: ['bin', 'artifact.json', 'LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE',
+          ...(record.localRuntime ? ['local-runtime.json', 'lib', 'data', 'licenses'] : [])],
         repository: {type: 'git', url: 'git+https://github.com/actql/actql.git'}, publishConfig: cli.publishConfig};
       await writeFile(join(directory, 'package.json'), `${JSON.stringify(metadata, null, 2)}\n`);
       await writeFile(join(directory, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`);
@@ -86,12 +91,24 @@ export async function prepareNativeCliRelease(destination, artifacts) {
       await chmod(join(directory, 'bin/actql-native-client'), 0o755);
       await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
       for (const filename of Object.keys(record.notices)) await copyFile(join(repository, 'packages/local-node', filename), join(directory, filename));
+      if (record.localRuntime) {
+        const root = resolve(artifacts[index]);
+        const local = admitInstalledLocalRuntime({root,
+          expected: {sourceSha: record.sourceSha, platform: record.platform, localRuntimeSha256: record.localRuntime.sha256}, metadata: record.localRuntime});
+        await copyFile(join(root, 'local-runtime.json'), join(directory, 'local-runtime.json'));
+        for (const child of ['lib', 'data', 'licenses']) await mkdir(join(directory, child));
+        for (const item of [...local.libraries, ...local.assets, ...local.licenses]) await copyFile(join(root, item.path), join(directory, item.path));
+        admitInstalledLocalRuntime({root: directory,
+          expected: {sourceSha: record.sourceSha, platform: record.platform, localRuntimeSha256: record.localRuntime.sha256}, metadata: record.localRuntime});
+      }
       packages.push(await pack(directory, destination));
-      mapping[record.platform] = {package: name, sourceSha: record.sourceSha, binarySha256: record.binarySha256, binaryBytes: record.binaryBytes};
+      mapping[record.platform] = {package: name, sourceSha: record.sourceSha, binarySha256: record.binarySha256, binaryBytes: record.binaryBytes,
+        ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {})};
     }
     const directory = join(scratch, 'cli'); await mkdir(join(directory, 'bin'), {recursive: true});
     cli.optionalDependencies = Object.fromEntries(Object.values(mapping).map(v => [v.package, cli.version]));
-    for (const path of ['README.md', 'bin/actql.mjs']) await copyFile(join(repository, 'packages/native-cli', path), join(directory, path));
+    await mkdir(join(directory, 'lib'));
+    for (const path of ['README.md', 'bin/actql.mjs', 'lib/local-runtime.mjs']) await copyFile(join(repository, 'packages/native-cli', path), join(directory, path));
     await chmod(join(directory, 'bin/actql.mjs'), 0o755);
     await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
     await writeFile(join(directory, 'package.json'), `${JSON.stringify(cli, null, 2)}\n`);
@@ -145,7 +162,8 @@ export async function verifyNativeCliRelease(directory) {
         exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
         for (const [filename, digest] of Object.entries(record.notices)) assert.equal(digest, hash(await readFile(join(payload, filename))));
         assert.deepEqual(manifest.platforms[key], {package: item.name, sourceSha: record.sourceSha,
-          binarySha256: record.binarySha256, binaryBytes: record.binaryBytes});
+          binarySha256: record.binarySha256, binaryBytes: record.binaryBytes,
+          ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {})});
       }
     }
   } finally {await rm(scratch, {recursive: true});}

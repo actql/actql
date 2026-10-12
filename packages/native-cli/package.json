@@ -6,7 +6,7 @@
   "type": "module",
   "engines": {"node": ">=22.22.0"},
   "bin": {"actql": "bin/actql.mjs"},
-  "files": ["bin", "platforms.json", "README.md", "LICENSE"],
+  "files": ["bin", "lib", "platforms.json", "README.md", "LICENSE"],
   "optionalDependencies": {
     "@actql/cli-darwin-arm64": "0.0.2",
     "@actql/cli-linux-x64-gnu": "0.0.2"
