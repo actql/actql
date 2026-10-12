@@ -720,6 +720,8 @@ pub fn result_retention_bounds_equal(PublicationContract, PublicationContract) -
 
 pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn result_retention_interval_state(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn result_retention_intervals_valid(PublicationContract) -> Bool
 
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]

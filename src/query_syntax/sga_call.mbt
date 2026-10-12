@@ -38,6 +38,7 @@ fn sga_operation(name : String) -> Bool {
     | "window_events"
     | "watermark_events"
     | "watermark_rows"
+    | "lag"
     | "dedupe_events"
     | "session"
     | "events"
@@ -101,7 +102,7 @@ fn carrier_call_head(token : Token) -> Bool {
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
         "to_events", "row_window", "window_events", "watermark_events", "session",
-        "events", "dedupe_events", "watermark_rows",
+        "events", "dedupe_events", "watermark_rows", "lag",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -140,6 +141,22 @@ pub fn after_graph_calls(query : Query) -> Query {
     count += 1
   }
   { ..query, operations: query.operations[count:].to_owned(), }
+}
+
+///|
+/// Keep the untouched tail after a checked Graph-to-Relation bridge. The
+/// caller supplies its actual consumed prefix, not all adjacent named calls.
+pub fn after_graph_row_calls(query : Query, consumed : Int) -> Query? {
+  if consumed <= 0 ||
+    consumed > query.operations.length() ||
+    query.operations[:consumed].any(operation => !(operation is GraphCall(_))) {
+    return None
+  }
+  Some({
+    ..query,
+    graph: None,
+    operations: query.operations[consumed:].to_owned(),
+  })
 }
 
 ///|
@@ -221,7 +238,7 @@ fn QueryParser::sga_argument(
     return Producer(self.resolve_producer([self.name()])[0])
   }
   if token.value == Symbol(123) &&
-    operation == "dedupe_events" &&
+    ["dedupe_events", "lag"].contains(operation) &&
     path == ["order_by"] {
     return self.sga_order_argument(operation, depth + 1)
   }

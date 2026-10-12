@@ -147,8 +147,7 @@ fn local_submission_start(
   let reference = @local_host.admit_native_client_submission_reference(
     text_file(input_root, required(child, "submission-ref-file"), 4096L),
   ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
-  if optional(child, "request-id") is Some(requested) &&
-    requested != @local_host.native_client_submission_request_id(reference) {
+  if !local_submission_nonce_matches(reference, optional(child, "request-id")) {
     stop("LocalSubmissionIdentityMismatch")
   }
   let attempt = required(child, "operation-attempt-id")
@@ -253,7 +252,8 @@ fn local_submission_start(
   |> ignore
   let now = local_utc_now()
   if !@publication.result_retention_intervals_valid(run.retention) ||
-    @publication.result_read_retention_policy_cid(run.retention, now) is Err(_) {
+    !(@publication.result_retention_interval_state(run.retention, now)
+    is Ok("available")) {
     stop("LocalResultRetentionUnavailable")
   }
   let retention = @decode.open_object(

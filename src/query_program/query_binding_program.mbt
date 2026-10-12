@@ -24,15 +24,71 @@ fn current_script_graph(
   current : ScriptGraph?,
   query : @query.Query,
   graphs : Array[ScriptGraph],
+  known : Array[Input],
 ) -> ScriptGraph? raise Abort {
   let resolved = match current {
     Some(_) => current
-    None => script_graph_input(query, graphs)
+    None =>
+      if known.any(input => {
+          input_relation_matches(@query.relation(query), input)
+        }) {
+        // Resolve the visible producer independently of the requested kind.
+        // Never retry a same-named outer Graph through a nearer binding.
+        None
+      } else {
+        script_graph_input(query, graphs)
+      }
   }
   if resolved is Some(_) {
     check_graph_range_alias(@query.graph_source_query(query))
   }
   resolved
+}
+
+///|
+// FROM GRAPH is a type expectation, including in unused bodies. Obtain the
+// already selected input's actual Carrier from the common checked prefix;
+// its name or visible fields cannot establish a Graph contract.
+fn check_script_graph_expectation(
+  construction : Construction,
+  query : @query.Query,
+  graph : ScriptGraph?,
+  known : Array[Input],
+  context : Context,
+  sources : ScriptSources,
+  limits : Limits,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+) -> Unit raise Abort {
+  if @query.graph_query(query) is None || graph is Some(_) {
+    return
+  }
+  let selected = selected_relation(@query.relation(query), {
+    ..context,
+    inputs: known,
+  })
+  let bound = bind_script_input(
+    construction, selected, context, sources, steps, reserved,
+  )
+  let carrier = match sources.carriers.get(bound.name) {
+    Some(carrier) => carrier
+    None => {
+      let checked = script_prefix_carrier(
+        construction,
+        query,
+        context,
+        sources,
+        limits,
+        steps,
+        bound.name,
+      )
+      sources.carriers[bound.name] = checked
+      checked
+    }
+  }
+  guard carrier is @carrier.GraphValue(_) else {
+    raise Abort(GraphExpected(@query.graph_query(query).unwrap().expectation))
+  }
 }
 
 ///|
@@ -143,7 +199,10 @@ fn lower_script_bindings(
       reserved,
     )
     let body = @query.after_producer_primary(body)
-    let graph = current_script_graph(primary, body, body_graphs)
+    let graph = current_script_graph(primary, body, body_graphs, body_inputs)
+    check_script_graph_expectation(
+      construction, body, graph, body_inputs, context, sources, limits, steps, reserved,
+    )
     let body = if graph is Some(_) {
       @query.graph_source_query(body)
     } else {
@@ -216,6 +275,8 @@ fn lower_script_bindings(
           output,
           known=body_inputs,
           graphs=body_graphs,
+          continuation=Some((context, sources)),
+          allow_nonrelation=true,
         )
       }
     } else {

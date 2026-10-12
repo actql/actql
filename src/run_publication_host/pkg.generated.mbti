@@ -484,6 +484,8 @@ pub fn client_model_read_preparation_available(ClientModelReadPreparation, Clien
 
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
 
+pub fn client_model_resource_park_current(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourcePark[ClientModelReadOrigin]?
+
 pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_native_local_runtime_members(ClientNativeLocalRuntime) -> Array[ClientNativeLocalRuntimeMember]
@@ -621,6 +623,14 @@ pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding) -> Result[Bytes, ClientJournalEncodingIssue]
+
+pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
+
+pub fn client_saved_submission_revision(ClientSavedSubmissionSnapshot) -> Int64
+
+pub fn client_saved_submission_row(ClientSavedSubmissionSnapshot) -> ClientJournalPhysicalRow
+
+pub fn client_saved_submission_run_row(ClientSavedSubmissionSnapshot) -> ClientJournalPhysicalRow?
 
 pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLimits
 
@@ -810,7 +820,13 @@ pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_p
 
 pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
 
+pub fn[E] inspect_client_run_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[(Int, Int64), E]
+
 pub fn inspect_client_run_materials_execution_family(String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientProgramPreparationLimits) -> Result[ClientRunExecutionFamily, ClientValuesRunMaterialsIssue]
+
+pub fn[E] inspect_client_saved_submission(ClientSubmissionReferenceRecord, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
+
+pub fn[E] inspect_client_submitted_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientSubmittedJournalEncoding, E], E) -> Result[(Int, Int64, Int64), E]
 
 pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
@@ -1011,6 +1027,8 @@ pub fn open_prepared_multi_captured_client_effect_run(PreparedClientEffectRun, A
 pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
+
+pub fn park_client_model_read_consumer(ClientModelReadScope, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadPreparationIssue]
 
 pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
 
@@ -1222,6 +1240,8 @@ pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.Pu
 
 pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientRunPolicyOriginalsIssue]
 
+pub fn[E] read_client_saved_submission(ClientSubmissionReferenceRecord, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
+
 pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn recorded_client_source_cleanup_matches_producer(ClientRecordedSourceCleanup, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, String, String) -> Bool
@@ -1251,6 +1271,8 @@ pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBindi
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
 pub fn restore_prepared_client_local_normalization(PreparedClientProgram, ClientLocalNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
+
+pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePark[ClientModelReadOrigin]) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn settle_client_model_read(ClientModelReadPreparation, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
 
@@ -1950,6 +1972,12 @@ pub(all) enum ClientJournalEncodingIssue {
   CapacityExceeded
 } derive(Eq, @debug.Debug)
 
+pub(all) struct ClientJournalPhysicalRow {
+  key : String
+  body : Bytes
+  revision : Int64
+}
+
 type ClientLocalNormalization
 
 pub(all) enum ClientLocalNormalizationIssue {
@@ -2025,6 +2053,8 @@ pub struct ClientModelRawCaptureRegistration {
 }
 
 type ClientModelReadConsumer
+
+type ClientModelReadOrigin
 
 type ClientModelReadPreparation
 
@@ -2472,6 +2502,12 @@ pub(all) struct ClientRunJournalEncoding {
   checkpoint : String?
 }
 
+pub(all) struct ClientRunJournalInspection {
+  request : ClientRequestIdentity
+  definition : @run_publication.PublicationContract
+  checkpoint : Array[@effect_application.EffectLedgerEntry]?
+}
+
 pub(all) struct ClientRunMaterials {
   prepared : PreparedClientProgram
   compilation : ClientRunCompilation
@@ -2508,6 +2544,12 @@ pub(all) enum ClientRunStartIssue {
   ForeignRunDefinition
   AuthorizationDenied
 } derive(Eq, @debug.Debug)
+
+pub struct ClientSavedSubmissionSnapshot {
+  record : ClientSubmittedJournalEncoding
+  submission : ClientJournalPhysicalRow
+  run : ClientJournalPhysicalRow?
+}
 
 pub(all) enum ClientStageOwnerIssue {
   MissingCheckedStage(Int)
@@ -3003,6 +3045,8 @@ type PublicationResultRetention
 type RecoveredClientTablePreview
 
 // Type aliases
+pub type ClientModelResourcePark = @physical_resources.OriginalResourcePark[ClientModelReadOrigin]
+
 pub using @logical_request_scope {type SubmissionEpoch}
 
 pub using @logical_request_scope {type SubmissionEpochValidity}
