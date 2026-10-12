@@ -1,4 +1,29 @@
 ///|
+fn staged_set_current_range_expected() -> @program.Program {
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_chain_source_0","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"}],"results":{"aql_chain_source_0":{"from":"t","fields":["x","y"]}}},{"id":"aql_chain_source_1","inputs":{},"steps":[{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":1},{"k":2}]},"as":"r"}],"results":{"aql_chain_source_1":{"from":"r","fields":["k"]}}},{"id":"main","inputs":{"aql_chain_input_0":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_1":{"result":{"stage":"aql_chain_source_1","result":"aql_chain_source_1"}}},"steps":[{"from":"aql_chain_input_1","join":{"with":"aql_chain_input_0","kind":"left","on":[{"left":"k","right":"x"}],"max_output_rows":10,"select":{"aql_chain_column_2":"right.x","aql_chain_column_3":"right.y","aql_chain_column_4":"left.k"}},"as":"aql_chain_join_2"},{"from":"aql_chain_join_2","derive":{"aql_pipe_set_3":{"literal":99}}},{"select":[{"replaced":"aql_pipe_set_3"},{"original":"aql_chain_column_2"},{"matched":"aql_chain_column_4"}],"as":"aql_chain_result_3"}],"results":{"rows":{"from":"aql_chain_result_3","fields":["replaced","original","matched"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
+// Independent current-Unit control: retain the original typed Values and all
+// operator bodies. Only their checked binding coordinates change.
+fn set_current_range_expected() -> @program.Program raise {
+  check_staged_values_join_oracle(staged_set_current_range_expected())
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"aql_script_seed_2"},{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":1},{"k":2}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_3","join":{"with":"aql_script_seed_2","kind":"left","on":[{"left":"k","right":"x"}],"max_output_rows":10,"select":{"aql_chain_column_2":"right.x","aql_chain_column_3":"right.y","aql_chain_column_4":"left.k"}},"as":"aql_chain_join_4"},{"from":"aql_chain_join_4","derive":{"aql_pipe_set_3":{"literal":99}}},{"select":[{"replaced":"aql_pipe_set_3"},{"original":"aql_chain_column_2"},{"matched":"aql_chain_column_4"}],"as":"aql_chain_result_5"}],"results":{"rows":{"from":"aql_chain_result_5","fields":["replaced","original","matched"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
 test "Pipe SET refuses an ambiguous current target before lowering its value" {
   for target in ["x", "X", "`x`", "`X`"] {
     for expression in ["99", "ROW_NUMBER() OVER (ORDER BY r.x)"] {
@@ -29,13 +54,7 @@ test "Pipe SET refuses an ambiguous current target before lowering its value" {
 test "Pipe SET preserves one current target and its immutable JOIN range" {
   // Independent RIGHT JOIN -> derive -> projection. The common right input
   // is preserved via a left JOIN; only the current x slot is replaced.
-  let expected = @program.parse(
-    (
-      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_chain_source_0","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"}],"results":{"aql_chain_source_0":{"from":"t","fields":["x","y"]}}},{"id":"aql_chain_source_1","inputs":{},"steps":[{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":1},{"k":2}]},"as":"r"}],"results":{"aql_chain_source_1":{"from":"r","fields":["k"]}}},{"id":"main","inputs":{"aql_chain_input_0":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_1":{"result":{"stage":"aql_chain_source_1","result":"aql_chain_source_1"}}},"steps":[{"from":"aql_chain_input_1","join":{"with":"aql_chain_input_0","kind":"left","on":[{"left":"k","right":"x"}],"max_output_rows":10,"select":{"aql_chain_column_2":"right.x","aql_chain_column_3":"right.y","aql_chain_column_4":"left.k"}},"as":"aql_chain_join_2"},{"from":"aql_chain_join_2","derive":{"aql_pipe_set_3":{"literal":99}}},{"select":[{"replaced":"aql_pipe_set_3"},{"original":"aql_chain_column_2"},{"matched":"aql_chain_column_4"}],"as":"aql_chain_result_3"}],"results":{"rows":{"from":"aql_chain_result_3","fields":["replaced","original","matched"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
-    ),
-    construction_limits().program,
-    format=Json,
-  ).unwrap()
+  let expected = set_current_range_expected()
   match
     @check.check_parsed(expected, check_environment(), None, check_limits()) {
     Checked(_) => ()
