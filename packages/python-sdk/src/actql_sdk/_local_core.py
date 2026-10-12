@@ -11,7 +11,7 @@ import sys
 from threading import RLock
 from typing import Any, Literal
 
-LOCAL_CORE_ABI = 43
+LOCAL_CORE_ABI = 44
 
 
 class LocalCoreError(RuntimeError):
@@ -390,6 +390,8 @@ _TASK_SIGNATURES = {
     'close': ('i64 i32', 'i32'),
 }
 _COMPUTE_SIGNATURES = {
+    'reserve_source_free': ('i64 i32 i32 i32', 'i32'),
+    'configure_source_free': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32', 'i32'),
     'configure': ('i64 i32', 'i32'),
     'configured': ('i64 i32', 'i32'),

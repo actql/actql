@@ -27,3 +27,28 @@ pub fn configure_source_free_local_compute_on_ledger(
   @strategy.require_captured_task_activation(run)
   Ok({ plan, setup, })
 }
+
+///|
+/// Reuse the original task activation's current, subject-bound Account check
+/// before configuring physical task resources. This grants no task activation.
+pub fn authorize_local_compute_configuration(
+  plan : LocalRunPlan,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  context_cid : String,
+) -> Result[Unit, LocalComputeIssue] {
+  if current.account_id() != plan.account_id ||
+    tuple != plan.tuple ||
+    context_cid != plan.execution_context_cid ||
+    !authorized_input(
+      local_run_prepared(plan),
+      permit,
+      current,
+      tuple,
+      context_cid,
+    ) {
+    return Err(AuthorizationMismatch)
+  }
+  Ok(())
+}
