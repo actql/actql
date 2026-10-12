@@ -770,18 +770,18 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_evidence sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_input_logical sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:821609c0cc04ef0ca1b0760a1864673e4fa70a3709af5d33e37e5177477d2f3a
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:15fc852a55288e801b64eccd756bb9d82a6cd0c3c65e6116505b27bbdc32523a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/runtime_error sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_policy sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6
@@ -797,8 +797,8 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4
-../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a
+../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5
 ```
 
 <!-- stage-contract-pins:start -->
@@ -807,7 +807,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/completion_evidence sha256:fb3a8c295b5069f4e7490ee97be9897d20e2ab97ca82874c9bb98146cf02fae7
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/logical_request sha256:182296e19f04bbe04b1088213a20397486374ac42d9fd54379c9f942b33f649c
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/risk_acceptance sha256:fc73a9f0e8db05f04bc47f74f5101a61496cc3341a8df73bc4d9e43ac522d570
-../../../spec/contracts/actql-stage-contracts.json#/schemas/template_approval sha256:a55fff821004ba45c57bbc0e7910d2a1d23134f056ff9d2f2f8e7f6f43e96d2e
+../../../spec/contracts/actql-stage-contracts.json#/schemas/template_approval sha256:ef1ac71328e0a6483b2fae329cc56b5bde0920b086c3c1940de89186a45a9fca
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/template_instantiation sha256:525028fdd701aab546c52f87aad69e008262f3107093d62361b8eadf2a2b0ac3
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/approval_renewal sha256:f3e64e5cab0b7b74b00224fcd8011c129438bc4ea7e4258a1010442065ecf1b5
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/source_advance_claim sha256:14ad763d0e911fadda97695d4ba50726ef9196a5ba41a6d3367295aaccd48c76

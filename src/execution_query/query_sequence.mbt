@@ -75,15 +75,18 @@ pub fn prepare_query_sequence(
         return Err(ForeignParameters)
       }
   }
-  if @pipeline.input_count(pipeline) != 1 ||
-    @lower.sequence_count(@execution.generated_prepared_sequence(generated)) !=
+  if @lower.sequence_count(@execution.generated_prepared_sequence(generated)) !=
     2 ||
     @execution.generated_sequence_step_count(generated) != 2 ||
     @execution.generated_sequence_step_index_at(generated, 0) != Some(0) ||
     @execution.generated_sequence_step_index_at(generated, 1) != Some(1) ||
-    @acquisition.query_acquisition_input(query) != @pipeline.Input(0) ||
     @acquisition.query_acquisition_filter_index(query) != 0 ||
     @acquisition.query_acquisition_capture(query) != @pipeline.Step(1) {
+    return Err(UnsupportedExecutionShape)
+  }
+  guard @acquisition.query_acquisition_input(query) is @pipeline.Input(input) &&
+    input >= 0 &&
+    input < @pipeline.input_count(pipeline) else {
     return Err(UnsupportedExecutionShape)
   }
   guard @lower.node_at(prepared, 1) is Some(node) else {
@@ -143,7 +146,7 @@ pub fn admit_query_receipt(
   let captured = match
     @execution.capture_input(
       @execution.generated_sequence_owner(prepared.generated),
-      0,
+      query_receipt_input_index(prepared),
       rows,
       max_rows=max_received_rows,
       admission,
@@ -165,7 +168,8 @@ pub fn bind_query_receipt(
       query_sequence_owner(prepared),
       @execution.captured_owner(captured),
     ) ||
-    @execution.captured_origin(captured) != @execution.SuppliedInput(0) {
+    @execution.captured_origin(captured) !=
+    @execution.SuppliedInput(query_receipt_input_index(prepared)) {
     return Err(ForeignReceipt)
   }
   Ok({ owner: prepared, rows: captured, })
@@ -200,10 +204,20 @@ pub fn execute_query_receipt(
 /// The legacy synchronous driver owns the whole checked pipeline. Prefixes
 /// must use the existing bounded provider, never run their downstream steps.
 fn query_has_complete_synchronous_shape(prepared : QuerySequence) -> Bool {
-  @pipeline.step_count(
-    @lower.pipeline(@lower.bound_preparation(query_sequence_owner(prepared))),
-  ) ==
-  2
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(query_sequence_owner(prepared)),
+  )
+  @pipeline.step_count(pipeline) == 2 && @pipeline.input_count(pipeline) == 1
+}
+
+///|
+/// Original input ordinal, not the adapter's assumed first input.
+pub fn query_receipt_input_index(prepared : QuerySequence) -> Int {
+  match @acquisition.query_acquisition_input(prepared.query) {
+    @pipeline.Input(index) => index
+    @pipeline.Step(_) =>
+      abort("admitted query acquisition must target an input")
+  }
 }
 
 ///|

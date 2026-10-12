@@ -101,6 +101,96 @@ fn check_request_parameters_fixture(
     }
   }
   assert_eq(parameterized_request_host_binding_count(bound), pending)
+  if pending > 0 {
+    assert_true(
+      parameterized_request_wire(bound, 1000000, 10000, 100)
+      is Err(UnboundHostBinding),
+    )
+  } else {
+    let json_fields = []
+    guard @json.parse(wire) is Object(catalog) &&
+      catalog.get("contract_registry") is Some(Array(envelopes)) else {
+      abort("invalid authored Catalog fixture")
+    }
+    for envelope in envelopes {
+      if envelope is Object(fields) &&
+        fields.get("kind") == Some(Json::string("request_schema")) &&
+        fields.get("body") is Some(Object(body)) &&
+        body.get("fields") is Some(Object(schema)) {
+        for name, contract in schema {
+          if contract is Object(type_fields) &&
+            type_fields.get("type") == Some(Json::string("json")) {
+            json_fields.push(name)
+          }
+        }
+      }
+    }
+    let wire = parameterized_request_wire(bound, 1000000, 10000, 100).unwrap()
+    // Resolve expectations from authored input and supplied/default values,
+    // not from the checked fields or the product encoder's output.
+    let expected : Map[String, Json] = Map([])
+    let authored = match @json.parse(input) {
+      Object(fields) =>
+        match fields.get("request") {
+          Some(Object(request)) => request
+          None => Map([])
+          _ => abort("invalid authored Request fixture")
+        }
+      _ => abort("invalid authored input fixture")
+    }
+    let supplied = match @json.parse(supplied) {
+      Object(values) => values
+      _ => abort("invalid authored Parameter fixture")
+    }
+    let defaults = match @json.parse("{" + declarations + "\"fixture\":0}") {
+      Object(root) =>
+        match root.get("params") {
+          Some(Object(values)) => values
+          None => Map([])
+          _ => abort("invalid authored declarations fixture")
+        }
+      _ => abort("invalid authored declarations fixture")
+    }
+    for name, value in authored {
+      let value = match value {
+        Object(fields) if fields.length() == 1 =>
+          match fields.get("$param") {
+            Some(String(parameter)) =>
+              match supplied.get(parameter) {
+                Some(value) => value
+                None =>
+                  match defaults.get(parameter) {
+                    Some(Object(declaration)) =>
+                      declaration.get("default").unwrap()
+                    _ => abort("missing authored Parameter expectation")
+                  }
+              }
+            _ => value
+          }
+        _ => value
+      }
+      // Json scalars keep the existing typed-wire marker. Nested business
+      // $param/$binding keys remain data, never additional Request slots.
+      expected[name] = if json_fields.contains(name) && value != Json::null() {
+        Json::object(Map([("$json", value)]))
+      } else {
+        value
+      }
+    }
+    assert_eq(@json.parse(wire), Json::object(expected))
+    let bytes = @utf8.encode(wire).length()
+    assert_eq(
+      parameterized_request_wire(bound, bytes, 10000, 100).unwrap(),
+      wire,
+    )
+    assert_true(
+      parameterized_request_wire(bound, bytes - 1, 10000, 100)
+      is Err(Encoding(_)),
+    )
+    assert_true(
+      parameterized_request_wire(bound, bytes, 0, 100) is Err(Encoding(_)),
+    )
+  }
   let requirements = direct_request_bindings(bound, 1000000, pending).unwrap()
   assert_true(
     request_bindings_request(requirements) is DirectBindingRequest(owner) &&

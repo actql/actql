@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/connectors/local",
   "actql/actql/query_planning" @planning,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_cost" @cost,
@@ -19,9 +20,8 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/canonical_json" @identity,
-  "moonbitlang/core/json",
-}
-
-import {
   "actql/actql/value_contract" @contract,
-} for "wbtest"
+  "actql/actql/capacity_policy" @capacity,
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+}

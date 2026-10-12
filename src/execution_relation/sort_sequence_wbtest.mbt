@@ -285,7 +285,7 @@ test "sort preserves every relation value payload domain" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -349,10 +349,10 @@ test "sort preserves owned reference payloads with their row occurrences" {
   assert_true(append_value_equal(ordered.rows[0][1], low))
   assert_true(append_value_equal(ordered.rows[1][1], high))
   let artifact = select_checked_contract(
-    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+    "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
   )
-  let first = issued_artifact_value(artifact, live).value |> capture
-  let second = issued_artifact_value(artifact, live).value |> capture
+  let first = issued_content_value(artifact, live).value |> capture
+  let second = issued_content_value(artifact, live).value |> capture
   let artifact_owner = sort_contract_owner(key, artifact)
   let artifact_kernel = row_kernel(artifact_owner, 0)
   let artifacts = evaluate_rows(

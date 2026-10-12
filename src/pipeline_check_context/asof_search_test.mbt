@@ -59,7 +59,7 @@ test "asof search retains sparse memberships and closes only its own search obli
             ),
           )
           assert_eq(
-            @capacity.target_membership_coordinates(membership).1,
+            @capacity.target_membership_coordinates(membership).unwrap().1,
             if host_first {
               1
             } else {

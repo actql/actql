@@ -24,6 +24,8 @@ pub fn cancel_checked_emission(CheckedEmission) -> Unit
 
 pub fn cancel_type_equality(TypeEquality) -> Unit
 
+pub fn content_reference_contract(String?, nullable~ : Bool, max_name_bytes~ : Int) -> Contract?
+
 pub fn contract_nullable(Contract) -> Bool
 
 pub fn decimal_contract(Int, Int, nullable~ : Bool) -> Contract?
@@ -172,7 +174,7 @@ pub enum Shape {
   Object(Fields)
   Vector(dimensions~ : Double)
   ResourceRef(resource_kind~ : String)
-  ArtifactRef(media_type~ : String?)
+  ContentRef(media_type~ : String?)
 }
 
 pub struct TextLimits {

@@ -54,7 +54,7 @@ pub fn graph_key_descriptor(contract : @value.Contract) -> GraphKeyDescriptor? {
     @value.Timestamp => Some(TimestampKey)
     @value.Decimal(precision~, scale~) => Some(DecimalKey(precision~, scale~))
     @value.ResourceRef(resource_kind~) => Some(ResourceKey(resource_kind~))
-    @value.ArtifactRef(media_type~) => Some(ArtifactKey(media_type~))
+    @value.ContentRef(media_type~) => Some(ArtifactKey(media_type~))
     _ => None
   }
 }

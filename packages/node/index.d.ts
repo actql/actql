@@ -1,6 +1,6 @@
-import type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths,
+import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,
   InstalledConnectorTable, HostInstallation} from '@actql/local-node';
-export type {HostCapacityPolicy, SourceProfilePaths, EffectProfilePaths,
+export type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,
   InstalledConnectorTable} from '@actql/local-node';
 import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} from '@actql/sdk';
 
@@ -17,6 +17,7 @@ export type EmbeddedHostInstallation = Readonly<{
    * Defaults to 100; 1..10000. Other work, cell and byte ceilings remain fixed. */
   valuesMaxRows?: number;
   hostCapacityPolicy?: HostCapacityPolicy;
+  hostLookupExecutionPolicy?: HostLookupExecutionPolicy;
   sourceProfilePath?: string;
   sourceProfilePaths?: SourceProfilePaths;
   sourceNamespace?: HostInstallation['sourceNamespace'];

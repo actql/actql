@@ -258,7 +258,7 @@ pub fn[T] resolve(
             | Date
             | Timestamp
             | ResourceRef(..)
-            | ArtifactRef(..) => ()
+            | ContentRef(..) => ()
             _ =>
               return Ok({
                 decision: None,

@@ -21,7 +21,7 @@ pub fn kernel_sort_term_count(kernel : PreparedKernel) -> Int {
   @relation.sort_term_count(kernel.checked) +
   resolution
   .map(order => {
-    match @pipeline.sort_order_strategy(order) {
+    match order {
       CandidateKey(c) => @pipeline.sort_completion_count(c)
       ExistingTotal(_) => 0
     }
@@ -81,7 +81,7 @@ pub fn kernel_sort_term_at(
     return Some((term.field, term.direction is Desc, term.nulls is First))
   }
   resolution.bind(order => {
-    match @pipeline.sort_order_strategy(order) {
+    match order {
       CandidateKey(c) =>
         @pipeline.sort_completion_field(c, index - authored).map(field => {
           (field, false, false)

@@ -12,6 +12,7 @@ const text = value => typeof value === 'string' && value.length > 0;
 const cid = value => /^sha256:[0-9a-f]{64}$/u.test(value ?? '');
 const kinds = new Set(['create', 'update', 'upsert', 'store']);
 const selectorKeys = new Set(['kind', 'target', 'mappingRef', 'mappingCid', 'effectId', 'capabilityCid']);
+const commandSelectorKeys = new Set(['kind', 'target', 'commandRef', 'commandCid', 'effectId']);
 
 export function validPluralEffectPaths(paths) {
   return Array.isArray(paths) && paths.length >= 2 &&
@@ -21,24 +22,51 @@ export function validPluralEffectPaths(paths) {
 }
 
 function validSelector(selector) {
-  return selector !== null && typeof selector === 'object' && !Array.isArray(selector) &&
-    Object.keys(selector).every(key => selectorKeys.has(key)) &&
+  if (selector === null || typeof selector !== 'object' || Array.isArray(selector)) return false;
+  if (selector.kind === 'command') {
+    return Object.keys(selector).every(key => commandSelectorKeys.has(key)) &&
+      text(selector.target) && text(selector.commandRef) && cid(selector.commandCid) &&
+      (selector.effectId === undefined || text(selector.effectId));
+  }
+  return Object.keys(selector).every(key => selectorKeys.has(key)) &&
     kinds.has(selector.kind) && text(selector.target) && text(selector.mappingRef) &&
     cid(selector.mappingCid) &&
     (selector.effectId === undefined || text(selector.effectId)) &&
     (selector.capabilityCid === undefined || cid(selector.capabilityCid));
 }
 
-function ownedMappings(effect) {
+function ownedContracts(effect) {
   const selectors = effect.effectSelectors;
   if (!Array.isArray(selectors) || selectors.length === 0 ||
       !Object.isFrozen(selectors)) fail('InvalidInstalledEffectSelectors');
-  const mappings = JSON.parse(effect.environmentWire).mapping_contracts;
+  const environment = JSON.parse(effect.environmentWire);
+  const mappings = environment.mapping_contracts;
   const owned = new Map();
   const exact = new Set();
   for (const selector of selectors) {
     if (!validSelector(selector) || !Object.isFrozen(selector)) {
       fail('InvalidInstalledEffectSelectors');
+    }
+    if (selector.kind === 'command') {
+      const matches = environment.command_contracts.filter(command =>
+        command.command_id === selector.commandRef);
+      if (matches.length !== 1) fail('InvalidInstalledEffectSelectors');
+      const command = matches[0];
+      const {contract_cid: commandCid, ...body} = command;
+      const catalogMatches = environment.connector_catalogs.filter(catalog =>
+        catalog.connector_id === command.connector_id &&
+        catalog.commands.some(item => item.command_id === selector.commandRef &&
+          item.contract_cid === selector.commandCid));
+      if (commandCid !== selector.commandCid || commandCid !== contentCid(body) ||
+          command.target.resource_kind !== selector.target || catalogMatches.length !== 1) {
+        fail('InvalidInstalledEffectSelectors');
+      }
+      const key = JSON.stringify(['command', selector.target, selector.commandRef,
+        selector.commandCid, selector.effectId ?? null]);
+      if (exact.has(key)) fail('InvalidInstalledEffectSelectors');
+      exact.add(key);
+      owned.set(selector.commandRef, selector.commandCid);
+      continue;
     }
     const matches = mappings.filter(mapping => mapping.mapping_ref === selector.mappingRef);
     if (matches.length !== 1) fail('InvalidInstalledEffectSelectors');
@@ -121,7 +149,7 @@ export async function composeInstalledEffects(paths, options, load) {
         options.baseEnvironmentWire, environmentWire, effect.environmentWire);
       verifyInstalledConnectorBindings(environmentWire === undefined ? undefined :
         {environmentWire, connectorBindings: [...bindings.values()]}, effect);
-      for (const [ref, identity] of ownedMappings(effect)) {
+      for (const [ref, identity] of ownedContracts(effect)) {
         if (refs.has(ref) || cids.has(identity)) fail('InstalledEffectMappingAmbiguous');
         refs.add(ref);
         cids.add(identity);
@@ -155,7 +183,9 @@ export function installedEffectFor(inventory, descriptors) {
     if (!validSelector(descriptor)) fail('InstalledEffectProgramMismatch');
     const matches = inventory.effects.filter(effect => effect.effectSelectors.some(selector =>
       selector.kind === descriptor.kind && selector.target === descriptor.target &&
-      selector.mappingRef === descriptor.mappingRef && selector.mappingCid === descriptor.mappingCid &&
+      (descriptor.kind === 'command'
+        ? selector.commandRef === descriptor.commandRef && selector.commandCid === descriptor.commandCid
+        : selector.mappingRef === descriptor.mappingRef && selector.mappingCid === descriptor.mappingCid) &&
       (descriptor.capabilityCid === undefined
         ? selector.effectId === undefined || selector.effectId === descriptor.effectId
         : selector.capabilityCid === descriptor.capabilityCid)));

@@ -467,6 +467,12 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           withRows: (emit, readSignal, commit) => withManagedOutputRows(
             material, emit, readSignal, commit,
           ),
+          // The standard completion observer can inspect this exact retained
+          // generation while the existing physical use pin is held. This is
+          // not a Named Result, a new material or an independent read owner.
+          readRetained: (emit, readSignal) => withManagedOutputRows(
+            material, emit, readSignal, () => undefined,
+          ),
           close: () => memory.close(),
           diagnostic: Object.freeze({
             realization: 'local-managed',

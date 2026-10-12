@@ -178,7 +178,10 @@ test "asof pair bounds validate zero shortcuts repeated producers and overflow" 
   for i in 0..<2 {
     let b = @capacity_program_step.asof_search_bound_at(product, i).unwrap()
     assert_true(
-      physical_equal(@capacity_program_step.target_rows_bound(b), proof),
+      physical_equal(
+        @capacity_program_step.target_rows_bound(b).unwrap(),
+        proof,
+      ),
     )
     assert_eq(@capacity_program_step.target_rows_target(b), @pipeline.Input(i))
   }

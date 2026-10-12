@@ -47,6 +47,10 @@ fn checked_direct_program_fixture(
   series_steps? : String = "",
   calendar_series? : Bool = false,
   numeric_profile? : @numeric.Profile? = None,
+  selected_environment? : @environment.WireEnvironment? = None,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
+  request_parameter? : Bool = false,
+  supplied? : @decode.Cursor? = None,
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -54,6 +58,16 @@ fn checked_direct_program_fixture(
     old="\"remote\"",
     new="\"" + input_name + "\"",
   )
+  let text = if request_parameter {
+    text
+    .replace(
+      old="\"stages\":",
+      new="\"params\":{\"key\":{\"type\":\"number\",\"default\":1}},\"stages\":",
+    )
+    .replace(old="\"id\":1", new="\"id\":{\"$param\":\"key\"}")
+  } else {
+    text
+  }
   let program = @syntax.parse(
     if series_steps != "" {
       text.replace(old="\"steps\":[", new="\"steps\":[" + series_steps + ",")
@@ -377,15 +391,17 @@ fn checked_direct_program_fixture(
     },
     format=Json,
   ).unwrap()
-  let environment = remote_environment_fixture(
-    analytic=analytic_body != "",
-    nest=nest_guard is Some(_) ||
-      vector_steps != "" ||
-      lexical_steps != "" ||
-      graph_steps != "",
-    text_rank=lexical_steps != "",
-    graph=graph_steps != "" && graph_resources,
-    calendar=calendar_series,
+  let environment = selected_environment.unwrap_or(
+    remote_environment_fixture(
+      analytic=analytic_body != "",
+      nest=nest_guard is Some(_) ||
+        vector_steps != "" ||
+        lexical_steps != "" ||
+        graph_steps != "",
+      text_rank=lexical_steps != "",
+      graph=graph_steps != "" && graph_resources,
+      calendar=calendar_series,
+    ),
   )
   let lexical = if lexical_steps != "" && lexical_material {
     Some(
@@ -456,7 +472,7 @@ fn checked_direct_program_fixture(
   check(
     program,
     environment,
-    None,
+    supplied,
     if imported {
       [
         [@context.CapacityMaterial::{ sources, consumers: [], }],
@@ -550,6 +566,7 @@ fn checked_direct_program_fixture(
     max_bytes=10000000,
     max_nodes=1000000,
     max_depth=100,
+    request_value_policies~,
     numeric_profile~,
     graph~,
     text_rank=lexical,

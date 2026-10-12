@@ -23,6 +23,12 @@ pub fn issue_client_task_invocation(
   if !compilation.infers.is_empty() {
     return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
   }
+  if compilation.serialization is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("content_generation"))
+  }
+  if !client_single_direct_observation_covers_sources(prepared) {
+    return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
+  }
   if prepared_client_acquisition_count(prepared) != 1 ||
     bind_client_task_run(prepared, compilation, admission, run_definition)
     is Err(_) {
@@ -274,6 +280,9 @@ pub fn issue_client_multi_task_invocation(
   @publication.RunEvidenceValueIssue,
 ] {
   // Source observations cannot discharge the model capture custody boundary.
+  if compilation.serialization is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("content_generation"))
+  }
   if !compilation.infers.is_empty() {
     return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
   }

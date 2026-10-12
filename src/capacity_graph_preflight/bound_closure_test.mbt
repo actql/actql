@@ -245,7 +245,7 @@ test "producer capacity closure rejects substituted bindings at a later repeated
     ),
   )
   assert_eq(
-    @capacity_graph_preflight.target_membership_coordinates(membership),
+    @capacity_graph_preflight.target_membership_coordinates(membership).unwrap(),
     (0, 0, 1),
   )
   for visit in [-1, 3] {
@@ -285,7 +285,7 @@ test "producer capacity closure rejects substituted bindings at a later repeated
       0,
     )
     assert_eq(
-      @capacity_graph_preflight.target_membership_coordinates(imported),
+      @capacity_graph_preflight.target_membership_coordinates(imported).unwrap(),
       (proof_visit, 0, proof_visit),
     )
     assert_true(
@@ -343,7 +343,7 @@ test "producer capacity closure rejects substituted bindings at a later repeated
     assert_eq(
       @capacity_graph_preflight.target_membership_coordinates(
         membership_at_visit,
-      ),
+      ).unwrap(),
       (visit, 0, visit),
     )
   }

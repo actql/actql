@@ -3,7 +3,8 @@
 // their existing authority; this owner does not decide whether to retry.
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
-import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan} from './local-values-plan.mjs';
+import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
+  acquiredKeyedTaskPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
@@ -97,7 +98,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-  faultInjection, runInfer, computeConfigurations = {},
+  faultInjection, runInfer, runContent, computeConfigurations = {},
   observation,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
@@ -122,7 +123,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   const live = ref => current(ref)?.settled === false;
   const operation = ref => current(ref)?.promise;
 
-  async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess) {
+  async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess,
+    {captureOnly = false, ledger} = {}) {
     if (entry.sourceCapture !== undefined) {
       throw new TypeError('ClientSourceCaptureAlreadyRetained');
     }
@@ -138,10 +140,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     const measured = observation?.canMeasure('source') ? performance.now() : undefined;
     let returned = false;
     try {
-      entry.sourceCapture = await installedSource.open({preparedProgram,
+      const open = captureOnly ? installedSource.openCapture : installedSource.open;
+      if (typeof open !== 'function') throw new TypeError('InstalledSourceCaptureUnavailable');
+      entry.sourceCapture = await open({preparedProgram,
         registry, values, fragment, ordered, sourceAccess,
         signal: entry.abort.signal, preparedSource,
-        retainedRelationOutput,
+        retainedRelationOutput, ledger,
         reportAcquisitionFailure: acquisition.retain});
       returned = true;
     } catch (error) {
@@ -168,6 +172,100 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       effectiveDataPolicyCid: entry.sourceCapture.checkedSource.sourceDataPolicyCid});
     return {captured: entry.sourceCapture, captureStartedAt, captureCompletedAt,
       sourceEvidenceWire};
+  }
+
+  async function acquireKeyedSources(entry, preparedProgram, selected, acquired, principalId) {
+    const {directAdapter, keyedAdapter, preparedSource, directOccurrence,
+      directAccess, keyedAccess, preparedKeyed, acquisition, capacity, ledger, capturedContent} = selected;
+    // Retain the aggregate before the first await. Compute borrows these
+    // inputs; its confirmed close must precede reclamation of either source.
+    entry.multiSources = true;
+    const children = [];
+    const closed = new Set();
+    entry.sourceCapture = Object.freeze({async close() {
+      const failures = [];
+      for (const child of [...children].reverse()) {
+        if (closed.has(child)) continue;
+        try {
+          await child.close();
+          if (typeof child.cleanup === 'function' &&
+              (await child.cleanup() === false || child.cleanupPending() !== false)) {
+            throw new Error('ClientSourceCleanupPending');
+          }
+          closed.add(child);
+        } catch (error) {
+          failures.push(error);
+          // The lookup can still borrow its left capture while stopping.
+          // Keep earlier children until that dependent custody is reclaimed.
+          break;
+        }
+      }
+      if (failures.length) throw new AggregateError(failures, 'ClientSourceCleanupPending');
+    }});
+    const open = async (kind, operation) => {
+      let returned = false;
+      entry.abort.signal.throwIfAborted();
+      await step('acquisition_started', {ref: entry.ref, kind,
+        resourceUsage: resourceUsage(ledger)});
+      entry.physicalWorkMayHaveStarted = true;
+      try {
+        const child = await operation();
+        children.push(child);
+        returned = true;
+        await step('acquisition_completed', {ref: entry.ref, kind,
+          resourceUsage: resourceUsage(ledger)});
+        return child;
+      } catch (error) {
+        if (returned) throw error;
+        const ended = acquisitionEndHandoff().outcome(error);
+        if (ended.outcome === 'unknown') {
+          // A lookup's failed child is source custody, not an execution owner.
+          // Keep it alongside the already acquired Direct input for retry.
+          if (ended.recovery !== undefined) children.push(ended.recovery);
+          else entry.unresolvedCleanup = true;
+        }
+        throw error;
+      }
+    };
+    const captureStartedAt = now();
+    const captured = await open('direct', () => directAdapter.openCapture({preparedProgram,
+      registry, values, fragment, ordered, preparedSource,
+      occurrence: directOccurrence, sourceAccess: directAccess,
+      signal: entry.abort.signal, ledger}));
+    const left = checked(moon.clientProgramKeyedCaptureLeftRead(acquisition,
+      captured.capture.source()));
+    const keyedContent = !capturedContent ? undefined : runContent.captureKeyed({
+      preparedProgram, plan: acquired, acquisition, ledger, maxBytes: capacity.maxBytes, maxWork: capacity.maxWork,
+      sourceBinding: keyedAdapter.keyedRecoveryBinding(preparedKeyed),
+      store, principalId, signal: entry.abort.signal, retainExecution: child => children.push(child)});
+    const lookup = await open('keyed', () => keyedAdapter.openKeyedLookup({preparedProgram,
+      keyedAcquisition: acquisition, left, ledger, signal: entry.abort.signal,
+      originalCapture: captured.capture, keyedContent,
+      sourceAccess: keyedAccess, preparedKeyed, maxWork: capacity.maxWork}));
+    const sourceEvidenceWire = await captured.issueSourceEvidence({authorityScopeCid,
+      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
+    const keyedObservation = await lookup.issueObservation({authorityScopeCid, observedAt: now()});
+    const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
+    if (effectiveDataPolicyCid === undefined) throw new Error('InstalledKeyedSourcePolicyUnavailable');
+    if (acquired.serializationGraph !== undefined || acquired.kind === 'infer') {
+      // Both acquisition children remain in this supervisor's custody. The
+      // Content provider borrows their exact sealed inputs; cleanup stops that
+      // dependent before closing lookup and its left capture in reverse order.
+      return {plan: acquired, acquiredContent: {captured, ledger, sourceEvidenceWire,
+        authorityScopeCid, captureStartedAt, captureCompletedAt: now(), keyedObservation,
+        keyedLookup: await lookup.borrowSerializationInput(), keyedContent,
+        sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire,
+          {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}),
+        keyedSourceEvidence: control.admitRunEvidence('source_evidence', keyedObservation.sourceEvidenceWire,
+          {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})}};
+    }
+    const plan = acquiredKeyedTaskPublicationPlan({moon, control, acquired,
+      preparedProgram, captured, sourceEvidenceWire, keyedObservation,
+      authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt: now(),
+      namespaceId, storeAuthorityCid, now});
+    const setup = await lookup.openHost({registry, values, fragment, ordered, retainedRelationOutput});
+    entry.pendingSetup = setup;
+    return {plan, setup};
   }
 
   function retire(entry) {
@@ -349,13 +447,30 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       const acquiring = sourceProfile !== undefined &&
         moon.clientProgramAcquisitionCount(preparedProgram) > 0;
       const inferring = held.plan.kind === 'infer';
+      const serializing = held.plan.kind === 'serialization';
+      const generatingContent = held.plan.serializationGraph !== undefined;
       // A checked model barrier is not a Values task. The installed Model
       // connection must consume this exact plan and transfer physical custody
       // before advancing; this supervisor still owns the one Run-start claim.
       if (inferring && typeof runInfer !== 'function') {
         throw new Error('InstalledInferDispatchUnavailable');
       }
+      if ((serializing || generatingContent) && typeof runContent !== 'function') {
+        // Only the Host's installed physical composition may consume this
+        // checked Content plan. Never execute it as dense Relation/Values.
+        throw new Error('InstalledContentDispatchUnavailable');
+      }
       const multiple = held.preparedSources?.length === 2;
+      const keyedAcquisition = held.keyedSource?.acquisition ?? (typeof moon.clientProgramSelectSingleKeyedAcquisition === 'function'
+        ? checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) : undefined);
+      if (keyedAcquisition !== undefined && (multiple ||
+          inferring && !generatingContent && typeof runInfer.prepareKeyedLedger !== 'function')) {
+        throw new Error('InstalledKeyedSourceRunProfileUnsupported');
+      }
+      if (keyedAcquisition !== undefined && checkpoints !== undefined && held.keyedSource === undefined) {
+        // A listing-only inventory must not authorize keyed content I/O.
+        throw new Error('InstalledKeyedSourceAdmissionInventoryUnavailable');
+      }
       if (inferring && multiple) {
         throw new Error('InstalledInferMultiSourceUnsupported');
       }
@@ -366,7 +481,73 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         throw new TypeError('InstalledSourceRetainedOutputUnsupported');
       }
       let ledger;
+      let keyedSelection;
       const selectedSources = [];
+      if (keyedAcquisition !== undefined) {
+        const coordinates = moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
+        if (coordinates === undefined || installedSource === undefined) {
+          throw new Error('InstalledKeyedSourcePreparationUnavailable');
+        }
+        const directOccurrence = {stage: coordinates._0, input: coordinates._1, task: coordinates._2};
+        const directAccess = checkpoints?.acquisitionAccess(submission.requestId,
+          installedSource.sourceAccess, {...directOccurrence,
+            checkedSource: held.preparedSource.checkedSource,
+            readTuple: held.preparedSource.readTuple,
+            physicalBinding: held.preparedSource.physicalBinding,
+            ...(held.keyedSource === undefined ? {} : {installationBinding: {
+              connectorId: installedSource.connectorBindings[0].connectorId,
+              connectorRegistration: installedSource.connectorRegistration,
+              connectorRevision: installedSource.connectorRevision,
+              bindingCid: installedSource.connectorBindings[0].bindingCid}})}) ?? installedSource.sourceAccess;
+        const preparedSource = directAccess === held.preparedSourceAccess ? held.preparedSource :
+          await prepareAcquisition(preparedProgram, directAccess, directOccurrence);
+        const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+        const keyedAdapter = installedSourceFor(sourceProfile, facts[0]);
+        if (typeof installedSource.openCapture !== 'function' ||
+            typeof keyedAdapter.openKeyedLookup !== 'function' ||
+            typeof keyedAdapter.keyedLedgerCapacity !== 'function') {
+          throw new Error('InstalledKeyedSourceCapacityUnavailable');
+        }
+        const direct = installedSource.ledgerCapacity(preparedSource);
+        const capacity = keyedAdapter.keyedLedgerCapacity(keyedAcquisition);
+        const capturedContent = keyedAdapter.requiresRunContentCapture === true;
+        if (capturedContent && typeof runContent?.captureKeyed !== 'function') {
+          throw new Error('InstalledContentCaptureUnavailable');
+        }
+        const retainedKeyed = held.keyedSource;
+        const keyedAccess = retainedKeyed === undefined ? keyedAdapter.sourceAccess
+          : checkpoints?.acquisitionAccess(submission.requestId, keyedAdapter.sourceAccess,
+            {...retainedKeyed.occurrence, checkedSource: retainedKeyed.prepared.checkedSource,
+              readTuple: retainedKeyed.prepared.readTuple, physicalBinding: retainedKeyed.prepared.physicalBinding,
+              installationBinding: {connectorId: keyedAdapter.connectorBindings[0].connectorId,
+                connectorRegistration: keyedAdapter.connectorRegistration, connectorRevision: keyedAdapter.connectorRevision,
+                bindingCid: keyedAdapter.connectorBindings[0].bindingCid}}) ?? keyedAdapter.sourceAccess;
+        const preparedKeyed = retainedKeyed === undefined ? undefined :
+          (await keyedAdapter.prepareKeyed({preparedProgram, keyedAcquisition,
+            requestIdentity: retainedKeyed.requestIdentity, sourceAccess: keyedAccess})).prepared;
+        // Captured Content must retain the admitted physical read binding.
+        // Refuse missing custody before reserving a start or listing any rows;
+        // acquisition rechecks that binding before issuing its Content frame.
+        if (capturedContent) {
+          if (typeof keyedAdapter.keyedRecoveryBinding !== 'function') {
+            throw new Error('InstalledCapturedContentBindingUnavailable');
+          }
+          keyedAdapter.keyedRecoveryBinding(preparedKeyed);
+        }
+        ledger = generatingContent ? runContent.prepareKeyedLedger({preparedProgram, plan: held.plan,
+          direct, acquisition: keyedAcquisition, capacity, capturedContent}) :
+          inferring ? runInfer.prepareKeyedLedger({preparedProgram, plan: held.plan,
+            direct, acquisition: keyedAcquisition, capacity, capturedContent}) :
+          moon.clientProgramPrepareKeyedCapturedLocalInstalledLedger(preparedProgram,
+          direct.capacity, keyedAcquisition, capacity.capacity,
+          [direct.transferBytes, capacity.transferBytes], [direct.executionBytes, capacity.executionBytes],
+          capacity.maxBytes, capacity.maxWork, registry, values, fragment, ordered, capturedContent);
+        if (ledger === undefined) throw new Error('InstalledKeyedSourceLedgerUnavailable');
+        entry.acquisitionLedger = ledger;
+        keyedSelection = {directAdapter: installedSource, keyedAdapter, preparedSource,
+          directOccurrence, directAccess, keyedAccess, preparedKeyed,
+          acquisition: keyedAcquisition, capacity, ledger, capturedContent};
+      }
       if (multiple) {
         // Read approvals retain their occurrence and physical target. Resolve
         // resumed access before selecting configurations and sizing the one
@@ -400,9 +581,26 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;
       }
+      if (generatingContent && acquiring && keyedSelection === undefined) {
+        if (multiple ||
+            typeof runContent.prepareAcquiredLedger !== 'function' ||
+            typeof installedSource?.ledgerCapacity !== 'function') {
+          throw new Error('InstalledContentAcquiredDispatchUnavailable');
+        }
+        const access = checkpoints?.acquisitionAccess(submission.requestId,
+          installedSource.sourceAccess) ?? installedSource.sourceAccess;
+        if (held.preparedSourceAccess !== access) {
+          held.preparedSource = await prepareAcquisition(preparedProgram, access);
+          held.preparedSourceAccess = access;
+        }
+        ledger = runContent.prepareAcquiredLedger({preparedProgram, plan: held.plan,
+          sourceCapacity: installedSource.ledgerCapacity(held.preparedSource)});
+        entry.acquisitionLedger = ledger;
+      }
       let setup;
       let acquiredInfer;
-      if (!acquiring && !inferring) {
+      let acquiredContent;
+      if (!acquiring && !inferring && !serializing) {
         const open = retainedRelationOutput
           ? moon.clientProgramOpenSourceFreeLocalRetainedHost
           : moon.clientProgramOpenSourceFreeLocalHost;
@@ -440,7 +638,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       const sourceAccess = checkpoints?.acquisitionAccess(
         submission.requestId, installedSource?.sourceAccess) ??
         installedSource?.sourceAccess;
-      if (multiple) {
+      if (keyedSelection !== undefined) {
+        const keyed = await acquireKeyedSources(entry, preparedProgram, keyedSelection, held.plan, actual);
+        held.plan = keyed.plan;
+        setup = keyed.setup;
+        acquiredContent = keyed.acquiredContent;
+      } else if (multiple) {
         entry.multiSources = true;
         const captures = [];
         const closed = new Set();
@@ -527,8 +730,14 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           held.preparedSourceAccess = sourceAccess;
         }
         const {captureStartedAt, captureCompletedAt, sourceEvidenceWire} =
-          await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess);
-        if (inferring) {
+          await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess,
+            {captureOnly: generatingContent, ledger: generatingContent ? ledger : undefined});
+        if (generatingContent) {
+          acquiredContent = {captured: entry.sourceCapture, ledger, sourceEvidenceWire,
+            authorityScopeCid, captureStartedAt, captureCompletedAt,
+            sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire,
+              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
+        } else if (inferring) {
           const captured = entry.sourceCapture;
           const input = captured.composedInfer ? undefined : checked(moon.clientProgramAdmitInferCapturedInput(
             preparedProgram, captured.inferStep, captured.capturedSource,
@@ -556,9 +765,35 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.abort.signal.throwIfAborted();
       entry.physicalWorkMayHaveStarted = true;
       entry.computeStartAttempted = true;
+      if (serializing) {
+        await runContent({preparedProgram, plan: held.plan, store,
+          principalId: actual, signal: entry.abort.signal, acquiredContent,
+          retainExecution(execution) {
+            if (entry.cleanupOwner !== undefined && entry.cleanupOwner !== execution) {
+              throw new TypeError('ClientDispatchCleanupOwnerAlreadyRetained');
+            }
+            if (typeof execution?.close !== 'function' ||
+                typeof execution?.cleanup !== 'function' ||
+                typeof execution?.cleanupPending !== 'function') {
+              throw new TypeError('ClientDispatchCleanupOwnerInvalid');
+            }
+            entry.cleanupOwner = execution;
+          }});
+        // A byte writer or private capture alone is not a public Result. The
+        // same committed Store index and physical-close owner govern success.
+        if (entry.cleanupOwner === undefined ||
+            await store.confirmCommittedIndex(entry.ref) === undefined) {
+          throw new Error('InstalledContentPublicationIncomplete');
+        }
+        entry.publicationCommitted = true;
+        await step('computed', {ref: accepted.ref});
+        await settleCleanup(entry);
+        await finishRun(entry);
+        return;
+      }
       if (inferring) {
         const result = await runInfer({preparedProgram, plan: held.plan, store,
-          acquiredInfer,
+          acquiredInfer, acquiredContent,
           submission: Object.fromEntries(['requestId', 'principalId', 'connection',
             'kind', 'input', 'parameters'].filter(key => Object.hasOwn(submission, key))
             .map(key => [key, submission[key]])),
@@ -654,7 +889,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await finishRun(entry);
     }).catch(async cause => {
       diagnostic('dispatch_failed', {ref: accepted.ref,
-        code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed'});
+        code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
+        issueTag: cause?.cause?.$tag, nestedIssueTag: cause?.cause?._0?.$tag});
       entry.primaryFailure = cause;
       const failedExecution = cause instanceof CapturedRunPublicationError
         ? cause.execution : undefined;

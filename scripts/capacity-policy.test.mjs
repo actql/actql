@@ -5,7 +5,7 @@ import { machineCid } from './actql-spec-family.mjs';
 
 const contract = JSON.parse(readFileSync(new URL('../spec/contracts/actql-capacity-host-policy.json', import.meta.url), 'utf8'));
 const source = readFileSync(new URL('../src/capacity_policy/policy.mbt', import.meta.url), 'utf8');
-const optional = ['max_aggregate_string_bytes','max_analytic_frame_memberships','max_analytic_input_wire_bytes','max_analytic_output_wire_bytes','max_analytic_partition_wire_bytes','max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes'];
+const optional = ['max_aggregate_string_bytes','max_analytic_frame_memberships','max_analytic_input_wire_bytes','max_analytic_output_wire_bytes','max_analytic_partition_wire_bytes','max_file_listing_items','max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes'];
 
 test('capacity policy schema and admitted field set are identical and closed', () => {
   assert.equal(contract.version, 'actql-capacity-host-policy-contract/0.1');
@@ -41,7 +41,7 @@ test('host witness field units and laws match the closed product mapping', () =>
   const product = readFileSync(new URL('../src/capacity_host_witness/witness.mbt', import.meta.url), 'utf8');
   const pairs = [...product.matchAll(/"(max_[a-z_]+)"\s*=>\s*Some\(\((\w+), "([^"]+)"\)\)/g)]
     .map(([,field,unit,law_id]) => [field, { unit: unitNames[unit], law_id }]);
-  assert.equal(pairs.length, 15);
+  assert.equal(pairs.length, 16);
   assert.equal(new Set(pairs.map(([field]) => field)).size, pairs.length);
   assert.deepEqual(Object.fromEntries(pairs), contract.host_witness_laws);
   const unsupported = contract.schema.required.filter(k => k !== 'version' && !Object.hasOwn(contract.host_witness_laws, k));

@@ -218,7 +218,7 @@ test "take preserves every relation value domain and NULL" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -231,7 +231,7 @@ test "take preserves every relation value domain and NULL" {
           contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           live,
         ).value
-      "artifact" => issued_artifact_value(contract, live).value
+      "artifact" => issued_content_value(contract, live).value
       _ =>
         @admitted.admit(contract, input_cursor(wire), {
           max_nodes: 100,

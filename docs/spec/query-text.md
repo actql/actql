@@ -8,6 +8,34 @@ the common checker. The grammar alone does not promise every form is
 currently executable. The [frontend design mapping](../design/frontend-r1.md)
 records implemented boundaries and intentional differences.
 
+## Content serialization
+
+`SERIALIZE FORMAT CSV` or `SERIALIZE FORMAT JSONL` consumes the current Relation
+through the ordinary Program Content barrier, not a Frontend encoder. It takes
+an internal `ORDER BY` or `PRESERVE ORDER`, followed by `OPTIONS (...)`:
+
+```sql
+SELECT 2 AS id, CAST(NULL AS FLOAT64) AS p
+|> SERIALIZE FORMAT CSV PRESERVE ORDER OPTIONS (
+     name = 'selected.csv', header = TRUE, null_marker = r'\N',
+     encoding = 'UTF-8', line_ending = 'CRLF', max_rows = 3, max_bytes = 128
+   )
+|> RESULT file;
+```
+
+The output columns are exactly `name`, `content`, `media_type`, `size_bytes`
+and `row_count`. A terminal RESULT binds this output without another computation
+after the barrier. Input fields and range aliases do not survive it.
+The common [Content profile](language.md#serialize) owns option domains and
+defaults, presence, ordering evidence, bounds and byte laws in every source
+format. Options are static scalar literals; the two bounds additionally accept
+declared parameters. Row expressions, duplicate or unknown options are refused.
+CSV requires explicit `header` and `null_marker`; the latter is either empty
+text or the exact `\N` value. Generating Content does not upload it or grant
+Model/Command access. Runtime support is established separately from parsing;
+acquired input, explicit ordering and downstream components require their real
+execution/custody connections.
+
 ## Decoding and expression rules
 
 Input must be strict UTF-8 scalar text. A leading BOM follows the existing
@@ -1172,6 +1200,52 @@ private range bindings. Pipe AS and SELECT retain their existing scope rules.
 INFER, retained RESULT and Graph carrier operations keep their own placement
 contracts and are not moved into a CTE to make a JOIN parse.
 
+## File listing Sources
+
+`LIST_FILES` is a table source in SQL and Pipe, including a JOIN input. Its
+first argument is a statically resolved installed Source name, not an expression,
+URI or WITH producer. The normal Source publication and Catalog determine
+its authority and file-list contract; a matching column shape alone is not a
+file-list capability.
+
+```sql
+SELECT resource, version, path
+FROM LIST_FILES(files, paths => ['reports/a.csv', 'reports/b.csv']);
+
+FROM LIST_FILES(files, glob => r'reports/*.csv')
+|> SELECT resource, version, path;
+```
+
+The selector is exclusive: `paths`, `glob`, or no selector. Unknown arguments,
+extra arguments and computed Source names are rejected. The initial lowering
+accepts literal arrays of strings for paths, string literals for glob, or a
+declared nonnullable parameter of the corresponding type. Computed selector
+expressions are not initially supported. `paths => ARRAY<STRING>[]` is an
+explicit empty selection, not selector-free listing. Selector-free listing
+requires the installed profile to permit it. A Host-fixed selector is not
+silently replaced by the query's selector.
+
+Lowering preserves the published Source declaration and its other Request
+fields. It supplies both Request alternatives, with explicit NULL for the
+inactive one, and validates them through the ordinary Request owner. The
+profile determines which selector is permitted. A nullable selector parameter
+does not prove that a selector will be present; it is rejected rather than
+allowing NULL to widen the selection. These rules also apply to structured
+Program Requests and do not introduce a second file-specific binding owner.
+
+Decoded paths and glob data retain case, Unicode normalization distinctions and
+literal object-key spelling. SQL string chunks retain their raw/nonraw origin:
+nonraw glob chunks containing a source backslash are rejected before decoding
+can hide an ambiguous escape. This source-origin restriction does not apply to
+already decoded parameter or structured Program data. Glob matching follows
+the common file-list contract, not the provider's native glob language.
+
+A file-list profile supplies finite physical-limit candidates, not a proof of
+actual item count, snapshot isolation or successful acquisition. The installed
+acquisition must enforce its resolved limits and complete the declared selection
+protocol before exposing the Relation. LIMIT, a page boundary or a continuation
+token cannot turn an unfinished listing into a complete one.
+
 ## Source-free SELECT
 
 A SELECT may omit FROM, following the adopted
@@ -2088,8 +2162,44 @@ Lowering emits the existing Stage update Effect with the authored target,
 MappingRef, Result, ID field and SET values. Existing checker, Mapping, planner,
 preview, approval, capture and cleanup owners remain authoritative. No approval
 policy is authored in this surface, and syntax admission does not authorize
-execution. Other Effect kinds and complete Effect-language coverage remain
-separate implementation obligations.
+execution. Complete Effect-language coverage remains a separate implementation
+obligation.
+
+### COMMAND postludes
+
+An explicit COMMAND declaration follows a semicolon-terminated query:
+
+```aql
+FROM files.transfers |> SELECT destination, name, content |> RESULT transfers;
+EFFECT upload COMMAND
+  FROM RESULT transfers AS t
+  TARGET t.destination
+  CONTRACT `command:files.upload.v1`
+  INPUT (name = t.name, content = t.content);
+```
+
+SQL uses the same postlude after its SELECT or WITH query; WITH and FROM-first
+Pipe statements use the public `aql-text` format (the frontend's `Text` form).
+The postlude refers to an explicit retained Result, not a Source alias or a
+pipeline step. Qualified
+fields use that declaration's Result alias. TARGET and INPUT use existing
+EffectValue fields or scalar literals; computed expressions are refused and
+belong in the preceding Relation pipeline. Unknown Result names, foreign
+aliases, unknown fields, duplicate Effect names and duplicate INPUT fields are
+rejected. An empty INPUT list remains subject to the declared Command schema.
+COMMAND postludes cannot be mixed with an existing terminal UPDATE or Table
+write in the same query. Both the query separator and each postlude terminator
+are required.
+
+Lowering emits the existing `command` Effect with its original Result port,
+ResourceRef target, CommandContractRef and typed input. The common checker
+validates the target kind and input schema; parser success does not issue a
+ResourceRef, grant write permission or approve a Command. Preview, current
+authority, approval, durable send entry, saved outcome, unknown non-resend and
+cleanup remain with their existing owners. ContentRefs are references to owned
+bytes, not arbitrary bytes authored in the postlude. Retained Model Results
+cross an ordinary Stage Result edge before a downstream COMMAND continuation;
+the continuation does not re-acquire or re-evaluate that Model producer.
 
 ## Table create and whole-table replace
 

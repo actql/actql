@@ -28,6 +28,16 @@ pub fn check_client_model_original_storage_origin(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  check_client_model_original_storage_origin_field(document, storage)
+}
+
+///|
+// Data comparison reused after the entry's original lifecycle check. This
+// does not admit the supplying Store port, its handle or a committed receipt.
+fn check_client_model_original_storage_origin_field(
+  document : @publication.ModelOriginalResourceDocument,
+  storage : @publication.RunEvidenceValue,
+) -> Result[Unit, ClientModelOriginalOriginIssue] {
   if @publication.run_evidence_value_name(storage) !=
     "model_original_storage_binding" ||
     @publication.model_original_resource_origin_field(

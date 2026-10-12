@@ -326,7 +326,7 @@ test "binary output walks a copied nested array between child values" {
             }
             if value.state.output_charge is Some(cursor) &&
               cursor.measure is Some(_) &&
-              cursor.output.buffer.budget.nodes >= 20 {
+              cursor.buffer.budget.nodes >= 20 {
               assert_true(@bounded.request_cancel(control))
               assert_true(advance_binary_output_fixture(execution) is Stopped)
               terminal = true

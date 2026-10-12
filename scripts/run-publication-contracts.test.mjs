@@ -15,6 +15,31 @@ import {
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 
+test('Command Preview and review retain the closed ResourceRef target schema', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const preview = registry.artifact_schemas.effect_preview;
+  const original = structuredClone(preview);
+  const target = effectPreviewSchema(preview).properties.effects.items
+    .properties.changes.items.properties.target_row_identity;
+  const refs = target.oneOf.filter(branch =>
+    branch.properties?.$actql_ref?.const === 'resource');
+  assert.deepEqual(refs, [registry.schemas.resource_ref]);
+  assert.equal(refs[0].additionalProperties, false);
+  assert.ok(refs[0].required.includes('authority_scope_cid'));
+  assert.ok(refs[0].required.includes('boundary_cid'));
+  assert.ok(refs[0].required.includes('identity_cid'));
+  assert.deepEqual(target.oneOf.slice(0, -1), original.properties.effects.items
+    .properties.changes.items.properties.target_row_identity.oneOf.filter(branch =>
+      branch.properties?.$actql_ref?.const !== 'resource'));
+  const current = correctedContracts(registry,
+    read('spec/contracts/actql-cli-run-response.schema.json')).registry;
+  assert.deepEqual(current.artifact_schemas.review_projection.properties.displayed_rows
+    .items.properties.target_row_identity, target);
+  assert.deepEqual(preview, original, 'the supplied schema is not mutated');
+  assert.deepEqual(effectPreviewSchema(effectPreviewSchema(preview)),
+    effectPreviewSchema(preview));
+});
+
 test('private Table Preview source binding is exclusive and store-only', () => {
   const preview = read('spec/contracts/actql-protocol-schemas.json')
     .artifact_schemas.effect_preview;
@@ -419,13 +444,53 @@ test('corrected schemas have independently fixed canonical identities', () => {
       result_manifest:
         'sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02',
       run_receipt:
-        'sha256:15fc852a55288e801b64eccd756bb9d82a6cd0c3c65e6116505b27bbdc32523a',
+        'sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847',
       run_state:
         'sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30',
       captured_run:
-        'sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4',
+        'sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a',
     },
   );
+  // Content generation changes only the optional observation and capture
+  // inventory. Reverse those exact reviewed additions and keep the original
+  // identities below: unrelated schema drift cannot be hidden by repinning.
+  function withoutContentObservation(receipt) {
+    const prior = structuredClone(receipt);
+    const observation = prior.properties.observation_set;
+    assert.deepEqual(observation.properties.content_generation_cids, {
+      type: 'array', uniqueItems: true,
+      items: {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'},
+    });
+    assert.ok(!observation.required.includes('content_generation_cids'));
+    delete observation.properties.content_generation_cids;
+    const kind = prior.properties.external_observation_evidence.items.properties.kind;
+    assert.deepEqual(kind.enum, ['model_invocation', 'source_lookup', 'content_generation']);
+    kind.enum = ['model_invocation', 'source_lookup'];
+    return prior;
+  }
+  const baselineReceipt = withoutContentObservation(registry.artifact_schemas.run_receipt);
+  assert.equal(machineCid(baselineReceipt),
+    'sha256:15fc852a55288e801b64eccd756bb9d82a6cd0c3c65e6116505b27bbdc32523a');
+  const baselineCapture = structuredClone(registry.artifact_schemas.captured_run);
+  baselineCapture.properties.receipt = withoutContentObservation(baselineCapture.properties.receipt);
+  const generation = baselineCapture.properties.effect_context.properties.content_generations;
+  assert.equal(generation.type, 'array');
+  assert.equal(generation.minItems, 1);
+  assert.equal(generation.items.additionalProperties, false);
+  assert.deepEqual(generation.items.required, ['content_evidence', 'content_generation',
+    'content_input_artifact', 'content_reference', 'invocation_template']);
+  const profiles = read('spec/contracts/actql-production-profile-schemas.json');
+  assert.deepEqual(generation.items.properties, {
+    content_evidence: profiles.schemas.content_evidence,
+    content_generation: registry.artifact_schemas.content_generation,
+    content_input_artifact: registry.artifact_schemas.content_input_artifact,
+    content_reference: registry.schemas.content_ref,
+    invocation_template: registry.artifact_schemas.bound_invocation_template,
+  });
+  assert.ok(!baselineCapture.properties.effect_context.required.includes('content_generations'));
+  delete baselineCapture.properties.effect_context.properties.content_generations;
+  assert.equal(machineCid(baselineCapture),
+    'sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4');
   // The new empty-inventory rule is the only change to this fixed prior
   // Run-state contract. Retain its original CID as historical evidence.
   const priorState = structuredClone(registry.artifact_schemas.run_state);
@@ -440,14 +505,14 @@ test('corrected schemas have independently fixed canonical identities', () => {
   priorManifest.properties.results.minProperties = 1;
   assert.equal(machineCid(priorManifest),
     'sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa');
-  const priorReceipt = structuredClone(registry.artifact_schemas.run_receipt);
+  const priorReceipt = structuredClone(baselineReceipt);
   priorReceipt.properties.result_manifest = priorManifest;
   assert.equal(machineCid(priorReceipt),
     'sha256:d5de76fb14e35a588d34bfa13d758b6e6b2e0a388645630b692de8cf1f27ba79');
   // Independently recomputed from fixed e88475ee with the private Definition
   // choice and four typed dependency roles added. Undo exactly those changes
   // before checking the previous source discriminant and Manifest extension.
-  const previous = structuredClone(registry.artifact_schemas.captured_run);
+  const previous = structuredClone(baselineCapture);
   previous.properties.receipt = priorReceipt;
   assert.equal(machineCid(previous),
     'sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322');
@@ -489,4 +554,27 @@ test('corrected schemas have independently fixed canonical identities', () => {
   delete manifest.properties.table_inputs;
   assert.equal(machineCid(previous),
     'sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7');
+});
+
+test('ResourceRef targets change only the independently pinned Preview and review union', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  for (const [name, currentCid, priorCid, target] of [
+    ['effect_preview',
+      'sha256:821609c0cc04ef0ca1b0760a1864673e4fa70a3709af5d33e37e5177477d2f3a',
+      'sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5',
+      schema => schema.properties.effects.items.properties.changes.items.properties.target_row_identity],
+    ['review_projection',
+      'sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2',
+      'sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb',
+      schema => schema.properties.displayed_rows.items.properties.target_row_identity],
+  ]) {
+    assert.equal(machineCid(registry.artifact_schemas[name]), currentCid);
+    assert.equal(registry.artifact_schema_cids[name], currentCid);
+    const prior = structuredClone(registry.artifact_schemas[name]);
+    const union = target(prior);
+    assert.equal(union.oneOf.length, 4);
+    assert.deepEqual(union.oneOf.at(-1), registry.schemas.resource_ref);
+    union.oneOf.pop();
+    assert.equal(machineCid(prior), priorCid, 'all non-target schema content is unchanged');
+  }
 });

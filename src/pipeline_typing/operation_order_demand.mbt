@@ -13,6 +13,7 @@ pub(all) enum OperationOrderDemand {
 ///|
 pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? {
   match v {
+    SerializationInputOrder => Some(CompleteOrder)
     RelationRequirement(p) | SequenceRowsRequirement(p) =>
       match p.kind {
         SortOrderCompletion => Some(CompleteOrder)

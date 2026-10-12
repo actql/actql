@@ -2,6 +2,7 @@ import {checked} from './runtime-result.mjs';
 import {publicationAction} from './publication-action.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {
+  resultOutputLimitFields,
   validOutputLimits,
   validResultOutputLimits,
 } from './result-output-limits.mjs';
@@ -1804,6 +1805,17 @@ function publicationControl(moon) {
   const admissionTokens = new WeakMap();
   const compiledRunTokens = new WeakMap();
   const originalRunPlanTokens = new WeakMap();
+  const serializationPlanTokens = new WeakMap();
+  const serializationGenerationTokens = new WeakMap();
+  const serializationInputEvidenceTokens = new WeakMap();
+  const compiledSourceFreeResultPolicy = compiled => {
+    const value = compiledRunTokens.get(compiled);
+    if (value === undefined) throw new TypeError('Foreign Client compiled Run');
+    const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(value);
+    return original === undefined ? undefined : Object.freeze({
+      kind: original._0, cid: original._1, wire: original._2,
+    });
+  };
   const inferInvocationTokens = new WeakMap();
   const compiledRunResult = (result, code) => {
     try {
@@ -1812,6 +1824,55 @@ function publicationControl(moon) {
       if (error.code !== 'MoonBitHostFailure') throw error;
       throw Object.assign(new Error(code, {cause: error.cause}), {code});
     }
+  };
+  const compiledContent = compiled => {
+    const value = compiledRunTokens.get(compiled);
+    if (value === undefined || !moon.clientProgramCompiledRunHasSerialization(value)) {
+      throw new TypeError('Foreign Client compiled Content Run');
+    }
+    return value;
+  };
+  const prepareSerializationGraph = (checkedProgram, options, intermediate) => {
+    const original = options?.resultDataPolicy;
+    if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
+        typeof original.wire !== 'string' ||
+        !['task', 'step', 'maxRows', 'maxBytes'].every(key =>
+          Number.isInteger(options[key]) && options[key] >= 0 &&
+          options[key] <= 2147483647)) {
+      throw new TypeError('Invalid Content compilation options');
+    }
+    const issue = intermediate ? moon.clientProgramSerializationPlanComponent
+      : moon.clientProgramSerializationPlanGraph;
+    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+      original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    const selected = Object.freeze({task: options.task, step: options.step,
+      wire: moon.clientProgramSerializationPlanGraphWire(graph)});
+    serializationPlanTokens.set(selected, graph);
+    return selected;
+  };
+  const contentCaptures = values => {
+    if (values === undefined) return [];
+    if (!Array.isArray(values)) throw new TypeError('Invalid Content capture inventory');
+    return values.map(value => {
+      const generation = serializationGenerationTokens.get(value);
+      if (generation === undefined) throw new TypeError('Foreign Client Content generation');
+      return compiledRunResult(moon.clientProgramSerializationCapture(generation),
+        'Client Content capture unavailable');
+    });
+  };
+  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate) => {
+    if (!['task', 'step', 'maxRows', 'maxBytes'].every(key =>
+      Number.isInteger(options?.[key]) && options[key] >= 0 && options[key] <= 2147483647)) {
+      throw new TypeError('Invalid acquired Content compilation options');
+    }
+    const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
+      : moon.clientProgramAcquiredSerializationPlanGraph;
+    const graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
+      options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
+    const selected = Object.freeze({task: options.task, step: options.step,
+      wire: moon.clientProgramSerializationPlanGraphWire(graph)});
+    serializationPlanTokens.set(selected, graph);
+    return selected;
   };
   const snapshotTokens = new WeakMap();
   const effectSourceTokens = new WeakMap();
@@ -2056,6 +2117,96 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
+    prepareCheckedClientSerializationGraph(checkedProgram, options) {
+      return prepareSerializationGraph(checkedProgram, options, false);
+    },
+    prepareCheckedClientSerializationComponent(checkedProgram, options) {
+      return prepareSerializationGraph(checkedProgram, options, true);
+    },
+    prepareCheckedClientSerializedInferGraph(occurrence, selected, execution) {
+      const graph = serializationPlanTokens.get(selected);
+      if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
+      return compiledRunResult(moon.clientProgramSerializedInferPlanGraph(
+        occurrence, graph, execution), 'RunHostContentInferPlanRejected');
+    },
+    startCheckedClientGeneratedInferExecution(compiled, generation, prepared, graph, provider) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined) throw new TypeError('Foreign Client Content generation');
+      return compiledRunResult(moon.clientProgramStartGeneratedInferExecution(
+        prepared, run, original, graph, provider), 'RunHostContentInferInputRejected');
+    },
+    startCheckedClientGeneratedInferInputs(compiled, generation, graph, inputs, provider) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined) throw new TypeError('Foreign Client Content generation');
+      return compiledRunResult(moon.clientProgramStartGeneratedInferInputs(
+        run, original, graph, inputs, provider), 'RunHostContentInferInputRejected');
+    },
+    startCheckedClientOriginalGeneratedInferExecution(compiled, generation, prepared, graph, provider,
+      definition, consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined) throw new TypeError('Foreign Client Content generation');
+      return compiledRunResult(moon.clientProgramStartOriginalGeneratedInferExecution(
+        prepared, run, original, graph, provider, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes),
+      'RunHostContentInferInputRejected');
+    },
+    startCheckedClientOriginalGeneratedInferInputs(compiled, generation, graph, inputs, provider,
+      definition, consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined) throw new TypeError('Foreign Client Content generation');
+      return compiledRunResult(moon.clientProgramStartOriginalGeneratedInferInputs(
+        run, original, graph, inputs, provider, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes),
+      'RunHostContentInferInputRejected');
+    },
+    startCheckedClientRestoredGeneratedInferExecution(compiled, definition, generation,
+      prepared, graph, provider, bodies, snapshot, available) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined || typeof available !== 'function') {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      return compiledRunResult(moon.clientProgramStartRestoredGeneratedInferInput(
+        prepared, run, token(definition), original, graph, bodies.registry, bodies.values,
+        provider, snapshot.binding, snapshot.descriptorWire, snapshot.rows, available,
+        bodies.fragment, bodies.ordered), 'RunHostContentInferInputRejected');
+    },
+    startCheckedClientRestoredGeneratedInferInputs(compiled, definition, generation,
+      graph, inputs, provider, snapshot, available) {
+      const run = compiledContent(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (original === undefined || typeof available !== 'function') {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      return compiledRunResult(moon.clientProgramStartRestoredGeneratedInferInputs(
+        run, token(definition), original, graph, inputs, provider, snapshot.binding,
+        snapshot.descriptorWire, available), 'RunHostContentInferInputRejected');
+    },
+    startCheckedClientContentInferObservation(compiled, executions, generations, ledger, limits) {
+      const run = compiledContent(compiled);
+      if (!Array.isArray(generations)) throw new TypeError('Invalid Content capture inventory');
+      const originals = generations.map(generation => {
+        const original = serializationGenerationTokens.get(generation);
+        if (original === undefined ||
+            moon.clientProgramSerializationGenerationEvidence(original, run) === undefined) {
+          throw new TypeError('Foreign Client Content generation');
+        }
+        return original;
+      });
+      return compiledRunResult(moon.clientProgramStartContentInferObservationIssuance(
+        executions, originals, ledger, limits.maxSlots, limits.maxWireBytes, limits.maxWork),
+      'RunHostContentInferObservationRejected');
+    },
+    prepareCheckedClientAcquiredSerializationGraph(checkedProgram, options) {
+      return prepareAcquiredSerializationGraph(checkedProgram, options, false);
+    },
+    prepareCheckedClientAcquiredSerializationComponent(checkedProgram, options) {
+      return prepareAcquiredSerializationGraph(checkedProgram, options, true);
+    },
     readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {
         throw Object.assign(new Error('ClientOperationUnavailable'),
@@ -2156,14 +2307,23 @@ function publicationControl(moon) {
       return original.planViewWire;
     },
     prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
-      if (!['values', 'tasks', 'infer'].includes(kind)) {
+      if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');
       }
-      if ((kind === 'infer') !== (inferGraph !== undefined)) {
-        throw new TypeError('Infer compilation requires its checked graph');
+      if ((kind === 'infer' || kind === 'serialization') !== (inferGraph !== undefined)) {
+        throw new TypeError(kind === 'serialization'
+          ? 'Content compilation requires its checked graph'
+          : 'Infer compilation requires its checked graph');
+      }
+      const serializationGraph = kind === 'serialization'
+        ? serializationPlanTokens.get(inferGraph) : undefined;
+      if (kind === 'serialization' && serializationGraph === undefined) {
+        throw new TypeError('Foreign Content compilation graph');
       }
       const compilation = compiledRunResult(kind === 'values'
         ? moon.clientProgramCompileLocalValues(checkedProgram)
+        : kind === 'serialization'
+          ? moon.clientProgramCompileLocalSerialization(checkedProgram, serializationGraph)
         : kind === 'infer'
           ? Array.isArray(inferGraph)
             ? moon.clientProgramCompileLocalInfers(checkedProgram, inferGraph)
@@ -2242,14 +2402,229 @@ function publicationControl(moon) {
       compiledRunTokens.set(result, value);
       return result;
     },
-    compiledInferSourceFreeResultPolicy(compiled) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined) throw new TypeError('Foreign Client compiled Run');
-      const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(value);
-      return original === undefined ? undefined : Object.freeze({
-        kind: original._0, cid: original._1, wire: original._2,
-      });
+    compiledSourceFreeResultPolicy,
+    // Borrow the original admitted Effect compilation. No fresh Program,
+    // authorization, Source observation or Command approval is issued here.
+    adoptCheckedClientEffectSerializationRun(allowed, definition) {
+      const value = compiledRunResult(moon.clientProgramEffectAllowedSerializationRun(allowed),
+        'RunHostEffectContentAdmissionRejected');
+      if (!moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Effect Content Run Definition differs from admission');
+      }
+      const result = Object.freeze({kind: 'serialization',
+        template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
+        compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
+        preparedEvidence: inspectEvidence(moon.clientProgramCompiledRunPrepared(value)),
+        authorization: inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)),
+        admission: inspectAdmission(moon.clientProgramCompiledRunAdmission(value))});
+      compiledRunTokens.set(result, value);
+      return result;
     },
+    compiledSerializationGraph(compiled) {
+      const value = compiledContent(compiled);
+      const graph = moon.clientProgramCompiledRunSerializationGraph(value);
+      if (graph === undefined) throw new TypeError('Content compilation graph unavailable');
+      const coordinates = moon.clientProgramSerializationPlanGraphCoordinates(graph);
+      const selected = Object.freeze({task: coordinates._0, step: coordinates._1,
+        wire: moon.clientProgramSerializationPlanGraphWire(graph)});
+      serializationPlanTokens.set(selected, graph);
+      return selected;
+    },
+    inferSerializationGraph(inferGraph) {
+      const graph = moon.clientProgramInferPlanSerializationGraph(inferGraph);
+      if (graph === undefined) return undefined;
+      const coordinates = moon.clientProgramSerializationPlanGraphCoordinates(graph);
+      const selected = Object.freeze({task: coordinates._0, step: coordinates._1,
+        wire: moon.clientProgramSerializationPlanGraphWire(graph)});
+      serializationPlanTokens.set(selected, graph);
+      return selected;
+    },
+    compiledSerializationPolicy(compiled) {
+      const value = compiledContent(compiled);
+      const body = moon.clientProgramSerializationPolicyBody(value);
+      return body === undefined ? undefined : Object.freeze({kind: body._0, cid: body._1, wire: body._2});
+    },
+    bindCheckedClientSerializationCapture(checkedProgram, graph, captured, observation) {
+      const selection = serializationPlanTokens.get(graph);
+      if (selection === undefined) throw new TypeError('Foreign Content compilation graph');
+      if (typeof captured?.capture?.source !== 'function' || captured.logicalInput === undefined) {
+        throw new TypeError('Invalid Content Source capture');
+      }
+      return compiledRunResult(moon.clientProgramAdmitSerializationCapturedInput(
+        checkedProgram, selection, captured.capture.source(), captured.identity,
+        captured.requirement, captured.logicalInput, observation.sourceEvidenceWire,
+        observation.authorityScopeCid, observation.captureStartedAt, observation.captureCompletedAt,
+        observation.keyedObservation?.observation),
+      'RunHostContentCaptureRejected');
+    },
+    bindCheckedClientSerializationInputIdentity(compiled, input, receipt, limits, captured) {
+      const value = compiledContent(compiled);
+      issuanceLimits(limits, 'Content input Artifact');
+      const evidence = compiledRunResult(moon.clientProgramSerializationInputIdentityBind(
+        value, input, receipt, limits.maxWireBytes, limits.maxNodes, limits.maxDepth, captured),
+      'RunHostContentInputIdentityRejected');
+      const result = inspectEvidence(moon.clientProgramSerializationInputArtifact(evidence));
+      serializationInputEvidenceTokens.set(result, evidence);
+      return result;
+    },
+    bindCheckedClientEffectSerializationCapture(compiled, checkedEffect, captured, observation) {
+      const value = compiledContent(compiled);
+      if (typeof captured?.capture?.source !== 'function' || captured.logicalInput === undefined) {
+        throw new TypeError('Invalid Effect Content Source capture');
+      }
+      return compiledRunResult(moon.clientProgramAdmitEffectSerializationCapturedInput(
+        value, checkedEffect, captured.capture.source(), captured.identity,
+        captured.requirement, captured.logicalInput, observation.sourceEvidenceWire,
+        observation.authorityScopeCid, observation.captureStartedAt, observation.captureCompletedAt),
+      'RunHostEffectContentCaptureRejected');
+    },
+    completeCheckedClientContentStep(compiled, definition, step, inputEvidence, candidate,
+      content, available, limits) {
+      const value = compiledContent(compiled);
+      const identity = serializationInputEvidenceTokens.get(inputEvidence);
+      if (identity === undefined) throw new TypeError('Foreign Content input identity');
+      const generation = compiledRunResult(moon.clientProgramCompleteContentStep(
+        step, value, token(definition), identity, candidate, content, available,
+        limits.maxNodes, limits.maxTextBytes, limits.maxDepth, limits.maxWork, limits.maxNameBytes),
+      'RunHostContentGenerationRejected');
+      const result = Object.freeze({});
+      serializationGenerationTokens.set(result, generation);
+      return result;
+    },
+    completeCheckedClientSerializationGeneration(compiled, definition, input, inputEvidence, candidate,
+      content, available, limits) {
+      const value = compiledContent(compiled);
+      const identity = serializationInputEvidenceTokens.get(inputEvidence);
+      if (identity === undefined) throw new TypeError('Foreign Content input identity');
+      const generation = compiledRunResult(moon.clientProgramSerializationGeneration(
+        value, token(definition), input, identity, candidate, content, available, limits.maxNodes,
+        limits.maxTextBytes, limits.maxDepth, limits.maxWork, limits.maxNameBytes),
+      'RunHostContentGenerationRejected');
+      const result = Object.freeze({});
+      serializationGenerationTokens.set(result, generation);
+      return result;
+    },
+    readmitCheckedClientSerializationGeneration(compiled, definition, graph, scope,
+      expectedGenerationCid, evidence, candidate, content) {
+      const run = compiledContent(compiled);
+      const generation = compiledRunResult(moon.clientProgramReadmitSerializationGeneration(
+        run, token(definition), graph, scope, expectedGenerationCid,
+        evidenceToken(evidence.input), evidenceToken(evidence.derivation),
+        evidenceToken(evidence.generation), candidate, content),
+      'RunHostContentGenerationRecoveryRejected');
+      const result = Object.freeze({});
+      serializationGenerationTokens.set(result, generation);
+      return result;
+    },
+    checkedClientSerializationByteHoldingCid(compiled, definition, storeAuthorityCid) {
+      const value = compiledContent(compiled);
+      return compiledRunResult(moon.clientProgramSerializationByteHoldingCid(
+        value, token(definition), storeAuthorityCid), 'Client Content byte binding unavailable');
+    },
+    capturedContentGenerationCount(captured) {
+      return compiledRunResult(moon.clientCapturedContentGenerationCount(token(captured)),
+        'Captured Content inventory unavailable');
+    },
+    capturedContentGenerationStorage(captured, definition, storeAuthorityCid, index) {
+      if (!Number.isSafeInteger(index) || index < 0) {
+        throw new TypeError('Invalid Captured Content occurrence');
+      }
+      const value = compiledRunResult(moon.clientCapturedContentGenerationStorage(
+        token(captured), token(definition), storeAuthorityCid, index),
+      'Captured Content storage binding unavailable');
+      return Object.freeze({holdingCid: value._0, manifestCid: value._1,
+        contentCid: value._2, byteCount: value._3,
+        bindings: Object.freeze(value._4.map(binding => Object.freeze({
+          name: binding._0, semanticCid: binding._1, wire: binding._2, holdingCid: binding._3,
+        })))});
+    },
+    checkedClientSerializationRecoveryBindings(compiled, generation, storeAuthorityCid) {
+      const value = compiledRunTokens.get(compiled);
+      const completion = serializationGenerationTokens.get(generation);
+      if (value === undefined || completion === undefined) {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      const bindings = compiledRunResult(moon.clientProgramSerializationRecoveryBindings(completion,
+        value, storeAuthorityCid), 'Client Content recovery binding unavailable');
+      return Object.freeze(bindings.map(binding => Object.freeze({
+        name: binding._0, semanticCid: binding._1, wire: binding._2, holdingCid: binding._3,
+      })));
+    },
+    checkedClientSerializationGenerationOutput(compiled, generation) {
+      const value = compiledRunTokens.get(compiled);
+      const completion = serializationGenerationTokens.get(generation);
+      if (value === undefined || completion === undefined) {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      const output = moon.clientProgramSerializationGenerationOutput(completion, value);
+      if (output === undefined) throw new TypeError('Client Content generation unavailable');
+      return output;
+    },
+    exportCheckedClientContentGenerationOutput(compiled, definition, generation, storeAuthorityCid) {
+      const value = compiledRunTokens.get(compiled);
+      const completion = serializationGenerationTokens.get(generation);
+      if (value === undefined || completion === undefined) {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      const exported = compiledRunResult(moon.clientProgramExportContentGenerationOutput(
+        completion, value, token(definition), storeAuthorityCid),
+      'Client Content completion export unavailable');
+      return Object.freeze({binding: exported._0, descriptorWire: exported._1,
+        rows: Object.freeze(exported._2.slice())});
+    },
+    checkedClientSerializationGenerationEvidence(compiled, generation) {
+      const value = compiledRunTokens.get(compiled);
+      const completion = serializationGenerationTokens.get(generation);
+      if (value === undefined || completion === undefined) {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      const evidence = moon.clientProgramSerializationGenerationEvidence(completion, value);
+      if (evidence === undefined) throw new TypeError('Client Content generation unavailable');
+      return inspectEvidence(evidence);
+    },
+    prepareCheckedClientRetainedContentOutput(compiled, definition, generation,
+      storeAuthorityCid, completion, available) {
+      const run = compiledRunTokens.get(compiled);
+      const original = serializationGenerationTokens.get(generation);
+      if (run === undefined || original === undefined || typeof available !== 'function') {
+        throw new TypeError('Foreign Client retained Content output');
+      }
+      return compiledRunResult(moon.clientProgramPrepareRetainedContentOutput(
+        original, run, token(definition), storeAuthorityCid, completion.binding,
+        completion.descriptorWire, completion.rows, available),
+      'Client Content completion recovery unavailable');
+    },
+    checkedClientCompiledEffectProgram(compiled, checkedEffect) {
+      const value = compiledRunTokens.get(compiled);
+      const original = value === undefined ? undefined
+        : moon.clientProgramCompiledEffectProgram(value, checkedEffect);
+      if (original === undefined) throw new TypeError('Foreign Client compiled Effect Run');
+      return original;
+    },
+    checkedClientSerializationGenerationDerivation(compiled, generation) {
+      const value = compiledRunTokens.get(compiled);
+      const completion = serializationGenerationTokens.get(generation);
+      if (value === undefined || completion === undefined) {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      const evidence = moon.clientProgramSerializationGenerationDerivation(completion, value);
+      if (evidence === undefined) throw new TypeError('Client Content generation unavailable');
+      return inspectEvidence(evidence);
+    },
+    issueCheckedClientSerializationInvocation(compiled, definition, generation, limits) {
+      const value = compiledRunTokens.get(compiled);
+      const completion = serializationGenerationTokens.get(generation);
+      if (value === undefined || completion === undefined) {
+        throw new TypeError('Foreign Client Content generation');
+      }
+      issuanceLimits(limits, 'Content Invocation');
+      const issued = compiledRunResult(moon.clientProgramIssueSerializationInvocation(
+        value, token(definition), completion,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostContentInvocationRejected');
+      return Object.freeze({observation: inspectEvidence(issued._0),
+        invocation: inspect(issued._1), owner: issued._1});
+    },
+    compiledInferSourceFreeResultPolicy: compiledSourceFreeResultPolicy,
     compiledInferEvaluationPolicy(compiled) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined) throw new TypeError('Foreign Client compiled Run');
@@ -2264,6 +2639,26 @@ function publicationControl(moon) {
           !moon.clientProgramCompiledRunMatches(value, checkedProgram)) {
         throw new TypeError('Foreign Client compiled Run');
       }
+    },
+    checkClientCompiledRunDefinition(compiled, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Foreign Client compiled Run Definition');
+      }
+    },
+    checkedClientRunCapturedContentCandidate(compiled, definition, acquisition, request,
+      bindingWire, mediaType, contentCid, sizeBytes, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined) throw new TypeError('Foreign Client compiled Run');
+      return checked(moon.clientProgramRunCapturedContentCandidate(value, token(definition),
+        acquisition, request, bindingWire, mediaType, contentCid, sizeBytes, ...limits));
+    },
+    checkedClientStoredRunCapturedContentCandidate(compiled, definition, acquisition,
+      originalWire, bindingWire, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined) throw new TypeError('Foreign Client compiled Run');
+      return checked(moon.clientProgramStoredRunCapturedContentCandidate(value,
+        token(definition), acquisition, originalWire, bindingWire, ...limits));
     },
     compiledRunResultTransformation(compiled, checkedProgram, result) {
       const value = compiledRunTokens.get(compiled);
@@ -2330,6 +2725,27 @@ function publicationControl(moon) {
         sources.map(source => source.captured.requirement),
         sources.map(source => source.sourceEvidenceWire),
         sources.map(source => source.inputLogicalWire),
+        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+      return Object.freeze({observation: inspectEvidence(issued._0),
+        invocation: inspect(issued._1), owner: issued._1});
+    },
+    issueCheckedClientCompiledKeyedInvocation(compiled, definition,
+      {captured, sourceEvidenceWire, inputLogicalWire, keyedObservation,
+        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'tasks' ||
+          captured?.capture === undefined || captured?.identity === undefined ||
+          captured?.requirement === undefined || keyedObservation === undefined) {
+        throw new TypeError('Foreign Client compiled keyed-source Run');
+      }
+      issuanceLimits(limits, 'Client Run Invocation');
+      // The portable issuer verifies original capture/compilation ownership,
+      // whole-Source coverage and live keyed custody. Wire evidence alone is
+      // not enough to manufacture a completed keyed acquisition.
+      const issued = compiledRunResult(moon.clientProgramIssueCompiledKeyedTaskInvocation(
+        value, token(definition), captured.capture.source(), captured.identity,
+        captured.requirement, sourceEvidenceWire, inputLogicalWire, keyedObservation,
         authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(issued._0),
@@ -2465,6 +2881,19 @@ function publicationControl(moon) {
       return checked(moon.clientProgramPrepareInferNodeReadLayout(scope, value,
         token(definition), graph, layout, installation,
         runtimeArtifactCid, layoutArtifactCid, probability));
+    },
+    // Data-only origin selection from the original checked Owner, before
+    // park. Storage must be the same actual port's rechecked binding evidence;
+    // matching strings/configuration cannot substitute for its opaque custody.
+    checkedClientInferOriginalResourceOriginField(compiled, definition, graph, scope,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, storage, field) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInferOriginalResourceOriginField(scope,
+        value, token(definition), graph, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage), field));
     },
     // Explicit alternative to the normal descriptor issuer, not a fallback.
     // Bootstrap must already cover the dedicated Writer and finish-text borrow.
@@ -2914,6 +3343,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+        contentCaptures(provenance.contentGenerations),
       )));
     },
     admitCapturedResultSnapshot(definition, artifact, rowsWire, fields,
@@ -3421,6 +3851,7 @@ function publicationControl(moon) {
         limits.maxNodes,
         limits.maxDepth,
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
+        contentCaptures(evidence.contentGenerations),
       );
       return finishCapturedPreparation(preparation, signal);
     },
@@ -3652,6 +4083,7 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         evidence.dependencyInventoryWire,
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
+        contentCaptures(evidence.contentGenerations),
       ));
       return finishCapturedPreparation(preparation, signal);
     },
@@ -4762,6 +5194,15 @@ function outputExportControl(moon, publications) {
     },
     cancelManagedResultImport: moon.strategyHostManagedResultImportCancel,
     next: value => checked(moon.strategyHostOutputExportNext(value)),
+    rowsComplete: value => checked(moon.strategyHostOutputExportRowsComplete(value)),
+    advance(value, quantum) {
+      if (!Number.isInteger(quantum) || quantum < 1 || quantum > 64) {
+        throw new TypeError('Invalid output export quantum');
+      }
+      const progress = moon.strategyHostOutputExportAdvance(value, quantum);
+      return Object.freeze({batch: progress._0, complete: progress._1,
+        work: progress._2, issue: progress._3});
+    },
     finish: value => checked(moon.strategyHostOutputExportFinish(value)),
     identity(value) {
       return Object.freeze({
@@ -4849,6 +5290,503 @@ function outputExportControl(moon, publications) {
 
 // Trusted assembly only. Standard entries bind this to their generated runtime;
 // execution requests cannot supply a verifier, SQL or replacement runtime.
+export function contentGenerationControl(moon, publications) {
+  const barriers = new WeakSet();
+  const encoders = new WeakSet();
+  const candidates = new WeakSet();
+  const storedCandidates = new WeakSet();
+  const issuers = new WeakSet();
+  const inputs = new WeakMap();
+  const prefixes = new WeakSet();
+  const workspaces = new WeakMap();
+  const issued = new WeakSet();
+  const outputs = new WeakSet();
+  const resultPreparations = new WeakSet();
+  const identityScans = new WeakMap();
+  const familySteps = new WeakSet();
+  const quantity = (value, minimum = 0) =>
+    Number.isInteger(value) && value >= minimum && value <= 2147483647;
+  const owned = (set, value, name) => {
+    if (value === null || typeof value !== 'object' || !set.has(value)) {
+      throw new TypeError(`Foreign ${name}`);
+    }
+    return value;
+  };
+  const referenceLimits = limits => {
+    if (limits === null || typeof limits !== 'object' ||
+        !['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits'].every(
+          key => quantity(limits[key], 1))) {
+      throw new TypeError('Invalid Content reference limits');
+    }
+    return [limits.maxBytes, limits.maxNodes, limits.maxDepth, limits.maxTextUnits];
+  };
+  return Object.freeze({
+    effectFamily(program, graph, bodies, {generation, reference, contract, output, identitySlots},
+      physical, retain, recovery) {
+      const fields = [generation?.maxBytes, generation?.maxValueNodes,
+        generation?.maxValueDepth, generation?.maxFrames, identitySlots,
+        reference?.maxBytes, reference?.maxNodes, reference?.maxDepth,
+        contract?.maxWireBytes, contract?.maxNodes, contract?.maxDepth];
+      if (!fields.every(value => quantity(value)) || !validResultOutputLimits(output) ||
+          !resultOutputLimitFields.every(name => quantity(output[name])) ||
+          !['cancel', 'stopped', 'cleanup'].every(name => typeof physical?.[name] === 'function') ||
+          typeof retain !== 'function' || !quantity(graph?.task) || !quantity(graph?.step)) {
+        throw new TypeError('Invalid installed Content family');
+      }
+      const exported = moon.clientProgramEffectInputExportLimits(
+        ...resultOutputLimitFields.map(name => output[name]));
+      const workspace = exported === undefined ? undefined
+        : moon.clientProgramContentStepWorkspace(...fields, exported);
+      const provider = workspace === undefined ? undefined
+        : moon.clientProgramEffectContentLocalProvider(program, graph.task, graph.step,
+          bodies.registry, bodies.values, bodies.fragment, bodies.ordered, workspace,
+          physical.cancel, physical.stopped, physical.cleanup, active => {
+            familySteps.add(active);
+            return retain(active) === true;
+          }, recovery);
+      if (provider === undefined) throw new TypeError('Installed Content family unavailable');
+      return provider;
+    },
+    familyPendingPiece(step) {
+      const value = moon.clientProgramContentStepPendingPiece(owned(familySteps, step, 'Content step'));
+      return value === undefined ? undefined : Object.freeze({revision: value._0, piece: value._1});
+    },
+    familyAcknowledgePiece(step, revision) {
+      if (!quantity(revision, 1)) throw new TypeError('Invalid Content piece revision');
+      return moon.clientProgramContentStepAcknowledgePiece(
+        owned(familySteps, step, 'Content step'), revision);
+    },
+    familyInput(step) {
+      const value = moon.clientProgramContentStepGenerationInput(owned(familySteps, step, 'Content step'));
+      if (value === undefined) throw new TypeError('Content step input unavailable');
+      inputs.set(value._0, value._2);
+      encoders.add(value._2);
+      return Object.freeze({input: value._0, receipt: value._1, encoder: value._2});
+    },
+    familyByteCompletion(step) {
+      const value = moon.clientProgramContentStepByteCompletion(owned(familySteps, step, 'Content step'));
+      if (value === undefined) throw new TypeError('Content step completion unavailable');
+      return Object.freeze({name: value.name, mediaType: value.media_type,
+        contentCid: value.content_cid, sizeBytes: value.size_bytes, rowCount: value.row_count});
+    },
+    familyComplete(compiled, definition, step, inputEvidence, candidate, content, available, limits) {
+      owned(familySteps, step, 'Content step');
+      if (typeof available !== 'function' || !quantity(limits?.maxNodes, 1) ||
+          !quantity(limits?.maxTextBytes) || !quantity(limits?.maxDepth) ||
+          !quantity(limits?.maxWork, 1) || !quantity(limits?.maxNameBytes)) {
+        throw new TypeError('Invalid compiled Content step completion');
+      }
+      return publications.completeCheckedClientContentStep(compiled, definition, step,
+        inputEvidence, owned(candidates, candidate, 'Content candidate'),
+        owned(issued, content, 'issued Content'), available, limits);
+    },
+    workspaceCapacity({generation, reference, contract, output, identitySlots}) {
+      const fields = [generation?.maxBytes, generation?.maxValueNodes,
+        generation?.maxValueDepth, generation?.maxFrames, identitySlots,
+        reference?.maxBytes, reference?.maxNodes, reference?.maxDepth,
+        contract?.maxWireBytes, contract?.maxNodes, contract?.maxDepth];
+      if (!fields.every(value => quantity(value)) || !validResultOutputLimits(output) ||
+          !resultOutputLimitFields.every(name => quantity(output[name]))) {
+        throw new TypeError('Invalid Content workspace limits');
+      }
+      const exported = moon.clientProgramEffectInputExportLimits(
+        ...resultOutputLimitFields.map(name => output[name]));
+      const token = exported === undefined ? undefined
+        : moon.clientProgramSerializationWorkspaceCapacity(...fields, exported);
+      if (token === undefined) throw new TypeError('Content workspace unavailable');
+      const bytes = moon.clientProgramSerializationCapacityBytes(token);
+      const workspace = Object.freeze({retainedBytes: bytes._0, executionBytes: bytes._1});
+      workspaces.set(workspace, token);
+      return workspace;
+    },
+    prefixCapacity(program, task, step, bodies, limits, workspace, source) {
+      if (!quantity(limits?.maxRows) || !quantity(limits?.maxWork, 1) ||
+          !quantity(limits?.maxEntries, 1) || !quantity(limits?.maxValueBytes) ||
+          !quantity(limits?.maxValueNodes, 1) || !quantity(limits?.maxValueDepth) ||
+          !quantity(limits?.maxFrames, 1)) {
+        throw new TypeError('Invalid Content prefix limits');
+      }
+      const capacity = moon.clientProgramSerializationPrefixCapacity(program, task,
+        step, bodies.registry, bodies.values, bodies.fragment, bodies.ordered,
+        limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+        limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames,
+        source !== undefined);
+      if (capacity === undefined) throw new TypeError('Content prefix unavailable');
+      if (workspace !== undefined && !workspaces.has(workspace)) {
+        throw new TypeError('Foreign Content workspace capacity');
+      }
+      const retainedBytes = capacity._0 + (workspace?.retainedBytes ?? 0n);
+      const executionBytes = capacity._1 + (workspace?.executionBytes ?? 0n);
+      if (retainedBytes > 9223372036854775807n || executionBytes > 9223372036854775807n) {
+        throw new TypeError('Content capacity overflow');
+      }
+      return Object.freeze({retainedBytes, executionBytes});
+    },
+    prefix(program, task, step, bodies, limits, ledger, workspace, source, keyed) {
+      // Revalidate through the same provider before reserve/start. Capacity
+      // inspection alone is neither a reservation nor permission to execute.
+      this.prefixCapacity(program, task, step, bodies, limits, workspace, source);
+      if (ledger === undefined) throw new TypeError('Content prefix requires the Run ledger');
+      const prefix = checked(moon.clientProgramStartSerializationPrefix(program, task,
+        step, bodies.registry, bodies.values, bodies.fragment, bodies.ordered,
+        limits.maxRows, limits.maxWork, limits.maxEntries, limits.maxValueBytes,
+        limits.maxValueNodes, limits.maxValueDepth, limits.maxFrames, ledger,
+        workspace === undefined ? undefined : workspaces.get(workspace), source, keyed));
+      prefixes.add(prefix);
+      return prefix;
+    },
+    prefixAdvance(prefix, quantum) {
+      const value = checked(moon.clientProgramSerializationPrefixAdvance(
+        owned(prefixes, prefix, 'Content prefix'), quantum));
+      return Object.freeze({output: value._0, progress: value._1, work: value._2,
+        stopped: value._3, issue: value._4});
+    },
+    prefixWork(prefix) {
+      return checked(moon.clientProgramSerializationPrefixWork(
+        owned(prefixes, prefix, 'Content prefix')));
+    },
+    prefixCancel(prefix) {
+      return moon.clientProgramSerializationPrefixCancel(
+        owned(prefixes, prefix, 'Content prefix'));
+    },
+    prefixCleanup(prefix) {
+      return checked(moon.clientProgramSerializationPrefixCleanup(
+        owned(prefixes, prefix, 'Content prefix')));
+    },
+    prepare(program, task, step, maxWork) {
+      const barrier = checked(moon.clientProgramPrepareSerialization(
+        program, task, step, maxWork));
+      barriers.add(barrier);
+      return barrier;
+    },
+    encoder(barrier, limits) {
+      owned(barriers, barrier, 'Content barrier');
+      if (!quantity(limits?.maxRows) || !quantity(limits?.maxBytes) ||
+          !quantity(limits?.maxValueNodes, 1) || !quantity(limits?.maxValueDepth) ||
+          !quantity(limits?.maxFrames, 1)) {
+        throw new TypeError('Invalid Content encoder limits');
+      }
+      const encoder = checked(moon.clientProgramSerializationEncoder(barrier,
+        limits.maxRows, limits.maxBytes, limits.maxValueNodes,
+        limits.maxValueDepth, limits.maxFrames));
+      encoders.add(encoder);
+      return encoder;
+    },
+    row(barrier, input, row, encoder) {
+      return checked(moon.clientProgramSerializationRow(
+        owned(barriers, barrier, 'Content barrier'), input, row,
+        owned(encoders, encoder, 'Content encoder')));
+    },
+    bindInput(barrier, output, encoder) {
+      const input = checked(moon.clientProgramSerializationBindInput(
+        owned(barriers, barrier, 'Content barrier'), output,
+        owned(encoders, encoder, 'Content encoder')));
+      inputs.set(input, encoder);
+      return input;
+    },
+    inputRows(input) {
+      if (!inputs.has(input)) throw new TypeError('Foreign Content input');
+      return moon.clientProgramSerializationInputRows(input);
+    },
+    inputIdentityStart(input, limits, maxWork, maxWorkspaceSlots) {
+      if (!inputs.has(input) || !validResultOutputLimits(limits) ||
+          !quantity(maxWork) || !quantity(maxWorkspaceSlots) ||
+          !resultOutputLimitFields.every(name => quantity(limits[name]))) {
+        throw new TypeError('Invalid Content input identity limits');
+      }
+      const exportLimits = moon.clientProgramEffectInputExportLimits(
+        ...resultOutputLimitFields.map(name => limits[name]));
+      if (exportLimits === undefined) throw new TypeError('Invalid Content input identity limits');
+      const scan = checked(moon.clientProgramSerializationInputIdentityStart(
+        input, exportLimits, maxWork, maxWorkspaceSlots));
+      identityScans.set(scan, input);
+      return scan;
+    },
+    inputIdentityAdvance(scan, quantum) {
+      if (!identityScans.has(scan) || !quantity(quantum, 1)) {
+        throw new TypeError('Foreign or invalid Content input identity scan');
+      }
+      const next = moon.clientProgramSerializationInputIdentityAdvance(scan, quantum);
+      return Object.freeze({ready: next._0, work: next._1, issue: next._2});
+    },
+    inputIdentityFinish(compiled, scan, limits, captured) {
+      const input = identityScans.get(scan);
+      if (input === undefined) throw new TypeError('Foreign Content input identity scan');
+      const receipt = checked(moon.clientProgramSerializationInputIdentityFinish(scan));
+      try {
+        return publications.bindCheckedClientSerializationInputIdentity(compiled, input, receipt, limits, captured);
+      } finally { moon.clientProgramSerializationInputIdentityReceiptCancel(receipt); }
+    },
+    inputIdentityCancel(scan) {
+      if (!identityScans.has(scan)) throw new TypeError('Foreign Content input identity scan');
+      return moon.clientProgramSerializationInputIdentityCancel(scan);
+    },
+    inputRow(input, row) {
+      if (!inputs.has(input)) throw new TypeError('Foreign Content input');
+      return checked(moon.clientProgramSerializationInputRow(input, row));
+    },
+    inputAdvance(input, quantum) {
+      if (!inputs.has(input)) throw new TypeError('Foreign Content input');
+      return this.advance(inputs.get(input), quantum);
+    },
+    inputFinish(input) {
+      if (!inputs.has(input)) throw new TypeError('Foreign Content input');
+      return this.finish(inputs.get(input));
+    },
+    inputCancel(input) {
+      if (!inputs.has(input)) throw new TypeError('Foreign Content input');
+      moon.clientProgramSerializationCancel(inputs.get(input));
+    },
+    output(input, candidate, content, available, limits) {
+      if (!inputs.has(input) || typeof available !== 'function' ||
+          !quantity(limits?.maxNodes, 1) || !quantity(limits?.maxTextBytes) ||
+          !quantity(limits?.maxDepth) || !quantity(limits?.maxWork, 1) ||
+          !quantity(limits?.maxNameBytes)) {
+        throw new TypeError('Invalid Content output binding');
+      }
+      const result = moon.clientProgramSerializationOutput(input,
+        owned(candidates, candidate, 'Content candidate'),
+        owned(issued, content, 'issued Content'), available,
+        limits.maxNodes, limits.maxTextBytes, limits.maxDepth,
+        limits.maxWork, limits.maxNameBytes);
+      if (result?.$tag === 0) {
+        const causeCode = moon.clientProgramSerializationOutputIssueCode(result._0);
+        throw Object.assign(new Error(`Content output rejected: ${causeCode}`,
+          {cause: result._0}), {code: 'MoonBitHostFailure', causeCode});
+      }
+      const output = checked(result);
+      outputs.add(output);
+      return output;
+    },
+    outputRowWire(output, limits) {
+      return checked(moon.clientProgramSerializationOutputRowWire(
+        owned(outputs, output, 'Content output'), ...referenceLimits(limits).slice(0, 3)));
+    },
+    outputAvailable(output) {
+      return moon.clientProgramSerializationOutputAvailable(
+        owned(outputs, output, 'Content output'));
+    },
+    complete(compiled, definition, input, inputEvidence, candidate, content, available, limits) {
+      if (!inputs.has(input) || typeof available !== 'function' ||
+          !quantity(limits?.maxNodes, 1) || !quantity(limits?.maxTextBytes) ||
+          !quantity(limits?.maxDepth) || !quantity(limits?.maxWork, 1) ||
+          !quantity(limits?.maxNameBytes)) {
+        throw new TypeError('Invalid compiled Content completion');
+      }
+      return publications.completeCheckedClientSerializationGeneration(compiled,
+        definition, input, inputEvidence, owned(candidates, candidate, 'Content candidate'),
+        owned(issued, content, 'issued Content'), available, limits);
+    },
+    recover(compiled, definition, graph, scope, expectedGenerationCid, evidence, candidate, content) {
+      return publications.readmitCheckedClientSerializationGeneration(compiled, definition,
+        graph, scope, expectedGenerationCid, evidence,
+        owned(storedCandidates, candidate, 'stored Content candidate'),
+        owned(issued, content, 'issued Content'));
+    },
+    completedOutput(compiled, generation) {
+      const output = publications.checkedClientSerializationGenerationOutput(compiled, generation);
+      outputs.add(output);
+      return output;
+    },
+    resultOccurrence(compiled, program, result, limits) {
+      publications.checkClientCompiledRunOwner(compiled, program);
+      if (compiled.kind !== 'serialization' || !quantity(result) ||
+          !quantity(limits?.maxWireBytes, 1) || !quantity(limits?.maxNodes, 1) ||
+          !quantity(limits?.maxDepth)) {
+        throw new TypeError('Invalid Content Result occurrence');
+      }
+      const occurrence = checked(moon.clientProgramSerializationResultOccurrence(
+        program, result, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const definitionContract = publications.admit('result_definition',
+        moon.strategyPublicationContractJson(occurrence._2), limits);
+      return Object.freeze({name: occurrence._0, task: occurrence._1, definitionContract});
+    },
+    resultStart(program, result, output, limits) {
+      if (!quantity(result) || !validResultOutputLimits(limits) ||
+          !resultOutputLimitFields.every(name => quantity(limits[name]))) {
+        throw new TypeError('Invalid Content Result export limits');
+      }
+      // This existing builder creates only shared finite export limits; it
+      // supplies no Effect or publication authority.
+      const exportLimits = moon.clientProgramEffectInputExportLimits(
+        ...resultOutputLimitFields.map(name => limits[name]));
+      if (exportLimits === undefined) throw new TypeError('Invalid Content Result export limits');
+      const preparation = checked(moon.clientProgramSerializationResultStart(
+        program, result, owned(outputs, output, 'Content output'), exportLimits));
+      resultPreparations.add(preparation);
+      return preparation;
+    },
+    resultAdvance(preparation, quantum) {
+      if (!quantity(quantum, 1)) throw new TypeError('Invalid Content Result quantum');
+      const result = moon.clientProgramSerializationResultProgress(
+        owned(resultPreparations, preparation, 'Content Result preparation'), quantum);
+      return Object.freeze({ready: result._0, work: result._1, issue: result._2});
+    },
+    resultFinish(preparation) {
+      return checked(moon.clientProgramSerializationResultFinish(
+        owned(resultPreparations, preparation, 'Content Result preparation')));
+    },
+    resultCancel(preparation) {
+      return moon.clientProgramSerializationResultCancel(
+        owned(resultPreparations, preparation, 'Content Result preparation'));
+    },
+    advance(encoder, quantum) {
+      const value = moon.clientProgramSerializationAdvance(
+        owned(encoders, encoder, 'Content encoder'), quantum);
+      // Charge the reported delta before handling failure. Converting a failed
+      // poll directly to an exception would discard its already consumed work.
+      return Object.freeze({ready: value._0, piece: value._1, work: value._2,
+        issue: value._3});
+    },
+    finish(encoder) {
+      const value = checked(moon.clientProgramSerializationFinish(
+        owned(encoders, encoder, 'Content encoder')));
+      return Object.freeze({name: value._0, mediaType: value._1,
+        contentCid: value._2, sizeBytes: value._3, rowCount: value._4});
+    },
+    candidate(encoder, binding, limits) {
+      const value = checked(moon.clientProgramGeneratedContentCandidate(
+        owned(encoders, encoder, 'Content encoder'), JSON.stringify(binding),
+        ...referenceLimits(limits)));
+      candidates.add(value);
+      return value;
+    },
+    recoveryCandidate(originalWire, binding, limits) {
+      const value = checked(moon.clientProgramStoredGeneratedContentCandidate(
+        originalWire, JSON.stringify(binding), ...referenceLimits(limits)));
+      storedCandidates.add(value);
+      return value;
+    },
+    inspect(candidate) {
+      if (storedCandidates.has(candidate)) {
+        const value = moon.clientProgramStoredGeneratedContentStorage(candidate);
+        const wire = moon.clientProgramStoredGeneratedContentCandidateWire(candidate);
+        const body = JSON.parse(wire);
+        return Object.freeze({wire, identity: value._0,
+          storeCid: value._1, workspaceScopeCid: value._2,
+          contentCid: value._3, sizeBytes: value._4, mediaType: body.media_type,
+          effectiveDataPolicyCid: body.metadata.effective_data_policy_cid});
+      }
+      owned(candidates, candidate, 'Content candidate');
+      const value = moon.clientProgramGeneratedContentStorage(candidate);
+      const wire = moon.clientProgramGeneratedContentCandidateWire(candidate);
+      // This body was constructed by the common owner, not admitted from
+      // provider/author JSON. No identity is computed or normalized here.
+      const body = JSON.parse(wire);
+      return Object.freeze({wire,
+        identity: moon.clientProgramGeneratedContentCandidateCid(candidate),
+        storeCid: value._0, workspaceScopeCid: value._1,
+        contentCid: value._2, sizeBytes: value._3,
+        mediaType: body.media_type,
+        effectiveDataPolicyCid: body.metadata.effective_data_policy_cid});
+    },
+    issuer(validate, authorize) {
+      if (typeof validate !== 'function' || typeof authorize !== 'function') {
+        throw new TypeError('Invalid Content issuer callbacks');
+      }
+      const issuer = moon.clientProgramRowReferenceIssuer(() => false,
+        validate, authorize);
+      issuers.add(issuer);
+      return issuer;
+    },
+    issue(candidate, issuer, limits) {
+      const restored = storedCandidates.has(candidate);
+      const content = checked((restored ? moon.clientProgramIssueStoredGeneratedContent
+        : moon.clientProgramIssueGeneratedContent)(
+        owned(restored ? storedCandidates : candidates, candidate, 'Content candidate'),
+        owned(issuers, issuer, 'Content issuer'), ...referenceLimits(limits)));
+      issued.add(content);
+      return content;
+    },
+  });
+}
+
+// Captured candidates are sealed by the checked keyed Source owner. This
+// transport facade holds no acquisition, byte or cleanup state machine.
+export function contentCaptureControl(moon, publications) {
+  const candidates = new WeakSet();
+  const issuers = new WeakSet();
+  const args = limits => {
+    const fields = ['maxBytes', 'maxNodes', 'maxDepth', 'maxTextUnits'];
+    if (!fields.every(key => Number.isInteger(limits?.[key]) &&
+        limits[key] > 0 && limits[key] <= 2147483647)) {
+      throw new TypeError('Invalid captured Content reference limits');
+    }
+    return fields.map(key => limits[key]);
+  };
+  const own = (set, value) => {
+    if (!set.has(value)) throw new TypeError('Foreign captured Content candidate');
+    return value;
+  };
+  return Object.freeze({
+    candidate(acquisition, request, binding, bytes, limits) {
+      if (!Number.isInteger(bytes?.sizeBytes) || bytes.sizeBytes < 0 ||
+          bytes.sizeBytes > 2147483647) {
+        throw new TypeError('Invalid captured Content byte facts');
+      }
+      const value = checked(moon.clientProgramCapturedContentCandidate(
+        acquisition, request, JSON.stringify(binding), bytes.mediaType,
+        bytes.contentCid, bytes.sizeBytes, ...args(limits)));
+      candidates.add(value);
+      return value;
+    },
+    candidateForRun(compiled, definition, acquisition, request, binding, bytes, limits) {
+      if (!Number.isInteger(bytes?.sizeBytes) || bytes.sizeBytes < 0 ||
+          bytes.sizeBytes > 2147483647) throw new TypeError('Invalid captured Content byte facts');
+      const value = publications.checkedClientRunCapturedContentCandidate(compiled,
+        definition, acquisition, request, JSON.stringify(binding), bytes.mediaType,
+        bytes.contentCid, bytes.sizeBytes, args(limits));
+      candidates.add(value);
+      return value;
+    },
+    recoveryCandidateForRun(compiled, definition, acquisition, originalWire, binding, limits) {
+      const value = publications.checkedClientStoredRunCapturedContentCandidate(
+        compiled, definition, acquisition, originalWire, JSON.stringify(binding), args(limits));
+      candidates.add(value);
+      return value;
+    },
+    holdingCid(candidate) {
+      const value = moon.clientProgramCapturedContentHoldingCid(own(candidates, candidate));
+      if (value === undefined) throw new TypeError('Captured Content requires original Run custody');
+      return value;
+    },
+    reserveWorkspace(ledger, maxBytes, inventoryCount = 0) {
+      return checked(moon.clientProgramReserveCapturedContentWorkspace(ledger, maxBytes, inventoryCount));
+    },
+    releaseWorkspace(ledger, reservation) {
+      return checked(moon.clientProgramReleaseCapturedContentWorkspace(ledger, reservation));
+    },
+    reissuer(resolve) {
+      if (typeof resolve !== 'function') throw new TypeError('Invalid captured Content resolver');
+      return moon.clientProgramCapturedContentReissuer(resolve);
+    },
+    inspect(candidate) {
+      own(candidates, candidate);
+      const storage = moon.clientProgramCapturedContentStorage(candidate);
+      const wire = moon.clientProgramCapturedContentWire(candidate);
+      const body = JSON.parse(wire);
+      return Object.freeze({wire,
+        identity: moon.clientProgramCapturedContentCid(candidate),
+        storeCid: storage._0, workspaceScopeCid: storage._1,
+        contentCid: storage._2, sizeBytes: storage._3,
+        mediaType: body.media_type,
+        effectiveDataPolicyCid: body.metadata.effective_data_policy_cid});
+    },
+    issuer(validate, authorize) {
+      if (typeof validate !== 'function' || typeof authorize !== 'function') {
+        throw new TypeError('Invalid captured Content issuer callbacks');
+      }
+      const issuer = moon.clientProgramRowReferenceIssuer(() => false, validate, authorize);
+      issuers.add(issuer);
+      return issuer;
+    },
+    issue(candidate, issuer, limits) {
+      return checked(moon.clientProgramIssueCapturedContent(
+        own(candidates, candidate), own(issuers, issuer), ...args(limits)));
+    },
+  });
+}
+
 export function runtimeCore(moon) {
   const publications = publicationControl(moon);
   return Object.freeze({
@@ -4861,6 +5799,8 @@ export function runtimeCore(moon) {
     remoteBundleControl: remoteBundleControl(moon),
     publicationControl: publications,
     outputExportControl: outputExportControl(moon, publications),
+    contentGenerationControl: contentGenerationControl(moon, publications),
+    contentCaptureControl: contentCaptureControl(moon, publications),
     count: moon.strategyHostCount,
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
     programHasEffects: moon.strategyHostHasEffects,

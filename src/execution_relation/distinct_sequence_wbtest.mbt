@@ -217,7 +217,7 @@ test "whole-row distinct compares every key domain including owned references" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -291,7 +291,7 @@ test "keyed distinct accepts every relation value payload domain" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]

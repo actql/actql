@@ -826,7 +826,9 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.VectorStep(_)
       | @lower.EventStep(_)
       | @lower.CarrierProjectionStep(_)
-      | @lower.InferBoundary(_) => false
+      | @lower.InferBoundary(_)
+      | @lower.SerializationBoundary(_)
+      | @lower.CompletedProducerBoundary(_) => false
     }
   })
 }

@@ -2,6 +2,7 @@
 pub(all) enum ClientEffectCompilationIssue {
   UnsupportedProgram
   ForeignInferOwner
+  Serialization(ClientSerializationEffectPlanIssue)
   EffectPlan(@stage_results.EffectPlanBindingIssue)
   Graph(ClientTaskPlanGraphIssue)
   Template(ClientTaskBoundTemplateIssue)
@@ -83,7 +84,8 @@ pub fn client_effect_compilation_result_transformation(
 ///|
 /// Compile a Values Effect Unit or independent acquired roots feeding Local
 /// computation and a final Effect Unit. Existing task lowering and the checked
-/// graph own supported operations and input edges. Command Effects are refused.
+/// graph own supported operations and input edges. Command members retain their
+/// Catalog binding instead of being approximated as an AoA Mapping terminal.
 pub fn issue_prepared_client_effect_compilation(
   owner : PreparedClientEffectComputation,
   manifests : ClientCompilationManifests,
@@ -163,9 +165,9 @@ fn issue_client_effect_compilation_internal(
       @lower.pipeline(@lower.bound_preparation(first)),
     )
   let prefix = @strategy.graph_captured_prefix(graph)
-  // Preserve the existing single-acquisition shape. The plural increment
-  // may contain downstream Local Units after the independently checked pair.
-  let mut acquired = (prefix == 1 && units == 2) || (prefix == 2 && units > 2)
+  // Acquired roots may feed further checked Local Units. Their actual graph
+  // edges, not the number of consumers, bind every input occurrence.
+  let mut acquired = (prefix == 1 && units >= 2) || (prefix == 2 && units > 2)
   if acquired {
     for stage in 0..<prefix {
       if prepare_client_query_acquisition(
@@ -195,15 +197,28 @@ fn issue_client_effect_compilation_internal(
       infer.owner
     }
   }
+  let serialization = if infer is Some(_) {
+    None
+  } else {
+    match
+      issue_client_serialization_effect_component(
+        value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(component) => component
+      Err(issue) => return Err(Serialization(issue))
+    }
+  }
   let required_profiles = match infer {
     None => []
-    Some(_) =>
-      [
-        (
-          "actql-infer/0.1",
-          @environment.compiler_inference_barrier_contract_cid(),
-        ),
-      ]
+    Some(component) => client_infer_required_profiles(component)
+  }
+  if serialization is Some(_) {
+    required_profiles.push(
+      (
+        "actql-content/0.1",
+        @environment.compiler_content_barrier_contract_cid(),
+      ),
+    )
   }
   if normalization_profile is Some(inventory) {
     required_profiles.push(
@@ -264,15 +279,31 @@ fn issue_client_effect_compilation_internal(
       return Err(UnsupportedProgram)
     }
     roots.push((name, source_task))
-    let terminal = match
-      @stage_results.effect_plan_terminal_for_member(
-        rules, index, max_nodes, max_nodes,
+    let command = match
+      @stage_results.effect_command_input_for_member(
+        @stage_results.effect_static_candidate_command_inputs(
+          @checked.effect_program_static_effects(owner.candidate),
+        ),
+        index,
+        max_nodes,
       ) {
-      Ok(terminal) => terminal
+      Ok(value) => value
       Err(issue) => return Err(EffectPlan(issue))
     }
-    // Create has no EffectPlan terminal in 0.1. Its declaration and checked
-    // mapping remain bound by the complete Program and Check Environment.
+    let terminal = if command is Some(_) {
+      None
+    } else {
+      match
+        @stage_results.effect_plan_terminal_for_member(
+          rules, index, max_nodes, max_nodes,
+        ) {
+        Ok(terminal) => terminal
+        Err(issue) => return Err(EffectPlan(issue))
+      }
+    }
+    // Create and Command have no AoA EffectPlan terminal in 0.1. Their
+    // admitted Mapping or Command bindings remain in the complete checked
+    // Program and Environment; this does not authorize physical apply.
     if terminal is Some(terminal) {
       let cid = @stage_results.effect_plan_pipeline_cid(
         terminal, max_wire_bytes, max_nodes, max_depth,
@@ -292,6 +323,7 @@ fn issue_client_effect_compilation_internal(
       true,
       roots,
       infer~,
+      serialization~,
     ) {
     Ok(graph) => graph
     Err(issue) => return Err(Graph(issue))
@@ -347,6 +379,10 @@ fn issue_client_effect_compilation_internal(
       max_nodes,
       max_depth,
       infer~,
+      serialization=match infer {
+        Some(component) => component.serialization
+        None => serialization.map(component => component.serialization)
+      },
     ) {
     Ok(compiled) => compiled
     Err(issue) => return Err(Compilation(issue))
@@ -525,7 +561,38 @@ pub fn client_effect_allowed_infer_run_with_policy_body(
     }
     None
   }
-  Ok({
+  Ok(client_effect_allowed_component_run(value, source_free_result_policy))
+}
+
+///|
+/// Borrow the checked Content component from this exact allowed Effect Run.
+/// This is neither approval of the Command nor an Effect-free admission. The
+/// initial serialization Effect compiler requires a checked acquired Source
+/// closure; a source-free caller must supply its policy through a future
+/// explicitly checked binding, not inherit a lower classification here.
+pub fn client_effect_allowed_serialization_run(
+  value : ClientEffectAllowedRun,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  let compilation = value.compilation
+  guard compilation.compiled.serialization is Some(component) &&
+    physical_equal(component.owner, compilation.compiled.owner) else {
+    return Err(ForeignOwner)
+  }
+  if @strategy.graph_source_free_inputs_complete(component.owner.graph) {
+    return Err(MissingResultPolicy)
+  }
+  Ok(client_effect_allowed_component_run(value, None))
+}
+
+///|
+/// Retain the original prepared evidence, authorization and admission. The
+/// component-specific callers check their selected physical owner first.
+fn client_effect_allowed_component_run(
+  value : ClientEffectAllowedRun,
+  source_free_result_policy : @publication.CapturedEffectDependencyBody?,
+) -> ClientCompiledRun {
+  let compilation = value.compilation
+  {
     owner: compilation.compiled.owner,
     compilation: Effects(value),
     template: compilation.compiled.template,
@@ -534,7 +601,7 @@ pub fn client_effect_allowed_infer_run_with_policy_body(
     authorization: value.authorization,
     admission: value.admission,
     source_free_result_policy,
-  })
+  }
 }
 
 ///|

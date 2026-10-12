@@ -64,6 +64,8 @@ import {
   "actql/actql/effect_application" @effect,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/client_local_host",
+  "actql/actql/client_infer_host" @infer_host,
+  "actql/actql/model_execution" @model,
   "actql/actql/run_publication" @publication,
   "actql/actql/platform_native/publication_store" @native_publication_store,
   "actql/actql/publication_payload",

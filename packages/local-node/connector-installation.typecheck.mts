@@ -8,6 +8,22 @@ import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
 } from '@actql/local-node/connector-installation';
+import type {HostRequestValuePolicyVerifier} from './host-policy.js';
+
+const verifyPolicy: HostRequestValuePolicyVerifier = (subject, {signal}) => {
+  signal?.throwIfAborted();
+  const origin = subject.origins.selector;
+  if (typeof origin === 'object') {
+    const parameter: string = origin.parameter;
+    void parameter;
+  }
+  // @ts-expect-error Trusted subjects are immutable, not caller assertions.
+  subject.request.selector = 'replacement';
+  return undefined;
+};
+// @ts-expect-error A classification object is not an admitted policy CID.
+const fabricatedPolicy: HostRequestValuePolicyVerifier = () => ({classification: 'public'});
+void [verifyPolicy, fabricatedPolicy];
 
 // These are supplied by the installed Host and declaration owner, not minted
 // by this compile-only consumer. The generated runtime ABI stays opaque.

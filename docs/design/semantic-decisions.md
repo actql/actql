@@ -7,6 +7,34 @@ implementation to accept syntax that the specification has not admitted.
 
 ## Evidence and authority
 
+### Host-verified Source Request value policy
+
+The accepted request-provenance rule does not treat authored literals, scalar
+Parameters, defaults or successful type admission as classification authority.
+This left legitimate installed file-listing requests unknown at Model admission
+even when a Host could verify their exact value contributors. The adopted
+extension lets that Host bind evidence through the existing Checker/policy owner,
+not through an authored Program flag or a default classification.
+
+Evidence retains the Program Definition and effective Parameters CIDs, the
+Stage/input occurrence, SourceView contract, exact static request identity and
+its contributing admitted data-policy Envelope. The response policy remains a
+separate contribution; keyed correlation retains its original producer policy.
+Missing, duplicate, foreign and mismatched evidence does not discharge unknown
+provenance, and an admitted unknown policy remains unknown. Request identity uses
+the existing value wire emitter without configuration string normalization.
+
+This adds a trusted Host admission path, not a Model invocation grant. Current
+Source and destination authorization, egress, scope and separate approval remain
+mandatory. Evidence must be rebound and checked against the original subjects on
+recheck or recovery. The effective-policy closed preimage and deduplicated
+admitted policy reference sets are unchanged; occurrence correspondence stays in
+the owner rather than being inferred from an equal policy CID.
+
+Public Host installation, real keyed Content-to-INFER acceptance and continuation
+coverage remain implementation obligations; a portable Checker test alone is
+not evidence that those boundaries execute.
+
 Start with explicit normative requirements and recorded agreements. Compare
 prose, grammar, machine schemas, acceptance cases and relevant decision records.
 If they disagree, report the disagreement instead of silently choosing the

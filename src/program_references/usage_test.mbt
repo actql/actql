@@ -41,7 +41,7 @@ test "defaults and nested business parameter shapes do not count as use" {
   match check_declaration_usage(inventory, max_work=8000000) {
     Err(UnusedBinding(d)) => {
       assert_eq(d.name, "unused")
-      assert_true(d.constraint is Artifact(None))
+      assert_true(d.constraint is Content(None))
     }
     _ => fail("unused binding must be rejected")
   }

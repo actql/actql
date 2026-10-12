@@ -160,6 +160,8 @@ fn remote_construction_fixture(
   through_check? : Bool = false,
   checked_results? : Array[CheckedProgram] = [],
   imported_left? : Bool = false,
+  selected_environment? : @environment.WireEnvironment? = None,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -167,7 +169,7 @@ fn remote_construction_fixture(
   @context.CoreContractInventory,
   Array[BuiltUnit],
 ) raise {
-  let environment = remote_environment_fixture()
+  let environment = selected_environment.unwrap_or(remote_environment_fixture())
   let text =
     #|{"version":"actql/0.1","id":"keyed","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"tenant":null}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"join":{"left":"seed","with":"remote","on":"id","kind":"left","select":{"id":"left.id"}}}],"results":{"out":{"from":"seed","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let text = if publish_join {
@@ -424,6 +426,7 @@ fn remote_construction_fixture(
       max_bytes=budget.bytes,
       max_nodes=budget.nodes,
       max_depth=budget.depth,
+      request_value_policies~,
     )
     checked_results.push(value)
     return (
@@ -446,6 +449,7 @@ fn remote_construction_fixture(
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     caps,
     budget,
+    request_value_policies~,
   )
 }
 

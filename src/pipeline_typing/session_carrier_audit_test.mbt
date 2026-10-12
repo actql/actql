@@ -37,7 +37,7 @@ test "session keeps typed identity and clock roles across both Carrier alternati
   for
     body in [
       "{\"type\":\"resource_ref\",\"resource_kind\":\"file\",\"nullable\":false}",
-      "{\"type\":\"artifact_ref\",\"nullable\":false}",
+      "{\"type\":\"content_ref\",\"nullable\":false}",
     ] {
     identities.push(
       @contract.read_checked(cursor(body), {

@@ -275,14 +275,14 @@ fn contract_walk(
       fail(source, BudgetExceeded)
     }
     match c.shape {
-      @contract.Json | @contract.ResourceRef(..) | @contract.ArtifactRef(..) => {
+      @contract.Json | @contract.ResourceRef(..) | @contract.ContentRef(..) => {
         if constructing {
           fail(source, ForbiddenValueType)
         }
         match c.shape {
           @contract.ResourceRef(resource_kind~) =>
             charge(b, source, resource_kind)
-          @contract.ArtifactRef(media_type=Some(media)) =>
+          @contract.ContentRef(media_type=Some(media)) =>
             charge(b, source, media)
           _ => ()
         }

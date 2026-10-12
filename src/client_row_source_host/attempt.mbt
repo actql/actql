@@ -16,6 +16,19 @@ pub(all) enum RowSourceIssue {
   Presence(@execution.RelationPresenceIssue)
   Capture(@execution.CaptureIssue)
   Closed
+  RequestEncoding(@sourcequery.RequestWireIssue)
+  ListingProtocol
+  ListingIncomplete
+  ListingLimit(String)
+  ListingLimitUnresolved(String)
+  ListingGlobInvalid
+  ListingMissingPath(String)
+  ListingConflictingResource(String)
+  KeyedOwner(@query.KeyedInputRequestIssue)
+  KeyedResponse(@sourcequery.KeyedRowResponseIssue)
+  KeyedIncomplete
+  KeyedCardinality
+  KeyedLimit(String)
 } derive(Debug)
 
 ///|
@@ -28,6 +41,8 @@ struct RowSourcePreparation {
   input_index : Int
   columns : Array[String]
   schema : @schema.Schema
+  request : @sourcequery.ParameterizedRequest
+  file_listing : @environment.FileListProfile?
 }
 
 ///|
@@ -66,7 +81,7 @@ pub fn prepare_declared_row_source(
       requests,
       @sourcequery.query_acquisition_source_index(query),
     )
-    is Some(@sourcequery.Direct(mode, _)) else {
+    is Some(@sourcequery.Direct(mode, request)) else {
     return Err(ForeignSource)
   }
   let input_declaration = @sourcequery.declaration(
@@ -98,7 +113,19 @@ pub fn prepare_declared_row_source(
   if columns.is_empty() {
     return Err(InvalidInputSchema)
   }
-  Ok({ requirement, view, owner, input_index, columns, schema, })
+  let file_listing = @environment.source_request_file_listing(
+    @sourcequery.selected_contract(@sourcequery.mode_input(mode)),
+  )
+  Ok({
+    requirement,
+    view,
+    owner,
+    input_index,
+    columns,
+    schema,
+    request,
+    file_listing,
+  })
 }
 
 ///|
@@ -124,14 +151,19 @@ pub(all) struct RowPageLimits {
 ///|
 /// Admitted rows of one attempt. Each page is admitted whole before the next
 /// is requested; no partial CapturedRows is exposed on failure.
-priv struct RowSourceRead {
-  preparation : RowSourcePreparation
+struct RowSourceRead {
+  schema : @schema.Schema
+  columns : Array[String]
+  declared_fields : Array[String]
   input : @execution.AdmittedInput
   page_limits : RowPageLimits
   values : @admitted.Limits
   retention : @execution.ValueLimits
-  mut pages : Int
-  mut rows : Int
+  reference_issuer : @admitted.ReferenceIssuer?
+  listing : RowListingProgress?
+  keyed : RowKeyedProgress?
+  mut pages : Int64
+  mut rows : Int64
   mut open : Bool
 }
 
@@ -141,6 +173,8 @@ fn begin_row_source_read(
   page_limits : RowPageLimits,
   max_capture_rows : Int,
   retention : @execution.ValueLimits,
+  reference_issuer? : @admitted.ReferenceIssuer? = None,
+  listing_rows? : RowListingRows? = None,
 ) -> Result[RowSourceRead, RowSourceIssue] {
   if page_limits.max_bytes <= 0 ||
     page_limits.max_nodes <= 0 ||
@@ -148,16 +182,70 @@ fn begin_row_source_read(
     page_limits.max_rows <= 0 {
     return Err(InvalidPage)
   }
+  let listing = match preparation.file_listing {
+    None => None
+    Some(profile) => {
+      if reference_issuer is None {
+        return Err(Value("resource"))
+      }
+      if listing_rows is None {
+        return Err(ListingLimitUnresolved("max_listing_items"))
+      }
+      let selection = match
+        prepare_row_file_selection(preparation.request, page_limits.max_bytes) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Some(
+        new_row_listing_progress(
+          @environment.file_listing_limit_candidates(profile),
+          resolved_rows=listing_rows,
+          selection=Some(selection),
+        ),
+      )
+    }
+  }
+  new_row_source_read(
+    preparation.owner,
+    preparation.input_index,
+    preparation.schema,
+    preparation.columns,
+    preparation.view.fields,
+    page_limits,
+    max_capture_rows,
+    retention,
+    reference_issuer,
+    listing,
+    None,
+  )
+}
+
+///|
+// Direct and keyed transport use the same admitted-input and cancellation
+// owner. Neither this private reader nor its CapturedRows grants Source I/O or
+// consumption evidence; the selected attempt still has to settle transport.
+fn new_row_source_read(
+  owner : @lower.BoundPrepared,
+  input_index : Int,
+  schema : @schema.Schema,
+  columns : Array[String],
+  declared_fields : Array[String],
+  page_limits : RowPageLimits,
+  max_capture_rows : Int,
+  retention : @execution.ValueLimits,
+  reference_issuer : @admitted.ReferenceIssuer?,
+  listing : RowListingProgress?,
+  keyed : RowKeyedProgress?,
+) -> Result[RowSourceRead, RowSourceIssue] {
   match
     @execution.prepare_admitted_input(
-      preparation.owner,
-      preparation.input_index,
-      max_capture_rows,
-      retention,
+      owner, input_index, max_capture_rows, retention,
     ) {
     Ok(input) =>
       Ok({
-        preparation,
+        schema,
+        columns,
+        declared_fields,
         input,
         page_limits,
         values: {
@@ -166,8 +254,11 @@ fn begin_row_source_read(
           max_text_bytes: retention.max_text_bytes,
         },
         retention,
-        pages: 0,
-        rows: 0,
+        reference_issuer,
+        listing,
+        keyed,
+        pages: 0L,
+        rows: 0L,
         open: true,
       })
     Err(issue) => Err(Capture(issue))
@@ -180,6 +271,14 @@ fn cancel_row_source_read(read : RowSourceRead) -> Bool {
     return false
   }
   read.open = false
+  if read.listing is Some(listing) {
+    clear_row_listing_tokens(listing)
+    listing.next_token = None
+    listing.request_pending = false
+  }
+  if read.keyed is Some(progress) {
+    cancel_keyed_row_page(progress)
+  }
   @execution.cancel_admitted_input(read.input) |> ignore
   true
 }
@@ -205,6 +304,12 @@ fn accept_row_source_page(
   if !read.open {
     return Err(Closed)
   }
+  if read.listing is Some(_) {
+    return fail_read(read, ListingProtocol)
+  }
+  if read.keyed is Some(_) {
+    return accept_keyed_row_page(read, bytes)
+  }
   let limits = read.page_limits
   if bytes.length() > limits.max_bytes {
     return fail_read(read, InvalidPage)
@@ -225,26 +330,50 @@ fn accept_row_source_page(
     @decode.elements(root) is Ok(items) else {
     return fail_read(read, InvalidPage)
   }
+  accept_row_source_items(read, items)
+}
+
+///|
+fn accept_row_source_items(
+  read : RowSourceRead,
+  items : Array[@decode.Cursor],
+) -> Result[Int, RowSourceIssue] {
+  if read.keyed is Some(_) {
+    return fail_read(read, KeyedIncomplete)
+  }
+  let limits = read.page_limits
   if items.length() > limits.max_rows {
     return fail_read(read, InvalidPage)
   }
-  let preparation = read.preparation
   for item in items {
+    let references : (@admitted.ReferenceIssuer, @admitted.ReferenceLimits)? = read.reference_issuer.map(issuer => {
+        (
+          issuer,
+          {
+            max_bytes: limits.max_bytes,
+            max_nodes: limits.max_nodes,
+            max_depth: limits.max_depth,
+            max_text_units: limits.max_bytes,
+          },
+        )
+      },
+    )
     match
       append_row_source_object(
         read.input,
-        preparation.schema,
-        preparation.view.fields,
+        read.schema,
+        read.declared_fields,
         item,
         read.values,
         read.retention,
+        references~,
       ) {
       Ok(_) => ()
       Err(issue) => return fail_read(read, issue)
     }
   }
-  read.pages = read.pages + 1
-  read.rows = read.rows + items.length()
+  read.pages += 1L
+  read.rows += items.length().to_int64()
   Ok(items.length())
 }
 
@@ -259,7 +388,26 @@ fn append_row_source_object(
   item : @decode.Cursor,
   values : @admitted.Limits,
   retention : @execution.ValueLimits,
+  references? : (@admitted.ReferenceIssuer, @admitted.ReferenceLimits)? = None,
 ) -> Result[Unit, RowSourceIssue] {
+  let cells = match
+    admit_row_source_object(schema, declared_fields, item, values, references~) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  append_row_source_cells(input, schema, cells, retention)
+}
+
+///|
+// Validate all physical observations before selection. Excluded rows must not
+// bypass the checked schema or the Host's reference admission and authority.
+fn admit_row_source_object(
+  schema : @schema.Schema,
+  declared_fields : Array[String],
+  item : @decode.Cursor,
+  values : @admitted.Limits,
+  references? : (@admitted.ReferenceIssuer, @admitted.ReferenceLimits)? = None,
+) -> Result[Array[@admitted.CheckedValue?], RowSourceIssue] {
   guard @decode.object_field_names(item) is Ok(names) &&
     @decode.open_object(item) is Ok(object) else {
     return Err(InvalidPage)
@@ -269,8 +417,6 @@ fn append_row_source_object(
       return Err(UnexpectedField(name))
     }
   }
-  let dense = @schema.all_fields_required(schema)
-  let row : Array[@admitted.CheckedValue] = []
   let cells : Array[@admitted.CheckedValue?] = []
   for index in 0..<@schema.field_count(schema) {
     let field = @schema.field_at(schema, index).unwrap()
@@ -283,20 +429,36 @@ fn append_row_source_object(
         cells.push(None)
       }
       Some(cell) => {
-        let checked = match @admitted.admit(field.contract, cell, values) {
+        // Only the trusted Host may supply this capability. Connector JSON
+        // never creates provenance or current authorization by its shape.
+        let admitted = match references {
+          Some((issuer, limits)) =>
+            @admitted.admit_host(issuer, field.contract, cell, values, limits)
+          None => @admitted.admit(field.contract, cell, values)
+        }
+        let checked = match admitted {
           Ok(value) => value
           Err(_) => return Err(Value(name))
         }
-        if dense {
-          row.push(checked)
-        } else {
-          cells.push(Some(checked))
-        }
+        cells.push(Some(checked))
       }
     }
   }
-  if dense {
-    @execution.append_admitted_input(input, row).map_err(issue => Capture(issue))
+  Ok(cells)
+}
+
+///|
+fn append_row_source_cells(
+  input : @execution.AdmittedInput,
+  schema : @schema.Schema,
+  cells : Array[@admitted.CheckedValue?],
+  retention : @execution.ValueLimits,
+) -> Result[Unit, RowSourceIssue] {
+  if @schema.all_fields_required(schema) {
+    @execution.append_admitted_input(input, cells.map(cell => cell.unwrap())).map_err(issue => {
+        Capture(issue)
+      },
+    )
   } else {
     let admitted = match
       @execution.admit_relation_row(schema, cells, retention) {
@@ -315,6 +477,12 @@ fn finish_row_source_read(
 ) -> Result[@execution.CapturedRows, RowSourceIssue] {
   if !read.open {
     return Err(Closed)
+  }
+  if read.listing is Some(listing) && !listing.complete {
+    return fail_read(read, ListingIncomplete)
+  }
+  if read.keyed is Some(progress) && !progress.complete {
+    return fail_read(read, KeyedIncomplete)
   }
   read.open = false
   @execution.finish_admitted_input(read.input).map_err(issue => Capture(issue))
@@ -366,6 +534,9 @@ pub fn declared_row_view(
     fields: fields.copy(),
     carrier_schema_cid,
     data_policy_cid,
+    // This primitive descriptor does not supply a classified policy.
+    // Classified evidence is generated from the admitted declaration owner.
+    classification: "unknown",
   }
 }
 
@@ -381,12 +552,20 @@ fn accept_row_source_values(
   if !read.open {
     return Err(Closed)
   }
-  if columns.length() != read.preparation.columns.length() ||
+  if read.listing is Some(_) {
+    return fail_read(read, ListingProtocol)
+  }
+  // Typed provider pages have no physical byte observation. Until that receipt
+  // is supplied by the keyed transport, they cannot bypass its response gate.
+  if read.keyed is Some(_) {
+    return fail_read(read, InvalidPage)
+  }
+  if columns.length() != read.columns.length() ||
     rows.length() > read.page_limits.max_rows {
     return fail_read(read, InvalidPage)
   }
   let indices = []
-  for name in read.preparation.columns {
+  for name in read.columns {
     let found = columns.search(name)
     guard found is Some(index) && !indices.contains(index) else {
       return fail_read(read, InvalidPage)
@@ -406,7 +585,7 @@ fn accept_row_source_values(
       Err(issue) => return fail_read(read, Capture(issue))
     }
   }
-  read.pages += 1
-  read.rows += rows.length()
+  read.pages += 1L
+  read.rows += rows.length().to_int64()
   Ok(rows.length())
 }

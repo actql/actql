@@ -104,6 +104,9 @@ pub fn issue_client_task_source_free_invocation(
 ] {
   // Absence of SourceView inputs does not mean absence of acquisition.
   // Model observations must enter the containing Invocation after capture.
+  if compilation.serialization is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("content_generation"))
+  }
   if !compilation.infers.is_empty() {
     return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
   }

@@ -231,7 +231,7 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
           admission.value = None
           admission.frames.push(TypedJson(json, cursor))
         }
-        @contract.ResourceRef(_) | @contract.ArtifactRef(_) => {
+        @contract.ResourceRef(_) | @contract.ContentRef(_) => {
           guard admission.reference_issuer is Some(issuer) &&
             admission.reference_limits is Some(limits) else {
             fail(cursor, UnsupportedReference)

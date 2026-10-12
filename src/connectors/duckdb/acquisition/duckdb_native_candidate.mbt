@@ -56,7 +56,10 @@ pub fn duckdb_native_candidate(
   quantities : @connector.QueryQuantities,
   max_entries : Int,
 ) -> Result[
-  @planning.PreparedAcquisition[DuckDBNativePreparation],
+  @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
+    DuckDBNativePreparation,
+  ],
   DuckDBNativeCandidateIssue,
 ] {
   let (scan, root) = match prepared.native {

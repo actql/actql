@@ -10,9 +10,25 @@ pub fn prepare_infer_completion(
   let owner = generated_sequence_owner(prefix)
   guard step > 0 &&
     @lower.sequence_count(prefix.sequence) == step &&
-    physical_equal(rows.input.expected, owner) &&
+    physical_equal(rows.input.expected, owner) else {
+    return None
+  }
+  prepare_completed_infer_completion(rows, step)
+}
+
+///|
+/// Reuse the exact completion borrowed during mapping, including a checked
+/// Content producer or restored input. This does not execute that producer,
+/// manufacture a pure prefix, or grant Model success authority. Its original
+/// physical owner must keep the input available until the consumer settles.
+pub fn prepare_completed_infer_completion(
+  rows : PreparedInferRows,
+  step : Int,
+) -> CompletionPreparation? {
+  let owner = rows.input.expected
+  guard step > 0 &&
     rows.input.target == @pipeline.Step(step - 1) &&
-    rows.input.source is CompletedInput(_) &&
+    rows.input.source is CompletedInput(input) &&
     !rows.reclaimed &&
     infer_rows_available(rows.input) &&
     @lower.infer_output_binding(
@@ -25,11 +41,12 @@ pub fn prepare_infer_completion(
     return None
   }
   Some({
-    contracts: prefix.contracts,
-    sequence: prefix.sequence,
+    contracts: input.completion.contracts,
+    sequence: input.completion.sequence,
     retained_ids: [output_id],
     selected_step: Some(step),
     selected_terminal_step: Some(step),
+    serialization_output: None,
   })
 }
 

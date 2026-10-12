@@ -2,6 +2,15 @@
 // admit identities and retry classifications; this helper never calls a provider,
 // schedules work, classifies a failure, or supplies authorization policy.
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+// Physical FFI authentication, not another journal or receipt issuer. Escaped
+// tags cannot retain the journal/Run graph: the source is held only weakly here.
+// Only the existing journal's own issuer below can register a nominal port.
+const originalJournalPortSources = new WeakMap();
+export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {
+  const source = originalJournalPortSources.get(port)?.deref();
+  if (source === undefined) fail('ForeignModelOriginalJournalPort');
+  source.current(port, receipt, reference, park, request);
+}
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
@@ -619,6 +628,15 @@ export function createModelResumeState(database, {
     transaction.run(() => requireCurrentCutFacts(operation, original.after));
     return receipt;
   }
+  const originalJournalPortSource = Object.freeze({
+    current(port, receipt, reference, parkReceipt, invalidationRequest) {
+      originalJournalPortCurrent(port);
+      if (!same(cutOperation(reference).identity, originalJournalPorts.get(port).identity)) {
+        fail('ModelOriginalJournalPortBindingMismatch');
+      }
+      return originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest);
+    },
+  });
   function originalCutMutationFence() {
     for (const row of q.linkedScopes.all()) {
       let link;
@@ -757,17 +775,14 @@ export function createModelResumeState(database, {
         const port = Object.freeze({kind: 'original-model-journal-port'});
         originalJournalPorts.set(port, {identity,
           inventoryWire: row.inventory_json, originalsWire: row.originals_json});
+        originalJournalPortSources.set(port, new WeakRef(originalJournalPortSource));
         return port;
       },
       originalModelJournalPortCurrent(port) {
         return originalJournalPortCurrent(port);
       },
       originalModelJournalPortInvalidationCurrent(port, receipt, reference, parkReceipt, invalidationRequest) {
-        originalJournalPortCurrent(port);
-        if (!same(cutOperation(reference).identity, originalJournalPorts.get(port).identity)) {
-          fail('ModelOriginalJournalPortBindingMismatch');
-        }
-        return originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest);
+        return originalJournalPortSource.current(port, receipt, reference, parkReceipt, invalidationRequest);
       },
       prepareOriginalModelCurrentCut(observation, {parkReceipt, savedReceipt} = {}) {
         const facts = originalJournalObservation(observation);

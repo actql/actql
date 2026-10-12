@@ -582,6 +582,58 @@ test "Named Result view preparation advances and cancels in bounded steps" {
 }
 
 ///|
+test "Named Result failed poll retains earlier mapping frames without replaying them after close" {
+  let owner = result_export_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"]}}",
+  )
+  for quantum in [1, 7, 64] {
+    let preparation = start_completed_result_relation_export(
+      source,
+      occurrence,
+      { ..result_view_limits(), max_mapping_work: 1, },
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      row_wire_limits(),
+      publication_schema_limits(),
+      64,
+    ).unwrap()
+    let mut total = 0
+    let mut failed = false
+    for _ in 0..<20 {
+      let (ready, work, issue) = advance_completed_result_relation_export_progress(
+        preparation, quantum,
+      )
+      assert_false(ready)
+      assert_true(work >= 0 && work <= quantum)
+      total += work
+      if issue is Some(ResultView(Limit)) {
+        failed = true
+        break
+      }
+      assert_true(issue is None)
+    }
+    // One initial projection-search frame and one spelling/binding frame are
+    // entered. The latter compares s before its binding allowance is refused.
+    // It did execute; rejecting the binding does not erase that frame's work.
+    assert_true(failed)
+    assert_eq(total, 2)
+    assert_true(preparation.closed && preparation.stream is None)
+    assert_true(preparation.rows.names.is_empty())
+    let (ready, work, issue) = advance_completed_result_relation_export_progress(
+      preparation, quantum,
+    )
+    assert_false(ready)
+    assert_eq(work, 0)
+    assert_true(issue is Some(Closed))
+    assert_false(cancel_completed_result_relation_export(preparation))
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
 test "Named Result resume rejects a source lost between bounded steps" {
   let owner = result_export_owner()
   let occurrence = result_export_occurrence(

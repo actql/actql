@@ -1069,7 +1069,7 @@
             ],
             "properties": {
               "type": {
-                "const": "artifact_ref"
+                "const": "content_ref"
               },
               "nullable": {
                 "type": "boolean"

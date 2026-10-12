@@ -7,7 +7,7 @@ concrete values. Lookup is exact and case-sensitive; names follow the ASCII
 identifier grammar used by the pinned Program schema.
 
 The closed forms are resource_ref with required nonempty resource_kind, and
-artifact_ref with optional nonempty media_type. Absence of media_type is retained
+content_ref with optional nonempty media_type. Absence of media_type is retained
 as absence, not replaced with an invented wildcard or default. Explicit null is
 not absence. Other keys, nullable and default are rejected; these are opaque
 invocation declarations, not ordinary Parameter contracts. Resource/media labels

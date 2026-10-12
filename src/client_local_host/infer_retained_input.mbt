@@ -217,6 +217,94 @@ pub fn client_infer_retained_input_export_rows(
 }
 
 ///|
+/// Additional receiving-proof transport overlaps the original Content output.
+/// Use the export owner's exact fixed limits, and retain the row text plus
+/// binding/descriptor until the existing Model input custody finishes cleanup.
+fn client_content_completion_export_capacity() -> @execution.ExecutionCapacity? {
+  guard @local.local_export_retention_capacity({
+      max_rows: 100,
+      values: source_capture_values(),
+      wire: source_capture_wire(),
+      max_batch_bytes: 1000000,
+    })
+    is Some(exporting) else {
+    return None
+  }
+  let retained = 8L * (1000000L + 2L * 8192L) + 64L * (100L + 128L)
+  @execution.execution_capacity(retained, retained + exporting)
+}
+
+///|
+/// Export the actual Content producer while its original completion is live.
+/// Its original generation, Run definition and Store binding authenticate this
+/// record when the Model input owner persists it. Saved JSON alone cannot issue
+/// a completion or grant readmission authority.
+pub fn export_client_content_generation_output(
+  generation : @publication_host.ClientSerializationGeneration,
+  run : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  store_cid : String,
+) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue] {
+  guard @publication_host.client_serialization_generation_output_for(
+      generation, run,
+    )
+    is Some(output) &&
+    @publication_host.client_compiled_run_serialization(run) is Some(component) &&
+    client_content_completion_binding(generation, run, definition, store_cid)
+    is Some(binding) else {
+    return Err(BindingMismatch)
+  }
+  let exported = match export_client_infer_retained_input(output, binding) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // The descriptor comes from the existing live export owner, not a predicted
+  // completion assembled from the generated reference's envelope.
+  let descriptor = @execution.retained_completion_descriptor(exported.evidence)
+  if descriptor.output_step != component.step ||
+    !client_infer_retained_input_export_matches(exported, output) {
+    return Err(BindingMismatch)
+  }
+  Ok(exported)
+}
+
+///|
+fn client_content_completion_binding(
+  generation : @publication_host.ClientSerializationGeneration,
+  run : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  store_cid : String,
+) -> String? {
+  guard @publication_host.client_serialization_generation_capture_for(
+      generation, run, definition,
+    )
+    is Some(_) &&
+    @publication_host.client_compiled_run_serialization(run) is Some(component) &&
+    @publication_host.client_serialization_generation_recovery_bindings(
+      generation, run, store_cid,
+    )
+    is Some(bindings) &&
+    bindings.length() == 3 else {
+    return None
+  }
+  let binding_document : Json = [
+    "actql-host-content-producer-completion/0.1",
+    @publication.publication_contract_identity(definition),
+    bindings[2].1,
+    store_cid,
+    component.task,
+    component.step,
+  ]
+  let binding_value = @identity.from_json(binding_document, 32, 4, 8192) catch {
+    _ => return None
+  }
+  let binding = @identity.stringify_value(binding_value, 8192, 32, 4) catch {
+    _ => return None
+  }
+  Some(binding)
+}
+
+///|
 /// Readmission consumes exact stored bytes under a Host-authenticated original
 /// Run/scope/input binding. The trusted callback must keep that Store custody
 /// available; it is not supplied by a Program or by a provider response.
@@ -228,39 +316,76 @@ fn restore_client_infer_retained_input(
   descriptor_wire : String,
   supplied_rows : Array[String],
   custody_available : () -> Bool,
+  reference_issuer? : @admitted.ReferenceIssuer,
+) -> Result[ClientInferRetainedInput, ClientInferRetainedInputIssue] {
+  let owner = @execution.generated_sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), infer_step)
+    is Some(node) &&
+    @lower.payload(node) is @lower.Infer(_) &&
+    @lower.node_input_target(node, 0) == Some(@pipeline.Step(infer_step - 1)) else {
+    return Err(BindingMismatch)
+  }
+  restore_client_retained_completion(
+    @execution.generated_completion_preparation(sequence),
+    infer_step - 1,
+    expected_binding,
+    saved_binding,
+    descriptor_wire,
+    supplied_rows,
+    custody_available,
+    reference_issuer?,
+  )
+}
+
+///|
+/// One receiving retention owner for both Model input and its Content producer.
+/// The caller selects metadata only; original completion and byte custody must
+/// still be authenticated before the exact stored rows are readmitted.
+fn restore_client_retained_completion(
+  preparation : @execution.CompletionPreparation,
+  output_step : Int,
+  expected_binding : String,
+  saved_binding : String,
+  descriptor_wire : String,
+  supplied_rows : Array[String],
+  custody_available : () -> Bool,
+  reference_issuer? : @admitted.ReferenceIssuer,
+  value_work_limit? : Int? = None,
+  report_work? : (Int64) -> Unit = fn(_) { () },
 ) -> Result[ClientInferRetainedInput, ClientInferRetainedInputIssue] {
   let descriptor = match
     read_client_infer_retained_input_descriptor(descriptor_wire) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let owner = @execution.generated_sequence_owner(sequence)
   if expected_binding.is_empty() ||
     expected_binding.length() > 262144 ||
     expected_binding != saved_binding ||
     supplied_rows.length() > 100 ||
     descriptor.rows != supplied_rows.length() ||
-    descriptor.output_step != infer_step - 1 {
-    return Err(BindingMismatch)
-  }
-  guard @lower.node_at(@lower.bound_preparation(owner), infer_step)
-    is Some(node) &&
-    @lower.payload(node) is @lower.Infer(_) &&
-    @lower.node_input_target(node, 0) ==
-    Some(@pipeline.Step(descriptor.output_step)) else {
+    descriptor.output_step != output_step {
     return Err(BindingMismatch)
   }
   if !custody_available() {
     return Err(CustodyUnavailable)
   }
+  let values = source_capture_values()
+  let values = match value_work_limit {
+    None => values
+    Some(limit) => {
+      if limit < 0 {
+        return Err(InvalidDescriptor)
+      }
+      { ..values, max_work: Int::min(values.max_work, limit), }
+    }
+  }
   let rows = supplied_rows.copy()
-  let preparation = @execution.generated_completion_preparation(sequence)
   let reader = match
     @execution.prepare_retained_content_read(
       preparation,
       descriptor,
       100,
-      source_capture_values(),
+      values,
       source_capture_wire(),
       1000000,
     ) {
@@ -272,12 +397,14 @@ fn restore_client_infer_retained_input(
       @execution.cancel_retained_content_read(reader) |> ignore
       return Err(CustodyUnavailable)
     }
-    match
-      @execution.append_retained_content_read(
-        reader,
-        row,
-        source_capture_decode(),
-      ) {
+    let appended = @execution.append_retained_content_read(
+      reader,
+      row,
+      source_capture_decode(),
+      reference_issuer?,
+    )
+    report_work(@execution.retained_content_read_cumulative_work(reader))
+    match appended {
       Ok(_) => ()
       Err(issue) => {
         @execution.cancel_retained_content_read(reader) |> ignore
@@ -285,7 +412,10 @@ fn restore_client_infer_retained_input(
       }
     }
   }
-  let receipt = match @execution.finish_retained_content_read(reader) {
+  let finished = @execution.finish_retained_content_read(reader)
+  let read_work = @execution.retained_content_read_cumulative_work(reader)
+  report_work(read_work)
+  let receipt = match finished {
     Ok(value) => value
     Err(issue) => return Err(Content(issue))
   }
@@ -321,7 +451,7 @@ fn restore_client_infer_retained_input(
     @execution.prepare_completed_output_import(
       restored,
       100,
-      source_capture_values(),
+      values,
       source_capture_wire(),
       1000000,
     ) {
@@ -333,12 +463,16 @@ fn restore_client_infer_retained_input(
       @execution.cancel_completed_output_import(importing) |> ignore
       return Err(CustodyUnavailable)
     }
-    match
-      @execution.append_completed_output_import_wire(
-        importing,
-        row,
-        source_capture_decode(),
-      ) {
+    let appended = @execution.append_completed_output_import_wire(
+      importing,
+      row,
+      source_capture_decode(),
+      reference_issuer?,
+    )
+    report_work(
+      read_work + @execution.completed_output_import_cumulative_work(importing),
+    )
+    match appended {
       Ok(_) => ()
       Err(issue) => {
         @execution.cancel_completed_output_import(importing) |> ignore
@@ -346,7 +480,11 @@ fn restore_client_infer_retained_input(
       }
     }
   }
-  let output = match @execution.finish_completed_output_import(importing) {
+  let finished = @execution.finish_completed_output_import(importing)
+  report_work(
+    read_work + @execution.completed_output_import_cumulative_work(importing),
+  )
+  let output = match finished {
     Ok(value) => value
     Err(issue) => return Err(Import(issue))
   }
@@ -381,6 +519,7 @@ pub fn start_client_restored_infer_input(
   mapping : @execution.InferPreparationLimits,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   if execution.max_work < 0 ||
     mapping.max_work < 0 ||
@@ -400,8 +539,15 @@ pub fn start_client_restored_infer_input(
     return Err(UnsupportedProgram)
   }
   start_client_restored_infer_input_sequence(
-    sequence, step, expected_binding, saved_binding, descriptor_wire, rows, custody_available,
+    sequence,
+    step,
+    expected_binding,
+    saved_binding,
+    descriptor_wire,
+    rows,
+    custody_available,
     mapping,
+    reference_issuer?,
   )
 }
 
@@ -418,6 +564,7 @@ pub fn start_client_restored_composed_infer_input(
   custody_available : () -> Bool,
   execution : @execution.SequenceExecutionLimits,
   mapping : @execution.InferPreparationLimits,
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
@@ -439,8 +586,15 @@ pub fn start_client_restored_composed_infer_input(
     }
   }
   start_client_restored_infer_input_sequence(
-    sequence, step, expected_binding, saved_binding, descriptor_wire, rows, custody_available,
+    sequence,
+    step,
+    expected_binding,
+    saved_binding,
+    descriptor_wire,
+    rows,
+    custody_available,
     mapping,
+    reference_issuer?,
   )
 }
 
@@ -454,6 +608,7 @@ fn start_client_restored_infer_input_sequence(
   rows : Array[String],
   custody_available : () -> Bool,
   limits : @execution.InferPreparationLimits,
+  reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   let owner = @execution.generated_sequence_owner(sequence)
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -472,7 +627,14 @@ fn start_client_restored_infer_input_sequence(
   }
   let retained = match
     restore_client_infer_retained_input(
-      sequence, step, expected_binding, saved_binding, descriptor_wire, rows, custody_available,
+      sequence,
+      step,
+      expected_binding,
+      saved_binding,
+      descriptor_wire,
+      rows,
+      custody_available,
+      reference_issuer?,
     ) {
     Ok(value) => value
     Err(issue) => return Err(RetainedInput(issue))
@@ -502,7 +664,7 @@ fn start_client_restored_infer_input_sequence(
   Ok({
     prefix: None,
     retained_input: Some(retained),
-    sequence,
+    sequence: Some(sequence),
     infer_step: step,
     owner,
     target,
@@ -518,4 +680,70 @@ fn start_client_restored_infer_input_sequence(
     reclaimed: false,
     work: 0L,
   })
+}
+
+///|
+/// Restore the original generated-Content Model input through the existing
+/// retained completion and Infer mapper. The generation is borrowed evidence,
+/// never a substitute encoder completion or permission to dispatch a Model.
+pub fn start_client_restored_serialized_infer_input(
+  prepared : @publication_host.PreparedClientProgram,
+  run : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  occurrence : @publication_host.ClientInferOccurrence,
+  generation : @publication.BoundContentGeneration,
+  registry_body : String,
+  values_body : String,
+  expected_binding : String,
+  saved_binding : String,
+  descriptor_wire : String,
+  rows : Array[String],
+  custody_available : () -> Bool,
+  execution : @execution.SequenceExecutionLimits,
+  mapping : @execution.InferPreparationLimits,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  if execution.max_work < 0 ||
+    mapping.max_work < 0 ||
+    rows.length() > execution.rows.max_rows ||
+    !@publication_host.client_serialization_recovery_matches_infer(
+      run, definition, plan, occurrence, generation,
+    ) {
+    return Err(UnsupportedProgram)
+  }
+  guard @publication_host.client_compiled_run_serialization(run)
+    is Some(component) &&
+    @publication.bound_content_generation_reference_reissuer(generation)
+    is Some(issuer) &&
+    prepare_client_restored_serialization_sequence(
+      prepared,
+      occurrence,
+      component.step,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(sequence) else {
+    return Err(UnsupportedProgram)
+  }
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  start_client_restored_infer_input_sequence(
+    sequence,
+    step,
+    expected_binding,
+    saved_binding,
+    descriptor_wire,
+    rows,
+    () => {
+      custody_available() &&
+      @publication.bound_content_generation_value(generation) is Some(_)
+    },
+    mapping,
+    reference_issuer=issuer,
+  )
 }
