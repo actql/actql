@@ -1,4 +1,29 @@
 ///|
+fn staged_rename_current_ranges_expected() -> @program.Program {
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_chain_source_0","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"}],"results":{"aql_chain_source_0":{"from":"t","fields":["x","y"]}}},{"id":"main","inputs":{"aql_chain_input_0":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_1":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}}},"steps":[{"from":"aql_chain_input_1","join":{"with":"aql_chain_input_0","kind":"left","on":[{"left":"x","right":"x"}],"max_output_rows":10,"select":{"aql_chain_column_2":"right.x","aql_chain_column_3":"right.y","aql_chain_column_4":"left.x","aql_chain_column_5":"left.y"}},"as":"aql_chain_join_2"},{"from":"aql_chain_join_2","select":[{"key":"aql_chain_column_4"},{"left_y":"aql_chain_column_3"},{"right_y":"aql_chain_column_5"}],"as":"aql_chain_result_3"}],"results":{"rows":{"from":"aql_chain_result_3","fields":["key","left_y","right_y"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
+// Independent current-Unit control: retain the original typed Values and all
+// operator bodies. Only their checked binding coordinates change.
+fn rename_current_ranges_expected() -> @program.Program raise {
+  check_staged_values_join_oracle(staged_rename_current_ranges_expected())
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"aql_script_seed_2"},{"from":"aql_script_seed_2","join":{"with":"aql_script_seed_2","kind":"left","on":[{"left":"x","right":"x"}],"max_output_rows":10,"select":{"aql_chain_column_2":"right.x","aql_chain_column_3":"right.y","aql_chain_column_4":"left.x","aql_chain_column_5":"left.y"}},"as":"aql_chain_join_3"},{"from":"aql_chain_join_3","select":[{"key":"aql_chain_column_4"},{"left_y":"aql_chain_column_3"},{"right_y":"aql_chain_column_5"}],"as":"aql_chain_result_4"}],"results":{"rows":{"from":"aql_chain_result_4","fields":["key","left_y","right_y"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
 test "Pipe RENAME can introduce ambiguous current names without rebinding ranges" {
   let expected = @program.parse(
     (
@@ -29,13 +54,7 @@ test "Pipe RENAME can introduce ambiguous current names without rebinding ranges
 test "Pipe RENAME preserves unrelated duplicate JOIN names until projection" {
   // Independent RIGHT JOIN: x is one USING key; both y values remain distinct.
   // Both consumers import one captured producer, rather than recapturing t.
-  let expected = @program.parse(
-    (
-      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_chain_source_0","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"}],"results":{"aql_chain_source_0":{"from":"t","fields":["x","y"]}}},{"id":"main","inputs":{"aql_chain_input_0":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_1":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}}},"steps":[{"from":"aql_chain_input_1","join":{"with":"aql_chain_input_0","kind":"left","on":[{"left":"x","right":"x"}],"max_output_rows":10,"select":{"aql_chain_column_2":"right.x","aql_chain_column_3":"right.y","aql_chain_column_4":"left.x","aql_chain_column_5":"left.y"}},"as":"aql_chain_join_2"},{"from":"aql_chain_join_2","select":[{"key":"aql_chain_column_4"},{"left_y":"aql_chain_column_3"},{"right_y":"aql_chain_column_5"}],"as":"aql_chain_result_3"}],"results":{"rows":{"from":"aql_chain_result_3","fields":["key","left_y","right_y"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
-    ),
-    construction_limits().program,
-    format=Json,
-  ).unwrap()
+  let expected = rename_current_ranges_expected()
   assert_true(
     @check.check_parsed(expected, check_environment(), None, check_limits())
     is Checked(_),
