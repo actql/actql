@@ -108,6 +108,7 @@ test "Graph traversal missing selector field is refused by operand name resoluti
       parsed,
       { ..fixture_context(), inputs: [], },
       construction_limits(),
-    ) is Err(UnknownColumn),
+    )
+    is Err(UnknownColumn),
   )
 }

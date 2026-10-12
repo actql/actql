@@ -152,6 +152,7 @@ test "Graph match field role rejects numeric entries before lowering" {
       graph_rows_prefix() +
       "FROM g |> match_nodes(definition: 'N', where: {literal: true}, fields: [name, 1])",
       syntax_limits(),
-    ) is Err({ issue: Syntax("Expected identifier"), .. }),
+    )
+    is Err({ issue: Syntax("Expected identifier"), .. }),
   )
 }
