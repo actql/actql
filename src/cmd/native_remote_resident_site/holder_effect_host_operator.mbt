@@ -56,8 +56,6 @@ fn load_holder_effect_host_operator(
   if expires_ms <= now_ms || expires_ms > 9007199254740991L {
     stop("Effect Host identity expiry invalid")
   }
-  // Respect the operator's lower file cap as well as the installer's ceiling.
-  load_text(root, "account.json", file_limit) |> ignore
   let subject : @effect_review.NativeEffectHostAccountSubject = {
     principal: read(0),
     account_id: read(1),
@@ -71,6 +69,9 @@ fn load_holder_effect_host_operator(
   let account = match
     @effect_review.install_native_effect_host_account(
       Some({ root, name: "account.json", subject, }),
+      // Retain the same trusted operator ceiling for initial, current and final
+      // physical reads. The clamped value fits Int; candidate wire cannot raise it.
+      read_ceiling=file_limit.to_int(),
     ) {
     Ok(Some(value)) => value
     _ => stop("Effect Host Account installation refused")
