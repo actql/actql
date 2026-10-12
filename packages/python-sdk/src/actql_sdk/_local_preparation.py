@@ -43,21 +43,29 @@ class LocalPreparation:
     def __init__(self, core: LocalCore) -> None:
         if type(core) is not LocalCore:
             raise ValueError('Local preparation requires the original Core')
+        self._original = self
         self._core = core
         self._identity = object()
         self._environments: dict[int, _Environment] = {}
         self._preparations: dict[int, _Preparation] = {}
 
     def _active(self) -> None:
+        self._nominal()
         if self._core._closing:
             raise RuntimeError('Local Core is closing')
 
+    def _nominal(self) -> None:
+        if self._original is not self:
+            raise ValueError('Copied Local preparation bridge')
+
     def _environment(self, value: _Environment) -> None:
+        self._nominal()
         if (type(value) is not _Environment or value.owner is not self._identity
                 or self._environments.get(value.handle) is not value):
             raise ValueError('Foreign or released Local environment')
 
     def _preparation(self, value: _Preparation) -> None:
+        self._nominal()
         if (type(value) is not _Preparation or value.owner is not self._identity
                 or self._preparations.get(value.handle) is not value):
             raise ValueError('Foreign or released Local preparation')

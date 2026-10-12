@@ -68,6 +68,10 @@ class PreparationCustodyTests(unittest.TestCase):
         loan = adapter.reserve(environment, document, format='text')
         baseline = len(calls)
         actions = [lambda: adapter.prepare(copy.copy(loan)),
+                   lambda: copy.copy(adapter).prepare(loan),
+                   lambda: copy.copy(adapter).close_preparation(loan),
+                   lambda: copy.copy(adapter).close_environment(environment),
+                   lambda: copy.copy(adapter).install_environment(config, profile='source-free'),
                    lambda: foreign.prepare(loan),
                    lambda: adapter.reserve(copy.copy(environment), document, format='text'),
                    lambda: adapter.install_environment(copy.copy(config), profile='source-free'),
