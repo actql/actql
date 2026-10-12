@@ -11,6 +11,59 @@ function fixture() {
     counts: () => ({installations, sends, lookups})};
 }
 
+const originalInstallation = () => ({
+  bootstrap: {bootstrapRetainedBytes: 20n, bootstrapExecutionBytes: 10n,
+    maxReservations: 8, maxHoldings: 8, maxDelegations: 8},
+  modelRetainedBytes: 100n, modelExecutionBytes: 5n,
+  nodeInstallation: {runtimeArtifactCid: 'runtime', layoutArtifactCid: 'layout',
+    probability: undefined, installation: {sdk: {version: 'fixture'}},
+    layout: {response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
+      program_definition_cid: 'program', parameter_values_cid: 'parameters',
+      barrier_cid: 'barrier', prepared_rows: 3n, retained_bytes: 7n, execution_bytes: 5n}}});
+
+test('trusted original read installation preserves exact quantities and snapshots selection', () => {
+  const {moon, entry, counts} = fixture();
+  const declaration = originalInstallation();
+  entry.originalReadInstallation = declaration;
+  const selected = installModelProviders(moon, () => [entry]).get('models/fixture');
+  declaration.bootstrap.bootstrapRetainedBytes = 999n;
+  declaration.nodeInstallation.layout.retained_bytes = 999n;
+  declaration.nodeInstallation.installation.sdk.version = 'changed';
+  assert.equal(selected.originalReadInstallation.bootstrap.bootstrapRetainedBytes, 20n);
+  assert.equal(selected.originalReadInstallation.nodeInstallation.layout.retained_bytes, 7n);
+  assert.equal(selected.originalReadInstallation.nodeInstallation.layout.prepared_rows, 3n);
+  assert.equal(selected.originalReadInstallation.nodeInstallation.installation.sdk.version, 'fixture');
+  assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
+test('malformed original read installation refuses before provider or scope construction', () => {
+  for (const mutate of [
+    value => { value.extra = true; },
+    value => { delete value.bootstrap; },
+    value => { value.bootstrap.bootstrapRetainedBytes = 0n; },
+    value => { value.bootstrap.bootstrapExecutionBytes = -1n; },
+    value => { value.bootstrap.maxHoldings = 1.5; },
+    value => { value.modelRetainedBytes = 9_223_372_036_854_775_808n; },
+    value => { value.modelExecutionBytes = 5; },
+    value => { delete value.nodeInstallation.layout; },
+    value => { delete value.nodeInstallation.layout.response_profile; },
+  ]) {
+    const {moon, entry, counts} = fixture(), declaration = originalInstallation();
+    mutate(declaration); entry.originalReadInstallation = declaration;
+    assert.throws(() => installModelProviders(moon, () => [entry]),
+      /InvalidInstalledInferOriginalReadInstallation/u);
+    assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
+  }
+});
+
+test('registration absence supplies no default original read installation or quantities', () => {
+  const {moon, entry, counts} = fixture();
+  const selected = installModelProviders(moon, () => [entry]).get('models/fixture');
+  assert.equal(selected.originalReadInstallation, undefined);
+  assert.equal(selected.quantityCapacity, undefined);
+  assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
 test('registered original-response lookup is retained without invoking or reading a call', () => {
   const {moon, entry, counts} = fixture();
   const selected = installModelProviders(moon, () => [entry]).get('models/fixture');
