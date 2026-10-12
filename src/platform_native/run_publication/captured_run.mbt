@@ -126,6 +126,39 @@ pub fn prepare_captured_effect_free_run_publication_native(
     Ok(value) => value
     Err(issue) => return Err(Prepare(Export(issue)))
   }
+  prepare_exported_effect_free_run_publication_native(
+    service, run, context, exports, results, intent, occurrence,
+  )
+}
+
+///|
+/// Persist already re-admitted checked Result exports through the same Run
+/// publication Owner. This is used when a managed physical output needs its
+/// existing publication bridge; it does not reinterpret raw rows or invent
+/// completion. The caller retains each bridge until this call returns.
+/// Every export is consumed or cancelled here. Store cleanup remains owned by
+/// the same preparation result, including failure and unknown commit paths.
+pub fn prepare_exported_effect_free_run_publication_native(
+  service : NativeRunPublicationService,
+  run : @strategy.CapturedDAG,
+  context : NativeEffectFreeRunContext,
+  exports : Array[@publication_host.PublicationOutputExport],
+  results : Array[NativeCapturedResultPublicationContext],
+  intent : NativeRunPublicationIntent,
+  occurrence : NativeRunPublicationOccurrence,
+) -> Result[
+  NativePreparedCapturedRunPublication,
+  NativeCapturedRunPublicationPreparationIssue,
+] {
+  let graph = @strategy.captured_dag_graph(run)
+  if exports.is_empty() ||
+    results.length() != exports.length() ||
+    exports.length() != @strategy.graph_result_count(graph) {
+    for output in exports {
+      output.cancel()
+    }
+    return Err(Prepare(InvalidCapturedRun))
+  }
   let definitions : Array[@publication.PublicationContract] = []
   for output in exports {
     match output.definition() {
@@ -136,6 +169,27 @@ pub fn prepare_captured_effect_free_run_publication_native(
         }
         return Err(Prepare(Export(issue)))
       }
+    }
+  }
+  // The bridge route must cover all original Named Results in their checked
+  // order, just like the ordinary captured-output route. Equal counts alone
+  // cannot substitute a Result from another Program or omit a named output.
+  for index, definition in definitions {
+    let expected = @strategy.graph_result_name(graph, index).bind(name => {
+      @publication.prepare_result_definition(
+        @strategy.graph_program_definition_cid(graph),
+        name,
+      ).to_option()
+    })
+    guard expected is Some(expected) &&
+      @publication.publication_contract_identity(definition) ==
+      @publication.publication_contract_identity(
+        @publication.result_definition_contract(expected),
+      ) else {
+      for output in exports {
+        output.cancel()
+      }
+      return Err(Prepare(InvalidCapturedRun))
     }
   }
   let preparation = match
