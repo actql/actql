@@ -9,9 +9,9 @@ test('NEAREST Carrier roles preserve complete old identity preimages', () => {
   assert.deepEqual(before, read('scripts/fixtures/submitted-lag-values-identities.json'));
   assert.deepEqual(before.grammar,
     read('reviews/2026-10-12-frontend-nearest-carrier-roles/preimages/grammar-manifest.json'));
-  const expected = nearestCarrierIdentityOracle();
+  const expected = nearestCarrierIdentityOracle({grammarPath:'reviews/2026-10-12-frontend-nearest-continuation/preimages/query-grammar.ebnf',rulesPath:'reviews/2026-10-12-frontend-nearest-continuation/preimages/query-rules.md'});
   assert.deepEqual(expected, read('scripts/fixtures/submitted-nearest-carrier-values-identities.json'));
-  assert.deepEqual(expected.grammar, read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(expected.grammar, read('reviews/2026-10-12-frontend-nearest-continuation/preimages/grammar-manifest.json'));
   assert.deepEqual(expected.values_dependencies, before.values_dependencies);
   assert.deepEqual(expected.program_identity, before.program_identity);
   assert.deepEqual(expected.run_preimages.executable.resolved_limits,

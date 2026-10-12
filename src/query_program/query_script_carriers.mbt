@@ -197,6 +197,7 @@ fn lower_script_carrier_calls(
   output : String,
   retained? : Array[RetainedResult]? = None,
   allow_nonrelation? : Bool = false,
+  set_head? : Bool = false,
 ) -> Input raise Abort {
   let selected = selected_input(query, { ..context, inputs: known, }, limits)
   let mut input = bind_script_input(
@@ -351,8 +352,17 @@ fn lower_script_carrier_calls(
       }
     })
     return lower_script_nearest_carrier(
-      construction, tail, peers, context, sources, limits, steps, reserved, output,
+      construction,
+      tail,
+      peers,
+      context,
+      sources,
+      limits,
+      steps,
+      reserved,
+      output,
       retained,
+      set_head~,
     )
   }
   if !(carrier is @carrier.Relation(_)) {
@@ -388,5 +398,6 @@ fn lower_script_carrier_calls(
     reserved,
     output,
     retained~,
+    set_head~,
   )
 }
