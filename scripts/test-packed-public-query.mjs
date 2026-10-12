@@ -170,6 +170,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-rows-join-source-input.mjs', 'graph-rows-join-source-input.mjs'],
   ['scripts/fixtures/graph-row-source-input.mjs', 'graph-row-source-input.mjs'],
   ['scripts/fixtures/graph-match-source-input.mjs', 'graph-match-source-input.mjs'],
+  ['scripts/fixtures/sga-output-name-source.mjs', 'sga-output-name-source.mjs'],
   ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-hop-node-predicate-source-input.mjs', 'graph-hop-node-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-any-direction-source-input.mjs', 'graph-any-direction-source-input.mjs'],
