@@ -350,6 +350,11 @@ fn execute_native_local_adoption(
         host, settings, crypto, sqlite, check_environment, input_root, operation,
         child,
       )
+    } else if operation == "upgrade-policy" ||
+      operation == "lookup-policy-upgrade" {
+      local_run_policy_upgrade_operation(
+        host, settings, crypto, operation, child,
+      )
     } else if operation == "lookup-submission" {
       local_submission_lookup(host, settings, crypto, input_root, child)
     } else if operation == "checkpoint-state" {
