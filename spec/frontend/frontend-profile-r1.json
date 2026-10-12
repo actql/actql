@@ -863,7 +863,8 @@
         "|> session(by: [fields], gap: string)",
         "|> dedupe_events(by: [fields], order_by: [OrderKeys])",
         "|> lag(partition_by: [fields], order_by: [OrderKeys], field: field, output: name, offset: value?)",
-        "|> events()"
+        "|> events()",
+        "|> merge_rankings(with: producer|[producers], by: [fields], candidate: field, score: field?, rank: field?, score_policy: value, score_contract: value?, k: integer, tie_break: [fields]?)"
       ],
       "canonical_lowering": "common checked producer topology, followed by demanded emission",
       "preconditions": [
@@ -871,7 +872,8 @@
         "all bindings statically checked; execution follows explicit demand",
         "table/set operands and authored row aliases require Relation",
         "typed field roles resolve through ordinary scope; Carrier/schema remain common-checker evidence",
-        "Vectors/Events require an explicit common bridge before Relation operations"
+        "Vectors/Events require an explicit common bridge before Relation operations",
+        "ranking peers are lexical producers; RRF occurrence order/repetition is separate from dependency sharing; common score/rank evidence and resource rules remain required"
       ],
       "spec_section": "7.8",
       "execution_evidence_ids": [],

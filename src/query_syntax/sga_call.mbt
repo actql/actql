@@ -39,6 +39,7 @@ fn sga_operation(name : String) -> Bool {
     | "watermark_events"
     | "watermark_rows"
     | "lag"
+    | "merge_rankings"
     | "dedupe_events"
     | "session"
     | "events"
@@ -102,7 +103,7 @@ fn carrier_call_head(token : Token) -> Bool {
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
         "to_events", "row_window", "window_events", "watermark_events", "session",
-        "events", "dedupe_events", "watermark_rows", "lag",
+        "events", "dedupe_events", "watermark_rows", "lag", "merge_rankings",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -184,6 +185,7 @@ pub fn after_graph_row_calls(
 // reach.start.from is a Relation producer, while reach.start is an ID value.
 fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
   match operation {
+    "merge_rankings" => path == ["with"]
     "reach" | "traverse" => path == ["start", "from"]
     "shortest_path" => path == ["source", "from"] || path == ["target", "from"]
     "subgraph" => path == ["nodes", "from"]
@@ -201,6 +203,11 @@ fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
+    "merge_rankings" =>
+      path == ["score_contract"] ||
+      path == ["score_policy"] ||
+      path == ["score_policy", "weighted_sum"] ||
+      path == ["score_policy", "rrf"]
     "reach" => path == ["start"]
     "traverse" => path == ["start"] || path == ["hops"]
     "shortest_path" => path == ["source"] || path == ["target"]

@@ -163,12 +163,15 @@ sga_operation = "reach" | "traverse" | "shortest_path" | "components"
               | "graph_diff" | "apply_graph_delta" | "mean_graphs"
               | "node_rows" | "edge_rows"
               | "to_vectors" | "normalize_vectors" | "score_vectors" | "pool_vectors" | "vectors"
-              | "to_events" | "row_window" | "window_events" | "watermark_events" | "watermark_rows" | "dedupe_events" | "session" | "events" | "lag" ;
+              | "to_events" | "row_window" | "window_events" | "watermark_events" | "watermark_rows" | "dedupe_events" | "session" | "events" | "lag" | "merge_rankings" ;
 (* Closed argument keys accept Word or backtick names, including reserved keys.
    Values are selected by the operation signature: ProducerRef, FieldRef,
    OutputName, Expression, Enum/Literal, ClosedRecord/List or WholeParameter.
    A literal subtree has no reference roles. Lists inherit their leaf role.
    String values cannot replace a producer, field reference or output name.
+   merge_rankings.with accepts one ProducerRef or a flat finite ProducerRef list;
+   list order and repeated occurrences are retained, not dependency-deduplicated.
+   Its by/candidate/score/rank/tie_break positions use the current row FieldRefs.
    dedupe_events.order_by and lag.order_by accept a one-field OrderKey whose key is a FieldRef
    path, or a closed field/dir/nulls record with a FieldRef field value. *)
 sga_argument  = identifier, ":", sga_value ;
