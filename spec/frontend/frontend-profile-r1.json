@@ -1129,7 +1129,7 @@
       "spec_section": "10.1",
       "execution_evidence_ids": [],
       "adoption": "restricted",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-6",
       "acceptance_case_ids": [
         "VEC-02",

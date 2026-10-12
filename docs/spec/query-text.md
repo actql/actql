@@ -139,6 +139,23 @@ under the common failure, cancellation and budget rules. Result nullability
 is the union of operand nullability, including on empty input. BYTES overloads
 and explicit collations remain GoogleSQL coverage gaps.
 
+The adopted ActQL vector scalar forms are
+`VECTOR_COSINE_SIMILARITY(left, right)`, `VECTOR_INNER_PRODUCT(left, right)`,
+`VECTOR_L2_DISTANCE(left, right)` and `VECTOR_CONCAT(first, second, ...)`.
+The score forms require exactly two typed Vector operands; concatenation
+requires at least two. They lower to the existing `vector_score` cosine/dot
+forms, negated `vector_score` l2, and `vector_concat`, respectively. The existing
+common VecA profile, dimension checks, binary32 input law, NULL propagation,
+zero-vector behavior and bounded evaluation remain authoritative. L2 distance
+changes only the direction of the existing negative-distance score; these
+ActQL spellings do not assert GoogleSQL distance-function compatibility.
+Concatenation preserves operand order and multiplicity and sums the declared
+dimensions. An ordinary ARRAY is not implicitly cast to Vector, and ordinary
+Parameter declarations still exclude Vector. Quoted function names use the
+same installed case-insensitive lookup. Metric names remain distinct public
+function identities when deciding expression reuse. See
+[the existing vector expression contract](language.md#scalar-expressions).
+
 `STRPOS(value, subvalue)` takes exactly two STRING operands and lowers to the
 common `strpos` node. The selected [GoogleSQL STRPOS rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#strpos)
 returns the first match's 1-based character position, or 0 when absent. ActQL
