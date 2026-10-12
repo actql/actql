@@ -128,6 +128,7 @@ test "physical byte work respects quantum and the independent exact Model budget
         let work = match poll {
           @model.Continue(_, work)
           | @model.Waiting(_, work)
+          | @model.AwaitIo(_, work)
           | @model.Settling(_, _, work)
           | @model.Completed(_, _, work)
           | @model.Failed(_, _, work)
