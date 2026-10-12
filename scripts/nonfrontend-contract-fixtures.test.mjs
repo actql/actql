@@ -53,13 +53,20 @@ test('INSTR and STRPOS fixtures retain the independent complete-fragment preimag
 for (const [path, prefix] of [
   ['src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt', 'resident_effect_source'],
   ['src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt', 'retained_source'],
+  ['src/client_local_host/resident_source_query_regression_wbtest.mbt', 'source_query_original'],
 ]) test(prefix + ' uses the complete normative fragment and matching registered CID', () => {
   const body = fixtureBody(path, prefix + '_fragment');
-  const normative = json('spec/contracts/actql-aoa.json').execution_contracts['ACTQL.expression_fragment/0.1'];
+  const contract = json('spec/contracts/actql-aoa.json');
+  const normative = contract.execution_contracts['ACTQL.expression_fragment/0.1'];
   const expressions = json('spec/contracts/actql-expressions.json');
   assert.deepEqual(body, normative);
   assert.equal(body.dependencies.expression_contract.cid, cid(expressions));
   assert.equal(body.dependencies.fragment_schema.cid, cid(expressions.schemas.fragment));
   const registry = fixtureBody(path, prefix + '_registry');
+  assert.deepEqual(registry, json(contract.pipeline_registry_file));
+  assert.equal(cid(registry), contract.pipeline_registry_cid);
+  const values = fixtureBody(path, prefix + '_values');
+  assert.deepEqual(values, contract.execution_contracts['REL.values']);
+  assert.equal(cid(values), contract.target_registry_requirements['REL.values'].execution_contract.cid);
   assert.equal(registry['ACTQL.expression_fragment/0.1'].execution_contract.cid, cid(body));
 });
