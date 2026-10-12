@@ -65,6 +65,49 @@ test('GCS listing retains empty continuation pages, exact keys and string genera
   }
 });
 
+test('flat GCS listing refuses unexpected prefix pages without partial admission', async () => {
+  const {options, state} = fixture([{kind: 'storage#objects',
+    items: [metadata], prefixes: ['test/folder/'], nextPageToken: 'unfinished'}]);
+  const resources = [];
+  options.resourceFor = target => {
+    resources.push(target);
+    return {$fixtureResource: target};
+  };
+  await assert.rejects(readGcsFileListing(options), {code: 'InvalidGcsFileListingPage'});
+  assert.equal(state.calls.length, 1);
+  assert.equal(state.charges.length, 1);
+  assert.equal(state.envelopes.length, 0);
+  assert.deepEqual(resources, []);
+  assert.deepEqual(state.tokens, [undefined]);
+  assert.deepEqual(state.events, ['begin', 'send', 'charge']);
+  assert.deepEqual(JSON.parse(state.charges[0].bytes), {
+    kind: 'storage#objects', items: [metadata], prefixes: ['test/folder/'],
+    nextPageToken: 'unfinished',
+  });
+  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION).path,
+    '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl');
+});
+
+test('flat GCS listing accepts empty prefixes but follows an empty continuation page', async () => {
+  const {options, state} = fixture([
+    {kind: 'storage#objects', items: [], prefixes: [], nextPageToken: 'empty'},
+    {kind: 'storage#objects', items: [], prefixes: []},
+  ]);
+  await readGcsFileListing(options);
+  assert.equal(state.calls.length, 2);
+  assert.equal(state.charges.length, 2);
+  assert.deepEqual(state.tokens, [undefined, 'empty']);
+  assert.deepEqual(state.envelopes, [
+    {items: [], request_token: null, next_token: 'empty'},
+    {items: [], request_token: 'empty', next_token: null},
+  ]);
+  assert.deepEqual(state.calls.map(call =>
+    call.operations.get(GCS_FILE_LIST_OPERATION).path), [
+    '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl',
+    '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl&pageToken=empty',
+  ]);
+});
+
 for (const [name, changed] of [
   ['foreign bucket', {bucket: 'other'}],
   ['foreign prefix', {name: 'elsewhere/file'}],
