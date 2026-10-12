@@ -377,6 +377,49 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return checked(moon.clientProgramParkInferOriginalModelResources(
         active, originalScope));
     },
+    parkOriginalResourcesForStateWrite() {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramParkInferOriginalModelResourcesForStateWrite !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      return checked(moon.clientProgramParkInferOriginalModelResourcesForStateWrite(active, originalScope));
+    },
+    prepareOriginalCurrentStateWriter(park, limits) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramPrepareInferOriginalCurrentStateWriter !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      if (limits === null || typeof limits !== 'object' ||
+          Object.keys(limits).sort().join(',') !== 'maxDepth,maxNodes,maxWireBytes' ||
+          Object.values(limits).some(value => !Number.isSafeInteger(value) || value < 0 || value > 2147483647) ||
+          limits.maxNodes === 0) throw new TypeError('InvalidInferOriginalCurrentWriterLimits');
+      return checked(moon.clientProgramPrepareInferOriginalCurrentStateWriter(active, originalScope, park,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    advanceOriginalCurrentStateWriter(park, writer, quantum) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramAdvanceInferOriginalCurrentStateWriter !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647) {
+        throw new TypeError('InvalidInferOriginalCurrentWriterQuantum');
+      }
+      const poll = moon.clientProgramInferNodeReadStatePoll(
+        moon.clientProgramAdvanceInferOriginalCurrentStateWriter(active, originalScope, park, writer, quantum));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+    },
+    finishOriginalCurrentStateWriter(park, writer) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramFinishInferOriginalCurrentStateWriter !== 'function') {
+        throw new Error('InferOriginalCurrentWriterUnavailable');
+      }
+      return checked(moon.clientProgramFinishInferOriginalCurrentStateWriter(active, originalScope, park, writer));
+    },
+    cancelOriginalCurrentStateWriter(writer) {
+      // Codec retirement remains legal during close; it neither frees the
+      // Resource park nor substitutes for the original Model/read cleanup.
+      moon.clientProgramCancelInferOriginalCurrentStateWriter(writer);
+    },
     originalResourceParkCurrent(park) {
       // A pending close is not a physical stop or invalidation. Preserve the
       // original observation while Core still owns this same parked scope.

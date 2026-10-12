@@ -157,6 +157,8 @@ pub fn client_program_advance_infer_observation_issuance(@client_infer_host.Obse
 
 pub fn client_program_advance_infer_observation_verification(@model_execution.ModelObservationVerification, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
 
+pub fn client_program_advance_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateWriter, Int) -> @physical_resources.OriginalStateWritePoll
+
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
@@ -230,6 +232,8 @@ pub fn client_program_cancel_infer_input(@client_local_host.ClientInferInputExec
 pub fn client_program_cancel_infer_observation_issuance(@client_infer_host.ObservationIssuance) -> Bool
 
 pub fn client_program_cancel_infer_observation_verification(@model_execution.ModelObservationVerification) -> Bool
+
+pub fn client_program_cancel_infer_original_current_state_writer(@client_infer_host.OriginalModelCurrentStateWriter) -> Unit
 
 pub fn client_program_cancel_model_execution(@model_execution.ModelExecution) -> Bool
 
@@ -652,6 +656,8 @@ pub fn client_program_export_source_capture(@execution_query.CapturedInputSource
 pub fn client_program_finish_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIdentityScanIssue]
 
 pub fn client_program_finish_infer_node_read_state(@run_publication_host.ClientNodeModelStateWriter, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[String, @run_publication_host.ClientNodeModelStateIssue]
+
+pub fn client_program_finish_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateWriter) -> Result[String, @physical_resources.OriginalStateWriteIssue]
 
 pub fn client_program_finish_infer_original_read_scope(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Bool, @run_publication_host.ClientModelReadPreparationIssue]
 
@@ -1141,6 +1147,8 @@ pub fn client_program_open_source_free_local_retained_host(@run_publication_host
 
 pub fn client_program_park_infer_original_model_resources(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
+pub fn client_program_park_infer_original_model_resources_for_state_write(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
+
 pub fn client_program_pin_effect_sources(ClientLocalEffectHost, Int) -> Result[@physical_strategy.CapturedEffectInputs, @physical_strategy.RunIssue]
 
 pub fn client_program_plan_fact_manifest_cid(@run_publication_host.PlanFactManifestIdentity) -> String
@@ -1178,6 +1186,8 @@ pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.Prepare
 pub fn client_program_prepare_infer_node_read_layout(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelPreparationLayoutIssue]
 
 pub fn client_program_prepare_infer_node_read_state(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int, Int, Int) -> Result[@run_publication_host.ClientNodeModelStateWriter, @run_publication_host.ClientNodeModelStateIssue]
+
+pub fn client_program_prepare_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int, Int, Int) -> Result[@client_infer_host.OriginalModelCurrentStateWriter, @physical_resources.OriginalStateWriteIssue]
 
 pub fn client_program_prepare_infer_response_reconciliation(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@model_execution.ModelResponseReconciliation, @model_execution.ModelExecutionIssue]
 
