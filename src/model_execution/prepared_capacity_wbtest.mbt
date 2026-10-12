@@ -191,11 +191,7 @@ test "Model prepared capacity: original owner holds through output use and pendi
     None,
     durable_calls=true,
     send_mask=Some([false, false]),
-    prepared_capacity=Some({
-      prepared_rows: 2,
-      retained_bytes: 100L,
-      execution_bytes: 5L,
-    }),
+    prepared_capacity=Some((2, 100L, 5L)),
   ).unwrap()
   let claim = active.state.prepared_capacity.unwrap()
   assert_eq(@resources.ledger_usage(active.state.ledger).attempts, 0)
@@ -262,11 +258,7 @@ test "Model prepared capacity: admission failure cannot acquire the original inp
       "sha256:" + "a".repeat(64),
       prepared_capacity_test_limits(retained),
       None,
-      prepared_capacity=Some({
-        prepared_rows: count,
-        retained_bytes: 100L,
-        execution_bytes: 5L,
-      }),
+      prepared_capacity=Some((count, 100L, 5L)),
     )
     assert_true(
       if count == 1 {
@@ -291,7 +283,7 @@ test "Model prepared capacity: all-row byte claim grants no send or quantities" 
     let claim = reserve_prepared_model_capacity(
         ledger,
         mask.length(),
-        Some({ prepared_rows: 2, retained_bytes: 100L, execution_bytes: 5L, }),
+        Some((2, 100L, 5L)),
       )
       .unwrap()
       .unwrap()
@@ -319,11 +311,7 @@ test "Model prepared capacity: one-short and foreign counts fail without materia
   for (retained, execution) in [(99L, 5L), (100L, 4L)] {
     let ledger = prepared_capacity_test_ledger(retained, execution)
     let before = @resources.ledger_usage(ledger)
-    let result = reserve_prepared_model_capacity(
-      ledger,
-      2,
-      Some({ prepared_rows: 2, retained_bytes: 100L, execution_bytes: 5L, }),
-    )
+    let result = reserve_prepared_model_capacity(ledger, 2, Some((2, 100L, 5L)))
     assert_true(
       if retained == 99L {
         result is Err(Ledger(@resources.RetentionLimit))
@@ -348,11 +336,7 @@ test "Model prepared capacity: one-short and foreign counts fail without materia
       reserve_prepared_model_capacity(
         ledger,
         rows,
-        Some({
-          prepared_rows: bound_rows,
-          retained_bytes: retained,
-          execution_bytes: execution,
-        }),
+        Some((bound_rows, retained, execution)),
       )
       is Err(InvalidLimits),
     )

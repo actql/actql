@@ -80,17 +80,17 @@ test "Native preparation use consumer restores one exact use without renewal or 
   let grant = @credential.prepare_local_preparation_credential_grant(
     "local-authority-a", scope, 2000000000000L, 2,
   ).unwrap()
-  let use = @credential.prepare_local_preparation_credential_use(
+  let original_use = @credential.prepare_local_preparation_credential_use(
     grant, "observe-use", 1999999999999L, 0, false, scope,
   ).unwrap()
   assert_eq(
-    @credential.local_preparation_credential_use_cid(use),
+    @credential.local_preparation_credential_use_cid(original_use),
     "sha256:17f393ef1ac8c8fd7d86ddb27ae3f62869b6d3391bf1a1c040b10df8169443f8",
   )
   let restored = @credential.admit_local_preparation_credential_use_json(
     grant,
-    @credential.local_preparation_credential_use_json(use).unwrap(),
-    @credential.local_preparation_credential_use_cid(use),
+    @credential.local_preparation_credential_use_json(original_use).unwrap(),
+    @credential.local_preparation_credential_use_cid(original_use),
   ).unwrap()
   assert_eq(
     @credential.local_preparation_credential_use_projection(restored),
