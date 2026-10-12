@@ -97,3 +97,56 @@ test "P2 dedupe nested argument scanning keeps the containing query budget" {
     is Err(_),
   )
 }
+
+///|
+test "P2 dedupe grouping snapshots do not share field paths" {
+  let query = parse_query(
+    "FROM ev |> dedupe_events(by: [bucket], order_by: [{score: 'asc'}])",
+    query_limits(),
+  ).unwrap()
+  guard operation_at(query, 0) is Some(GraphCall(snapshot)) else {
+    fail("Expected dedupe snapshot")
+  }
+  guard snapshot.arguments[0].1 is ListValue([FieldReference(path)]) else {
+    fail("Expected grouping field")
+  }
+  path[0] = { value: "changed", quoted: false, }
+  guard operation_at(query, 0) is Some(GraphCall(original)) else {
+    fail("Expected original dedupe")
+  }
+  assert_eq(
+    original.arguments[0].1,
+    ListValue([FieldReference([{ value: "bucket", quoted: false, }])]),
+  )
+}
+
+///|
+test "P2 dedupe explicit OrderKey snapshots do not share field paths" {
+  let query = parse_query(
+    "FROM ev |> dedupe_events(by: [], order_by: [{field: score, dir: 'asc', nulls: 'last'}])",
+    query_limits(),
+  ).unwrap()
+  guard operation_at(query, 0) is Some(GraphCall(snapshot)) else {
+    fail("Expected dedupe snapshot")
+  }
+  guard snapshot.arguments[1].1 is ListValue([ObjectValue(fields)]) else {
+    fail("Expected explicit OrderKey")
+  }
+  guard fields[0].1 is FieldReference(path) else {
+    fail("Expected order field")
+  }
+  path[0] = { value: "changed", quoted: false, }
+  guard operation_at(query, 0) is Some(GraphCall(original)) else {
+    fail("Expected original dedupe")
+  }
+  assert_eq(
+    original.arguments[1].1,
+    ListValue([
+      ObjectValue([
+        ("field", FieldReference([{ value: "score", quoted: false, }])),
+        ("dir", TextValue("asc")),
+        ("nulls", TextValue("last")),
+      ]),
+    ]),
+  )
+}
