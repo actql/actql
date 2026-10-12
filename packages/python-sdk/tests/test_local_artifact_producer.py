@@ -219,7 +219,8 @@ class LocalArtifactProducerTests(unittest.TestCase):
                         self.module.unlink()
                         self.module.symlink_to(self.library)
                 with patch.object(producer.recipe, 'library_target', side_effect=replace):
-                    with self.assertRaises(LocalInstallationError):
+                    error = LocalInstallationError if replacement == 'grow' else OSError
+                    with self.assertRaises(error):
                         self.run_producer()
                 self.assertFalse((self.output / 'client_host_wasm.wasm').exists())
                 self.assertFalse((self.output / 'producer.json').exists())

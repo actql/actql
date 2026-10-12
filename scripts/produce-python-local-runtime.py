@@ -58,7 +58,9 @@ def component(path: Path, digest: str, maximum: int, filename: str) -> dict[str,
 def copy_original(path: Path, target: Path, maximum: int, digest: str) -> None:
     # Read the original through the same bounded, no-follow digest check at
     # copy time; a growing or replaced input cannot turn copying into unbounded I/O.
-    target.write_bytes(_read_file(path, maximum=maximum, digest=digest))
+    raw = _read_file(path, maximum=maximum)
+    require(hashlib.sha256(raw).hexdigest() == digest, 'Original component changed before copying')
+    target.write_bytes(raw)
 
 
 def produce(core_receipt: Path, duckdb_receipt: Path, destination: Path) -> dict[str, object]:
