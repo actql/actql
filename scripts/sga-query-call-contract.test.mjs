@@ -453,9 +453,9 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid(beforeLagBody), beforeLagCid);
   const {grammar_manifest_cid: submittedLagCid, ...submittedLagBody} =
     read('scripts/fixtures/submitted-lag-values-identities.json').grammar;
-  const currentExpected = 'sha256:3594d643035dbef8de5da40d88d007b9a88e1f438ade3575ffcf7c1db314a2f7';
-  assert.equal(submittedLagCid, currentExpected);
-  assert.equal(cid(submittedLagBody), currentExpected);
+  const submittedLagExpected = 'sha256:3594d643035dbef8de5da40d88d007b9a88e1f438ade3575ffcf7c1db314a2f7';
+  assert.equal(submittedLagCid, submittedLagExpected);
+  assert.equal(cid(submittedLagBody), submittedLagExpected);
   assert.deepEqual(submittedLagBody, {...beforeLagBody,
     query_text_grammar_sha256: submittedLagBody.query_text_grammar_sha256,
     query_text_rules_sha256: submittedLagBody.query_text_rules_sha256});
@@ -518,9 +518,9 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_rules_sha256: '40d9b9fdbc9180c7d4967c58951f262b1b0fbfa050896cac1dd295c45200be86'});
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
-  assert.equal(grammar_manifest_cid, currentExpected);
+  assert.equal(grammar_manifest_cid, nearestCid);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
-    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), currentExpected);
+    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), nearestCid);
   }
 });
 
