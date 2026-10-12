@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { hash } from './inventory.mjs';
 import { providerConstructionBound, inspectProviderConstruction } from './capacity/parent-control/provider-construction.mjs';
 import {constructionSourceReview, reviewedFunction, selectedFactoryOutsideAccepts,
-  managedBeforePausePolls, selectedBeforeInputOnly, selectedBeforeReviewedLifecycle, providerBeforeReviewedCleanup} from './capacity/parent-control/provider-construction-source-review.mjs';
+  managedBeforePausePolls, selectedBeforeInputOnly, selectedBeforeReviewedLifecycle, providerBeforeReviewedCleanup,
+  selectedBeforeBoundaryDispatch, generatedBeforeBoundaryExclusions} from './capacity/parent-control/provider-construction-source-review.mjs';
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
 // Synthetic admission tests, separate from the archived real native reader.
 const fact = () => ({ kind: 'provider construction observation', providers: 11,
@@ -155,7 +156,7 @@ test('reviewed composition adds only typed Graph row-kernel exclusions to the in
   const before = execFileSync('git', ['--no-replace-objects', 'show',
     `${integratedMain}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
   assert.equal(hash(before), '689b1f1eaef074e44132348bf9927349324c94325fb10ebf304191e6cb7b6ac3');
-  const source = read(path).toString();
+  const source = generatedBeforeBoundaryExclusions(read(path).toString());
   let remaining = source.replace('      | @lower.GraphConstructionStep(_)\n',
     '      | @lower.PropertyGraphConstructionStep(_)\n');
   for (const operation of ['GraphUnionStep', 'GraphSubtractionStep', 'GraphMeanStep']) {
@@ -173,7 +174,7 @@ test('Mean exclusion preserves the complete integrated construction source and b
   const path = 'src/execution_relation/generated_sequence.mbt';
   const before = historical(path, 'ba0779ad8551bb06476c275cc74cebeef4463751').toString();
   assert.equal(hash(before), '7e71c827d4004e769a22891f97dba162e7854a87f45e081dcb9a5c50bbbc460a');
-  const source = read(path).toString();
+  const source = generatedBeforeBoundaryExclusions(read(path).toString());
   const branch = '      | @lower.GraphMeanStep(_)\n';
   assert.equal(source.split(branch).length, 2, 'Mean is one reviewed false-branch alternative');
   assert.equal(source.replace(branch, ''), before,
@@ -368,4 +369,44 @@ test('new fields, captures and pause work branches remain unreviewed source chan
     assert.throws(() => providerConstructionBound(p => p === path ? Buffer.from(source.replace(from, to)) : read(p)),
       /Unreviewed provider constructor|Changed provider representation premise/);
   }
+});
+
+// These use immutable Git sources as independent expectations; current output
+// or an updated digest alone does not establish construction correspondence.
+test('boundary dispatch reconstructs the complete reviewed constructor source',()=>{
+  const path='src/connectors/local/selected_relation_provider.mbt';
+  const current=read(path).toString();
+  const prior=historical(path,'10ad17b09e17d7696e664c90dc88d98f1b7d0c73').toString();
+  assert.equal(selectedBeforeBoundaryDispatch(current),prior);
+  assert.equal(hash(prior),constructionSourceReview.selectedDigest);
+  for(const name of ['selected_relation_provider','bounded_relation_chain_execution_state','bounded_relation_chain_capacity']) {
+    assert.equal(reviewedFunction(current,name),reviewedFunction(prior,name));
+  }
+  const recipe=read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json').toString();
+  const oldRecipe=recipe.replace(constructionSourceReview.boundaryDispatchReview.selectedDigest,
+    constructionSourceReview.selectedDigest);
+  assert.equal(hash(oldRecipe),constructionSourceReview.currentRecipeDigest);
+  assert.equal(providerConstructionBound(read).bytes,2344);
+});
+test('boundary exclusions reconstruct the complete reviewed generated source',()=>{
+  const path='src/execution_relation/generated_sequence.mbt';
+  const current=read(path).toString();
+  const prior=historical(path,'4fd03c918b8e125fd712904c58dbef9fbc1dbe82').toString();
+  assert.equal(generatedBeforeBoundaryExclusions(current),prior);
+  assert.equal(hash(prior),'4fe922203e2da77f52d97d6e2e4467cf4859c8a63302d4e01b3bd3d7098f5cfd');
+});
+for(const [name,path,normalizer,from,to] of [
+  ['missing Infer dispatch','src/connectors/local/selected_relation_provider.mbt',selectedBeforeBoundaryDispatch,
+    '    | Some(@lower.InferBoundary(_))\n',''],
+  ['extra serialization dispatch','src/connectors/local/selected_relation_provider.mbt',selectedBeforeBoundaryDispatch,
+    '    | Some(@lower.SerializationBoundary(_)) => true','    | Some(@lower.SerializationBoundary(_))\n    | Some(@lower.SerializationBoundary(_)) => true'],
+  ['unexpected completed-producer eligibility','src/connectors/local/selected_relation_provider.mbt',selectedBeforeBoundaryDispatch,
+    '    | Some(@lower.SerializationBoundary(_)) => true','    | Some(@lower.SerializationBoundary(_))\n    | Some(@lower.CompletedProducerBoundary(_)) => true'],
+  ['serialization treated as row kernel','src/execution_relation/generated_sequence.mbt',generatedBeforeBoundaryExclusions,
+    '      | @lower.CompletedProducerBoundary(_) => false','      | @lower.CompletedProducerBoundary(_) => true'],
+  ['missing completed-producer exclusion','src/execution_relation/generated_sequence.mbt',generatedBeforeBoundaryExclusions,
+    '      | @lower.SerializationBoundary(_)\n',''],
+]) test('boundary source review rejects '+name,()=>{
+  const source=read(path).toString();assert.equal(source.split(from).length,2);
+  assert.throws(()=>normalizer(source.replace(from,to)),/reviewed representation delta/);
 });

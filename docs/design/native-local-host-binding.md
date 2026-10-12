@@ -568,3 +568,15 @@ Cloud deployment, secret rotation and production Provider writes are outside
 this implementation authorization. Hosted CI remains stopped. Focused local
 checks cover changed boundaries; heavy cross-target/proof/package campaigns
 remain with the integration verification owner.
+
+## Finite original Run read roles
+
+The explicit finite read alternative selects `run_policy_profile_cid`, `run_file`,
+`retention_file` and `store_file` together. These literal names follow the existing
+selected-file admission and identify actual adopted originals; they grant no
+permission. Initial binding compares them with the opaque profile binding.
+Read-evidence restoration uses each saved row's independent read-original CID
+and that original's roles, then rechecks current Host authority, selected file
+generations and the original accepted Run packet. Different read selections in
+one Host retain separate roles. The absolute `expires_at` alternative contains
+none of these fields and its historical bytes and grants remain unchanged.

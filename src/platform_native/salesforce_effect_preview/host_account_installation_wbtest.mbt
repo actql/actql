@@ -26,6 +26,37 @@ fn host_account_test_file() -> NativeEffectHostAccountFile {
 }
 
 ///|
+test "unselected Host does not read or report a physical failure" {
+  let failures = [0]
+  assert_true(
+    install_native_effect_host_account(
+      None,
+      on_read_failure=Some(_ => failures[0] += 1),
+    )
+    is Ok(None),
+  )
+  assert_eq(failures[0], 0)
+}
+
+///|
+test "Host failure observer retains original refusal without supplying bytes" {
+  let retained : Ref[@bounded_files.NativeBoundedTextFailure?] = Ref(None)
+  let result = read_host_account_file_with_custody(
+    host_account_test_file(),
+    0,
+    Some(failure => retained.val = Some(failure)),
+  )
+  assert_true(result is Err(@bounded_files.InvalidLimit))
+  guard retained.val is Some(failure) else {
+    fail("original failure not retained by caller")
+  }
+  assert_true(failure.issue() is @bounded_files.InvalidLimit)
+  assert_true(failure.root_cleanup_issue() is None)
+  failure.retry_cleanup().unwrap()
+  assert_true(result is Err(@bounded_files.InvalidLimit))
+}
+
+///|
 test "explicit Host file selection is optional but selected missing is installation failure" {
   let reads = [0]
   let missing = _limit => {

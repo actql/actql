@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:native-local-result-read:0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "native"
+  ],
+  "properties": {
+    "version": {
+      "const": "actql-config/0.1"
+    },
+    "native": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_read"
+      ],
+      "properties": {
+        "result_read": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "principal",
+            "connection",
+            "result_names",
+            "formats",
+            "purpose",
+            "sink",
+            "data_policy_cids",
+            "max_bytes",
+            "max_uses"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "principal": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "connection": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "result_names": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "formats": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "csv",
+                  "json",
+                  "jsonl"
+                ]
+              }
+            },
+            "purpose": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sink": {
+              "const": "stdout"
+            },
+            "data_policy_cids": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            },
+            "max_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 536870912
+            },
+            "max_uses": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1024
+            },
+            "expires_at": {
+              "type": "string",
+              "minLength": 24,
+              "maxLength": 24
+            },
+            "run_policy_profile_cid": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "run_file": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?!\\.\\.?$)[^/\\\\\\u0000]+$"
+            },
+            "retention_file": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?!\\.\\.?$)[^/\\\\\\u0000]+$"
+            },
+            "store_file": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?!\\.\\.?$)[^/\\\\\\u0000]+$"
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "expires_at"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "run_policy_profile_cid"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "run_file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "retention_file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "store_file"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "required": [
+                "run_policy_profile_cid",
+                "run_file",
+                "retention_file",
+                "store_file"
+              ],
+              "not": {
+                "required": [
+                  "expires_at"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

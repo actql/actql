@@ -260,7 +260,7 @@ fn execute_native_local_product(
       is Some(_) {
       stop("LocalProductCustodyLost")
     }
-    let originals = @run_host.client_native_local_product_originals(
+    let originals = @run_host.client_native_local_finite_product_originals(
       configuration_root,
       runtime.sqlite,
       runtime.crypto,

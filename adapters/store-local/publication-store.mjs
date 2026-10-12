@@ -104,7 +104,7 @@ async function writeExclusive(path, bytes) {
   }
 }
 
-async function readBounded(path, maximum, closed, signal) {
+async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
   if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
   }
@@ -131,6 +131,11 @@ async function readBounded(path, maximum, closed, signal) {
     if (!before.isFile() || before.size < 0n ||
         before.size > BigInt(maximum)) {
       fail('InvalidPublicationStoreObject');
+    }
+    // The installation key's existing owner-only rule must hold on THIS FD,
+    // not only on a pathname observed before its asynchronous acquisition.
+    if (ownerOnly && (before.mode & 0o077n) !== 0n) {
+      fail('PrivateEvidenceKeyExposed');
     }
     const sameFile = state => state.isFile() &&
       state.dev === before.dev && state.ino === before.ino &&
@@ -162,6 +167,9 @@ async function readBounded(path, maximum, closed, signal) {
     if (bytesRead !== 0) fail('InvalidPublicationStoreObject');
     const after = await handle.stat({bigint: true});
     signal?.throwIfAborted();
+    if (ownerOnly && (after.mode & 0o077n) !== 0n) {
+      fail('PrivateEvidenceKeyExposed');
+    }
     if (!sameFile(after)) fail('InvalidPublicationStoreObject');
     const pathAfter = await lstat(path, {bigint: true});
     signal?.throwIfAborted();

@@ -59,6 +59,37 @@ test('selected Host helper retains transitive declarations and enum variants wit
   assert.throws(()=>helperImports(pkg.replace('"x/used" @used,','dynamic_import()'),r.referencedText));
 });
 
+test('projection keeps complete immutable raw String constants and omits unreferenced literal ranges',()=>{
+  const unused='let unused : String =\n  #|{ "brace": "}🙂", "test": "raw" }\n';
+  const owned='priv let message : String =\n  #|first line leaf\n  #|second line { and }\n';
+  const helpers='fn run_current_host_graph_relation_path() { use(message) }\nfn use(x : String) { ignore(x) }\nfn leaf() {}\n';
+  const source=unused+'\n'+owned+'\n'+helpers;
+  const result=helperCompilation({a:source},'test { run_current_host_graph_relation_path() }');
+  const constant=result.inputs.a.keptDeclarations.find(d=>d.name==='message');
+  assert(constant);assert.equal(source.slice(constant.begin,constant.end),owned);
+  assert.equal(result.overlay.a.slice(constant.begin,constant.end),owned);
+  assert(result.inputs.a.keptDeclarations.some(d=>d.name==='leaf'),'Identifiers in raw literals retain the conservative closure');
+  const omitted=result.inputs.a.omittedDeclarations.find(d=>d.name==='unused');
+  assert(omitted);assert.equal(source.slice(omitted.begin,omitted.end),unused);
+  assert.match(result.overlay.a.slice(omitted.begin,omitted.end),/^[ \r\n]*$/);
+  for(let i=0;i<source.length;i++) {
+    if(i<omitted.begin || i>=omitted.end || /[\r\n]/.test(source[i])) assert.equal(result.overlay.a[i],source[i]);
+  }
+});
+for(const declaration of [
+  'let x : String = open_store()\n',
+  'let x =\n  #|raw\n',
+  'let mut x : String =\n  #|raw\n',
+  'let x : Int =\n  #|raw\n',
+  'let x : String = "quoted"\n',
+  'let x : String =\n  $|\\{effect()}\n',
+  'let x : String =\n  #|raw\n  + effect()\n',
+  'pub let x : String =\n  #|raw\n',
+]) test('projection refuses non-literal or unreviewed constant '+JSON.stringify(declaration),()=>{
+  assert.throws(()=>helperCompilation({a:declaration+'fn run_current_host_graph_relation_path() {}\n'},
+    'test { run_current_host_graph_relation_path() }'),/Unsupported helper|interpolated raw/);
+});
+
 test('local compilation preserves helpers and ignores braces in literals, interpolation and comments',()=>{
   const helper = 'fn helper() { assert_eq("}", "}") }\n';
   const first = 'test "omit { name }" { let x = "\\{if true { "}" } else { "{" }}"\n /* { /* } */ } */\n let y = \'{\'\n // }\n helper() }';
