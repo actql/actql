@@ -188,7 +188,7 @@ fn QueryParser::sga_argument(
     return FieldReference(field)
   }
   if sga_output_argument(operation, path) {
-    return OutputName(self.name())
+    return OutputName(self.sga_output_name())
   }
   if sga_producer_argument(operation, path) {
     // Bare and backtick names are references. A quoted STRING is a value,
