@@ -104,7 +104,7 @@ async function writeExclusive(path, bytes) {
   }
 }
 
-async function readBounded(path, maximum, closed, signal) {
+async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
   if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
   }
@@ -131,6 +131,11 @@ async function readBounded(path, maximum, closed, signal) {
     if (!before.isFile() || before.size < 0n ||
         before.size > BigInt(maximum)) {
       fail('InvalidPublicationStoreObject');
+    }
+    // The installation key's existing owner-only rule must hold on THIS FD,
+    // not only on a pathname observed before its asynchronous acquisition.
+    if (ownerOnly && (before.mode & 0o077n) !== 0n) {
+      fail('PrivateEvidenceKeyExposed');
     }
     const sameFile = state => state.isFile() &&
       state.dev === before.dev && state.ino === before.ino &&
@@ -162,6 +167,9 @@ async function readBounded(path, maximum, closed, signal) {
     if (bytesRead !== 0) fail('InvalidPublicationStoreObject');
     const after = await handle.stat({bigint: true});
     signal?.throwIfAborted();
+    if (ownerOnly && (after.mode & 0o077n) !== 0n) {
+      fail('PrivateEvidenceKeyExposed');
+    }
     if (!sameFile(after)) fail('InvalidPublicationStoreObject');
     const pathAfter = await lstat(path, {bigint: true});
     signal?.throwIfAborted();
@@ -284,6 +292,46 @@ async function acquireStoreOwnership(root) {
       await syncDirectoryPath(root);
     }
   }
+}
+
+// An opener can fail after acquiring the existing Store owner but before it
+// returns a Store. Keep that SAME ownership and any failed physical reader;
+// retry only cleanup, never reopen initialization or invent completed custody.
+async function retainStoreOpeningFailure(cause, ownership, key) {
+  let original = ownership;
+  const reader = cause?.cleanupHandle;
+  let flight, cleanupError;
+  const status = () => Object.freeze({pending: original !== undefined ||
+    reader?.status().pending === true});
+  const retry = () => {
+    if (flight !== undefined) return flight;
+    if (!status().pending) return Promise.resolve(status());
+    flight = Promise.resolve().then(async () => {
+      if (reader?.status().pending) {
+        await reader.retry();
+        if (reader.status().pending) fail('PublicationStoreCleanupPending');
+      }
+      if (original !== undefined) {
+        const released = await original.release();
+        // Absence/false is not proof of this opener's successful cleanup.
+        if (released !== true) fail('PublicationStoreOwnershipLost');
+        original = undefined;
+        key?.fill(0);
+      }
+      return status();
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  try { await retry(); }
+  catch (error) { cleanupError = error; }
+  if (!status().pending) return cause;
+  const failure = new Error('PublicationStoreOpeningCleanupPending', {cause});
+  failure.code = cause?.code ?? 'PublicationStoreOpeningCleanupPending';
+  failure.primaryFailure = cause?.primaryFailure ?? cause;
+  failure.cleanupPending = true;
+  failure.cleanupError = cleanupError;
+  failure.cleanupHandle = Object.freeze({status, retry});
+  return failure;
 }
 
 function validateConfiguration(options) {
@@ -488,7 +536,7 @@ export async function openLocalPublicationStore(
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
   const ownership = await acquireStoreOwnership(root);
-
+  try {
   for (const name of await readdir(stagingDirectory)) {
     const path = resolve(stagingDirectory, name);
     if (!/^object-[0-9a-f-]{36}$/u.test(name) ||
@@ -5597,4 +5645,8 @@ export async function openLocalPublicationStore(
       });
     },
   });
+  } catch (cause) {
+    throw await retainStoreOpeningFailure(cause, ownership,
+      configuration.privateEvidenceKey);
+  }
 }
