@@ -20,6 +20,9 @@ struct OriginalResourcePark[T] {
   // One prepaid codec operation, not a capacity/send or journal grant. This
   // reference is resident in normal parks too and belongs in their inventory.
   mut state_write_work : Int?
+  // One outstanding invalidation intent; not a committed journal receipt.
+  // Its resident None and any live bidirectional borrow must be funded.
+  mut invalidation : OriginalResourceInvalidationRequest[T]?
 }
 
 ///|
@@ -118,6 +121,7 @@ fn[T] park_original_resource_consumer_impl(
     fence: Some(fence),
     previous: Some(claim.phase),
     state_write_work,
+    invalidation: None,
   }
   // No await or mutating callback between checks and this synchronous fence.
   inventory.park = Some(fence)
@@ -200,6 +204,10 @@ pub fn[T] retire_original_resource_park(
   }
   value.previous = None
   value.state_write_work = None
+  if value.invalidation is Some(request) {
+    request.park = None
+  }
+  value.invalidation = None
   value.fence = None
   value.origin = None
   value.consumer = None

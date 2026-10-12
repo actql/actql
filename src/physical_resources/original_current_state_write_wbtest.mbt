@@ -199,6 +199,7 @@ test "original current write one-short foreign copied and unprepaid refuse witho
     fence: park.fence,
     previous: park.previous,
     state_write_work: park.state_write_work,
+    invalidation: park.invalidation,
   }
   let writer = @encode.writer(1000, 200, 10)
   assert_true(
