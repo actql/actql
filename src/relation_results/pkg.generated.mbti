@@ -25,6 +25,10 @@ pub fn checked_contextual_orders(CheckedOrders) -> @pipeline_typing.ContextualOr
 
 pub fn checked_input_at(CheckedResultInputs, Int) -> @pipeline_typing.ProducedInput?
 
+pub fn checked_input_order_pending(CheckedResultInputs, Int) -> @decode_core.Cursor?
+
+pub fn checked_input_publication(CheckedResultInputs, Int) -> @pipeline_typing.ResultPublication?
+
 pub fn checked_inputs_results(CheckedResultInputs) -> CheckedResults
 
 pub fn checked_inputs_usage(CheckedResultInputs) -> Usage

@@ -56,19 +56,24 @@ test "CTE JOIN-right consumers retain the complete shared capture" {
 
 ///|
 test "CTE aliases shadow the outer capture in JOIN-right dependency checks" {
-  let actual = compile(
-    @query.parse_query(
+  // Binding names use the shared WITH name resolver, including quoted case.
+  for
+    text in [
       "WITH chosen AS (SELECT id FROM records WHERE id = 1), records AS (SELECT id FROM chosen), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r) SELECT id FROM pairs ORDER BY id",
-      syntax_limits(),
-    ).unwrap(),
-    cte_capture_context(),
-    construction_limits(),
-  ).unwrap()
-  let body = semantic(actual)
-  assert_false(body.contains("\"filter\":{\"literal\":true}"))
-  assert_true(
-    body.contains("\"filter\":{\"eq\":[{\"field\":\"id\"},{\"literal\":1}]}"),
-  )
-  assert_eq(body.split("\"carrier\":\"relation\"").length(), 2)
-  assert_eq(body.split("\"eq\":").length(), 2)
+      "WITH chosen AS (SELECT id FROM records WHERE id = 1), `RECORDS` AS (SELECT id FROM chosen), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN `records` AS r) SELECT id FROM pairs ORDER BY id",
+      "WITH records AS (SELECT id FROM records WHERE id = 1) SELECT id FROM records ORDER BY id",
+    ] {
+    let actual = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      cte_capture_context(),
+      construction_limits(),
+    ).unwrap()
+    let body = semantic(actual)
+    assert_false(body.contains("\"filter\":{\"literal\":true}"), msg=text)
+    assert_true(
+      body.contains("\"filter\":{\"eq\":[{\"field\":\"id\"},{\"literal\":1}]}"),
+    )
+    assert_eq(body.split("\"carrier\":\"relation\"").length(), 2)
+    assert_eq(body.split("\"eq\":").length(), 2)
+  }
 }
