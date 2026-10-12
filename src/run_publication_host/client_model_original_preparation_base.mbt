@@ -58,7 +58,11 @@ pub fn finish_client_model_original_preparation_base(
   // encoder allocations. The existing token predicate is not proof that an
   // installation's declared bytes justify this primitive's physical overlap.
   if !client_model_read_preparation_available(
-      read, compiled, definition, plan, bound.execution_bytes,
+      read,
+      compiled,
+      definition,
+      plan,
+      bound.execution_bytes,
       retained_bytes=bound.retained_bytes,
     ) {
     return Err(Origin(Unavailable))
