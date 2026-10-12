@@ -1962,6 +1962,12 @@
           "pointer": "/artifact_schemas/model_original_resource_state",
           "cid": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
           "version": "actql-protocol-schema-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/run_plan_view",
+          "cid": "sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77",
+          "version": "actql-interactive-run-control-registry/0.1"
         }
       ],
       "normative_imports": [
