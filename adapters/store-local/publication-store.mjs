@@ -5311,8 +5311,44 @@ export async function openLocalPublicationStore(
   // by the marker rather than treating an absent index as successful cleanup.
   await recoverRetiredMetadata();
 
+  // One bounded semantic view per actual Store admission. The escaped handle
+  // carries no key/path and must be presented to this same live Store owner.
+  let originalModelStorageBinding;
+  const observeOriginalModelStorageBinding = async () => {
+    active();
+    const current = JSON.parse(await readBounded(storeContractPath, 256));
+    active();
+    if (!exactKeys(current, ['version', 'isolation', 'store_authority_cid']) ||
+        !Buffer.from(JSON.stringify(current), 'utf8').equals(storeContractBytes)) {
+      fail('PublicationStoreAuthorityMismatch');
+    }
+    if (originalModelStorageBinding === undefined) {
+      const evidence = contractControl.sealRunEvidence('model_original_storage_binding',
+        JSON.stringify({version: 'actql-model-original-storage-binding/0.1',
+          store_contract_wire: storeContractBytes.toString('utf8'),
+          store_contract_cid: `sha256:${createHash('sha256').update(storeContractBytes).digest('hex')}`,
+          store_authority_cid: configuration.storeAuthorityCid,
+          key_generation_cid: `sha256:${createHash('sha256').update(privateEvidenceKey()).digest('hex')}`,
+          private_namespace: 'local-continuation-private'}),
+        {maxWireBytes: 2048, maxNodes: 32, maxDepth: 2});
+      originalModelStorageBinding = {evidence, handle: Object.freeze({
+        kind: 'model-original-storage-binding', identity: evidence.identity,
+        wire: evidence.wire})};
+    }
+    return originalModelStorageBinding.handle;
+  };
+
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
+    observeOriginalModelStorageBinding,
+    originalModelStorageBindingEvidence(handle) {
+      active();
+      if (originalModelStorageBinding === undefined ||
+          handle !== originalModelStorageBinding.handle) {
+        fail('ForeignOriginalModelStorageBinding');
+      }
+      return originalModelStorageBinding.evidence;
+    },
     createObjectWriter,
     createPreparedObjectWriter,
     commitPhysicalHolding,
