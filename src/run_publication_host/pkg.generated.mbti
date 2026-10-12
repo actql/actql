@@ -180,6 +180,10 @@ pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_pub
 
 pub fn check_client_model_original_checked_origin(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelOriginalOriginIssue]
 
+pub fn check_client_model_original_parked_origin(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelOriginalOriginIssue]
+
+pub fn check_client_model_original_parked_storage_origin(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, ClientModelOriginalOriginIssue]
+
 pub fn check_client_model_original_storage_origin(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, ClientModelOriginalOriginIssue]
 
 pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
