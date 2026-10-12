@@ -70,10 +70,16 @@ fn payload_record_current(
   value : Instance,
   record : StoredPayloadRecord,
   current_configuration : Int,
+  pending_confirmation? : Bool = false,
 ) -> Bool {
   match value.payload_requests.get(record.request) {
     Some(request) =>
-      payload_replay_current(value, request, current_configuration)
+      payload_replay_current(
+        value,
+        request,
+        current_configuration,
+        pending_confirmation~,
+      )
     None => false
   }
 }
@@ -183,7 +189,12 @@ pub fn confirm_payload_record(
   }
   // A pending write may be resolved while its bridge is closing. It still needs
   // current original Run/Source authorization; closure cannot supply permission.
-  if !payload_record_current(value, record, current_configuration) {
+  if !payload_record_current(
+      value,
+      record,
+      current_configuration,
+      pending_confirmation=true,
+    ) {
     return -32
   }
   guard input_cursor(value, slot) is Some(cursor) &&

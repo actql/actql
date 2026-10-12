@@ -30,15 +30,16 @@ fn payload_replay_current(
   value : Instance,
   record : StoredPayloadRequest,
   current_configuration : Int,
+  pending_confirmation? : Bool = false,
 ) -> Bool {
   guard record.produced &&
     record.request is Some(_) &&
     value.publications.get(record.publication) is Some(parent) &&
-    !parent.closing &&
+    (pending_confirmation || !parent.closing) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return false
   }
-  publication_current(value, parent, current.account)
+  publication_current(value, parent, current.account, pending_confirmation~)
 }
 
 ///|
