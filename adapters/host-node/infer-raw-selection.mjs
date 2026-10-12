@@ -21,7 +21,10 @@ export function snapshotModelRawCaptureSelection(value) {
     throw new TypeError('InvalidInferRawCaptureSelection');
   }
   const installation = record(value.installation);
-  const sdk = record(installation.sdk);
+  // The existing physical installation contract permits no external SDK.
+  // Preserve that absence; it is not an invented SDK or support capability.
+  const sdk = installation.sdk === undefined || installation.sdk === null
+    ? installation.sdk : Object.freeze({...record(installation.sdk)});
   return Object.freeze({...value,
-    installation: Object.freeze({...installation, sdk: Object.freeze({...sdk})})});
+    installation: Object.freeze({...installation, sdk})});
 }
