@@ -14,7 +14,7 @@ struct LocalPublicationIntent {
 /// stay bound to the original complete inventory through Result issuance.
 struct LocalPublicationPreflight {
   intent : LocalPublicationIntent
-  invocation : LocalSourceInvocation
+  invocation : LocalRunInvocation
   retentions : Array[@publication.PublicationContract]
 }
 
@@ -141,12 +141,12 @@ pub fn local_publication_intent_contracts(
 }
 
 ///|
-/// Call before Compute activation with the original captured Source invocation.
+/// Call before Compute activation with the original typed Run invocation.
 /// Current Run/Source access and immutable publication preflight are separate
 /// checks. Success grants neither activation nor physical publication authority.
-pub fn check_local_source_publication_preflight(
+pub fn check_local_publication_preflight(
   intent : LocalPublicationIntent,
-  invocation : LocalSourceInvocation,
+  invocation : LocalRunInvocation,
   account : @authorization.AdmittedAccountConfiguration,
   retentions : Array[@publication.PublicationContract],
 ) -> Result[LocalPublicationPreflight, LocalPublicationIntentIssue] {
@@ -154,7 +154,7 @@ pub fn check_local_source_publication_preflight(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let host = invocation.source.host
+  let host = invocation.host
   let run = local_compute_run(host)
   if !local_publication_compute_unstarted(run) {
     return Err(ComputeAlreadyStarted)
@@ -167,9 +167,7 @@ pub fn check_local_source_publication_preflight(
   let computation = @publication.publication_contract_identity(
     @host.client_task_compilation_compiled_plan(plan.compilation),
   )
-  let source = @query.captured_source_relation_logical_cid(
-    invocation.source.identity,
-  )
+  let sources = local_run_invocation_source_cids(invocation)
   let scope = @publication.publication_contract_identity(plan.definition)
   let authority = @host.client_request_authority_scope_cid(plan.request)
   if !@publication.publication_preflight_valid(
@@ -179,7 +177,7 @@ pub fn check_local_source_publication_preflight(
       intent.definitions,
       retentions,
       Array::make(count, computation),
-      Array::makei(count, _ => [source]),
+      Array::makei(count, _ => sources.copy()),
       Array::make(count, scope),
       Array::make(count, invocation.data_policy_cid),
       Array::make(count, authority),
@@ -227,26 +225,21 @@ pub fn validate_local_publication_preflight_current(
 ///|
 fn local_publication_intent_current(
   intent : LocalPublicationIntent,
-  invocation : LocalSourceInvocation,
+  invocation : LocalRunInvocation,
   account : @authorization.AdmittedAccountConfiguration,
 ) -> Result[Unit, LocalPublicationIntentIssue] {
-  let host = invocation.source.host
+  let host = invocation.host
   if !physical_equal(intent.plan, host.plan) {
     return Err(ForeignCompute)
   }
   if !local_publication_current(host, account) {
     return Err(AuthorizationMismatch)
   }
-  match
-    authorize_local_native_source(invocation.source.configuration, account) {
-    Err(issue) => return Err(Source(issue))
+  match validate_local_run_invocation_current(invocation, account) {
+    Err(AuthorizationMismatch) => return Err(AuthorizationMismatch)
+    Err(Source(Authorization(issue))) => return Err(Source(issue))
+    Err(_) => return Err(UnavailableSource)
     Ok(_) => ()
-  }
-  if !@acquisition_host.native_host_source_capture_identity_matches(
-      invocation.source.capture,
-      invocation.source.identity,
-    ) {
-    return Err(UnavailableSource)
   }
   Ok(())
 }
@@ -269,7 +262,7 @@ pub fn issue_local_preflight_result_publication(
     Ok(_) => ()
   }
   issue_local_result_publication(
-    preflight.invocation.source.host,
+    preflight.invocation.host,
     preflight.invocation,
     output,
     preflight.retentions[result],
@@ -322,7 +315,7 @@ pub fn reuse_local_preflight_result_publication(
   }
   reuse_local_result_publication(
     original,
-    preflight.invocation.source.host,
+    preflight.invocation.host,
     preflight.invocation,
     output,
     preflight.retentions[result],
@@ -368,7 +361,7 @@ pub fn prepare_local_preflight_commit_candidate(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !physical_equal(manifest.host, preflight.invocation.source.host) ||
+  if !physical_equal(manifest.host, preflight.invocation.host) ||
     !physical_equal(manifest.invocation, preflight.invocation) {
     return Err(ForeignCompute)
   }

@@ -15,10 +15,17 @@ pub(all) enum LocalResultPublicationIssue {
 }
 
 ///|
-/// Existing invocation and observation issued from the original capture.
-/// This projection neither commits publication nor changes a Run's state.
-pub struct LocalSourceInvocation {
-  source : LocalSourcePublication
+/// Original captured-Source or source-free invocation. Both retain the same
+/// configured Compute Host and use the existing publication/Receipt Owners.
+pub enum LocalInvocationOrigin {
+  Captured(LocalSourcePublication)
+  SourceFree(LocalComputeStart)
+}
+
+///|
+pub struct LocalRunInvocation {
+  host : LocalComputeHost
+  origin : LocalInvocationOrigin
   observation : @publication.RunEvidenceValue
   invocation : @publication.PublicationContract
   data_policy_cid : String
@@ -44,7 +51,7 @@ pub fn issue_local_source_invocation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[LocalSourceInvocation, LocalResultPublicationIssue] {
+) -> Result[LocalRunInvocation, LocalResultPublicationIssue] {
   if !physical_equal(host, source.host) {
     return Err(ForeignCompute)
   }
@@ -90,19 +97,25 @@ pub fn issue_local_source_invocation(
     Ok(issued) => issued
     Err(issue) => return Err(Invocation(issue))
   }
-  Ok({ source, observation, invocation, data_policy_cid: values[3], })
+  Ok({
+    host,
+    origin: Captured(source),
+    observation,
+    invocation,
+    data_policy_cid: values[3],
+  })
 }
 
 ///|
-pub fn local_source_invocation_contract(
-  value : LocalSourceInvocation,
+pub fn local_run_invocation_contract(
+  value : LocalRunInvocation,
 ) -> @publication.PublicationContract {
   value.invocation
 }
 
 ///|
-pub fn local_source_invocation_observation(
-  value : LocalSourceInvocation,
+pub fn local_run_invocation_observation(
+  value : LocalRunInvocation,
 ) -> @publication.RunEvidenceValue {
   value.observation
 }
@@ -112,7 +125,7 @@ pub fn local_source_invocation_observation(
 /// completed export. No supplied CID or success flag can replace those facts.
 pub struct LocalResultPublication {
   host : LocalComputeHost
-  invocation : LocalSourceInvocation
+  invocation : LocalRunInvocation
   output : @host.PublicationOutputExport
   definition : @publication.PublicationContract
   artifact : @publication.PublicationContract
@@ -124,7 +137,7 @@ pub struct LocalResultPublication {
 ///|
 pub fn issue_local_result_publication(
   host : LocalComputeHost,
-  invocation : LocalSourceInvocation,
+  invocation : LocalRunInvocation,
   output : @host.PublicationOutputExport,
   retention : @publication.PublicationContract,
   account : @authorization.AdmittedAccountConfiguration,
@@ -132,7 +145,7 @@ pub fn issue_local_result_publication(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[LocalResultPublication, LocalResultPublicationIssue] {
-  if !physical_equal(host, invocation.source.host) {
+  if !physical_equal(host, invocation.host) {
     return Err(ForeignCompute)
   }
   if !output.matches_captured_run(local_compute_run(host)) {
@@ -141,9 +154,8 @@ pub fn issue_local_result_publication(
   if !local_publication_current(host, account) {
     return Err(AuthorizationMismatch)
   }
-  match
-    authorize_local_native_source(invocation.source.configuration, account) {
-    Err(issue) => return Err(Source(Authorization(issue)))
+  match validate_local_run_invocation_current(invocation, account) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   let definition = match output.definition() {
@@ -156,7 +168,7 @@ pub fn issue_local_result_publication(
       @publication.publication_contract_identity(
         @host.client_task_compilation_compiled_plan(plan.compilation),
       ),
-      [@query.captured_source_relation_logical_cid(invocation.source.identity)],
+      local_run_invocation_source_cids(invocation),
       @publication.publication_contract_identity(plan.definition),
       invocation.data_policy_cid,
       @host.client_request_authority_scope_cid(plan.request),
@@ -218,7 +230,7 @@ pub fn local_result_publication_contracts(
 pub fn reuse_local_result_publication(
   value : LocalResultPublication,
   host : LocalComputeHost,
-  invocation : LocalSourceInvocation,
+  invocation : LocalRunInvocation,
   output : @host.PublicationOutputExport,
   retention : @publication.PublicationContract,
   account : @authorization.AdmittedAccountConfiguration,
@@ -262,19 +274,15 @@ pub fn validate_local_result_publication_current(
   value : LocalResultPublication,
   account : @authorization.AdmittedAccountConfiguration,
 ) -> Result[Unit, LocalResultPublicationIssue] {
-  if !physical_equal(value.host, value.invocation.source.host) ||
+  if !physical_equal(value.host, value.invocation.host) ||
     !value.output.matches_captured_run(local_compute_run(value.host)) {
     return Err(ForeignCompute)
   }
   if !local_publication_current(value.host, account) {
     return Err(AuthorizationMismatch)
   }
-  match
-    authorize_local_native_source(
-      value.invocation.source.configuration,
-      account,
-    ) {
-    Err(issue) => return Err(Source(Authorization(issue)))
+  match validate_local_run_invocation_current(value.invocation, account) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   Ok(())
@@ -283,7 +291,7 @@ pub fn validate_local_result_publication_current(
 ///|
 pub struct LocalRunManifest {
   host : LocalComputeHost
-  invocation : LocalSourceInvocation
+  invocation : LocalRunInvocation
   results : Array[LocalResultPublication]
   manifest : @publication.PublicationContract
 }
@@ -291,22 +299,21 @@ pub struct LocalRunManifest {
 ///|
 pub fn issue_local_run_manifest(
   host : LocalComputeHost,
-  invocation : LocalSourceInvocation,
+  invocation : LocalRunInvocation,
   results : Array[LocalResultPublication],
   account : @authorization.AdmittedAccountConfiguration,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[LocalRunManifest, LocalResultPublicationIssue] {
-  if !physical_equal(host, invocation.source.host) {
+  if !physical_equal(host, invocation.host) {
     return Err(ForeignCompute)
   }
   if !local_publication_current(host, account) {
     return Err(AuthorizationMismatch)
   }
-  match
-    authorize_local_native_source(invocation.source.configuration, account) {
-    Err(issue) => return Err(Source(Authorization(issue)))
+  match validate_local_run_invocation_current(invocation, account) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   let definitions = []
@@ -425,12 +432,8 @@ pub fn issue_local_run_receipt(
   if !local_publication_current(value.host, account) {
     return Err(AuthorizationMismatch)
   }
-  match
-    authorize_local_native_source(
-      value.invocation.source.configuration,
-      account,
-    ) {
-    Err(issue) => return Err(Source(Authorization(issue)))
+  match validate_local_run_invocation_current(value.invocation, account) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   for result in value.results {
@@ -454,7 +457,7 @@ pub fn issue_local_run_receipt(
     journal,
     [],
     [],
-    [value.invocation.source.evidence],
+    local_run_invocation_source_evidence(value.invocation),
     [],
     [],
     max_wire_bytes,
@@ -491,12 +494,8 @@ pub fn start_local_run_capture(
   if !local_publication_current(value.host, account) {
     return Err(AuthorizationMismatch)
   }
-  match
-    authorize_local_native_source(
-      value.invocation.source.configuration,
-      account,
-    ) {
-    Err(issue) => return Err(Source(Authorization(issue)))
+  match validate_local_run_invocation_current(value.invocation, account) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   let plan = value.host.plan
