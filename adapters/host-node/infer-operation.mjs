@@ -5,6 +5,7 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits} from './infer-original-installation.mjs';
+import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -72,10 +73,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
   let originalScope = originalPreparation?.scope;
-  const metadataInstallation = originalPreparation?.metadataInstallation;
-  const metadataNodeInstallation = originalPreparation?.nodeInstallation;
-  const metadataControl = originalPreparation?.control;
-  const metadataDefinition = originalPreparation?.runDefinition;
+  let metadataInstallation = originalPreparation?.metadataInstallation;
+  let metadataNodeInstallation = originalPreparation?.nodeInstallation;
+  let metadataControl = originalPreparation?.control;
+  let metadataDefinition = originalPreparation?.runDefinition;
   let originalMetadata;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
@@ -288,6 +289,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
       originalMetadata = undefined;
       originalScope = undefined;
+      // Escaped metadata methods must not keep the original installation/Run
+      // after this same Core Owner acknowledges cleanup. Pending/failed
+      // cleanup retains these aliases; independent immutable borrows and
+      // external Store/read custody are neither mutated nor settled here.
+      metadataInstallation = undefined;
+      metadataNodeInstallation = undefined;
+      metadataControl = undefined;
+      metadataDefinition = undefined;
       rawCaptureBinder = undefined;
       io?.close();
       io = undefined;
@@ -718,12 +727,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Private installation seam of this original physical operation only.
     // Common registration supplies the nominal raw authority; this callback
     // creates neither a send claim nor an alternate cleanup owner.
-    bindModelRawCapture(registration) {
+    bindModelRawCapture(registration, persistence) {
       if (closing || reclaimed || rawCaptureBound || rawCaptureBinder === undefined) {
         throw new TypeError('InferRawCaptureBindingUnavailable');
       }
+      if (persistence !== undefined &&
+          !originalModelRawTransportPersistenceMatches(persistence, operation, registration)) {
+        throw new TypeError('ForeignInferRawCapturePersistence');
+      }
       rawCaptureBound = true;
-      if (rawCaptureBinder(registration) !== undefined) {
+      if (rawCaptureBinder(registration, persistence) !== undefined) {
         throw new TypeError('InvalidInferRawCaptureBinderResult');
       }
     },

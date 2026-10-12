@@ -6,6 +6,7 @@ let local_policy_upgrade_key = "policy-upgrade/0.1"
 ///|
 priv struct NativeLocalPolicyUpgradeOriginal {
   packet : Bytes
+  body : Bytes
   original : @host.ClientLocalRunPolicyUpgrade
   profile : @host.ClientLocalRunPolicyProfile
   files : Array[NativeLocalSelectedFile]
@@ -118,16 +119,29 @@ fn read_local_policy_upgrade_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let fields = match
-    @host.client_local_original_record_fields(body, [
-      "adoption_cid", "authority_scope_cid", "legacy_admissions_wire", "operation_id",
-      "profile_wire", "read_configuration_name", "read_original_cid", "read_selection_wire",
-      "retention_configuration_cid", "retention_configuration_name", "run_configuration_cid",
-      "run_configuration_name", "store_configuration_cid", "store_configuration_name",
-      "version",
-    ]) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+  let keys = [
+    "adoption_cid", "authority_scope_cid", "legacy_admissions_wire", "operation_id",
+    "profile_wire", "read_configuration_name", "read_original_cid", "read_selection_wire",
+    "retention_configuration_cid", "retention_configuration_name", "run_configuration_cid",
+    "run_configuration_name", "store_configuration_cid", "store_configuration_name",
+    "version",
+  ]
+  let (fields, runtime) = match
+    @host.client_local_original_record_fields(body, keys) {
+    Ok(value) => (value, false)
+    Err(_) => {
+      let runtime_keys = keys.copy()
+      runtime_keys.insert(12, "runtime_pair_wire")
+      let value = match
+        @host.client_local_original_record_fields(body, runtime_keys) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      let original_fields = value.copy()
+      ignore(original_fields.remove(12))
+      original_fields[14] = "actql-local-run-policy-upgrade/0.1"
+      (original_fields, true)
+    }
   }
   let files : Array[NativeLocalSelectedFile] = []
   for name in [fields[5], fields[11], fields[9], fields[13]] {
@@ -168,18 +182,39 @@ fn read_local_policy_upgrade_original(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let original = match
-    @host.admit_client_local_run_policy_upgrade(
-      body,
-      profile,
-      read_text,
-      host.adoption_cid,
-      scope,
-      fields[3],
-      files.map(file => (file.name, file.content_cid)),
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+  let original = if runtime {
+    let pair = match host.runtime_policy_pair(scope) {
+      Ok(Some(value)) => value
+      _ => return Err(CustodyLost)
+    }
+    match
+      @host.admit_client_local_runtime_policy_upgrade(
+        body,
+        profile,
+        read_text,
+        host.adoption_cid,
+        scope,
+        fields[3],
+        files.map(file => (file.name, file.content_cid)),
+        pair,
+      ) {
+      Ok(value) => @host.client_local_runtime_policy_upgrade_policy(value)
+      Err(_) => return Err(CustodyLost)
+    }
+  } else {
+    match
+      @host.admit_client_local_run_policy_upgrade(
+        body,
+        profile,
+        read_text,
+        host.adoption_cid,
+        scope,
+        fields[3],
+        files.map(file => (file.name, file.content_cid)),
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(CustodyLost)
+    }
   }
   let finite = match
     admit_native_local_read_selection(
@@ -197,6 +232,7 @@ fn read_local_policy_upgrade_original(
   }
   Ok({
     packet: row.body,
+    body,
     original,
     profile,
     files,
@@ -283,11 +319,7 @@ fn local_policy_upgrade_receipt(
   host : NativeLocalHostConnection,
   original : NativeLocalPolicyUpgradeOriginal,
 ) -> Result[NativeLocalPolicyUpgradeReceipt, NativeClientRunJournalIssue] {
-  let cid = match
-    local_adoption_digest(
-      host.epoch.crypto,
-      @host.client_local_run_policy_upgrade_body(original.original),
-    ) {
+  let cid = match local_adoption_digest(host.epoch.crypto, original.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -348,6 +380,21 @@ pub fn NativeLocalHostConnection::upgrade_run_policy(
         let existing = match read_local_policy_upgrade_original(self, row) {
           Ok(value) => value
           Err(issue) => return Err(issue)
+        }
+        let pair = match self.runtime_policy_pair(scope) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if pair is Some(_) &&
+          @host.client_local_original_record_fields(existing.body, [
+            "adoption_cid", "authority_scope_cid", "legacy_admissions_wire", "operation_id",
+            "profile_wire", "read_configuration_name", "read_original_cid", "read_selection_wire",
+            "retention_configuration_cid", "retention_configuration_name", "run_configuration_cid",
+            "run_configuration_name", "runtime_pair_wire", "store_configuration_cid",
+            "store_configuration_name", "version",
+          ])
+          is Err(_) {
+          return Err(ChangedIntent)
         }
         if existing.scope != scope {
           return Err(AuthorizationDenied)
@@ -431,7 +478,17 @@ pub fn NativeLocalHostConnection::upgrade_run_policy(
       Ok(value) => value
       Err(_) => return Err(Encoding)
     }
-    let body = @host.client_local_run_policy_upgrade_body(original)
+    // The same reserved append contains the immutable runtime correspondence.
+    // An old fifteen-key append is never repaired/backfilled on restore.
+    let body = match self.runtime_policy_pair(scope) {
+      Err(issue) => return Err(issue)
+      Ok(None) => @host.client_local_run_policy_upgrade_body(original)
+      Ok(Some(pair)) =>
+        match @host.bind_client_local_runtime_policy_upgrade(original, pair) {
+          Ok(value) => @host.client_local_runtime_policy_upgrade_body(value)
+          Err(_) => return Err(Encoding)
+        }
+    }
     if body.length() > 5632 {
       return Err(CapacityExceeded)
     }
