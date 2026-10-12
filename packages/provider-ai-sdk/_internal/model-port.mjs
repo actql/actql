@@ -8,10 +8,13 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 // execution state or scheduler is inferred here. Common owns every transition.
 export function createSdkModelPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt, cleanupRaw}) {
+  observeAt, cleanupRaw, preparationProgress}) {
   if (typeof fetch !== 'function' || typeof persistRaw !== 'function' ||
       typeof notify !== 'function' || typeof checked !== 'function' ||
-      typeof observeAt !== 'function' || typeof cleanupRaw !== 'function') {
+      typeof observeAt !== 'function' || typeof cleanupRaw !== 'function' ||
+      preparationProgress !== undefined && (preparation !== undefined ||
+        typeof preparationProgress?.advance !== 'function' ||
+        typeof preparationProgress?.cleanup !== 'function')) {
     throw new TypeError('InvalidSdkModelPort');
   }
   let plan;
@@ -58,7 +61,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     if (retired) {
       throw Object.assign(new TypeError('ForeignSdkPreparation'), {code: 'ForeignSdkPreparation'});
     }
-    cancelSdkPreparation(preparation);
+    if (preparation !== undefined) cancelSdkPreparation(preparation);
   };
   const cleanup = () => {
     if (retired) return true;
@@ -71,7 +74,11 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
         if (cleanupRaw(call) !== true) return false;
       } catch { return false; }
     }
-    if (!cleanupSdkPreparation(preparation)) return false;
+    if (preparation !== undefined && !cleanupSdkPreparation(preparation)) return false;
+    if (preparationProgress !== undefined) {
+      try { if (preparationProgress.cleanup() !== true) return false; }
+      catch { return false; }
+    }
     response = undefined;
     reconciled = undefined;
     reconciling = undefined;
@@ -84,6 +91,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     // responsibility; clearing these aliases does not mutate those originals.
     request = undefined;
     preparation = undefined;
+    preparationProgress = undefined;
     profile = undefined;
     installation = undefined;
     quantities = undefined;
@@ -111,6 +119,23 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     if (retired) return [true, undefined];
     if (plan !== undefined) return [true, plan];
     if (preparationTerminal) return [true, undefined];
+    if (preparation===undefined && preparationProgress!==undefined) {
+      try {
+        const projected=preparationProgress.advance();
+        if (projected.kind==='pending') return [false,undefined];
+        if (projected.kind!=='ready' || projected.preparation===undefined) {
+          preparationTerminal=true;
+          return [true,undefined];
+        }
+        preparation=projected.preparation;
+      } catch {
+        preparationTerminal=true;
+        return [true,undefined];
+      }
+      // SDK async readiness is a later advance, never another Common poll in
+      // this same bounded physical-preflight transition.
+      return [false,undefined];
+    }
     const preparationState = pollSdkPreparation(preparation);
     if (preparationState.kind === 'pending') return [false, undefined];
     if (preparationState.kind !== 'ready') return [true, undefined];
