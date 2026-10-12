@@ -6830,11 +6830,10 @@ pub fn compile(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  let needs_input_binding = join_requires_input_binding(query, context) catch {
-    Abort(issue) => return Err(issue)
-  }
-  if needs_input_binding ||
-    @query.terminal_command_effect_count(query) > 0 ||
+  // Binding and primary scopes must be installed before inspecting a JOIN
+  // input. The standalone probe sees only Context inputs, not authored WITH
+  // producers or transformed range inputs.
+  if @query.terminal_command_effect_count(query) > 0 ||
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
@@ -6842,6 +6841,17 @@ pub fn compile(
     @query.query_binding_count(query) > 0 ||
     @query.producer_primary(query) is Some(_) ||
     @query.graph_query(query) is Some(_) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
+  }
+  let needs_input_binding = join_requires_input_binding(query, context) catch {
+    Abort(issue) => return Err(issue)
+  }
+  if needs_input_binding {
     return compile_query_script(
       @query.single_query_script(query),
       context,
