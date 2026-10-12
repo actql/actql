@@ -1,0 +1,34 @@
+{
+  "source": "8c0b9fd2056cdc5d618b91fe3abdbe793d32bd1d",
+  "classification": "Historical authored inputs only; no product, compiler or runtime output. Current callers are tested separately.",
+  "files": [
+    {
+      "path": "scripts/fixtures/graph-any-direction-source-input.mjs",
+      "sha256": "69091ab22954508f4dde91959587d83df79cd6d51b61d26c283c69dc9d1e7c21"
+    },
+    {
+      "path": "scripts/fixtures/graph-abbreviated-edge-source-input.mjs",
+      "sha256": "56bc5a9623f1500125eea1ab1ef2fafc253320271a54c6c69d72cfb6969b1233"
+    },
+    {
+      "path": "scripts/fixtures/graph-quantifier-forms-source-input.mjs",
+      "sha256": "d4fa39c11de35813ac3e2a7ce1568de9a76388f1dacf7ca0d5a706bf9ac88b4b"
+    },
+    {
+      "path": "scripts/fixtures/graph-edge-predicate-source-input.mjs",
+      "sha256": "646a7c671fd48127eba89257da9289d447391737d505b69348876d99d356dd1a"
+    },
+    {
+      "path": "scripts/fixtures/graph-hop-node-predicate-source-input.mjs",
+      "sha256": "864777a42275e5a0134a14af8a453fcf8eba6426623fc86f26d2bd7fc7633ee9"
+    },
+    {
+      "path": "scripts/fixtures/graph-difference-source-input.mjs",
+      "sha256": "e84f0f2a0b16913c54f4d8cde67a3800cdf4862918aafbd02e8f502f0d4c9de6"
+    },
+    {
+      "path": "scripts/fixtures/graph-equality-source-input.mjs",
+      "sha256": "ee4d459b3ed9467cbb493e5f8bed8b08c46577dcea474a4096d3bc1157272c93"
+    }
+  ]
+}

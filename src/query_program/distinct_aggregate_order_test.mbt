@@ -119,7 +119,7 @@ test "DISTINCT order keeps a parenthesized object receiver separate from a range
       },
     ],
   }
-  let text = "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY payload.name) AS names FROM objects AS payload"
+  let text = "SELECT STRING_AGG(DISTINCT (payload.payload).name, '|' ORDER BY payload.name) AS names FROM objects AS payload"
   assert_true(
     compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
