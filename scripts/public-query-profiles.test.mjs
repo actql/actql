@@ -273,12 +273,12 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
   assert.equal(pin.sourceBaseline, '76916b2b57ca8e06d9e74099349b17c263ccb411');
-  assert.equal(pin.totalCases, 3980);
-  assert.deepEqual(pin.counts, {"successes":2501,"executionFailures":50,"refusals":1429});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2447,"executionFailures":48,"refusals":1390}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.equal(pin.totalCases, 4018);
+  assert.deepEqual(pin.counts, {"successes":2523,"executionFailures":53,"refusals":1442});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2469,"executionFailures":51,"refusals":1403}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 46]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 47]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [28, 49]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 50]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();

@@ -10,10 +10,12 @@ import {inspect} from 'node:util';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
-import {prepareOpenAIChatRequest} from '../packages/provider-ai-sdk/_internal/openai-chat.mjs';
+import {prepareOriginalOpenAIChatRequest} from
+  '../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
 import {createSdkModelPreflight} from '../packages/provider-ai-sdk/_internal/model-port.mjs';
 import {createModelRawTransportPersistence} from '../adapters/host-node/infer-raw-capture.mjs';
 import {createInferIoNotification} from '../adapters/host-node/infer-io-notification.mjs';
+import {installModelProviders} from '../adapters/host-node/installed-model.mjs';
 import {installNodeModelContinuation} from '../adapters/host-node/installed-model-continuation.mjs';
 import {installRemoteCheckpoints} from '../adapters/host-node/client-checkpoints.mjs';
 import {openNodeInferCaptureCustody} from '../adapters/host-node/infer-capture-custody.mjs';
@@ -145,7 +147,12 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
     request.on('end', () => {
       assert.equal(request.method, 'POST');
       assert.equal(request.url, '/v1/chat/completions');
-      assert.equal(JSON.parse(Buffer.concat(chunks)).messages[0].content, 'hello');
+      const sent = JSON.parse(Buffer.concat(chunks));
+      assert.equal(sent.messages[0].content, 'hello');
+      assert.equal(sent.temperature, 0);
+      assert.equal(sent.top_p, 1);
+      assert.equal(sent.max_tokens, 32);
+      assert.equal(sent.seed, -7);
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(wire);
     });
@@ -161,7 +168,7 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
     '../portability/corpus/model-response-profiles.json', import.meta.url))).cases[0].body);
   const bytesCid = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
   const builderCid = bytesCid(readFileSync(new URL(
-    '../packages/provider-ai-sdk/_internal/openai-chat.mjs', import.meta.url)));
+    '../packages/provider-ai-sdk/_internal/original-openai-chat.mjs', import.meta.url)));
   const validatorCid = bytesCid(readFileSync(new URL(
     '../src/model_execution/chat_envelope_decode.mbt', import.meta.url)));
   const lockCid = bytesCid(readFileSync(new URL(
@@ -204,32 +211,41 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
   const account = moon.executionAuthorizationAdmit(accountConfiguration);
   const accountFacts = JSON.parse(moon.executionAuthorizationAccountJson(account));
   assert.equal(accountFacts.state, 'admitted');
+  const originals = ['retention_contract', 'metadata_retention_policy', 'clock_contract']
+    .map(kind => {
+      const body = {name: `original-sdk-${kind}`, version: 'actql-installed-local-policy/0.1'};
+      return {kind, cid: cid(body), wire: canonicalText(body)};
+    });
+  originals.push(resultDataPolicy);
+  for (const original of originals) await store.putSemantic(original.wire, original.cid);
+  const typed = originals.map(original => checked(moon.clientProgramAdmitEffectDependencyBody(
+    original.kind, original.cid, original.wire, 16384, 1024, 20)));
+  const rawCaptureSelection = {profile, installation, probability: undefined,
+    retention: typed[0], metadata: typed[1], clock: typed[2], data: typed[3],
+    selectedAt: now(), availableUntil: '2026-10-02T01:00:00.000Z',
+    deleteBy: '2026-10-02T02:00:00.000Z',
+    extensionCeilingAt: '2026-10-02T02:00:00.000Z',
+    metadataDeleteBy: '2026-10-02T03:00:00.000Z',
+    selectionAvailable: () => rawFailure !== 'registration'};
   const io = createInferIoNotification();
   let sdk, persistence, checkpoints, continuation, captureOwner;
   let rawBindings = 0;
   const retained = [];
-  const provider = moon.clientProgramInstallModelProvider('models/fixture', () => {
-    assert.fail('the original async plan must not invoke the synchronous provider');
-  });
-  const operation = openNodeInferOperation({moon, preparedProgram: prepared,
-    step: 2, graph, registry, values, fragment, ordered, provider, quantum: 1,
-    durableCalls: true, ioNotification: io,
-    rawCaptureBinder(registration) {
-      rawBindings++;
-      if (rawFailure === 'binder') throw new Error('FixtureRawBinderRefused');
-      persistence = createModelRawTransportPersistence({store, moon, registration,
-        retainHolding: original => retained.push(original), notify: io.notify});
-    },
+  const physical = installModelProviders(moon, () => [{providerId: 'models/fixture',
+    invoke: () => assert.fail('the original async plan must not invoke the synchronous provider'),
+    validatePrompt: () => true, entryPersistence: 'async', rawCaptureSelection,
     quantityCapacity: {limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
       perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
-    physicalPreflight(request) {
+    physicalPreflight(request, originalIo, retainRawBinder) {
+      assert.equal(originalIo, io, 'same original operation, not a provider-global context');
       assert.equal(sdk, undefined, 'one physical preflight for this one-row Program');
       const originalText = JSON.parse(moon.clientProgramModelRequestInput(request, 'text'));
-      const preparation = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
+      const preparation = prepareOriginalOpenAIChatRequest({moon, request,
+        modelSelector: 'fixture-risk-model', modelId: 'gpt-4.1-nano',
         baseURL: endpoint.slice(0, -'/chat/completions'.length), apiKey: 'fixture-only',
         maxRequestBytes: 1000, maxHeaderBytes: 4096, maxHeaders: 16, notify: io.notify,
-        options: {prompt: [{role: 'user', content: [{type: 'text', text: originalText}]}],
-          maxOutputTokens: 32, responseFormat: {type: 'json'}}});
+        prompt: [{role: 'user', content: [{type: 'text', text: originalText}]}],
+        responseFormat: {type: 'json'}});
       sdk = createSdkModelPreflight({moon, request, preparation, profile, installation,
         quantities: {tokens: 33n, costUnits: 0n, durationMs: 500n},
         fetch(...args) {
@@ -250,8 +266,18 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
           if (result?.$tag !== 1) t.diagnostic(`physical plan: ${inspect(result, {depth: 5})}`);
           return checked(result);
         }, observeAt: now});
+      retainRawBinder(registration => {
+        rawBindings++;
+        if (rawFailure === 'binder') throw new Error('FixtureRawBinderRefused');
+        persistence = createModelRawTransportPersistence({store, moon, registration,
+          retainHolding: original => retained.push(original), notify: originalIo.notify});
+      });
       return sdk.preflight;
-    }});
+    }}]).get('models/fixture');
+  const operation = openNodeInferOperation({moon, preparedProgram: prepared,
+    step: 2, graph, registry, values, fragment, ordered, provider: physical.provider, quantum: 1,
+    durableCalls: true, ioNotification: io, quantityCapacity: physical.quantityCapacity,
+    physicalPreflight: physical.physicalPreflight});
   t.after(() => operation.close());
   operation.bindRun(control, plan);
   const runOriginal = async phase => {
@@ -290,22 +316,6 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
       principal: 'fixture-principal', connection: facts.providerId, resource: facts.modelTaskCid,
       operation: 'infer', boundary: 'activation', context_cid: root}}),
   {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
-  const originals = ['retention_contract', 'metadata_retention_policy', 'clock_contract']
-    .map(kind => {
-      const body = {name: `original-sdk-${kind}`, version: 'actql-installed-local-policy/0.1'};
-      return {kind, cid: cid(body), wire: canonicalText(body)};
-    });
-  originals.push(resultDataPolicy);
-  for (const original of originals) await store.putSemantic(original.wire, original.cid);
-  const typed = originals.map(original => checked(moon.clientProgramAdmitEffectDependencyBody(
-    original.kind, original.cid, original.wire, 16384, 1024, 20)));
-  const rawCaptureSelection = {profile, installation, probability: undefined,
-    retention: typed[0], metadata: typed[1], clock: typed[2], data: typed[3],
-    selectedAt: now(), availableUntil: '2026-10-02T01:00:00.000Z',
-    deleteBy: '2026-10-02T02:00:00.000Z',
-    extensionCeilingAt: '2026-10-02T02:00:00.000Z',
-    metadataDeleteBy: '2026-10-02T03:00:00.000Z',
-    selectionAvailable: () => rawFailure !== 'registration'};
   let bound, dispatch;
   if (journalAck) {
     const controller = await installNodeModelContinuation({moon, control, store,
@@ -326,7 +336,7 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
       preparedCallSet: waiting.preparedCallSet, plan, principalId: 'fixture-principal',
       selected: {graph, step: 2, providerBinding, observeAccount: () => account,
         currentProvider: () => true, egressAdmission, entryPersistence: 'async',
-        rawCaptureSelection},
+        rawCaptureSelection: physical.rawCaptureSelection},
       declaredResults: ['answer'], submission: {fixture: 'original-sdk-journal'}});
     if (rawFailure !== undefined) {
       let refusal;

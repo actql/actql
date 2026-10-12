@@ -7,7 +7,7 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 
-async function setup() {
+async function setup({readFailure, beforeReadReturn} = {}) {
   const runtime = await loadCheckpointRuntime();
   const fixture = JSON.parse(readFileSync(new URL('./fixtures/model-resolution-crypto.json', import.meta.url), 'utf8'));
   const inventory = JSON.parse(runtime.modelCallSetAdmit(canonicalJson(fixture.request)));
@@ -23,8 +23,10 @@ async function setup() {
       isTerminalRunOutcome: status => status === 'succeeded', hasUnresolvedModelCalls: () => false,
       discoverModelCallSets: () => [{originals}]},
     async readModelInput(actual) {
-      assert.deepEqual(actual, receipt);
       reads++;
+      if (readFailure !== undefined) throw readFailure;
+      assert.deepEqual(actual, receipt);
+      beforeReadReturn?.(inventory);
       return Buffer.from(canonicalJson(snapshot));
     },
   })});
@@ -32,6 +34,64 @@ async function setup() {
     inventory, checkpointCid: JSON.parse(originals.checkpointWire).checkpoint_cid},
     reads: () => reads, finish: () => { terminal = true; }};
 }
+
+for (const [field, foreign] of [
+  ['runId', 'another-run'],
+  ['runDefinitionCid', `sha256:${'f'.repeat(64)}`],
+]) {
+  test(`foreign Model input ${field} refuses before Store read or lease admission`, async () => {
+    const {controller, record, reads} = await setup({readFailure: new Error('StoreMustNotBeRead')});
+    const receipt = JSON.parse(record.originals.fixedInputReceiptWire);
+    assert.notEqual(receipt[field], foreign);
+    record.originals = {...record.originals,
+      fixedInputReceiptWire: canonicalJson({...receipt, [field]: foreign})};
+    await assert.rejects(controller.prime(record), {code: 'ModelSnapshotBindingMismatch'});
+    assert.equal(reads(), 0);
+    assert.deepEqual(controller.usage(), {retainedInputScopes: 0, retainedInputs: 0,
+      retainedInputBytes: 0, retainedInventoryScopes: 0});
+  });
+
+  test(`foreign Model input ${field} preserves the existing original lease and proof`, async () => {
+    const {controller, record, reads, finish} = await setup();
+    const token = await controller.prime(record);
+    const borrowed = token.snapshot;
+    const before = controller.usage();
+    const receipt = JSON.parse(record.originals.fixedInputReceiptWire);
+    const foreignRecord = {...record, originals: {...record.originals,
+      fixedInputReceiptWire: canonicalJson({...receipt, [field]: foreign})}};
+    await assert.rejects(controller.prime(foreignRecord), {code: 'ModelSnapshotBindingMismatch'});
+    assert.equal(reads(), 1, 'the rejected receipt must not start another Store read');
+    assert.deepEqual(controller.usage(), before);
+    assert.equal(token.available, true);
+    assert.equal(token.snapshot, borrowed);
+    assert.equal(controller.verifier.admitCallSet(record.originals).scopeCid, record.scopeCid);
+    finish();
+    controller.release(token);
+    assert.equal(token.snapshot, undefined);
+    assert.deepEqual(controller.usage(), {retainedInputScopes: 0, retainedInputs: 0,
+      retainedInputBytes: 0, retainedInventoryScopes: 0});
+  });
+}
+
+test('matching Model receipt still checks decoded scope before retaining input', async () => {
+  const {controller, record, snapshot, reads} = await setup();
+  snapshot.scopeCid = `sha256:${'f'.repeat(64)}`;
+  assert.notEqual(snapshot.scopeCid, record.scopeCid);
+  await assert.rejects(controller.prime(record), {code: 'ModelSnapshotBindingMismatch'});
+  assert.equal(reads(), 1);
+  assert.deepEqual(controller.usage(), {retainedInputScopes: 0, retainedInputs: 0,
+    retainedInputBytes: 0, retainedInventoryScopes: 0});
+});
+
+test('original Model binding is rechecked after the Store read await', async () => {
+  const {controller, record, reads} = await setup({beforeReadReturn(inventory) {
+    inventory.runId = 'changed-during-read';
+  }});
+  await assert.rejects(controller.prime(record), {code: 'ModelSnapshotBindingMismatch'});
+  assert.equal(reads(), 1);
+  assert.deepEqual(controller.usage(), {retainedInputScopes: 0, retainedInputs: 0,
+    retainedInputBytes: 0, retainedInventoryScopes: 0});
+});
 
 test('Model input release is exact-token guarded and preserves another consumer', async () => {
   const {controller, record, reads, finish} = await setup();

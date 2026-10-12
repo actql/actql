@@ -39,6 +39,15 @@ test('raw selection refuses omitted unknown, extra input and getter callbacks be
   assert.equal(getters, 0);
 });
 
+test('raw selection preserves the existing nullable physical SDK without inventing support', () => {
+  for (const sdk of [undefined, null]) {
+    const original = selection(); original.installation.sdk = sdk;
+    const selected = snapshotModelRawCaptureSelection(original);
+    assert.equal(selected.installation.sdk, sdk);
+    assert.equal(selected.profile, original.profile);
+  }
+});
+
 // Explicit Core ports: callback delegation/retirement only. Actual nominal
 // registration, SQLite Entry and raw Store are tested by infer-owner-checker.
 function operation(rawCaptureBinder) {
