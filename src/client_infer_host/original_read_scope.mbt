@@ -46,6 +46,14 @@ pub fn begin_original_model_read_scope(
   max_holdings : Int,
   max_delegations : Int,
 ) -> Result[@publication_host.ClientModelReadScope, Issue] {
+  let quantities = match quantity_capacity {
+    None => None
+    Some(installed) =>
+      match original_model_quantity_capacity(plan, installed) {
+        Ok(capacity) => Some(capacity)
+        Err(issue) => return Err(issue)
+      }
+  }
   let ledger = match
     @resources.create_ledger(original_model_ledger_limits(plan, limits)) {
     Ok(value) => value
@@ -54,7 +62,7 @@ pub fn begin_original_model_read_scope(
   // Configure once, before even the bootstrap reservation advances its serial.
   // start_original_model_execution later compares this exact configuration;
   // it cannot refill, reset or infer quantities from the byte envelope.
-  if quantity_capacity is Some(capacity) {
+  if quantities is Some(capacity) {
     match @resources.configure_quantities(ledger, capacity.limits) {
       Ok(_) => ()
       Err(issue) => return Err(Model(@model.Ledger(issue)))
