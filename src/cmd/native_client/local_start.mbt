@@ -445,8 +445,8 @@ fn local_submission_start(
           .unwrap_or_else(() => stop("LocalSourceComputeUnavailable"))
         }
         local_publish_source(
-          work, host, run, configuration, compiled, definition, request, reference,
-          attempt, crypto, store, current,
+          work, host, settings, run, configuration, compiled, definition, request,
+          reference, attempt, crypto, store,
         )
       } catch {
         issue => {
@@ -479,6 +479,7 @@ fn local_submission_start(
 fn local_publish_source(
   work : @local_host.NativeClientSourceWork,
   host : @local_host.NativeLocalHostConnection,
+  settings : LocalHostSettings,
   run : LocalRunInstallation,
   configuration : @source_owner.ResidentSourceComputeConfiguration,
   compiled : @run_host.ClientCompiledRun,
@@ -488,7 +489,6 @@ fn local_publish_source(
   attempt : String,
   crypto : @local_crypto.Library,
   store : @local_store.Store,
-  current : () -> Bool,
 ) -> String raise ClientStop {
   let limits = local_result_output_limits(run, configuration)
   let (_, logical, observation, _) = work
@@ -527,11 +527,24 @@ fn local_publish_source(
     8192,
     64,
   ).unwrap_or_else(() => stop("LocalAuthoringEvidenceUnavailable"))
+  let publisher = host
+    .bind_run_publisher(
+      crypto,
+      settings.principal,
+      settings.connection,
+      request,
+      definition,
+      settings.run_file.unwrap_or_else(() => {
+        stop("LocalRunInstallationRequired")
+      }),
+      store,
+    )
+    .unwrap_or_else(() => stop("LocalPublisherAuthorityUnavailable"))
   let now = local_utc_now()
   let intent : @local_publication.NativeRunPublicationIntent = {
     namespace_id: run.namespace_id,
     authority_scope_cid: @run_host.client_request_authority_scope_cid(request),
-    publication_policy_cid: local_host_result(host.configuration()).configuration_cid(),
+    publication_policy_cid: publisher.publication_policy_cid(),
     publication_target_cid: run.store_authority_cid,
     requested_at: now,
   }
@@ -546,10 +559,13 @@ fn local_publish_source(
     .install_publication_service(
       store,
       run.namespace_id,
-      _ => current(),
+      _ => publisher.current(),
       65536,
       8192,
       64,
+      request_authorize=Some((context, facts) => {
+        publisher.authorize_request(context, facts)
+      }),
     )
     .unwrap_or_else(() => stop("LocalPublicationAuthorityUnavailable"))
   let pending = work
