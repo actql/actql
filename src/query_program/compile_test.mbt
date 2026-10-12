@@ -48,7 +48,7 @@ test "query-only context refuses Graph lowering without a current definition" {
     let query = @query.parse_query(text, syntax_limits()).unwrap()
     assert_true(
       compile(query, fixture_context(), construction_limits())
-      is Err(UnsupportedGraph),
+      is Err(UnknownRelation),
     )
   }
 }
