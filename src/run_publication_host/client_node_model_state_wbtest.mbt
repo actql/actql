@@ -89,7 +89,9 @@ test "Node original state Writer uses one descriptor and exact bounded work" {
       is Err(Resource(@resources.SpentClaim)),
     )
     let work = for work = 0 {
-      if work >= 17 { break -2 }
+      if work >= 17 {
+        break -2
+      }
       match
         advance_client_node_model_read_state(
           value, compiled, definition, plan, quantum,
