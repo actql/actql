@@ -88,6 +88,16 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
 export async function prepareNativeLocalRuntime(directory, options, execute = execFileSync) {
   assert.deepEqual(Object.keys(options).sort(), ['assets', 'libraries', 'licenses', 'platform', 'sourceSha']);
   const {sourceSha, platform, libraries, assets, licenses} = options;
+  assert(Array.isArray(libraries) && libraries.length >= 2 && libraries.length <= 8);
+  assert(Array.isArray(assets) && assets.length >= 5 && assets.length <= 6);
+  assert(Array.isArray(licenses) && licenses.length >= 1 && licenses.length <= 8);
+  let total = 0;
+  for (const [items, ceiling] of [[libraries, LOCAL_RUNTIME_MAX_BYTES], [assets, 65536], [licenses, 1024 * 1024]]) {
+    for (const item of items) {
+      assert(Number.isSafeInteger(item.original?.bytes) && item.original.bytes > 0 && item.original.bytes <= ceiling);
+      total += item.original.bytes; assert(total <= LOCAL_RUNTIME_MAX_BYTES);
+    }
+  }
   for (const item of libraries) assert.deepEqual(Object.keys(item).sort(), ['dependencies', 'license', 'name', 'original', 'role']);
   for (const item of assets) assert.deepEqual(Object.keys(item).sort(), ['original', 'role']);
   for (const item of licenses) assert.deepEqual(Object.keys(item).sort(), ['name', 'original']);
