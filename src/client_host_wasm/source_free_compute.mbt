@@ -91,15 +91,15 @@ fn configure_source_free_compute(
     original != current_configuration {
     return -3
   }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
   if record.outcome is Some(_) {
     return 0
   }
   if record.invoked {
     return -33
-  }
-  match run_configuration_current(value, current) {
-    Ok(_) => ()
-    Err(code) => return code
   }
   record.current_configuration = Some(current_configuration)
   record.invoked = true

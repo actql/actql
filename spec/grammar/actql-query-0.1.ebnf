@@ -207,11 +207,10 @@ infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  [ assignment, { ",", assignment } ], ")",
                  [ keep_clause ], "AS", identifier ;
 nearest_operator = "NEAREST", path, "AS", identifier,
-                   "QUERY", "KEY", "(", path, { ",", path }, ")",
-                   "VECTOR", expression,
-                   "CANDIDATE", "KEY", "(", path, { ",", path }, ")",
-                   "VECTOR", expression, "METRIC", metric,
+                   [ "QUERY", nearest_role_pair ],
+                   [ "CANDIDATE", nearest_role_pair ], "METRIC", metric,
                    "K", integer, [ keep_clause ], "AS", identifier ;
+nearest_role_pair = "KEY", "(", path, { ",", path }, ")", "VECTOR", expression ;
 metric        = "cosine" | "dot" | "l2" ;
 keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
 keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;

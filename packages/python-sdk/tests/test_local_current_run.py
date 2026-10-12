@@ -68,6 +68,32 @@ class CurrentRunConfigurationTests(unittest.TestCase):
             custody._configuration(configuration)
         self.assertEqual(_RUN_SIGNATURES['install_current_configuration'], ('i64 i32 i32', 'i32'))
 
+    def test_failed_current_or_closing_core_refuses_before_scalar_issuer_and_retains_loans(self):
+        # This exercises the real Python physical-loan caller with a scalar
+        # Core double. It does not execute the Wasm caller guards.
+        for closing in (False, True):
+            with self.subTest(closing=closing):
+                core, custody, source, current, reader, calls, _ = self.fixture()
+                original_calls = len(calls)
+                original_input = core._loans[source.ticket]
+                failure = OSError('original current supplier unavailable')
+                if closing:
+                    core._closing = True
+                    with self.assertRaises(RuntimeError):
+                        custody.install_current_configuration(current, source)
+                else:
+                    callbacks = core._journal_callbacks(current.ticket)
+                    self.assertIsNotNone(callbacks)
+                    callbacks.current = lambda: (_ for _ in ()).throw(failure)
+                    with self.assertRaises(OSError) as raised:
+                        with core.host_current_frame(current, reader):
+                            custody.install_current_configuration(current, source)
+                    self.assertIs(raised.exception, failure)
+                    self.assertIsNone(callbacks.reader)
+                self.assertEqual(len(calls), original_calls)
+                self.assertIs(core._loans[source.ticket], original_input)
+                self.assertIs(core._loans[current.ticket], current)
+
 
 if __name__ == '__main__':
     unittest.main()

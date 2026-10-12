@@ -28,14 +28,11 @@ fn local_read_preimage(
 ) -> Result[NativeLocalReadPreimage, NativeClientRunJournalIssue] {
   try {
     let writer = @encode.writer(16384, 256, 8)
-    @encode.begin_object(writer)
-    let mut previous : String? = None
+    // Use the existing canonical UTF-16 key Owner. Core String comparison is
+    // length-first and cannot validate these literal canonical preimages.
+    @encode.begin_ordered_object(writer)
     for (name, value) in fields {
-      if previous is Some(prior) && prior >= name {
-        return Err(Encoding)
-      }
-      previous = Some(name)
-      @encode.key(writer, name)
+      @encode.ordered_key(writer, name)
       match value {
         Text(value) => @encode.string_value(writer, value)
         Quantity(value) =>

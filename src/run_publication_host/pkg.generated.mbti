@@ -228,6 +228,8 @@ pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClie
 
 pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> @run_publication.CapturedEffectDependencyBody?
 
+pub fn client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
+
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
@@ -515,6 +517,8 @@ pub fn client_model_read_consumer_available(ClientModelReadConsumer, ClientCompi
 pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
+
+pub fn client_model_resource_park_current(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourcePark[ClientModelReadOrigin]?
 
 pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
@@ -976,6 +980,8 @@ pub fn issue_prepared_client_effect_normalization_materials(ClientEffectAllowedR
 
 pub fn issue_prepared_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, request? : ClientRequestIdentity?, normalization? : ClientEffectNormalization?) -> Result[String, ClientEffectRunMaterialsIssue]
 
+pub fn issue_prepared_client_effect_selected_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
+
 pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
@@ -1059,6 +1065,8 @@ pub fn open_prepared_multi_captured_client_effect_run(PreparedClientEffectRun, A
 pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
+
+pub fn park_client_model_read_consumer(ClientModelReadScope, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadPreparationIssue]
 
 pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
 
@@ -1302,6 +1310,8 @@ pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputat
 
 pub fn restore_prepared_client_local_normalization(PreparedClientProgram, ClientLocalNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
 
+pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePark[ClientModelReadOrigin]) -> Result[Unit, ClientModelReadPreparationIssue]
+
 pub fn settle_client_model_read(ClientModelReadPreparation, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn settle_client_model_read_checked(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Unit, ClientModelReadPreparationIssue]
@@ -1490,6 +1500,12 @@ pub(all) enum ClientCompiledRunIssue {
   TaskBinding(ClientTaskRunBindingIssue)
   EffectBinding(ClientEffectCompiledRunIssue)
 }
+
+pub(all) enum ClientCompiledRunPlanIssue {
+  ForeignCompilation
+  UnsupportedCompilation
+  Projection(ClientInteractivePlanIssue)
+} derive(Eq, @debug.Debug)
 
 pub struct ClientDirectResultRoot {
   wire : String
@@ -2148,6 +2164,8 @@ pub struct ClientModelRawCaptureRegistration {
 }
 
 type ClientModelReadConsumer
+
+type ClientModelReadOrigin
 
 type ClientModelReadPreparation
 
@@ -3138,6 +3156,8 @@ type PublicationResultRetention
 type RecoveredClientTablePreview
 
 // Type aliases
+pub type ClientModelResourcePark = @physical_resources.OriginalResourcePark[ClientModelReadOrigin]
+
 pub using @logical_request_scope {type SubmissionEpoch}
 
 pub using @logical_request_scope {type SubmissionEpochValidity}

@@ -35,6 +35,10 @@ pub fn model_call_entry_persistence(
   if entry.persistence is Some(original) {
     return Some(original)
   }
+  if check_model_original_resources_mutable(entry.prepared.owner.state)
+    is Err(_) {
+    return None
+  }
   let operation : ModelCallEntryPersistence = {
     entry: Some(entry),
     poll: Some(poll),
@@ -64,10 +68,18 @@ pub fn poll_model_call_entry_persistence(
   if operation.terminal is Some(original) {
     return original
   }
+  if check_model_original_resources_mutable(entry.prepared.owner.state)
+    is Err(issue) {
+    return Err(issue)
+  }
   guard operation.poll is Some(poll) else { return Err(CallEntryRefused) }
   operation.polling = true
   let observed = poll()
   operation.polling = false
+  if check_model_original_resources_mutable(entry.prepared.owner.state)
+    is Err(issue) {
+    return Err(issue)
+  }
   // The callback may deliver cancellation/revocation but cannot replace the
   // original retained owner while this observation is being adopted.
   if !model_call_entry_persistence_owned(entry, prepared) || entry.send_started {
