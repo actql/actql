@@ -12,10 +12,13 @@ fn event_window_control(
   } else {
     "\"window_start\",\"window_end\""
   }
-  let selected = "\"event_id\",\"occurred_ms\"," + boundaries +
+  let selected = "\"event_id\",\"occurred_ms\"," +
+    boundaries +
     (if watermark is Some(_) {
       ",\"watermark_ms\",\"late\",\"watermark_decision\""
-    } else { "" })
+    } else {
+      ""
+    })
   @program.parse(
     "{\"version\":\"actql/0.1\",\"id\":\"fixture.event_window\"," +
     (if parameters { "\"params\":{\"p\":{\"type\":\"number\"}}," } else { "" }) +
@@ -23,21 +26,36 @@ fn event_window_control(
     "{\"values\":{\"schema\":{\"event_id\":{\"type\":\"number\",\"nullable\":false},\"occurred_ms\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"event_id\":1,\"occurred_ms\":0},{\"event_id\":2,\"occurred_ms\":10}]},\"as\":\"source_rows\"}," +
     (if event {
       "{\"from\":\"source_rows\",\"to_events\":{\"id\":\"event_id\",\"time\":\"occurred_ms\"},\"as\":\"ev\"},"
-    } else { "" }) +
-    "{\"from\":\"" + (if event { "ev" } else { "source_rows" }) +
-    "\",\"" + (if event { "window_events" } else { "row_window" }) + "\":" + body +
+    } else {
+      ""
+    }) +
+    "{\"from\":\"" +
+    (if event { "ev" } else { "source_rows" }) +
+    "\",\"" +
+    (if event { "window_events" } else { "row_window" }) +
+    "\":" +
+    body +
     ",\"as\":\"windowed\"}," +
     (match watermark {
-      Some(body) => "{\"from\":\"windowed\",\"watermark_events\":" + body + ",\"as\":\"marked\"},"
+      Some(body) =>
+        "{\"from\":\"windowed\",\"watermark_events\":" +
+        body +
+        ",\"as\":\"marked\"},"
       None => ""
     }) +
     (if event {
-      "{\"from\":\"" + (if watermark is Some(_) { "marked" } else { "windowed" }) + "\",\"events\":true},"
-    } else { "" }) +
+      "{\"from\":\"" +
+      (if watermark is Some(_) { "marked" } else { "windowed" }) +
+      "\",\"events\":true},"
+    } else {
+      ""
+    }) +
     "{\"sort\":[{\"field\":\"event_id\",\"dir\":\"asc\",\"nulls\":\"first\"},{\"field\":\"" +
     (if event { "window_start_ms" } else { "window_start" }) +
-    "\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"select\":[" + selected +
-    "],\"as\":\"out\"}],\"results\":{\"rows\":{\"from\":\"out\",\"fields\":[" + selected +
+    "\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"select\":[" +
+    selected +
+    "],\"as\":\"out\"}],\"results\":{\"rows\":{\"from\":\"out\",\"fields\":[" +
+    selected +
     "]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
     construction_limits().program,
     format=Json,
@@ -52,16 +70,20 @@ fn event_window_common_checked(program : @program.Program) -> Unit raise {
     max_depth: 100,
     max_text_bytes: 100000,
   }).unwrap()
-  assert_true(@stage_results.check_local_program(source, {
-    max_stages: 10,
-    max_steps: 100,
-    max_results: 100,
-    max_work: 1000000,
-    max_nodes: 10000,
-    max_tokens: 10000,
-    max_depth: 100,
-    max_text_bytes: 100000,
-  }) is Ok(_), msg="independent existing window/Events contract must check")
+  assert_true(
+    @stage_results.check_local_program(source, {
+      max_stages: 10,
+      max_steps: 100,
+      max_results: 100,
+      max_work: 1000000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 100,
+      max_text_bytes: 100000,
+    })
+    is Ok(_),
+    msg="independent existing window/Events contract must check",
+  )
 }
 
 ///|
@@ -73,38 +95,65 @@ fn event_window_source(
   "WITH source_rows AS (SELECT 1 AS event_id, 0 AS occurred_ms UNION ALL SELECT 2, 10), " +
   (if event {
     "ev AS (FROM source_rows |> to_events(id: event_id, time: occurred_ms)), "
-  } else { "" }) +
-  "windowed AS (FROM " + (if event { "ev" } else { "source_rows AS r" }) + " |> " + call + "), " +
+  } else {
+    ""
+  }) +
+  "windowed AS (FROM " +
+  (if event { "ev" } else { "source_rows AS r" }) +
+  " |> " +
+  call +
+  "), " +
   (match watermark {
     Some(call) => "marked AS (FROM windowed |> " + call + "), "
     None => ""
   }) +
-  "result_rows AS (FROM " + (if watermark is Some(_) { "marked" } else { "windowed" }) +
+  "result_rows AS (FROM " +
+  (if watermark is Some(_) { "marked" } else { "windowed" }) +
   (if event { " |> events()" } else { "" }) +
   ") SELECT event_id, occurred_ms, " +
-  (if event { "window_start_ms, window_end_ms" } else { "window_start, window_end" }) +
-  (if watermark is Some(_) { ", watermark_ms, late, watermark_decision" } else { "" }) +
-  " FROM result_rows ORDER BY event_id, " + (if event { "window_start_ms" } else { "window_start" })
+  (if event {
+    "window_start_ms, window_end_ms"
+  } else {
+    "window_start, window_end"
+  }) +
+  (if watermark is Some(_) {
+    ", watermark_ms, late, watermark_decision"
+  } else {
+    ""
+  }) +
+  " FROM result_rows ORDER BY event_id, " +
+  (if event { "window_start_ms" } else { "window_start" })
 }
 
 ///|
 test "P2 independent windows retain fixed step offset and whole Parameters" {
   for event in [false, true] {
-    for body in [
-      "{\"kind\":\"fixed\",\"size\":10,\"step\":3,\"offset\":-2}",
-      "{\"kind\":\"sliding\",\"size\":10,\"step\":3,\"offset\":2}",
-      "{\"kind\":\"fixed\",\"size\":{\"$param\":\"p\"},\"step\":{\"$param\":\"p\"},\"offset\":{\"$param\":\"p\"}}",
-    ] {
-      let body = if event { body } else {
-        body.replace(old="{\"kind\":", new="{\"time\":\"occurred_ms\",\"kind\":")
+    for
+      body in [
+        "{\"kind\":\"fixed\",\"size\":10,\"step\":3,\"offset\":-2}", "{\"kind\":\"sliding\",\"size\":10,\"step\":3,\"offset\":2}",
+        "{\"kind\":\"fixed\",\"size\":{\"$param\":\"p\"},\"step\":{\"$param\":\"p\"},\"offset\":{\"$param\":\"p\"}}",
+      ] {
+      let body = if event {
+        body
+      } else {
+        body.replace(
+          old="{\"kind\":",
+          new="{\"time\":\"occurred_ms\",\"kind\":",
+        )
       }
-      event_window_common_checked(event_window_control(event, body, parameters=body.contains("$param")))
+      event_window_common_checked(
+        event_window_control(event, body, parameters=body.contains("$param")),
+      )
     }
   }
   for policy in ["mark", "drop"] {
-    event_window_common_checked(event_window_control(true,
-      "{\"kind\":\"fixed\",\"size\":10,\"offset\":-2}",
-      watermark=Some("{\"watermark_ms\":-0.5,\"policy\":\"" + policy + "\"}")))
+    event_window_common_checked(
+      event_window_control(
+        true,
+        "{\"kind\":\"fixed\",\"size\":10,\"offset\":-2}",
+        watermark=Some("{\"watermark_ms\":-0.5,\"policy\":\"" + policy + "\"}"),
+      ),
+    )
   }
 }
 
@@ -112,14 +161,27 @@ test "P2 independent windows retain fixed step offset and whole Parameters" {
 test "P2 window source preserves closed arguments against independent Programs" {
   for event in [false, true] {
     for kind in ["fixed", "sliding"] {
-      let body = "{\"kind\":\"" + kind + "\",\"size\":10,\"step\":3,\"offset\":-2" +
-        (if event { "" } else { ",\"time\":\"occurred_ms\"" }) + "}"
+      let body = "{\"kind\":\"" +
+        kind +
+        "\",\"size\":10,\"step\":3,\"offset\":-2" +
+        (if event { "" } else { ",\"time\":\"occurred_ms\"" }) +
+        "}"
       let operation = if event { "window_events" } else { "row_window" }
-      let text = event_window_source(event, operation + "(kind: '" + kind +
-        "', size: 10, step: 3, offset: -2" + (if event { "" } else { ", time: r.OCCURRED_MS" }) + ")")
+      let text = event_window_source(
+        event,
+        operation +
+        "(kind: '" +
+        kind +
+        "', size: 10, step: 3, offset: -2" +
+        (if event { "" } else { ", time: r.OCCURRED_MS" }) +
+        ")",
+      )
       let actual = with_carrier_program(text, { ..pair_context(), inputs: [], }).unwrap()
       let control = event_window_control(event, body)
-      assert_eq(with_carrier_argument(actual, operation), with_carrier_argument(control, operation))
+      assert_eq(
+        with_carrier_argument(actual, operation),
+        with_carrier_argument(control, operation),
+      )
       event_window_common_checked(actual)
     }
   }
@@ -130,13 +192,22 @@ test "P2 event watermark source preserves fractional threshold and exact policie
   for policy in ["mark", "drop"] {
     let body = "{\"kind\":\"fixed\",\"size\":10,\"offset\":-2}"
     let mark = "{\"watermark_ms\":-0.5,\"policy\":\"" + policy + "\"}"
-    let actual = with_carrier_program(event_window_source(true,
-      "window_events(kind: 'fixed', size: 10, offset: -2)",
-      watermark=Some("watermark_events(watermark_ms: -0.5, policy: '" + policy + "')")),
-      { ..pair_context(), inputs: [], }).unwrap()
+    let actual = with_carrier_program(
+      event_window_source(
+        true,
+        "window_events(kind: 'fixed', size: 10, offset: -2)",
+        watermark=Some(
+          "watermark_events(watermark_ms: -0.5, policy: '" + policy + "')",
+        ),
+      ),
+      { ..pair_context(), inputs: [], },
+    ).unwrap()
     let control = event_window_control(true, body, watermark=Some(mark))
     for operation in ["window_events", "watermark_events", "events"] {
-      assert_eq(with_carrier_argument(actual, operation), with_carrier_argument(control, operation))
+      assert_eq(
+        with_carrier_argument(actual, operation),
+        with_carrier_argument(control, operation),
+      )
     }
     event_window_common_checked(actual)
   }
@@ -146,15 +217,26 @@ test "P2 event watermark source preserves fractional threshold and exact policie
 test "P2 window Parameters keep their declarations and references before binding" {
   for event in [false, true] {
     let operation = if event { "window_events" } else { "row_window" }
-    let text = event_window_source(event, operation +
+    let text = event_window_source(
+      event,
+      operation +
       "(kind: 'fixed', size: @p, step: @p, offset: @p" +
-      (if event { "" } else { ", time: r.occurred_ms" }) + ")")
-    let actual = with_carrier_program(text,
-      { ..pair_context(), inputs: [], parameter_declarations: Some(number_parameter_declarations()), }).unwrap()
+      (if event { "" } else { ", time: r.occurred_ms" }) +
+      ")",
+    )
+    let actual = with_carrier_program(text, {
+      ..pair_context(),
+      inputs: [],
+      parameter_declarations: Some(number_parameter_declarations()),
+    }).unwrap()
     let body = "{\"kind\":\"fixed\",\"size\":{\"$param\":\"p\"},\"step\":{\"$param\":\"p\"},\"offset\":{\"$param\":\"p\"}" +
-      (if event { "" } else { ",\"time\":\"occurred_ms\"" }) + "}"
+      (if event { "" } else { ",\"time\":\"occurred_ms\"" }) +
+      "}"
     let control = event_window_control(event, body, parameters=true)
-    assert_eq(with_carrier_argument(actual, operation), with_carrier_argument(control, operation))
+    assert_eq(
+      with_carrier_argument(actual, operation),
+      with_carrier_argument(control, operation),
+    )
     event_window_common_checked(actual)
   }
 }
