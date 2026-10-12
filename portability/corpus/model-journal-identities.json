@@ -1,0 +1,641 @@
+{
+  "version": "actql-model-journal-identity-vectors/0.1",
+  "cases": [
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "immediate",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": null
+      },
+      "expected_canonical_bytes": "{\"admitted_at\":\"2026-10-12T00:00:00.000Z\",\"attempt_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000007\",\"attempt_index\":1,\"deferred\":null,\"dispatch_authority_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000008\",\"immediate\":{\"dispatch_valid_until\":\"2026-10-12T01:00:00.000Z\",\"parent_resume_fence\":null,\"run_valid_until\":\"2026-10-12T01:00:00.000Z\"},\"input_artifact_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000005\",\"model_grant_expires_at\":\"2026-10-12T01:00:00.000Z\",\"ordinal\":0,\"prepared_invocation_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000002\",\"provenance\":\"immediate\",\"provider_binding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000004\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000001\",\"run_id\":\"original-é\\r\\n\",\"scope_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000003\",\"slot_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000006\",\"strategy_revision\":2,\"task_index\":0,\"version\":\"actql-model-journal-entry/0.1\"}",
+      "expected_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9"
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "deferred",
+        "immediate": null,
+        "deferred": {
+          "checkpoint_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000009",
+          "intent_id": "intent-original",
+          "claimant": "claimant-original",
+          "generation": 1,
+          "resolution_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000a",
+          "verified_resolution_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000b",
+          "lease_expires_ms": 1791766800000,
+          "prepare_attempt_id": null,
+          "kind": "model_invocation",
+          "required_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+          "decision_subject_cid": null,
+          "requested_claims": [
+            "invocation_scope_approved"
+          ],
+          "configuration_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000c",
+          "observed_claims": [
+            "invocation_scope_approved"
+          ],
+          "authority": "reviewer-é\r\n",
+          "approval_expires_at": "2026-10-12T01:00:00.000Z"
+        }
+      },
+      "expected_canonical_bytes": "{\"admitted_at\":\"2026-10-12T00:00:00.000Z\",\"attempt_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000007\",\"attempt_index\":1,\"deferred\":{\"approval_expires_at\":\"2026-10-12T01:00:00.000Z\",\"authority\":\"reviewer-é\\r\\n\",\"checkpoint_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000009\",\"claimant\":\"claimant-original\",\"configuration_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000c\",\"decision_subject_cid\":null,\"generation\":1,\"intent_id\":\"intent-original\",\"kind\":\"model_invocation\",\"lease_expires_ms\":1791766800000,\"observed_claims\":[\"invocation_scope_approved\"],\"prepare_attempt_id\":null,\"requested_claims\":[\"invocation_scope_approved\"],\"required_artifact_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000003\",\"resolution_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000a\",\"verified_resolution_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000b\"},\"dispatch_authority_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000008\",\"immediate\":null,\"input_artifact_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000005\",\"model_grant_expires_at\":\"2026-10-12T01:00:00.000Z\",\"ordinal\":0,\"prepared_invocation_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000002\",\"provenance\":\"deferred\",\"provider_binding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000004\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000001\",\"run_id\":\"original-é\\r\\n\",\"scope_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000003\",\"slot_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000006\",\"strategy_revision\":2,\"task_index\":0,\"version\":\"actql-model-journal-entry/0.1\"}",
+      "expected_cid": "sha256:a67d453617b80ed4a85e092ef394370999e013bda75377b7683a0bdf72a86788"
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "immediate",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": {
+            "checkpoint_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000009",
+            "intent_id": "parent",
+            "claimant": "claimant",
+            "generation": 2
+          }
+        },
+        "deferred": null
+      },
+      "expected_canonical_bytes": "{\"admitted_at\":\"2026-10-12T00:00:00.000Z\",\"attempt_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000007\",\"attempt_index\":1,\"deferred\":null,\"dispatch_authority_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000008\",\"immediate\":{\"dispatch_valid_until\":\"2026-10-12T01:00:00.000Z\",\"parent_resume_fence\":{\"checkpoint_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000009\",\"claimant\":\"claimant\",\"generation\":2,\"intent_id\":\"parent\"},\"run_valid_until\":\"2026-10-12T01:00:00.000Z\"},\"input_artifact_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000005\",\"model_grant_expires_at\":\"2026-10-12T01:00:00.000Z\",\"ordinal\":0,\"prepared_invocation_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000002\",\"provenance\":\"immediate\",\"provider_binding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000004\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000001\",\"run_id\":\"original-é\\r\\n\",\"scope_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000003\",\"slot_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000006\",\"strategy_revision\":2,\"task_index\":0,\"version\":\"actql-model-journal-entry/0.1\"}",
+      "expected_cid": "sha256:a29e87889f81d02f3fd6cab401b7bc8e75cde68c231481ab078470fdfbba2cb4"
+    },
+    {
+      "kind": "model_journal_settlement",
+      "body": {
+        "version": "actql-model-journal-settlement/0.1",
+        "entry_identity_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9",
+        "state": "SavedSuccess",
+        "durable": true,
+        "retry_allowed": false,
+        "settled_at": "2026-10-12T00:00:00.000Z",
+        "evidence": {
+          "model_call_attempt": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000025"
+          },
+          "model_dispatch_authority": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "model_attempt_accounting": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+          },
+          "model_attempt_outcome": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "model_slot_capture": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000f",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002d"
+          },
+          "model_capture_bundle": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000010",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002e"
+          },
+          "terminal_failure": null
+        }
+      },
+      "expected_canonical_bytes": "{\"durable\":true,\"entry_identity_cid\":\"sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9\",\"evidence\":{\"model_attempt_accounting\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000d\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002b\"},\"model_attempt_outcome\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000e\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002c\"},\"model_call_attempt\":{\"cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000007\",\"holding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000025\"},\"model_capture_bundle\":{\"cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000010\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002e\"},\"model_dispatch_authority\":{\"cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000008\",\"holding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000026\"},\"model_slot_capture\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000f\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002d\"},\"terminal_failure\":null},\"retry_allowed\":false,\"settled_at\":\"2026-10-12T00:00:00.000Z\",\"state\":\"SavedSuccess\",\"version\":\"actql-model-journal-settlement/0.1\"}",
+      "expected_cid": "sha256:ae077e78640299718a400e2f5d633cb24e1d857baa9344d56ea26a55d14f0632"
+    },
+    {
+      "kind": "model_journal_settlement",
+      "body": {
+        "version": "actql-model-journal-settlement/0.1",
+        "entry_identity_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9",
+        "state": "SavedFailure",
+        "durable": true,
+        "retry_allowed": false,
+        "settled_at": "2026-10-12T00:00:00.000Z",
+        "evidence": {
+          "model_call_attempt": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000025"
+          },
+          "model_dispatch_authority": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "model_attempt_accounting": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+          },
+          "model_attempt_outcome": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "model_slot_capture": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000f",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002d"
+          },
+          "model_capture_bundle": null,
+          "terminal_failure": true
+        }
+      },
+      "expected_canonical_bytes": "{\"durable\":true,\"entry_identity_cid\":\"sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9\",\"evidence\":{\"model_attempt_accounting\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000d\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002b\"},\"model_attempt_outcome\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000e\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002c\"},\"model_call_attempt\":{\"cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000007\",\"holding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000025\"},\"model_capture_bundle\":null,\"model_dispatch_authority\":{\"cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000008\",\"holding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000026\"},\"model_slot_capture\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000f\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002d\"},\"terminal_failure\":true},\"retry_allowed\":false,\"settled_at\":\"2026-10-12T00:00:00.000Z\",\"state\":\"SavedFailure\",\"version\":\"actql-model-journal-settlement/0.1\"}",
+      "expected_cid": "sha256:ffb3eb19c30ae39e2dd939745adc3c1c7cc927ffc068e771bb9f84931b9131e9"
+    },
+    {
+      "kind": "model_journal_settlement",
+      "body": {
+        "version": "actql-model-journal-settlement/0.1",
+        "entry_identity_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9",
+        "state": "SavedFailure",
+        "durable": true,
+        "retry_allowed": true,
+        "settled_at": "2026-10-12T00:00:00.000Z",
+        "evidence": {
+          "model_call_attempt": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000025"
+          },
+          "model_dispatch_authority": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "model_attempt_accounting": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+          },
+          "model_attempt_outcome": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "model_slot_capture": null,
+          "model_capture_bundle": null,
+          "terminal_failure": false
+        }
+      },
+      "expected_canonical_bytes": "{\"durable\":true,\"entry_identity_cid\":\"sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9\",\"evidence\":{\"model_attempt_accounting\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000d\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002b\"},\"model_attempt_outcome\":{\"cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000000e\",\"holding_cid\":\"sha256:000000000000000000000000000000000000000000000000000000000000002c\"},\"model_call_attempt\":{\"cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000007\",\"holding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000025\"},\"model_capture_bundle\":null,\"model_dispatch_authority\":{\"cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000008\",\"holding_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000026\"},\"model_slot_capture\":null,\"terminal_failure\":false},\"retry_allowed\":true,\"settled_at\":\"2026-10-12T00:00:00.000Z\",\"state\":\"SavedFailure\",\"version\":\"actql-model-journal-settlement/0.1\"}",
+      "expected_cid": "sha256:55b6b1dfdd5c2c5e8fdfe8fe96f5080274aa3e2ead59d7922dadc7a27e688e30"
+    }
+  ],
+  "invalid": [
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "immediate",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": null
+      }
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "immediate",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": null,
+        "unexpected": 0
+      }
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "deferred",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": null
+      }
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "deferred",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": {
+          "checkpoint_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000009",
+          "intent_id": "intent-original",
+          "claimant": "claimant-original",
+          "generation": 1,
+          "resolution_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000a",
+          "verified_resolution_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000b",
+          "lease_expires_ms": 1791766800000,
+          "prepare_attempt_id": null,
+          "kind": "model_invocation",
+          "required_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+          "decision_subject_cid": null,
+          "requested_claims": [
+            "invocation_scope_approved"
+          ],
+          "configuration_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000c",
+          "observed_claims": [
+            "invocation_scope_approved"
+          ],
+          "authority": "reviewer-é\r\n",
+          "approval_expires_at": "2026-10-12T01:00:00.000Z"
+        }
+      }
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 0,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "immediate",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": null
+      }
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0.5,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "immediate",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": null
+      }
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": -1,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "immediate",
+        "immediate": {
+          "run_valid_until": "2026-10-12T01:00:00.000Z",
+          "dispatch_valid_until": "2026-10-12T01:00:00.000Z",
+          "parent_resume_fence": null
+        },
+        "deferred": null
+      }
+    },
+    {
+      "kind": "model_journal_entry",
+      "body": {
+        "version": "actql-model-journal-entry/0.1",
+        "run_id": "original-é\r\n",
+        "run_definition_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "prepared_invocation_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "scope_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "provider_binding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+        "input_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+        "task_index": 0,
+        "strategy_revision": 2,
+        "ordinal": 0,
+        "slot_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+        "attempt_index": 1,
+        "attempt_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+        "dispatch_authority_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+        "admitted_at": "2026-10-12T00:00:00.000Z",
+        "model_grant_expires_at": "2026-10-12T01:00:00.000Z",
+        "provenance": "deferred",
+        "immediate": null,
+        "deferred": {
+          "checkpoint_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000009",
+          "intent_id": "intent-original",
+          "claimant": "claimant-original",
+          "generation": 0,
+          "resolution_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000a",
+          "verified_resolution_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000b",
+          "lease_expires_ms": 1791766800000,
+          "prepare_attempt_id": null,
+          "kind": "model_invocation",
+          "required_artifact_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+          "decision_subject_cid": null,
+          "requested_claims": [
+            "invocation_scope_approved"
+          ],
+          "configuration_cid": "sha256:000000000000000000000000000000000000000000000000000000000000000c",
+          "observed_claims": [
+            "invocation_scope_approved"
+          ],
+          "authority": "reviewer-é\r\n",
+          "approval_expires_at": "2026-10-12T01:00:00.000Z"
+        }
+      }
+    },
+    {
+      "kind": "model_journal_settlement",
+      "body": {
+        "version": "actql-model-journal-settlement/0.1",
+        "entry_identity_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9",
+        "state": "EnteredUnknown",
+        "durable": true,
+        "retry_allowed": false,
+        "settled_at": "2026-10-12T00:00:00.000Z",
+        "evidence": {
+          "model_call_attempt": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000025"
+          },
+          "model_dispatch_authority": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "model_attempt_accounting": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+          },
+          "model_attempt_outcome": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "model_slot_capture": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000f",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002d"
+          },
+          "model_capture_bundle": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000010",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002e"
+          },
+          "terminal_failure": null
+        }
+      }
+    },
+    {
+      "kind": "model_journal_settlement",
+      "body": {
+        "version": "actql-model-journal-settlement/0.1",
+        "entry_identity_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9",
+        "state": "SavedSuccess",
+        "durable": false,
+        "retry_allowed": false,
+        "settled_at": "2026-10-12T00:00:00.000Z",
+        "evidence": {
+          "model_call_attempt": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000025"
+          },
+          "model_dispatch_authority": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "model_attempt_accounting": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+          },
+          "model_attempt_outcome": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "model_slot_capture": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000f",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002d"
+          },
+          "model_capture_bundle": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000010",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002e"
+          },
+          "terminal_failure": null
+        }
+      }
+    },
+    {
+      "kind": "model_journal_settlement",
+      "body": {
+        "version": "actql-model-journal-settlement/0.1",
+        "entry_identity_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9",
+        "state": "SavedSuccess",
+        "durable": true,
+        "retry_allowed": true,
+        "settled_at": "2026-10-12T00:00:00.000Z",
+        "evidence": {
+          "model_call_attempt": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000025"
+          },
+          "model_dispatch_authority": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "model_attempt_accounting": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+          },
+          "model_attempt_outcome": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "model_slot_capture": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000f",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002d"
+          },
+          "model_capture_bundle": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000010",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002e"
+          },
+          "terminal_failure": null
+        }
+      }
+    },
+    {
+      "kind": "model_journal_settlement",
+      "body": {
+        "version": "actql-model-journal-settlement/0.1",
+        "entry_identity_cid": "sha256:6204930f459447020ba5f0cbcbddf79bb55a4a1615da2787b3f357786c99a6e9",
+        "state": "SavedSuccess",
+        "durable": true,
+        "retry_allowed": false,
+        "settled_at": "2026-10-12T00:00:00.000Z",
+        "evidence": {
+          "model_call_attempt": null,
+          "model_dispatch_authority": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "holding_cid": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+          },
+          "model_attempt_accounting": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+          },
+          "model_attempt_outcome": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+          },
+          "model_slot_capture": {
+            "cid": "sha256:000000000000000000000000000000000000000000000000000000000000000f",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002d"
+          },
+          "model_capture_bundle": {
+            "cid": "sha256:0000000000000000000000000000000000000000000000000000000000000010",
+            "holding_cid": "sha256:000000000000000000000000000000000000000000000000000000000000002e"
+          },
+          "terminal_failure": null
+        }
+      }
+    }
+  ]
+}

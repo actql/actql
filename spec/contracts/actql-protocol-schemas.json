@@ -13635,7 +13635,7 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:9e88251f3962de80e1d087223af05f8d34dd75eedc6b334dccd793f830f6eda1",
+  "artifact_registry_cid": "sha256:c15a147e530a905ca0ac1e079b3c547fa926550e8205181d50b01db194f8ef56",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -13702,7 +13702,9 @@
     "model_invocation_evidence_compatible": "sha256:395b29533430f97fda7a13019417abb991e7fe1d2b0e92d579a58887f53a6756",
     "model_capture_bundle_compatible": "sha256:750be57601bea98a9446d2ec3222e6f1cde2e2c40069cbef917fc475a15e9ddb",
     "model_response_profile": "sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7",
-    "model_original_resource_state": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df"
+    "model_original_resource_state": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
+    "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
+    "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -95413,6 +95415,692 @@
         }
       ],
       "$comment": "No self CID. resource_state_cid identifies exact original Writer UTF-8 bytes. Shape admission grants neither restored resources nor Model send. Current cut requires the same opaque parked/stopping owner and committed original journal fences."
+    },
+    "model_journal_entry": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-journal-entry-0.1.json",
+      "title": "actql-model-journal-entry-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_id",
+        "run_definition_cid",
+        "prepared_invocation_cid",
+        "scope_cid",
+        "provider_binding_cid",
+        "input_artifact_cid",
+        "task_index",
+        "strategy_revision",
+        "ordinal",
+        "slot_cid",
+        "attempt_index",
+        "attempt_cid",
+        "dispatch_authority_cid",
+        "admitted_at",
+        "model_grant_expires_at",
+        "provenance",
+        "immediate",
+        "deferred",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-journal-entry/0.1"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prepared_invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provider_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "task_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "strategy_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "attempt_index": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "attempt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "admitted_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_grant_expires_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance": {
+          "enum": [
+            "immediate",
+            "deferred"
+          ]
+        },
+        "immediate": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "run_valid_until",
+                "dispatch_valid_until",
+                "parent_resume_fence"
+              ],
+              "properties": {
+                "run_valid_until": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dispatch_valid_until": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "parent_resume_fence": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "checkpoint_cid",
+                        "intent_id",
+                        "claimant",
+                        "generation"
+                      ],
+                      "properties": {
+                        "checkpoint_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "intent_id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "claimant": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "generation": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "deferred": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "checkpoint_cid",
+                "intent_id",
+                "claimant",
+                "generation",
+                "resolution_cid",
+                "verified_resolution_cid",
+                "lease_expires_ms",
+                "prepare_attempt_id",
+                "kind",
+                "required_artifact_cid",
+                "decision_subject_cid",
+                "requested_claims",
+                "configuration_cid",
+                "observed_claims",
+                "authority",
+                "approval_expires_at"
+              ],
+              "properties": {
+                "checkpoint_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "intent_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "claimant": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "generation": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "resolution_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "verified_resolution_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "lease_expires_ms": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "prepare_attempt_id": {
+                  "type": "null"
+                },
+                "kind": {
+                  "const": "model_invocation"
+                },
+                "required_artifact_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "decision_subject_cid": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  ]
+                },
+                "requested_claims": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "configuration_cid": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  ]
+                },
+                "observed_claims": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "authority": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "approval_expires_at": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "provenance": {
+              "const": "immediate"
+            },
+            "immediate": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "run_valid_until",
+                "dispatch_valid_until",
+                "parent_resume_fence"
+              ],
+              "properties": {
+                "run_valid_until": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dispatch_valid_until": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "parent_resume_fence": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "checkpoint_cid",
+                        "intent_id",
+                        "claimant",
+                        "generation"
+                      ],
+                      "properties": {
+                        "checkpoint_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "intent_id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "claimant": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "generation": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "deferred": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "provenance": {
+              "const": "deferred"
+            },
+            "immediate": {
+              "type": "null"
+            },
+            "deferred": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "checkpoint_cid",
+                "intent_id",
+                "claimant",
+                "generation",
+                "resolution_cid",
+                "verified_resolution_cid",
+                "lease_expires_ms",
+                "prepare_attempt_id",
+                "kind",
+                "required_artifact_cid",
+                "decision_subject_cid",
+                "requested_claims",
+                "configuration_cid",
+                "observed_claims",
+                "authority",
+                "approval_expires_at"
+              ],
+              "properties": {
+                "checkpoint_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "intent_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "claimant": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "generation": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "resolution_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "verified_resolution_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "lease_expires_ms": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "prepare_attempt_id": {
+                  "type": "null"
+                },
+                "kind": {
+                  "const": "model_invocation"
+                },
+                "required_artifact_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "decision_subject_cid": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  ]
+                },
+                "requested_claims": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "configuration_cid": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  ]
+                },
+                "observed_claims": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "authority": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "approval_expires_at": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "model_journal_settlement": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-journal-settlement-0.1.json",
+      "title": "actql-model-journal-settlement-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "entry_identity_cid",
+        "state",
+        "durable",
+        "retry_allowed",
+        "settled_at",
+        "evidence",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-journal-settlement/0.1"
+        },
+        "entry_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "state": {
+          "enum": [
+            "SavedSuccess",
+            "SavedFailure"
+          ]
+        },
+        "durable": {
+          "const": true
+        },
+        "retry_allowed": {
+          "type": "boolean"
+        },
+        "settled_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_call_attempt",
+            "model_dispatch_authority",
+            "model_attempt_accounting",
+            "model_attempt_outcome",
+            "model_slot_capture",
+            "model_capture_bundle",
+            "terminal_failure"
+          ],
+          "properties": {
+            "model_call_attempt": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cid",
+                "holding_cid"
+              ],
+              "properties": {
+                "cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "holding_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "model_dispatch_authority": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cid",
+                "holding_cid"
+              ],
+              "properties": {
+                "cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "holding_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "model_attempt_accounting": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cid",
+                "holding_cid"
+              ],
+              "properties": {
+                "cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "holding_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "model_attempt_outcome": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cid",
+                "holding_cid"
+              ],
+              "properties": {
+                "cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "holding_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "model_slot_capture": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cid",
+                    "holding_cid"
+                  ],
+                  "properties": {
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "holding_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              ]
+            },
+            "model_capture_bundle": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cid",
+                    "holding_cid"
+                  ],
+                  "properties": {
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "holding_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              ]
+            },
+            "terminal_failure": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "state": {
+              "const": "SavedSuccess"
+            },
+            "retry_allowed": {
+              "const": false
+            }
+          }
+        },
+        {
+          "properties": {
+            "state": {
+              "const": "SavedFailure"
+            }
+          }
+        }
+      ]
     }
   }
 }
