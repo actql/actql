@@ -3041,6 +3041,13 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindModelRawCapturePolicy(
         evidenceToken(policy), retention, metadata, clock, data));
     },
+    installedModelRawSelectionOriginals({retention, metadata, clock, data}) {
+      // Existing Common bodies remain the authority for exact kind/CID/wire.
+      // This projection cannot issue policy adoption, raw custody or sending.
+      return moon.clientProgramModelRawSelectionOriginals(retention, metadata,
+        clock, data).map(value => Object.freeze({kind: value._0,
+          cid: value._1, wire: value._2}));
+    },
     issueCheckedClientInferRawCapturePolicy(compiled, definition, dispatch, scope,
       {profile, installation, probability, storeAuthorityCid, retention, metadata,
         clock, data, selectedAt, availableUntil, deleteBy, extensionCeilingAt,
