@@ -1,3 +1,6 @@
+// Ordinary ranges shadow same-named columns, even through parentheses.
+// The object operand is the range-qualified payload column.
+
 ///|
 fn group_receiver_scope_context() -> Context {
   let seed = @wire.admit(
@@ -27,9 +30,9 @@ fn group_receiver_scope_context() -> Context {
 test "GROUP reuse distinguishes an explicit object receiver from a range column" {
   for
     text in [
-      "SELECT (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score",
-      "SELECT payload.score AS input_score, COUNT(*) AS n FROM objects AS payload GROUP BY (payload).score",
-      "SELECT (payload).score + 1 AS next, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score",
+      "SELECT (payload.payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score",
+      "SELECT payload.score AS input_score, COUNT(*) AS n FROM objects AS payload GROUP BY (payload.payload).score",
+      "SELECT (payload.payload).score + 1 AS next, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score",
     ] {
     assert_true(
       compile(
@@ -65,9 +68,9 @@ test "GROUP BY ALL keeps both range and object property keys in an independent P
   }
   for
     text in [
-      "SELECT payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
-      "SELECT payload.score AS input_score, ((payload)).`SCORE` AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
-      "SELECT payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score, (payload).score",
+      "SELECT payload.score AS input_score, (payload.payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
+      "SELECT payload.score AS input_score, ((`PAYLOAD`.payload)).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
+      "SELECT payload.score AS input_score, (payload.payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score, (payload.payload).score",
     ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
@@ -82,9 +85,9 @@ test "GROUP BY ALL keeps both range and object property keys in an independent P
 test "grouped computed subtrees retain the object receiver boundary" {
   for
     text in [
-      "SELECT (payload).score + 1 AS object_next, COUNT(*) AS n FROM objects AS payload GROUP BY (payload).score + 1",
-      "SELECT ((payload).score + 1) * 2 AS object_next, COUNT(*) AS n FROM objects AS payload GROUP BY (payload).score + 1",
-      "SELECT payload.score + 1 AS input_next, (payload).score + 1 AS object_next, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
+      "SELECT (payload.payload).score + 1 AS object_next, COUNT(*) AS n FROM objects AS payload GROUP BY (payload.payload).score + 1",
+      "SELECT ((payload.payload).score + 1) * 2 AS object_next, COUNT(*) AS n FROM objects AS payload GROUP BY (payload.payload).score + 1",
+      "SELECT payload.score + 1 AS input_next, (payload.payload).score + 1 AS object_next, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
     ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
@@ -99,10 +102,10 @@ test "grouped computed subtrees retain the object receiver boundary" {
   }
   for
     text in [
-      "SELECT (payload).score + 1 AS next, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score + 1",
-      "SELECT payload.score + 1 AS next, COUNT(*) AS n FROM objects AS payload GROUP BY (payload).score + 1",
-      "SELECT COUNT(*) AS n FROM objects AS payload GROUP BY payload.score HAVING (payload).score > 0",
-      "SELECT COUNT(*) AS n FROM objects AS payload GROUP BY payload.score ORDER BY (payload).score",
+      "SELECT (payload.payload).score + 1 AS next, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score + 1",
+      "SELECT payload.score + 1 AS next, COUNT(*) AS n FROM objects AS payload GROUP BY (payload.payload).score + 1",
+      "SELECT COUNT(*) AS n FROM objects AS payload GROUP BY payload.score HAVING (payload.payload).score > 0",
+      "SELECT COUNT(*) AS n FROM objects AS payload GROUP BY payload.score ORDER BY (payload.payload).score",
     ] {
     assert_true(
       compile(
