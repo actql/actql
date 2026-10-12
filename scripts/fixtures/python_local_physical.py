@@ -30,12 +30,18 @@ class PhysicalFixture:
             ('reader_stop', [i32, i32], self.stop),
             ('native_settled', [i32], self.native_settled),
             ('native_stopped', [i32], self.native_stopped),
-            ('native_cleaned', [i32], self.native_cleaned)):
+            ('native_cleaned', [i32], self.native_cleaned),
+            ('publisher_current', [i32], self.publisher_current),
+            ('publisher_begin', [i32, i32], self.publisher_begin),
+            ('publisher_byte', [i32, i32, i32], self.publisher_byte),
+            ('publisher_finish', [i32], self.publisher_finish)):
             self.linker.define_func('actql_host', name,
                 wasmtime.FuncType(params, [i32]), callback)
         assert {(item.module, item.name) for item in self.module.imports} == {
             ('actql_host', 'input_byte'), ('actql_host', 'input_cleanup'), ('actql_host', 'reader_stop'),
-            ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned')}
+            ('actql_host', 'native_settled'), ('actql_host', 'native_stopped'), ('actql_host', 'native_cleaned'),
+            ('actql_host', 'publisher_current'), ('actql_host', 'publisher_begin'),
+            ('actql_host', 'publisher_byte'), ('actql_host', 'publisher_finish')}
         self.instance = self.linker.instantiate(self.store, self.module)
         self.exports = self.instance.exports(self.store)
         envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
@@ -60,6 +66,20 @@ class PhysicalFixture:
 
     def native_cleaned(self, handle):
         return self.unexpected_native(handle)
+
+    # Old non-publication fixtures have no trusted publisher Owner. These
+    # callbacks refuse explicitly; Source/Run permissions are never reused.
+    def publisher_current(self, ticket):
+        return -2
+
+    def publisher_begin(self, ticket, length):
+        return -2
+
+    def publisher_byte(self, ticket, index, byte):
+        return -2
+
+    def publisher_finish(self, ticket):
+        return -2
 
     def cleanup(self, ticket):
         self.cleanups[ticket] = self.cleanups.get(ticket, 0) + 1
