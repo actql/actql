@@ -282,7 +282,7 @@ test "Reach Relation starts recheck nonnull identities and reject NULL or absent
 }
 
 ///|
-test "Reach independently counts exact work workspace and every pending handoff cancellation" {
+fn reach_current_resource_boundary(direct : Bool) -> Unit raise {
   let nodes = keyed_node_source()
   let edge_count = 100
   let rows : Array[String] = []
@@ -379,20 +379,47 @@ test "Reach independently counts exact work workspace and every pending handoff 
   let exact_workspace = 3 + 4 + 3
   let preparation = task_test_completion(owner)
   let start = fn(control, work, workspace) {
-    @local_sga.start_traverse_view(
-      control,
-      preparation,
-      prepared_sequence(owner),
-      0,
-      @graphs.producer_read_view(input).unwrap(),
-      1,
-      { max_work: work, max_nodes: 1000, max_text_bytes: 10000, max_depth: 50, },
-      workspace,
-      10000,
-      10000,
-      [],
-      max_paths=1,
-    ).unwrap()
+    (if direct {
+      @local_sga.start_traverse(
+        control,
+        preparation,
+        prepared_sequence(owner),
+        0,
+        input,
+        1,
+        {
+          max_work: work,
+          max_nodes: 1000,
+          max_text_bytes: 10000,
+          max_depth: 50,
+        },
+        workspace,
+        10000,
+        10000,
+        [],
+        max_paths=1,
+      )
+    } else {
+      @local_sga.start_traverse_view(
+        control,
+        preparation,
+        prepared_sequence(owner),
+        0,
+        @graphs.producer_read_view(input).unwrap(),
+        1,
+        {
+          max_work: work,
+          max_nodes: 1000,
+          max_text_bytes: 10000,
+          max_depth: 50,
+        },
+        workspace,
+        10000,
+        10000,
+        [],
+        max_paths=1,
+      )
+    }).unwrap()
   }
   for quantum in [1, 7, 64] {
     let active = start(@bounded.control(), exact_work, exact_workspace)
@@ -455,4 +482,14 @@ test "Reach independently counts exact work workspace and every pending handoff 
   }
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
   assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "Reach independently counts exact work workspace and every pending handoff cancellation" {
+  reach_current_resource_boundary(false)
+}
+
+///|
+test "Reach direct entrypoint retains exact work workspace and private cancellation" {
+  reach_current_resource_boundary(true)
 }

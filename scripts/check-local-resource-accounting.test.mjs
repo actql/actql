@@ -28,7 +28,7 @@ const sourceTemplate = loadResourceAccountingSources({
   root, manifest: manifestTemplate, routes: routesTemplate,
 });
 const currentPartialGraphOperations = ['shortest_path', 'reach', 'graft_graph', 'mean_graphs'];
-const currentPartialGraphErrors = currentPartialGraphOperations.map(operation =>
+const currentPartialGraphErrors = ['shortest_path', 'reach'].map(operation =>
   `SGA ${operation}: resource layers are incomplete`);
 
 // Refusal counterfixtures are explicit synthetic source snapshots. The current
@@ -170,6 +170,78 @@ test('resource Graph evidence follows the captured registry and the suite regist
     "for (const projection of ['node_rows']) {\n        const document = structuredClone(presenceFixture);");
   assert.notEqual(missingEdges, source);
   assert.equal(registeredResourceEnvironmentCase(projection, missingEdges, registry, 'edge_rows'), false);
+});
+
+const graphOperationCancellationEvidence = [
+  ['reach', 'reach', 'graph-reach', 'Graph Reach preserves typed selectors and depth through Store reload and public'],
+  ['shortest_path', 'shortest', 'graph-shortest', 'Graph Shortest preserves selected paths through Store reload and public'],
+  ['graft_graph', 'graft', 'graph-graft', 'Graph graft preserves complete records through Store reload and public'],
+  ['mean_graphs', 'mean', 'graph-mean', 'Graph Mean preserves explicit samples through Store reload and public'],
+];
+
+test('current Graph cancellation evidence resolves the actual positive-work operation cases', () => {
+  const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
+    for (const mode of ['local', 'remote']) {
+      const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+        role: `${prefix}_public_in_flight_cancel_cleanup`,
+        fixture: `${title} ${mode}${prefix === 'mean' ? ' (asymmetric)' : ''}`};
+      assert.equal(registeredResourceEnvironmentCase(item, source, registry, operation), true,
+        `${operation}/${mode}`);
+    }
+  }
+});
+
+test('current Graph cancellation evidence refuses missing work stop cleanup and reuse checks', () => {
+  const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  for (const [before, after] of [
+    ["name === 'local_compute_advanced' && detail.task === cancellationTask", "name === 'computed' && detail.task === cancellationTask"],
+    ['assert.ok(BigInt(detail.work) > 0n)', 'assert.ok(BigInt(detail.work) >= 0n)'],
+    ['await releaseCancellation.promise', 'void releaseCancellation.promise'],
+    ['await cancelled.cancel()', 'await cancelled.status()'],
+    ["assert.notEqual(pending.control.physical_stop, 'confirmed')", "assert.equal(pending.control.physical_stop, 'confirmed')"],
+    ["assert.equal(stopped.control.physical_stop, 'confirmed')", "assert.notEqual(stopped.control.physical_stop, 'confirmed')"],
+    ["await assert.rejects(cancelled.result(name).all())", "await cancelled.result(name).all()"],
+    ["assert.deepEqual(repeated.ref, cancelled.ref)", "assert.notDeepEqual(repeated.ref, cancelled.ref)"],
+    ["assert.equal(physicalSteps.filter(name => name === 'local_compute_advanced').length, advanced)", "assert.ok(advanced >= 0)"],
+  ]) {
+    assert.ok(source.includes(before), before);
+    const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+      role: 'reach_public_in_flight_cancel_cleanup',
+      fixture: graphOperationCancellationEvidence[0][3] + ' local'};
+    assert.equal(registeredResourceEnvironmentCase(item, source.replace(before, after), registry, 'reach'), false,
+      before);
+  }
+});
+
+test('current Graph cancellation evidence cannot borrow another operation basic Mean or a missing call', () => {
+  const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
+    const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+      role: `${prefix}_public_in_flight_cancel_cleanup`,
+      fixture: `${title} local${prefix === 'mean' ? ' (asymmetric)' : ''}`};
+    assert.equal(registeredResourceEnvironmentCase(item, source, registry,
+      operation === 'reach' ? 'shortest_path' : 'reach'), false);
+    assert.equal(registeredResourceEnvironmentCase({...item, fixture: 'absent'}, source, registry, operation), false);
+  }
+  const mean = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+    role: 'mean_public_in_flight_cancel_cleanup',
+    fixture: graphOperationCancellationEvidence[3][3] + ' local'};
+  assert.equal(registeredResourceEnvironmentCase(mean, source, registry, 'mean_graphs'), false);
+  for (const [before, operation, prefix, title] of [
+    ["await assertOperationCancellation(cancellationSample, 3)", 'reach', 'reach', graphOperationCancellationEvidence[0][3]],
+    ["if (graft) await assertOperationCancellation(graphGraftSourceSuccesses[0], 3)", 'graft_graph', 'graft', graphOperationCancellationEvidence[2][3]],
+    ["if (profile !== 'graph-mean' || partition === 'asymmetric')", 'mean_graphs', 'mean', graphOperationCancellationEvidence[3][3]],
+  ]) {
+    assert.ok(source.includes(before), before);
+    const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+      role: `${prefix}_public_in_flight_cancel_cleanup`,
+      fixture: `${title} local${prefix === 'mean' ? ' (asymmetric)' : ''}`};
+    assert.equal(registeredResourceEnvironmentCase(item, source.replace(before, 'removed_operation_cancel'), registry, operation), false);
+  }
 });
 
 test('resource validation refuses a detached captured Graph fixture registry', () => {
@@ -1080,15 +1152,24 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 test('resource gate preserves incomplete current Graph resource layers', () => {
   const result = evaluate(undefined, undefined, ['--check-summary']);
   assert.deepEqual(result.errors, currentPartialGraphErrors);
-  assert.match(result.output, /68 operations, 5 implementation profiles, 68 production routes mapped, 0 typed pre-execution refusals \(not execution success\), 68 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(result.output, /68 operations, 5 implementation profiles, 68 production routes mapped, 0 typed pre-execution refusals \(not execution success\), 68 with operation-specific boundary records, 66 with four-role boundary evidence, 66 with full work\/workspace assurance, 120 with path-scoped work\/workspace evidence, 2 with selected-only assurance; full boundary completion is not asserted/);
   const coverage = sourceTemplate[join(root, manifestTemplate.inventories.families)].json;
   for (const operation of currentPartialGraphOperations) {
     const entry = coverage.operations.find(entry => entry.operation === operation);
     assert.equal(entry.status, 'partial');
-    assert.deepEqual(entry.completed_layers, ['contract']);
+    assert.ok(entry.completed_layers.includes('resources'));
     const route = routesTemplate.routes.find(entry => entry.operation === operation);
-    assert.equal(route.path_assurance, undefined);
-    assert.equal(route.resource_assurance, undefined);
+    if (['reach', 'shortest_path'].includes(operation)) {
+      assert.equal(entry.completed_layers.includes('cancellation'), false);
+      assert.equal(route.path_assurance.entrypoint, undefined);
+      assert.equal(route.resource_assurance.entrypoint, undefined);
+      assert.ok(route.path_assurance.selected_entrypoint);
+      assert.ok(route.resource_assurance.selected_entrypoint);
+    } else {
+      assert.ok(entry.completed_layers.includes('cancellation'));
+      assert.ok(route.path_assurance.entrypoint);
+      assert.ok(route.resource_assurance.entrypoint);
+    }
   }
 });
 
@@ -1102,7 +1183,8 @@ for (const operation of currentPartialGraphOperations) {
         assert.ok(result.errors.some(error => error.startsWith(`SGA ${operation}:`) &&
           (error.includes(`${field} must bind a production source`) ||
             error.includes(`missing ${field} production source`))), `${operation}/${field}`);
-        assert.ok(result.errors.includes(`SGA ${operation}: resource layers are incomplete`));
+        assert.equal(result.errors.includes(`SGA ${operation}: resource layers are incomplete`),
+          ['reach', 'shortest_path'].includes(operation));
       }
     }
     assert.match(run(undefined, routes => {
@@ -1124,6 +1206,35 @@ test('current Graph route fixtures cannot borrow another operation or omit a rol
         detach(routes.routes.find(value => value.operation === operation).boundary_tests[0]);
       }), new RegExp(`SGA ${operation}: current ${role} fixture is missing or detached`, 'u'));
     }
+  }
+});
+
+test('current Graph strict accounting retains the unsupported direct Host boundaries', () => {
+  const result = evaluate(undefined, undefined, ['--require-boundary-complete', '--check-summary']);
+  assert.deepEqual(result.errors, [
+    'SGA shortest_path: entrypoint boundary assurance is missing',
+    'SGA shortest_path: entrypoint work/workspace assurance is missing',
+    'SGA reach: entrypoint boundary assurance is missing',
+    'SGA reach: entrypoint work/workspace assurance is missing',
+    ...currentPartialGraphErrors,
+  ]);
+  for (const operation of ['reach', 'shortest_path']) {
+    const route = routesTemplate.routes.find(entry => entry.operation === operation);
+    const direct = route.boundary_tests.at(-1);
+    assert.match(direct.fixture, /direct entrypoint retains exact work workspace and private cancellation$/u);
+    assert.notEqual(direct.role, route.path_assurance.selected_entrypoint.exact_limit);
+  }
+});
+
+test('current Graph registered lifecycle cannot lose its actual public operation barrier', () => {
+  const file = join(root, 'scripts/graph-public-host.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+      'await cancelled.cancel()', 'await cancelled.status()')})});
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  for (const operation of currentPartialGraphOperations) {
+    assert.ok(result.errors.some(error => error.startsWith(`SGA ${operation}: missing environment fixture`)));
   }
 });
 
