@@ -78,3 +78,12 @@ test "P2 copied dedupe shorthand retains receiver scope without sharing paths" {
     ]),
   )
 }
+
+///|
+test "P2 dedupe nested argument scanning keeps the containing query budget" {
+  let text = "dedupe_events(by: [], order_by: [{field: score, dir: 'asc', nulls: 'last'}])"
+  assert_true(parse_sga_call(text, {..query_limits(), max_syntax_nodes: 2,}) is Err(_))
+  assert_true(parse_sga_call(text, {..query_limits(), max_work: 2,}) is Err(_))
+  let depth = query_limits().expression
+  assert_true(parse_sga_call(text, {..query_limits(), expression: {..depth, max_depth: 1,},}) is Err(_))
+}
