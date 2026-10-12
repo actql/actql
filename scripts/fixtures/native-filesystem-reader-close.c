@@ -54,6 +54,7 @@ static actql_native_filesystem_reader fixture_reader(FILE *file) {
 
 static void release_fixture_buffers(actql_native_filesystem_reader *reader) {
   free(reader->error);
+  free(reader->close_error);
   free(reader->chunk);
 }
 
@@ -68,8 +69,8 @@ static void error_survives_reused_descriptor(bool from_finish) {
   assert(result == -1);
   assert(close_calls == 1);
   char diagnostic[256];
-  assert(reader.error != NULL);
-  snprintf(diagnostic, sizeof(diagnostic), "%s", reader.error);
+  assert(reader.close_error != NULL);
+  snprintf(diagnostic, sizeof(diagnostic), "%s", reader.close_error);
   // Only fixture-owned descriptors are present in this single-threaded scope.
   int replacement = open("/dev/null", O_RDONLY);
   assert(replacement >= 0);
@@ -81,7 +82,7 @@ static void error_survives_reused_descriptor(bool from_finish) {
   assert(actql_native_filesystem_reader_finish(&reader) == -1);
   assert(actql_native_filesystem_reader_next(&reader, 1) == 2);
   assert(close_calls == 1);
-  assert(strcmp(diagnostic, reader.error) == 0);
+  assert(strcmp(diagnostic, reader.close_error) == 0);
   assert(fcntl(original, F_GETFD) >= 0);
   unsigned char byte;
   assert(read(original, &byte, 1) == 0);
@@ -162,6 +163,58 @@ static void acknowledged_finish_is_idempotent(void) {
   assert(fclose(file) == 0);
 }
 
+static void root_close_preserves_diagnostic_and_replacement(void) {
+  actql_native_filesystem_root root = {0};
+  root.fd = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  assert(root.fd >= 0);
+  int original = root.fd;
+  injected_errno = EIO;
+  injected_without_retirement = false;
+  close_calls = 0;
+  assert(actql_native_filesystem_root_close(&root) == -1);
+  assert(close_calls == 1);
+  assert(root.close_error != NULL);
+  char diagnostic[256];
+  snprintf(diagnostic, sizeof(diagnostic), "%s", root.close_error);
+  int replacement = open("/dev/null", O_RDONLY);
+  assert(replacement >= 0);
+  if (replacement != original) {
+    assert(dup2(replacement, original) == original);
+    assert(close(replacement) == 0);
+  }
+  // Another operation's diagnostic cannot overwrite the original close fact.
+  actql_replace_error(&root.error, "another operation failed");
+  assert(actql_native_filesystem_root_close(&root) == -1);
+  assert(close_calls == 1);
+  assert(strcmp(diagnostic, root.close_error) == 0);
+  assert(fcntl(original, F_GETFD) >= 0);
+  assert(close(original) == 0);
+  free(root.error);
+  free(root.close_error);
+}
+
+static void root_acknowledgement_does_not_stop_child_reader(void) {
+  FILE *file = tmpfile();
+  assert(file != NULL);
+  assert(fwrite("abc", 1, 3, file) == 3);
+  assert(fflush(file) == 0);
+  assert(fseek(file, 0, SEEK_SET) == 0);
+  actql_native_filesystem_reader reader = fixture_reader(file);
+  reader.offset = 0;
+  actql_native_filesystem_root root = {0};
+  root.fd = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  assert(root.fd >= 0);
+  assert(actql_native_filesystem_root_close(&root) == 0);
+  assert(actql_native_filesystem_root_close(&root) == 0);
+  assert(close_calls == 1);
+  assert(actql_native_filesystem_reader_next(&reader, 3) == 0);
+  assert(memcmp(reader.chunk, "abc", 3) == 0);
+  assert(actql_native_filesystem_reader_finish(&reader) == 0);
+  assert(close_calls == 2);
+  release_fixture_buffers(&reader);
+  assert(fclose(file) == 0);
+}
+
 int main(void) {
   error_survives_reused_descriptor(false);
   error_survives_reused_descriptor(true);
@@ -169,6 +222,8 @@ int main(void) {
   pre_close_failure_keeps_first_close_available();
   generation_refusal_keeps_first_close_available();
   acknowledged_finish_is_idempotent();
-  puts("Reader FFI focused counterexamples: 6/6");
+  root_close_preserves_diagnostic_and_replacement();
+  root_acknowledgement_does_not_stop_child_reader();
+  puts("Reader/root FFI focused counterexamples: 8/8");
   return 0;
 }

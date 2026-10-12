@@ -627,11 +627,15 @@ pub fn client_local_product_bootstrap_originals(String, String) -> Result[Client
 
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
+pub fn client_local_product_finite_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
+
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
 
 pub fn client_local_run_policy_original_issued_at(ClientLocalRunPolicyOriginal) -> String
+
+pub fn client_local_run_policy_original_read_expires_at(ClientLocalRunPolicyOriginal) -> String
 
 pub fn client_local_run_policy_original_retention(ClientLocalRunPolicyOriginal) -> @run_publication.PublicationContract
 
@@ -664,6 +668,8 @@ pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientC
 pub fn client_model_resource_invalidation_current(@physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin]?
 
 pub fn client_model_resource_park_current(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalResourcePark[ClientModelReadOrigin]?
+
+pub fn client_native_local_finite_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
 pub fn client_native_local_product_originals(String, String, String, String, ClientLocalProductAssets, ClientNativeLocalRuntime) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 

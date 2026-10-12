@@ -89,7 +89,7 @@ fn NativeLocalReadPolicyBinding::retained_read_admission(
           authorization_context_cid: bodies.authorization.cid,
           data_ceiling_cid: bodies.ceiling.cid,
           egress_admission_cid: bodies.egress.cid,
-          expires_at: self.selection.expires_at,
+          expires_at: self.expires_at,
           max_bytes: self.selection.max_bytes,
           max_uses: self.selection.max_uses,
         }
