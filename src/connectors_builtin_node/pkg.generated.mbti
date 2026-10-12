@@ -1397,6 +1397,8 @@ pub fn client_program_model_provider_admission_issue_kind(@model_execution.Model
 
 pub fn client_program_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_model_raw_selection_originals(@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Array[(String, String, String)]
+
 pub fn client_program_model_request_generation(@model_execution.ModelRequest) -> (String, Double, Double, Int64, Int64?)?
 
 pub fn client_program_model_request_input(@model_execution.ModelRequest, String) -> String?
