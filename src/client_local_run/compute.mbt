@@ -223,19 +223,19 @@ pub fn start_local_compute_task(
   tuple : @authorization.AccessTuple,
   context_cid : String,
 ) -> Result[@managed.LocalManagedDispatchOperations[Int]?, LocalComputeIssue] {
-  let plan = host.plan
-  if !physical_equal(start.host, host) ||
-    current.account_id() != plan.account_id ||
-    tuple != plan.tuple ||
-    context_cid != plan.execution_context_cid ||
-    !authorized_input(
-      local_run_prepared(plan),
+  if !physical_equal(start.host, host) {
+    return Err(AuthorizationMismatch)
+  }
+  match
+    authorize_local_compute_configuration(
+      host.plan,
       permit,
       current,
       tuple,
       context_cid,
     ) {
-    return Err(AuthorizationMismatch)
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let run = local_compute_run(host)
   match
@@ -254,7 +254,7 @@ pub fn start_local_compute_task(
     Ok(value) => value
     Err(issue) => return Err(Obligations(issue))
   }
-  let dispatch = if captured_source_profile(local_run_prepared(plan)) {
+  let dispatch = if captured_source_profile(local_run_prepared(host.plan)) {
     guard @builtin.configured_local_module(
         @builtin.configured_host_modules(host.setup),
       )
