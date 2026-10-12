@@ -227,20 +227,10 @@ fn NativeClientRunJournal::submitted_intent_custody(
     Ok(value) => value
     _ => return Err(CustodyLost)
   }
-  let text = @utf8.decode(custody.body) catch { _ => return Err(CustodyLost) }
-  if text.is_empty() || text.length() > 4 {
-    return Err(CustodyLost)
-  }
-  let mut count = 0
-  for unit in text {
-    let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 {
-      return Err(CustodyLost)
-    }
-    count = count * 10 + digit
-  }
-  if count > self.max_records || count.to_string() != text {
-    return Err(CustodyLost)
+  let count = match
+    @host.client_journal_issuance_count(custody.body, self.max_records) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
   }
   let mut cursor = ""
   let mut observed = 0
