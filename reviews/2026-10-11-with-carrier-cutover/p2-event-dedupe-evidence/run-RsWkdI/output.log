@@ -1,0 +1,4 @@
+[actql/actql] test query_program/event_dedupe_source_test.mbt:97 ("P2 dedupe common refusals keep wrong Carrier and exact OrderKey causes") failed: src/query_program/event_dedupe_source_test.mbt:127:5-134:6@actql/actql FAILED: [{`SCORE`: 'asc'}]
+Total tests: 8, passed: 7, failed: 1.
+["moon","test","--target","js","src/query_syntax/event_dedupe_call_test.mbt","src/query_program/event_dedupe_source_test.mbt"]: process failed (2); counts={"tests":8,"passed":7,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-cWdiYx

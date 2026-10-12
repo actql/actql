@@ -1,0 +1,49 @@
+{
+  "startedAt": "2026-10-12T02:15:36.654Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format authored dedupe controls",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/sga_argument_roles.mbt",
+        "src/query_program/query_script_carriers.mbt",
+        "src/query_program/query_script_inputs.mbt",
+        "src/query_program/traversal_nodes_program.mbt",
+        "src/query_syntax/event_dedupe_call_test.mbt",
+        "src/query_program/event_dedupe_source_test.mbt"
+      ],
+      "startedAt": "2026-10-12T02:15:36.736Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T02:15:36.872Z",
+      "endedAt": "2026-10-12T02:15:36.873Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "fb863574-bdb6-4a3b-be9a-377733818ae8",
+    "pid": 5626,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T02:15:36.728Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-dv3Wpw"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T02:15:36.916Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

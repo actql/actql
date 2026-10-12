@@ -125,43 +125,18 @@ fn submitted_intent_body(
   intent : @host.ClientSubmittedIntent,
   run_admission? : NativeClientSubmittedRunAdmission? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
-  let wire = @host.client_submitted_intent_wire(intent)
-  // This physical profile is explicitly finite. Capacity does not classify
-  // the caller's Program as invalid or provide permission to retry it.
-  if @utf8.encode(wire).length() > 65536 {
-    return Err(CapacityExceeded)
-  }
-  try {
-    let writer = @encode.writer(262144, 16, 2)
-    @encode.begin_object(writer)
-    @encode.key(writer, "intent")
-    @encode.string_value(writer, wire)
-    @encode.key(writer, "phase")
-    @encode.string_value(
-      writer,
-      if run_admission is Some(_) {
-        "ready"
-      } else {
-        "preparing"
-      },
-    )
-    @encode.key(writer, "reference")
-    @encode.string_value(writer, reference.wire)
-    if run_admission is Some(admission) {
-      let wire = match submitted_run_admission_body(admission) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      @encode.key(writer, "run_admission")
-      @encode.string_value(writer, wire)
+  @host.client_submitted_intent_journal_row_body(
+    reference.wire,
+    intent,
+    run_admission=run_admission.map(admission => {
+      (admission.request, admission.run_definition_cid, admission.revision)
+    }),
+  ).map_err(issue => {
+    match issue {
+      Encoding => Encoding
+      CapacityExceeded => CapacityExceeded
     }
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-native-client-submitted-intent-row/0.1")
-    @encode.end_object(writer)
-    Ok(@utf8.encode(@encode.finish(writer)))
-  } catch {
-    _ => Err(Encoding)
-  }
+  })
 }
 
 ///|

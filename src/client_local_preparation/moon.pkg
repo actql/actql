@@ -11,10 +11,11 @@ import {
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/relation_schema" @schema,
   "actql/actql/check_environment" @environment,
+  "actql/actql/source_value" @source,
+  "actql/actql/canonical_json" @canonical,
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
-  "moonbitlang/core/encoding/utf8",
-  "actql/actql/source_value" @source,
   "actql/actql/frontend_source_map" @origin,
 } for "wbtest"

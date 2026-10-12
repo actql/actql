@@ -79,7 +79,7 @@ test "aggregate member reuse keeps SELECT input and HAVING alias receivers separ
 test "aggregate member reuse keeps explicit object and range receivers separate" {
   let actual = compile(
     @query.parse_query(
-      "SELECT COUNT((payload).score) AS n FROM objects AS payload HAVING COUNT(payload.score) > 2",
+      "SELECT COUNT((payload.payload).score) AS n FROM objects AS payload HAVING COUNT(payload.score) > 2",
       syntax_limits(),
     ).unwrap(),
     group_receiver_scope_context(),

@@ -1,0 +1,56 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-YXjOAl",
+  "revision": "6fa56a9a026a8ff04a7f5c01bda2fe0978dca684",
+  "source": {
+    "revision": "6fa56a9a026a8ff04a7f5c01bda2fe0978dca684",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T02:21:25.569Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "args": [
+        "--test",
+        "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+        "scripts/graph-refusal-classification-source-input.test.mjs",
+        "scripts/public-query-refusal-classifications.test.mjs",
+        "scripts/event-dedupe-source.test.mjs"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "6fa56a9a026a8ff04a7f5c01bda2fe0978dca684",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-12T02:21:25.862Z",
+      "endedAt": null,
+      "elapsedMs": null,
+      "status": null,
+      "signal": null,
+      "error": null,
+      "complete": false,
+      "verificationStatus": null,
+      "outputComplete": false
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

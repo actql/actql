@@ -1,0 +1,1867 @@
+{
+  "scope": "Adopted P2-T dedupe_events source roles connected to the unchanged common Event owner",
+  "verification_source": "234d0f86f5a1a52f72b97ae9b931a0a71fba3ef1",
+  "followup_source": "592728aafdd041ce41b21a8f7514713bc74f2d80",
+  "adopted_main": "fe80636442c77c851acdaa7b0799c4777f85b9b7",
+  "parent_1594": "merged; no unmerged parent required",
+  "public": {
+    "executed": false,
+    "packages_produced": 0,
+    "prepared_normal": 10,
+    "prepared_refusal": 6,
+    "prepared_execution_failure": 2,
+    "command": "node scripts/test-packed-public-query.mjs --event-dedupe-only --keep-artifacts",
+    "requires": "Explicit shared Heavy window, normal matching five-package producer and the original guarded caps."
+  },
+  "executions": [
+    {
+      "run": "run-GJO3FK",
+      "summary": {
+        "startedAt": "2026-10-12T01:58:03.620Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent event dedupe controls and source counterexamples",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_program/event_dedupe_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T01:58:03.730Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 2,
+            "signal": null,
+            "exitedAt": "2026-10-12T01:58:13.652Z",
+            "endedAt": "2026-10-12T01:58:13.654Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "2ec73641-e48a-412f-9295-5b7f8488dbed",
+          "pid": 91574,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T01:58:03.716Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-GJO3FK"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T01:58:13.716Z",
+        "outputComplete": true,
+        "exitCode": 2,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-RhO4i8"
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-GJO3FK/output.log",
+          "bytes": 4308,
+          "sha256": "0df03abcb8cfff80d0b5aaf4806f19aa0bc2b45b6a4c9625ded1396149649878"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-GJO3FK/summary.json",
+          "bytes": 1652,
+          "sha256": "7b5c4e94e5d64469c7bf2d673fd070b7380c3d58439e9cd111df669791b029ec"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/0001.summary.json",
+          "bytes": 630,
+          "sha256": "1a6960dbfeaac9ba2e2c9f2f8c9190a1544c0ec687fe302f62e6e06bf3036853"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/0002.summary.json",
+          "bytes": 1559,
+          "sha256": "b1f6bd5dc743f2c34b269f73c5b8d7dc40d4ae57b3226cea1fd72d75ace23ad1"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/0003.summary.json",
+          "bytes": 1778,
+          "sha256": "8ddbf03c318e418b4e283a3fd8a977ac9dc6d32b8790d3b9ca1068e9b52b2f10"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/0004.summary.json",
+          "bytes": 1799,
+          "sha256": "28d7d3e608c1a58700d9adfebec98a4b7d51ad671ed1a53220dc484c623d0636"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/001.result.json",
+          "bytes": 989,
+          "sha256": "9972ca0c5bea0c8ce077929209772daaeb206a041ffca4363552df8f40b0ffe1"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/001.started.json",
+          "bytes": 806,
+          "sha256": "73d714b56168cf063571b6aaec181df20cd9bdf9cf72798141e8e4656b580b1e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/001.stdout.log",
+          "bytes": 3977,
+          "sha256": "c1ac162d79b43ad0339efda74436bf4c8bd17dda5bad046ceaffb8ab3a7ceb04"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-RhO4i8/summary.json",
+          "bytes": 1799,
+          "sha256": "28d7d3e608c1a58700d9adfebec98a4b7d51ad671ed1a53220dc484c623d0636"
+        }
+      ]
+    },
+    {
+      "run": "run-Wh8qV5",
+      "summary": {
+        "startedAt": "2026-10-12T02:05:38.142Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Format authored dedupe controls",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/sga_argument_roles.mbt",
+              "src/query_program/query_script_carriers.mbt",
+              "src/query_program/query_script_inputs.mbt",
+              "src/query_program/traversal_nodes_program.mbt",
+              "src/query_program/event_dedupe_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:05:38.245Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:05:41.347Z",
+            "endedAt": "2026-10-12T02:05:41.350Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "f58099e4-628c-4c4b-9798-4e7d5f881891",
+          "pid": 96966,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:05:38.231Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Wh8qV5"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:05:41.435Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-Wh8qV5/output.log",
+          "bytes": 46,
+          "sha256": "4e071b5351c9ca230a5d4672a37d576d84a80e3f4cd4d6231eef457a480a108d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-Wh8qV5/summary.json",
+          "bytes": 1631,
+          "sha256": "14b5c05a4973fef9ea31158cf0744b6a969938a6e1e0ccae222b871bc79bc7a4"
+        }
+      ]
+    },
+    {
+      "run": "run-mwz96r",
+      "summary": {
+        "startedAt": "2026-10-12T02:06:08.827Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Independent event dedupe controls and source counterexamples",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_program/event_dedupe_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:06:08.905Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:06:20.071Z",
+            "endedAt": "2026-10-12T02:06:20.073Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "181541b8-bb61-403c-aa40-ba3a0e8edc2d",
+          "pid": 98428,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:06:08.898Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-mwz96r"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:06:20.137Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-0tR8yA"
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-mwz96r/output.log",
+          "bytes": 359,
+          "sha256": "baed193050848830c303c860c0b9b353015b4750e77a562188ebdb901175588f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-mwz96r/summary.json",
+          "bytes": 1651,
+          "sha256": "69eed58ad9127d1ef22b78851a814dfa79a8bb7984b124fe8fc1892ff9ba1bef"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/0001.summary.json",
+          "bytes": 630,
+          "sha256": "f1ae9d064daa43036b4d617235cf219f8b72686c9212aa9f3af3a5414a3ba1ff"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/0002.summary.json",
+          "bytes": 1559,
+          "sha256": "2b70efd52c93df3bcfd5dcbfedc1474b81bdf985254e70b5e864cd8ded06d04e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/0003.summary.json",
+          "bytes": 1785,
+          "sha256": "aedc6ced09875758ed96b34b08024254c2acca8b1381ebd243c151628b544bb7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/0004.summary.json",
+          "bytes": 1805,
+          "sha256": "7e6d047e86d3c9331e4698526b7b105ad8eb9a84a8a7397b1a507ce54f11d09d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/001.result.json",
+          "bytes": 996,
+          "sha256": "ce3e60e3b054e1b8b47577f347c501a2b633421f1254c16209ada65ee340966e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/001.started.json",
+          "bytes": 806,
+          "sha256": "12aa42467d3ace575ea31d88140ffb72d4124909ee29a257a9376c29f8b8fc01"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/001.stdout.log",
+          "bytes": 38,
+          "sha256": "97372d6d024ba8fb9a214e3a9a3495ca88a0631086280e8b2271682e11ea6fb0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-0tR8yA/summary.json",
+          "bytes": 1805,
+          "sha256": "7e6d047e86d3c9331e4698526b7b105ad8eb9a84a8a7397b1a507ce54f11d09d"
+        }
+      ]
+    },
+    {
+      "run": "run-X07L3K",
+      "summary": {
+        "startedAt": "2026-10-12T02:07:38.683Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Format authored dedupe controls",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/sga_argument_roles.mbt",
+              "src/query_program/query_script_carriers.mbt",
+              "src/query_program/query_script_inputs.mbt",
+              "src/query_program/traversal_nodes_program.mbt",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:07:38.751Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:07:38.961Z",
+            "endedAt": "2026-10-12T02:07:38.963Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "00d73618-7711-440e-8451-ff47560e07a7",
+          "pid": 99601,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:07:38.745Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-X07L3K"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:07:39.028Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-X07L3K/output.log",
+          "bytes": 44,
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-X07L3K/summary.json",
+          "bytes": 1686,
+          "sha256": "1bc57c06a31b2e7da5b935cc112348127ab21fd2683e3ca88a8c72f4fec192c8"
+        }
+      ]
+    },
+    {
+      "run": "run-RsWkdI",
+      "summary": {
+        "startedAt": "2026-10-12T02:07:55.343Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent event dedupe controls and source counterexamples",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:07:55.438Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 2,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:08:07.417Z",
+            "endedAt": "2026-10-12T02:08:07.424Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "ec109376-37c6-4574-8d8d-7d4ccd715168",
+          "pid": 99741,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:07:55.425Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-RsWkdI"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:08:07.509Z",
+        "outputComplete": true,
+        "exitCode": 2,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-cWdiYx"
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-RsWkdI/output.log",
+          "bytes": 661,
+          "sha256": "08c525fbfe5676451f0e9d412623ff725131a03a4ca8e389ad97f1ffad133d3c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-RsWkdI/summary.json",
+          "bytes": 1707,
+          "sha256": "bd7dee18b0ee9ac5366328781e961f440f57dfb454d41f3d441e576c13bf3d69"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/0001.summary.json",
+          "bytes": 630,
+          "sha256": "06385d466772caf8b9f6ae1e0c4731fe18e6392c5bb9b07796ecdb1ea662d91d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/0002.summary.json",
+          "bytes": 1614,
+          "sha256": "ba312d43c38c101ecdd64380616452253cdbe4a921e225af3ec354a12eb6fcbb"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/0003.summary.json",
+          "bytes": 1834,
+          "sha256": "fbdb8a055c917d3115e7031d37269fe4969dbda6935edf3fa2ffb6697b2a0212"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/0004.summary.json",
+          "bytes": 1855,
+          "sha256": "3b9dd975dc887e81960b58217ff1e15790fcfb292df3ef971b88b8a23b67e5b1"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/001.result.json",
+          "bytes": 1041,
+          "sha256": "40777c26a3816c64d35e90a6a9f8ec337ae19eab4813d263dd12ccdc7d7bef4e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/001.started.json",
+          "bytes": 857,
+          "sha256": "40bb550644931d8952c508c3629e7620721e1adb9a7efb00a9ede7531bb7797a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/001.stdout.log",
+          "bytes": 284,
+          "sha256": "674d65f1866ab7f50d4fa3ca4645686644617bf86359efb9a6a09ab2ac913868"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-cWdiYx/summary.json",
+          "bytes": 1855,
+          "sha256": "3b9dd975dc887e81960b58217ff1e15790fcfb292df3ef971b88b8a23b67e5b1"
+        }
+      ]
+    },
+    {
+      "run": "run-5CaW0b",
+      "summary": {
+        "startedAt": "2026-10-12T02:11:03.304Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Existing generator or independent oracle compilation-manifests",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:11:03.401Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:11:03.669Z",
+            "endedAt": "2026-10-12T02:11:03.671Z"
+          },
+          {
+            "name": "Existing generator or independent oracle event-dedupe-identity-oracle",
+            "command": [
+              "node",
+              "scripts/event-dedupe-identity-oracle.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:11:03.743Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:11:03.813Z",
+            "endedAt": "2026-10-12T02:11:03.816Z"
+          },
+          {
+            "name": "Existing generator or independent oracle update-document-metadata",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:11:03.896Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:11:05.835Z",
+            "endedAt": "2026-10-12T02:11:05.838Z"
+          },
+          {
+            "name": "Existing generator or independent oracle check-actql-spec-family",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:11:05.924Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:11:08.067Z",
+            "endedAt": "2026-10-12T02:11:08.072Z"
+          },
+          {
+            "name": "Existing generator or independent oracle check-canonical-json",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-12T02:11:08.150Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:11:10.495Z",
+            "endedAt": "2026-10-12T02:11:10.499Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "76d20ce6-411e-461f-b733-f7f1b595e748",
+          "pid": 2144,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:11:03.387Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-5CaW0b"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:11:10.582Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-5CaW0b/output.log",
+          "bytes": 2086,
+          "sha256": "e7ff363c5b909fe7a12e9e2647dfc3fd480ea09ef89e929718ae305510184c96"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-5CaW0b/summary.json",
+          "bytes": 3149,
+          "sha256": "12eaa3f64326e9e97d36fcf7810a14ca1379d016e690c5867c5ce2124eb48e79"
+        }
+      ]
+    },
+    {
+      "run": "run-obnVRW",
+      "summary": {
+        "startedAt": "2026-10-12T02:13:13.828Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent declared public inventory only",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import{readFileSync,writeFileSync}from'node:fs';import{registeredPublicQueryInventory}from'./scripts/public-query-inventory.mjs';const path='scripts/fixtures/public-query-inventory.json';const old=JSON.parse(readFileSync(path,'utf8'));const actual=await registeredPublicQueryInventory();writeFileSync(path,JSON.stringify({...old,...actual},null,2)+'\\n');console.log(JSON.stringify(actual));"
+            ],
+            "startedAt": "2026-10-12T02:13:13.909Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:13:14.073Z",
+            "endedAt": "2026-10-12T02:13:14.074Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "ad5aafd9-00d6-4ebb-9195-5243e8772d23",
+          "pid": 3898,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:13:13.896Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-obnVRW"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:13:14.129Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-obnVRW/output.log",
+          "bytes": 913,
+          "sha256": "0047b6894b4d6c5777343eff40cc2198256c80e8b03ef7508b5b33acfb2a5de7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-obnVRW/summary.json",
+          "bytes": 1760,
+          "sha256": "970e05a5f4b99a4e7237ef5b1d802bafdb79b16a7b787e94609a0b613b088fdd"
+        }
+      ]
+    },
+    {
+      "run": "run-NuEFOL",
+      "summary": {
+        "startedAt": "2026-10-12T02:14:02.695Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Independent declared public inventory only",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import{readFileSync,writeFileSync}from'node:fs';import{registeredPublicQueryInventory}from'./scripts/public-query-inventory.mjs';const path='scripts/fixtures/public-query-inventory.json';const old=JSON.parse(readFileSync(path,'utf8'));const actual=await registeredPublicQueryInventory();writeFileSync(path,JSON.stringify({...old,...actual},null,2)+'\\n');console.log(JSON.stringify(actual));"
+            ],
+            "startedAt": "2026-10-12T02:14:02.763Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:14:02.991Z",
+            "endedAt": "2026-10-12T02:14:02.992Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "d4a8654d-20f7-4bd9-b6c8-5d0a99a610d4",
+          "pid": 4437,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:14:02.756Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-NuEFOL"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:14:03.045Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-NuEFOL/output.log",
+          "bytes": 696,
+          "sha256": "ab5997437b26fbb39af449f3170ca338dd5ff87a650a1fcbfa7d94843970e3cc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-NuEFOL/summary.json",
+          "bytes": 1759,
+          "sha256": "0aab331884e22e00913349a8fd762d8b243fe8c3717032590eaab5652fa3a235"
+        }
+      ]
+    },
+    {
+      "run": "run-t0IC8p",
+      "summary": {
+        "startedAt": "2026-10-12T02:14:42.508Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Generate affected syntax interface",
+            "command": [
+              "moon",
+              "info",
+              "--target",
+              "js",
+              "src/query_syntax"
+            ],
+            "startedAt": "2026-10-12T02:14:42.649Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:14:43.376Z",
+            "endedAt": "2026-10-12T02:14:43.378Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "0dbf8284-905e-4d56-b636-004b34b1eeca",
+          "pid": 5045,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:14:42.640Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-t0IC8p"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:14:43.460Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-t0IC8p/output.log",
+          "bytes": 44,
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-t0IC8p/summary.json",
+          "bytes": 1381,
+          "sha256": "64e73df653639744a99bba06e913771c9f821cb41a9fa7c1552fbc2526affd5b"
+        }
+      ]
+    },
+    {
+      "run": "run-dv3Wpw",
+      "summary": {
+        "startedAt": "2026-10-12T02:15:36.654Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Format authored dedupe controls",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/sga_argument_roles.mbt",
+              "src/query_program/query_script_carriers.mbt",
+              "src/query_program/query_script_inputs.mbt",
+              "src/query_program/traversal_nodes_program.mbt",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt"
+            ],
+            "startedAt": "2026-10-12T02:15:36.736Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:15:36.872Z",
+            "endedAt": "2026-10-12T02:15:36.873Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "fb863574-bdb6-4a3b-be9a-377733818ae8",
+          "pid": 5626,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:15:36.728Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-dv3Wpw"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:15:36.916Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-dv3Wpw/output.log",
+          "bytes": 44,
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-dv3Wpw/summary.json",
+          "bytes": 1685,
+          "sha256": "5ea8649890ad54e02c5a1f694ae6a1272fd34bfefda23e3de370eccb120a63c9"
+        }
+      ]
+    },
+    {
+      "run": "run-WjPFgs",
+      "summary": {
+        "startedAt": "2026-10-12T02:15:53.089Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent dedupe and affected Carrier callers",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt",
+              "src/query_program/event_window_source_test.mbt",
+              "src/query_program/with_vectors_events_test.mbt",
+              "src/query_program/vector_pool_source_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-12T02:15:53.189Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:16:12.709Z",
+            "endedAt": "2026-10-12T02:16:12.711Z"
+          },
+          {
+            "name": "Current grammar canonical consumer",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/canonical_json/identity_vectors.generated_test.mbt",
+              "--filter",
+              "contract spec/manifests/actql-grammar-0.1.json#"
+            ],
+            "startedAt": "2026-10-12T02:16:12.775Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:16:14.572Z",
+            "endedAt": "2026-10-12T02:16:14.573Z"
+          },
+          {
+            "name": "Independent dedupe public fixtures and retained identity history",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/event-dedupe-source.test.mjs",
+              "scripts/event-dedupe-identity.test.mjs",
+              "scripts/event-window-identity.test.mjs",
+              "scripts/vector-pool-identity.test.mjs",
+              "scripts/sga-signature-role-identity.test.mjs",
+              "scripts/client-values-run-materials-vector.test.mjs",
+              "scripts/compilation-manifests.test.mjs",
+              "scripts/frontend-profile.test.mjs",
+              "scripts/public-query-profiles.test.mjs"
+            ],
+            "startedAt": "2026-10-12T02:16:14.631Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:16:21.771Z",
+            "endedAt": "2026-10-12T02:16:21.773Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "05127461-a0c5-487c-8eec-7db578e0dc60",
+          "pid": 5914,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:15:53.178Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-WjPFgs"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:16:21.840Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-vrajXK",
+        "focused-test-zBNdpT",
+        "focused-test-URMF0o"
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-WjPFgs/output.log",
+          "bytes": 84060,
+          "sha256": "b1ce10f077f4ec642747848538b11226cda909bd08c12b101679e22c4227f43f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-WjPFgs/summary.json",
+          "bytes": 3751,
+          "sha256": "04a6d4c733947e85701074ab2ec5f2c7f30347d08a66dba882d7ecf7198c8265"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/0001.summary.json",
+          "bytes": 630,
+          "sha256": "ee2fdc914bbaa94ff5cd704df47a5a1fde22193cd5dd89b5128aaea8eb488e92"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/0002.summary.json",
+          "bytes": 1862,
+          "sha256": "7398895d3e80065d523b72b592dbe719b27515a427379a9fa9358a0aefe9cd51"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/0003.summary.json",
+          "bytes": 2084,
+          "sha256": "204fba65c258073eac4fde57e1bf0799a45893c6ebf51868799febc55369f71d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/0004.summary.json",
+          "bytes": 2104,
+          "sha256": "c6518cbbc89212edffe789ca9452273433218f92db5802eb203cbc851dc7a1e9"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/001.result.json",
+          "bytes": 1275,
+          "sha256": "5f3b6896d4473a089c4595c1e06d55841b4f93621a342b8dca15862a898cf304"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/001.started.json",
+          "bytes": 1089,
+          "sha256": "58a7dc23e478d838585e8e1df3690f96f2e5c7234686187ddfa7c828d7cd3b38"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/001.stdout.log",
+          "bytes": 40,
+          "sha256": "0ce8fd6ee95162fececffea244523de298b77559b16629fd72359dfcd3a9fdc7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-vrajXK/summary.json",
+          "bytes": 2104,
+          "sha256": "c6518cbbc89212edffe789ca9452273433218f92db5802eb203cbc851dc7a1e9"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/0001.summary.json",
+          "bytes": 630,
+          "sha256": "40070d0adbc103cc936770b608db89f77e713a2b3bd3b0a5eaad0afd98f88b2b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/0002.summary.json",
+          "bytes": 1646,
+          "sha256": "1621b2570528bd689e45eb96df4ed7f50343f357dc01c8f49d06ac9aaf13b4e2"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/0003.summary.json",
+          "bytes": 1865,
+          "sha256": "f4e3787815bcb147f5bb297a3bbf951fa3bbfba5b748b36f041b3754ee60d244"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/0004.summary.json",
+          "bytes": 1885,
+          "sha256": "2d0c801ddf359fe05428658c1916ad87173979da82c042c76ffc309a9ab1b534"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/001.result.json",
+          "bytes": 1068,
+          "sha256": "72bfec23a36efdb2530b539cc3f1c8f360d12c76f5128f29341520526b36aa64"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/001.started.json",
+          "bytes": 885,
+          "sha256": "feae0a8e671e012e7559c584284c83f7aaec09532bde06a77093b1cc82c83f37"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/001.stdout.log",
+          "bytes": 38,
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zBNdpT/summary.json",
+          "bytes": 1885,
+          "sha256": "2d0c801ddf359fe05428658c1916ad87173979da82c042c76ffc309a9ab1b534"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/0001.summary.json",
+          "bytes": 630,
+          "sha256": "4b5e85ccb85afb82360e4f42b12d1c279b3837d9de465fb3bfa2b504cbece1ae"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/0002.summary.json",
+          "bytes": 2133,
+          "sha256": "f2d5beed04f7f02cdd79f86436d20d9c71e253d8b2e00d3328a5c663d958a0cd"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/0003.summary.json",
+          "bytes": 2353,
+          "sha256": "a6db6558383a5c39b2e7bbdead24b4051ec78d9120d12f262677eaa75597b834"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/0004.summary.json",
+          "bytes": 2374,
+          "sha256": "eacb53c6a005a0dac48c8822705f9844bbac0284e704e82f63c4226b2d893a87"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/001.result.json",
+          "bytes": 1536,
+          "sha256": "fb4a6c4b5edef1d2e3b13565d30bd88d60d1001e476376b61930cf03ee91e71a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/001.started.json",
+          "bytes": 1352,
+          "sha256": "bbc1dfa57a978a935a846f4ba8770d971dce279433605cbd53925d022f75e05d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/001.stdout.log",
+          "bytes": 82174,
+          "sha256": "4b2440900a1f4937a9e59136ec689343d582f2338be579d9adee0867d38963f0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-URMF0o/summary.json",
+          "bytes": 2374,
+          "sha256": "eacb53c6a005a0dac48c8822705f9844bbac0284e704e82f63c4226b2d893a87"
+        }
+      ]
+    },
+    {
+      "run": "run-yTgvDr",
+      "summary": {
+        "startedAt": "2026-10-12T02:19:30.516Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent dedupe and affected Carrier callers",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt",
+              "src/query_program/event_window_source_test.mbt",
+              "src/query_program/with_vectors_events_test.mbt",
+              "src/query_program/vector_pool_source_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-12T02:19:30.595Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:19:43.917Z",
+            "endedAt": "2026-10-12T02:19:43.925Z"
+          },
+          {
+            "name": "Current grammar canonical consumer",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/canonical_json/identity_vectors.generated_test.mbt",
+              "--filter",
+              "contract spec/manifests/actql-grammar-0.1.json#"
+            ],
+            "startedAt": "2026-10-12T02:19:43.997Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:19:44.866Z",
+            "endedAt": "2026-10-12T02:19:44.869Z"
+          },
+          {
+            "name": "Independent dedupe public fixtures and retained identity history",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/event-dedupe-source.test.mjs",
+              "scripts/event-dedupe-identity.test.mjs",
+              "scripts/event-window-identity.test.mjs",
+              "scripts/vector-pool-identity.test.mjs",
+              "scripts/sga-signature-role-identity.test.mjs",
+              "scripts/client-values-run-materials-vector.test.mjs",
+              "scripts/compilation-manifests.test.mjs",
+              "scripts/frontend-profile.test.mjs",
+              "scripts/public-query-profiles.test.mjs"
+            ],
+            "startedAt": "2026-10-12T02:19:44.944Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:19:52.141Z",
+            "endedAt": "2026-10-12T02:19:52.143Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "fe5e665a-e8e8-4459-adb3-b36a9121c3ce",
+          "pid": 10213,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:19:30.589Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-yTgvDr"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:19:52.211Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-xchHm1",
+        "focused-test-ZE3NqX",
+        "focused-test-jZAowi"
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-yTgvDr/output.log",
+          "bytes": 71954,
+          "sha256": "00356a92ab1f535fbe3474b770cc9ed5d4e443755fc49dbcb7cb6b169139e8d7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-yTgvDr/summary.json",
+          "bytes": 3752,
+          "sha256": "753cbb9b02b4c9b2fd37a889cfaf8c5fdcc6d1729daa3defa7241a9b984a4953"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/0001.summary.json",
+          "bytes": 630,
+          "sha256": "bfb273142d5a77fda48ff4dedffde90b2bc6997d74c890bbe3d31537fa12f690"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/0002.summary.json",
+          "bytes": 1862,
+          "sha256": "0f5a316cd9726d4f1d7da08f889ccfe22f04888427e2e98482c9d0d97f0321de"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/0003.summary.json",
+          "bytes": 2090,
+          "sha256": "e0065080c1ec682a2ba182d51d3ac6537cc1d845c58ab41b2776569d75926ea6"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/0004.summary.json",
+          "bytes": 2110,
+          "sha256": "fdb60093d3298acb77a6cc55d732023fa321bf5582db293a11098d60843b07dd"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/001.result.json",
+          "bytes": 1281,
+          "sha256": "5e44ed08ff476b618e6098a7fa46ed1b2eed5e033e46fb0728136d665774cb45"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/001.started.json",
+          "bytes": 1089,
+          "sha256": "7a8bdba5dfbebe4c4a2579ba7bad18f40bc3e3d65d440ad82ab653f4a1e9347c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/001.stdout.log",
+          "bytes": 40,
+          "sha256": "0ce8fd6ee95162fececffea244523de298b77559b16629fd72359dfcd3a9fdc7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-xchHm1/summary.json",
+          "bytes": 2110,
+          "sha256": "fdb60093d3298acb77a6cc55d732023fa321bf5582db293a11098d60843b07dd"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/0001.summary.json",
+          "bytes": 630,
+          "sha256": "ae855d9a854b64fa5a855106493365c04dd602f8550519020015fef26dd554f0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/0002.summary.json",
+          "bytes": 1646,
+          "sha256": "a38db4dbd0d7687ee2dac84ac6843e77502642090a38acbe6dc35523b22a9f9f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/0003.summary.json",
+          "bytes": 1861,
+          "sha256": "269b9b27cec71d9965a178f836bb085004cd13fb9099625ef31e2ad3f8bf1b3f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/0004.summary.json",
+          "bytes": 1881,
+          "sha256": "afe151d793ed803bee138b6a28b81e051ff08778b205dc19a649cdb58b407e15"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/001.result.json",
+          "bytes": 1064,
+          "sha256": "6e475e8203f2bae8be9a715a0243265a91f88257de86f2ae7dfd7c4747faedbd"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/001.started.json",
+          "bytes": 885,
+          "sha256": "958250a60f6b08209b21cb2560dd5e149083d089d69b258ed82a4b99d0bddd0d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/001.stdout.log",
+          "bytes": 38,
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-ZE3NqX/summary.json",
+          "bytes": 1881,
+          "sha256": "afe151d793ed803bee138b6a28b81e051ff08778b205dc19a649cdb58b407e15"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/0001.summary.json",
+          "bytes": 630,
+          "sha256": "e782255fd7f664265d3277cb845f47a0afdbae89149f41e3844b19170b85b71e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/0002.summary.json",
+          "bytes": 2133,
+          "sha256": "13eb39faa7c6556d62f158fb118352e0548e8027dbfcf9753205a7af11cd8f00"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/0003.summary.json",
+          "bytes": 2347,
+          "sha256": "7880bde51b54774f642d06dd1e473659174fdcc69b30a637d0cb3b0089fe9006"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/0004.summary.json",
+          "bytes": 2368,
+          "sha256": "00de68088bb65c826f3059070843e5946148108c6dbcca08eb891646057cf68b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/001.result.json",
+          "bytes": 1530,
+          "sha256": "7fedc703ba6598a04b1e81fe4828f85ff21fec0c3c0d3d461998f6178f5fee38"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/001.started.json",
+          "bytes": 1352,
+          "sha256": "9ee0ffda1426b276e00db8f60e48c36012f5a8144a86a794af4dfe0c885be921"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/001.stdout.log",
+          "bytes": 70068,
+          "sha256": "d286a1e5fd152310d7dacf35404861d482fd9777a8bcbc83534b8cfa27369641"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-jZAowi/summary.json",
+          "bytes": 2368,
+          "sha256": "00de68088bb65c826f3059070843e5946148108c6dbcca08eb891646057cf68b"
+        }
+      ]
+    },
+    {
+      "run": "run-IbvK5S",
+      "summary": {
+        "startedAt": "2026-10-12T02:21:24.862Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Current and immutable refusal fixture policies",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/graph-refusal-classification-source-input.test.mjs",
+              "scripts/public-query-refusal-classifications.test.mjs",
+              "scripts/event-dedupe-source.test.mjs"
+            ],
+            "startedAt": "2026-10-12T02:21:24.986Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:21:26.386Z",
+            "endedAt": "2026-10-12T02:21:26.395Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "fc572197-61cb-4754-84e0-20958f43a2ef",
+          "pid": 11831,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:21:24.975Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-IbvK5S"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:21:26.498Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-YXjOAl"
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-IbvK5S/output.log",
+          "bytes": 6767,
+          "sha256": "c39a15efdaa16b01cc8db2781a2efd98fde4e4eb3131003d5594785b4ed6280c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-IbvK5S/summary.json",
+          "bytes": 1728,
+          "sha256": "64b503ca5a8f3f0f815469d91048dd8a8eec21689540531be563a8ad6aac2b69"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/0001.summary.json",
+          "bytes": 630,
+          "sha256": "1544cb704464b1ae5fc1f8426a790a4b2dd7b8b8ebf557a0b56de36475a594e0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/0002.summary.json",
+          "bytes": 1855,
+          "sha256": "36028343d128607dc04f2bd45aaf2c7b764a1241df1b9c727a4ffb01252b6299"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/0003.summary.json",
+          "bytes": 2063,
+          "sha256": "bfdbc768de6773e294e5d2b214cbfd7c96068f2d23739781f5b0dbcf90981861"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/0004.summary.json",
+          "bytes": 2083,
+          "sha256": "24b20d6e6edbd15b093e659fa0d8a9917e5e7d44f11303647625760f0175f665"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/001.result.json",
+          "bytes": 1270,
+          "sha256": "14188928eb9ef27839a9f67c5e4f0cdd8c3eafbb28dbc4f895c3c05c1cabeb80"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/001.started.json",
+          "bytes": 1098,
+          "sha256": "59473b8ab0a8400ef0ad3228a178deb48d8ab383b3b82306bf12a492d6fd797e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/001.stdout.log",
+          "bytes": 6166,
+          "sha256": "f7ccd325db34ad0a11c54510332a71b4a7b200a51fca607369d0b59962870a7b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-YXjOAl/summary.json",
+          "bytes": 2083,
+          "sha256": "24b20d6e6edbd15b093e659fa0d8a9917e5e7d44f11303647625760f0175f665"
+        }
+      ]
+    },
+    {
+      "run": "run-4p8Prw",
+      "summary": {
+        "startedAt": "2026-10-12T02:22:15.291Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "Independent dedupe and affected Carrier callers",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt",
+              "src/query_program/event_window_source_test.mbt",
+              "src/query_program/with_vectors_events_test.mbt",
+              "src/query_program/vector_pool_source_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-12T02:22:15.363Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:18.464Z",
+            "endedAt": "2026-10-12T02:22:18.467Z"
+          },
+          {
+            "name": "Current grammar canonical consumer",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/canonical_json/identity_vectors.generated_test.mbt",
+              "--filter",
+              "contract spec/manifests/actql-grammar-0.1.json#"
+            ],
+            "startedAt": "2026-10-12T02:22:18.556Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:19.513Z",
+            "endedAt": "2026-10-12T02:22:19.515Z"
+          },
+          {
+            "name": "Independent dedupe public fixtures and retained identity history",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/event-dedupe-source.test.mjs",
+              "scripts/event-dedupe-identity.test.mjs",
+              "scripts/event-window-identity.test.mjs",
+              "scripts/vector-pool-identity.test.mjs",
+              "scripts/sga-signature-role-identity.test.mjs",
+              "scripts/client-values-run-materials-vector.test.mjs",
+              "scripts/compilation-manifests.test.mjs",
+              "scripts/frontend-profile.test.mjs",
+              "scripts/public-query-profiles.test.mjs"
+            ],
+            "startedAt": "2026-10-12T02:22:19.584Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:26.631Z",
+            "endedAt": "2026-10-12T02:22:26.633Z"
+          },
+          {
+            "name": "Read-only compilation-manifests",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs"
+            ],
+            "startedAt": "2026-10-12T02:22:26.696Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:26.843Z",
+            "endedAt": "2026-10-12T02:22:26.847Z"
+          },
+          {
+            "name": "Read-only update-document-metadata",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs"
+            ],
+            "startedAt": "2026-10-12T02:22:26.907Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:28.349Z",
+            "endedAt": "2026-10-12T02:22:28.353Z"
+          },
+          {
+            "name": "Read-only check-actql-spec-family",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs"
+            ],
+            "startedAt": "2026-10-12T02:22:28.421Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:29.783Z",
+            "endedAt": "2026-10-12T02:22:29.786Z"
+          },
+          {
+            "name": "Read-only check-canonical-json",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs"
+            ],
+            "startedAt": "2026-10-12T02:22:29.850Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:31.467Z",
+            "endedAt": "2026-10-12T02:22:31.469Z"
+          },
+          {
+            "name": "Read-only changed authored MoonBit formatting",
+            "command": [
+              "moon",
+              "fmt",
+              "--check",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/sga_argument_roles.mbt",
+              "src/query_program/query_script_carriers.mbt",
+              "src/query_program/query_script_inputs.mbt",
+              "src/query_program/traversal_nodes_program.mbt",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-12T02:22:31.533Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 255,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:22:36.770Z",
+            "endedAt": "2026-10-12T02:22:36.774Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "c84d6dfc-ad3e-42f0-a1f5-d4186be8ad23",
+          "pid": 12807,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:22:15.355Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-4p8Prw"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:22:36.872Z",
+        "outputComplete": true,
+        "exitCode": 255,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [
+        "focused-test-zk5KkM",
+        "focused-test-M5KII4"
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-4p8Prw/output.log",
+          "bytes": 75645,
+          "sha256": "7523612cbb6b0369026143928aedfb9fa00eefb6ef552842a8019fe8d167e874"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-4p8Prw/summary.json",
+          "bytes": 6127,
+          "sha256": "ef57f7b2fdda470c4e1568e0e50692f625d76a040a5f25ee71103ff47677f5ac"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/0001.summary.json",
+          "bytes": 630,
+          "sha256": "4d4956aeccc8d867dadc972e1ddf7da88fd098ecf8ee11b33aebfadf23835ae0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/0002.summary.json",
+          "bytes": 1862,
+          "sha256": "b6fe72fd4ac607e486626f175971000d70a944796324819d7c8c17f6fa8ff07f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/0003.summary.json",
+          "bytes": 2083,
+          "sha256": "08930d7eb5af7c537679ca222d2743977c47eaeeb1dfc468047c6331883e1e22"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/0004.summary.json",
+          "bytes": 2103,
+          "sha256": "e53cd124fbab85400d63bfa9e2dcfc0886111fdfec50b5999c9fd40563243056"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/001.result.json",
+          "bytes": 1274,
+          "sha256": "9f7b43cee8435073cec1d72de8442eabc3577389c2582808495994d33ff8849f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/001.started.json",
+          "bytes": 1089,
+          "sha256": "c4e31c05d32c69207b0b1dca317f76e3f35d09efb899a274f5cb1b781f51b6b8"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/001.stdout.log",
+          "bytes": 40,
+          "sha256": "0ce8fd6ee95162fececffea244523de298b77559b16629fd72359dfcd3a9fdc7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-zk5KkM/summary.json",
+          "bytes": 2103,
+          "sha256": "e53cd124fbab85400d63bfa9e2dcfc0886111fdfec50b5999c9fd40563243056"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/0001.summary.json",
+          "bytes": 630,
+          "sha256": "faee08a1a1efe54eed16a4258e0bf1a200dad42f51ab3a60d5d33b1aabe2ac4f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/0002.summary.json",
+          "bytes": 1646,
+          "sha256": "a15cd526baca59144d76378933a48eb4629d3a188b188eea3585d0c7e7a89879"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/0003.summary.json",
+          "bytes": 1864,
+          "sha256": "02db34ae1d1607f58ead9b9f1e166c87652118dc8290faf8fbeb71fffdf29e12"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/0004.summary.json",
+          "bytes": 1884,
+          "sha256": "23188df0724c0561658119d4121245b1b6604ac80667df1d50db40f76ddcf0ee"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/001.result.json",
+          "bytes": 1067,
+          "sha256": "6f9efc256b487e713c6d86921bb7a11b328db3717b24302b680477acb5382029"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/001.started.json",
+          "bytes": 885,
+          "sha256": "c186ed8e7b08ac91386d9361972637712d200711c9cddae60be7876d85337fb5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/001.stdout.log",
+          "bytes": 38,
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/focused-test-M5KII4/summary.json",
+          "bytes": 1884,
+          "sha256": "23188df0724c0561658119d4121245b1b6604ac80667df1d50db40f76ddcf0ee"
+        }
+      ]
+    },
+    {
+      "run": "run-iVVaVn",
+      "summary": {
+        "startedAt": "2026-10-12T02:24:01.112Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "Read-only exact authored files using pinned moonfmt",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import assert from'node:assert/strict';import{execFileSync}from'node:child_process';import{readFileSync}from'node:fs';for(const path of process.argv.slice(1))assert.equal(execFileSync('moonfmt',[path],{encoding:'utf8',maxBuffer:4194304}),readFileSync(path,'utf8'),path);console.log(JSON.stringify({checkedFiles:process.argv.slice(1),mismatches:[]}));",
+              "src/query_syntax/sga_call.mbt",
+              "src/query_syntax/sga_argument_roles.mbt",
+              "src/query_program/query_script_carriers.mbt",
+              "src/query_program/query_script_inputs.mbt",
+              "src/query_program/traversal_nodes_program.mbt",
+              "src/query_syntax/event_dedupe_call_test.mbt",
+              "src/query_program/event_dedupe_source_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-12T02:24:01.173Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:24:01.377Z",
+            "endedAt": "2026-10-12T02:24:01.379Z"
+          },
+          {
+            "name": "Product and specification whitespace",
+            "command": [
+              "git",
+              "diff",
+              "--check",
+              "26521e7d8",
+              "HEAD",
+              "--",
+              ".",
+              ":(exclude)reviews/**"
+            ],
+            "startedAt": "2026-10-12T02:24:01.426Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-12T02:24:01.499Z",
+            "endedAt": "2026-10-12T02:24:01.500Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "61943c9f-a657-4390-949c-47f2908282b6",
+          "pid": 15786,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-12T02:24:01.169Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-iVVaVn"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-12T02:24:01.551Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-iVVaVn/output.log",
+          "bytes": 408,
+          "sha256": "e0f24a93ada9005a0a7687aebd1f62f9bc72d781854b67742fc4e3a411b1fc03"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-event-dedupe-evidence/run-iVVaVn/summary.json",
+          "bytes": 2646,
+          "sha256": "988d067a2abba5d190de9f5be974cdf8a9b1dc1d8866aff9c5af0651c95462f6"
+        }
+      ]
+    }
+  ],
+  "unverified": [
+    "Public Local/HTTPS, fresh package/source matching, actual winner rows/full schema and tie failure publication",
+    "Native/Wasm execution and hosted CI",
+    "Remaining P2 signatures and full frontend completion"
+  ],
+  "failure_classification": {
+    "run-GJO3FK": "Common independent JSON control passes; both authored source forms fail before dedupe parser/lowering was connected. JS1/3.",
+    "run-RsWkdI": "JS7/8; quoted SCORE was incorrectly expected to fail. The existing ordinary same_name contract is case insensitive even for quoted columns; corrected to a positive independent score control.",
+    "run-obnVRW": "Existing independent enumerator cannot read aliased Graph MATCH aggregate imports. Replaced with semantically identical direct spread registration without changing the enumerator.",
+    "run-WjPFgs": "JS27/canonical1 pass; Node126/129. Existing DATA expectation two cases and original Graph digest compare to migrated current sources are stale.",
+    "run-yTgvDr": "JS27/canonical1 pass; Node129/130. Remaining original Graph SHA compared to migrated WITH caller. Historical raw modules frozen from 8c0b9fd2, current refusal policies remain independently checked.",
+    "run-4p8Prw": "JS27/canonical1/Node130/read-only4 pass. moon fmt --check selected package paths also visits an unchanged Model capture source, producing exit255. Raw failure preserved; exact eight changed Mbt formatting and diff completed separately without modifying the foreign file."
+  },
+  "actual_final_owner_group_ownlock_absence_observed": [
+    12807,
+    15786
+  ],
+  "verification_tree": "69ee745fc1de9cbfd193d4ef4bec5052e2b772c9",
+  "only_changes_after_tested_source": [
+    "reviews/2026-10-11-with-carrier-cutover/prepared-p2-event-dedupe.mjs"
+  ]
+}
