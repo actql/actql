@@ -689,6 +689,18 @@ pub fn client_native_local_runtime_members(ClientNativeLocalRuntime) -> Array[Cl
 
 pub fn client_native_local_runtime_original(ClientNativeLocalRuntime) -> String
 
+pub fn client_native_local_scalar_runtime_pair_body(ClientNativeLocalScalarRuntimePair) -> Bytes
+
+pub fn client_native_local_scalar_values_profile_expression_at(ClientNativeLocalScalarValuesProfile, Int) -> String?
+
+pub fn client_native_local_scalar_values_profile_expression_count(ClientNativeLocalScalarValuesProfile) -> Int
+
+pub fn client_native_local_scalar_values_profile_inspected_entries(ClientNativeLocalScalarValuesProfile) -> Int
+
+pub fn client_native_local_scalar_values_profile_operation_at(ClientNativeLocalScalarValuesProfile, Int) -> String?
+
+pub fn client_native_local_scalar_values_profile_operation_count(ClientNativeLocalScalarValuesProfile) -> Int
+
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
@@ -1064,6 +1076,10 @@ pub fn handoff_client_model_read_consumer_input_capacity(ClientModelReadConsumer
 pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
 
 pub fn[E] inspect_client_empty_cancellation_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], E, E) -> Result[Unit, E]
+
+pub fn inspect_client_native_local_scalar_runtime_pair(ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
+
+pub fn inspect_client_native_local_scalar_values_profile(PreparedClientProgram, Int) -> Result[ClientNativeLocalScalarValuesProfile, ClientNativeLocalScalarValuesProfileIssue]
 
 pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteEffectTaskProgress, ClientRemoteEffectTaskProgressIssue]
 
@@ -1585,6 +1601,8 @@ pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_rel
 
 pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
+pub fn restore_client_native_local_scalar_runtime_pair(Bytes, ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
+
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
 
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
@@ -1666,6 +1684,10 @@ pub fn validate_client_local_run_policy_original_run(Bytes, ClientRequestIdentit
 pub fn validate_client_native_local_runtime_compute_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
 
 pub fn validate_client_native_local_runtime_library_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
+
+pub fn validate_client_native_local_scalar_runtime_pair_preparation(ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarValuesProfile, PreparedClientProgram) -> Result[Unit, ClientNativeLocalScalarRuntimePairIssue]
+
+pub fn validate_client_native_local_scalar_values_preparation(ClientNativeLocalScalarValuesProfile, PreparedClientProgram) -> Result[Unit, ClientNativeLocalScalarValuesProfileIssue]
 
 pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -2633,6 +2655,29 @@ pub(all) struct ClientNativeLocalRuntimeMember {
   bytes : Int64
   sha256 : String
 }
+
+type ClientNativeLocalScalarRuntimePair
+
+pub(all) enum ClientNativeLocalScalarRuntimePairIssue {
+  UnknownPredecessor
+  UnsupportedPlatform
+  LibraryChanged
+  AssetChanged
+  InvalidOriginal
+  ForeignPreparation
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientNativeLocalScalarValuesProfile
+
+pub(all) enum ClientNativeLocalScalarValuesProfileIssue {
+  InvalidLimit
+  UnsupportedProfile
+  NonScalar
+  UnprovenExpression
+  BudgetExceeded
+  ForeignPreparation
+} derive(Eq, @debug.Debug)
 
 pub(all) struct ClientNodeModelPreparationLayout {
   response_profile : @check_environment.ModelResponseProfile

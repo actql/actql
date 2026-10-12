@@ -97,7 +97,7 @@ function prepareProjectedOriginal({moon,request,taskCid,promptCid,
 export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
   request,taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
   modelId,baseURL,apiKey,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,
-  notify,...port}) {
+  notify,rawCaptureBinder,...port}) {
   const fields=['maxBytes','maxDepth','maxFrames','maxNodes','maxWork'];
   if (projectionLimits===null || typeof projectionLimits!=='object' ||
       Array.isArray(projectionLimits) ||
@@ -148,5 +148,6 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       return true;
     },
   };
-  return createSdkModelPreflight({...port,moon,request,notify,preparationProgress:progress});
+  return createSdkModelPreflight({...port,moon,request,notify,preparationProgress:progress,
+    ...(rawCaptureBinder === undefined ? {} : {rawCaptureBinder})});
 }
