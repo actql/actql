@@ -641,6 +641,8 @@ pub fn client_local_product_finite_originals(String, String, String, String, Cli
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
+pub fn client_local_run_policy_metadata_cursor(Bytes) -> Result[@decode_core.Cursor, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
 
 pub fn client_local_run_policy_original_issued_at(ClientLocalRunPolicyOriginal) -> String
@@ -842,6 +844,8 @@ pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
+
+pub fn client_saved_submission_admission_wire(ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedSubmissionViewIssue]
 
 pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
 
@@ -3153,7 +3157,15 @@ pub struct ClientSavedSubmissionSnapshot {
   record : ClientSubmittedJournalEncoding
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
+  inspection : ClientRunJournalInspection?
 }
+
+pub(all) enum ClientSavedSubmissionViewIssue {
+  NotAdmitted
+  CustodyLost
+  UnrepresentableRevision
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub struct ClientSerializationCapturedInput {
   owner : PreparedClientProgram

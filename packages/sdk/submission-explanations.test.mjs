@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {inspect} from 'node:util';
 import * as sdk from './index.mjs';
-import {submissionEpoch, originalSubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, submissionAttempt} from './submission-fixture.mjs';
 
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'original-run', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
@@ -50,7 +50,7 @@ const outcome = (kind, body) => ({kind, submissionRef: body.submissionRef,
 
 for (const kind of ['not_accepted', 'preparation_failed', 'preparing', 'ready']) {
   test(`submission explanation retains admitted ${kind} without changing its acceptance phase`, async t => {
-    const f = await fixture(t, (operation, body) => outcome(kind, body));
+    const f = await fixture(t, (operation, body) => submissionAttempt(body, outcome(kind, body)));
     let result;
     try {result = await f.client.start({}, {submissionRef: original});}
     catch (error) {result = error;}
@@ -167,7 +167,8 @@ test('submission lookup owns immutable reused replies and formatting cannot acqu
 for (const phase of ['not_accepted', 'preparation_failed']) {
   test(`submission analysis budget explains ${phase} without choosing the phase from its code`, async t => {
     const budget = {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'};
-    const f = await fixture(t, (operation, body) => ({...outcome(phase, body), problem: budget}));
+    const f = await fixture(t, (operation, body) =>
+      submissionAttempt(body, {...outcome(phase, body), problem: budget}));
     let result;
     try {result = await f.client.start({}, {submissionRef: original});}
     catch (error) {result = error;}
@@ -189,7 +190,8 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
 }
 
 test('a budget-looking code with a different admitted classification supplies no budget explanation', async t => {
-  const f = await fixture(t, (operation, body) => ({...outcome('not_accepted', body),
+  const f = await fixture(t, (operation, body) => submissionAttempt(body, {
+    ...outcome('not_accepted', body),
     problem: {code: 'ClientProgramAnalysisLimit', classification: 'invalid_input'}}));
   let result;
   try {await f.client.start({}, {submissionRef: original});} catch (error) {result = error;}
@@ -201,7 +203,8 @@ test('a budget-looking code with a different admitted classification supplies no
 for (const phase of ['not_accepted', 'preparation_failed']) {
   test(`submission implementation limit explains ${phase} without choosing the phase from its code`, async t => {
     const limit = {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'};
-    const f = await fixture(t, (operation, body) => ({...outcome(phase, body), problem: limit}));
+    const f = await fixture(t, (operation, body) =>
+      submissionAttempt(body, {...outcome(phase, body), problem: limit}));
     let result;
     try {result = await f.client.start({}, {submissionRef: original});}
     catch (error) {result = error;}
@@ -215,5 +218,23 @@ for (const phase of ['not_accepted', 'preparation_failed']) {
     assert.deepEqual(explanation.next, next);
     assert.ok(Object.isFrozen(explanation.preparationIssue));
     assert.equal(sdk.explainSubmission(structuredClone(result)), undefined);
+  });
+}
+
+for (const fault of ['bare durable outcome', 'another attempt']) {
+  test(`submission explanation cannot acquire acceptance from ${fault}`, async t => {
+    const f = await fixture(t, (operation, body) => {
+      assert.equal(operation, 'submit-intent');
+      const answer = outcome('not_accepted', body);
+      if (fault === 'bare durable outcome') return answer;
+      const attempt = submissionAttempt(body, answer);
+      return {...attempt, attemptRef: {...attempt.attemptRef, attemptId: 'another-invocation'}};
+    });
+    let result;
+    try {await f.client.start({}, {submissionRef: original});}
+    catch (error) {result = error;}
+    assert.equal(sdk.getSubmissionOutcome(result), undefined);
+    assert.equal(sdk.explainSubmission(result).observation, 'acceptance_unknown');
+    assert.deepEqual(f.calls, ['connect', 'submit-intent']);
   });
 }

@@ -1936,3 +1936,54 @@ or recreate lost keys. After successful SQL setup, the original writer cannot
 resume payload operations and is stopped explicitly; uncertain stop retains
 the same descriptor/root capacity. Neither physical schema setup nor the
 one-time creation claim is Host adoption, Run admission or public acceptance.
+
+`OriginalLocalInstallation` composes these ports for the installed source-free
+profile. Only an empty private installation directory takes the first-bootstrap
+path. Core supplies the seven configuration originals and original selection,
+initialization, configuration custody and journal custody bodies. The physical
+DB file is acquired and its initializing marker synced before schema/key IO.
+Key, selected settings, initial counters and adoption are persisted together in
+one physical transaction. Their existence still requires Common's actual
+adoption/current validation before protected work; physical COMMIT is not a
+Run, publication or durable Result acknowledgement.
+
+Reopen never invokes bootstrap or updates policy/expiry. It reuses exact saved
+bytes and rechecks the original directory, file and Store generations, marker,
+settings membership and epoch custody. Missing/partial material or changed
+Source/Result roots is unavailable, not repaired. Unknown initial COMMIT keeps
+the same Store and originals; later reopen inspects them without repeating the
+initial batch. Setup encoding, raw-byte/descriptor and SQLite workspace loans
+remain held until their original cleanup succeeds. This assembly does not own
+the Core instance, start Source/Compute/Model/Effect, cancel a Run, or constitute
+the installed public Client/wheel acceptance gate.
+
+The Client's private `_connect_local` route consumes the installed Host's
+in-process operation/response port without constructing an HTTP endpoint,
+token or network client. It fixes `mode=local`, `owner=local` and durable
+connection selection; negotiation and every operation continue through the
+existing closed wire validation and the same async/sync Execution/Result models.
+Response collection, reader cleanup and failed-close retry share the existing
+transport custody. An in-process exception after an operation begins remains
+Unknown and never triggers replay. This route supplies no scope, Allow, status
+decision or execution implementation. Installed factory/public `open`, original
+Owner wire projections and the actual public runtime/wheel scenario still have
+to connect before this is a delivered Local Client.
+
+Private ABI53 exposes the original saved admission through
+`actql_journal_admission_length` and the existing reserved buffer transfer.
+The existing retained-Run validator's nominal inspection is held with the
+actual same-Store snapshot; definition namespace, request authority scope and
+immutable admission revision come from those originals. Preparing/missing
+observations cannot issue this view. The full Int64 remains in the journal; an
+unsafe public JSON revision is refused rather than rounded or replaced by a
+later Run/control revision. No wire/schema version or identity preimage changes.
+
+The original current/epoch/configuration frame is checked before producing or
+reading cached admission bytes, and after production/physical copying. Python
+attaches only the original same-Store reader for that call and detaches it on
+all exits; exceptions and cleanup failure preserve the same parent/ticket.
+This read-only transfer issues no new admission, COMMIT ACK, dispatch permit,
+publication or Result. The durable Host's actual saved-row observation and
+current authority are separate from its write candidate and later control
+state. Installed public Host assembly and wheel acceptance remain separate
+from this private bridge.
