@@ -41,6 +41,8 @@ priv struct OriginalReservationSnapshot {
 ///|
 priv enum FundedReadPhase[T] {
   Reading
+  Writing(OriginalStateWrite[T])
+  Written
   Preparing(FundedReadConsumer[T])
   ConsumerStarted(FundedReadConsumer[T])
   HandedOff
@@ -366,7 +368,8 @@ pub fn[T] fund_original_read(
 
 ///|
 pub fn[T] funded_read_available(claim : FundedReadClaim[T], origin : T) -> Bool {
-  claim.phase is Reading && funded_read_state_matches(claim, origin)
+  (claim.phase is Reading || claim.phase is Written) &&
+  funded_read_state_matches(claim, origin)
 }
 
 ///|
@@ -392,7 +395,7 @@ pub fn[T] claim_funded_read_preparation(
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }
-  if !(claim.phase is Reading) {
+  if !(claim.phase is Reading || claim.phase is Written) {
     return Err(SpentClaim)
   }
   if retained_bytes <= 0L || execution_bytes <= 0L {
@@ -468,7 +471,7 @@ pub fn[T] handoff_funded_read(
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }
-  if !(claim.phase is Reading) {
+  if !(claim.phase is Reading || claim.phase is Written) {
     return Err(SpentClaim)
   }
   if !funded_read_available(claim, origin) {
@@ -512,7 +515,7 @@ pub fn[T] handoff_funded_read_capacity(
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }
-  if !(claim.phase is Reading) {
+  if !(claim.phase is Reading || claim.phase is Written) {
     return Err(SpentClaim)
   }
   if !funded_read_available(claim, origin) {
@@ -531,7 +534,8 @@ pub fn[T] handoff_funded_read_capacity(
 ///|
 pub fn[T] stop_funded_read(claim : FundedReadClaim[T]) -> Unit {
   match claim.phase {
-    Reading | HandedOff => claim.phase = Stopping
+    Reading | Written | HandedOff => claim.phase = Stopping
+    Writing(writer) => cancel_original_state_write(writer)
     Preparing(consumer)
     | ConsumerStarted(consumer)
     | ConsumerHandedOff(consumer) => claim.phase = ConsumerStopping(consumer)
@@ -549,6 +553,11 @@ pub fn[T] settle_funded_read(
 ) -> Result[Unit, OriginalReadIssue] {
   if claim.phase is Reclaimed {
     return Err(SpentClaim)
+  }
+  // A live encoding cursor still borrows the census/read graph. Explicit stop
+  // or cancellation retires it before physical owning cleanup can settle read.
+  if physical_cleanup_complete && claim.phase is Writing(_) {
+    return Err(CleanupPending)
   }
   if !physical_cleanup_complete {
     stop_funded_read(claim)
