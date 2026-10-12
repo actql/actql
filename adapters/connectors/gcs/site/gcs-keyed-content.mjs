@@ -4,6 +4,7 @@
 // Only the existing capture owner can return the issued ContentRef for the
 // final row; this module has no issuer, completion receipt or cleanup ledger.
 import {readGcsVersionedContent, gcsMetadataRequestWire} from './gcs-versioned-content.mjs';
+import {ownInvocationLimits} from '../../../host-common/owned-invocation-context.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 export async function readGcsKeyedContent({requestWire, resolveResource,
@@ -25,6 +26,11 @@ export async function readGcsKeyedContent({requestWire, resolveResource,
   // the exact request identity that the final row must still correlate with.
   request.resource = Object.freeze(request.resource);
   Object.freeze(request);
+  // The existing keyed/capture envelope must fund this bounded original-limits
+  // view and its overlap with the physical invocation context before entry.
+  // Resolve/request callbacks may await before that context is constructed;
+  // neither callback may widen the originally admitted read bounds.
+  limits = ownInvocationLimits(limits);
   // This resolver belongs to the installed Resource/Catalog observation, not
   // to the Program. It must validate the exact issued reference and scope.
   const locator = await resolveResource(request.resource, signal);

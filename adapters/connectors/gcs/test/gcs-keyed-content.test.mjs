@@ -94,6 +94,50 @@ test('current authorization refusal after positive read work stops before Store 
   assert.deepEqual(state.pages, [[]]); assert.equal(state.pending, state.charges[1]);
 });
 
+test('cancellation after capture keeps the original media ticket and publishes no keyed row', async () => {
+  const {options, state} = fixture();
+  const controller = new AbortController();
+  const reason = new Error('FixtureCancelledAfterCapture');
+  const capture = options.captureContent;
+  options.signal = controller.signal;
+  options.captureContent = async observed => {
+    const captured = await capture(observed);
+    controller.abort(reason);
+    return captured;
+  };
+  await assert.rejects(readGcsKeyedContent(options), error => error === reason);
+  // Actual verified bytes remain with their capture owner. Cancellation is
+  // neither cleanup proof nor permission to consume/replace its media ticket.
+  assert.equal(state.captures.length, 1);
+  assert.deepEqual(state.captures[0].bytes, payload);
+  assert.deepEqual(state.pages, [[]]);
+  assert.equal(state.pending, state.charges[1]);
+  assert.equal(state.charges.length, 2);
+  assert.equal(state.requests.length, 2);
+  assert.equal(state.calls.length, 2, 'no replacement read after cancellation');
+});
+
+test('keyed row consumer failure keeps captured bytes and the exact media charge for its owner', async () => {
+  const {options, state} = fixture();
+  const failure = new Error('FixtureRowConsumerFailed');
+  const consume = options.consumePage;
+  const attempted = [];
+  options.consumePage = async (rows, observation) => {
+    if (rows.length === 0) return consume(rows, observation);
+    attempted.push({rows, charge: observation.charge});
+    throw failure;
+  };
+  await assert.rejects(readGcsKeyedContent(options), error => error === failure);
+  assert.deepEqual(attempted, [{rows: [{resource, version: generation, content}],
+    charge: state.charges[1]}]);
+  assert.equal(attempted[0].charge, state.pending);
+  assert.equal(state.captures.length, 1);
+  assert.deepEqual(state.pages, [[]]);
+  assert.equal(state.charges.length, 2);
+  assert.equal(state.requests.length, 2);
+  assert.equal(state.calls.length, 2, 'consumer failure cannot resend a read');
+});
+
 test('foreign Resource resolution refuses before any request or credential use', async () => {
   const {options, state} = fixture();
   options.resolveResource = async () => undefined;
@@ -112,6 +156,27 @@ test('unknown media exchange is never retried and never invokes the capture owne
   assert.equal(state.calls.length, 2); assert.equal(state.charges.length, 1);
   assert.deepEqual(state.pages, [[]]); assert.equal(state.captures.length, 0);
 });
+
+for (const phase of ['resolveResource', 'beginRequest']) {
+  test(`keyed limits cannot widen while awaiting ${phase}`, async () => {
+    const {options, state} = fixture();
+    options.limits.maxContentBytes = 8;
+    const original = options[phase];
+    options[phase] = async (...args) => {
+      await Promise.resolve();
+      options.limits.maxContentBytes = 9;
+      options.limits.maxMetadataBytes = 8192;
+      return original(...args);
+    };
+    await assert.rejects(readGcsKeyedContent(options), {code: 'GcsContentMetadataMismatch'});
+    assert.equal(state.requests.length, 1);
+    assert.equal(state.calls.length, 1);
+    assert.equal(state.calls[0].maxResponseBytes, 4096);
+    assert.deepEqual(state.pages, [[]]);
+    assert.equal(state.pending, undefined);
+    assert.equal(state.captures.length, 0);
+  });
+}
 
 for (const [name, change] of [
   ['outside prefix', {objectName: 'other/secret.csv'}],
