@@ -139,7 +139,7 @@ test "checked Node layout read issuer validates originals before descriptor and 
   enter_client_model_read_consumer(
     consumer, compiled, definition, plan, 7000L, 3000L,
   ).unwrap()
-  stop_client_model_read(read)
+  stop_client_model_read(read).unwrap()
   assert_true(
     settle_client_model_read(read, false)
     is Err(Resource(@resources.CleanupPending)),
@@ -228,7 +228,7 @@ test "checked Node layout read issuer uses exact complete same Ledger envelope" 
           retained_bytes=7000L,
         ),
       )
-      stop_client_model_read(read)
+      stop_client_model_read(read).unwrap()
       settle_client_model_read(read, true).unwrap()
       assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 3L)
       assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 2L)

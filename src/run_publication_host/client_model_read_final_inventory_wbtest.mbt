@@ -30,7 +30,7 @@ test "checked original model read final inventory binds original Run without Led
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(client_model_read_available(read, compiled, definition, plan))
-  stop_client_model_read(read)
+  stop_client_model_read(read).unwrap()
   assert_true(
     settle_client_model_read(read, false)
     is Err(Resource(@resources.CleanupPending)),

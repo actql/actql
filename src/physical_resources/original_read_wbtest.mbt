@@ -299,7 +299,7 @@ test "funded original read failure cancellation and pending cleanup retain exact
   ).unwrap()
   let claim = fund_original_read(ledger, origin, descriptor, 7L, 5L).unwrap()
   let before = ledger_usage(ledger)
-  stop_funded_read(claim)
+  stop_funded_read(claim).unwrap()
   assert_true(!funded_read_available(claim, origin))
   assert_true(handoff_funded_read(claim, origin) is Err(SpentClaim))
   assert_true(settle_funded_read(claim, false) is Err(CleanupPending))

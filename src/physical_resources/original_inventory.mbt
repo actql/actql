@@ -14,6 +14,9 @@ priv struct LedgerOriginalInventory {
   mut descriptor_issued : Bool
   mut read_claimed : Bool
   mut closing : Bool
+  // Resident even when None. The original bootstrap/installed envelope must
+  // fund this reference and any live park controls before registration/use.
+  mut park : OriginalResourceParkFence?
 }
 
 ///|
@@ -82,6 +85,7 @@ pub fn begin_original_ledger_inventory(
     descriptor_issued: false,
     read_claimed: false,
     closing: false,
+    park: None,
   })
   Ok(identity)
 }
@@ -90,7 +94,9 @@ pub fn begin_original_ledger_inventory(
 fn check_original_inventory_open(
   value : LedgerOriginalInventory,
 ) -> Result[Unit, LedgerIssue] {
-  if value.closing || !capacity_reservation_open(value.bootstrap) {
+  if value.park is Some(_) {
+    Err(ResourceParked)
+  } else if value.closing || !capacity_reservation_open(value.bootstrap) {
     Err(ClosedReservation)
   } else {
     Ok(())
@@ -108,6 +114,7 @@ pub fn original_ledger_inventory_available(
   physical_equal(identity, value.identity) &&
   physical_equal(identity.bootstrap, value.bootstrap) &&
   !value.closing &&
+  value.park is None &&
   original_read_bootstrap_available(identity.ledger, identity.bootstrap)
 }
 
@@ -191,6 +198,9 @@ pub fn[T] issue_recorded_original_ledger_descriptor(
     !value.closing else {
     return Err(IncompleteInventory)
   }
+  if value.park is Some(_) {
+    return Err(Resource(ResourceParked))
+  }
   if value.descriptor_issued {
     return Err(SpentClaim)
   }
@@ -220,6 +230,9 @@ pub fn finish_original_ledger_inventory(
   physical_cleanup_complete : Bool,
 ) -> Result[Bool, OriginalReadIssue] {
   guard ledger.original_inventory is Some(value) else { return Err(SpentClaim) }
+  if value.park is Some(_) {
+    return Err(Resource(ResourceParked))
+  }
   value.closing = true
   if !physical_cleanup_complete ||
     value.reservations.any(token => token.open) ||
