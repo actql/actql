@@ -78,10 +78,10 @@ export async function currentResourceFixture(moon, control, runId = 'current-res
     readRetainedBytes: 7000n, readExecutionBytes: 3000n, modelRetainedBytes: 100000n, modelExecutionBytes: 3000n};
   const operation = openNodeInferOperation({moon, preparedProgram: prepared, step, graph,
     registry: input('infer_fixture_registry'), values: input('infer_fixture_values'),
-    provider, originalPreparation, durableCalls: true});
+    provider, originalPreparation, durableCalls: true, signal: metadataOptions.signal});
   operation.bindRun(control, {compiled, runDefinition});
   await operation.run();
   const preparedCallSet = operation.preparedCallSet();
-  return {operation, scope, read, graph, compiled, runDefinition, selected, originalPreparation,
+  return {operation, scope, read, graph, compiled, runDefinition, prepared, step, selected, originalPreparation,
     preparedCallSet, sends: () => sends};
 }

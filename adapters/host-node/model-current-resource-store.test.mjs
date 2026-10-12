@@ -41,7 +41,10 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   // diagnostic custody, instead of deleting it or claiming successful cleanup.
   t.after(() => port.close());
   t.diagnostic(`Original fixture Store retained at ${root}`);
-  const f = await currentResourceFixture(moon, control, 'current-store');
+  const f = await currentResourceFixture(moon, control, 'current-store', {metadataAcquisition: {
+    metadata: {maxWireBytes: 2048, maxLedgerEntries: 3},
+    directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
+    retainedBytes: 7000n, workspaceBytes: 3000n}});
   const binding = await port.observeModelOriginalStorageBinding();
   const selectedStorage = await port.modelOriginalStorageBindingEvidence(binding);
   const origin = Object.fromEntries(originFields.map(field => [field,
@@ -64,6 +67,34 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   const receipt = await port.retainOriginalModelState({runDefinition: f.runDefinition,
     storageBinding: binding, bodyWire});
   assert.equal(receipt.cid, digest(bodyWire));
+  let inspected = 0;
+  const forbidden = {get runDefinition() {inspected++; throw Error('ArgsMustNotBeRead');}};
+  for (const fake of [undefined, true, 'sha256:' + '0'.repeat(64), {kind: 'original-infer-metadata-acquisition'}]) {
+    await assert.rejects(port.readOriginalModelStateSelected(forbidden, fake),
+      {code: 'InferOriginalMetadataAcquisitionUnavailable'});
+  }
+  assert.equal(inspected, 0);
+  const acquisition = f.operation.originalMetadataAcquisition(park);
+  const selectedLoaded = await port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
+    storageBinding: binding, receipt}, acquisition);
+  assert.equal(selectedLoaded.wire, bodyWire);
+  // The same real Store issues a historical saved-byte observation. These
+  // cut-shaped data identities still confer no actual journal/restore grant.
+  const identity = {runId: 'current-store', runDefinitionCid: f.runDefinition.identity,
+    preparedInvocationCid: origin.prepared_invocation_cid, scopeCid: cid('8'),
+    inputArtifactCid: cid('7'), providerBindingCid: cid('5'), taskIndex: 0, strategyRevision: 0};
+  const savedArgs = {runDefinition: f.runDefinition, storageBinding: binding, receipt, identity};
+  const saved = await port.confirmOriginalModelStateSavedSelected(savedArgs, acquisition);
+  const savedFacts = port.originalModelStateSavedFacts(saved);
+  assert.equal(savedFacts.documentWire, bodyWire);
+  assert.equal(savedFacts.documentCid, receipt.cid);
+  assert.equal(savedFacts.phase, 'parked');
+  assert.strictEqual(await port.confirmOriginalModelStateSavedSelected(savedArgs, acquisition), saved);
+  assert.strictEqual(await port.confirmOriginalModelStateSaved(savedArgs), saved);
+  await assert.rejects(port.confirmOriginalModelStateSavedSelected(savedArgs, {...acquisition}),
+    {code: 'InferOriginalMetadataAcquisitionUnavailable'});
+  await assert.rejects(port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
+    storageBinding: binding, receipt}, {...acquisition}), {code: 'InferOriginalMetadataAcquisitionUnavailable'});
   const loaded = await port.readOriginalModelState({runDefinition: f.runDefinition,
     storageBinding: binding, receipt});
   assert.equal(loaded.wire, bodyWire);
@@ -92,5 +123,11 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   assert.equal(f.sends(), 0);
   await assert.rejects(f.operation.close(), error => error.code === 'MoonBitHostFailure');
   assert.equal(f.operation.cleanupPending(), true);
+  assert.strictEqual(port.originalModelStateSavedObservationCurrent(saved), saved);
+  assert.strictEqual(port.originalModelStateSavedFacts(saved), savedFacts);
+  await assert.rejects(port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
+    storageBinding: binding, receipt}, acquisition), {code: 'InferOriginalMetadataAcquisitionUnavailable'});
+  await assert.rejects(port.confirmOriginalModelStateSavedSelected(savedArgs, acquisition),
+    {code: 'InferOriginalMetadataAcquisitionUnavailable'});
   assert.equal(f.sends(), 0);
 });

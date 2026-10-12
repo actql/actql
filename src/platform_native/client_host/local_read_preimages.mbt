@@ -138,7 +138,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
     local_read_preimage(self.crypto, [
       ("data_policy_cids", Texts(self.selection.data_policy_cids)),
       ("domain", Text("native_local_read.data_ceiling")),
-      ("expires_at", Text(self.selection.expires_at)),
+      ("expires_at", Text(self.expires_at)),
       ("max_bytes", Quantity(self.selection.max_bytes)),
       ("max_uses", Quantity(self.selection.max_uses)),
       ("read_original_cid", Text(self.file.content_cid)),
@@ -154,7 +154,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
       ("data_ceiling_cid", Text(ceiling.cid)),
       ("domain", Text("native_local_read.egress_admission")),
       ("effective_data_policy_cid", Text(actual_policy_cid)),
-      ("expires_at", Text(self.selection.expires_at)),
+      ("expires_at", Text(self.expires_at)),
       ("format", Text(facts.request.format)),
       ("material_generation_cid", Text(facts.material_generation_cid)),
       ("max_bytes", Quantity(self.selection.max_bytes)),

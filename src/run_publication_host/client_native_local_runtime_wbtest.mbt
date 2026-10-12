@@ -278,3 +278,37 @@ test "packaged runtime joins the existing bounded selection without changing old
     Err(UnsupportedAsset),
   )
 }
+
+///|
+test "finite packaged profile fits the unchanged six installation and eight Host selections" {
+  let runtime = runtime_test_admit(runtime_test_manifest()).unwrap()
+  let originals = client_native_local_finite_product_originals(
+    "/Users/operator/.actql-local",
+    "/product/lib/sqlite.bin",
+    "/product/lib/crypto.bin",
+    "2026-10-12T00:00:00.000Z",
+    product_test_assets(),
+    runtime,
+  ).unwrap()
+  assert_eq(originals.length(), 9)
+  assert_eq(
+    product_test_original(originals, "profile.json"),
+    run_profile_fixture,
+  )
+  assert_eq(
+    product_test_original(originals, "runtime.json"),
+    client_native_local_runtime_original(runtime),
+  )
+  let config = product_asset_value(
+    product_test_original(originals, "config.json"),
+  ).unwrap()
+  assert_eq(
+    @canonical.stringify_value(
+      product_test_field(config, ["native", "local", "installation_files"]),
+      65536,
+      8192,
+      64,
+    ),
+    "[\"read.json\",\"run.json\",\"retention.json\",\"store.json\",\"runtime.json\",\"profile.json\"]",
+  )
+}

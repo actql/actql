@@ -487,6 +487,16 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     fileDigest('reviews/2026-10-12-frontend-temporal-join-calls/preimages/submitted-query-grammar.ebnf'));
   assert.equal(temporalBody.query_text_rules_sha256,
     fileDigest('reviews/2026-10-12-frontend-temporal-join-calls/preimages/submitted-query-rules.md'));
+  // Ranking syntax retains its own original complete contract closure.
+  const {grammar_manifest_cid: rankingCid, ...rankingBody} = read('scripts/fixtures/submitted-ranking-fusion-values-identities.json').grammar;
+  const {grammar_manifest_cid: preRankingCid, ...preRankingBody} = read('scripts/fixtures/pre-ranking-fusion-values-identities.json').grammar;
+  assert.equal(cid(preRankingBody), preRankingCid);
+  assert.equal(cid(rankingBody), rankingCid);
+  assert.deepEqual(rankingBody, {...preRankingBody, query_text_grammar_sha256: rankingBody.query_text_grammar_sha256, query_text_rules_sha256: rankingBody.query_text_rules_sha256});
+  assert.equal(rankingBody.query_text_grammar_sha256,
+    fileDigest('reviews/2026-10-12-frontend-ranking-fusion-calls/preimages/submitted-query-grammar.ebnf'));
+  assert.equal(rankingBody.query_text_rules_sha256,
+    fileDigest('reviews/2026-10-12-frontend-ranking-fusion-calls/preimages/submitted-query-rules.md'));
   assert.deepEqual(nearestBody, {...submittedLagBody,
     query_text_grammar_sha256: nearestBody.query_text_grammar_sha256,
     query_text_rules_sha256: nearestBody.query_text_rules_sha256});
