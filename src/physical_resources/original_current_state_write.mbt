@@ -10,6 +10,23 @@ struct OriginalCurrentStateWrite[T] {
 }
 
 ///|
+// Borrow the SAME cursor only while it belongs to the exact current park.
+// This is not Writer output completion, Store ACK or journal authority.
+pub fn[T] original_current_state_write_current(
+  value : OriginalCurrentStateWrite[T],
+  park : OriginalResourcePark[T],
+) -> OriginalCurrentStateWrite[T]? {
+  guard value.park is Some(original) &&
+    physical_equal(original, park) &&
+    value.writer is Some(_) &&
+    park.origin is Some(origin) &&
+    original_resource_park_current(park, origin) is Some(_) else {
+    return None
+  }
+  Some(value)
+}
+
+///|
 // The dedicated Writer remains the caller's physical cleanup responsibility.
 // Exact currentness and one prepaid codec operation are checked before this
 // cursor allocates. A normal park has no prepaid operation and is refused.
