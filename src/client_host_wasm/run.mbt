@@ -360,7 +360,9 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     .values()
     .any(compute => compute.current_configuration == Some(handle)) ||
     value.submissions.values().any(record => record.configuration == handle) ||
-    value.publishers.values().any(publisher => publisher.configuration == handle) ||
+    value.publishers
+    .values()
+    .any(publisher => publisher.configuration == handle) ||
     value.tasks.values().any(task => task.current_configuration == handle) ||
     value.runs.values().any(run => run.configuration == handle) ||
     value.physical_starts
