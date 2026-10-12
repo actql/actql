@@ -13,6 +13,8 @@ from actql_sdk._local_core import (
 )
 from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import LocalByteStore, ByteWrite, ByteFence, StoredBytes, _NamespaceReader
+from actql_sdk import _wire as wire
+from actql_sdk._values import decode_json
 
 
 def query(callbacks, mode, namespace, key):
@@ -320,9 +322,107 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         callbacks.reader = None
 
     def test_private_loader_matches_changed_abi_imports_and_revision_width(self):
-        self.assertEqual(LOCAL_CORE_ABI, 52)
+        self.assertEqual(LOCAL_CORE_ABI, 55)
         self.assertEqual(_JOURNAL_SIGNATURES, {
             'reserve': ('i64 i32 i32 i32 i64', 'i32'), 'inspect': ('i64 i32', 'i32'),
-            'revision': ('i64 i32 i32', 'i64'), 'close': ('i64 i32', 'i32')})
+            'revision': ('i64 i32 i32', 'i64'), 'admission_length': ('i64 i32', 'i32'), 'close': ('i64 i32', 'i32')})
         self.assertEqual(_IMPORT_SIGNATURES['journal_revision'], ('i32', 'i64'))
         self.assertEqual(_IMPORT_SIGNATURES['journal_begin'], ('i32 i32 i32 i32', 'i32'))
+
+    def admission_bridge(self):
+        core, material, calls, code = self.bridge()
+        loan = core.reserve_journal_observation(material, 8, store=self.store,
+            current=lambda: None, cleanup=lambda: True)
+        # Independent closed public admission, not an actual Core decision.
+        raw = (b'{"ref":{"namespaceId":"scope","authorityScopeCid":"sha256:' + b'b' * 64
+               + b'","runDefinitionCid":"sha256:' + b'a' * 64
+               + b'"},"durability":"durable","revision":0}')
+        copied = []
+        def invoke(family, name, *args):
+            calls.append((family, name, args))
+            if family == 'journal' and name == 'admission_length':
+                self.assertIsNotNone(core._journal_callbacks(loan.ticket).reader)
+                status = core._journal_current(loan.ticket)
+                return status if status != 0 else len(raw) if code[0] == 0 else code[0]
+            if family == 'buffer' and name == 'byte':
+                copied.append(args[1])
+                return raw[args[1]]
+            raise AssertionError('Unexpected physical/semantic primitive')
+        core._call = invoke
+        reader = _NamespaceReader(lambda *a: None, lambda *a: None, self.store,
+                                  lambda: None, check_fences=lambda *_: None)
+        return core, loan, reader, raw, copied, calls, code
+
+    def test_admission_transfer_and_cached_read_both_check_current_snapshot(self):
+        core, loan, reader, raw, copied, calls, code = self.admission_bridge()
+        self.assertTrue(wire.valid(decode_json(raw), 'admission'))
+        self.assertEqual(core.read_journal_admission(loan, reader), raw)
+        self.assertEqual(copied, list(range(len(raw))))
+        self.assertIsNone(core._journal_callbacks(loan.ticket).reader)
+        baseline = len(calls)
+        self.assertEqual(core.read_journal_admission(loan, reader), raw)
+        self.assertEqual([name for _, name, _ in calls[baseline:]],
+                         ['admission_length', 'admission_length'])
+        self.assertIs(core._loans[loan.ticket], loan)
+
+    def test_cached_admission_cannot_bypass_core_current_refusal(self):
+        core, loan, reader, raw, copied, calls, code = self.admission_bridge()
+        self.assertEqual(core.read_journal_admission(loan, reader), raw)
+        code[0] = -32
+        baseline = len(calls)
+        with self.assertRaises(LocalCoreError) as refused:
+            core.read_journal_admission(loan, reader)
+        self.assertEqual(refused.exception.code, -32)
+        self.assertEqual([name for _, name, _ in calls[baseline:]], ['admission_length'])
+        self.assertIsNone(core._journal_callbacks(loan.ticket).reader)
+        self.assertEqual(core._inputs[loan.ticket].payload, raw)
+        self.assertIs(core._loans[loan.ticket], loan)
+
+    def test_admission_physical_failure_preserves_original_exception_and_loans(self):
+        core, loan, reader, raw, copied, calls, code = self.admission_bridge()
+        original = OSError('Original current snapshot unavailable')
+        core._journal_callbacks(loan.ticket).current = lambda: (_ for _ in ()).throw(original)
+        with self.assertRaises(OSError) as refused:
+            core.read_journal_admission(loan, reader)
+        self.assertIs(refused.exception, original)
+        self.assertEqual(copied, [])
+        self.assertIsNone(core._journal_callbacks(loan.ticket).reader)
+        self.assertIs(core._loans[loan.ticket], loan)
+        self.assertIn(1, core._loans)
+
+    def test_admission_foreign_loan_reader_and_closing_reject_before_io(self):
+        core, loan, reader, raw, copied, calls, code = self.admission_bridge()
+        baseline = len(calls)
+        other = _NamespaceReader(lambda *a: None, lambda *a: None, object(),
+                                 lambda: None, check_fences=lambda *_: None)
+        for action in [lambda: core.read_journal_admission(copy.copy(loan), reader),
+                       lambda: core.read_journal_admission(loan, other)]:
+            with self.assertRaises(ValueError):
+                action()
+        core._closing = True
+        with self.assertRaises(ValueError):
+            core.read_journal_admission(loan, reader)
+        self.assertEqual(len(calls), baseline)
+        self.assertEqual(copied, [])
+
+    def test_current_failure_after_copy_never_returns_admission_or_releases_loan(self):
+        core, loan, reader, raw, copied, calls, code = self.admission_bridge()
+        original = PermissionError('Original authority changed during transfer')
+        invoke = core._call
+        lengths = [0]
+        def change(family, name, *args):
+            if family == 'journal' and name == 'admission_length':
+                lengths[0] += 1
+                if lengths[0] == 3:
+                    core._journal_callbacks(loan.ticket).failure = original
+                    return -41
+            return invoke(family, name, *args)
+        core._call = change
+        with self.assertRaises(PermissionError) as refused:
+            core.read_journal_admission(loan, reader)
+        self.assertIs(refused.exception, original)
+        self.assertEqual(copied, list(range(len(raw))))
+        self.assertEqual(core._inputs[loan.ticket].payload, raw)
+        self.assertIs(core._loans[loan.ticket], loan)
+        self.assertIn(1, core._loans)
+        self.assertIsNone(core._journal_callbacks(loan.ticket).reader)

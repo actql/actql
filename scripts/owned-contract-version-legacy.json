@@ -5,6 +5,14 @@
   "description": "Frozen legacy occurrences, not a list of approved version upgrades. Do not regenerate to pass the gate. New versions require an explicit reviewed decision.",
   "entries": [
     {
+      "path": "src/model_execution/native_decision_projection_fixture.generated_wbtest.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "2b4c1ac2898754d7064544bf9a52d6441c5c0b44393f1d8f1bb57fe47cc0fbd1",
+      "line": 15,
+      "count": 1,
+      "reason": "Reviewed October 13 M3 read-only consumer of the already adopted M0a Task0.2 independent fixture. Original Task/prompt bytes and CIDs are unchanged; this exact one context grants no new version, writer or public capability."
+    },
+    {
       "path": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
       "token": "actql-duckdb-managed-column-frames/0.2",
       "contextSha256": "69e574d86bf16898c2a7b46d3c12128c40201941727bfa7582e1fd7b21c8100a",

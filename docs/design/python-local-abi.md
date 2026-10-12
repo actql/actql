@@ -1936,3 +1936,118 @@ or recreate lost keys. After successful SQL setup, the original writer cannot
 resume payload operations and is stopped explicitly; uncertain stop retains
 the same descriptor/root capacity. Neither physical schema setup nor the
 one-time creation claim is Host adoption, Run admission or public acceptance.
+
+`OriginalLocalInstallation` composes these ports for the installed source-free
+profile. Only an empty private installation directory takes the first-bootstrap
+path. Core supplies the seven configuration originals and original selection,
+initialization, configuration custody and journal custody bodies. The physical
+DB file is acquired and its initializing marker synced before schema/key IO.
+Key, selected settings, initial counters and adoption are persisted together in
+one physical transaction. Their existence still requires Common's actual
+adoption/current validation before protected work; physical COMMIT is not a
+Run, publication or durable Result acknowledgement.
+
+Reopen never invokes bootstrap or updates policy/expiry. It reuses exact saved
+bytes and rechecks the original directory, file and Store generations, marker,
+settings membership and epoch custody. Missing/partial material or changed
+Source/Result roots is unavailable, not repaired. Unknown initial COMMIT keeps
+the same Store and originals; later reopen inspects them without repeating the
+initial batch. Setup encoding, raw-byte/descriptor and SQLite workspace loans
+remain held until their original cleanup succeeds. This assembly does not own
+the Core instance, start Source/Compute/Model/Effect, cancel a Run, or constitute
+the installed public Client/wheel acceptance gate.
+
+The Client's private `_connect_local` route consumes the installed Host's
+in-process operation/response port without constructing an HTTP endpoint,
+token or network client. It fixes `mode=local`, `owner=local` and durable
+connection selection; negotiation and every operation continue through the
+existing closed wire validation and the same async/sync Execution/Result models.
+Response collection, reader cleanup and failed-close retry share the existing
+transport custody. An in-process exception after an operation begins remains
+Unknown and never triggers replay. This route supplies no scope, Allow, status
+decision or execution implementation. Installed factory/public `open`, original
+Owner wire projections and the actual public runtime/wheel scenario still have
+to connect before this is a delivered Local Client.
+
+Private ABI53 exposes the original saved admission through
+`actql_journal_admission_length` and the existing reserved buffer transfer.
+The existing retained-Run validator's nominal inspection is held with the
+actual same-Store snapshot; definition namespace, request authority scope and
+immutable admission revision come from those originals. Preparing/missing
+observations cannot issue this view. The full Int64 remains in the journal; an
+unsafe public JSON revision is refused rather than rounded or replaced by a
+later Run/control revision. No wire/schema version or identity preimage changes.
+
+The original current/epoch/configuration frame is checked before producing or
+reading cached admission bytes, and after production/physical copying. Python
+attaches only the original same-Store reader for that call and detaches it on
+all exits; exceptions and cleanup failure preserve the same parent/ticket.
+This read-only transfer issues no new admission, COMMIT ACK, dispatch permit,
+publication or Result. The durable Host's actual saved-row observation and
+current authority are separate from its write candidate and later control
+state. Installed public Host assembly and wheel acceptance remain separate
+from this private bridge.
+# Original submitted-intent append projection
+
+Private ABI54 adds submission projection kind 3 and
+`actql_submission_validate_append(nonce, handle, current) -> i32`. The original
+typed current configuration supplies its same-Store namespace-reader callback.
+The physical Host authenticates the exact epoch before projection; Core checks
+its authority scope and validity, the original complete Run and submitted-intent
+inventories and the existing empty-cancellation profile, and the existing saved-row validators. Core then
+emits either the retained original row or the original issued-row CAS and
+preparing-row insertion candidate. Neither output is a Run admission, permission
+to dispatch, physical write, COMMIT acknowledgement or resend permission.
+
+The existing BufferPool reserves the candidate output and physical copies before
+production. Validation rereads the actual transaction's inventory and compares
+the original candidate before cached transport reads and physical CAS. A changed
+candidate, wrong current handle, closed input/output, unsupported Effect custody
+or query failure refuses without silently narrowing the inspection. Nonempty
+cancellation custody is explicitly unsupported at this connection and remains
+part of the product cancellation work. The Python
+assembly submits the two original writes through `compare_exchange_many_inspected`
+in one fenced SQLite transaction. COMMIT uncertainty retains the original
+Store and loans; it does not replay the writes. Explicit lookup is separate.
+
+This projection does not issue a finite Run Policy. First acceptance must select
+the adopted Common finite profile and persist its original issuedAt/Policy packet
+with the original Run/intent transaction. Lookup and restoration reuse that saved
+packet without extending prior Result, grant or receipt deadlines. Those Owner
+connections and actual runtime/wheel acceptance remain separate from this ABI's
+compiler and scalar physical-port checks.
+
+### Explicit SDK first-install selection
+
+Private ABI55 adds `actql_bootstrap_produce_sdk`. Its explicitly selected factory
+retains the seven original bootstrap bodies and adds `run_policy_profile` and
+`sdk_read`. The original producer's seven-field output is unchanged. A loan
+cannot switch producers after invocation; SDK and original transports have
+distinct nominal Python families. Installed component admission requires the
+matching ABI rather than falling back to an older module.
+
+The Common delivery metadata Owner issues the closed
+`actql-local-sdk-result-read-selection/0.1` body and its exact-byte SHA256 CID.
+It selects principal `local-cli`, connection `local`, Result `answer`, purpose
+`python-local-read`, sink `sdk-rows`, existing `jsonl` serialization,
+`max_bytes=65536` and `max_uses=1`. It binds the original finite profile and data
+Policy CIDs. Sink selection introduces no new Result format. Metadata admission
+is not Account authorization, a grant, a delivery attempt or durable acceptance.
+
+The SDK factory persists nine source originals, with exactly eight selected
+files excluding Account. Each of the two extra originals is limited to 8192
+bytes during acquisition and pinning. An additional 131072-byte shared workspace
+reservation (eight times their combined maximum) precedes producer or physical
+acquisition, including restoration. The existing bounded producer output/copy
+reservation remains separate; no selected-file, byte, fuel or pool ceiling is
+increased. Failure retains its original loans. Missing finite/read files in a
+saved installation do not trigger rebootstrap, adoption or an automatic upgrade.
+
+No absolute read expiry appears in the SDK read selection. Initial acceptance
+must bind its exact CID, original adoption, reference/request and Run Definition
+in the saved Common policy packet and commit it with the original Run. Lookup
+precedes new issuance. Read expiry comes only from the Common-admitted saved
+packet; current Account permission, original selected file generations,
+committed index/manifest/retention and grant usage remain independent checks.
+Whole-process, compiled-module and SDK non-buffer accounting is not established
+by these bounded metadata reservations.

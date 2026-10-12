@@ -8,7 +8,7 @@ import secrets
 from typing import Any
 
 from . import _wire
-from ._local_storage import ByteFence, LocalByteStore, LocalStorageError
+from ._local_storage import ByteFence, ByteWrite, LocalByteStore, LocalStorageError
 
 _KEY = 'submission-epoch-authority'
 _MAX_TTL = 7 * 24 * 60 * 60 * 1000
@@ -58,7 +58,8 @@ class LocalSubmissionAuthority:
     """
 
     def __init__(self, store: LocalByteStore, project: Callable[[int, bytes], bytes], *,
-                 now: Callable[[], int], ttl_ms: int = _MAX_TTL) -> None:
+                 now: Callable[[], int], ttl_ms: int = _MAX_TTL,
+                 _initial_rows: tuple[ByteWrite, ...] = ()) -> None:
         if (type(store) is not LocalByteStore or not callable(project) or not callable(now)
                 or type(ttl_ms) is not int or not 1 <= ttl_ms <= _MAX_TTL):
             raise ValueError('Invalid Local Submission epoch interval')
@@ -72,13 +73,22 @@ class LocalSubmissionAuthority:
         self._ttl = ttl_ms
         row = store.read(_KEY)
         fresh = store.claim_creation()
+        if (type(_initial_rows) is not tuple or any(type(write) is not ByteWrite
+                or write.expected_generation is not None or write.key == _KEY for write in _initial_rows)
+                or _initial_rows and (row is not None or not fresh)):
+            raise LocalSubmissionIdentityError('Original Local initial custody cannot be replaced')
         if row is None:
             if not fresh:
                 raise LocalSubmissionIdentityError('Local Submission authentication custody is missing')
             payload = json.dumps({'authentication_key': secrets.token_hex(32),
                                   'observed_at': 0}, separators=(',', ':')).encode()
             try:
-                if store.compare_exchange(_KEY, None, payload) != 0:
+                if _initial_rows:
+                    writes = (ByteWrite(_KEY, None, payload), *_initial_rows)
+                    created = store.compare_exchange_many(writes) == (0,) * len(writes)
+                else:
+                    created = store.compare_exchange(_KEY, None, payload) == 0
+                if not created:
                     raise LocalSubmissionIdentityError('Local Submission authority creation is unknown')
             except LocalStorageError as original:
                 raise LocalSubmissionIdentityError('Local Submission authority creation is unknown') from original

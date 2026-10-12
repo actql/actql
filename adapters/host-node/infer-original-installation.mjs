@@ -11,6 +11,38 @@ const count = (value, minimum = 0) => Number.isSafeInteger(value) && value >= mi
 const unavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
   {code: 'InferOriginalMetadataAcquisitionUnavailable'}); };
 
+// Shared codec DATA validation only, never an installation or capacity grant.
+export function snapshotInferOriginalCurrentStateCodec(codec) {
+  const fail = () => {throw Object.assign(new Error('ModelOriginalCurrentCodecUnavailable'),
+    {code:'ModelOriginalCurrentCodecUnavailable'});};
+  const bounded = (value, fields) => keys(value, fields) &&
+    Object.values(Object.getOwnPropertyDescriptors(value)).every(d=>'value' in d) &&
+    Object.values(value).every(n=>Number.isSafeInteger(n)&&n>=0&&n<=2147483647);
+  if (!keys(codec, 'comparisonWork,decode,quantum') ||
+      !Object.values(Object.getOwnPropertyDescriptors(codec)).every(d=>'value' in d) ||
+      !Number.isSafeInteger(codec.quantum)||codec.quantum<1||codec.quantum>2147483647 ||
+      !Number.isSafeInteger(codec.comparisonWork)||codec.comparisonWork<1||codec.comparisonWork>2147483647 ||
+      !keys(codec.decode, 'maxWork,parse,tree') ||
+      !Object.values(Object.getOwnPropertyDescriptors(codec.decode)).every(d=>'value' in d) ||
+      !Number.isSafeInteger(codec.decode.maxWork)||codec.decode.maxWork<1||codec.decode.maxWork>2147483647 ||
+      !bounded(codec.decode.parse, 'max_depth,max_input_bytes,max_nodes') ||
+      !bounded(codec.decode.tree, 'max_depth,max_nodes,max_string_bytes,max_total_string_bytes')) fail();
+  return Object.freeze({quantum:codec.quantum,comparisonWork:codec.comparisonWork,
+    decode:Object.freeze({maxWork:codec.decode.maxWork,parse:Object.freeze({...codec.decode.parse}),
+      tree:Object.freeze({...codec.decode.tree})})});
+}
+
+// Only the exact retained installation supplies this finite serializer role.
+// Matching codec fields/CIDs or a copied selection do not select it.
+export function selectedInferOriginalCurrentStateCodec(original, nodeInstallation) {
+  if (!originals.has(original) || original.nodeInstallation!==nodeInstallation ||
+      original.currentStateCodec===undefined) {
+    throw Object.assign(new Error('InferOriginalStateCodecUnavailable'),
+      {code:'InferOriginalStateCodecUnavailable'});
+  }
+  return original.currentStateCodec;
+}
+
 function retainMetadata(value) {
   if (value === undefined) return undefined;
   if (!keys(value, 'directory,metadata,retainedBytes,workspaceBytes') ||
@@ -50,7 +82,7 @@ export function selectedInferOriginalStoreBootstrapLimits(original, nodeInstalla
 export function retainInferOriginalReadInstallation(value) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).filter(name => !['metadataAcquisition', 'storeBootstrap'].includes(name)).sort().join(',') !==
+      Object.keys(value).filter(name => !['metadataAcquisition', 'storeBootstrap', 'currentStateCodec'].includes(name)).sort().join(',') !==
         'bootstrap,modelExecutionBytes,modelRetainedBytes,nodeInstallation' ||
       !keys(value.bootstrap,
         'bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations') ||
@@ -73,6 +105,8 @@ export function retainInferOriginalReadInstallation(value) {
   // still checks every original reference and all-R bound before read reserve
   // and again before one-shot claim. There is no permissive fallback.
   const metadataAcquisition = retainMetadata(value.metadataAcquisition);
+  const currentStateCodec = value.currentStateCodec===undefined ? undefined
+    : snapshotInferOriginalCurrentStateCodec(value.currentStateCodec);
   const storeBootstrap = value.storeBootstrap;
   if (storeBootstrap !== undefined &&
       (!keys(storeBootstrap, 'maxDirectoryEntries,maxWireBytes') ||
@@ -90,6 +124,7 @@ export function retainInferOriginalReadInstallation(value) {
       runtimeArtifactCid: node.runtimeArtifactCid, layoutArtifactCid: node.layoutArtifactCid,
       probability: node.probability}),
     ...(metadataAcquisition === undefined ? {} : {metadataAcquisition}),
+    ...(currentStateCodec === undefined ? {} : {currentStateCodec}),
     ...(storeBootstrap === undefined ? {} : {storeBootstrap: Object.freeze({...storeBootstrap})})});
   originals.add(retained);
   return retained;
