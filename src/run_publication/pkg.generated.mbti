@@ -490,6 +490,8 @@ pub fn model_observation_slot_at(RunEvidenceValue, Int) -> String?
 
 pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
 
+pub fn model_original_resource_origin_field(ModelOriginalResourceDocument, String) -> String?
+
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
 pub fn model_raw_capture_policy_originals(BoundModelRawCapturePolicy) -> Array[CapturedEffectDependencyBody]
@@ -637,6 +639,8 @@ pub fn publication_snapshot_state_text(PublicationSnapshot) -> String
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
 
 pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelCaptureBundleRead, RunEvidenceValueIssue]
+
+pub fn read_model_original_resource_document(String, Int, Int, Int) -> Result[ModelOriginalResourceDocument, PublicationContractIssue]
 
 pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
@@ -1326,6 +1330,8 @@ pub(all) struct ModelInvocationBoundary {
   configuration_contract_cid : String
   provider_configuration_cid : String
 } derive(Eq, @debug.Debug)
+
+type ModelOriginalResourceDocument
 
 pub struct ModelSourceObservation {
   source : RunEvidenceValue

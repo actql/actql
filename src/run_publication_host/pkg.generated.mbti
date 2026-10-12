@@ -158,6 +158,8 @@ pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[U
 
 pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, ClientCompiledRun) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
+pub fn check_client_model_original_checked_origin(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelOriginalOriginIssue]
+
 pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
 
 pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayout?, ClientInferPlanGraph, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelPreparationLayoutIssue]
@@ -1887,6 +1889,13 @@ pub(all) enum ClientModelInputCapacityIssue {
   ForeignCallScope
   ForeignInput
   Read(ClientModelReadPreparationIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientModelOriginalOriginIssue {
+  Unavailable
+  ForeignRun
+  OriginMismatch(String)
+  Layout(ClientModelPreparationLayoutIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientModelPreparationLayoutIssue {
