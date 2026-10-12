@@ -2412,6 +2412,18 @@ function publicationControl(moon) {
       return checked(moon.clientProgramFinishInferOriginalReadScope(scope,
         value, token(definition), graph, originalRunCleanupComplete));
     },
+    settleCheckedClientInferOriginalReadPreparation(compiled, definition, graph,
+      read, physicalCleanupComplete) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (typeof physicalCleanupComplete !== 'boolean') {
+        throw new TypeError('Invalid original read cleanup observation');
+      }
+      return checked(moon.clientProgramSettleInferOriginalReadPreparation(read,
+        value, token(definition), graph, physicalCleanupComplete));
+    },
     // Reuse the original compiled/definition token domains. A public wrapper
     // object cannot be passed as a nominal MoonBit compiled Run or contract.
     claimCheckedClientInferNodePreparationLayout(compiled, definition, graph, read,
