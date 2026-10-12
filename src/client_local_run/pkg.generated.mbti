@@ -171,6 +171,8 @@ pub fn validate_local_publication_preflight_current(LocalPublicationPreflight, @
 
 pub fn validate_local_result_publication_current(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalResultPublicationIssue]
 
+pub fn validate_local_saved_submitted_rows(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, String, Int64, Bytes, String, Int64, Bytes) -> Result[Unit, LocalSubmittedRunRowsIssue]
+
 // Errors
 
 // Types and methods

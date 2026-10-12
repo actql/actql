@@ -1,4 +1,38 @@
 ///|
+fn submitted_run_admission_body(
+  admission : NativeClientSubmittedRunAdmission,
+) -> Result[String, NativeClientRunJournalIssue] {
+  @host.client_submitted_run_admission_wire(
+    admission.request,
+    admission.run_definition_cid,
+    admission.revision,
+  ).map_err(issue => {
+    match issue {
+      @host.Encoding => Encoding
+      @host.CustodyLost => CustodyLost
+    }
+  })
+}
+
+///|
+fn read_submitted_run_admission(
+  wire : String,
+) -> Result[NativeClientSubmittedRunAdmission, NativeClientRunJournalIssue] {
+  @host.admit_client_submitted_run_admission_wire(wire)
+  .map(value => {
+    request: value.0,
+    run_definition_cid: value.1,
+    revision: value.2,
+  })
+  .map_err(issue => {
+    match issue {
+      @host.Encoding => Encoding
+      @host.CustodyLost => CustodyLost
+    }
+  })
+}
+
+///|
 fn submitted_run_test_input(
   reference : NativeClientSubmissionReference,
   run_id : String,

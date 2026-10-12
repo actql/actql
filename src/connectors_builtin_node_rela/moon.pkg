@@ -54,5 +54,4 @@ import {
   "actql/actql/source_frontend",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
-  "actql/actql/parameter_binding",
 }
