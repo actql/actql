@@ -13,6 +13,7 @@ fn original_request_call_fixture(
     Ref(evidence_account(@authorization.Allow)),
     Ref("2026-10-02T00:00:00.000Z"),
     Ref(Some(egress_fixture_observation())),
+    asynchronous=true,
     configure=active => {
       bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
       bind_physical_preflight(active, request => {

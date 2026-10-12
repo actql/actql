@@ -1,0 +1,1 @@
+WITH source_rows AS (SELECT 1 AS node_key, 0 AS occurred_ms), g AS (GRAPH (NODE TABLES (source_rows AS N KEY (node_key) PROPERTIES (occurred_ms)))) FROM GRAPH g |> node_rows() |> to_events(id: node_key, time: occurred_ms) |> events() |> SELECT node_key, occurred_ms;

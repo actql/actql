@@ -350,6 +350,7 @@ fn emit_strategy_assessment(
           ForeignOwner => "foreign_owner"
           ClosedReservation => "closed_reservation"
           ClosedHolding => "closed_holding"
+          ResourceParked => "resource_parked"
           InvalidCharge => "invalid_charge"
         },
       )

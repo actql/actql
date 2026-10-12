@@ -44,6 +44,10 @@ pub fn allocate_shared_capacity(
   owner : SharedCapacity,
   bytes : Int64,
 ) -> Result[SharedAllocation, LedgerIssue] {
+  match check_original_resources_mutable(owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if owner.closing || !reservation_open(owner.reservation) {
     return Err(ClosedReservation)
   }
@@ -65,6 +69,10 @@ pub fn borrow_shared_capacity(
   if !physical_equal(owner, allocation.owner) {
     return Err(ForeignOwner)
   }
+  match check_original_resources_mutable(owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if owner.closing ||
     !reservation_open(owner.reservation) ||
     allocation.retiring ||
@@ -80,8 +88,15 @@ pub fn borrow_shared_capacity(
 
 ///|
 /// A request to retire a copy forbids new readers but releases no capacity.
-pub fn retire_shared_capacity(allocation : SharedAllocation) -> Unit {
+pub fn retire_shared_capacity(
+  allocation : SharedAllocation,
+) -> Result[Unit, LedgerIssue] {
+  match check_original_resources_mutable(allocation.owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   allocation.retiring = true
+  Ok(())
 }
 
 ///|
@@ -90,6 +105,10 @@ pub fn return_shared_capacity(
   borrow : SharedBorrow,
 ) -> Result[Unit, LedgerIssue] {
   let allocation = borrow.allocation
+  match check_original_resources_mutable(allocation.owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if borrow.returned || allocation.readers <= 0 {
     return Err(InvalidCharge)
   }
@@ -103,6 +122,10 @@ pub fn return_shared_capacity(
 pub fn release_shared_capacity(
   allocation : SharedAllocation,
 ) -> Result[Unit, LedgerIssue] {
+  match check_original_resources_mutable(allocation.owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if allocation.released {
     return Err(ClosedHolding)
   }
@@ -118,6 +141,10 @@ pub fn release_shared_capacity(
 pub fn close_shared_capacity(
   owner : SharedCapacity,
 ) -> Result[Unit, LedgerIssue] {
+  match check_original_resources_mutable(owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   owner.closing = true
   mark_cleanup_pending(owner.ledger, owner.reservation)
 }
