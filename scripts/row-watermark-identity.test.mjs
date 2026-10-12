@@ -8,9 +8,9 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 test('row watermark independently reseals grammar identities and retains dedupe preimages', () => {
   const before = read('scripts/fixtures/pre-row-watermark-values-identities.json');
   assert.deepEqual(before, read('scripts/fixtures/submitted-event-dedupe-values-identities.json'));
-  const expected = rowWatermarkIdentityOracle();
+  const expected = rowWatermarkIdentityOracle({grammarPath:'scripts/fixtures/pre-lag-query-grammar.ebnf',rulesPath:'scripts/fixtures/pre-lag-query-rules.md'});
   assert.deepEqual(expected, read('scripts/fixtures/submitted-row-watermark-values-identities.json'));
-  assert.deepEqual(expected.grammar, read('spec/manifests/actql-grammar-0.1.json'));
+  // The submitted watermark grammar remains frozen before the Lag entry.
   assert.equal(before.run_preimages.run.run_definition_cid,
     'sha256:ee6dcf46205c4295ce5d403b9303f6e40f07db15ff270d6de6914539f5f43c39');
   assert.notEqual(expected.run_preimages.run.run_definition_cid, before.run_preimages.run.run_definition_cid);

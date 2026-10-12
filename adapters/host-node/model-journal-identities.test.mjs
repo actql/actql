@@ -20,7 +20,7 @@ const hash = value => `sha256:${createHash('sha256').update(canonical(value)).di
 const checked = wire => {const value = JSON.parse(wire); assert.equal(value.ok, true, wire); return value;};
 const request = {...Object.fromEntries(Object.entries(fixture.request)
   .filter(([key]) => key !== 'checkpointWire' && key !== 'reviewWire')),
-fixedInputReceiptWire: JSON.stringify({testOnly: true})};
+fixedInputReceiptWire: JSON.stringify({testOnly: true, cid: hash({fixedOriginalInput: true})})};
 const inventory = checked(runtime.modelImmediateCallSetAdmit(JSON.stringify(request)));
 const identityKeys = ['runId', 'runDefinitionCid', 'preparedInvocationCid', 'scopeCid',
   'providerBindingCid', 'inputArtifactCid', 'taskIndex', 'strategyRevision'];
@@ -174,4 +174,22 @@ test('actual journal reselects facts after projection callback and refuses chang
   assert.throws(() => journal.originalModelJournalDataIdentities(observation), {code: 'ModelOriginalJournalObservationChanged'});
   assert.equal(journal.readModelCalls(identity).slots[0].state, 'EnteredUnknown');
   assert.equal(journal.modelCancellationFenced(identity.runId, identity.runDefinitionCid), true);
+});
+
+test('actual journal Common cut projects original latest Entry and unsent Slot without grant', t => {
+  const f = openActual(t);
+  const observation = f.journal.observeOriginalModelJournal(identity);
+  const facts = f.journal.originalModelJournalObservationFacts(observation);
+  const actual = checked(runtime.modelOriginalJournalCutData(JSON.stringify(facts)));
+  assert.deepEqual(actual.cut, {scope_cid: identity.scopeCid,
+    input_artifact_cid: identity.inputArtifactCid,
+    fixed_input_receipt_cid: hash({fixedOriginalInput: true}), run_version: 1,
+    continuation: null, slots: [{ordinal: 0, slot_cid: attempt.slot_cid,
+      attempt_index: 1, state: 'EnteredUnknown', entry_identity_cid: hash(entryBody()), settlement_identity_cid: null},
+    {ordinal: 1, slot_cid: JSON.parse(request.slotWires[1]).model_call_slot_cid,
+      attempt_index: 0, state: 'Unsent', entry_identity_cid: null, settlement_identity_cid: null}]});
+  assert.equal(Object.hasOwn(actual, 'park'), false);
+  const changed = structuredClone(facts); changed.slots[0].attempt_index = 0;
+  assert.equal(JSON.parse(runtime.modelOriginalJournalCutData(JSON.stringify(changed))).ok, false);
+  changed.slots = []; assert.equal(JSON.parse(runtime.modelOriginalJournalCutData(JSON.stringify(changed))).ok, false);
 });
