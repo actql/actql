@@ -707,9 +707,18 @@ pub fn client_program_start_original_generated_infer_execution(
   model_execution_bytes : Int64,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_original_generated(
-    prepared, compiled, generation, graph, provider,
-    @infer_host.standard_limits(), definition, consumer,
-    read_retained_bytes, read_execution_bytes, model_retained_bytes, model_execution_bytes,
+    prepared,
+    compiled,
+    generation,
+    graph,
+    provider,
+    @infer_host.standard_limits(),
+    definition,
+    consumer,
+    read_retained_bytes,
+    read_execution_bytes,
+    model_retained_bytes,
+    model_execution_bytes,
   )
 }
 
@@ -729,9 +738,18 @@ pub fn client_program_start_original_generated_infer_inputs(
   model_execution_bytes : Int64,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_original_generated_inputs(
-    compiled, generation, graph, inputs, provider,
-    @infer_host.standard_limits(), definition, consumer,
-    read_retained_bytes, read_execution_bytes, model_retained_bytes, model_execution_bytes,
+    compiled,
+    generation,
+    graph,
+    inputs,
+    provider,
+    @infer_host.standard_limits(),
+    definition,
+    consumer,
+    read_retained_bytes,
+    read_execution_bytes,
+    model_retained_bytes,
+    model_execution_bytes,
   )
 }
 

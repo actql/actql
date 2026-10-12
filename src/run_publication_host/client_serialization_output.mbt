@@ -98,15 +98,9 @@ pub fn complete_client_serialization_output(
       1 => @values.checked_text_value(generated.media_type, contract)
       2 => @values.checked_text_value(generated.name, contract)
       3 =>
-        @values.checked_number_value(
-          generated.row_count.to_double(),
-          contract,
-        )
+        @values.checked_number_value(generated.row_count.to_double(), contract)
       _ =>
-        @values.checked_number_value(
-          generated.size_bytes.to_double(),
-          contract,
-        )
+        @values.checked_number_value(generated.size_bytes.to_double(), contract)
     }
     guard value is Some(value) else {
       @execution.cancel_admitted_output(stream) |> ignore
