@@ -31,6 +31,13 @@ by the current scalar-id `to_vectors` entry and is not silently approximated.
   not runtime values or public E2E evidence.
 - `run-qFzsMM`: changed-file pinned formatting; `run-F3lH4B`: generated affected
   Query interfaces. Both completed with exit 0.
+- `run-qS5rJd`: working-source JS 18/18 adds a handwritten complete machine
+  Program and compares full checked output contracts with its source counterpart.
+- `run-X84Dat`: affected Query syntax/program/source API consumption compiled
+  on JS/Wasm/Native. This is compilation, with Native/Wasm execution 0.
+- `run-csgNzt`: Node 79/80; a second current-grammar assertion still named the
+  retained Lag grammar. The independent NEAREST preimage supplies its new
+  grammar CID; the old Lag fixture itself remains byte-identical.
 
 Original raw receipts and output remain under this worktree's `_build`; failure
 records are not replaced by later success. Each working-source receipt includes
@@ -41,3 +48,12 @@ NULL/type failures, result rows/full schemas, resend/attach and cleanup still ne
 the original finite public matrix. F01–03 are separately integrated and retain
 their pending public acceptance. This unit adds no Heavy reservation or global
 Core/CI gate and does not complete F04/P2 by parser or checker success alone.
+
+`independent.program.json`, `input-contracts.json`, the four `.sql` inputs and
+`expected.json` are independent prepared controls, not execution receipts. The
+existing public consumer is reused by `nearest-carrier-public-input.mjs`; its
+ten submitted SQL/AQL-text recipes retain the old independent KEEP rows and
+complete schema, with five exact invalid-input refusal recipes. This preparation
+does not install sources or run a Host. Flat ordinary Relation operations before
+a typed candidate, typed set heads, and composite Relation conversion remain
+explicit connection gaps, not completed cases or alternative language rules.

@@ -1472,17 +1472,21 @@ permission, synthetic ID, output key witness, implicit sort, retry or alternate
 execution engine is supplied by the frontend. The flat pair key remains common
 owner evidence; nesting its values does not declare an arbitrary object key.
 
-Optional role pairs are retained by the parser. Their typed Vectors lowering
-and the four Relation/Vectors operand combinations are being connected to the
-existing nearest owner; parser acceptance alone does not establish execution.
-Implementation support for the existing explicit path is source construction
-for a linear Relation Pipe with singleton keys. Composite-key syntax is adopted, but its lowering
-reports UnsupportedNearest until the common Program bridge can express that
-identity tuple. Combining NEAREST with CTE/set/JOIN query assembly is also
-pending and explicitly rejected. These are implementation gaps, not permanent
-language restrictions. Object/property execution is a separate common-owner
-dependency; source construction and type checking do not claim packed Host
-execution or successful publication.
+Optional role pairs are retained by the parser. The typed continuation resolves
+the actual input Carriers and connects all four Relation/Vectors combinations
+to the existing nearest owner when NEAREST starts the input Pipe or follows a
+supported Carrier prefix. WITH producers retain their original binding owner.
+Typed Vectors keep their admitted identity/component roles and may restate them
+exactly; only Relation sides use rows-to-Vectors conversion. KEEP uses ordinary
+row bridges and does not replace either Vectors identity. Composite Vectors use
+the common ordered identity components when constructing named output keys.
+
+Relation conversion currently supports singleton keys. Composite Relation keys
+remain an UnsupportedNearest gap in the scalar-id Program bridge. A typed
+candidate after an earlier ordinary Relation Pipe operation, or a typed set
+head, still needs its finite continuation connection; these are implementation
+gaps, not permanent language restrictions. Parser/lowering and checked output
+contracts do not establish installed Host execution or successful publication.
 
 ## WITH producers and pure Graph construction
 

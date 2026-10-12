@@ -459,12 +459,18 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(submittedLagBody, {...beforeLagBody,
     query_text_grammar_sha256: submittedLagBody.query_text_grammar_sha256,
     query_text_rules_sha256: submittedLagBody.query_text_rules_sha256});
-  assert.deepEqual(currentBody, submittedLagBody);
+  const nearest = read('scripts/fixtures/submitted-nearest-carrier-values-identities.json').grammar;
+  const {grammar_manifest_cid: nearestCid, ...nearestBody} = nearest;
+  assert.equal(cid(nearestBody), nearestCid);
+  assert.deepEqual(currentBody, nearestBody);
+  assert.deepEqual(nearestBody, {...submittedLagBody,
+    query_text_grammar_sha256: nearestBody.query_text_grammar_sha256,
+    query_text_rules_sha256: nearestBody.query_text_rules_sha256});
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
   assert.equal(beforeInnerBody.query_text_rules_sha256, "afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e");
-  assert.equal(cid(currentBody), currentExpected);
+  assert.equal(cid(currentBody), nearestCid);
   // Preserve the complete predecessor before adding a numeric type alias.
   const {grammar_manifest_cid: beforeDoubleCid, ...beforeDoubleBody} =
     read('scripts/fixtures/pre-double-type-alias-grammar.json').grammar;

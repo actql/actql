@@ -8,9 +8,9 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 test('Lag independently reseals grammar identities and retains watermark preimages', () => {
   const before = read('scripts/fixtures/pre-lag-values-identities.json');
   assert.deepEqual(before, read('scripts/fixtures/submitted-row-watermark-values-identities.json'));
-  const expected = lagIdentityOracle();
+  const expected = lagIdentityOracle({grammarPath:'reviews/2026-10-12-frontend-nearest-carrier-roles/preimages/query-grammar.ebnf',rulesPath:'reviews/2026-10-12-frontend-nearest-carrier-roles/preimages/query-rules.md'});
   assert.deepEqual(expected, read('scripts/fixtures/submitted-lag-values-identities.json'));
-  assert.deepEqual(expected.grammar, read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(expected.grammar, read('reviews/2026-10-12-frontend-nearest-carrier-roles/preimages/grammar-manifest.json'));
   assert.equal(before.run_preimages.run.run_definition_cid,
     'sha256:f20f0c27ff197830a5bb7fd601e02d738547745bd1657cb42db376f754498adb');
   assert.notEqual(expected.run_preimages.run.run_definition_cid, before.run_preimages.run.run_definition_cid);
