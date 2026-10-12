@@ -124,6 +124,8 @@ pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], Ori
 
 pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
 
+pub fn original_ledger_prefix_available(OriginalLedgerIdentity) -> Bool
+
 pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
 
 pub fn[T] original_resource_invalidation_current(OriginalResourceInvalidationRequest[T], OriginalResourcePark[T], T) -> OriginalResourceInvalidationRequest[T]?

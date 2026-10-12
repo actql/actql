@@ -14,6 +14,7 @@ struct ClientSerializationPrefix {
 ///|
 pub(all) enum ClientSerializationPrefixIssue {
   Unavailable
+  Original(@publication_host.ClientModelReadPreparationIssue)
   Physical(@resources.LedgerIssue)
   Provider(@connector.FixedComputeIssue)
   Capture(@query.CapturedSourceIssue)

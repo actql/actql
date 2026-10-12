@@ -14,6 +14,57 @@ fn serialization_test_ledger(
 }
 
 ///|
+test "original serialization prefix cleanup preserves same census until child and Run ACK" {
+  let ledger = @resources.create_ledger({
+    planning_work: 3,
+    attempts: 2,
+    holdings: 1,
+    transfer_bytes: 0L,
+    retained_bytes: 20L,
+    execution_bytes: 12L,
+  }).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = @resources.begin_original_ledger_inventory(
+    ledger, bootstrap, 3, 1, 0,
+  ).unwrap()
+  assert_true(@resources.original_ledger_prefix_available(identity))
+  let reservation = @resources.reserve_attempt(ledger, 0L, 7L, 5L).unwrap()
+  let closes = Ref(0)
+  let child = @local.managed_provider_execution(
+    _ => Ok(@local.managed_provider_continue(1L, 1L)),
+    () => true,
+    () => true,
+    () => {
+      closes.val += 1
+      match closes.val {
+        1 => Err(@connector.Execution(@execution.InputSet))
+        2 => Ok(false)
+        _ => Ok(true)
+      }
+    },
+  )
+  let prefix = bind_serialization_prefix_reservation(child, ledger, reservation)
+  assert_true(cleanup_client_serialization_prefix(prefix) is Err(Provider(_)))
+  assert_true(cleanup_client_serialization_prefix(prefix) is Ok(false))
+  assert_false(@resources.original_ledger_prefix_available(identity))
+  assert_false(
+    @resources.finish_original_ledger_inventory(ledger, false).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 7L)
+  assert_true(@resources.reservation_open(reservation))
+  assert_true(cleanup_client_serialization_prefix(prefix) is Ok(true))
+  assert_false(@resources.original_ledger_prefix_available(identity))
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_true(
+    @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_true(cleanup_client_serialization_prefix(prefix) is Ok(true))
+  assert_eq(closes.val, 3)
+}
+
+///|
 test "serialization input keeps the original reservation through cleanup failure and retry" {
   let ledger = serialization_test_ledger(10L, 20L)
   let reservation = @resources.reserve_attempt(ledger, 0L, 10L, 20L).unwrap()
