@@ -2,4 +2,9 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
 }
+
+import {
+  "actql/actql/source_value" @source,
+} for "wbtest"
