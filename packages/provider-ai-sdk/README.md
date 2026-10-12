@@ -50,6 +50,17 @@ phase payloads, output tuple and Node progress reference/callback/context overla
 must be funded before normal startup; this private integration supplies no
 numerical layout, public capability or execution permission.
 
+The private physical preflight can retain the original operation's raw binder
+before Approval. Its installed continuation supplies one actual Store persistence
+port after nominal raw registration, before returning dispatch and creating an
+Entry. Known missing Store/wake installation refuses before Approval. Registration
+pending is not a fabricated capture grant: the existing approval path must finish
+binding first. The port belongs to that exact operation and registration; copies,
+another operation and rebinding refuse. A missing binding observed after an Entry
+cannot start transport or regain the consumed attempt when a late binding arrives.
+It keeps the original Unknown/cleanup responsibility. This is the initial private
+one-Slot connection, not accepted public funding or multi-Slot raw persistence.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final
