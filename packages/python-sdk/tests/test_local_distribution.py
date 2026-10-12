@@ -26,8 +26,8 @@ class LocalDistributionTests(unittest.TestCase):
         self.enterContext(patch('actql_sdk._local_distribution.sys.platform', 'darwin'))
         self.enterContext(patch('actql_sdk._local_distribution.platform.machine', return_value='arm64'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-                     'platform': 'darwin-arm64', 'core_abi': 52, 'wasmtime_version': '38.0.0',
-                     'duckdb_version': 'v1.5.5', 'notices': {}}
+                     'platform': 'darwin-arm64', 'core_abi': 53, 'wasmtime_version': '38.0.0',
+                     'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = b'fixture component ' + name.encode()
             (self.directory / name).write_bytes(value)
@@ -50,12 +50,12 @@ class LocalDistributionTests(unittest.TestCase):
         self.assertEqual(result.module, self.directory / 'client_host_wasm.wasm')
         self.assertEqual(result.duckdb, self.directory / 'libduckdb.dylib')
         self.assertEqual(result.source_sha, 'a' * 40)
-        self.assertEqual(result.duckdb_version, 'v1.5.5')
+        self.assertEqual(result.duckdb_version, 'v1.4.3')
 
     def test_manifest_cohort_abi_and_closed_fields_reject(self):
         original = dict(self.body)
         for field, value in [('source_sha', 'a' * 39), ('package_version', 'other'),
-                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', True), ('platform', 'linux-x64'),
+                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', 52), ('core_abi', True), ('platform', 'linux-x64'),
                              ('wasmtime_version', '37.0.0'), ('duckdb_version', 'unknown'),
                              ('extra', 'ignored')]:
             with self.subTest(field=field, value=value):
@@ -66,9 +66,22 @@ class LocalDistributionTests(unittest.TestCase):
         self.body = original
         self.write_manifest()
 
+    def test_other_duckdb_versions_cannot_enter_selected_installed_profile(self):
+        # The selected standalone version is independently fixed by the
+        # vendor manifest and artifact producer, not a product response.
+        original = dict(self.body)
+        with patch('actql_sdk._local_core.import_module',
+                   side_effect=AssertionError('Engine imported')):
+            for version in ('v1.4.2', 'v1.5.5', 'v2.0.0'):
+                with self.subTest(version=version):
+                    self.body = original | {'duckdb_version': version}
+                    self.write_manifest()
+                    with self.assertRaisesRegex(LocalInstallationError, 'cohort is incompatible'):
+                        self.inspect()
+
     def test_duplicate_manifest_and_oversized_manifest_reject(self):
         path = self.directory / 'artifact.json'
-        path.write_text(json.dumps(self.body)[:-1] + ', "core_abi": 52}')
+        path.write_text(json.dumps(self.body)[:-1] + ', "core_abi": 53}')
         with self.assertRaisesRegex(LocalInstallationError, 'Duplicate'):
             self.inspect()
         path.write_bytes(b' ' * 65537)
