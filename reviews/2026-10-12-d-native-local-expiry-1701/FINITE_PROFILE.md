@@ -1,8 +1,9 @@
 # Native Local finite Run policy profile
 
 This is the first portable unit for #1701, not installed CLI completion.
-The adopted change fixes the initial-adoption lifetime bug. It does not add
-execution, publication, read, credential or external egress permission.
+This profile supports the correction of the initial-adoption lifetime bug.
+It does not add execution, publication, read, credential or external egress
+permission.
 
 ## Existing requirements and confirmed behavior
 
