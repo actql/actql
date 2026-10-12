@@ -68,6 +68,14 @@ test "original Resource park freezes current ledger tokens shared readers and de
   ).unwrap()
   let (claim, consumer) = resource_park_test_consumer(identity, origin)
   let park = park_original_resource_consumer(consumer, origin).unwrap()
+  assert_true(
+    original_resource_park_current_for_ledger(park, ledger) is Some(same) &&
+    physical_equal(same, park),
+  )
+  assert_true(
+    original_resource_park_current_for_ledger(park, resource_park_test_ledger())
+    is None,
+  )
   let usage = ledger_usage(ledger)
   let serial = ledger.next_capacity_serial
   let send_before = original_reservation_snapshot(send)
@@ -134,6 +142,7 @@ test "original Resource park freezes current ledger tokens shared readers and de
   assert_true(holding.live && consumer.claim is Some(_))
   assert_eq(retire_original_resource_park(park), Err(CleanupPending))
   resource_park_test_invalidate(park)
+  assert_true(original_resource_park_current_for_ledger(park, ledger) is None)
   assert_true(original_resource_park_current(park, origin) is None)
   assert_true(original_resource_park_origin(park) is None)
   return_shared_capacity(borrowed).unwrap()
@@ -192,6 +201,7 @@ test "original Resource park rejects foreign copied phase and repeated handles a
     previous: park.previous,
   }
   assert_true(original_resource_park_current(copy, origin) is None)
+  assert_true(original_resource_park_current_for_ledger(copy, ledger) is None)
   assert_true(original_resource_park_origin(copy) is None)
   assert_true(park_original_resource_consumer(consumer, origin) is Err(_))
   assert_eq(ledger_usage(ledger), before)
@@ -205,6 +215,7 @@ test "original Resource park rejects foreign copied phase and repeated handles a
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   retire_original_resource_park(park).unwrap()
   retire_original_resource_park(copy).unwrap()
+  assert_true(original_resource_park_current_for_ledger(park, ledger) is None)
   assert_true(
     park.consumer is None &&
     park.fence is None &&

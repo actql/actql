@@ -1,7 +1,9 @@
 ///|
 // The physical descriptor's origin is issued from the original checked Run.
 // It cannot be constructed from a JSON usage aggregate or a reported Run CID.
-priv struct ClientModelReadOrigin {
+// Opaque module type so the same Resource token can be projected without a
+// second wrapper. Construction and every field remain private to this Owner.
+struct ClientModelReadOrigin {
   compiled : ClientCompiledRun
   definition_cid : String
   plan : ClientInferPlanGraph

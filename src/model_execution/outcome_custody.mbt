@@ -9,6 +9,9 @@ pub struct ModelOutcomeRead {
 ///|
 pub fn acquire_model_outcomes(execution : ModelExecution) -> ModelOutcomeRead? {
   let state = execution.state
+  if check_model_original_resources_mutable(state) is Err(_) {
+    return None
+  }
   if state.reclaimed ||
     !@bounded.session_stopped(execution.session) ||
     state.output_uses == 2147483647 {
@@ -85,6 +88,9 @@ pub fn retain_model_outcomes(read : ModelOutcomeRead) -> ModelOutcomeRead? {
 ///|
 pub fn release_model_outcomes(read : ModelOutcomeRead) -> Bool {
   if read.released {
+    return false
+  }
+  if check_model_original_resources_mutable(read.owner.state) is Err(_) {
     return false
   }
   read.released = true
