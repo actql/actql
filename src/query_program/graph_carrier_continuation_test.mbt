@@ -2,11 +2,20 @@
 fn graph_event_continuation(text : String) -> @program.Program raise {
   match with_carrier_program(text, { ..pair_context(), inputs: [], }) {
     Ok(program) => program
-    Err(issue) => {
-      debug_inspect(issue)
-      fail("The existing Graph row and Events owners must receive the full tail")
-    }
+    Err(InvalidQuery) => fail("Actual InvalidQuery discarded a supported Events tail")
+    Err(_) => fail("The existing Graph row and Events owners must receive the full tail")
   }
+}
+
+///|
+fn graph_event_environment() -> @check.CheckEnvironment {
+  @check.checking_environment(
+    @check.checking_environment_wire(graph_rows_environment()),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+    graph=true,
+    numeric_profile=Some(@numeric.builtin_profile()),
+  )
 }
 
 ///|
@@ -32,7 +41,7 @@ test "Graph node rows preserve a flat Events tail" {
   for operation in ["node_rows", "to_events", "events"] {
     assert_eq(with_carrier_argument(actual, operation), with_carrier_argument(control, operation))
   }
-  guard @check.check_parsed_with_evidence(actual, graph_rows_environment(), None, [], graph_rows_check_limits()) is Checked(_) else {
+  guard @check.check_parsed_with_evidence(actual, graph_event_environment(), None, [], graph_rows_check_limits()) is Checked(_) else {
     fail("the unchanged common owners must check the complete Graph/Events tail")
   }
 }
