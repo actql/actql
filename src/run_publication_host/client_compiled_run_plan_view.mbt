@@ -25,11 +25,21 @@ pub fn client_compiled_run_static_plan_view(
   let view = match compiled.compilation {
     Values(compilation) =>
       client_values_static_plan_view(
-        original, compilation, max_bytes, max_nodes, max_depth, inspect_installed~,
+        original,
+        compilation,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        inspect_installed~,
       )
     Tasks(compilation) =>
       client_task_static_plan_view(
-        original, compilation, max_bytes, max_nodes, max_depth, inspect_installed~,
+        original,
+        compilation,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        inspect_installed~,
       )
     Effects(_) => return Err(UnsupportedCompilation)
   }
