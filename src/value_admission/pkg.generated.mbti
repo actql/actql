@@ -56,6 +56,8 @@ pub fn append_vector_component(VectorBuilder, Double) -> Bool
 
 pub fn array_value(Array[Value]) -> Value
 
+pub fn bind_reference_domains(ReferenceIssuer, ReferenceIssuer) -> ReferenceIssuer
+
 pub fn bind_reference_issuer((@value_contract.Contract, String) -> Bool, (String) -> Bool) -> ReferenceIssuer
 
 pub fn bind_reference_reissuer((@value_contract.Contract, String) -> ReferenceValue?) -> ReferenceIssuer
@@ -166,6 +168,8 @@ pub fn reference_available(ReferenceValue) -> Bool
 
 pub fn reference_compatible(ReferenceValue, @value_contract.Contract) -> Bool
 
+pub fn reference_content_metadata(ReferenceValue) -> (String, @canonical_json.CanonicalValue)?
+
 pub fn reference_identity_cid(ReferenceValue) -> String
 
 pub fn reference_same_domain(ReferenceValue, ReferenceValue) -> Bool
@@ -213,6 +217,8 @@ pub fn text_value(String, Int) -> Value?
 pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
+
+pub fn wire_emit_next_reference(WireEmitCursor) -> ReferenceValue?
 
 pub fn wire_emit_pending_frames(WireEmitCursor) -> Int
 

@@ -9,6 +9,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import './client-two-source-checkpoints.test.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -92,6 +93,61 @@ async function directory(t) {
   t.after(() => rm(path, {recursive: true, force: true}));
   return path;
 }
+
+test('retained Run observer reuses admission only while the entire fresh row is unchanged', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const accepted = journal.acceptDefinition(identity(), {namespaceId: 'namespace-a',
+    runDefinition: runDefinition(), lookupExpiresAt: expires}, moon, publicationControl);
+  let admissions = 0;
+  const counted = {...publicationControl, admit(...args) {
+    admissions++;
+    return publicationControl.admit(...args);
+  }};
+  // The original full lookup remains unchanged for callers needing evidence.
+  // This also fixes the repeated-admission baseline without timing thresholds.
+  for (let index = 0; index < 3; index++) {
+    assert.equal(journal.lookupRunDefinition(accepted.ref, moon, counted)
+      .cancellationRequested, false);
+  }
+  assert.equal(admissions, 3);
+  admissions = 0;
+  const observe = journal.observeRunCancellation(accepted.ref, moon, counted);
+  const first = observe();
+  assert.equal(first.cancellationRequested, false);
+  assert.deepEqual(Object.keys(first).sort(), ['cancellationRequested', 'revision']);
+  assert.equal(Object.isFrozen(first), true);
+  for (let index = 0; index < 100; index++) assert.equal(observe(), first);
+  assert.equal(admissions, 1);
+
+  // A second connection changes the durable fact, not this reader's memory.
+  const other = openClientRequestJournal(path);
+  t.after(() => other.close());
+  assert.equal(other.requestCancellation(accepted.ref, {
+    currentAuthorization: true, publicationCommitted: false,
+  }, moon, publicationControl).kind, 'accepted');
+  const cancelled = observe();
+  assert.equal(cancelled.cancellationRequested, true);
+  assert.equal(cancelled.revision, first.revision + 1);
+  assert.equal(admissions, 2);
+  assert.equal(observe(), cancelled);
+  assert.equal(admissions, 2);
+
+  // A corrupt payload without a revision increment must not reuse admission.
+  const writer = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  t.after(() => writer.close());
+  writer.prepare('UPDATE client_requests SET run_definition_wire = ?').run('{}');
+  assert.throws(observe, {code: 'ClientRequestJournalCorrupt'});
+  assert.throws(observe, {code: 'ClientRequestJournalCorrupt'});
+  writer.prepare('UPDATE client_requests SET run_definition_wire = ?')
+    .run(accepted.runDefinition.wire);
+  assert.equal(observe().cancellationRequested, true);
+  writer.exec('DELETE FROM client_requests');
+  assert.equal(observe(), undefined);
+  journal.close();
+  assert.throws(observe, {code: 'ClientRequestJournalClosed'});
+});
 
 test('submission custody loss fences replay and new admission across restart', async t => {
   const path = await directory(t);
@@ -1231,6 +1287,98 @@ function githubInventoryObject() {
       fields: ['number', 'title']};
   }
   return value;
+}
+
+function keyedInventoryObject({keyedTask = 1} = {}) {
+  const value = sourceInventoryObject();
+  value.version = 'actql-client-keyed-source-inventory/0.1';
+  value.acquisitions[0].input = 1;
+  const keyed = value.acquisitions[1];
+  keyed.stage = 0;
+  keyed.task = keyedTask;
+  const {requirementCid: _, inputContractCid: _input, outputContractCid: _output,
+    ...sourceFacts} = keyed.checkedSource;
+  const selection = {version: 'actql-installed-keyed-selection/0.1',
+    programCid: fixture.programDefinitionCid, parametersCid: fixture.parameterValuesCid,
+    coordinates: [0, 0, keyedTask, 1], sourceFacts: [sourceFacts.sourceRef,
+      sourceFacts.sourceContractCid, sourceFacts.carrierSchemaContractCid,
+      sourceFacts.sourceDataPolicyCid, sourceFacts.dataClassification, sourceFacts.sourceViewContractCid]};
+  keyed.checkedSource = {...sourceFacts, step: 1,
+    programCid: selection.programCid, parametersCid: selection.parametersCid,
+    selectionCid: `sha256:${createHash('sha256')
+      .update(canonicalValueJson(selection, {dataKeys: true})).digest('hex')}`};
+  for (const item of value.acquisitions) {
+    item.installationBinding = {connectorId: 'file-fixture', connectorRegistration: 'fixture',
+      connectorRevision: 'fixture/0.1', bindingCid: cid('c')};
+    item.physicalBinding = {resource: item.readTuple.resource, path: 'e\u0301/%2F', fields: ['resource', 'version']};
+  }
+  return value;
+}
+
+for (const field of ['programCid', 'parametersCid']) {
+  test(`keyed inventory refuses an internally valid foreign ${field}`, async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const value = keyedInventoryObject();
+    const occurrence = value.acquisitions[1], source = occurrence.checkedSource;
+    source[field] = cid('f');
+    // A valid selection CID proves only its own preimage, not correspondence
+    // with the request Owner. Recompute it to exercise that separate boundary.
+    const selection = {version: 'actql-installed-keyed-selection/0.1',
+      programCid: source.programCid, parametersCid: source.parametersCid,
+      coordinates: [occurrence.stage, occurrence.input, occurrence.task, source.step],
+      sourceFacts: [source.sourceRef, source.sourceContractCid, source.carrierSchemaContractCid,
+        source.sourceDataPolicyCid, source.dataClassification, source.sourceViewContractCid]};
+    source.selectionCid = `sha256:${createHash('sha256')
+      .update(canonicalValueJson(selection, {dataKeys: true})).digest('hex')}`;
+    assert.throws(() => acceptInventory(journal, canonicalValueJson(value, {dataKeys: true})),
+      {code: 'ClientRequestSourceInventoryMismatch'});
+    assert.equal(readInventoryRow(path), undefined);
+  });
+}
+
+for (const keyedTask of [0, 1]) {
+test(`keyed inventory task ${keyedTask} persists exact target data and rejects a changed installation after restart`, async t => {
+  const path = await directory(t);
+  let journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const value = keyedInventoryObject({keyedTask});
+  const wire = canonicalValueJson(value, {dataKeys: true});
+  acceptInventory(journal, wire);
+  journal.close();
+  journal = openClientRequestJournal(path);
+  const retained = journal.lookupDefinition({namespaceId: 'namespace-a',
+    authorityScopeCid: fixture.authorityScopeCid, requestId: fixture.requestId}, moon, publicationControl);
+  assert.equal(retained.runAdmissionEvidence.sourceInventory, wire);
+  const changed = keyedInventoryObject({keyedTask});
+  changed.acquisitions[1].installationBinding.connectorRevision = 'fixture/changed';
+  assert.throws(() => acceptInventory(journal, canonicalValueJson(changed, {dataKeys: true})),
+    {code: 'ClientRequestSourceInventoryMismatch'});
+  assert.equal(JSON.parse(retained.runAdmissionEvidence.sourceInventory).acquisitions[1].physicalBinding.path,
+    'e\u0301/%2F');
+});
+}
+
+for (const [name, mutate] of [
+  ['invented Direct requirement', v => { v.acquisitions[1].checkedSource.requirementCid = cid('f'); }],
+  ['wrong keyed port', v => { v.acquisitions[1].input = 1; }],
+  ['changed checked task', v => { v.acquisitions[1].task = 0; }],
+  ['unsupported task', v => { v.acquisitions[1].task = 2; }],
+  ['wrong join step', v => { v.acquisitions[1].checkedSource.step = 2; }],
+  ['changed original parameters', v => { v.acquisitions[1].checkedSource.parametersCid = cid('f'); }],
+  ['missing installation binding', v => { delete v.acquisitions[1].installationBinding; }],
+]) {
+  test(`keyed inventory refuses ${name} before admission`, async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const value = keyedInventoryObject();
+    mutate(value);
+    assert.throws(() => acceptInventory(journal, canonicalValueJson(value, {dataKeys: true})),
+      {code: 'InvalidClientSourceInventory'});
+    assert.equal(readInventoryRow(path), undefined);
+  });
 }
 
 function salesforceInventoryObject() {

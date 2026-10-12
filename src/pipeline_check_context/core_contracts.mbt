@@ -653,7 +653,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     ValuesWireLaw =>
       "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f"
     ValuesExecutionRules =>
-      "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
+      "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7"
     BoundTransferRules =>
       "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911"
     RelationCountRules =>

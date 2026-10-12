@@ -34,7 +34,7 @@ fn rendered(value : Declaration) -> String raise @encode.EncodeFailure {
 test "opaque declarations keep the source Program and distinct reference constraints" {
   let p = parsed(
     (
-      #|,"bindings":{"z":{"type":"artifact_ref"},"a":{"type":"resource_ref","resource_kind":"drive.file","meta":{"note":"keep for diagnostics"}},"b":{"type":"artifact_ref","media_type":"application/pdf"}}
+      #|,"bindings":{"z":{"type":"content_ref"},"a":{"type":"resource_ref","resource_kind":"drive.file","meta":{"note":"keep for diagnostics"}},"b":{"type":"content_ref","media_type":"application/pdf"}}
     ),
   )
   let ds = prepare(p, caps()).unwrap()
@@ -44,11 +44,8 @@ test "opaque declarations keep the source Program and distinct reference constra
   assert_eq(at(ds, 1).unwrap().name, "b")
   assert_eq(at(ds, 2).unwrap().name, "z")
   assert_eq(find(ds, "a").unwrap().constraint, Resource("drive.file"))
-  assert_eq(
-    find(ds, "b").unwrap().constraint,
-    Artifact(Some("application/pdf")),
-  )
-  assert_eq(find(ds, "z").unwrap().constraint, Artifact(None))
+  assert_eq(find(ds, "b").unwrap().constraint, Content(Some("application/pdf")))
+  assert_eq(find(ds, "z").unwrap().constraint, Content(None))
   assert_true(find(ds, "missing") is None)
   assert_true(find(ds, "A") is None)
   assert_true(at(ds, -1) is None)
@@ -70,9 +67,9 @@ test "opaque declarations keep the source Program and distinct reference constra
   )
   assert_eq(
     rendered(find(ds, "b").unwrap()),
-    "{\"media_type\":\"application/pdf\",\"type\":\"artifact_ref\"}",
+    "{\"media_type\":\"application/pdf\",\"type\":\"content_ref\"}",
   )
-  assert_eq(rendered(find(ds, "z").unwrap()), "{\"type\":\"artifact_ref\"}")
+  assert_eq(rendered(find(ds, "z").unwrap()), "{\"type\":\"content_ref\"}")
   assert_true(prepare(p, { ..caps(), max_work: work(ds), }) is Ok(_))
   assert_true(
     prepare(p, { ..caps(), max_work: work(ds) - 1, }) is Err(WorkLimit),
@@ -85,9 +82,9 @@ test "binding declarations are closed and cannot introduce parameter defaults or
   for
     declaration in [
       "{\"type\":\"number\"}", "{\"type\":\"resource_ref\"}", "{\"type\":\"resource_ref\",\"resource_kind\":\"\"}",
-      "{\"type\":\"resource_ref\",\"resource_kind\":null}", "{\"type\":\"artifact_ref\",\"media_type\":\"\"}",
-      "{\"type\":\"artifact_ref\",\"media_type\":null}", "{\"type\":\"artifact_ref\",\"nullable\":false}",
-      "{\"type\":\"artifact_ref\",\"default\":null}", "{\"type\":\"artifact_ref\",\"resource_kind\":\"x\"}",
+      "{\"type\":\"resource_ref\",\"resource_kind\":null}", "{\"type\":\"content_ref\",\"media_type\":\"\"}",
+      "{\"type\":\"content_ref\",\"media_type\":null}", "{\"type\":\"content_ref\",\"nullable\":false}",
+      "{\"type\":\"content_ref\",\"default\":null}", "{\"type\":\"content_ref\",\"resource_kind\":\"x\"}",
       "null", "[]", "{}",
     ] {
     assert_true(
@@ -98,7 +95,7 @@ test "binding declarations are closed and cannot introduce parameter defaults or
   for name in ["1x", "x-y", "é", "x y"] {
     assert_true(
       prepare(
-        parsed(",\"bindings\":{\"" + name + "\":{\"type\":\"artifact_ref\"}}"),
+        parsed(",\"bindings\":{\"" + name + "\":{\"type\":\"content_ref\"}}"),
         caps(),
       )
       is Err(InvalidName(_)),
@@ -106,7 +103,7 @@ test "binding declarations are closed and cannot introduce parameter defaults or
   }
   assert_true(
     prepare(
-      parsed(",\"bindings\":{\"_x1\":{\"type\":\"artifact_ref\"}}"),
+      parsed(",\"bindings\":{\"_x1\":{\"type\":\"content_ref\"}}"),
       caps(),
     )
     is Ok(_),
@@ -126,7 +123,7 @@ test "binding annotation admission is bounded without recursive traversal" {
     assert_true(
       prepare(
         parsed(
-          ",\"bindings\":{\"x\":{\"type\":\"artifact_ref\",\"meta\":" +
+          ",\"bindings\":{\"x\":{\"type\":\"content_ref\",\"meta\":" +
           meta +
           "}}",
         ),
@@ -137,12 +134,12 @@ test "binding annotation admission is bounded without recursive traversal" {
   }
   let deep = "[".repeat(10000) + "{\"actql_nested\":true}" + "]".repeat(10000)
   let p = parsed(
-    ",\"bindings\":{\"x\":{\"type\":\"artifact_ref\",\"meta\":{\"data\":" +
+    ",\"bindings\":{\"x\":{\"type\":\"content_ref\",\"meta\":{\"data\":" +
     deep +
     "}}}",
   )
   let ds = prepare(p, caps()).unwrap()
-  assert_eq(rendered(at(ds, 0).unwrap()), "{\"type\":\"artifact_ref\"}")
+  assert_eq(rendered(at(ds, 0).unwrap()), "{\"type\":\"content_ref\"}")
   assert_true(
     prepare(p, { ..caps(), max_work: work(ds) - 1, }) is Err(WorkLimit),
   )

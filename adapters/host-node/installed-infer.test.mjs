@@ -64,6 +64,18 @@ const oneRowInfer = (objectProjection = false, keep = false) => {
   return program;
 };
 
+// VALUES must not author opaque-reference contracts, even with NULL/no rows.
+// Positive Content inputs must come from an installed Source or SERIALIZE.
+function authoredMediaValues(empty = false) {
+  const program = oneRowInfer();
+  const steps = program.stages[0].steps;
+  steps[0].values.schema = {id: {type: 'string', nullable: false},
+    document: {type: 'content_ref', nullable: true, media_type: 'application/pdf'}};
+  steps[0].values.rows = empty ? [] : [{id: 'a', document: null}];
+  steps[2].infer.input = {document: {field: 'document'}};
+  return program;
+}
+
 async function modelConfiguration() {
   const base = JSON.parse(await readFile(new URL(
     '../../spec/local-check-environment.json', import.meta.url), 'utf8'));
@@ -271,6 +283,13 @@ async function installedDependencyConfiguration(variant) {
   const {contract_cid: ignoredTask, ...taskBody} = task;
   void ignoredTask;
   taskBody.prompt_template_cid = bodies[0].cid;
+  if (variant.startsWith('media-typed-')) {
+    taskBody.input_contract = {type: 'object', nullable: false,
+      additional_properties: false, fields: {document: {
+        type: 'content_ref', nullable: true, media_type: 'application/pdf',
+      }}};
+    taskBody.input_schema_cid = contentCid(taskBody.input_contract);
+  }
   const taskCid = contentCid(taskBody);
   const {evidence_bundle_cid: ignoredEnvironment, ...environment} =
     JSON.parse(installation.environmentWire);
@@ -286,6 +305,28 @@ async function installedDependencyConfiguration(variant) {
     max_total_cost_units: 0, max_total_duration_ms: 500,
     max_total_wire_bytes: 66536, max_total_token_reservation: 33,
     media_input_contracts: {}, default_publication: 'outcomes'};
+  if (variant.startsWith('media-')) {
+    // An independently authored installed body, not an issued attachment or
+    // evidence of byte availability. The task declares only text: attaching
+    // this valid body must still fail common role/type admission before any
+    // provider is asked to validate or prepare a physical request.
+    const media = {version: 'actql-model-media-input/0.1', payload: {
+      media_type: 'application/pdf',
+      max_bytes: 4096, max_pages: 4,
+      max_frames: null, complete: true, transfer_method: 'inline_bytes',
+      classifications: ['internal'], regions: ['fixture-region'],
+      egress_scope_cid: `sha256:${'a'.repeat(64)}`,
+    }};
+    if (variant === 'media-invalid') delete media.payload.max_frames;
+    const mediaCid = contentCid(media);
+    execution.media_input_contracts[variant === 'media-scalar-role' ? 'text' : 'document'] = mediaCid;
+    if (variant !== 'media-missing') {
+      const saved = variant === 'media-substituted'
+        ? {...media, payload: {...media.payload, max_bytes: 8192}} : media;
+      bodies.push({cid: mediaCid,
+        bodyWire: canonicalJson({...saved, self_cid: contentCid(saved)})});
+    }
+  }
   installation.executionContracts = [{modelTaskCid: taskCid,
     cid: contentCid(execution), bodyWire: canonicalJson({...execution,
       self_cid: contentCid(execution)})}];
@@ -575,6 +616,11 @@ for (const [variant, boundary, typedCause] of [
   ['substituted-body', 'model_dependencies', 'identity_mismatch'],
   ['nonempty-retry', 'model_dependencies', 'unsupported_policy'],
   ['nonempty-backoff', 'model_dependencies', 'unsupported_policy'],
+  ['media-valid', 'model_dependencies', 'media_role_mismatch'],
+  ['media-scalar-role', 'model_dependencies', 'media_role_mismatch'],
+  ['media-missing', 'model_dependencies', 'missing_body'],
+  ['media-invalid', 'model_dependencies', 'invalid_body'],
+  ['media-substituted', 'model_dependencies', 'identity_mismatch'],
   ['unsupported-payload', 'model_provider', 'unsupported_prompt'],
 ]) {
   test(`public INFER checks dependency bodies and selected provider before accepting a Run: ${variant}`,
@@ -610,8 +656,35 @@ for (const [variant, boundary, typedCause] of [
       if (variant === 'valid') {
         assert.equal(observations[0].code, 'InstalledInferDispatchNotConnected');
       }
-      assert.equal(validations, ['valid', 'unsupported-payload'].includes(variant) ? 1 : 0);
+      assert.equal(validations,
+        ['valid', 'unsupported-payload'].includes(variant) ? 1 : 0);
       assert.equal(calls, 0);
+      assertNoAcceptedRun(root, physicalStarts);
+    });
+}
+
+for (const empty of [false, true]) {
+  test(`public INFER refuses authored Content VALUES before media preparation: ${empty ? 'empty' : 'NULL'}`,
+    async t => {
+      const {installation} = await installedDependencyConfiguration('media-typed-null');
+      const observations = [];
+      const {client, root, physicalStarts} = await installedHost(t, {
+        modelInstallation: installation,
+        authorization: diagnosticAuthorization((name, detail) => {
+          if (name === 'infer_preparation_rejected') observations.push(detail);
+        }),
+      });
+      const program = authoredMediaValues(empty);
+      const checked = await client.check(program, {kind: 'program', scope: 'bound_input'});
+      assert.equal(checked.outcome, 'completed');
+      assert.equal(checked.report.verdict, 'invalid');
+      assert.deepEqual(checked.report.reasons.map(reason => ({code: reason.code,
+        pointer: reason.location.pointer})), [{code: 'program_invalid',
+        pointer: '/stages/0/steps/0/values/schema/document'}]);
+      await assert.rejects(client.start(program,
+        {submissionRef: client.newSubmission({nonce: `authored-media-${empty}`})}),
+        error => assertPreparationRefusal(error, 'not_accepted', 'ClientProgramInvalidInput'));
+      assert.equal(observations.length, 0, 'VALUES cannot bypass the reference issuer');
       assertNoAcceptedRun(root, physicalStarts);
     });
 }

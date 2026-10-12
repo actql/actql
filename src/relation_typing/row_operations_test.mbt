@@ -280,7 +280,7 @@ test "equality domains differ from order domains and whole-row distinct" {
       "{\"type\":\"resource_ref\",\"resource_kind\":\"r\",\"nullable\":true}", true,
       false,
     ),
-    ("{\"type\":\"artifact_ref\",\"nullable\":false}", true, false),
+    ("{\"type\":\"content_ref\",\"nullable\":false}", true, false),
     ("{\"type\":\"json\",\"nullable\":false}", false, false),
     ("{\"type\":\"object\",\"fields\":{},\"nullable\":false}", false, false),
     (

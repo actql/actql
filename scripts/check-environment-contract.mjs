@@ -6,6 +6,7 @@ import {carrierBodyContract} from './carrier-schema.mjs';
 import {pushdownBodyContract} from './pushdown-contract.mjs';
 import {mappingContractBody} from './mapping-contract.mjs';
 import {connectorSourceEvidenceMembers} from './source-evidence-members.mjs';
+import {fileListingProfile, fileContentProfile} from './source-file-profiles.mjs';
 
 export const sections = ['schema_snapshots','connector_capabilities','mapping_contracts','source_views','command_contracts','model_task_contracts','contract_registry','connector_catalogs'];
 const records = {type:'array',items:{type:'object'}};
@@ -67,6 +68,8 @@ const body = {
     carrier_facts:{
       type:'object',additionalProperties:true,
       properties:{
+        file_listing:fileListingProfile(),
+        file_content:fileContentProfile(),
         lookup_capacity:{
           type:'object',additionalProperties:false,
           required:['version','completeness','max_rows_per_key','max_pages_per_request','max_response_bytes_per_page'],

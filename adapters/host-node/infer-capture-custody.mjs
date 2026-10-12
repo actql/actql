@@ -122,6 +122,12 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     await hold(name, slot, admitted.wire, admitted.identity, entry, phase);
     return admitted;
   }
+  async function holdAttachments(slot, entry, phase) {
+    const admission = operation.issuedAttachmentAdmission(slot);
+    if (admission !== undefined) {
+      await holdEvidence('model_attachment_admission', slot, admission, entry, phase);
+    }
+  }
   async function persistStoppedAttempts() {
     if (attemptsStored) return;
     await persistSourceObservation();
@@ -153,6 +159,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
           moon.clientProgramInferAttemptLeaf(proof, kind), entry,
           durableCalls && !terminalFailure ? 'entered' : undefined);
       }
+      await holdAttachments(slot, entry, durableCalls && !terminalFailure ? 'entered' : undefined);
       if (terminalFailure) await observeModelEntry(entry);
       await yieldEventLoop();
     }
@@ -178,6 +185,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     ]) {
       await holdEvidence(name, slot, moon.clientProgramInferAttemptLeaf(proof, kind), current.entry);
     }
+    await holdAttachments(slot, current.entry);
     await holdEvidence('model_slot_capture', slot, operation.issuedSlotCapture(slot), current.entry);
     const observation = operation.invocationEvidence(slot);
     if (observation !== undefined) {
@@ -235,6 +243,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
           await holdEvidence(name, slot,
             moon.clientProgramInferAttemptLeaf(proof, kind));
         }
+        await holdAttachments(slot);
         const adopted = operation.issuedSlotCapture(slot);
         checked(moon.clientProgramBindInferSlotCapture(capture, slot, adopted));
         await holdEvidence('model_slot_capture', slot, adopted);
@@ -269,7 +278,8 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       // and progress, including completion before the publication binding.
       if (issuance === undefined) {
         const ledger = checked(moon.clientProgramInferPublicationLedger(
-          262144n + BigInt(count) * 128n, count + 2));
+          262144n + BigInt(count) * 128n + BigInt(operation.contentGenerationCount ?? 0) * 256n,
+          count + 2));
         issuance = operation.startObservation({ledger, maxSlots: count,
           maxWireBytes: 16384, maxWork: count + 2});
       }

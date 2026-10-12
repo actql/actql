@@ -105,12 +105,12 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
 
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
-  assert.equal(cid(body), 'sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210');
-  assert.equal(cid(registry), 'sha256:b79f24b0c777c4b9d533ef01289587e666caa7a6ba00159f6b45f3e57265f04e');
+  assert.equal(cid(body), 'sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282');
+  assert.equal(cid(registry), 'sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041');
   assert.equal(body.dependencies.graph_law.cid,
     'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34');
   assert.equal(body.dependencies.canonical_value_contract.cid,
-    'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551');
+    'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947');
   assert.equal(registry[operation].execution_contract.pointer, pointer);
   assert.equal(registry[operation].execution_contract.cid, cid(body));
 });
@@ -125,6 +125,7 @@ test('Graph migration preserves the frozen prior registry and replaces the const
   assert.deepEqual(historical['BRIDGE.rows.to_graph'],
     {inputs: ['relation', 'relation'], output: 'graph'});
   assert.equal(cid(historical), 'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc');
+  assert.deepEqual(historical[operation], {inputs: ['relation', 'relation'], output: 'graph'});
   assert.deepEqual(registry[operation].finite_inputs, {repeated_input: 'relation', minimum_inputs: 0});
   assert.equal(aoa.local_family_execution_profile.registry_operations.includes(operation), true);
   assert.equal(aoa.local_family_execution_profile.registry_operations.length, 38);

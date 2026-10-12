@@ -3,7 +3,7 @@
 ///|
 /// Interpret the inherited edge only, not the whole expression contract.
 pub fn inherited_text_time_for_expression(cid : String) -> InheritedTextTimeContract? {
-  if cid == "sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7" {
+  if cid == "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289" {
     Some(Base)
   } else {
     None
@@ -35,10 +35,10 @@ pub struct InheritedTextTimeDependency {
 /// Resolve only this inherited contract family. None means unknown, not a leaf.
 pub fn inherited_text_time_contract(cid : String) -> InheritedTextTimeContract? {
   match cid {
-    "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc" => Some(Base)
+    "sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9" => Some(Base)
     "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1" => Some(SourceSchema)
     "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9" => Some(EnvelopeSchema)
-    "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28" => Some(BarrierSchema)
+    "sha256:5adf46eaec1abafe870b04cd90c5db5b8825ecb24450ec54e5b17c1c96388c04" => Some(BarrierSchema)
     "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1" => Some(RegexGrammar)
     "sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2" => Some(RegexAst)
     "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed" => Some(ReplacementAst)
@@ -53,10 +53,10 @@ pub fn inherited_text_time_contract(cid : String) -> InheritedTextTimeContract? 
 ///|
 pub fn inherited_text_time_cid(v : InheritedTextTimeContract) -> String {
   match v {
-    Base => "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc"
+    Base => "sha256:ebae25fecbef6a2c79bdaa971f977d4bdcfb4c4c677b25bc9de6ec67354872e9"
     SourceSchema => "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1"
     EnvelopeSchema => "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9"
-    BarrierSchema => "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28"
+    BarrierSchema => "sha256:5adf46eaec1abafe870b04cd90c5db5b8825ecb24450ec54e5b17c1c96388c04"
     RegexGrammar => "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1"
     RegexAst => "sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2"
     ReplacementAst => "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed"

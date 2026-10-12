@@ -1,9 +1,9 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:b79f24b0c777c4b9d533ef01289587e666caa7a6ba00159f6b45f3e57265f04e",
-  "values_cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
-  "fragment_cid": "sha256:9f0694ddd7c76d720024297fce02652bb15f5dad8b278d3db9ff58936a976b87",
-  "graph_cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210",
+  "registry_cid": "sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041",
+  "values_cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7",
+  "fragment_cid": "sha256:1e327eb9f007372c835c82f8c2e17b3ad7feed8bf45ddee035340892d973cbeb",
+  "graph_cid": "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282",
   "registry": {
     "REL.select": {
       "inputs": [
@@ -38,7 +38,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:2c5818e25cf54e21aadecd451414a295cb7d8398adf632ebd07c63943ddfdecb"
+          "cid": "sha256:85595efff53323afd08f33d88559d3b988525613bd08c43125c85e6e74762a5e"
         }
       }
     },
@@ -438,7 +438,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/BRIDGE.rows.to_graph",
-        "cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210"
+        "cid": "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282"
       }
     },
     "BRIDGE.events.to_rows": {
@@ -477,7 +477,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
+        "cid": "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7"
       }
     },
     "ACTQL.expression_fragment/0.1": {
@@ -488,7 +488,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:9f0694ddd7c76d720024297fce02652bb15f5dad8b278d3db9ff58936a976b87"
+        "cid": "sha256:1e327eb9f007372c835c82f8c2e17b3ad7feed8bf45ddee035340892d973cbeb"
       }
     }
   },
@@ -501,7 +501,7 @@
       "canonical_value_contract": {
         "path": "spec/contracts/actql-protocol-schemas.json",
         "pointer": "/schemas/canonical_value_contract",
-        "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+        "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
       }
     },
     "params_schema": {
@@ -1504,12 +1504,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7"
+        "cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:b924311d35a118ab7ba0944690f6175606d8fcea0fdb89ad8bb8071fa7f589e3"
+        "cid": "sha256:e07531aa4e844069941baae63c624996db3c0d5ed4a2eddfb26b7030816da542"
       }
     },
     "params_schema": {
@@ -1556,7 +1556,7 @@
       "canonical_value_contract": {
         "file": "spec/contracts/actql-protocol-schemas.json",
         "pointer": "/schemas/canonical_value_contract",
-        "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+        "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
       }
     },
     "params_schema": {
@@ -2769,7 +2769,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"

@@ -22,7 +22,7 @@ test "nest item selection includes sparse child proof slots without changing gua
       assert_eq(nest_item_candidate_count(limit), 1)
       let candidate = nest_item_candidate_at(limit, 0).unwrap()
       assert_eq(
-        @capacity.target_membership_coordinates(candidate),
+        @capacity.target_membership_coordinates(candidate).unwrap(),
         (0, if host_first { 1 } else { 0 }, 0),
       )
       assert_true(select_nest_item_limit(owner, i, limit.work, 3) is Ok(_))

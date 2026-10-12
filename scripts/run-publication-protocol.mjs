@@ -13,6 +13,8 @@ const output = join(
 const document = JSON.parse(readFileSync(source, 'utf8'));
 const stage = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-stage-contracts.json'), 'utf8'));
+const profiles = JSON.parse(readFileSync(join(root,
+  'spec/contracts/actql-production-profile-schemas.json'), 'utf8'));
 const control = JSON.parse(readFileSync(join(root,
   'spec/contracts/actql-interactive-run-control.json'), 'utf8'));
 const publication = JSON.parse(readFileSync(join(root,
@@ -37,6 +39,16 @@ const selected = Object.freeze({
   observation_set: Object.freeze({
     schema: 'observation_set',
     identity: 'observation_set_cid',
+  }),
+  content_generation: Object.freeze({
+    schema: 'content_generation',
+    identity: 'generation_cid',
+  }),
+  content_input_artifact: Object.freeze({
+    schema: 'content_input_artifact', identity: 'input_artifact_cid',
+  }),
+  content_evidence: Object.freeze({
+    schema: 'content_evidence', identity: 'evidence_cid', registry: 'profiles',
   }),
   normalization_journal: Object.freeze({
     schema: 'normalization_journal',
@@ -66,8 +78,8 @@ const selected = Object.freeze({
     schema: 'model_slot_capture', identity: 'self_cid', registry: 'stage',
   }),
   ...Object.fromEntries(['model_dispatch_authority', 'model_call_attempt',
-    'model_attempt_accounting', 'model_attempt_outcome', 'model_prompt',
-    'model_retry_policy', 'model_backoff'].map(schema =>
+    'model_attempt_accounting', 'model_attempt_outcome', 'model_attachment_admission', 'model_prompt',
+    'model_retry_policy', 'model_backoff', 'model_media_input'].map(schema =>
     [schema, Object.freeze({schema, identity: 'self_cid'})])),
   run_receipt: Object.freeze({
     schema: 'run_receipt',
@@ -494,6 +506,7 @@ function registerArtifactSchema(name, selection) {
   const complete = structuredClone(
     selection.registry === 'publication' ? publication.schemas[selection.schema]
       : selection.registry === 'stage' ? stage.schemas[selection.schema]
+        : selection.registry === 'profiles' ? profiles.schemas[selection.schema]
       : document.artifact_schemas[selection.schema],
   );
   if (complete === undefined) {

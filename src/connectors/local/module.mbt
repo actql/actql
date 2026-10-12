@@ -678,8 +678,9 @@ pub fn local_bounded_relation_provider(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   sequence : @execution.GeneratedSequence,
+  family? : Array[ManagedProvider] = [],
 ) -> ManagedProvider? {
-  local_managed_provider_for([], execution, measurement, sequence)
+  local_managed_provider_for(family, execution, measurement, sequence)
 }
 
 ///|

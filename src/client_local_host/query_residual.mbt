@@ -162,7 +162,7 @@ pub fn prepare_client_query_residual(
   let read = match
     @execution.prepare_supplied_relation_read(
       @query.query_sequence_owner(query),
-      0,
+      @query.query_receipt_input_index(query),
       @query.query_receipt_rows(receipt),
       live,
     ) {

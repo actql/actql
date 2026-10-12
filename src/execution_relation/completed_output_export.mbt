@@ -21,7 +21,9 @@ struct CompletedOutputExport {
   measurement_max_depth : Int
   mut row : Int
   mut reading : Bool
+  mut poll_steps : Int
   mut pending_row : CompletedExportRowProgress?
+  mut references : CompletedExportReferences?
 }
 
 ///|
@@ -39,6 +41,7 @@ struct CompletedResultRelationExportPreparation {
   mut stream : CompletedOutputExport?
   mut closed : Bool
   mut advancing : Bool
+  mut poll_work : Int
 }
 
 ///|
@@ -48,6 +51,7 @@ struct CompletedOutputExportReceipt {
   mut source : CompletedOutput?
   content : AdmittedOutputStreamReceipt
   mut binding : Bool
+  mut references : CompletedExportReferences?
 }
 
 ///|
@@ -193,6 +197,7 @@ pub fn start_completed_result_relation_export(
     stream: None,
     closed: false,
     advancing: false,
+    poll_work: 0,
   })
 }
 
@@ -224,6 +229,7 @@ pub fn advance_completed_result_relation_export(
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
   }
+  value.poll_work = 0
   value.advancing = true
   let result = (fn() -> Result[(Bool, Int), CompletedExportIssue] {
     if !completed_output_available(value.rows.source) || value.closed {
@@ -238,9 +244,13 @@ pub fn advance_completed_result_relation_export(
         let (done, used) = match
           advance_completed_output_export_preparation(metadata, quantum - steps) {
           Ok(value) => value
-          Err(issue) => return Err(issue)
+          Err(issue) => {
+            value.poll_work = steps + metadata.poll_work
+            return Err(issue)
+          }
         }
         steps += used
+        value.poll_work = steps
         if done {
           value.stream = Some(
             match finish_completed_output_export_preparation(metadata) {
@@ -253,6 +263,7 @@ pub fn advance_completed_result_relation_export(
         }
       } else if value.rows.done {
         steps += 1
+        value.poll_work = steps
         let rows = match finish_completed_result_rows(value.rows) {
           Ok(value) => value
           Err(issue) => return Err(ResultView(issue))
@@ -284,9 +295,13 @@ pub fn advance_completed_result_relation_export(
         let (_, used) = match
           advance_completed_result_rows(value.rows, quantum - steps) {
           Ok(value) => value
-          Err(issue) => return Err(ResultView(issue))
+          Err(issue) => {
+            value.poll_work = steps + value.rows.poll_work
+            return Err(ResultView(issue))
+          }
         }
         steps += used
+        value.poll_work = steps
       }
     }
     Ok((false, steps))
@@ -296,6 +311,23 @@ pub fn advance_completed_result_relation_export(
     cancel_completed_result_relation_export(value) |> ignore
   }
   result
+}
+
+///|
+/// Transport the SAME bounded view's observed poll work even if a later frame
+/// fails. Successful work is unchanged; failure/cancel/re-read never synthesizes
+/// work or releases the borrowed producer. Reentrant/closed entry performs none.
+pub fn advance_completed_result_relation_export_progress(
+  value : CompletedResultRelationExportPreparation,
+  quantum : Int,
+) -> (Bool, Int, CompletedExportIssue?) {
+  if value.closed || value.advancing || quantum <= 0 {
+    return (false, 0, Some(Closed))
+  }
+  match advance_completed_result_relation_export(value, quantum) {
+    Ok((ready, work)) => (ready, work, None)
+    Err(issue) => (false, value.poll_work, Some(issue))
+  }
 }
 
 ///|
@@ -443,6 +475,9 @@ pub fn replay_completed_relation_export(
 ///|
 pub fn cancel_completed_output_export(value : CompletedOutputExport) -> Unit {
   value.source = None
+  if value.references is Some(references) && !references.complete {
+    references.revoked = true
+  }
   // An active callback only revokes; the enclosing poll closes its private
   // cursor after the current emitter transition has returned.
   if !value.reading {
@@ -750,6 +785,11 @@ fn finish_completed_export_stream(
       measurement_identity: None,
       value_measurement: None,
     }
+    let references = value.references
+    if references is Some(references) {
+      references.complete = true
+    }
+    value.references = None
     Ok(
       (
         {
@@ -757,6 +797,7 @@ fn finish_completed_export_stream(
           source: Some(source),
           content,
           binding: false,
+          references,
         },
         tail,
         logical,
@@ -800,6 +841,9 @@ pub fn cancel_completed_export_receipt(
   receipt : CompletedOutputExportReceipt,
 ) -> Unit {
   receipt.source = None
+  if receipt.references is Some(references) {
+    references.revoked = true
+  }
 }
 
 ///|
@@ -862,6 +906,8 @@ fn bind_completed_export_material(
     return Err(Closed)
   }
   receipt.source = None
+  material.references = receipt.references
+  receipt.references = None
   let completion : CompletedSequence = {
     ..source.completion,
     store: RetainedStore(

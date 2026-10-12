@@ -160,6 +160,7 @@ fn build_units(
   requirements : @context.StageRequirementClosure,
   gates : @context.ProgramIncomingGates,
   b : IdentityBudget,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
 ) -> Array[BuiltUnit] raise UnitBuildFailure {
   let owner = @context.stage_requirement_owner(requirements)
   let incoming = @context.incoming_links_requirements(owner)
@@ -229,7 +230,11 @@ fn build_units(
   }
   let completed : Map[String, BuiltUnit] = Map([])
   let expression_execution = prepare_expression_execution(expressions, b)
-  let source_execution = prepare_source_execution(identity, b)
+  let source_execution = prepare_source_execution(
+    identity,
+    b,
+    request_value_policies~,
+  )
   let units = []
   for stage in 0..<stages {
     identity_charge(b, 1)

@@ -5,7 +5,7 @@
 struct ClientInferInputExecution {
   prefix : @local.ManagedProviderExecution?
   retained_input : ClientInferRetainedInput?
-  sequence : @execution.GeneratedSequence
+  sequence : @execution.GeneratedSequence?
   infer_step : Int
   owner : @lower.BoundPrepared
   target : @pipeline.Target
@@ -30,6 +30,7 @@ pub(all) enum ClientInferInputIssue {
   Local(@connector.FixedComputeIssue)
   Mapping(@execution.InferPreparationIssue)
   ProducerRead(@execution.ProducerReadIssue)
+  ProducerBinding(@execution.ProducerBindingIssue)
   Capture(@query.CapturedSourceIssue)
   RetainedInput(ClientInferRetainedInputIssue)
 }
@@ -209,7 +210,7 @@ fn start_client_infer_input_sequence(
   Ok({
     prefix: Some(prefix),
     retained_input: None,
-    sequence,
+    sequence: Some(sequence),
     infer_step: step,
     owner,
     target,
@@ -238,6 +239,7 @@ pub fn start_client_composed_infer_input(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   mapping : @execution.InferPreparationLimits,
+  keyed? : @publication_host.ClientKeyedLookupInput? = None,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
@@ -255,9 +257,110 @@ pub fn start_client_composed_infer_input(
       return Err(UnsupportedProgram)
     }
   }
+  if keyed is Some(lookup) {
+    // The existing lookup owns both admitted inputs. Execute only the suffix
+    // after its acquired filter/select prefix; never replay a Source scan.
+    let acquisition = @publication_host.client_keyed_lookup_acquisition(lookup)
+    let (task, stage, _) = @publication_host.client_infer_occurrence_coordinates(
+      occurrence,
+    )
+    guard inputs.is_empty() &&
+      @publication_host.client_keyed_acquisition_coordinates(acquisition)
+      is Some((source_stage, source_task, join)) &&
+      source_stage == stage &&
+      source_task == task &&
+      join < step &&
+      physical_equal(
+        @publication_host.client_keyed_acquisition_owner(acquisition),
+        @publication_host.client_infer_occurrence_preparation(occurrence),
+      ) &&
+      @publication_host.prepare_client_keyed_lookup_join_inputs(
+        lookup, sequence,
+      )
+      is Ok((_, left, right)) &&
+      @execution.select_generated_sequence_range(sequence, join, step - 1)
+      is Some(selected) else {
+      return Err(UnsupportedProgram)
+    }
+    return start_client_infer_input_sequence(
+      selected,
+      step,
+      [
+        @local.managed_provider_relation_input(left),
+        @local.managed_provider_supplied_relation_input(right),
+      ],
+      execution,
+      measurement,
+      mapping,
+    )
+  }
   start_client_infer_input_sequence(
     sequence, step, inputs, execution, measurement, mapping,
   )
+}
+
+///|
+/// Consume an authentic completion at this checked Model occurrence without
+/// replaying its producer. The caller retains that producer's existing custody
+/// through Model settlement; cleanup here releases only the mapping, not the
+/// borrowed output. A structurally equal Program or caller-authored rows cannot
+/// substitute for the exact owner and input target checked below.
+pub fn start_client_completed_infer_input(
+  occurrence : @publication_host.ClientInferOccurrence,
+  output : @execution.CompletedOutput,
+  limits : @execution.InferPreparationLimits,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  if limits.max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.payload(node) is @lower.Infer(infer) &&
+    @lower.node_input_target(node, 0) is Some(target) else {
+    return Err(UnsupportedProgram)
+  }
+  let expressions = match
+    @lower.prepare_infer_inputs(
+      infer,
+      @lower.parameter_bindings(owner),
+      @publication_host.client_standard_values_sequence_limits().expressions,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preparation(issue))
+  }
+  let bound = match
+    @execution.bind_infer_completed_input(expressions, owner, target, output) {
+    Ok(value) => value
+    Err(issue) => return Err(Mapping(issue))
+  }
+  let control = @bounded.control()
+  let mapping = match
+    @execution.start_infer_rows_preparation(control, bound, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Mapping(issue))
+  }
+  Ok({
+    prefix: None,
+    retained_input: None,
+    sequence: None,
+    infer_step: step,
+    owner,
+    target,
+    expressions,
+    limits,
+    control,
+    mapping: Some(mapping),
+    rows: None,
+    completed_input: Some(output),
+    prefix_done: true,
+    stopped: false,
+    cancelled: false,
+    reclaimed: false,
+    work: 0L,
+  })
 }
 
 ///|
@@ -272,7 +375,88 @@ pub fn client_infer_completion_preparation(
     physical_equal(actual, rows) else {
     return None
   }
-  @execution.prepare_infer_completion(active.sequence, rows, active.infer_step)
+  match active.sequence {
+    Some(sequence) =>
+      @execution.prepare_infer_completion(sequence, rows, active.infer_step)
+    None =>
+      @execution.prepare_completed_infer_completion(rows, active.infer_step)
+  }
+}
+
+///|
+/// The generation owner supplies its authentic Content metadata completion.
+/// Execute only the selected checked suffix (for example key validation) and
+/// then use the same Infer mapper. Earlier coordinates cannot run as Compute.
+pub fn start_client_serialized_infer_input(
+  occurrence : @publication_host.ClientInferOccurrence,
+  sequence : @execution.GeneratedSequence,
+  serialization_step : Int,
+  output : @execution.CompletedOutput,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  mapping : @execution.InferPreparationLimits,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  if !physical_equal(owner, @execution.generated_sequence_owner(sequence)) ||
+    serialization_step < 0 ||
+    serialization_step + 1 >= step ||
+    @execution.generated_sequence_step_count(sequence) !=
+    step - serialization_step - 1 ||
+    !@execution.completed_output_matches_port(
+      output,
+      owner,
+      @pipeline.Step(serialization_step),
+    ) {
+    return Err(UnsupportedProgram)
+  }
+  guard @lower.sequence_step(
+      @execution.generated_prepared_sequence(sequence),
+      serialization_step,
+    )
+    is Some(@lower.CompletedProducerBoundary(_)) else {
+    return Err(UnsupportedProgram)
+  }
+  let inputs : Array[@local.ManagedProviderInput] = []
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    let consumer = serialization_step + 1 + index
+    guard @execution.generated_sequence_step_index_at(sequence, index) ==
+      Some(consumer) &&
+      @lower.node_at(@lower.bound_preparation(owner), consumer) is Some(node) else {
+      return Err(UnsupportedProgram)
+    }
+    for port in 0..<@lower.node_input_count(node) {
+      guard @lower.node_input_target(node, port) is Some(@pipeline.Step(target)) else {
+        return Err(UnsupportedProgram)
+      }
+      if target > serialization_step {
+        continue
+      }
+      let bound = match
+        @execution.bind_completed_operation_input(
+          owner, consumer, port, owner, output,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(ProducerBinding(issue))
+      }
+      let read = match
+        @execution.prepare_producer_read(
+          owner,
+          bound,
+          execution.rows.operation_entries,
+          measurement.max_bytes,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(ProducerRead(issue))
+      }
+      inputs.push(@local.managed_provider_relation_input(read))
+    }
+  }
+  start_client_infer_input_sequence(
+    sequence, step, inputs, execution, measurement, mapping,
+  )
 }
 
 ///|

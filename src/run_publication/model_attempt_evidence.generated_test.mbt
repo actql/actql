@@ -208,6 +208,29 @@ test "independent model attempt evidence 8" {
 }
 
 ///|
+test "independent model attempt evidence 9" {
+  let value = seal_run_evidence_value(
+    "model_attachment_admission", "{\"attachments\":[{\"classification\":\"internal\",\"complete\":true,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-1,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":1,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":3,\"transfer_method\":\"inline_bytes\"}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+    16384, 256, 8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:e24637b4a3c2e152ce2f9af8efff0679856870c5e4f2d4a4239ecae5e963667a",
+  )
+  let restored = admit_run_evidence_value(
+    "model_attachment_admission",
+    run_evidence_value_json(value),
+    16384,
+    256,
+    8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:e24637b4a3c2e152ce2f9af8efff0679856870c5e4f2d4a4239ecae5e963667a",
+  )
+}
+
+///|
 test "invalid model attempt evidence model_attempt_accounting 688a91b3" {
   assert_true(
     seal_run_evidence_value(
@@ -256,6 +279,83 @@ test "invalid model attempt evidence model_attempt_accounting 7f408008" {
   assert_true(
     seal_run_evidence_value(
       "model_attempt_accounting", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":null,\"output_tokens\":null,\"reservation\":{\"cost_units\":7,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attachment_admission 772679c4" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attachment_admission", "{\"attachments\":[],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attachment_admission 556832a1" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attachment_admission", "{\"attachments\":[{\"classification\":\"internal\",\"complete\":true,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-2,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":1,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":3,\"transfer_method\":\"inline_bytes\"}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attachment_admission 2c616f9c" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attachment_admission", "{\"attachments\":[{\"classification\":\"internal\",\"complete\":true,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-1,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":1,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":-1,\"transfer_method\":\"inline_bytes\"}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attachment_admission e3f9020d" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attachment_admission", "{\"attachments\":[{\"classification\":\"internal\",\"complete\":false,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-1,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":1,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":3,\"transfer_method\":\"inline_bytes\"}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attachment_admission c7997fdd" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attachment_admission", "{\"attachments\":[{\"classification\":\"internal\",\"complete\":true,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-1,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":0,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":3,\"transfer_method\":\"inline_bytes\"}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attachment_admission 8b872333" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attachment_admission", "{\"attachments\":[{\"classification\":\"internal\",\"complete\":true,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-1,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":1,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":3,\"transfer_method\":\"uri\"}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attachment_admission b3bbb0dc" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attachment_admission", "{\"attachments\":[{\"classification\":\"internal\",\"complete\":true,\"content_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"content_ref_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"egress_scope_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"frames\":null,\"item\":-1,\"media_input_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"media_type\":\"application/pdf\",\"pages\":1,\"policy_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"region\":\"fixture-region\",\"role\":\"document\",\"size_bytes\":3,\"transfer_method\":\"inline_bytes\",\"unknown\":true}],\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attachment-admission/0.1\"}",
       16384, 256, 8,
     )
     is Err(RunEvidenceInvalidShape),

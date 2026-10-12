@@ -43,8 +43,8 @@ let fields : Array[String] = [
 ///|
 let optional_fields : Array[String] = [
   "max_aggregate_string_bytes", "max_analytic_frame_memberships", "max_analytic_input_wire_bytes",
-  "max_analytic_output_wire_bytes", "max_analytic_partition_wire_bytes", "max_graph_construction_edges",
-  "max_graph_construction_input_rows", "max_graph_construction_nodes",
+  "max_analytic_output_wire_bytes", "max_analytic_partition_wire_bytes", "max_file_listing_items",
+  "max_graph_construction_edges", "max_graph_construction_input_rows", "max_graph_construction_nodes",
 ]
 
 ///|

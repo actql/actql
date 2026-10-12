@@ -93,7 +93,7 @@ test "filter preserves every relation value domain through a true predicate" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]
@@ -129,7 +129,7 @@ test "filter compares every admitted key and order domain" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]

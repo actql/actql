@@ -2,7 +2,8 @@ import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
-import {snapshotHostCapacityPolicy, selectInstalledHostEnvironment} from './installed-host-policy.mjs';
+import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
+  selectInstalledHostEnvironment} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
@@ -91,8 +92,10 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate} from './local-a
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
-  acquiredTaskRunAdmission, inferTaskRunAdmission} from
+  acquiredTaskRunAdmission, inferTaskRunAdmission, serializationTaskRunAdmission,
+  selectInstalledSerializationGraph} from
   './local-values-plan.mjs';
+import {installNodeContentRun} from './installed-content-run.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
 const runtimeUrl = new URL('../../_build/js/release/build/' +
@@ -149,6 +152,8 @@ async function embeddedInstallationIdentity(root, installation) {
       sourceNamespace: bytesCid(Buffer.from(installation.sourceNamespace, 'utf8'))}),
     ...(installation?.hostCapacityPolicy === undefined ? {} : {
       hostCapacityPolicy: installation.hostCapacityPolicy}),
+    ...(installation?.hostLookupExecutionPolicy === undefined ? {} : {
+      hostLookupExecutionPolicy: installation.hostLookupExecutionPolicy}),
     ...(installation?.modelInstallation === undefined ? {} : {
       modelEnvironment: installation.modelInstallation}),
     ...(installation?.resultDataPolicy === undefined ? {} : {
@@ -168,6 +173,7 @@ async function embeddedInstallationIdentity(root, installation) {
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
     registerModelProviders: installation?.registerModelProviders,
+    verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
     inferEvidence: installation?.inferEvidence,
     observation: installation?.observation,
     decide: authorization?.decide, observe: authorization?.observe,
@@ -209,8 +215,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
+  hostLookupExecutionPolicy, verifyRequestValuePolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
+  hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   validateValuesMaxRows(valuesMaxRows);
   validateSourceNamespace(sourceNamespace);
@@ -243,7 +251,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const effectSelections = new WeakMap();
   const principalId = userInfo().username;
   const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy);
+    'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy,
+    hostLookupExecutionPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
@@ -262,10 +271,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   function recoveredInstalledEffect(facts) {
     if (installedEffect?.effects === undefined) return installedEffect;
     // The capture owner has already authenticated and admitted this Preview.
-    // Select its original Mapping inventory; never infer a new Program or Run.
+    // Select its original contract inventory; never infer a new Program or Run.
     const preview = facts.recovered.computation.preview;
     const body = JSON.parse(facts.control.effectComputationPreviewWire(preview));
-    const descriptors = body.effects.map(member => ({effectId: member.effect_id,
+    const descriptors = body.effects.map(member => member.effect_kind === 'command'
+      ? {effectId: member.effect_id, kind: 'command', target: member.target,
+        commandRef: member.contract, commandCid: member.resolved_command_contract_cid}
+      : ({effectId: member.effect_id,
       kind: member.effect_kind, target: member.target, mappingRef: member.mapping,
       mappingCid: member.resolved_mapping_contract_cid,
       ...(member.source_table_input === undefined ? {} : {capabilityCid: member.capability_evidence_cid})}));
@@ -372,7 +384,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const namespaceId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
     root, principalId, ...(hostCapacityPolicy === undefined ? {} :
-      {hostCapacityPolicyCid: effectiveHostCapacityPolicyCid})});
+      {hostCapacityPolicyCid: effectiveHostCapacityPolicyCid}),
+    ...(hostLookupExecutionPolicy === undefined ? {} :
+      {hostLookupExecutionPolicyCid: contentCid(hostLookupExecutionPolicy)})});
   const storeAuthorityCid = cid({version: 'actql-local-store-owner/0.1',
     root, principalId});
   const journalDirectory = join(root, 'requests');
@@ -438,8 +452,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           control.runDefinitionRunId(retained.runDefinition);
       }});
     if (observation !== undefined) journal.installObservationProjection(observation);
-    if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
-        effectInstallation?.privateEvidenceKey === undefined) {
+    // Generated Content also retains encrypted private proofs. This is Store
+    // custody, not an Effect permission or an implicit external write grant.
+    if (effectInstallation?.privateEvidenceKey === undefined) {
       const keyDirectory = join(root, 'checkpoints');
       try {
         effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
@@ -459,9 +474,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       maxObjectBytes: localOutputLimits.maxWireBytes,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
-      ...(effectInstallation === undefined && modelInstallation === undefined ? {} : {
-        privateEvidenceKey: effectInstallation?.privateEvidenceKey ??
-          effectEvidenceKey?.key}),
+      privateEvidenceKey: effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key,
     }, control);
     effectEvidenceKey?.key.fill(0);
   const hostConnection = ({principalId: actual, connection, ref}) =>
@@ -550,6 +563,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
+    verifyRequestValuePolicy,
     allowEffects: effectInstallation !== undefined});
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
     authorize: hostConnection});
@@ -895,16 +909,34 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         throw clientOperationError('ClientProgramUnsupported',
           new Error('InstalledInferDispatchNotConnected'));
       }
+      let admissionBoundary = 'compute_suffix';
       try {
         const durableModel = modelController !== undefined && checkpoints?.configured === true;
         const step = selectedStep;
-        const segments = occurrence === undefined ? undefined : checked(
+        // Intermediate Content owns its physical prefix separately from the
+        // ordinary pure-Compute prefix. Select the common checked component
+        // before admission, without inventing public Result roots.
+        const effectGraph = prepareSubmit.kindOf(preparedProgram) === 'effectful' &&
+          moon.clientProgramEffectSerializationOccurrences(preparedProgram).length !== 0
+          ? checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution))
+          : undefined;
+        const serializationGraph = effectGraph !== undefined
+          ? control.inferSerializationGraph(effectGraph)
+          : prepareSubmit.kindOf(preparedProgram) !== 'effectful' &&
+          moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0
+          ? selectInstalledSerializationGraph({moon, control, preparedProgram,
+            resultDataPolicy: installedResultDataPolicy}, true) : undefined;
+        const segments = occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
           (prepareSubmit.kindOf(preparedProgram) === 'effectful'
             ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
             registry, values, fragment, ordered));
-        const computeSuffix = occurrence === undefined
+        const computeSuffix = effectGraph !== undefined ? undefined : serializationGraph !== undefined
+          ? checked(moon.clientProgramPrepareComposedInferComputeSuffix(preparedProgram,
+            occurrence, registry, values, fragment, ordered))
+          : occurrence === undefined
           ? checked(moon.clientProgramPrepareInferComputeSuffix(preparedProgram,
             step, registry, values, fragment, ordered)) : segments._1;
+        admissionBoundary = 'egress';
         let egressAdmission;
         let egressFailure;
         try {
@@ -919,6 +951,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           // Every fresh send must separately require a current egress owner.
           egressFailure = error;
         }
+        admissionBoundary = 'account';
         const observeAccount = () => observeInstalledModelAccount(moon, authorization);
         const account = observeAccount();
         if (!durableModel) {
@@ -933,18 +966,25 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
               {code: 'InstalledInferAuthorityUnavailable', cause: outcome});
           }
         }
-        const graph = checked(occurrence === undefined
+        admissionBoundary = 'plan_graph';
+        const graph = effectGraph !== undefined ? effectGraph : serializationGraph !== undefined
+          ? control.prepareCheckedClientSerializedInferGraph(occurrence, serializationGraph, execution)
+          : checked(occurrence === undefined
           ? moon.clientProgramInstalledInferPlanGraph(preparedProgram, step, execution)
           : moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
+        admissionBoundary = 'provider_binding';
         const providerId = moon.clientProgramInferProviderId(execution);
         const providerBinding = durableModel
           ? admitInstalledModelProviderBinding(moon, providerId, physical) : undefined;
-        const selection = Object.freeze({step, graph, computeSuffix,
+        const selection = Object.freeze({step, graph, computeSuffix, serializationGraph,
           occurrence, computePrefix: segments?._0,
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
-          physicalPreflight: physical.physicalPreflight,
+          physicalPreflight: physical.physicalPreflight === undefined ? undefined
+            : (request, ioNotification, rawCaptureBinder) =>
+              physical.physicalPreflight(request, ioNotification, rawCaptureBinder,
+                admittedProvider),
           originalReadInstallation: physical.originalReadInstallation,
           rawCaptureSelection: physical.rawCaptureSelection,
           entryPersistence: physical.entryPersistence,
@@ -953,7 +993,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         if (retain) inferSelections.set(preparedProgram, selection);
         return selection;
       } catch (cause) {
-        diagnostic('infer_preparation_rejected', {boundary: 'model_admission',
+        diagnostic('infer_preparation_rejected', {boundary: `model_admission.${admissionBoundary}`,
           code: cause.code, cause: cause.cause ?? cause});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
@@ -995,6 +1035,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       return {requested, resultNames, acquired, effectful: true};
     }
     const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
+    const keyedAcquisition = typeof moon.clientProgramSelectSingleKeyedAcquisition === 'function'
+      ? checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) : undefined;
     const acquired = acquisitionCount > 0;
     if (acquired) {
       if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
@@ -1004,8 +1046,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
         try {
+          const coordinates = keyedAcquisition === undefined ? undefined
+            : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
           const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-            preparedProgram, task, 0, registry, values, fragment, ordered));
+            preparedProgram, coordinates?._0 ?? task, coordinates?._1 ?? 0,
+            registry, values, fragment, ordered));
           const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
           const adapter = installedSourceFor(sourceProfile, sourceRef);
           if (acquisitionCount === 2 &&
@@ -1013,7 +1058,18 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             throw new Error('InstalledMultiSourceUnsupported');
           }
         } catch (cause) {
+          // Report only the boundary and typed discriminants: acquisition
+          // bodies and authenticated source materials are not diagnostics.
+          diagnostic('acquisition_preparation_rejected', {boundary: 'query_requirement',
+            task, code: cause.code, issueTag: cause.cause?.$tag,
+            requirementTag: cause.cause?._0?.$tag});
           throw clientOperationError('ClientProgramUnsupported', cause);
+        }
+      }
+      if (keyedAcquisition !== undefined) {
+        const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+        if (typeof installedSourceFor(sourceProfile, facts[0]).prepareKeyed !== 'function') {
+          throw clientOperationError('ClientProgramUnsupported');
         }
       }
     }
@@ -1028,7 +1084,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       inferSelections.set(preparedProgram, Object.freeze({components,
         graph: Object.freeze(components.map(component => component.graph)),
         egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
-    } else prepareInferSelection(preparedProgram);
+    } else prepareInferSelection(preparedProgram,
+      keyedAcquisition === undefined && moon.clientProgramSerializationOccurrences(preparedProgram).length === 0
+        ? undefined : occurrences[0]);
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
@@ -1042,7 +1100,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       if (name === undefined) throw new Error('ClientProgramResultMissing');
       resultNames.push(name);
     }
-    return {requested, resultNames, acquired, acquisitionCount, effectful: false};
+    return {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful: false};
   };
   const prepareAcquisition = async (preparedProgram, sourceAccess,
     occurrence = {stage: 0, input: 0, task: 0}) => {
@@ -1090,17 +1148,44 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding});
   const sourceDescriptors = sources => sources.map(({occurrence, prepared}) =>
     ({...occurrence, ...acquisitionDescriptor(prepared)}));
-  const sourceInventory = sources => sources?.length === 2 ? canonicalJson({
+  const installationBinding = adapter => ({connectorId: adapter.connectorBindings[0].connectorId,
+    connectorRegistration: adapter.connectorRegistration, connectorRevision: adapter.connectorRevision,
+    bindingCid: adapter.connectorBindings[0].bindingCid});
+  const keyedDescriptors = (preparedSource, keyedSource) => [
+    {...keyedSource.directOccurrence, ...acquisitionDescriptor(preparedSource),
+      installationBinding: installationBinding(keyedSource.directAdapter)},
+    {...keyedSource.occurrence, ...acquisitionDescriptor(keyedSource.prepared),
+      installationBinding: installationBinding(keyedSource.adapter)},
+  ];
+  const prepareKeyedSources = async (preparedProgram, keyedAcquisition, requestIdentity) => {
+    const coordinates = moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
+    if (coordinates === undefined) throw clientOperationError('ClientProgramUnsupported');
+    const directOccurrence = Object.freeze({stage: coordinates._0, input: coordinates._1, task: coordinates._2});
+    const preparedSource = await prepareAcquisition(preparedProgram, undefined, directOccurrence);
+    const directAdapter = installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef);
+    const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
+    const adapter = installedSourceFor(sourceProfile, facts[0]);
+    const selected = await adapter.prepareKeyed({preparedProgram, keyedAcquisition, requestIdentity});
+    return {preparedSource, keyedSource: Object.freeze({...selected, adapter,
+      sourceAccess: adapter.sourceAccess, acquisition: keyedAcquisition, requestIdentity,
+      directOccurrence, directAdapter})};
+  };
+  const sourceInventory = (sources, preparedSource, keyedSource) => keyedSource !== undefined
+    ? canonicalValueJson({version: 'actql-client-keyed-source-inventory/0.1', environmentCid: evidenceCid,
+      acquisitions: keyedDescriptors(preparedSource, keyedSource)}, {dataKeys: true})
+    : sources?.length === 2 ? canonicalJson({
     version: 'actql-client-source-inventory/0.1', environmentCid: evidenceCid,
     acquisitions: sourceDescriptors(sources)}) : undefined;
-  const captureSubmission = (submission, resultNames, preparedSource, preparedSources) => ({
-    version: preparedSources?.length === 2
+  const captureSubmission = (submission, resultNames, preparedSource, preparedSources, keyedSource) => ({
+    version: keyedSource !== undefined ? 'actql-remote-keyed-source-submission/0.1'
+      : preparedSources?.length === 2
       ? 'actql-remote-multi-source-submission/0.1' : 'actql-remote-captured-submission/0.1',
     requestId: submission.requestId, principalId: submission.principalId,
     connection: submission.connection, kind: submission.kind, input: submission.input,
     parameters: submission.parameters, resultNames,
     ...(submission.submission === undefined ? {} : {submission: submission.submission}),
-    ...(preparedSources?.length === 2 ? {acquisitions: sourceDescriptors(preparedSources)}
+    ...(keyedSource !== undefined ? {acquisitions: keyedDescriptors(preparedSource, keyedSource)}
+      : preparedSources?.length === 2 ? {acquisitions: sourceDescriptors(preparedSources)}
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
   const planFor = ({preparedProgram, requestId},
@@ -1112,16 +1197,26 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         {retainedDefinitionWire})};
     const infer = inferSelections.get(preparedProgram);
     if (infer !== undefined) {
-      try {return inferTaskRunAdmission({...common, inferGraph: infer.graph});}
+      try {return Object.freeze({...inferTaskRunAdmission({...common, inferGraph: infer.graph}),
+        ...(infer.serializationGraph === undefined ? {} : {serializationGraph: infer.serializationGraph})});}
       catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'task_compilation',
           code: cause.code, cause: cause.cause ?? cause});
         throw cause;
       }
     }
+    if (moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0) {
+      try {
+        return serializationTaskRunAdmission({...common,
+          resultDataPolicy: installedResultDataPolicy});
+      } catch (cause) {
+        diagnostic('content_preparation_rejected', {boundary: 'task_compilation',
+          code: cause.code, cause: cause.cause ?? cause});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+    }
     return sourceProfile !== undefined &&
-      moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
-        1
+      moon.clientProgramAcquisitionCount(preparedProgram) > 0
       ? acquiredTaskRunAdmission(common)
       : moon.clientProgramTaskCount(preparedProgram) > 1 ||
           moon.clientProgramUsesGraphCarrier(preparedProgram)
@@ -1134,7 +1229,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     const accepted = await journal.admitOrLookupDefinition(requested, {
       namespaceId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
       submission: submission.submission,
-      resultNames, sourceInventory: sourceInventory(held.preparedSources),
+      resultNames, sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource),
       issueDefinition: () => {
         held.plan = planFor(submission);
         if (held.plan.kind === 'infer') return {
@@ -1144,14 +1239,21 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             authorization: held.plan.authorization.wire,
             modelOriginalRunWire: originalModelRunWire(held.plan.compiled,
               held.plan.runDefinition),
-            ...(held.preparedSources?.length === 2 ? {
-              sourceInventory: sourceInventory(held.preparedSources)} : {}),
+            ...(held.preparedSources?.length === 2 || held.keyedSource !== undefined ? {
+              sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource)} : {}),
           }};
-        if (held.preparedSources?.length === 2) return {
+        if (held.plan.kind === 'serialization') return {
           runDefinition: held.plan.runDefinition,
           runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
             authorization: held.plan.authorization.wire,
-            sourceInventory: sourceInventory(held.preparedSources)}};
+            ...(held.preparedSources?.length === 2 || held.keyedSource !== undefined ? {
+              sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource),
+            } : {})}};
+        if (held.preparedSources?.length === 2 || held.keyedSource !== undefined) return {
+          runDefinition: held.plan.runDefinition,
+          runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
+            authorization: held.plan.authorization.wire,
+            sourceInventory: sourceInventory(held.preparedSources, held.preparedSource, held.keyedSource)}};
         const valuesEvidence = sourceFreeValuesAdmissionEvidence(held.plan);
         if (valuesEvidence !== undefined) return {
           runDefinition: held.plan.runDefinition,
@@ -1171,10 +1273,35 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   // Composition installs one owner for dispatch, cancellation, stop, and
   // cleanup. Checkpoint and HTTP paths share this owner.
   const observed = diagnostic;
+  const runContent = installNodeContentRun({moon, core: runtimeCore(moon),
+    registry, values, fragment, ordered, namespaceId, authorityScopeCid,
+    storeAuthorityCid, ownerPrincipal: principalId, now,
+    authorize: actual => hostConnection({principalId: actual, connection: {mode, owner: mode}}),
+    faultInjection: authorization?.faultInjection});
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
-    checkpoints, prepareAcquisition,
+    checkpoints, prepareAcquisition, runContent,
+    prepareKeyedRecovery: async ({preparedProgram, plan, submission}) => {
+      // Reuse the declared pre-acquisition Run envelope; reopening input does
+      // not list files, obtain keyed rows, fabricate Source completion or create
+      // a separate restoration Ledger. The original Model root and generated
+      // Content prefix each derive their own checked finite envelope.
+      const acquisition = checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram));
+      const requestIdentity = moon.clientProgramRequestIdentity(preparedProgram,
+        authorityScopeCid, submission.requestId, moon.clientProgramSourceFreeInputIntentCid());
+      if (acquisition === undefined || requestIdentity === undefined) {
+        throw new Error('InstalledCapturedContentSelectionUnavailable');
+      }
+      const {preparedSource, keyedSource} = await prepareKeyedSources(preparedProgram, acquisition, requestIdentity);
+      const capacity = keyedSource.adapter.keyedLedgerCapacity(acquisition);
+      const prepareLedger = plan.serializationGraph === undefined ? runInfer.prepareKeyedLedger
+        : runContent.prepareKeyedLedger;
+      const ledger = prepareLedger({preparedProgram, plan,
+        direct: keyedSource.directAdapter.ledgerCapacity(preparedSource), acquisition,
+        capacity, capturedContent: true});
+      return {keyedSource, ledger};
+    },
     sourceAccessFor: prepared => installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef).sourceAccess,
     faultInjection: authorization?.faultInjection,
     computeConfigurations: {local: localSnapshotConfiguration}});
@@ -1183,7 +1310,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-    runInfer, retainedRelationOutput, observation,
+    runInfer, runContent, retainedRelationOutput, observation,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
@@ -1293,10 +1420,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                   const selectedSources = selectAcquiredEffectSources({moon,
                     preparedEffect: facts.prepared, sourceProfile,
                     registry, values, fragment, ordered});
+                  const observeSourceRun = journal.observeRunCancellation(facts.ref, moon, control);
                   const sourceContinuation = acquiredEffectContinuation({
-                    checkpoints: (selectedSources.length === 0
-                      ? sourceProfile?.realizationKey === 'duckdb-acquired'
-                      : selectedSources.every(({adapter}) => adapter.realizationKey === 'duckdb-acquired'))
+                    checkpoints: (selectedSources.length === 0 ||
+                      selectedSources.every(({adapter}) => typeof adapter.retainedCapture === 'function'))
                       ? sourceCheckpoints : undefined,
                     moon, acquired: facts.preparedExecution,
                     submission: effectSubmissions.get(facts.prepared),
@@ -1307,7 +1434,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                       restore: {view: retainedModel.view,
                         continuation: retainedModel.token.snapshot.sourceContinuation},
                     }),
-                    currentRun: () => journal.lookupRunDefinition(facts.ref, moon, control)
+                    currentRun: () => observeSourceRun()
                       ?.cancellationRequested === false});
                   if (retainedModel !== undefined &&
                       moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0 &&
@@ -1324,7 +1451,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
                       ...configurations,
                       local: withLocalExecutionPauseHandler(configurations.local, handlePause),
                     }),
-                    store, principalId, faultInjection: authorization?.faultInjection,
+                    store, principalId, contentRun: runContent, faultInjection: authorization?.faultInjection,
                     observe: authorization?.observe, sourceContinuation,
                     modelController, submission: effectSubmissions.get(facts.prepared),
                     existingModel: retainedModel?.record,
@@ -1489,7 +1616,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    const {requested, resultNames, acquired, acquisitionCount, effectful} =
+    const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} =
       requestOf(submission);
     const selectedModel = inferSelections.get(submission.preparedProgram);
     if (selectedModel?.egressFailure !== undefined &&
@@ -1521,8 +1648,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     }
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
-    const preparedSource = acquired && acquisitionCount !== 2
-      ? await prepareAcquisition(submission.preparedProgram) : undefined;
+    const keyedPrepared = keyedAcquisition === undefined ? undefined :
+      await prepareKeyedSources(submission.preparedProgram, keyedAcquisition, requested);
+    const keyedSource = keyedPrepared?.keyedSource;
+    const preparedSource = keyedPrepared?.preparedSource ?? (acquired && acquisitionCount !== 2
+      ? await prepareAcquisition(submission.preparedProgram) : undefined);
     // Run acceptance on the protected Site is decided before any Run
     // Definition exists. A request that was held is never started from here:
     // submitting it again returns its held state, or its existing Run, and
@@ -1537,7 +1667,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         control);
       if (existing !== undefined) {
         if (existing.physicalStartReserved !== true &&
-            existing.runAdmissionEvidence?.sourceInventory !== sourceInventory(preparedSources)) {
+            existing.runAdmissionEvidence?.sourceInventory !== sourceInventory(preparedSources, preparedSource, keyedSource)) {
           throw clientOperationError('ClientRunStartDenied',
             clientOperationError('ClientRequestSourceInventoryMismatch'));
         }
@@ -1554,7 +1684,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
         intentFingerprintCid: moon.clientRequestIntentCid(requested),
       };
-      const captured = captureSubmission(submission, resultNames, preparedSource, preparedSources);
+      const captured = captureSubmission(submission, resultNames, preparedSource, preparedSources, keyedSource);
       let decided = await checkpoints.acceptRun({requested: requestedFacts,
         captured});
       // Run acceptance allowed or permitted: a Program that reads the
@@ -1577,7 +1707,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           revision: existing.revision};
       }
     }
-    const held = {preparedSource, preparedSources,
+    const held = {preparedSource, preparedSources, keyedSource,
       preparedSourceAccess: preparedSource === undefined ? undefined :
         installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
@@ -1654,12 +1784,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       parameters: captured.parameters,
       ...(captured.submission === undefined ? {} : {submission: captured.submission})};
     submission.preparedProgram = await prepareSubmit(submission);
-    const {requested, resultNames, acquired, acquisitionCount, effectful} = requestOf(submission);
+    const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
-    const preparedSource = acquired && acquisitionCount !== 2
-      ? await prepareAcquisition(submission.preparedProgram) : undefined;
-    const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources);
+    const keyedPrepared = keyedAcquisition === undefined ? undefined :
+      await prepareKeyedSources(submission.preparedProgram, keyedAcquisition, requested);
+    const keyedSource = keyedPrepared?.keyedSource;
+    const preparedSource = keyedPrepared?.preparedSource ?? (acquired && acquisitionCount !== 2
+      ? await prepareAcquisition(submission.preparedProgram) : undefined);
+    const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources, keyedSource);
     if (canonicalValueJson(reproduced, {dataKeys: true}) !==
         canonicalValueJson(captured, {dataKeys: true})) {
       throw new Error('HeldAcquisitionChanged');
@@ -1668,7 +1801,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
-    return {submission, requested, resultNames, preparedSource, preparedSources, effectful};
+    return {submission, requested, resultNames, preparedSource, preparedSources, keyedSource, effectful};
   };
   const definitionOf = captured => journal.lookupDefinition({namespaceId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
@@ -1773,7 +1906,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       }
       throw error;
     }
-    const {submission, requested, resultNames, preparedSource, preparedSources,
+    const {submission, requested, resultNames, preparedSource, preparedSources, keyedSource,
       effectful} = resolved;
     if (effectful) {
       effectRun.checkSupported(submission.preparedProgram);
@@ -1813,7 +1946,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           ref: accepted.ref, code: error?.code ?? error?.message}));
       return observedStart;
     }
-    const held = {preparedSource, preparedSources,
+    const held = {preparedSource, preparedSources, keyedSource,
       preparedSourceAccess: preparedSource === undefined ? undefined :
         installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
@@ -2358,9 +2491,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             }
           }, Math.max(1, Math.min(1000, Math.floor(leaseMs / 3))));
           renewal?.unref?.();
+          const observeRestoredRun = journal.observeRunCancellation(ref, moon, control);
           const assertCurrent = () => {
             if (leaseFailure !== undefined) throw leaseFailure;
-            if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested !== false) {
+            if (observeRestoredRun()?.cancellationRequested !== false) {
               throw new Error('ClientRunCancellationRequested');
             }
             // Ownership only here. Model send permission is checked by its
@@ -2666,8 +2800,10 @@ export async function openInstalledRemoteHttpHost({directory,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
-  resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation}) {
+  resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy,
+  hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
+  hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       typeof loopbackHttp !== 'boolean' ||
@@ -2679,7 +2815,7 @@ export async function openInstalledRemoteHttpHost({directory,
     beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence,
-    retainedRelationOutput, hostCapacityPolicy, valuesMaxRows, observation});
+    retainedRelationOutput, hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
   });
@@ -2747,14 +2883,16 @@ export async function publishInstalledSource({sourceProfilePath, directory,
 // (`ACTQL_LOCAL_EFFECT_PROFILE` by default). This is the explicit step a Host
 // start restores without provider I/O.
 export async function publishInstalledEffect({effectProfilePath, directory,
-  resolveEffectSecret, signal, hostCapacityPolicy, connectorTable} = {}) {
+  resolveEffectSecret, signal, hostCapacityPolicy, hostLookupExecutionPolicy, connectorTable} = {}) {
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
+  hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
   await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
-    'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy);
+    'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy,
+    hostLookupExecutionPolicy);
   return publishInstalledEffectProfile(
     effectProfilePath ?? process.env.ACTQL_LOCAL_EFFECT_PROFILE, {root,
       principalId: userInfo().username, moon, runtimeUrl,
@@ -2772,10 +2910,12 @@ export async function connectEmbeddedLocal(options) {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
   if (installation !== undefined) {
-    const {hostCapacityPolicy: selected, valuesMaxRows, ...rest} = installation;
+    const {hostCapacityPolicy: selected, hostLookupExecutionPolicy: lookupSelected,
+      valuesMaxRows, ...rest} = installation;
     validateValuesMaxRows(valuesMaxRows);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
-    installation = {...rest, hostCapacityPolicy, valuesMaxRows};
+    const hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(lookupSelected);
+    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, valuesMaxRows};
     if (installation.effectProfilePaths !== undefined) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
@@ -2797,9 +2937,11 @@ export async function connectEmbeddedLocal(options) {
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
         registerModelProviders: installation?.registerModelProviders,
+        verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
         resultDataPolicy: installation?.resultDataPolicy,
         inferEvidence: installation?.inferEvidence,
         hostCapacityPolicy: installation?.hostCapacityPolicy,
+        hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
         retainedRelationOutput: installation?.retainedRelationOutput,
         observation: installation?.observation,
         valuesMaxRows: installation?.valuesMaxRows}), clientOptions);

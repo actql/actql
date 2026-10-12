@@ -18,6 +18,7 @@ struct CheckEnvironment {
   calendar : @environment.SelectedCalendarProfile?
   text_rank : @environment.SelectedTextRankProfile?
   model_tasks : @environment.ModelTasks?
+  request_value_policies : Array[HostRequestValuePolicyEvidence]
 }
 
 ///|
@@ -33,6 +34,7 @@ pub fn checking_environment(
   text_rank? : @environment.SelectedTextRankProfile? = None,
   graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
+  request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
 ) -> CheckEnvironment {
   {
     wire,
@@ -43,6 +45,7 @@ pub fn checking_environment(
     calendar,
     text_rank,
     model_tasks,
+    request_value_policies: request_value_policies.copy(),
   }
 }
 
@@ -54,6 +57,17 @@ pub fn checking_environment_model_tasks(
   value : CheckEnvironment,
 ) -> @environment.ModelTasks? {
   value.model_tasks
+}
+
+///|
+/// Trusted Host-only supplementation of the original checker configuration.
+/// Each opaque proof is still matched to the checked subjects during recheck.
+/// This does not change the admitted wire Environment or grant any execution.
+pub fn checking_environment_with_request_value_policies(
+  value : CheckEnvironment,
+  evidence : Array[HostRequestValuePolicyEvidence],
+) -> CheckEnvironment {
+  { ..value, request_value_policies: evidence.copy(), }
 }
 
 ///|

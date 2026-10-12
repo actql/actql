@@ -24,12 +24,14 @@ fn QueryParser::from_pivot_source(
     relation,
     source_alias: input_alias,
     graph: None,
+    file_listing: None,
     joins: [],
     operations: [Pivot(clause)],
     sets: [],
     final_operations: [],
     effect: None,
     table_effect: None,
+    commands: [],
     work: self.work,
   })
   (bound.relation, output_alias, bound.bindings, false)

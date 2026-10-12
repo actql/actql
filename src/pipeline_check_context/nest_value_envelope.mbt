@@ -243,7 +243,7 @@ pub fn prepare_nest_value_envelope(
         match contract.shape {
           Array(item, ..) => pending.push(Read(item, next))
           Object(fields) => pending.push(Fields(fields, 0, next))
-          Json | ResourceRef(..) | ArtifactRef(..) => return Err(ForeignOwner)
+          Json | ResourceRef(..) | ContentRef(..) => return Err(ForeignOwner)
           Text(_)
           | Number
           | Boolean

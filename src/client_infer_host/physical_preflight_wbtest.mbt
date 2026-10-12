@@ -47,6 +47,208 @@ fn physical_preflight_fixture(
 }
 
 ///|
+fn physical_work_fixture(
+  calls : Ref[Int],
+  budget : Int,
+  prepare : @model.ModelPhysicalPreflight,
+) -> (@input.ClientInferInputExecution, @model.ModelExecution) raise {
+  let (input, rows, _, fixed) = call_identity_fixture(fixture_prepared())
+  let provider = @model.install_model_provider("models/fixture", _ => {
+    calls.val += 1
+    Ok({
+      value: @admitted.object_value([
+        ("reason", @admitted.null_value()),
+        ("risk", @admitted.text_value("high", 100).unwrap()),
+      ]).unwrap(),
+      provider_model: "fixture-risk-model",
+      provider_request_id: "physical-work",
+      input_tokens: 1L,
+      output_tokens: 2L,
+      observed_at: "2026-10-01T00:00:00.000Z",
+    })
+  }).unwrap()
+  let limits = standard_limits().model
+  let active = @model.start_model_execution(
+    rows,
+    provider,
+    fixed,
+    { ..limits, max_work: budget, },
+    quantity_capacity=Some(fixture_quantity_capacity(33L, 500L)),
+    physical_preflight=Some(prepare),
+  ).unwrap()
+  (input, active)
+}
+
+///|
+test "physical byte work respects quantum and the independent exact Model budget" {
+  // The existing one-row fixture uses 18 Model work: reserve 1, request 8,
+  // dispatch 1 and response 8. This preflight adds start 1, byte validation 3,
+  // plan completion 1 and the all-plans barrier 1, for exactly 24.
+  let mut expected_total : Int64? = None
+  for quantum in [1, 2, 256] {
+    for budget in [24, 23, 11] {
+      let calls = Ref(0)
+      let bytes = Ref(0)
+      let blocked = Ref(true)
+      let (input, active) = physical_work_fixture(calls, budget, request => {
+        Ok({
+          advance: () => {
+            if bytes.val < 3 {
+              bytes.val += 1
+              return Ok(None)
+            }
+            let result = @model.model_physical_request_plan(
+              request,
+              1000L,
+              { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+              () => {
+                calls.val += 1
+                Ok({
+                  value: @admitted.object_value([
+                    ("reason", @admitted.null_value()),
+                    ("risk", @admitted.text_value("high", 100).unwrap()),
+                  ]).unwrap(),
+                  provider_model: "fixture-risk-model",
+                  provider_request_id: "physical-work",
+                  input_tokens: 1L,
+                  output_tokens: 2L,
+                  observed_at: "2026-10-01T00:00:00.000Z",
+                })
+              },
+            ).map(value => Some(value))
+            result
+          },
+          cleanup: () => !blocked.val,
+        })
+      })
+      let mut last = 0L
+      let mut terminal = false
+      for _ in 0..<2000 {
+        let poll = @model.advance_model_execution(active, quantum).unwrap()
+        let work = match poll {
+          @model.Continue(_, work)
+          | @model.Waiting(_, work)
+          | @model.AwaitIo(_, work)
+          | @model.Settling(_, _, work)
+          | @model.Completed(_, _, work)
+          | @model.Failed(_, _, work)
+          | @model.Stopped(_, _, work) => work
+        }
+        assert_true(work >= last && work - last <= quantum.to_int64())
+        last = work
+        if poll is @model.Continue(_, _) {
+          continue
+        }
+        terminal = true
+        if budget == 24 {
+          assert_true(poll is @model.Completed(_, _, _))
+          assert_eq(work, 24L)
+          assert_eq(bytes.val, 3)
+          assert_eq(calls.val, 1)
+          match expected_total {
+            None => expected_total = Some(work)
+            Some(expected) => assert_eq(work, expected)
+          }
+        } else {
+          assert_true(poll is @model.Failed(@model.WorkLimit, _, _))
+          assert_eq(calls.val, if budget == 11 { 0 } else { 1 })
+          assert_eq(bytes.val, if budget == 11 { 1 } else { 3 })
+        }
+        break
+      }
+      assert_true(terminal)
+      let held = @model.model_execution_resource_usage(active)
+      assert_false(@model.cleanup_model_execution(active).unwrap())
+      assert_eq(@model.model_execution_resource_usage(active), held)
+      blocked.val = false
+      assert_true(@model.cleanup_model_execution(active).unwrap())
+      assert_true(@model.cleanup_model_execution(active).unwrap())
+      assert_eq(
+        @model.model_execution_quantity_usage(active).reserved.tokens,
+        0L,
+      )
+      assert_true(@input.cleanup_client_infer_input(input).unwrap())
+    }
+  }
+}
+
+///|
+test "invalid physical work reports stop without dispatch and keep cleanup custody" {
+  for reported in [0, -1, 2] {
+    let calls = Ref(0)
+    let blocked = Ref(true)
+    let (input, active) = physical_work_fixture(calls, 100000, _ => {
+      Ok(
+        @node_fixture.client_program_model_content_request_preflight(
+          _ => (Ok((false, None)), reported),
+          () => !blocked.val,
+        ),
+      )
+    })
+    let mut terminal = false
+    for _ in 0..<2000 {
+      let poll = @model.advance_model_execution(active, 1).unwrap()
+      if poll is @model.Continue(_, _) {
+        continue
+      }
+      assert_true(poll is @model.Failed(@model.InvalidProvider, _, _))
+      terminal = true
+      break
+    }
+    assert_true(terminal)
+    assert_eq(calls.val, 0)
+    assert_false(@model.cleanup_model_execution(active).unwrap())
+    blocked.val = false
+    assert_true(@model.cleanup_model_execution(active).unwrap())
+    assert_eq(@model.model_execution_quantity_usage(active).reserved.tokens, 0L)
+    assert_true(@input.cleanup_client_infer_input(input).unwrap())
+  }
+}
+
+///|
+test "typed physical failure keeps consumed work through failed cleanup and retry" {
+  let calls = Ref(0)
+  let blocked = Ref(true)
+  let (input, active) = physical_work_fixture(calls, 24, _ => {
+    let steps = Ref(0)
+    Ok({
+      advance: () => {
+        steps.val += 1
+        if steps.val < 3 {
+          return Ok(None)
+        }
+        Err(@model.Content(@model.ContentIdentity))
+      },
+      cleanup: () => !blocked.val,
+    })
+  })
+  let mut terminal = false
+  for _ in 0..<2000 {
+    let poll = @model.advance_model_execution(active, 256).unwrap()
+    if poll is @model.Continue(_, _) {
+      continue
+    }
+    // Reserve 1 + request 8 + physical start 1 + failed validation 3.
+    assert_true(
+      poll is @model.Failed(@model.Content(@model.ContentIdentity), _, 13L),
+    )
+    terminal = true
+    break
+  }
+  assert_true(terminal)
+  assert_eq(calls.val, 0)
+  let held = @model.model_execution_resource_usage(active)
+  assert_false(@model.cleanup_model_execution(active).unwrap())
+  assert_eq(@model.model_execution_resource_usage(active), held)
+  blocked.val = false
+  assert_true(@model.cleanup_model_execution(active).unwrap())
+  assert_true(@model.cleanup_model_execution(active).unwrap())
+  assert_eq(calls.val, 0)
+  assert_eq(@model.model_execution_quantity_usage(active).reserved.tokens, 0L)
+  assert_true(@input.cleanup_client_infer_input(input).unwrap())
+}
+
+///|
 test "evaluation retains the invoked physical originals only while the adopted owner is live" {
   let calls = Ref(0)
   let active = contract_capacity_start(calls, 2, 133072L)
@@ -281,6 +483,38 @@ test "physical preflight cancellation retains failed cleanup without redispatch"
   assert_eq(after.reserved_execution_bytes, 0L)
   assert_eq(after.reserved_transfer_bytes, 0L)
   assert_eq(@model.model_execution_quantity_usage(model).reserved.tokens, 0L)
+  assert_eq(calls.val, 0)
+}
+
+///|
+test "typed Content preflight refusal preserves stop and pending physical cleanup" {
+  let calls = Ref(0)
+  let active = contract_capacity_start(calls, 2, 133072L)
+  let blocked = Ref(true)
+  let starts = Ref(0)
+  bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+  bind_physical_preflight(active, _ => {
+    starts.val += 1
+    Ok({
+      advance: () => Err(@model.Content(@model.ContentIdentity)),
+      cleanup: () => !blocked.val,
+    })
+  }).unwrap()
+  assert_true(
+    fixture_finish(active)
+    is Failed(Model(@model.Content(@model.ContentIdentity)), ..),
+  )
+  assert_true(execution_stopped(active))
+  assert_true(acquire_output(active) is None)
+  assert_eq(starts.val, 1)
+  assert_eq(calls.val, 0)
+  let before = execution_quantity_usage(active).unwrap().reserved.tokens
+  assert_eq(before, 66L)
+  assert_false(cleanup(active).unwrap())
+  assert_eq(execution_quantity_usage(active).unwrap().reserved.tokens, before)
+  blocked.val = false
+  assert_true(cleanup(active).unwrap())
+  assert_eq(execution_quantity_usage(active).unwrap().reserved.tokens, 0L)
   assert_eq(calls.val, 0)
 }
 

@@ -11,6 +11,7 @@ pub struct CommandTarget {
   catalog : Catalog
   item : Member
   command_id : String
+  contract_cid : String
   resource_kind : String
   work : Int
 }
@@ -28,6 +29,13 @@ pub fn command_target_member(value : CommandTarget) -> Member {
 ///|
 pub fn command_target_id(value : CommandTarget) -> String {
   value.command_id
+}
+
+///|
+/// The self identity checked by Catalog admission, excluding its CID field.
+/// The Environment member identity instead hashes the complete envelope.
+pub fn command_target_cid(value : CommandTarget) -> String {
+  value.contract_cid
 }
 
 ///|
@@ -76,6 +84,14 @@ pub fn select_command_target(
       if command != reference {
         continue
       }
+      let contract_cid = match @decode.lookup(object, "contract_cid") {
+        Some(value) =>
+          match @decode.text(value) {
+            Ok(value) => value
+            Err(_) => return Err(InvalidCommand(reference))
+          }
+        None => return Err(InvalidCommand(reference))
+      }
       let target = match @decode.lookup(object, "target") {
         Some(value) => value
         None => return Err(InvalidCommand(reference))
@@ -116,6 +132,7 @@ pub fn select_command_target(
         catalog,
         item,
         command_id: command,
+        contract_cid,
         resource_kind: kind,
         work: max_work - remaining,
       })

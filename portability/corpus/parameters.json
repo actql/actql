@@ -31,6 +31,6 @@
     {"id":"reserved-metadata","declarations":{"x":{"type":"number","meta":{"actql_reserved":true}}},"supplied":{"x":1},"expected":"ReservedMetadataKey"},
     {"id":"nested-default-forbidden","declarations":{"x":{"type":"array","items":{"type":"number","default":1}}},"supplied":{"x":[]},"expected":"UnknownField"},
     {"id":"nested-meta-forbidden","declarations":{"x":{"type":"array","items":{"type":"number","meta":{"note":"a"}}}},"supplied":{"x":[]},"expected":"UnknownField"},
-    {"id":"ref-forbidden","declarations":{"x":{"type":"artifact_ref"}},"supplied":{"x":{}},"expected":"UnknownType"}
+    {"id":"ref-forbidden","declarations":{"x":{"type":"content_ref"}},"supplied":{"x":{}},"expected":"UnknownType"}
   ]
 }

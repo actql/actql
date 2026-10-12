@@ -32,11 +32,14 @@ import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 // Physical holdings: Transfer material, Effect source/capture custody,
-// encrypted publication evidence, and Local continuation evidence.
+// encrypted publication evidence, Local continuation evidence, and generated
+// or captured Content. These are kinds in the same physical custody owner,
+// not additional Source namespaces or independent reference authorities.
 const physicalHoldingNamespaces = Object.freeze([
   'remote-transfer', 'effect-source', 'effect-capture',
   'publication-private',
   'local-continuation-private',
+  'content',
 ]);
 const localContinuationEvidenceNames = Object.freeze([
   'captured_input', 'invocation_request', 'prepared_invocation',
@@ -2885,6 +2888,44 @@ export async function openLocalPublicationStore(
     fail('PublicationObjectMissing');
   };
 
+  // The existing computation owner validates the containing chain first.
+  // Here the Store confirms each common-described custody cell, including
+  // Content not selected into a public Result. Equal bytes do not substitute
+  // another Run/output occurrence's holding or encrypted proof.
+  const confirmCapturedContentHoldings = async (captured, definition) => {
+    active();
+    const context = parseContract(captured).effect_context;
+    if (!Object.hasOwn(context, 'content_generations')) return Object.freeze([]);
+    if (typeof contractControl.capturedContentGenerationCount !== 'function' ||
+        typeof contractControl.capturedContentGenerationStorage !== 'function') {
+      fail('PublicationContentInventoryUnsupported');
+    }
+    const count = contractControl.capturedContentGenerationCount(captured);
+    if (!quantity(count) || count < 1) fail('PublicationContentInventoryInvalid');
+    const cids = [];
+    for (let index = 0; index < count; index++) {
+      const binding = contractControl.capturedContentGenerationStorage(captured,
+        definition, configuration.storeAuthorityCid, index);
+      const holding = await inspectPhysicalHolding(binding.holdingCid);
+      if (holding?.namespace !== 'content' ||
+          holding.manifest_cid !== binding.manifestCid || holding.objects.length !== 1 ||
+          holding.objects[0].cid !== binding.contentCid ||
+          BigInt(holding.objects[0].byte_count) !== binding.byteCount) {
+        fail('PublicationContentHoldingUnavailable');
+      }
+      await commitPhysicalHolding(holding, []);
+      cids.push(binding.holdingCid);
+      for (const proof of binding.bindings) {
+        if (await confirmPrivateEvidence(proof) === undefined) {
+          fail('PublicationContentEvidenceUnavailable');
+        }
+        cids.push(proof.holdingCid);
+      }
+    }
+    if (new Set(cids).size !== cids.length) fail('PublicationContentInventoryInvalid');
+    return Object.freeze(cids.sort());
+  };
+
   const verifyCommitEvidence = async (
     admitted,
     entry,
@@ -3010,6 +3051,12 @@ export async function openLocalPublicationStore(
     const boundPhysicalCids = await verifyCommitEvidence(
       admitted, entry, suppliedEvidence, undefined,
     );
+    const expectedContent = await confirmCapturedContentHoldings(
+      suppliedEvidence.capturedRun, suppliedEvidence.runDefinition);
+    const inventory = await readMetadataInventory(admitted.identity);
+    if (inventory?.physical_holding_cids.join('\0') !== expectedContent.join('\0')) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
     await adoptPreparedObjects(boundPhysicalCids);
     return true;
   };
@@ -3258,6 +3305,8 @@ export async function openLocalPublicationStore(
       boundPhysicalCids = await verifyCommitEvidence(
         admitted, entry, suppliedEvidence, required,
       );
+      physicalHoldingCids = [...await confirmCapturedContentHoldings(
+        suppliedEvidence.capturedRun, suppliedEvidence.runDefinition)];
     } else {
       if (effectfulEvidence.index.identity !== admitted.identity) {
         fail('InvalidEffectfulStoredEvidence');
@@ -3286,6 +3335,8 @@ export async function openLocalPublicationStore(
           [inspected.captureHoldingCid]),
         ...(inspected.captureRecordHoldingCid === undefined ? [] :
           [inspected.captureRecordHoldingCid]),
+        ...await confirmCapturedContentHoldings(suppliedEvidence.capturedRun,
+          suppliedEvidence.runDefinition),
       ].sort();
     }
     const inventorySemanticCids = Object.freeze([...new Set([
@@ -3418,7 +3469,9 @@ export async function openLocalPublicationStore(
       ...(inspected.captureHoldingCid === undefined ? [] :
         [inspected.captureHoldingCid]),
       ...(inspected.captureRecordHoldingCid === undefined ? [] :
-        [inspected.captureRecordHoldingCid])].sort();
+        [inspected.captureRecordHoldingCid]),
+      ...await confirmCapturedContentHoldings(preparation.chain.capturedRun,
+        preparation.chain.runDefinition)].sort();
     if (inventory?.physical_holding_cids.join('\0') !==
         expectedHoldings.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
@@ -4298,8 +4351,9 @@ export async function openLocalPublicationStore(
       'name', 'semanticCid', 'holdingCid', 'wire',
     ]) || !['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
       'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
-      'model_attempt_outcome', 'model_dispatch_authority',
-      'observation_set', 'run_invocation', 'source_evidence'].includes(binding.name) ||
+      'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission',
+      'observation_set', 'run_invocation', 'source_evidence',
+      'content_input_artifact', 'content_evidence', 'content_generation'].includes(binding.name) ||
         typeof binding.wire !== 'string') {
       fail('InvalidPublicationPrivateEvidence');
     }
@@ -5427,6 +5481,7 @@ export async function openLocalPublicationStore(
     readModelRawEvidence,
     confirmModelRawEvidence,
     confirmModelRawCaptureOriginals,
+    confirmCapturedContentHoldings,
     putPreparedResultSchema,
     putPublicationContract,
     verifyObject,

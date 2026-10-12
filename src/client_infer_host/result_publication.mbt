@@ -31,13 +31,12 @@ pub fn start_result_publication(
   guard !binding.output_use.released &&
     binding.issuance is Some(issued) &&
     !issued.reclaimed &&
-    invocation_binding_output(binding) is Some(completed) &&
-    binding.output_use.owner.prepared is Some(prepared) else {
+    invocation_binding_output(binding) is Some(completed) else {
     return Err(InvalidState)
   }
   let selection = match
-    @publication_host.prepare_client_result_transformation(
-      prepared,
+    @publication_host.prepare_client_compiled_result_transformation(
+      issued.state.compiled,
       result,
       limits.schema.max_bytes,
       limits.schema.max_nodes,
@@ -81,7 +80,7 @@ pub fn start_result_publication(
 pub fn result_publication_selection(
   value : ResultPublication,
 ) -> @publication_host.ClientResultTransformation? {
-  if value.released {
+  if value.released || invocation_binding_output(value.binding) is None {
     None
   } else {
     Some(value.selection)
@@ -93,7 +92,10 @@ pub fn advance_result_publication(
   value : ResultPublication,
   quantum : Int,
 ) -> Result[(Bool, Int), ResultPublicationIssue] {
-  if value.released || value.cancelled || value.ready {
+  if value.released ||
+    value.cancelled ||
+    value.ready ||
+    invocation_binding_output(value.binding) is None {
     return Err(InvalidState)
   }
   value.preparation
@@ -111,7 +113,10 @@ pub fn advance_result_publication(
 pub fn finish_result_publication(
   value : ResultPublication,
 ) -> Result[@publication_host.PublicationOutputExport, ResultPublicationIssue] {
-  if value.released || value.cancelled || !value.ready {
+  if value.released ||
+    value.cancelled ||
+    !value.ready ||
+    invocation_binding_output(value.binding) is None {
     return Err(InvalidState)
   }
   if value.exported is Some(exported) {

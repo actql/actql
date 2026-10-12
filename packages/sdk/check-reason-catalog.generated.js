@@ -4,7 +4,7 @@ const freeze = value => { if (value && typeof value === "object") {Object.values
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
   "revision": "2026-10-09.3",
-  "reasonSchemaCid": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
+  "reasonSchemaCid": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {

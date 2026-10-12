@@ -11,8 +11,9 @@ pub(all) struct BroadHostLimits {
 struct BroadHostConfiguration {
   contracts : @planning.QueryEvidenceContracts
   requirement : @planning.QueryRequirement
-  choice : @planning.AcquisitionChoice
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement]
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBQueryPreparation,
   ]
   limits : BroadHostLimits
@@ -39,8 +40,9 @@ pub(all) enum BroadHostIssue {
 pub fn configure_broad_host(
   contracts : @planning.QueryEvidenceContracts,
   requirement : @planning.QueryRequirement,
-  choice : @planning.AcquisitionChoice,
+  choice : @planning.AcquisitionChoice[@planning.QueryRequirement],
   candidate : @planning.PreparedAcquisition[
+    @planning.QueryRequirement,
     @duckdb_query.DuckDBQueryPreparation,
   ],
   limits : BroadHostLimits,

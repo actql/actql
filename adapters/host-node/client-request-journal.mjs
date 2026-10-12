@@ -138,6 +138,56 @@ function validateSourceInventory(wire) {
   try { value = JSON.parse(wire); } catch (cause) { fail('InvalidClientSourceInventory', cause); }
   const keys = (object, expected) => object !== null && typeof object === 'object' &&
     !Array.isArray(object) && Object.keys(object).sort().join(',') === expected.split(',').sort().join(',');
+  if (value?.version === 'actql-client-keyed-source-inventory/0.1') {
+    // The installed Connector owns the target's physical schema. The journal
+    // retains its exact data plus immutable installation binding, not another
+    // provider-name dispatcher. Semantic preparation and replay still match
+    // the original checked selections before physical start.
+    if (!keys(value, 'version,environmentCid,acquisitions') || !cid(value.environmentCid) ||
+        canonicalValueJson(value, {dataKeys: true}) !== wire ||
+        !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2) {
+      fail('InvalidClientSourceInventory');
+    }
+    const commonKeys = 'sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid';
+    // Source occurrence order is not physical task identity: a Content
+    // component can consume both original reads inside task 0. The selection
+    // CID below still binds the exact checked task, port and JOIN step.
+    for (const [index, occurrence] of value.acquisitions.entries()) {
+      const source = occurrence?.checkedSource, binding = occurrence?.installationBinding;
+      if (!keys(occurrence, 'stage,input,task,checkedSource,readTuple,physicalBinding,installationBinding') ||
+          !Number.isSafeInteger(occurrence.stage) || occurrence.stage < 0 ||
+          !Number.isSafeInteger(occurrence.input) || occurrence.input < 0 ||
+          (index === 0 ? occurrence.task !== 0 : occurrence.task !== 0 && occurrence.task !== 1) ||
+          !keys(source, commonKeys + (index === 0 ? ',requirementCid,inputContractCid,outputContractCid'
+            : ',selectionCid,programCid,parametersCid,step')) ||
+          ![source.sourceContractCid, source.carrierSchemaContractCid, source.sourceDataPolicyCid,
+            source.sourceViewContractCid, ...(index === 0
+              ? [source.requirementCid, source.inputContractCid, source.outputContractCid]
+              : [source.selectionCid, source.programCid, source.parametersCid])].every(cid) ||
+          !text(source.sourceRef) || !['public', 'internal', 'confidential', 'restricted', 'unknown']
+            .includes(source.dataClassification) ||
+          !keys(binding, 'connectorId,connectorRegistration,connectorRevision,bindingCid') ||
+          ![binding.connectorId, binding.connectorRegistration, binding.connectorRevision].every(text) ||
+          !cid(binding.bindingCid) || !keys(occurrence.readTuple, 'connection,resource,operation') ||
+          ![occurrence.readTuple.connection, occurrence.readTuple.resource].every(text) ||
+          occurrence.readTuple.operation !== 'read' || occurrence.physicalBinding === null ||
+          typeof occurrence.physicalBinding !== 'object' || Array.isArray(occurrence.physicalBinding) ||
+          Object.keys(occurrence.physicalBinding).length === 0) fail('InvalidClientSourceInventory');
+      if (index === 1) {
+        if (!Number.isSafeInteger(source.step) || source.step < 0) fail('InvalidClientSourceInventory');
+        const selection = {version: 'actql-installed-keyed-selection/0.1',
+          programCid: source.programCid, parametersCid: source.parametersCid,
+          coordinates: [occurrence.stage, occurrence.input, occurrence.task, source.step],
+          sourceFacts: [source.sourceRef, source.sourceContractCid, source.carrierSchemaContractCid,
+            source.sourceDataPolicyCid, source.dataClassification, source.sourceViewContractCid]};
+        if (`sha256:${createHash('sha256').update(canonicalValueJson(selection, {dataKeys: true})).digest('hex')}` !==
+            source.selectionCid) fail('InvalidClientSourceInventory');
+      }
+    }
+    if (value.acquisitions[0].stage !== value.acquisitions[1].stage ||
+        value.acquisitions[0].input === value.acquisitions[1].input) fail('InvalidClientSourceInventory');
+    return wire;
+  }
   if (!keys(value, 'version,environmentCid,acquisitions') ||
       value.version !== 'actql-client-source-inventory/0.1' || !cid(value.environmentCid) ||
       !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
@@ -211,6 +261,17 @@ function validateSourceInventory(wire) {
     requirements.add(source.requirementCid);
   }
   return wire;
+}
+
+function assertKeyedInventoryRequest(wire, fields) {
+  if (wire === undefined) return;
+  const inventory = JSON.parse(wire);
+  if (inventory.version !== 'actql-client-keyed-source-inventory/0.1') return;
+  const selection = inventory.acquisitions[1].checkedSource;
+  if (selection.programCid !== fields.programDefinitionCid ||
+      selection.parametersCid !== fields.parameterValuesCid) {
+    fail('ClientRequestSourceInventoryMismatch');
+  }
 }
 
 function admissionEvidenceShape(value) {
@@ -294,6 +355,9 @@ function retainedEvidence(row) {
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
   try {
     if (!admissionEvidenceShape(value)) fail('ClientRequestJournalCorrupt');
+    assertKeyedInventoryRequest(value.sourceInventory, {
+      programDefinitionCid: row.program_definition_cid,
+      parameterValuesCid: row.parameter_values_cid});
   } catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
   return Object.freeze(value);
 }
@@ -897,6 +961,30 @@ export function openClientRequestJournal(directory, {
   const selectRef = database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ?`);
+  const readRunDefinitionRow = (ref, requestControl) => {
+    ensureOpen();
+    if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
+        !cid(ref?.runDefinitionCid) ||
+        typeof requestControl?.clientRequestAdmitRecord !== 'function') {
+      fail('InvalidClientRunLookup');
+    }
+    try {
+      return selectRef.get(ref.namespaceId, ref.authorityScopeCid,
+        ref.runDefinitionCid);
+    } catch (error) { fail('ClientRequestLookupUnknown', error); }
+  };
+  const admitRunDefinitionRow = (row, requestControl, publicationControl) => {
+    const retained = retainedIdentity(row, requestControl);
+    if (requestControl.clientRequestScopeCid(retained) !== row.logical_request_scope_cid) {
+      fail('ClientRequestJournalCorrupt');
+    }
+    const accepted = admission(row);
+    return Object.freeze({
+      ref: accepted.ref, durability: accepted.durability,
+      revision: accepted.revision, requestId: row.caller_request_id,
+      ...retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes),
+    });
+  };
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
@@ -1267,6 +1355,7 @@ export function openClientRequestJournal(directory, {
     }
     const admissionEvidence = evidenceJson(runAdmissionEvidence,
       maxRunDefinitionWireBytes);
+    assertKeyedInventoryRequest(runAdmissionEvidence?.sourceInventory, fields);
     if (runAdmissionEvidence?.valuesHostPolicyOriginal !== undefined &&
         (typeof runDefinitionWire !== 'string' ||
          JSON.parse(runDefinitionWire).authorization_context_cid !==
@@ -1671,30 +1760,43 @@ export function openClientRequestJournal(directory, {
     // Attach reads the original accepted Run Definition by its exact ref.
     // It does not infer authority from a CID alone or create another Run.
     lookupRunDefinition(ref, requestControl, publicationControl) {
-      ensureOpen();
-      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid) ||
-          typeof requestControl?.clientRequestAdmitRecord !== 'function') {
-        fail('InvalidClientRunLookup');
-      }
-      let row;
-      try {
-        row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
-          ref.runDefinitionCid);
-      } catch (error) { fail('ClientRequestLookupUnknown', error); }
+      const row = readRunDefinitionRow(ref, requestControl);
       if (row === undefined) return undefined;
-      const retained = retainedIdentity(row, requestControl);
-      if (requestControl.clientRequestScopeCid(retained) !==
-          row.logical_request_scope_cid) {
-        fail('ClientRequestJournalCorrupt');
-      }
-      const accepted = admission(row);
-      return Object.freeze({
-        ref: accepted.ref, durability: accepted.durability,
-        revision: accepted.revision, requestId: row.caller_request_id,
-        ...retainedRunFacts(row, publicationControl,
-          maxRunDefinitionWireBytes),
-      });
+      return admitRunDefinitionRow(row, requestControl, publicationControl);
+    },
+    // One observation frame for an already selected Run, not an authority
+    // cache. Every call reads committed storage and checks connection health.
+    // Reuse admission only for an exactly unchanged complete row, including
+    // cancellation and payload bytes; revision alone is not sufficient.
+    observeRunCancellation(ref, requestControl, publicationControl) {
+      const selected = Object.freeze({namespaceId: ref?.namespaceId,
+        authorityScopeCid: ref?.authorityScopeCid, runDefinitionCid: ref?.runDefinitionCid});
+      let previousRow;
+      let previousFacts;
+      return () => {
+        try {
+          const row = readRunDefinitionRow(selected, requestControl);
+          if (row === undefined) {
+            previousRow = previousFacts = undefined;
+            return undefined;
+          }
+          if (previousRow !== undefined &&
+              Object.keys(row).length === Object.keys(previousRow).length &&
+              Object.keys(row).every(key => row[key] === previousRow[key])) {
+            return previousFacts;
+          }
+          const facts = admitRunDefinitionRow(row, requestControl, publicationControl);
+          previousRow = row;
+          // Do not expose cached mutable nested evidence or a Definition as
+          // permission. The caller receives only the current cancellation fact.
+          previousFacts = Object.freeze({revision: facts.revision,
+            cancellationRequested: facts.cancellationRequested});
+          return previousFacts;
+        } catch (error) {
+          previousRow = previousFacts = undefined;
+          throw error;
+        }
+      };
     },
     // Recover identity and Definition from one physical journal observation.
     // This internal owner must not be projected as a Client wire response.
@@ -1748,6 +1850,7 @@ export function openClientRequestJournal(directory, {
       ensureOpen();
       assertSubmissionCustody();
       const fields = checkedIdentity(identity, requestControl);
+      assertKeyedInventoryRequest(sourceInventory, fields);
       const epochValidity = checkSubmissionBinding(fields, submission, requestControl);
       const retained = journal.resolveDefinition(identity, {namespaceId},
         requestControl, publicationControl);

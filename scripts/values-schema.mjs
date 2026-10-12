@@ -16,7 +16,7 @@ export function cellSchema() {
 }
 export function valuesContract(base) {
   const c=JSON.parse(JSON.stringify(base).replaceAll('#/$defs/value_contract','#/$defs/values_contract'));
-  c.oneOf=c.oneOf.filter(s=>!['resource_ref','artifact_ref'].includes(s.properties.type.const));
+  c.oneOf=c.oneOf.filter(s=>!['resource_ref','content_ref'].includes(s.properties.type.const));
   for(const s of c.oneOf) {
     if(s.properties.type.enum) s.properties.type.enum=s.properties.type.enum.filter(t=>t!=='json');
     if(s.properties.max_items) s.properties.max_items.maximum=9007199254740991;

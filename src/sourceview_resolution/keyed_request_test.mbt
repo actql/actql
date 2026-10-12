@@ -92,6 +92,7 @@ fn check_keyed_request_fixture(
     parameterized_keyed_request_host_binding_count(bound),
     host_bindings,
   )
+  check_keyed_row_request_instance(bound, input, supplied)
   let requirements = keyed_request_bindings(bound, 1000000, host_bindings).unwrap()
   assert_true(
     request_bindings_request(requirements) is KeyedBindingRequest(owner) &&
@@ -203,5 +204,224 @@ fn check_keyed_request_fixture(
   assert_true(
     check_direct_request(context, entry, request_caps()) is Err(e) &&
     e.kind == MissingField("id"),
+  )
+}
+
+///|
+/// Exercise concrete requests under the real corpus Catalog/parameter owners.
+/// The numeric correlation role in these independent fixtures is `id`.
+fn check_keyed_row_request_instance(
+  bound : ParameterizedKeyedRequest,
+  input : String,
+  supplied : String,
+) -> Unit raise {
+  let numeric_key = @value.number_value(7.0).unwrap()
+  if parameterized_keyed_request_host_binding_count(bound) != 0 {
+    assert_true(
+      start_keyed_row_request(bound, [numeric_key], request_caps())
+      is Err(UnboundHostBinding),
+    )
+    return
+  }
+  // Copy admission (2), start/name (3), scalar node (1), shared completion
+  // (1), request completion (1). Authored fields add name + retention visit.
+  let mut expected_work = 8
+  for i in 0..<parameterized_keyed_request_field_count(bound) {
+    expected_work += parameterized_keyed_request_field_at(bound, i).unwrap().field.slot.field_name.length() +
+      1
+  }
+  let exact : RequestLimits = {
+    max_work: expected_work,
+    max_pairs: parameterized_keyed_request_field_count(bound) + 1,
+    values: { max_nodes: 1, max_depth: 1, max_text_bytes: 0, },
+  }
+  let cursor = start_keyed_row_request(bound, [numeric_key], exact).unwrap()
+  assert_true(advance_keyed_row_request(cursor) is KeyedRowRequestContinue)
+  assert_true(advance_keyed_row_request(cursor) is KeyedRowRequestContinue)
+  assert_true(advance_keyed_row_request(cursor) is KeyedRowRequestContinue)
+  guard advance_keyed_row_request(cursor) is KeyedRowRequestComplete(row) else {
+    fail("typed keyed request did not finish within the independent work bound")
+  }
+  assert_true(physical_equal(keyed_row_request_owner(row), bound))
+  assert_eq(keyed_row_request_usage(row), (expected_work, 1, 0))
+  let expected = Map([])
+  expected["id"] = @json.parse("7")
+  guard @json.parse(input) is Object(authored) &&
+    @json.parse(supplied) is Object(parameters) else {
+    fail("invalid independent request fixture")
+  }
+  if authored.get("request") is Some(Object(fields)) {
+    for name, value in fields {
+      expected[name] = match value {
+        Object(marker) if marker.length() == 1 =>
+          match marker.get("$param") {
+            Some(String(name)) => parameters.get(name).unwrap()
+            _ => value
+          }
+        _ => value
+      }
+    }
+  }
+  for i in 0..<parameterized_keyed_request_field_count(bound) {
+    let field = parameterized_keyed_request_field_at(bound, i).unwrap().field
+    if field.contract.shape is @contract.Json {
+      expected[field.slot.field_name] = Json::object({
+        "$json": expected.get(field.slot.field_name).unwrap(),
+      })
+    }
+  }
+  let wire = keyed_row_request_wire(row, 10000, 1000, 30).unwrap()
+  assert_eq(@json.parse(wire), Json::object(expected))
+  check_keyed_row_response_instance(row, numeric_key)
+  // A completed cursor has transferred its fields. A later cancel/advance must
+  // neither mutate the handed-off request nor create another completion.
+  cancel_keyed_row_request(cursor)
+  assert_true(
+    advance_keyed_row_request(cursor) is KeyedRowRequestFailed(Closed),
+  )
+  assert_eq(keyed_row_request_wire(row, 10000, 1000, 30).unwrap(), wire)
+  assert_true(keyed_row_request_wire(row, 0, 1000, 30) is Err(_))
+  assert_true(keyed_row_request_wire(row, 10000, 0, 30) is Err(_))
+  assert_true(
+    start_keyed_row_request(bound, [], exact) is Err(CorrelationArity),
+  )
+  assert_true(
+    start_keyed_row_request(bound, [numeric_key], {
+      ..exact,
+      max_pairs: exact.max_pairs - 1,
+    })
+    is Err(PairLimit),
+  )
+  for invalid in [@value.null_value(), @value.text_value("7", 1).unwrap()] {
+    let invalid_cursor = start_keyed_row_request(bound, [invalid], exact).unwrap()
+    assert_true(
+      advance_keyed_row_request(invalid_cursor) is KeyedRowRequestContinue,
+    )
+    assert_true(
+      advance_keyed_row_request(invalid_cursor)
+      is KeyedRowRequestFailed(InvalidCorrelation(0)),
+    )
+    assert_true(
+      advance_keyed_row_request(invalid_cursor) is KeyedRowRequestFailed(Closed),
+    )
+  }
+  let short = start_keyed_row_request(bound, [numeric_key], {
+    ..exact,
+    max_work: expected_work - 1,
+  }).unwrap()
+  assert_true(advance_keyed_row_request(short) is KeyedRowRequestContinue)
+  assert_true(advance_keyed_row_request(short) is KeyedRowRequestContinue)
+  assert_true(advance_keyed_row_request(short) is KeyedRowRequestContinue)
+  assert_true(
+    advance_keyed_row_request(short) is KeyedRowRequestFailed(WorkLimit),
+  )
+  assert_eq(keyed_row_request_work(short), expected_work - 1)
+  cancel_keyed_row_request(short)
+  assert_eq(keyed_row_request_work(short), expected_work - 1)
+  let cancelled = start_keyed_row_request(bound, [numeric_key], exact).unwrap()
+  assert_true(advance_keyed_row_request(cancelled) is KeyedRowRequestContinue)
+  let cancelled_work = keyed_row_request_work(cancelled)
+  cancel_keyed_row_request(cancelled)
+  cancel_keyed_row_request(cancelled)
+  assert_true(
+    advance_keyed_row_request(cancelled) is KeyedRowRequestFailed(Closed),
+  )
+  assert_eq(keyed_row_request_work(cancelled), cancelled_work)
+  let no_nodes = start_keyed_row_request(bound, [numeric_key], {
+    ..exact,
+    values: { ..exact.values, max_nodes: 0, },
+  }).unwrap()
+  assert_true(advance_keyed_row_request(no_nodes) is KeyedRowRequestContinue)
+  assert_true(
+    advance_keyed_row_request(no_nodes)
+    is KeyedRowRequestFailed(InvalidCorrelation(0)),
+  )
+}
+
+///|
+fn check_keyed_row_response_instance(
+  request : KeyedRowRequest,
+  key : @value.Value,
+) -> Unit raise {
+  // Copy/start 2, role start 1, shared numeric recheck 2, equality poll/node
+  // 2, equality completion poll 1, response completion poll 1 = 9.
+  let limits : RequestLimits = {
+    max_work: 9,
+    max_pairs: 1,
+    values: { max_nodes: 1, max_depth: 1, max_text_bytes: 0, },
+  }
+  let cursor = start_keyed_row_response(request, [key], limits).unwrap()
+  for _ in 0..<5 {
+    assert_true(advance_keyed_row_response(cursor) is KeyedRowResponseContinue)
+  }
+  assert_true(advance_keyed_row_response(cursor) is KeyedRowResponseComplete)
+  assert_eq(keyed_row_response_work(cursor), 9)
+  assert_true(
+    advance_keyed_row_response(cursor) is KeyedRowResponseFailed(Closed),
+  )
+  cancel_keyed_row_response(cursor)
+  assert_eq(keyed_row_response_work(cursor), 9)
+  for
+    (value, mismatch) in [
+      (@value.number_value(8.0).unwrap(), true),
+      (@value.null_value(), false),
+      (@value.text_value("7", 1).unwrap(), false),
+    ] {
+    let cursor = start_keyed_row_response(request, [value], limits).unwrap()
+    let mut failure = None
+    for _ in 0..<6 {
+      match advance_keyed_row_response(cursor) {
+        KeyedRowResponseContinue => ()
+        KeyedRowResponseFailed(issue) => {
+          failure = Some(issue)
+          break
+        }
+        KeyedRowResponseComplete => fail("invalid response key completed")
+      }
+    }
+    assert_eq(
+      failure,
+      Some(
+        if mismatch {
+          CorrelationMismatch(0)
+        } else {
+          InvalidCorrelation(0)
+        },
+      ),
+    )
+    let work = keyed_row_response_work(cursor)
+    cancel_keyed_row_response(cursor)
+    assert_eq(keyed_row_response_work(cursor), work)
+  }
+  let short = start_keyed_row_response(request, [key], {
+    ..limits,
+    max_work: 8,
+  }).unwrap()
+  for _ in 0..<4 {
+    assert_true(advance_keyed_row_response(short) is KeyedRowResponseContinue)
+  }
+  assert_true(
+    advance_keyed_row_response(short) is KeyedRowResponseFailed(WorkLimit),
+  )
+  assert_eq(keyed_row_response_work(short), 8)
+  let cancelled = start_keyed_row_response(request, [key], limits).unwrap()
+  for _ in 0..<3 {
+    assert_true(
+      advance_keyed_row_response(cancelled) is KeyedRowResponseContinue,
+    )
+  }
+  let work = keyed_row_response_work(cancelled)
+  cancel_keyed_row_response(cancelled)
+  cancel_keyed_row_response(cancelled)
+  assert_true(
+    advance_keyed_row_response(cancelled) is KeyedRowResponseFailed(Closed),
+  )
+  assert_eq(keyed_row_response_work(cancelled), work)
+  assert_true(
+    start_keyed_row_response(request, [], limits) is Err(CorrelationArity),
+  )
+  assert_true(
+    start_keyed_row_response(request, [key, key], limits)
+    is Err(CorrelationArity),
   )
 }
