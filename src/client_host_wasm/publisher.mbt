@@ -32,6 +32,18 @@ fn publisher_current(value : Instance, child : StoredPublisher) -> Bool {
   if value.closing || value.runtime_closing || child.closing || parent.closing {
     return false
   }
+  guard value.run_configurations.get(child.configuration) is Some(current) else {
+    return false
+  }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => {
+      if code == -41 {
+        child.unknown = true
+      }
+      return false
+    }
+  }
   let code = physical_publisher_current(child.physical)
   if code != 0 && code != -1 {
     child.unknown = true
@@ -246,6 +258,10 @@ pub fn authorize_publisher(
   }
   if !stored_preflight_current(value, parent, current.account) {
     return -32
+  }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
   }
   let (selected_stage, index) = match stage {
     0 if publication == 0 => (@publication.Request, None)

@@ -148,6 +148,34 @@ class LocalReaderAcquisitionError(LocalFileError):
         self.original_reader = original_reader
 
 
+class _OriginalFileReader:
+    """Physical reader of saved originals, not an adoption or authority witness."""
+
+    __slots__ = ('root', 'name', 'max_bytes', 'descriptor', 'identity', 'stamp',
+                 'offset', 'chunk', 'hash', 'invalid', 'closing', 'close_pending', 'eof')
+
+    def __init__(self, root: 'LocalFileRoot', name: str, max_bytes: int) -> None:
+        self.root = root
+        self.name = name
+        self.max_bytes = max_bytes
+        self.descriptor: int | None = None
+        self.identity: PhysicalFileIdentity | None = None
+        self.stamp: tuple[int, ...] | None = None
+        self.offset = 0
+        self.chunk: PhysicalFileChunk | None = None
+        self.hash = hashlib.sha256()
+        self.invalid = False
+        self.closing = False
+        self.close_pending = False
+        self.eof = False
+
+
+class LocalOriginalAcquisitionError(LocalFileError):
+    def __init__(self, original_reader: _OriginalFileReader) -> None:
+        super().__init__('Saved Local original acquisition requires same-handle cleanup')
+        self.original_reader = original_reader
+
+
 class LocalFileAcquisitionError(LocalFileError):
     def __init__(self, original_file: _PayloadFile) -> None:
         super().__init__('Local file acquisition requires original handle observation or cleanup')
@@ -197,6 +225,7 @@ class LocalFileRoot:
         self._name_transfers: dict[int, _NameAdoption] = {}
         self._finalizations: dict[int, _FileFinalization] = {}
         self._readers: dict[int, _FileReader] = {}
+        self._original_readers: dict[int, _OriginalFileReader] = {}
         self._capacity_root: LocalFileRoot = self
         self._parent_area: _AllocationArea | None = None
         self._max_files = max_files
@@ -263,8 +292,10 @@ class LocalFileRoot:
         return self._descriptor
 
     def _used_slots(self) -> int:
-        return len(self._files) + len(self._areas) + len(self._readers) + sum(
-            len(area.directory._files) + len(area.directory._readers) for area in self._areas.values()
+        return (len(self._files) + len(self._areas) + len(self._readers)
+                + len(self._original_readers)) + sum(
+            len(area.directory._files) + len(area.directory._readers)
+            + len(area.directory._original_readers) for area in self._areas.values()
             if area.directory is not None)
 
     def _owned_area(self, value: _AllocationArea) -> None:
@@ -357,6 +388,7 @@ class LocalFileRoot:
             child._name_transfers = {}
             child._finalizations = {}
             child._readers = {}
+            child._original_readers = {}
             child._capacity_root = self
             child._parent_area = value
             child._max_files = self._max_files
@@ -872,6 +904,144 @@ class LocalFileRoot:
             value.finalization = None
             return True
 
+    def open_original(self, name: str, *, max_bytes: int) -> _OriginalFileReader:
+        """Open saved raw bytes after the trusted Host reserves bounded workspace.
+
+        The caller uses the Core-selected original name, never a replacement
+        configuration or default. This physical port does not parse originals,
+        adopt a Host, issue a scope, or establish Source absence or permission.
+        Acquisition failure retains the same handle until explicit cleanup.
+        """
+        self._name(name)
+        if type(max_bytes) is not int or not 0 <= max_bytes <= 1048576:
+            raise ValueError('Invalid saved Local original byte limit')
+        with self._lock:
+            root = self._open()
+            if self._capacity_root._used_slots() >= self._capacity_root._max_files:
+                raise LocalFileError('Local file descriptor capacity is exhausted')
+            reader = _OriginalFileReader(self, name, max_bytes)
+            self._original_readers[id(reader)] = reader
+            try:
+                # Nonblocking also prevents an untrusted special file from
+                # blocking before the regular-file observation can reject it.
+                reader.descriptor = os.open(name, os.O_RDONLY | os.O_CLOEXEC |
+                                            os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=root)
+                current = os.fstat(reader.descriptor)
+                reader.identity = PhysicalFileIdentity(current.st_dev, current.st_ino)
+                reader.stamp = (current.st_dev, current.st_ino, current.st_size,
+                                current.st_mtime_ns, current.st_ctime_ns)
+                self._validate_original(reader)
+            except BaseException as error:
+                reader.invalid = True
+                raise LocalOriginalAcquisitionError(reader) from error
+            return reader
+
+    def _owned_original(self, reader: _OriginalFileReader) -> None:
+        self._nominal_root()
+        if (type(reader) is not _OriginalFileReader or reader.root is not self
+                or self._original_readers.get(id(reader)) is not reader):
+            raise ValueError('Foreign, copied or retired saved Local original reader')
+
+    def _validate_original(self, reader: _OriginalFileReader) -> tuple[int, ...]:
+        self._owned_original(reader)
+        root = self._open()
+        if reader.invalid or reader.closing or reader.descriptor is None or reader.stamp is None:
+            raise LocalFileError('Saved Local original reader is invalid or closing')
+        try:
+            directory = os.fstat(root)
+            if (PhysicalFileIdentity(directory.st_dev, directory.st_ino) != self._identity
+                    or not stat.S_ISDIR(directory.st_mode) or directory.st_mode & 0o077
+                    or directory.st_uid != os.getuid()):
+                raise LocalFileError('Original Local root generation changed')
+            current = os.fstat(reader.descriptor)
+            named = os.stat(reader.name, dir_fd=root, follow_symlinks=False)
+            for value in (current, named):
+                stamp = (value.st_dev, value.st_ino, value.st_size,
+                         value.st_mtime_ns, value.st_ctime_ns)
+                if (not stat.S_ISREG(value.st_mode) or value.st_uid != os.getuid()
+                        or value.st_mode & 0o077 or stamp != reader.stamp
+                        or not 0 <= value.st_size <= reader.max_bytes):
+                    raise LocalFileError('Saved Local original generation changed or exceeds its bound')
+        except BaseException:
+            reader.invalid = True
+            raise
+        return reader.stamp
+
+    def read_original(self, reader: _OriginalFileReader) -> PhysicalFileChunk:
+        """Read one bounded chunk; reuses its loan without rereading or advancing."""
+        with self._lock:
+            stamp = self._validate_original(reader)
+            if reader.chunk is not None:
+                return reader.chunk
+            if reader.eof:
+                raise LocalFileError('Saved Local original EOF chunk was already released')
+            assert reader.descriptor is not None
+            count = min(self._max_chunk_bytes, stamp[2] - reader.offset)
+            try:
+                data = os.pread(reader.descriptor, count, reader.offset) if count else b''
+                self._validate_original(reader)
+                if len(data) != count:
+                    raise LocalFileError('Saved Local original chunk was incomplete')
+                reader.chunk = PhysicalFileChunk(reader.offset, data, reader.offset + count == stamp[2])
+            except BaseException:
+                reader.invalid = True
+                raise
+            return reader.chunk
+
+    def release_original_chunk(self, reader: _OriginalFileReader, chunk: PhysicalFileChunk) -> None:
+        """Release the exact chunk only after its original Core borrow retires."""
+        with self._lock:
+            self._validate_original(reader)
+            if type(chunk) is not PhysicalFileChunk or reader.chunk is not chunk:
+                raise ValueError('Copied, foreign or released saved Local original chunk')
+            try:
+                reader.hash.update(chunk.data)
+            except BaseException:
+                reader.invalid = True
+                raise
+            reader.offset += len(chunk.data)
+            reader.eof = chunk.eof
+            reader.chunk = None
+
+    def observe_original(self, reader: _OriginalFileReader) -> PhysicalFileSnapshot:
+        """Recheck original bytes after exact EOF; this is not Host/Commit evidence."""
+        with self._lock:
+            stamp = self._validate_original(reader)
+            if not reader.eof or reader.chunk is not None or reader.offset != stamp[2]:
+                raise LocalFileError('Saved Local original read is incomplete')
+            return PhysicalFileSnapshot(
+                PhysicalFileObservation(PhysicalFileIdentity(stamp[0], stamp[1]), stamp[2]),
+                'sha256:' + reader.hash.hexdigest())
+
+    def close_original(self, reader: _OriginalFileReader) -> bool:
+        """After input cleanup, stop the same descriptor without altering saved bytes.
+
+        Uncertain close retains its original handle, chunk and root slot. Retry
+        observes that descriptor; it never reopens, repairs or closes a recycled
+        descriptor. Run cancellation and durable reservations are independent.
+        """
+        with self._lock:
+            self._owned_original(reader)
+            reader.closing = True
+            if reader.descriptor is not None:
+                if reader.close_pending:
+                    try:
+                        closed = self._closed_after_uncertainty(reader.descriptor, reader.identity)
+                    except OSError:
+                        return False
+                    if closed is not True:
+                        return False
+                else:
+                    try:
+                        os.close(reader.descriptor)
+                    except OSError:
+                        reader.close_pending = True
+                        return False
+                reader.descriptor = None
+            reader.chunk = None
+            del self._original_readers[id(reader)]
+            return True
+
     def open_reader(self, cursor: _FileFinalization) -> _FileReader:
         """Pin original completed final-name custody for bounded physical I/O.
 
@@ -1090,7 +1260,8 @@ class LocalFileRoot:
         with self._lock:
             self._nominal_root()
             self._closing = True
-            if self._files or self._areas or self._name_transfers or self._finalizations or self._readers:
+            if (self._files or self._areas or self._name_transfers or self._finalizations
+                    or self._readers or self._original_readers):
                 return False
             if self._descriptor is None:
                 return True

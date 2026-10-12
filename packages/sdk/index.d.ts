@@ -10,7 +10,7 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
-  WirePlanView, WireRunView} from
+  WirePlanView, WireRunView, WireRunPlanView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -534,6 +534,9 @@ export interface Execution {
   readonly ref: RunReference;
   readonly profile: ConfirmedProfile;
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
+  /** Saved original compiler map; unavailable legacy evidence is not recompiled. */
+  plan(options?: {signal?: AbortSignal; maxWireBytes?: number;
+    maxNodes?: number; maxDepth?: number}): Promise<WireRunPlanView>;
   /** Read-only Owner-local projection; omitted pending facts remain unknown. */
   inspect(options?: {signal?: AbortSignal; maxWireBytes?: number;
     maxNodes?: number; maxDepth?: number}): Promise<WireRunView>;
