@@ -20,7 +20,9 @@ fn original_model_publication_owner_current(
   state.call_scope is Some(current) &&
   physical_equal(current, scope) &&
   @publication_host.client_infer_call_scope_matches_rows(
-    scope, state.rows, state.fixed_request_cid,
+    scope,
+    state.rows,
+    state.fixed_request_cid,
   ) &&
   state.original_startup is Some(startup) &&
   startup.used &&
@@ -61,7 +63,9 @@ pub fn reserve_original_model_publication_capacity(
   }
   let capacity = match
     @resources.reserve_capacity(
-      execution.state.ledger, retained_bytes, execution_bytes,
+      execution.state.ledger,
+      retained_bytes,
+      execution_bytes,
     ) {
     Err(issue) => return Err(Ledger(issue))
     Ok(value) => value
@@ -86,7 +90,10 @@ pub fn original_model_publication_capacity_current(
   original_model_publication_owner_current(execution, scope) &&
   check_model_original_resources_mutable(execution.state) is Ok(_) &&
   @resources.capacity_reservation_covers(
-    execution.state.ledger, value.capacity, 0L, 0L,
+    execution.state.ledger,
+    value.capacity,
+    0L,
+    0L,
   )
 }
 
@@ -105,7 +112,10 @@ pub fn release_original_model_publication_capacity(
     original_model_publication_owner_current(execution, scope) &&
     execution.state.output_uses > 0 &&
     @resources.capacity_reservation_covers(
-      execution.state.ledger, value.capacity, 0L, 0L,
+      execution.state.ledger,
+      value.capacity,
+      0L,
+      0L,
     ) else {
     return Err(OutputIdentity)
   }
