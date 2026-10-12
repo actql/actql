@@ -77,6 +77,7 @@ fn configure_source_free_compute(
   start : Int,
   current_configuration : Int,
 ) -> Int {
+  let start_handle = start
   guard value.runs.get(run) is Some({ outcome: Some(Ok(plan)), .. }) &&
     value.physical_starts.get(start)
     is Some({ run: original_run, outcome: Some(Ok(start)), .. }) &&
@@ -94,6 +95,11 @@ fn configure_source_free_compute(
   match run_configuration_current(value, current) {
     Ok(_) => ()
     Err(code) => return code
+  }
+  guard value.physical_starts.get(start_handle) is Some(physical) else { return -2 }
+  if physical.sdk_step is Some(step) {
+    let code = validate_sdk_start_claim(value, step, plan)
+    if code != 0 { return code }
   }
   if record.outcome is Some(_) {
     return 0

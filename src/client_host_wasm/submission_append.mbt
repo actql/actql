@@ -5,8 +5,11 @@ fn submission_append_current(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
 ) -> Result[Unit, Int] {
-  if value.closing || value.runtime_closing || record.output_closed {
+  if value.closing || value.runtime_closing {
     return Err(-5)
+  }
+  if record.borrow is Err(issue) {
+    return Err(issue_code(issue))
   }
   if configuration.host_current is None {
     return Err(-32)
@@ -176,6 +179,9 @@ fn produce_submission_append(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
 ) -> Int {
+  if record.output_closed {
+    return -5
+  }
   match submission_append_current(value, record, configuration) {
     Ok(_) => ()
     Err(code) => return code
