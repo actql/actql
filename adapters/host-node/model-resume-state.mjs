@@ -1,6 +1,7 @@
 // Storage facts for a fixed Model invocation scope. Core/physical-owner ports
 // admit identities and retry classifications; this helper never calls a provider,
 // schedules work, classifies a failure, or supplies authorization policy.
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
@@ -18,6 +19,8 @@ const freeze = value => {
   return value;
 };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const sameCut = (a, b) => canonicalValueJson(a, {dataKeys: true}) ===
+  canonicalValueJson(b, {dataKeys: true});
 const ownerKeys = ['runId', 'runDefinitionCid', 'preparedInvocationCid'];
 const scopeKeys = [...ownerKeys, 'scopeCid',
   'providerBindingCid', 'inputArtifactCid', 'taskIndex', 'strategyRevision'];
@@ -79,6 +82,7 @@ export function createModelResumeTables(database) {
       registration_kind TEXT NOT NULL CHECK (registration_kind IN ('immediate', 'deferred')),
       checkpoint_inventory_json TEXT NOT NULL DEFAULT '',
       checkpoint_originals_json TEXT NOT NULL DEFAULT '',
+      current_cut_link_json TEXT DEFAULT NULL,
       CHECK (registration_kind != 'deferred' OR checkpoint_cid IS NOT NULL),
       UNIQUE (run_id, task_index)
     ) STRICT;
@@ -158,9 +162,17 @@ export function createModelResumeState(database, {
   // These tokens authenticate only this journal's read observation. They do
   // not establish a resource park, durable cut, restoration or send grant.
   const originalJournalObservations = new WeakMap();
+  // Process-local nominal operations belong to this existing journal. Only
+  // actual persisted link data is authoritative; these refs are not a second
+  // resource phase/epoch or a serialization of Resource/Store receipts.
+  const originalCutOperations = new WeakMap();
+  const originalCutInvalidations = new WeakMap();
   const q = {
     scope: database.prepare('SELECT * FROM resume_model_scopes WHERE checkpoint_cid = ?'),
     scopeByCid: database.prepare('SELECT * FROM resume_model_scopes WHERE scope_cid = ?'),
+    linkedScopes: database.prepare('SELECT * FROM resume_model_scopes WHERE current_cut_link_json IS NOT NULL ORDER BY run_id, task_index, scope_cid'),
+    linkCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = ? WHERE scope_cid = ? AND current_cut_link_json IS NULL'),
+    invalidateCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = NULL WHERE scope_cid = ? AND current_cut_link_json = ?'),
     slots: database.prepare('SELECT * FROM resume_model_slots WHERE scope_cid = ? ORDER BY ordinal'),
     attempts: database.prepare('SELECT * FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal, attempt_index'),
     cancelled: database.prepare('SELECT * FROM run_cancellation_fences WHERE run_id = ?'),
@@ -527,6 +539,7 @@ export function createModelResumeState(database, {
         JOIN checkpoints c ON c.checkpoint_cid = r.checkpoint_cid
         WHERE c.run_id = ? ORDER BY r.resolution_cid`).all(runId),
       intents: database.prepare('SELECT * FROM resume_intents WHERE run_id = ? ORDER BY intent_id').all(runId),
+      currentIntent: database.prepare('SELECT * FROM resume_intents WHERE run_id = ? ORDER BY rowid DESC LIMIT 1').get(runId) ?? null,
       admissions: database.prepare(`SELECT a.* FROM resume_admissions a
         JOIN resume_intents i ON i.intent_id = a.intent_id
         WHERE i.run_id = ? ORDER BY a.intent_id, a.generation`).all(runId),
@@ -538,7 +551,64 @@ export function createModelResumeState(database, {
     if (facts === undefined) fail('ForeignModelOriginalJournalObservation');
     return facts;
   }
+  // These originals are private fencing data, not an identity preimage. The
+  // nullable link cells are independently exact-CASed; full opaque observations
+  // still include them and become obsolete on every link update. Excluding
+  // link cells only in this stored original-fact fence avoids a recursive copy
+  // of its own metadata and does not turn an old observation into a new one.
+  function originalCutFence(facts) {
+    return {...facts, scopes: facts.scopes.map(row => ({...row, current_cut_link_json: null}))};
+  }
+  function cutOperation(reference) {
+    alive();
+    const operation = originalCutOperations.get(reference);
+    if (operation === undefined) fail('ForeignModelOriginalCutOperation');
+    return operation;
+  }
+  function exactCurrentCutPorts(operation) {
+    const resource = verifier?.originalResourceCut;
+    const storage = verifier?.originalStateSaved;
+    if (typeof resource?.inspect !== 'function' || typeof resource?.current !== 'function' ||
+        typeof storage?.inspect !== 'function' || typeof storage?.current !== 'function') {
+      fail('ModelOriginalCurrentCutUnavailable');
+    }
+    // Nominal refs cross by identity, never through synchronous()'s JSON copy.
+    // Bool, same-body data, Promise and a foreign ref cannot establish currentness.
+    if (resource.current(operation.parkReceipt) !== operation.parkReceipt ||
+        storage.current(operation.savedReceipt) !== operation.savedReceipt ||
+        resource.inspect(operation.parkReceipt) !== operation.parkFacts ||
+        storage.inspect(operation.savedReceipt) !== operation.savedFacts) {
+      fail('ModelOriginalCurrentCutCustodyChanged');
+    }
+  }
+  function requireCurrentCutFacts(operation, expected) {
+    const actual = originalJournalFacts(operation.identity);
+    if (!same(actual, expected)) fail('ModelOriginalCurrentCutFactsChanged');
+    return actual;
+  }
+  function issueOriginalObservation(facts) {
+    const token = Object.freeze({kind: 'original-model-journal-observation'});
+    originalJournalObservations.set(token, facts);
+    return token;
+  }
+  function originalCutMutationFence() {
+    for (const row of q.linkedScopes.all()) {
+      let link;
+      try {link = JSON.parse(row.current_cut_link_json);}
+      catch (error) {fail('ModelOriginalCurrentCutCorrupt', error);}
+      if (!fact(link?.originalFacts) || !scopeValid(link?.identity) ||
+          link.identity.scopeCid !== row.scope_cid || link.identity.runId !== row.run_id) {
+        fail('ModelOriginalCurrentCutCorrupt');
+      }
+      if (!same(link.originalFacts, originalCutFence(originalJournalFacts(link.identity)))) {
+        fail('ModelOriginalCurrentCutInvalidationRequired');
+      }
+    }
+  }
   return Object.freeze({prepare, prepareImmediate: prepareInventory, registerLocked, registerImmediateLocked,
+    // Called before an existing journal mutation commits. Resource mutation
+    // admission remains with C; this rejects changes to linked journal facts.
+    assertOriginalCurrentCutsUnchangedLocked: originalCutMutationFence,
     // Read under the parent transaction before a generic unsent transition.
     // Every entered attempt counts, including saved outcomes; this establishes
     // a physical-start fact, never an aggregate Model completion decision.
@@ -640,6 +710,128 @@ export function createModelResumeState(database, {
       },
       originalModelJournalObservationFacts(observation) {
         return originalJournalObservation(observation);
+      },
+      prepareOriginalModelCurrentCut(observation, {parkReceipt, savedReceipt} = {}) {
+        const facts = originalJournalObservation(observation);
+        const resource = verifier?.originalResourceCut;
+        const storage = verifier?.originalStateSaved;
+        if (parkReceipt === undefined || savedReceipt === undefined ||
+            typeof resource?.inspect !== 'function' || typeof resource?.current !== 'function' ||
+            typeof storage?.inspect !== 'function' || typeof storage?.current !== 'function') {
+          fail('ModelOriginalCurrentCutUnavailable');
+        }
+        // Trusted installed issuers provide borrowed immutable facts from the
+        // actual opaque Resource and Store references. No callback runs inside
+        // the conditional journal write/COMMIT boundary.
+        const parkFacts = resource.inspect(parkReceipt);
+        const savedFacts = storage.inspect(savedReceipt);
+        if (!Object.isFrozen(parkFacts) || !Object.isFrozen(savedFacts) ||
+            !same(parkFacts?.identity, facts.identity) ||
+            !same(savedFacts?.identity, facts.identity) ||
+            !['parked', 'stopping'].includes(parkFacts?.phase) ||
+            savedFacts.phase !== parkFacts.phase ||
+            !sameCut(parkFacts.cut, savedFacts.cut) ||
+            !cid(savedFacts.documentCid) || !cid(savedFacts.holdingCid) ||
+            !cid(savedFacts.storageBindingCid) || !cid(savedFacts.resourceStateCid) ||
+            !text(savedFacts.documentWire)) {
+          fail('ModelOriginalCurrentCutBindingMismatch');
+        }
+        const originalScope = facts.scopes.find(row => row.scope_cid === facts.identity.scopeCid);
+        const fixedInput = JSON.parse(JSON.parse(originalScope.originals_json).fixedInputReceiptWire);
+        const cut = parkFacts.cut;
+        if (!fact(cut) || cut.scope_cid !== facts.identity.scopeCid ||
+            cut.input_artifact_cid !== facts.identity.inputArtifactCid ||
+            cut.fixed_input_receipt_cid !== fixedInput.cid ||
+            cut.run_version !== facts.run.version || !Array.isArray(cut.slots)) {
+          fail('ModelOriginalCurrentCutBindingMismatch');
+        }
+        // The current schema/complete Slot identities are checked by the
+        // existing Common projection port, not a second Node semantic codec.
+        const expected = synchronous(verifier?.projectOriginalCurrentCut, {facts});
+        if (!sameCut(expected, cut)) fail('ModelOriginalCurrentCutBindingMismatch');
+        const data = {identity: facts.identity, documentCid: savedFacts.documentCid,
+          holdingCid: savedFacts.holdingCid, storageBindingCid: savedFacts.storageBindingCid,
+          resourceStateCid: savedFacts.resourceStateCid, phase: parkFacts.phase,
+          cut, originalFacts: originalCutFence(facts)};
+        const wire = JSON.stringify(data);
+        // Existing private Model envelope, not a language-wide limit or byte fee.
+        if (Buffer.byteLength(wire) > 3 * 1024 * 1024) fail('ModelOriginalCurrentCutUnavailable');
+        const operation = {identity: facts.identity, before: facts, wire,
+          parkReceipt, savedReceipt, parkFacts, savedFacts, state: 'prepared'};
+        exactCurrentCutPorts(operation);
+        transaction.run(() => requireCurrentCutFacts(operation, facts));
+        const reference = Object.freeze({kind: 'original-model-current-cut-operation'});
+        originalCutOperations.set(reference, operation);
+        return reference;
+      },
+      commitOriginalModelCurrentCut(reference) {
+        const operation = cutOperation(reference);
+        if (operation.state !== 'prepared') fail('ModelOriginalCurrentCutOperationAlreadyAttempted');
+        exactCurrentCutPorts(operation);
+        operation.state = 'attempted';
+        try {
+          const after = transaction.run(() => {
+            requireCurrentCutFacts(operation, operation.before);
+            changed(q.linkCut.run(operation.wire, operation.identity.scopeCid));
+            fault('linkOriginalModelCurrentCut');
+            return originalJournalFacts(operation.identity);
+          });
+          operation.after = after;
+          operation.state = 'linked';
+          operation.observation = issueOriginalObservation(after);
+          return reference;
+        } catch (error) {
+          operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed';
+          throw error;
+        }
+      },
+      originalModelCurrentCutObservation(reference) {
+        const operation = cutOperation(reference);
+        if (operation.state !== 'linked') fail('ModelOriginalCurrentCutUnavailable');
+        transaction.run(() => requireCurrentCutFacts(operation, operation.after));
+        return operation.observation;
+      },
+      invalidateOriginalModelCurrentCut(reference, invalidationRequest) {
+        const operation = cutOperation(reference);
+        if (operation.state !== 'linked') fail('ModelOriginalCurrentCutUnavailable');
+        exactCurrentCutPorts(operation);
+        const resource = verifier?.originalResourceCut;
+        if (invalidationRequest === undefined || typeof resource?.invalidationCurrent !== 'function' ||
+            resource.invalidationCurrent(invalidationRequest, operation.parkReceipt) !== invalidationRequest) {
+          fail('ForeignModelOriginalCutInvalidationRequest');
+        }
+        operation.state = 'invalidating';
+        try {
+          const after = transaction.run(() => {
+            requireCurrentCutFacts(operation, operation.after);
+            changed(q.invalidateCut.run(operation.identity.scopeCid, operation.wire));
+            fault('invalidateOriginalModelCurrentCut');
+            return originalJournalFacts(operation.identity);
+          });
+          operation.state = 'invalidated';
+          const receipt = Object.freeze({kind: 'original-model-cut-invalidation'});
+          originalCutInvalidations.set(receipt, {operation: reference,
+            identity: operation.identity, parkReceipt: operation.parkReceipt,
+            invalidationRequest, savedReceipt: operation.savedReceipt, wire: operation.wire, after});
+          return receipt;
+        } catch (error) {
+          operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed';
+          throw error;
+        }
+      },
+      originalModelCurrentCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest) {
+        const operation = cutOperation(reference);
+        const original = originalCutInvalidations.get(receipt);
+        if (original === undefined || original.operation !== reference ||
+            original.parkReceipt !== parkReceipt || operation.state !== 'invalidated') {
+          fail('ForeignModelOriginalCutInvalidation');
+        }
+        if (original.invalidationRequest !== invalidationRequest) fail('ForeignModelOriginalCutInvalidationRequest');
+        transaction.run(() => requireCurrentCutFacts(operation, original.after));
+        return receipt;
+      },
+      originalModelCurrentCutOperationStatus(reference) {
+        return Object.freeze({state: cutOperation(reference).state});
       },
       // Pure data projection outside any SQLite commit/approval boundary. The
       // configured Common port is installation-owned; it neither verifies
