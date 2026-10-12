@@ -305,6 +305,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   let originalPreparedCallSet;
+  // Installation code retains the binder created for THIS original request.
+  // There is no provider-global map or replacement physical operation. The
+  // initial envelope funds this callback/reference even before a raw selection.
+  const retainRawCaptureBinder = callback => {
+    if (closing || reclaimed || rawCaptureBound || rawCaptureBinder !== undefined ||
+        typeof callback !== 'function') {
+      throw new TypeError('InferRawCaptureBinderUnavailable');
+    }
+    rawCaptureBinder = callback;
+  };
   const operation = Object.freeze({run, stop, close, cleanup,
     installSettlementCleanup(callback) {
       if (cleanupSettlement !== undefined || typeof callback !== 'function') {
@@ -492,7 +502,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // its overlap with Core's retained callback; no per-poll context is made.
       checked(moon.clientProgramBindInferPhysicalPreflight(active,
         ioNotification === undefined ? physicalPreflight
-          : request => physicalPreflight(request, ioNotification)));
+          : request => physicalPreflight(request, ioNotification, retainRawCaptureBinder)));
     }
     if (egressAdmission !== undefined) checked(moon.clientProgramBindInferEgress(active, egressAdmission));
   } catch (error) {
