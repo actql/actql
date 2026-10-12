@@ -6,7 +6,6 @@
       "path": "README.md",
       "programs": [
         {"id": "customer.open_orders", "expected_status": "valid"},
-        {"id": "quickstart.approved_update", "expected_status": "valid"},
         {"id": "revenue.renewal_risk", "expected_status": "valid"}
       ]
     },

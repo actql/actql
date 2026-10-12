@@ -4,10 +4,11 @@ Opaque inputs are supplied by the installed Host. Only the existing Core
 Owners decide compilation, dispatch and physical start. No method admits a
 Submission, persists an acceptance, invokes Compute, or cancels a Run.
 """
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
-from ._local_core import LocalCore, LocalCoreError, _Input, _Compute
+from ._local_core import LocalCore, LocalCoreError, _Input, _Compute, _Output
 from ._local_preparation import LocalPreparation, _Preparation
 
 
@@ -135,6 +136,17 @@ class LocalRunCustody:
             self._run(value)
             self._core._check('prepare', self._core._call('run', 'prepare', value.handle))
             self._core._check('prepared', self._core._call('run', 'prepared', value.handle))
+
+    def reserve_submitted_rows(self, value: _Run, current: _RunConfiguration,
+                               input: _Input, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain original candidate row output; no acceptance or dispatch."""
+        with self._core._lock:
+            self._active()
+            self._run(value)
+            self._configuration(current)
+            self._core._owned_input(input)
+            return self._core.reserve_submitted_run_rows(
+                value.handle, current.handle, input, cleanup=cleanup)
 
     def dispatch_action(self, value: _Run, current: _RunConfiguration,
                         input: _Input) -> Literal[1, 2]:

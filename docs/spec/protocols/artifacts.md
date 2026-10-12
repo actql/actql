@@ -1039,6 +1039,45 @@ encoding/AEAD buffers and controls remain included in the original Ledger's
 funded simultaneous holding until actually retired. Saving alone does not prove
 heap retirement or enable an unfunded public profile.
 
+### Original Model private storage binding
+
+`actql-model-original-storage-binding/0.1` is a closed, self-addressed
+projection of one actual selected private Store and installation key
+generation. It is not a grant. Its complete required fields are `version`,
+`store_contract_wire`, `store_contract_cid`, `store_authority_cid`,
+`key_generation_cid`, `private_namespace` and `self_cid`.
+
+`store_contract_wire` is the existing Store admission's exact three-field
+serialization, ordered `version`, `isolation`, `store_authority_cid`, without
+whitespace. Its version is `actql-local-publication-store/0.1`; isolation is
+`execution-namespace`. Its SHA-256 over those UTF-8 bytes must equal
+`store_contract_cid`; its authority must equal the outer authority. This
+does not change the existing Store file admission or repair a saved artifact.
+`key_generation_cid` is the digest of the actual installation key generation;
+the raw key and directory/path are not present. `private_namespace` is exactly
+`local-continuation-private`. The outer canonical JSON preimage orders keys
+lexicographically and excludes only `self_cid`.
+
+Neither a holding CID nor the original resource artifact's own CID is included:
+the origin's `storage_binding_cid` refers to this prior installation projection,
+and the later receipt separately authenticates the derived holding. Thus no
+self-hash cycle is introduced. The existing Store/Private Evidence admission
+also retains a separate opaque nominal handle to its actual original custody.
+Copying these fields, admitting their semantic CID, comparing configurations,
+or restarting with a saved handle does not reproduce that custody. Re-observe
+the actual Store before adopting the binding; foreign or changed originals
+refuse. No read, resource-restoration, dispatch or release permission follows.
+
+The physical supplier must fund the projection, original handle, verification
+and metadata/Store workspaces before public use. This kind alone does not adopt
+a numerical profile, current resource cut or journal CAS.
+
+<!-- model-original-storage-binding-pins:start -->
+```text
+../../../spec/contracts/actql-run-publication.json#/schemas/model_original_storage_binding sha256:b3906487cb64d2c9a7c5a271358d971051e76884e0d795b1c6ad64c3f00d96f1
+```
+<!-- model-original-storage-binding-pins:end -->
+
 <!-- model-raw-capture-pins:start -->
 ```text
 ../../../spec/contracts/actql-run-publication.json#/schemas/model_raw_capture_policy sha256:f542a5957ce196eb56105b6b5a81aa4f51c38ccc24d335855b8df0dad3dcac21
@@ -1085,8 +1124,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4
 ../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e
-../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:d76ac2e50e40e09e63bafeda10e0405ef340d4647d82b25a6743527aaf4c10bf
-../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:c5021666b9906ee2f250962a9e2e9b5521605cb5a3a828dcb58f155e83bf6b28
+../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:fae98b9b12e5b472855170b0451d34fee34ee0fe7227341310fccaaca0775df7
+../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:2bdd46f5723bc33676ed46ac367cb26cb02f8d91a134c09c8b754dd7675a908b
 ../../../spec/contracts/actql-run-publication.json#/laws sha256:18e62f30a4120596c290b055c7bfacda84375eb3a4c0d02a7bfed1dae7af25a0
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_source sha256:32020595b3f1a5cbf52b582b8c92c6967afe4b46f97cfc4b6fdf19429b105632
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_barrier sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd

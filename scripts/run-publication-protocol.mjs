@@ -545,7 +545,8 @@ for (const [name, schema] of Object.entries(control.schemas)) {
 registerArtifactSchema('model_response_profile', {
   schema: 'model_response_profile', identity: 'self_cid',
 });
-for (const name of ['model_raw_capture_policy', 'model_raw_response']) {
+for (const name of ['model_raw_capture_policy', 'model_raw_response',
+  'model_original_storage_binding']) {
   registerArtifactSchema(name, {
     schema: name, identity: 'self_cid', registry: 'publication',
   });

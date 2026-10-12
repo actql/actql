@@ -45,22 +45,18 @@ test "any-direction MATCH retains its independent complete Program" {
 
 ///|
 test "any-direction fixed hops retain both endpoint definitions for property checking" {
-  let program = compile_with_set(
-    graph_hop_definition_prefix() +
-    "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]-(b WHERE b.score > 10) |> SELECT PATH_LENGTH(p) AS depth",
+  let source = graph_hop_definition_prefix() +
+    "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]-(b WHERE b.score > 10) |> SELECT PATH_LENGTH(p) AS depth"
+  // Target has score, but Source does not. The any-direction common scope
+  // excludes it. WITH static admission now reaches that checker before demand.
+  let refusal = with_graph_predicate_refusal(
+    compile_query_script(
+      @query.parse_query_script(source, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    ),
   )
-  // Target has score, but Source does not. An outgoing-only field scope
-  // would incorrectly admit this ordinary any-direction traversal.
-  assert_true(
-    @check.check_parsed_with_evidence(
-      program,
-      graph_rows_environment(),
-      None,
-      [],
-      graph_rows_check_limits(),
-    )
-    is Rejected(_),
-  )
+  assert_eq(refusal, @pipeline.GraphMatch(UnknownField("score")))
   let parsed = @query.parse_query_script(
     graph_hop_definition_prefix() +
     "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]-(:Target) |> SELECT PATH_LENGTH(p) AS depth",
