@@ -1,0 +1,4 @@
+[actql/actql] test query_program/vector_pool_source_test.mbt:156 ("P2 prepared two-member public pool sources retain derived grouping and empty schema") failed: src/query_program/vector_pool_source_test.mbt:174:34-174:82@actql/actql FAILED: Carrier call follows Relation projection
+Total tests: 12, passed: 11, failed: 1.
+["moon","test","--target","js","src/query_syntax/vector_pool_role_test.mbt","src/query_program/vector_pool_source_test.mbt","src/query_program/with_vectors_events_test.mbt","src/run_publication_host/client_values_run_materials_wbtest.mbt"]: process failed (2); counts={"tests":12,"passed":11,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-bq3JJn

@@ -150,7 +150,7 @@ sga_operation = "reach" | "traverse" | "shortest_path" | "components"
               | "union_graphs" | "subtract_graphs" | "graphs_equal"
               | "graph_diff" | "apply_graph_delta" | "mean_graphs"
               | "node_rows" | "edge_rows"
-              | "to_vectors" | "normalize_vectors" | "score_vectors" | "vectors"
+              | "to_vectors" | "normalize_vectors" | "score_vectors" | "pool_vectors" | "vectors"
               | "to_events" | "session" | "events" ;
 (* Closed argument keys accept Word or backtick names, including reserved keys.
    Values are selected by the operation signature: ProducerRef, FieldRef,

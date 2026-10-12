@@ -10,6 +10,7 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
     "apply_graph_delta" => path == ["field"]
     "match_nodes" | "match_edges" => path == ["fields"]
     "to_vectors" => path == ["id"] || path == ["vector"]
+    "pool_vectors" => path == ["by"] || path == ["vector"]
     "to_events" => path == ["id"] || path == ["time"]
     "session" => path == ["id"] || path == ["time"] || path == ["by"]
     _ => false
@@ -20,11 +21,14 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
 
 ///|
 fn sga_output_argument(operation : String, path : Array[String]) -> Bool {
-  (operation == "match_nodes" || operation == "match_edges") &&
+  (operation == "pool_vectors" && path == ["output_id"]) ||
   (
-    path == ["bindings", "identity"] ||
-    path == ["bindings", "source"] ||
-    path == ["bindings", "target"]
+    (operation == "match_nodes" || operation == "match_edges") &&
+    (
+      path == ["bindings", "identity"] ||
+      path == ["bindings", "source"] ||
+      path == ["bindings", "target"]
+    )
   )
 }
 

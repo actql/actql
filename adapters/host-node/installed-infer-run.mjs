@@ -22,6 +22,19 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
     }
+    const originalInstallation = selected.originalReadInstallation;
+    if (originalInstallation !== undefined &&
+        (originalPreparation !== undefined || acquiredInfer !== undefined || replay ||
+          selected.components !== undefined)) {
+      throw new TypeError('InstalledInferOriginalReadInstallationUnavailable');
+    }
+    if (originalInstallation !== undefined &&
+        ['beginCheckedClientInferOriginalReadScope', 'prepareCheckedClientInferNodeReadLayout',
+          'claimCheckedClientInferNodePreparationLayout', 'startCheckedClientInferOriginalPreparation',
+          'stopCheckedClientInferOriginalReadPreparation', 'settleCheckedClientInferOriginalReadPreparation',
+          'finishCheckedClientInferOriginalReadScope'].some(name => typeof control[name] !== 'function')) {
+      throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
+    }
     // Installation-only original custody. Public request data and restored
     // inputs cannot mint a fresh read or replace its original scope/Ledger.
     if (originalPreparation !== undefined &&
@@ -61,7 +74,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const taskIndex = moon.clientProgramInferPlanBoundary(selected.graph)._0;
     existingModel ??= modelController.discover(runId).find(record => record.inventory.taskIndex === taskIndex);
     if (replay && existingModel === undefined) throw new Error('InstalledInferOriginalInventoryMissing');
-    if (originalPreparation !== undefined && existingModel !== undefined) {
+    if ((originalPreparation !== undefined || originalInstallation !== undefined) &&
+        existingModel !== undefined) {
       throw new TypeError('RestoredInferOriginalPreparationUnavailable');
     }
     const token = existingModel === undefined ? undefined : await modelController.prime(existingModel);
@@ -82,9 +96,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     // These are phases of the same existing retained custody, not another
     // cleanup Owner. A failed physical close keeps this exact original record.
     let originalReadStopped = false, originalReadCloseAttempted = false;
-    let originalReadPhysicalReleased = originalPreparation === undefined;
-    let originalReadSettled = originalPreparation === undefined;
-    let originalScopeReleased = originalPreparation === undefined;
+    let originalReadPhysicalReleased = originalPreparation === undefined && originalInstallation === undefined;
+    let originalReadSettled = originalReadPhysicalReleased;
+    let originalScopeReleased = originalReadPhysicalReleased;
     let originalCleanupFlight;
     const cleanupPending = () => evidenceCopy?.cleanupPending() === true || !captureReleased ||
       continuation !== undefined && !continuationReleased || !originalReadSettled ||
@@ -118,7 +132,14 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       if (failure !== undefined) throw failure;
       if (originalPreparation !== undefined && captureReleased &&
           (continuation === undefined || continuationReleased)) {
-        if (!originalReadStopped) {
+        if (originalPreparation.read === undefined) {
+          // The original scope was issued, but read admission refused before
+          // an Execution/physical child existed. Only the original census can
+          // finish this scope; no synthetic read or physical ACK is issued.
+          originalReadStopped = true;
+          originalReadPhysicalReleased = true;
+          originalReadSettled = true;
+        } else if (!originalReadStopped) {
           control.stopCheckedClientInferOriginalReadPreparation(plan.compiled,
             plan.runDefinition, selected.graph, originalPreparation.scope,
             originalPreparation.read);
@@ -163,7 +184,51 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     };
     const custody = Object.freeze({cleanupPending, cleanup, close: cleanup});
     try { retainExecution(custody); }
-    catch (error) { modelController.release(token); throw error; }
+    catch (error) {
+      if (originalInstallation !== undefined) {
+        originalReadPhysicalReleased = true;
+        originalReadSettled = true;
+        originalScopeReleased = true;
+      }
+      modelController.release(token); throw error;
+    }
+    if (originalInstallation !== undefined) {
+      // Custody exists before the first issuer. A failed issuer is atomic;
+      // once scope is returned, record it before read construction can fail.
+      // These fixed installation values must have the reviewed initial/full
+      // phase basis. Presence or passing Common support checks is not proof.
+      let scope;
+      try {
+        scope = control.beginCheckedClientInferOriginalReadScope(plan.compiled,
+          plan.runDefinition, selected.graph,
+          {...originalInstallation.bootstrap, quantityCapacity: selected.quantityCapacity});
+      } catch (error) {
+        // The existing issuer's refusal is atomic and returned no scope. Do
+        // not invent one to clean up, nor leave a nonexistent read pending.
+        originalReadPhysicalReleased = true;
+        originalReadSettled = true;
+        originalScopeReleased = true;
+        throw error;
+      }
+      originalPreparation = {compiled: plan.compiled, runDefinition: plan.runDefinition,
+        control, scope, read: undefined,
+        nodeInstallation: originalInstallation.nodeInstallation,
+        readRetainedBytes: originalInstallation.nodeInstallation.layout.retained_bytes,
+        readExecutionBytes: originalInstallation.nodeInstallation.layout.execution_bytes,
+        modelRetainedBytes: originalInstallation.modelRetainedBytes,
+        modelExecutionBytes: originalInstallation.modelExecutionBytes,
+        // A projection of this SAME existing Execution, not another physical
+        // cleanup owner or a stop Boolean. Constructor refusal creates no child.
+        physicalCustody: Object.freeze({
+          close: () => operation === undefined ? true : operation.close(),
+          cleanup: () => operation === undefined ? true : operation.cleanup(),
+          cleanupPending: () => operation?.cleanupPending() ?? false})};
+      try {
+        originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
+          plan.compiled, plan.runDefinition, selected.graph, scope,
+          originalInstallation.nodeInstallation);
+      } finally { Object.freeze(originalPreparation); }
+    }
     operation = openNodeInferOperation({moon, preparedProgram,
       step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
       acquiredInput: restoredInput === undefined ? acquiredInfer?.input : undefined,

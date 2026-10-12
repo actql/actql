@@ -1,0 +1,42 @@
+{
+  "startedAt": "2026-10-12T01:29:10.989Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Read-only six authored MoonBit files and product specification whitespace",
+      "command": [
+        "node",
+        "/private/tmp/actql-b-pool-format-check.mjs"
+      ],
+      "startedAt": "2026-10-12T01:29:11.101Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:29:11.631Z",
+      "endedAt": "2026-10-12T01:29:11.635Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "8075a60c-ffbc-4765-b24d-5c4218775d2b",
+    "pid": 33896,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T01:29:11.090Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-8OmBhk"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T01:29:11.727Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
