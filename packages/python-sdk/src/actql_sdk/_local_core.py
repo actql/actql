@@ -1,7 +1,8 @@
 """Private physical Wasm bridge. Run decisions remain in MoonBit Core."""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
@@ -14,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 49
+LOCAL_CORE_ABI = 50
 
 
 class LocalCoreError(RuntimeError):
@@ -467,6 +468,14 @@ _JOURNAL_SIGNATURES = {
     'revision': ('i64 i32 i32', 'i64'),
     'close': ('i64 i32', 'i32'),
 }
+_CURRENT_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'bind': ('i64 i32', 'i32'),
+    'validate': ('i64 i32', 'i32'),
+    'produce': ('i64 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
 
@@ -588,6 +597,8 @@ class LocalCore:
                              for name, value in _PUBLISHER_SIGNATURES.items()})
             expected.update({'actql_journal_' + name: value
                              for name, value in _JOURNAL_SIGNATURES.items()})
+            expected.update({'actql_current_' + name: value
+                             for name, value in _CURRENT_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -729,6 +740,106 @@ class LocalCore:
     def _journal_release(self, ticket: int) -> int:
         callbacks = self._journal_callbacks(ticket)
         return -41 if callbacks is None else callbacks.release()
+
+    def reserve_host_current(self, source: _Input, *, store: LocalByteStore,
+                             current: Callable[[], object], cleanup: Callable[[], bool]) -> _Output:
+        """Retain actual original bytes and one same-Store physical callback ticket.
+
+        Only Core inspects adoption and issues original current scope metadata.
+        The trusted Host current port checks retained filesystem/settings/epoch
+        and generation facts; it cannot return a caller permission boolean.
+        """
+        with self._lock:
+            self._owned_input(source)
+            if (self._closing or type(store) is not LocalByteStore
+                    or not callable(current) or not callable(cleanup)):
+                raise ValueError('Invalid original Local current reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            callbacks = _JournalCallbacks(current, store)
+
+            def retire() -> bool:
+                if callbacks.reader is not None or cleanup() is not True:
+                    return False
+                callbacks.release()
+                return True
+
+            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True, journal=callbacks)
+            limit = source.length + 256
+            allowance = (2 * limit + 2 * 262144 + 4096 + sys.getsizeof(callbacks)
+                         + sys.getsizeof(self._inputs[ticket]))
+            handle = self._call('current', 'reserve', source.handle, ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_host_current', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'current')
+            self._loans[ticket] = value
+            return value
+
+    @contextmanager
+    def host_current_frame(self, value: _Output, reader: _NamespaceReader) -> Iterator[None]:
+        """Use this ticket only inside the original transaction/thread loan.
+
+        No reader survives the frame. Failure retains its original callback
+        cause and query copies for explicit cleanup. The frame does not begin,
+        commit, rollback, adopt, authorize or repair the physical transaction.
+        """
+        with self._lock:
+            self._owned_output(value, 'current')
+            callbacks = self._journal_callbacks(value.ticket)
+            if (self._closing or type(reader) is not _NamespaceReader or callbacks is None
+                    or reader.owner is not callbacks.store or callbacks.reader is not None
+                    or callbacks.failure is not None):
+                raise ValueError('Invalid original Local current transaction loan')
+            callbacks.reader = reader
+            try:
+                if callbacks.check_current() != 0:
+                    assert callbacks.failure is not None
+                    raise callbacks.failure
+                yield
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+            finally:
+                callbacks.reader = None
+
+    def _host_current_ready(self, value: _Output) -> _JournalCallbacks:
+        self._owned_output(value, 'current')
+        callbacks = self._journal_callbacks(value.ticket)
+        if callbacks is None or callbacks.reader is None or self._closing:
+            raise ValueError('Original Local current frame is unavailable')
+        if callbacks.check_current() != 0:
+            assert callbacks.failure is not None
+            raise callbacks.failure
+        return callbacks
+
+    def _host_current_call(self, value: _Output, operation: str) -> None:
+        with self._lock:
+            callbacks = self._host_current_ready(value)
+            code = self._call('current', operation, value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('host_current_' + operation, code)
+
+    def bind_host_current(self, value: _Output) -> None:
+        self._host_current_call(value, 'bind')
+
+    def produce_host_current(self, value: _Output) -> None:
+        self._host_current_call(value, 'produce')
+
+    def validate_host_current(self, value: _Output) -> None:
+        self._host_current_call(value, 'validate')
+
+    def read_host_current(self, value: _Output) -> bytes:
+        with self._lock:
+            self.validate_host_current(value)
+            result = self._read_output(value, 'current', 'length')
+            self.validate_host_current(value)
+            return result
+
+    def close_host_current(self, value: _Output) -> bool:
+        return self._close_output(value, 'current', 'close')
 
     def reserve_journal_observation(self, material: _Output, current_configuration: int, *,
                                     store: LocalByteStore, current: Callable[[], object],

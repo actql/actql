@@ -35,6 +35,7 @@ priv struct Instance {
   runs : Map[Int, StoredRun]
   submissions : Map[Int, StoredSubmissionProjection]
   bootstraps : Map[Int, StoredBootstrap]
+  host_currents : Map[Int, StoredHostCurrent]
   journal_observations : Map[Int, StoredJournalObservation]
   materials : Map[Int, StoredMaterial]
   restorations : Map[Int, StoredRestoration]
@@ -158,6 +159,7 @@ pub fn open(
         runs: {},
         submissions: {},
         bootstraps: {},
+        host_currents: {},
         journal_observations: {},
         materials: {},
         restorations: {},
@@ -309,6 +311,8 @@ pub fn close(nonce : Int64, handle : Int) -> Int {
   guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
   if value.bootstraps.contains(handle) ||
     value.bootstraps.values().any(child => child.input == handle) ||
+    value.host_currents.contains(handle) ||
+    value.host_currents.values().any(child => child.input == handle) ||
     value.journal_observations.contains(handle) ||
     value.journal_observations.values().any(child => child.material == handle) {
     return -9
@@ -346,6 +350,7 @@ pub fn close_pool(nonce : Int64) -> Int {
   // Pending Native work and its downstream consumers must retire through
   // their existing stop/cleanup boundary before the Root can be closed.
   if !value.bootstraps.is_empty() ||
+    !value.host_currents.is_empty() ||
     !value.journal_observations.is_empty() ||
     !value.native_attempts.is_empty() ||
     !value.computes.is_empty() ||

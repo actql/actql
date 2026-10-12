@@ -87,7 +87,27 @@ fn journal_query_row(
   table_name : String,
   key : String,
 ) -> Result[@host.ClientJournalPhysicalRow?, Int] {
-  match journal_current(value, child, plan) {
+  physical_journal_row(
+    child.physical,
+    () => journal_current(value, child, plan),
+    mode,
+    table_name,
+    key,
+  )
+}
+
+///|
+/// Shared physical transfer for an original scoped namespace-reader loan.
+/// The owning caller supplies its existing typed current fence before/after
+/// every query. This transfer cannot issue scope, completeness or permission.
+fn physical_journal_row(
+  physical : Int,
+  current : () -> Result[Unit, Int],
+  mode : Int,
+  table_name : String,
+  key : String,
+) -> Result[@host.ClientJournalPhysicalRow?, Int] {
+  match current() {
     Ok(_) => ()
     Err(code) => return Err(code)
   }
@@ -96,7 +116,7 @@ fn journal_query_row(
   if namespace_bytes.length() > 4096 ||
     key_bytes.length() > 4096 ||
     physical_journal_begin(
-      child.physical,
+      physical,
       mode,
       namespace_bytes.length(),
       key_bytes.length(),
@@ -107,30 +127,26 @@ fn journal_query_row(
   let mut ordinal = 0
   for bytes in [namespace_bytes, key_bytes] {
     for index in 0..<bytes.length() {
-      if physical_journal_query_byte(
-          child.physical,
-          ordinal,
-          bytes[index].to_int(),
-        ) !=
+      if physical_journal_query_byte(physical, ordinal, bytes[index].to_int()) !=
         0 {
         return Err(-41)
       }
       ordinal += 1
     }
   }
-  let code = physical_journal_query(child.physical)
+  let code = physical_journal_query(physical)
   if code == 1 {
-    if physical_journal_release(child.physical) != 0 {
+    if physical_journal_release(physical) != 0 {
       return Err(-41)
     }
-    return journal_current(value, child, plan).map(_ => None)
+    return current().map(_ => None)
   }
   if code != 0 {
     return Err(-41)
   }
-  let key_length = physical_journal_length(child.physical, 0)
-  let body_length = physical_journal_length(child.physical, 1)
-  let revision = physical_journal_revision(child.physical)
+  let key_length = physical_journal_length(physical, 0)
+  let body_length = physical_journal_length(physical, 1)
+  let revision = physical_journal_revision(physical)
   if key_length <= 0 ||
     key_length > 4096 ||
     body_length < 0 ||
@@ -142,7 +158,7 @@ fn journal_query_row(
   for (field, length) in [(0, key_length), (1, body_length)] {
     let bytes : FixedArray[Byte] = FixedArray::make(length, 0)
     for index in 0..<length {
-      let byte = physical_journal_byte(child.physical, field, index)
+      let byte = physical_journal_byte(physical, field, index)
       if byte < 0 || byte > 255 {
         return Err(-41)
       }
@@ -151,10 +167,10 @@ fn journal_query_row(
     fields.push(Bytes::from_array(bytes[:]))
   }
   let actual_key = @utf8.decode(fields[0]) catch { _ => return Err(-41) }
-  if physical_journal_release(child.physical) != 0 {
+  if physical_journal_release(physical) != 0 {
     return Err(-41)
   }
-  match journal_current(value, child, plan) {
+  match current() {
     Ok(_) => ()
     Err(code) => return Err(code)
   }

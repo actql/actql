@@ -1808,3 +1808,37 @@ its original wrappers retain their existing failure classification. Neither
 encoded metadata nor a matching body/CID is a Host adoption or permission.
 Python supplies physical observations to these codecs rather than defining
 another scope/preimage or repairing saved originals with current defaults.
+
+## Original adopted/current transaction frames
+
+Private ABI50 `actql_current_*` retains one original metadata input and one
+physical query/cleanup ticket. Core chooses the `client_local_adoption`
+singleton scan and validates its exact key, revision, original body and unsigned
+device/inode through the existing Common adopted/current material. The physical
+port must retain the actual same Store and original filesystem, settings, epoch
+and transaction fences; neither JSON nor a callback shape authenticates a
+malicious Host. This connection does not initialize or repair adoption.
+
+The Host supplies its namespace reader only during `host_current_frame` under
+the original transaction/thread. Every bind, scope production, length and cached
+copy revalidates current, and the reader is detached even after failure. Current
+scope metadata contains the original Account bytes and Core-issued Account and
+authority-scope CIDs. It is neither Account Allow nor execution, Result read,
+publication, durable ACK or retry permission. Reuse outside a live frame, through
+another Store, copied loan, closing instance or retired buffer is refused.
+
+The existing Store supplies this reader with `inspect_namespaces`, using a
+read-only transaction and the existing bounded/failure-latched reader and
+physical fence validator. It performs no write or COMMIT. Failed transaction
+cleanup keeps the same connection pending; no partial observation escapes and
+cleanup is not automatically repeated. Query failure remains distinct from
+confirmed scan end and cannot prove absence or nonexecution.
+
+The existing buffer Owner reserves output and raw query copies before I/O.
+Output repeats the account string already present in the immutable input plus
+two fixed CIDs, bounded by that serialized input's size plus 256 bytes. Separate
+holding covers both 262KiB raw-row copies. Full close succeeds at output cleanup
+before returning the original input borrow; failure retains the same ticket and
+parent. No global memory, full Host adoption, public Local, runtime/wheel or
+Store-ACK completion follows from this component connection. The default 100M
+fuel and original Root limits are unchanged.

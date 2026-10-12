@@ -645,6 +645,40 @@ class LocalByteStore:
                 database.execute('ROLLBACK')
                 return result
 
+    def inspect_namespaces(self, fences: tuple[ByteFence, ...], *,
+                           inspect: _InventoryInspection,
+                           current: Callable[[], object]) -> None:
+        """Supply original namespace queries in a fenced read-only transaction.
+
+        Core chooses namespaces, keys and cursors and decides completeness and
+        meaning. The existing reader enforces thread/lifetime, raw-byte bounds,
+        failure latching and original physical fences. This path performs no
+        write, adoption, COMMIT, repair, Run acceptance or retry.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local namespace inspection callback')
+        self._validate_metadata_fences(fences, ())
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN')
+            try:
+                self._fenced_current(current)
+                if not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local namespace fences changed')
+                self._inspect_namespace_locked(inspect, fences, current)
+                self._fenced_current(current)
+                if not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local namespace fences changed')
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+            else:
+                # A failed physical stop keeps this same connection pending.
+                # No observation escapes and no cleanup is automatically repeated.
+                database.execute('ROLLBACK')
+
     def _inspect_namespace_locked(
             self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
@@ -1083,6 +1117,10 @@ class LocalByteStore:
     def _validate_fences(self, fences: tuple[ByteFence, ...],
                          writes: tuple[ByteWrite, ...]) -> None:
         self._exchange_write_keys(writes)
+        self._validate_metadata_fences(fences, writes)
+
+    def _validate_metadata_fences(self, fences: tuple[ByteFence, ...],
+                                  writes: tuple[ByteWrite, ...]) -> None:
         if type(fences) is not tuple or not 1 <= len(fences) <= self._max_records:
             raise ValueError('Invalid Local physical metadata fences')
         keys: set[str] = set()
