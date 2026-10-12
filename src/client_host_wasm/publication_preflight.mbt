@@ -117,7 +117,7 @@ pub fn prepare_publication_preflight(
     value.source_publications.get(record.source)
     is Some({ closing: false, invocation: Some(invocation), .. }) &&
     value.computes.get(record.compute)
-    is Some({ closing: false, attempt: native_attempt, .. }) &&
+    is Some({ closing: false, origin: Captured(native_attempt), .. }) &&
     value.native_attempts.get(native_attempt) is Some(original) &&
     value.native_sources.get(original.configuration) is Some(source) &&
     value.runs.get(source.run) is Some({ outcome: Some(Ok(plan)), .. }) &&

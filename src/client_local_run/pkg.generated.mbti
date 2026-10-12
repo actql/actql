@@ -22,6 +22,8 @@ import {
 }
 
 // Values
+pub fn authorize_local_compute_configuration(LocalRunPlan, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[Unit, LocalComputeIssue]
+
 pub fn authorize_local_native_source(LocalNativeSourceConfiguration, @execution_authorization.AdmittedAccountConfiguration) -> Result[@execution_authorization.DispatchAuthorization, LocalNativeSourceIssue]
 
 pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Result[LocalComputeStart, LocalComputeIssue]

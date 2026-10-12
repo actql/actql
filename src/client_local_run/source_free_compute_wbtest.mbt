@@ -143,3 +143,98 @@ test "source-free shared root cannot bypass an exhausted original execution budg
   @resources.settle_shared_capacity(occupied).unwrap()
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 0L)
 }
+
+///|
+test "compute configuration rechecks original account subject scope and context" {
+  let input = prepared(@input.Aql("SELECT 1 AS n"))
+  let original = plan(input, "source-free-current")
+  let allow = account(Allow)
+  let original_permit = permit(input, allow)
+  assert_true(
+    authorize_local_compute_configuration(
+      original,
+      original_permit,
+      allow,
+      tuple(),
+      context_cid(),
+    )
+    is Ok(_),
+  )
+  let denied = account(Deny)
+  assert_true(
+    authorize_local_compute_configuration(
+      original,
+      original_permit,
+      denied,
+      tuple(),
+      context_cid(),
+    )
+    is Err(AuthorizationMismatch),
+  )
+  assert_true(
+    authorize_local_compute_configuration(
+      original,
+      original_permit,
+      allow,
+      { ..tuple(), operation: "read", },
+      context_cid(),
+    )
+    is Err(AuthorizationMismatch),
+  )
+  assert_true(
+    authorize_local_compute_configuration(
+      original,
+      original_permit,
+      allow,
+      tuple(),
+      "sha256:" + "d".repeat(64),
+    )
+    is Err(AuthorizationMismatch),
+  )
+  let other = prepared(@input.Aql("SELECT 2 AS n"))
+  assert_true(
+    authorize_local_compute_configuration(
+      original,
+      permit(other, allow),
+      allow,
+      tuple(),
+      context_cid(),
+    )
+    is Err(AuthorizationMismatch),
+  )
+}
+
+///|
+test "source-free compute cannot bind a foreign original physical start" {
+  let input = prepared(@input.Aql("SELECT 1 AS n"))
+  let original = plan(input, "source-free-bound")
+  let other = plan(input, "source-free-other")
+  let root = source_free_root()
+  let host = source_free_shared_host(original, root).unwrap()
+  let foreign_host = source_free_shared_host(other, root).unwrap()
+  let foreign_start = compute_start(foreign_host)
+  // Extracting the accepted start uses the exact original Owner, not a new Bool.
+  let current = account(Allow)
+  let accepted = confirm_local_run_physical_start(
+    other,
+    other.request,
+    @publication.publication_contract_identity(other.definition),
+    true,
+    true,
+    false,
+    false,
+    permit(input, current),
+    current,
+    tuple(),
+    context_cid(),
+  ).unwrap()
+  assert_true(
+    bind_local_compute_start(host, accepted) is Err(StartNotPermitted),
+  )
+  assert_false(physical_equal(foreign_start.host, host))
+  for value in [host, foreign_host] {
+    let run = local_compute_run(value)
+    @strategy.stop_captured_dag(run)
+    @strategy.refresh_captured_retention(run)
+  }
+}
