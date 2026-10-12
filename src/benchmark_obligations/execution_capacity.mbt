@@ -146,8 +146,14 @@ pub fn obligation_execution_released(
       }
     }
   }
-  @resources.retire_shared_capacity(owner.database)
-  @resources.retire_shared_capacity(owner.scratch)
+  match @resources.retire_shared_capacity(owner.database) {
+    Err(issue) => raise Capacity(issue)
+    Ok(_) => ()
+  }
+  match @resources.retire_shared_capacity(owner.scratch) {
+    Err(issue) => raise Capacity(issue)
+    Ok(_) => ()
+  }
   match @resources.release_shared_capacity(owner.database) {
     Ok(_) => ()
     Err(issue) => raise Capacity(issue)

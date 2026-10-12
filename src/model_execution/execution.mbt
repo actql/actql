@@ -36,8 +36,16 @@ pub(all) enum ModelProviderFailure {
 ///|
 /// A provider is physical I/O. It is installed by the Host and cannot be
 /// selected by a Program value or by a model selector string alone.
+pub(all) enum ModelProviderInvocation {
+  SynchronousFixture(
+    (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
+  )
+  AsynchronousPhysical
+}
+
+///|
 pub(all) struct ModelProvider {
-  invoke : (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
+  invocation : ModelProviderInvocation
   provider_id : String
 }
 
@@ -49,7 +57,30 @@ pub fn install_model_provider(
   if provider_id.is_empty() {
     return Err(InvalidProvider)
   }
-  Ok({ invoke, provider_id, })
+  Ok({ invocation: SynchronousFixture(invoke), provider_id, })
+}
+
+///|
+/// Physical registration only. The original async preflight, Entry and profile
+/// are separately required before any attempt can enter or invoke transport.
+pub fn install_async_model_provider(
+  provider_id : String,
+) -> Result[ModelProvider, ModelExecutionIssue] {
+  if provider_id.is_empty() {
+    return Err(InvalidProvider)
+  }
+  Ok({ invocation: AsynchronousPhysical, provider_id, })
+}
+
+///|
+/// The original fixture callback, never an async fallback or a send grant.
+pub fn model_provider_synchronous_invoke(
+  provider : ModelProvider,
+) -> ((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])? {
+  match provider.invocation {
+    SynchronousFixture(invoke) => Some(invoke)
+    AsynchronousPhysical => None
+  }
 }
 
 ///|
@@ -712,7 +743,12 @@ fn advance_model(
     return @bounded.Continue(1, 1)
   }
   let invoked = match state.physical_preflight {
-    None => (provider.invoke)(request)
+    None => {
+      guard provider.invocation is SynchronousFixture(invoke) else {
+        return @bounded.Failed(InvalidProvider, 1, 1)
+      }
+      invoke(request)
+    }
     Some(_) => {
       guard state.physical_plans.get(state.next_slot) is Some(plan) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
@@ -875,6 +911,11 @@ fn start_model_owned(
   if physical_preflight is Some(_) &&
     (!(source is Provider(_)) || quantity_capacity is None) {
     return Err(InvalidLimits)
+  }
+  if source is Provider(provider) &&
+    provider.invocation is AsynchronousPhysical &&
+    (!durable_calls || physical_preflight is None || quantity_capacity is None) {
+    return Err(InvalidProvider)
   }
   if !valid_cid(fixed_request_cid) ||
     limits.max_items < 0 ||

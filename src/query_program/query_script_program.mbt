@@ -47,6 +47,7 @@ fn lower_script_relation(
   graphs? : Array[ScriptGraph] = [],
   positional_set_output? : Bool = false,
   allow_nonrelation? : Bool = false,
+  set_head? : Bool = false,
 ) -> Input raise Abort {
   let (known, graphs) = lower_script_bindings(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
@@ -65,7 +66,10 @@ fn lower_script_relation(
   } else {
     query
   }
-  if graph is Some(graph) && @query.set_part_count(query) == 0 {
+  // The outer set owner already owns its right operands and final operations.
+  // A Graph-row head continuation lowers only this first term's operations.
+  let single_term = set_head || @query.set_part_count(query) == 0
+  if graph is Some(graph) && single_term {
     if @query.graph_query(query)
       .map(value => value.pattern is Some(_))
       .unwrap_or(false) {
@@ -95,11 +99,13 @@ fn lower_script_relation(
         graphs~,
         retained~,
         positional_set_output~,
+        continuation=Some((context, sources)),
+        allow_nonrelation~,
       )
     }
     raise Abort(UnsupportedGraph)
   }
-  if @query.set_part_count(query) == 0 && script_has_carrier_calls(query) {
+  if single_term && script_has_carrier_calls(query) {
     return lower_script_carrier_calls(
       construction,
       query,
@@ -114,7 +120,7 @@ fn lower_script_relation(
       allow_nonrelation~,
     )
   }
-  if @query.set_part_count(query) == 0 {
+  if single_term {
     let input = known
       .filter(input => input_relation_matches(@query.relation(query), input))
       .get(0)
@@ -136,7 +142,7 @@ fn lower_script_relation(
       return input
     }
   }
-  if @query.set_part_count(query) > 0 {
+  if !single_term {
     return lower_script_set_relation(
       construction,
       query,
@@ -165,6 +171,7 @@ fn lower_script_relation(
     retain_value_table~,
     graphs~,
     positional_set_output~,
+    set_head~,
   )
 }
 
@@ -188,7 +195,7 @@ fn lower_script_relation_term(
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
     let graph = require_script_graph_input(
-      script_graph_input(query, graphs),
+      current_script_graph(None, query, graphs, known),
       query,
       known,
     )
@@ -205,6 +212,7 @@ fn lower_script_relation_term(
       retained~,
       positional_set_output~,
       set_head~,
+      continuation=Some((context, sources)),
     )
   }
   if @query.graph_query(query) is Some(_) {
@@ -462,6 +470,7 @@ pub fn compile_query_script(
           known=stage_known,
           graphs~,
           retained=Some(retained),
+          continuation=Some((stage_context, stage_sources)),
         )
       } else if @query.graph_query(current) is Some(_) && !graph_row_set {
         lower_script_keyed_graph_query(

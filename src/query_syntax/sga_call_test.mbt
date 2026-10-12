@@ -225,3 +225,25 @@ test "SGA call accessors preserve parsed nested arguments after caller mutation"
     is Err(_),
   )
 }
+
+///|
+test "a consumed Graph row prefix leaves adjacent Carrier calls untouched" {
+  let query = parse_query(
+    "FROM GRAPH g |> normalize_graph() |> node_rows() |> to_events(id: node_key, time: occurred_ms) |> events() |> SELECT node_key",
+    query_limits(),
+  ).unwrap()
+  let tail = after_graph_row_calls(query, 2).unwrap()
+  assert_eq(operation_count(tail), 3)
+  assert_true(
+    operation_at(tail, 0) is Some(GraphCall({ operation: "to_events", .. })),
+  )
+  assert_true(
+    operation_at(tail, 1) is Some(GraphCall({ operation: "events", .. })),
+  )
+  assert_true(operation_at(tail, 2) is Some(Select(_, _)))
+  assert_true(graph_query(tail) is None)
+  assert_true(physical_equal(query_document(query), query_document(tail)))
+  assert_true(after_graph_row_calls(query, 0) is None)
+  assert_true(after_graph_row_calls(query, 6) is None)
+  assert_true(after_graph_row_calls(query, 5) is None)
+}

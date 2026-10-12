@@ -140,7 +140,10 @@ pub fn cancel_resident_table_preparation(
     !physical_equal(last, table.allocation) {
     return Err(InvalidCharge)
   }
-  @resources.retire_shared_capacity(table.allocation)
+  match @resources.retire_shared_capacity(table.allocation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   match @resources.release_shared_capacity(table.allocation) {
     Err(issue) => Err(issue)
     Ok(_) => {
@@ -312,7 +315,10 @@ pub fn retire_resident_table(
   if @resources.shared_allocation_usage(table.allocation).retiring {
     return Ok(())
   }
-  @resources.retire_shared_capacity(table.allocation)
+  match @resources.retire_shared_capacity(table.allocation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   run.generation += 1
   run.strategy = None
   Ok(())
