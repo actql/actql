@@ -39,11 +39,20 @@ test "standard Local Catalog uses the same compilation work profile without wide
     bytes: 4240,
     nodes: 174,
   })
+  let exact = @checked.prepare_source_catalog(local_catalog_profile_owner(), {
+    ..limits,
+    max_work: 17389,
+  }).unwrap()
+  assert_eq(@checked.source_catalog_usage(exact), {
+    work: 17389,
+    bytes: 4240,
+    nodes: 174,
+  })
 }
 
 ///|
 test "original Local Catalog retains its tight-work refusal controls after FILES admission" {
-  for work in [10000, 17164, 17165] {
+  for work in [10000, 17164, 17165, 17388] {
     assert_true(
       @checked.prepare_source_catalog(local_catalog_profile_owner(), {
         max_work: work,
