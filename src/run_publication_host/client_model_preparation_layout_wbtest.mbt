@@ -157,7 +157,7 @@ test "checked Node layout rejects missing installation and changed pinned facts 
   }
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(client_model_read_available(read, compiled, definition, plan))
-  stop_client_model_read(read)
+  stop_client_model_read(read).unwrap()
   settle_client_model_read(read, true).unwrap()
   assert_true(
     @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
@@ -328,7 +328,7 @@ test "checked Node layout consumes exact original envelope once and preserves pe
         )
         is Err(Resource(@resources.SpentClaim)),
       )
-      stop_client_model_read_consumer(consumer)
+      stop_client_model_read_consumer(consumer).unwrap()
       assert_true(
         settle_client_model_read_consumer(consumer, false)
         is Err(Resource(@resources.CleanupPending)),
@@ -343,7 +343,7 @@ test "checked Node layout consumes exact original envelope once and preserves pe
     }
     if issued is Err(_) {
       assert_eq(@resources.ledger_usage(ledger), before)
-      stop_client_model_read(read)
+      stop_client_model_read(read).unwrap()
       settle_client_model_read(read, true).unwrap()
     }
     assert_true(

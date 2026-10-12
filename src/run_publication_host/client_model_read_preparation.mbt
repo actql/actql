@@ -222,8 +222,10 @@ pub fn handoff_client_model_read_capacity(
 }
 
 ///|
-pub fn stop_client_model_read(value : ClientModelReadPreparation) -> Unit {
-  @resources.stop_funded_read(value.claim)
+pub fn stop_client_model_read(
+  value : ClientModelReadPreparation,
+) -> Result[Unit, ClientModelReadPreparationIssue] {
+  @resources.stop_funded_read(value.claim).map_err(issue => Resource(issue))
 }
 
 ///|

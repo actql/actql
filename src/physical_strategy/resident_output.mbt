@@ -105,7 +105,10 @@ pub fn[T] prepare_captured_cleanup(
     }
   }
   for table in tables {
-    @resources.retire_shared_capacity(table.allocation)
+    match @resources.retire_shared_capacity(table.allocation) {
+      Err(issue) => return Err(Physical(issue))
+      Ok(_) => ()
+    }
     pending.retired_inputs.push(table)
   }
   pending.cleanup_prepared = true

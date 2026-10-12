@@ -32,5 +32,4 @@ pub fn stop_client_model_read_checked(
     return Err(ForeignRun)
   }
   stop_client_model_read(value)
-  Ok(())
 }

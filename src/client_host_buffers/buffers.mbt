@@ -423,7 +423,10 @@ pub fn close_buffer(
     return Ok(())
   }
   if !slot.retired {
-    @resources.retire_shared_capacity(slot.allocation)
+    match @resources.retire_shared_capacity(slot.allocation) {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => ()
+    }
     slot.retired = true
   }
   if @resources.shared_allocation_usage(slot.allocation).readers != 0 ||
