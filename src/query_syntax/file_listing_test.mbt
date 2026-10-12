@@ -108,7 +108,7 @@ test "LIST_FILES keeps original nested/JOIN selectors and charges parser work" {
   let query = parse_query(text, query_limits()).unwrap()
   assert_true(file_list_selector(query) is None)
   assert_true(
-    file_list_selector(cte_at(query, 0).unwrap().query) is Some(ExactPaths(_)),
+    file_list_selector(query_binding_at(query, 0).unwrap().query) is Some(ExactPaths(_)),
   )
   assert_true(join_part_at(query, 0).unwrap().file_listing is Some(Glob(_)))
   let work = query_work(query)
