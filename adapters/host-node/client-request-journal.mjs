@@ -263,6 +263,13 @@ function validateSourceInventory(wire) {
   return wire;
 }
 
+function logicalPlanOriginalShape(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).sort().join(',') === 'compiledPlanWire,planViewWire' &&
+    typeof value.compiledPlanWire === 'string' && value.compiledPlanWire !== '' &&
+    typeof value.planViewWire === 'string' && value.planViewWire !== '';
+}
+
 function assertKeyedInventoryRequest(wire, fields) {
   if (wire === undefined) return;
   const inventory = JSON.parse(wire);
@@ -278,10 +285,12 @@ function admissionEvidenceShape(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   if (Object.keys(value).some(key => !['authorization', 'prepared',
     'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
-    'valuesHostPolicyOriginal'].includes(key)) ||
+    'valuesHostPolicyOriginal', 'logicalPlanOriginal'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
+  if (value.logicalPlanOriginal !== undefined &&
+      !logicalPlanOriginalShape(value.logicalPlanOriginal)) return false;
   if (value.valuesHostPolicyOriginal !== undefined) {
     const original = value.valuesHostPolicyOriginal;
     if (original === null || typeof original !== 'object' || Array.isArray(original) ||
@@ -359,7 +368,26 @@ function retainedEvidence(row) {
       programDefinitionCid: row.program_definition_cid,
       parameterValuesCid: row.parameter_values_cid});
   } catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
+  return freezeAdmissionEvidence(value);
+}
+
+function freezeAdmissionEvidence(value) {
+  if (value.logicalPlanOriginal !== undefined) Object.freeze(value.logicalPlanOriginal);
   return Object.freeze(value);
+}
+
+function checkStoredPlanOriginal(value, definition, programCid, control, maxBytes) {
+  if (!logicalPlanOriginalShape(value) ||
+      Buffer.byteLength(value.compiledPlanWire) > maxBytes ||
+      Buffer.byteLength(value.planViewWire) > maxBytes) {
+    fail('InvalidClientRunPlanOriginal');
+  }
+  if (typeof control?.readStoredRunPlanOriginal !== 'function') {
+    fail('ClientRequestPlanEvidenceUnavailable');
+  }
+  const wire = control.readStoredRunPlanOriginal(value, definition, programCid,
+    {maxWireBytes: maxBytes, maxNodes: 4096, maxDepth: 64});
+  if (wire !== value.planViewWire) fail('InvalidClientRunPlanOriginal');
 }
 
 function retainedResultNames(row) {
@@ -398,8 +426,25 @@ function retainedRunFacts(row, publicationControl, maxWireBytes) {
       JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== row.run_definition_wire) {
     fail('ClientRequestJournalCorrupt');
   }
+  if (runAdmissionEvidence?.logicalPlanOriginal !== undefined) {
+    try { checkStoredPlanOriginal(runAdmissionEvidence.logicalPlanOriginal,
+      runDefinition, row.program_definition_cid, publicationControl, maxWireBytes); }
+    catch (cause) {
+      if (cause?.code === 'ClientRequestPlanEvidenceUnavailable') throw cause;
+      if (cause?.code === 'ClientOperationUnavailable') {
+        fail('ClientRequestPlanEvidenceUnavailable', cause);
+      }
+      if (cause instanceof TypeError || cause instanceof SyntaxError ||
+          ['InvalidClientRunPlanOriginal', 'MoonBitHostFailure',
+            'RunHostOriginalMapRejected'].includes(cause?.code)) {
+        fail('ClientRequestJournalCorrupt', cause);
+      }
+      fail('ClientRequestPlanReadUnknown', cause);
+    }
+  }
   return Object.freeze({
     runDefinition,
+    programDefinitionCid: row.program_definition_cid,
     resultNames: retainedResultNames(row),
     runAdmissionEvidence,
     cancellationRequested: row.cancellation_requested === 1,
@@ -1402,6 +1447,15 @@ export function openClientRequestJournal(directory, {
         assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
           runAdmissionEvidence: retainedEvidence(existing)},
           admissionEvidence === null ? undefined : JSON.parse(admissionEvidence).sourceInventory);
+        const proposedPlan = runAdmissionEvidence?.logicalPlanOriginal;
+        if (proposedPlan !== undefined) {
+          const originalPlan = retainedEvidence(existing)?.logicalPlanOriginal;
+          if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
+          if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
+              originalPlan.planViewWire !== proposedPlan.planViewWire) {
+            fail('ClientRequestPlanEvidenceMismatch');
+          }
+        }
         return Object.freeze({inserted: false, ...admission(existing),
           runAdmissionEvidence: retainedEvidence(existing),
           ...(runDefinitionWire === undefined ? {} :
@@ -1437,7 +1491,7 @@ export function openClientRequestJournal(directory, {
       }), durability: 'durable', revision, lookupExpiresAt,
       ...(runDefinitionWire === undefined ? {} : {runDefinitionWire}),
       resultNames, runAdmissionEvidence: admissionEvidence === null ? undefined :
-        Object.freeze(JSON.parse(admissionEvidence))});
+        freezeAdmissionEvidence(JSON.parse(admissionEvidence))});
     });
     if (outcome.epochRejected !== undefined) refuseEpoch(outcome.epochRejected);
     return outcome;
@@ -1711,10 +1765,38 @@ export function openClientRequestJournal(directory, {
     // transaction as the request. The caller must have obtained it from the
     // shared Run issuer; re-admission here checks identity, not authority.
     // Reattachment never reissues this identity.
-    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence,
+    acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
+      // Only the existing compiler control can issue the first original. A
+      // wire copy is not an opaque compiler selection. No later transaction
+      // fills missing evidence in an already accepted Run.
+      if (runAdmissionEvidence !== null && typeof runAdmissionEvidence === 'object' &&
+          Object.hasOwn(runAdmissionEvidence, 'logicalPlanOriginal')) {
+        fail('InvalidClientRunPlanOriginal');
+      }
+      if (originalPlan !== undefined) {
+        if (typeof publicationControl.originalRunPlanAdmissionEvidence !== 'function' ||
+            !admissionEvidenceShape(runAdmissionEvidence)) fail('InvalidClientRunPlanOriginal');
+        let original;
+        try {
+          original = publicationControl.originalRunPlanAdmissionEvidence(originalPlan,
+            definition, requestControl.clientRequestProgramCid(identity), runAdmissionEvidence);
+          if (logicalPlanOriginalShape(original) &&
+              (Buffer.byteLength(original.compiledPlanWire) > maxRunDefinitionWireBytes ||
+               Buffer.byteLength(original.planViewWire) > maxRunDefinitionWireBytes)) {
+            fail('InvalidClientRunAdmissionEvidence');
+          }
+          checkStoredPlanOriginal(original, definition,
+            requestControl.clientRequestProgramCid(identity), publicationControl, maxRunDefinitionWireBytes);
+        } catch (cause) {
+          if (cause?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
+          fail('InvalidClientRunPlanOriginal', cause);
+        }
+        runAdmissionEvidence = {...runAdmissionEvidence,
+          logicalPlanOriginal: Object.freeze({...original})};
+      }
       const accepted = acceptRecord(identity, {namespaceId,
         runDefinitionCid: definition.identity,
         runDefinitionWire: definition.wire,
@@ -1866,6 +1948,7 @@ export function openClientRequestJournal(directory, {
       }
       return journal.acceptDefinition(identity, {namespaceId, runDefinition,
         runAdmissionEvidence: issued.runAdmissionEvidence,
+        originalPlan: issued.originalPlan,
         lookupExpiresAt, resultNames: issued.resultNames ?? resultNames, submission}, requestControl, publicationControl);
     },
     // One physical transaction applies the common MoonBit start decision.

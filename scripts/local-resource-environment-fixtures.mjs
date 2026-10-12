@@ -52,6 +52,49 @@ export function registeredResourceEnvironmentCase(item, source, graphRegistry = 
         projectionBody.includes('presenceRows[projection]');
       if (item.role === 'graph_projection_public_store' && (selection || projection) &&
           ['local', 'remote'].some(mode => item.fixture === `${title} ${mode}`)) return true;
+      const cancellation = {
+        reach: ['graph-reach', 'reach'],
+        shortest_path: ['graph-shortest', 'shortest'],
+        graft_graph: ['graph-graft', 'graft'],
+        mean_graphs: ['graph-mean', 'mean'],
+      }[operation];
+      if (cancellation?.[0] !== profile ||
+          item.role !== `${cancellation[1]}_public_in_flight_cancel_cleanup` ||
+          item.case !== 'assertOperationCancellation' ||
+          !['local', 'remote'].some(mode => item.fixture ===
+            `${title} ${mode}${profile === 'graph-mean' ? ' (asymmetric)' : ''}`)) continue;
+      // This is the existing installed operation barrier, after positive work,
+      // with stop, nonpublication, cleanup and same-request non-reexecution.
+      // A basic Mean success or an earlier constructor is not this case.
+      const barrier = /if \(name === 'local_compute_advanced' && detail\.task === cancellationTask\) \{([\s\S]*?)\n      \}/u
+        .exec(source)?.[1].replace(/\s+/gu, '') ?? '';
+      const body = /async function assertOperationCancellation\(sample, task\) \{([\s\S]*?)\n    \}/u
+        .exec(source)?.[1].replace(/\s+/gu, '') ?? '';
+      const requiredBarrier = ['assert.ok(BigInt(detail.work)>0n)',
+        'cancellationBarrier.resolve(detail)', 'awaitreleaseCancellation.promise'];
+      const requiredBody = ['cancellationTask=task', 'awaitcancelled.cancel()',
+        'cancellationBarrier.promise', 'assert.equal(observation.task,cancellationTask)',
+        'assert.equal(pending.control.cancellation_requested,true)',
+        "assert.notEqual(pending.control.physical_stop,'confirmed')",
+        "assert.notEqual(pending.status,'cancelled')",
+        'assert.equal(completed(),completedBefore)',
+        'assert.equal(snapshots.has(cancelled.ref.runDefinitionCid),false)',
+        'releaseCancellation.resolve()', "assert.equal(stopped.status,'cancelled'",
+        "assert.equal(stopped.control.physical_stop,'confirmed')",
+        'awaitassert.rejects(cancelled.result(name).all())',
+        'assert.deepEqual(repeated.ref,cancelled.ref)',
+        'assert.equal(starts(),startsBefore+1)',
+        "assert.equal(physicalSteps.filter(name=>name==='local_compute_advanced').length,advanced)",
+        'assert.deepEqual(awaitreaddir(`${directory}/carrier-snapshots`),[])'];
+      const operationCall = profile === 'graph-graft'
+        ? registration.includes('if(graft)awaitassertOperationCancellation(graphGraftSourceSuccesses[0],3)')
+        : registration.includes("if(profile!=='graph-mean'||partition==='asymmetric'){") &&
+          registration.includes("graphReachSourceSuccesses.find(sample=>sample.name==='graph-reach-json-connected-out')") &&
+          registration.includes("graphShortestSourceSuccesses.find(sample=>sample.name==='graph-shortest-json-weighted-parallel-edges')") &&
+          registration.includes(':graphMeanSourceOracles[0]') &&
+          registration.includes('awaitassertOperationCancellation(cancellationSample,3)');
+      if (operationCall && requiredBarrier.every(marker => barrier.includes(marker)) &&
+          requiredBody.every(marker => body.includes(marker))) return true;
     }
   }
   return false;

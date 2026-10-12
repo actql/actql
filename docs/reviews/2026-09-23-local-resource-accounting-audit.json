@@ -585,6 +585,26 @@
       "family": "Bridge",
       "operation": "vectors",
       "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "reach",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "shortest_path",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "graft_graph",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "mean_graphs",
+      "path": "entrypoint"
     }
   ],
   "required_facets": [

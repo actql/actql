@@ -106,6 +106,9 @@ fn lower_script_primary(
   reserved : Array[String],
 ) -> ScriptGraph? raise Abort {
   guard @query.producer_primary(query) is Some(primary) else { return None }
+  if primary is RelationGenerator(_) {
+    return None
+  }
   let output = pipe_physical_name(reserved, "aql_with_graph_")
   reserved.push(output)
   match primary {
@@ -158,6 +161,7 @@ fn lower_script_primary(
           output,
         ),
       )
+    RelationGenerator(_) => None
   }
 }
 
@@ -194,6 +198,9 @@ fn lower_script_bindings(
     )
     let body = @query.after_query_bindings(binding.query)
     let binding_start = steps.length()
+    let (body, body_inputs) = lower_script_relation_primary(
+      construction, body, body_inputs, context, sources, limits, steps, reserved,
+    )
     let primary = lower_script_primary(
       construction, body, body_inputs, body_graphs, context, sources, limits, steps,
       reserved,

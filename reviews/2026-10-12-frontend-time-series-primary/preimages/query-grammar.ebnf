@@ -1,0 +1,232 @@
+(* GoogleSQL-derived ActQL query surface. Semantic restrictions are in
+   docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
+script        = query ;
+query         = ( table_create_statement
+              | [ with_clause ], ( sql_query | pipe_query ) ), [ ";" ] ;
+(* Authored WITH bodies and ordinary parentheses are Pure. The common checker
+   determines Relation/Graph/Vectors/Events; syntax does not issue a Carrier.
+   Only the whole CTAS input wrapper is Compute. The public SQL selector keeps
+   SELECT/WITH/CREATE/grouped SQL heads; AQL-text also admits FROM-headed Pipe. *)
+table_create_statement = table_create, "AS", table_input_query ;
+(* A Table input can include statement-level inference, but not another
+   terminal write. Authored WITH bodies remain Pure declaration bodies. *)
+table_input_query = [ with_clause ], ( sql_query | pipe_query )
+                  | "(", [ with_clause ], ( sql_query | pipe_query ), ")" ;
+(* The pure constructor wrapper is an ActQL extension. Its table mapping
+   follows the selected GoogleSQL/SQL-PGQ profile, not ISO GQL CREATE. *)
+graph_constructor = "GRAPH", "(",
+                   "NODE", "TABLES", "(", node_definition,
+                     { ",", node_definition }, ")",
+                   [ "EDGE", "TABLES", "(", edge_definition,
+                     { ",", edge_definition }, ")" ], ")" ;
+node_definition = path, [ "AS", identifier ], "KEY", key_columns,
+                  [ element_labels ] ;
+edge_definition = path, [ "AS", identifier ], "KEY", key_columns,
+                  "SOURCE", "KEY", key_columns, "REFERENCES", identifier,
+                    [ key_columns ],
+                  "DESTINATION", "KEY", key_columns, "REFERENCES", identifier,
+                    [ key_columns ], [ element_labels ] ;
+key_columns   = "(", identifier, { ",", identifier }, ")" ;
+element_labels = property_selection | label_clause, { label_clause } ;
+label_clause  = ( "LABEL", identifier | "DEFAULT", "LABEL" ),
+                [ property_selection ] ;
+property_selection = "NO", "PROPERTIES"
+                   | "PROPERTIES", [ "ARE" ],
+                     ( "ALL", "COLUMNS", [ "EXCEPT", key_columns ]
+                     | "(", property_column, { ",", property_column }, ")" ) ;
+property_column = identifier, [ "AS", identifier ] ;
+sql_query     = sql_operand, { set_part },
+                [ order_clause ], [ limit_clause ], { "|>", pipe_item } ;
+with_clause   = "WITH", with_binding, { ",", with_binding } ;
+with_binding  = identifier, "AS", "(", producer_body, ")" ;
+producer_body = [ with_clause ],
+                ( relational_sql | cte_pipe | producer_primary, { "|>", cte_pipe_item } ) ;
+producer_primary = graph_constructor | graph_generator ;
+graph_generator = "mean_graphs", "(", [ sga_argument, { ",", sga_argument } ], ")" ;
+(* Primaries construct Graph values. Existing Vectors/Events are reached
+   through typed named Pipe calls, without changing the common value wire. *)
+relational_body = producer_body ;
+(* Derived tables and set operands require a Relation after static checking. *)
+relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
+                 { "|>", cte_pipe_item } ;
+sql_operand   = select_core | "(", relational_body, ")" ;
+(* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
+cte_pipe      = "FROM", carrier_source, { "|>", cte_pipe_item } ;
+cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call | graph_match ;
+select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
+                [ where_clause ], [ group_clause ],
+                [ having_clause ], [ qualify_clause ], [ window_clause ] ;
+pipe_query    = "FROM", carrier_source, { "|>", pipe_item } ;
+carrier_source = source | "GRAPH", path, [ source_alias ] ;
+(* FROM preserves the resolved Carrier. GRAPH adds an explicit Graph type
+   expectation; MATCH does not require the marker. An authored row alias
+   requires Relation and never renames Graph element definitions. *)
+graph_match   = "MATCH", [ identifier, "=" ],
+                [ "WALK" | "TRAIL" | "ACYCLIC" ],
+                graph_node, { graph_edge, graph_node } ;
+graph_node    = "(", [ identifier ], [ ":", identifier ],
+                [ graph_constraint ], ")" ;
+graph_edge    = ( "-[", graph_filler, "]->"
+                | "<-[", graph_filler, "]-"
+                | "-[", graph_filler, "]-"
+                | "-" | "<-" | "->" ),
+                [ graph_quantifier ] ;
+graph_filler  = [ identifier ], [ ":", identifier ],
+                [ graph_constraint ] ;
+graph_constraint = "WHERE", expression
+                | "{", property_pair, { ",", property_pair }, "}" ;
+property_pair = identifier, ":", expression ;
+graph_quantifier = "{", integer, "}"
+                 | "{", [ integer ], ",", integer, "}" ;
+source        = table_source | unnest_source ;
+table_source  = path, [ source_alias ], [ pivot_operator | unpivot_operator ]
+              | "(", relational_body, ")",
+                [ source_alias ], [ pivot_operator | unpivot_operator ] ;
+source_alias  = [ "AS" ], identifier ;
+unnest_source = "UNNEST", "(", expression, ")", source_alias,
+                [ "WITH", "OFFSET", [ source_alias ] ] ;
+join          = [ "INNER" | "LEFT", [ "OUTER" ]
+                | "RIGHT", [ "OUTER" ]
+                | "FULL", [ "OUTER" ] ],
+                "JOIN", table_source, ( "ON", expression
+                | "USING", "(", identifier, { ",", identifier }, ")" ),
+                [ join_bound ]
+              | "CROSS", "JOIN", table_source, [ join_bound ]
+              | "CROSS", "JOIN", unnest_source
+              | [ "INNER" ], "JOIN", unnest_source, [ "ON", expression ] ;
+join_bound    = "MAX_OUTPUT_ROWS", integer ;
+where_clause  = "WHERE", expression ;
+group_clause  = "GROUP", "BY", ( "ALL" | "(", ")" | expression, { ",", expression } ) ;
+pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
+pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
+pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )
+                 | "ASC" | "DESC" ;
+pipe_aggregate_list = pipe_aggregate_item, { ",", pipe_aggregate_item } ;
+pipe_aggregate_item = expression, [ [ "AS" ], identifier ], [ pipe_aggregate_order ] ;
+pipe_aggregate_order = ( "ASC" | "DESC" ), [ "NULLS", ( "FIRST" | "LAST" ) ] ;
+having_clause = "HAVING", expression ;
+qualify_clause = "QUALIFY", expression ;
+window_clause = "WINDOW", window_definition, { ",", window_definition } ;
+window_definition = identifier, "AS", window_specification ;
+window_specification = identifier
+                     | "(", [ identifier ], [ partition_clause ],
+                       [ order_clause ], [ rows_frame ], ")" ;
+partition_clause = "PARTITION", "BY", expression, { ",", expression } ;
+rows_frame = "ROWS", ( "BETWEEN", frame_boundary, "AND", frame_boundary
+                     | frame_boundary ) ;
+frame_boundary = "CURRENT", "ROW"
+               | "UNBOUNDED", ( "PRECEDING" | "FOLLOWING" )
+               | limit_integer, ( "PRECEDING" | "FOLLOWING" ) ;
+select_list   = select_item, { ",", select_item } ;
+select_item   = ( "*" | expression, ".", "*" ), [ star_except ], [ star_replace ]
+              | expression, [ "AS", identifier ] ;
+star_except   = "EXCEPT", "(", identifier, { ",", identifier }, ")" ;
+star_replace  = "REPLACE", "(", expression, "AS", identifier,
+               { ",", expression, "AS", identifier }, ")" ;
+order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
+sort_item     = expression, [ "ASC" | "DESC" ],
+                [ "NULLS", ( "FIRST" | "LAST" ) ] ;
+limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
+limit_integer = integer | parameter_token | "+", limit_integer
+              | "(", limit_integer, ")" ;
+set_operator  = "UNION", ( "ALL" | "DISTINCT" )
+              | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ;
+set_names     = "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
+              | [ "STRICT" ], "CORRESPONDING", [ "BY", "(", identifier, { ",", identifier }, ")" ] ;
+set_matching  = set_operator, [ set_names ]
+              | "INNER", set_operator,
+                ( "BY", "NAME", [ "ON", "(", identifier, { ",", identifier }, ")" ]
+                | "CORRESPONDING", [ "BY", "(", identifier, { ",", identifier }, ")" ] ) ;
+set_part      = set_matching, sql_operand ;
+pipe_item     = relation_pipe_item | infer_operator | nearest_operator
+              | result_operator | terminal_effect | named_sga_call | graph_match ;
+(* Named SGA calls are ActQL extensions for existing logical Graph operators.
+   Carrier transitions and implemented consumers are checked separately. *)
+named_sga_call = sga_operation, "(",
+                 [ sga_argument, { ",", sga_argument } ], ")" ;
+sga_operation = "reach" | "traverse" | "shortest_path" | "components"
+              | "degree" | "graph_bounds" | "match_nodes" | "match_edges"
+              | "normalize_graph" | "subgraph" | "graft_graph"
+              | "union_graphs" | "subtract_graphs" | "graphs_equal"
+              | "graph_diff" | "apply_graph_delta" | "mean_graphs"
+              | "node_rows" | "edge_rows"
+              | "to_vectors" | "normalize_vectors" | "score_vectors" | "pool_vectors" | "vectors"
+              | "to_events" | "row_window" | "window_events" | "watermark_events" | "watermark_rows" | "dedupe_events" | "session" | "events" | "lag" ;
+(* Closed argument keys accept Word or backtick names, including reserved keys.
+   Values are selected by the operation signature: ProducerRef, FieldRef,
+   OutputName, Expression, Enum/Literal, ClosedRecord/List or WholeParameter.
+   A literal subtree has no reference roles. Lists inherit their leaf role.
+   String values cannot replace a producer, field reference or output name.
+   dedupe_events.order_by and lag.order_by accept a one-field OrderKey whose key is a FieldRef
+   path, or a closed field/dir/nulls record with a FieldRef field value. *)
+sga_argument  = identifier, ":", sga_value ;
+sga_value     = query_string | [ "+" | "-" ], numeric_token | "TRUE" | "FALSE"
+              | "NULL" | parameter_token
+              | path (* only a signature-defined producer, field-reference or output-name position *)
+              | "{", [ sga_argument, { ",", sga_argument } ], "}"
+              | "[", [ sga_value, { ",", sga_value } ], "]"
+              | "{", path, ":", query_string, "}" (* only a shorthand OrderKey position *) ;
+result_operator = "RESULT", identifier ;
+assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
+terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
+table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
+terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
+                  "MAPPING", identifier, "FROM", "RESULT", identifier,
+                  "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
+(* Pipe WHERE permits supported inline window calls in its predicate. *)
+pipe_where_clause = "WHERE", expression ;
+(* Pipe SET permits supported inline window calls in assignment expressions. *)
+pipe_set_clause = "SET", assignment, { ",", assignment } ;
+relation_pipe_item = assertion_operator | pipe_where_clause | "DISTINCT" | "SELECT", [ "DISTINCT" ], select_list, [ window_clause ]
+              | "EXTEND", select_list, [ window_clause ]
+              | pipe_set_clause
+              | unpivot_operator
+              | "DROP", identifier, { ",", identifier }
+              | "RENAME", rename, { ",", rename }
+              | "AS", identifier
+              | pivot_operator
+              | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
+              | join | order_clause | limit_clause
+              | pipe_set_part ;
+(* Pipe PIVOT: one scalar-argument aggregate or COUNT star and static String buckets. *)
+pivot_operator = "PIVOT", "(", pivot_call,
+                 [ [ "AS" ], identifier ], "FOR", path, "IN", "(",
+                 pivot_value, { ",", pivot_value }, ")", ")",
+                 [ [ "AS" ], identifier ] ;
+pivot_call = pivot_aggregate, "(", expression, ")" | "COUNT", "(", "*", ")" ;
+pivot_aggregate = "SUM" | "AVG" | "COUNT" | "MIN" | "MAX" ;
+pivot_value = pivot_string, [ [ "AS" ], identifier ] ;
+pivot_string = query_string | "(", pivot_string, ")" ;
+unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
+                   "(", unpivot_column_set, "FOR", identifier, "IN", "(",
+                   unpivot_input, { ",", unpivot_input }, ")", ")", [ source_alias ] ;
+unpivot_column_set = identifier | "(", identifier, { ",", identifier }, ")" ;
+unpivot_input = unpivot_column_set, [ [ "AS" ], ( query_string | integer ) ] ;
+infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
+                 path, { ",", path }, ")", "INPUT", "(",
+                 [ assignment, { ",", assignment } ], ")",
+                 [ keep_clause ], "AS", identifier ;
+nearest_operator = "NEAREST", path, "AS", identifier,
+                   [ "QUERY", nearest_role_pair ],
+                   [ "CANDIDATE", nearest_role_pair ], "METRIC", metric,
+                   "K", integer, [ keep_clause ], "AS", identifier ;
+nearest_role_pair = "KEY", "(", path, { ",", path }, ")", "VECTOR", expression ;
+metric        = "cosine" | "dot" | "l2" ;
+keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
+keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
+pipe_set_part = set_matching, "(", relational_body, ")" ;
+assignment    = identifier, "=", expression ;
+rename        = identifier, "AS", identifier ;
+path          = identifier, { ".", identifier } ;
+expression    = ? closed query expression grammar in query-text.md ? ;
+array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
+                    "[", [ expression, { ",", expression } ], "]" ;
+array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64" | "DOUBLE"
+                | "TIMESTAMP" | "JSON" ;
+(* ARRAY annotations and compatible item types use the common checker.
+   JSON constructors/default INT64 remain common-contract coverage gaps. *)
+identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
+integer       = ? unsigned decimal or 0x/0X hexadecimal integer within the adopted exact range; context-specific positivity and role checks apply ? ;
+numeric_token = ? decimal numeric token or 0x/0X hexadecimal integer token; raw spelling is retained and exact admission is separate ? ;
+parameter_token = ? existing query named parameter token ? ;
+query_string  = ? one or more whitespace/comment-separated single-, double- or triple-quoted Unicode scalar string chunks, with per-chunk optional r/R raw prefix and the selected GoogleSQL decoding rules in query-text.md; decoded octal escapes use exactly three digits with first digit 0..3 (maximum \377) ? ;
