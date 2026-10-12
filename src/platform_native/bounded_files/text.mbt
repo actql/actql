@@ -12,11 +12,23 @@ pub(all) enum NativeBoundedTextIssue {
 
 ///|
 /// A failed bounded read and, when close was not acknowledged, its original
-/// Reader. This is custody of the existing filesystem Owner, not a replacement
+/// Reader/directory. This is custody of the existing filesystem Owners, not a replacement
 /// read operation. The original issue remains available after cleanup.
 struct NativeBoundedTextFailure {
   original_issue : NativeBoundedTextIssue
   mut reader : @filesystem.Reader?
+  mut rejected_reader : @filesystem.NativeReaderOpenFailure?
+  mut root : @filesystem.Root?
+  original_root_cleanup_issue : @filesystem.NativeFilesystemIssue?
+}
+
+///|
+/// Separate directory cleanup evidence; never a replacement for the original
+/// read/refusal or a claim that a child Reader has stopped.
+pub fn NativeBoundedTextFailure::root_cleanup_issue(
+  self : NativeBoundedTextFailure,
+) -> @filesystem.NativeFilesystemIssue? {
+  self.original_root_cleanup_issue
 }
 
 ///|
@@ -28,18 +40,33 @@ pub fn NativeBoundedTextFailure::issue(
 
 ///|
 /// Re-observes close on the same Reader; an unconfirmed close does not reopen
-/// or re-read the file. Only acknowledged close drops this retained reference.
+/// or re-read the file. Only acknowledged close drops each retained reference.
 /// The caller still owns retirement of its buffers and capacity reservation.
 pub fn NativeBoundedTextFailure::retry_cleanup(
   self : NativeBoundedTextFailure,
 ) -> Result[Unit, @filesystem.NativeFilesystemIssue] {
-  guard self.reader is Some(reader) else { return Ok(()) }
-  match reader.close() {
-    Ok(_) => {
-      self.reader = None
-      Ok(())
+  let mut first_issue : @filesystem.NativeFilesystemIssue? = None
+  if self.reader is Some(reader) {
+    match reader.close() {
+      Ok(_) => self.reader = None
+      Err(issue) => first_issue = Some(issue)
     }
-    Err(issue) => Err(issue)
+  }
+  if self.rejected_reader is Some(rejected) {
+    match rejected.retry_cleanup() {
+      Ok(_) => self.rejected_reader = None
+      Err(issue) => if first_issue is None { first_issue = Some(issue) }
+    }
+  }
+  if self.root is Some(root) {
+    match root.close() {
+      Ok(_) => self.root = None
+      Err(issue) => if first_issue is None { first_issue = Some(issue) }
+    }
+  }
+  match first_issue {
+    Some(issue) => Err(issue)
+    None => Ok(())
   }
 }
 
@@ -47,19 +74,51 @@ pub fn NativeBoundedTextFailure::retry_cleanup(
 fn bounded_text_failure(
   issue : NativeBoundedTextIssue,
 ) -> NativeBoundedTextFailure {
-  { original_issue: issue, reader: None, }
+  {
+    original_issue: issue,
+    reader: None,
+    rejected_reader: None,
+    root: None,
+    original_root_cleanup_issue: None,
+  }
+}
+
+///|
+fn close_bounded_root_after_failure(
+  root : @filesystem.Root,
+  failure : NativeBoundedTextFailure,
+) -> NativeBoundedTextFailure {
+  match root.close() {
+    Ok(_) => failure
+    Err(issue) =>
+      {
+        original_issue: failure.original_issue,
+        reader: failure.reader,
+        rejected_reader: failure.rejected_reader,
+        root: Some(root),
+        original_root_cleanup_issue: Some(issue),
+      }
+  }
 }
 
 ///|
 fn close_failed_bounded_reader(
+  root : @filesystem.Root,
   reader : @filesystem.Reader,
   issue : @filesystem.NativeFilesystemIssue,
 ) -> NativeBoundedTextFailure {
-  match reader.close() {
+  let failure = match reader.close() {
     Ok(_) => bounded_text_failure(Filesystem(issue))
     Err(cleanup) =>
-      { original_issue: Cleanup(issue, cleanup), reader: Some(reader), }
+      {
+        original_issue: Cleanup(issue, cleanup),
+        reader: Some(reader),
+        rejected_reader: None,
+        root: None,
+        original_root_cleanup_issue: None,
+      }
   }
+  close_bounded_root_after_failure(root, failure)
 }
 
 ///|
@@ -115,22 +174,45 @@ pub fn read_bounded_text_file_with_custody(
   }
   let generation = match root.inspect_generation(name) {
     Ok(Some(value)) => value
-    Ok(None) => return Err(bounded_text_failure(Missing))
-    Err(issue) => return Err(bounded_text_failure(Filesystem(issue)))
+    Ok(None) =>
+      return Err(
+        close_bounded_root_after_failure(root, bounded_text_failure(Missing)),
+      )
+    Err(issue) =>
+      return Err(
+        close_bounded_root_after_failure(
+          root,
+          bounded_text_failure(Filesystem(issue)),
+        ),
+      )
   }
   if generation.size < 0L || generation.size > max_bytes {
-    return Err(bounded_text_failure(CapacityExceeded))
+    return Err(
+      close_bounded_root_after_failure(
+        root,
+        bounded_text_failure(CapacityExceeded),
+      ),
+    )
   }
-  let reader = match root.open_reader(name, generation) {
+  let reader = match root.open_reader_with_custody(name, generation) {
     Ok(value) => value
-    Err(issue) => return Err(bounded_text_failure(Filesystem(issue)))
+    Err(rejected) => {
+      let failure : NativeBoundedTextFailure = {
+        original_issue: Filesystem(rejected.issue()),
+        reader: None,
+        rejected_reader: Some(rejected),
+        root: None,
+        original_root_cleanup_issue: None,
+      }
+      return Err(close_bounded_root_after_failure(root, failure))
+    }
   }
   let bytes : Array[Byte] = []
   let mut done = false
   while !done {
     let chunk = match reader.next(65536) {
       Ok(value) => value
-      Err(issue) => return Err(close_failed_bounded_reader(reader, issue))
+      Err(issue) => return Err(close_failed_bounded_reader(root, reader, issue))
     }
     for byte in chunk.bytes {
       bytes.push(byte)
@@ -139,7 +221,18 @@ pub fn read_bounded_text_file_with_custody(
   }
   match reader.finish() {
     Ok(_) => ()
-    Err(issue) => return Err(close_failed_bounded_reader(reader, issue))
+    Err(issue) => return Err(close_failed_bounded_reader(root, reader, issue))
+  }
+  match root.close() {
+    Ok(_) => ()
+    Err(issue) =>
+      return Err({
+        original_issue: Filesystem(issue),
+        reader: None,
+        rejected_reader: None,
+        root: Some(root),
+        original_root_cleanup_issue: Some(issue),
+      })
   }
   let text = @utf8.decode(Bytes::from_array(bytes)) catch {
     _ => return Err(bounded_text_failure(InvalidUtf8))

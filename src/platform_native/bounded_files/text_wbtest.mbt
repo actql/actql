@@ -12,6 +12,7 @@ test "bounded read custody preserves the original refusal without a Reader" {
     fail("invalid limit reached physical access")
   }
   assert_true(failure.issue() is InvalidLimit)
+  assert_true(failure.root_cleanup_issue() is None)
   failure.retry_cleanup().unwrap()
   failure.retry_cleanup().unwrap()
   assert_true(failure.issue() is InvalidLimit)

@@ -40,3 +40,39 @@ pub(all) struct NativeFileChunk {
   bytes : Bytes
   eof : Bool
 }
+
+///|
+/// Refusal from the existing Reader constructor, with the same rejected Reader
+/// retained when its close result was not acknowledged. It never admits reads.
+struct NativeReaderOpenFailure {
+  original_issue : NativeFilesystemIssue
+  mut reader : Reader?
+}
+
+///|
+pub fn NativeReaderOpenFailure::issue(
+  self : NativeReaderOpenFailure,
+) -> NativeFilesystemIssue {
+  self.original_issue
+}
+
+///|
+pub fn NativeReaderOpenFailure::retry_cleanup(
+  self : NativeReaderOpenFailure,
+) -> Result[Unit, NativeFilesystemIssue] {
+  guard self.reader is Some(reader) else { return Ok(()) }
+  match reader.close() {
+    Ok(_) => {
+      self.reader = None
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn reader_open_failure(
+  issue : NativeFilesystemIssue,
+) -> NativeReaderOpenFailure {
+  { original_issue: issue, reader: None, }
+}
