@@ -81,3 +81,19 @@ test "Native private Host root loses custody when the pinned directory is remove
     root.remove_directory("retired-private-root", replacement).unwrap(),
   )
 }
+
+///|
+test "Native bootstrap parent permits broad read bits without weakening private ownership" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_BROAD_ROOT").unwrap()
+  let root = open_root(path).unwrap()
+  let original = root.bootstrap_parent_ownership().unwrap()
+  assert_eq(root.bootstrap_parent_ownership().unwrap(), original)
+  assert_true(root.private_ownership() is Err(RootOpen(_)))
+  let child = root.create_directory("bootstrap-child").unwrap()
+  assert_eq(
+    root.open_child("bootstrap-child").unwrap().private_ownership().unwrap(),
+    child,
+  )
+  assert_eq(root.bootstrap_parent_ownership().unwrap(), original)
+  assert_true(root.remove_directory("bootstrap-child", child).unwrap())
+}

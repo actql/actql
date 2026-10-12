@@ -63,6 +63,7 @@ pub fn Reader::next(Self, Int) -> Result[NativeFileChunk, NativeFilesystemIssue]
 type Root
 pub fn Root::acquire_lock(Self, String) -> Result[Lock, NativeFilesystemIssue]
 pub fn Root::adopt_private_file_projection(Self, String) -> Result[PrivateFileProjection, NativeFilesystemIssue]
+pub fn Root::bootstrap_parent_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::create_directory(Self, String) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
 pub fn Root::inspect_directory(Self, String) -> Result[NativeFileOwnership?, NativeFilesystemIssue]

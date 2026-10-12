@@ -102,6 +102,45 @@ fn plan(input : @input.LocalPreparedInput, id : String) -> LocalRunPlan {
 }
 
 ///|
+test "Local and Native admissions share original compiled request binding" {
+  let original = plan(prepared(@input.Aql("SELECT 1 AS n")), "binding-original")
+  let other = plan(prepared(@input.Aql("SELECT 2 AS n")), "binding-foreign")
+  @host.validate_client_run_binding(
+    original.request,
+    original.prepared,
+    original.compiled,
+    original.definition,
+  ).unwrap()
+  assert_eq(
+    @host.validate_client_run_binding(
+      other.request,
+      original.prepared,
+      original.compiled,
+      original.definition,
+    ),
+    Err(@host.ChangedIntent),
+  )
+  assert_eq(
+    @host.validate_client_run_binding(
+      original.request,
+      other.prepared,
+      original.compiled,
+      original.definition,
+    ),
+    Err(@host.ChangedIntent),
+  )
+  assert_eq(
+    @host.validate_client_run_binding(
+      original.request,
+      original.prepared,
+      original.compiled,
+      other.definition,
+    ),
+    Err(@host.ForeignRun),
+  )
+}
+
+///|
 test "structured and AQL materials restore the original admitted Run and request" {
   let text = "/*😀*/\r\nWITH seed AS (SELECT 1 AS n) FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer"
   for
