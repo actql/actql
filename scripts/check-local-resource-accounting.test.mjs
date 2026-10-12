@@ -172,6 +172,78 @@ test('resource Graph evidence follows the captured registry and the suite regist
   assert.equal(registeredResourceEnvironmentCase(projection, missingEdges, registry, 'edge_rows'), false);
 });
 
+const graphOperationCancellationEvidence = [
+  ['reach', 'reach', 'graph-reach', 'Graph Reach preserves typed selectors and depth through Store reload and public'],
+  ['shortest_path', 'shortest', 'graph-shortest', 'Graph Shortest preserves selected paths through Store reload and public'],
+  ['graft_graph', 'graft', 'graph-graft', 'Graph graft preserves complete records through Store reload and public'],
+  ['mean_graphs', 'mean', 'graph-mean', 'Graph Mean preserves explicit samples through Store reload and public'],
+];
+
+test('current Graph cancellation evidence resolves the actual positive-work operation cases', () => {
+  const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
+    for (const mode of ['local', 'remote']) {
+      const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+        role: `${prefix}_public_in_flight_cancel_cleanup`,
+        fixture: `${title} ${mode}${prefix === 'mean' ? ' (asymmetric)' : ''}`};
+      assert.equal(registeredResourceEnvironmentCase(item, source, registry, operation), true,
+        `${operation}/${mode}`);
+    }
+  }
+});
+
+test('current Graph cancellation evidence refuses missing work stop cleanup and reuse checks', () => {
+  const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  for (const [before, after] of [
+    ["name === 'local_compute_advanced' && detail.task === cancellationTask", "name === 'computed' && detail.task === cancellationTask"],
+    ['assert.ok(BigInt(detail.work) > 0n)', 'assert.ok(BigInt(detail.work) >= 0n)'],
+    ['await releaseCancellation.promise', 'void releaseCancellation.promise'],
+    ['await cancelled.cancel()', 'await cancelled.status()'],
+    ["assert.notEqual(pending.control.physical_stop, 'confirmed')", "assert.equal(pending.control.physical_stop, 'confirmed')"],
+    ["assert.equal(stopped.control.physical_stop, 'confirmed')", "assert.notEqual(stopped.control.physical_stop, 'confirmed')"],
+    ["await assert.rejects(cancelled.result(name).all())", "await cancelled.result(name).all()"],
+    ["assert.deepEqual(repeated.ref, cancelled.ref)", "assert.notDeepEqual(repeated.ref, cancelled.ref)"],
+    ["assert.equal(physicalSteps.filter(name => name === 'local_compute_advanced').length, advanced)", "assert.ok(advanced >= 0)"],
+  ]) {
+    assert.ok(source.includes(before), before);
+    const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+      role: 'reach_public_in_flight_cancel_cleanup',
+      fixture: graphOperationCancellationEvidence[0][3] + ' local'};
+    assert.equal(registeredResourceEnvironmentCase(item, source.replace(before, after), registry, 'reach'), false,
+      before);
+  }
+});
+
+test('current Graph cancellation evidence cannot borrow another operation basic Mean or a missing call', () => {
+  const source = sourceTemplate[join(root, 'scripts/graph-public-host.test.mjs')].text;
+  const registry = sourceTemplate[join(root, 'scripts/fixtures/graph-host-cases.mjs')].text;
+  for (const [operation, prefix, , title] of graphOperationCancellationEvidence) {
+    const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+      role: `${prefix}_public_in_flight_cancel_cleanup`,
+      fixture: `${title} local${prefix === 'mean' ? ' (asymmetric)' : ''}`};
+    assert.equal(registeredResourceEnvironmentCase(item, source, registry,
+      operation === 'reach' ? 'shortest_path' : 'reach'), false);
+    assert.equal(registeredResourceEnvironmentCase({...item, fixture: 'absent'}, source, registry, operation), false);
+  }
+  const mean = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+    role: 'mean_public_in_flight_cancel_cleanup',
+    fixture: graphOperationCancellationEvidence[3][3] + ' local'};
+  assert.equal(registeredResourceEnvironmentCase(mean, source, registry, 'mean_graphs'), false);
+  for (const [before, operation, prefix, title] of [
+    ["await assertOperationCancellation(cancellationSample, 3)", 'reach', 'reach', graphOperationCancellationEvidence[0][3]],
+    ["if (graft) await assertOperationCancellation(graphGraftSourceSuccesses[0], 3)", 'graft_graph', 'graft', graphOperationCancellationEvidence[2][3]],
+    ["if (profile !== 'graph-mean' || partition === 'asymmetric')", 'mean_graphs', 'mean', graphOperationCancellationEvidence[3][3]],
+  ]) {
+    assert.ok(source.includes(before), before);
+    const item = {suite: 'node:graph_public_host', case: 'assertOperationCancellation',
+      role: `${prefix}_public_in_flight_cancel_cleanup`,
+      fixture: `${title} local${prefix === 'mean' ? ' (asymmetric)' : ''}`};
+    assert.equal(registeredResourceEnvironmentCase(item, source.replace(before, 'removed_operation_cancel'), registry, operation), false);
+  }
+});
+
 test('resource validation refuses a detached captured Graph fixture registry', () => {
   const file = join(root, 'scripts/fixtures/graph-host-cases.mjs');
   const sources = Object.freeze({...sourceTemplate,
