@@ -12,6 +12,7 @@ pub struct LocalValuesExecution {
 ///|
 pub(all) enum LocalValuesExecutionIssue {
   InvalidLimits
+  Fenced
   UnsupportedGraph
   MissingLocalModule
   Driver(@local_driver.LocalDispatchIssue)
@@ -93,6 +94,24 @@ pub fn execute_source_free_values(
   finalization_quantum : Int,
   max_finalization_rounds : Int,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
+  execute_source_free_values_guarded(
+    setup,
+    finalization_quantum,
+    max_finalization_rounds,
+    () => true,
+  )
+}
+
+///|
+/// The original Native journal/authority supplies this fence. It is checked
+/// around physical boundaries, not interpreted as a cancellation terminal.
+/// Failure retains the same task's cleanup handle and never restarts Compute.
+pub fn execute_source_free_values_guarded(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  require_current : () -> Bool,
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
   }
@@ -100,6 +119,10 @@ pub fn execute_source_free_values(
     @builtin.configured_host_driver(setup),
   )
   let graph = @strategy.captured_dag_graph(run)
+  if !require_current() {
+    stop_local_values_run(run)
+    return Err(failed_local_values_execution(Fenced))
+  }
   if @strategy.graph_task_count(graph) != 1 ||
     @strategy.next_captured_task(run) != Some(0) {
     stop_local_values_run(run)
@@ -131,6 +154,10 @@ pub fn execute_source_free_values(
       return Err(failed_local_values_execution(Driver(issue)))
     }
   }
+  if !require_current() {
+    stop_local_values_run(run)
+    return Err(failed_local_values_execution(Fenced))
+  }
   let operations = match
     @local_driver.start_local_managed_dispatch_node(prepared) {
     Ok(value) => value
@@ -144,15 +171,21 @@ pub fn execute_source_free_values(
       reject_local_values_operations(run, operations, UnsupportedGraph),
     )
   }
+  if !require_current() {
+    return Err(reject_local_values_operations(run, operations, Fenced))
+  }
   match (operations.execute)() {
     Ok(_) => ()
     Err(issue) =>
       return Err(reject_local_values_operations(run, operations, Driver(issue)))
   }
   let available = Ref(true)
+  if !require_current() {
+    return Err(reject_local_values_operations(run, operations, Fenced))
+  }
   match
     (operations.prepare_finalization)(0, operations.storage_bytes, fn() {
-      available.val
+      available.val && require_current()
     }) {
     Ok(_) => ()
     Err(issue) =>
@@ -160,6 +193,10 @@ pub fn execute_source_free_values(
   }
   let mut complete = false
   for _ in 0..<max_finalization_rounds {
+    if !require_current() {
+      available.val = false
+      return Err(reject_local_values_operations(run, operations, Fenced))
+    }
     let progress = match
       (operations.advance_finalization)(finalization_quantum) {
       Ok(value) => value
@@ -178,6 +215,10 @@ pub fn execute_source_free_values(
       break
     }
   }
+  if !require_current() {
+    available.val = false
+    return Err(reject_local_values_operations(run, operations, Fenced))
+  }
   if !complete {
     available.val = false
     return Err(
@@ -191,15 +232,33 @@ pub fn execute_source_free_values(
       return Err(reject_local_values_operations(run, operations, Driver(issue)))
     }
   }
+  if !require_current() {
+    available.val = false
+    return Err(reject_local_values_operations(run, operations, Fenced))
+  }
   let completed = match
-    (operations.complete)(0, operations.storage_bytes, fn() { available.val }) {
+    (operations.complete)(0, operations.storage_bytes, fn() {
+      available.val && require_current()
+    }) {
     Ok(value) => value
     Err(issue) => {
       available.val = false
       return Err(reject_local_values_operations(run, operations, Driver(issue)))
     }
   }
-  Ok({ run, operations, completed, available, })
+  let execution : LocalValuesExecution = {
+    run,
+    operations,
+    completed,
+    available,
+  }
+  if !require_current() {
+    // Completion already transferred cleanup to this execution. Repeating
+    // the pre-completion settle path would leave a completed task pending.
+    let cleanup = () => execution.close()
+    return Err({ issue: Fenced, cleanup, cleaned: cleanup(), })
+  }
+  Ok(execution)
 }
 
 ///|
