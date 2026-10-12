@@ -1048,6 +1048,20 @@ heap retirement or enable an unfunded public profile.
 
 <a id="machine-contracts"></a>
 
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/result_definition sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:1dbb53f3905b65891e92f87dc0b2e7f4f917d86bc170d3052328aedcb0bb1f1d -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/publication_attempt sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/publication_record sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/manifest_read_grant sha256:2988afee66209d63cd12d9174c1adea619231e49fca1e8dc7876b6655a6f7fd5 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:e154fb5adec4d242933cf93989188fb5bab5486ebb6999ae123fafa6b064488a -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4 -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e -->
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/laws sha256:18e62f30a4120596c290b055c7bfacda84375eb3a4c0d02a7bfed1dae7af25a0 -->
+
 ## Machine contracts
 
 These exact schema/law references are owned here. Their identities do not include this document or another owner's aggregate contract.
@@ -1063,17 +1077,17 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81
 ../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4
 ../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4
-../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82
+../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:1dbb53f3905b65891e92f87dc0b2e7f4f917d86bc170d3052328aedcb0bb1f1d
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_attempt sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_record sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d
-../../../spec/contracts/actql-run-publication.json#/schemas/manifest_read_grant sha256:2aeaa77acc11099eb0192defd561691a3bd90bbf70d5ed111ffdfbb71ae90e78
-../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:288322154204b30c3715cf6b8da76ea0ac564a2e2064ad2558531904509d2215
+../../../spec/contracts/actql-run-publication.json#/schemas/manifest_read_grant sha256:2988afee66209d63cd12d9174c1adea619231e49fca1e8dc7876b6655a6f7fd5
+../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:e154fb5adec4d242933cf93989188fb5bab5486ebb6999ae123fafa6b064488a
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4
-../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:2e809c8c0fd41f544551bfa7053014b884167a8b51b843969e78206c2e7e5202
+../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e
 ../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:d76ac2e50e40e09e63bafeda10e0405ef340d4647d82b25a6743527aaf4c10bf
 ../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:c5021666b9906ee2f250962a9e2e9b5521605cb5a3a828dcb58f155e83bf6b28
-../../../spec/contracts/actql-run-publication.json#/laws sha256:9d6de1a60e727f7ef6b594aa59b9b7a39d7045fa8950d48851574585f8aa6474
+../../../spec/contracts/actql-run-publication.json#/laws sha256:18e62f30a4120596c290b055c7bfacda84375eb3a4c0d02a7bfed1dae7af25a0
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_source sha256:32020595b3f1a5cbf52b582b8c92c6967afe4b46f97cfc4b6fdf19429b105632
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_barrier sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_evidence sha256:702409a249ef4617394564dc251f2a361a5da1494d220fe16e14d7563153349e

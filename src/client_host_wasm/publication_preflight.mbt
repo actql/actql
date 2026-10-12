@@ -32,8 +32,15 @@ fn stored_preflight_current(
   value : Instance,
   record : StoredPublicationPreflight,
   account : @authorization.AdmittedAccountConfiguration,
+  pending_confirmation? : Bool = false,
 ) -> Bool {
-  record.produced && stored_preflight_original_current(value, record, account)
+  record.produced &&
+  stored_preflight_original_current(
+    value,
+    record,
+    account,
+    pending_confirmation~,
+  )
 }
 
 ///|
@@ -242,12 +249,18 @@ fn stored_preflight_original_current(
   value : Instance,
   record : StoredPublicationPreflight,
   account : @authorization.AdmittedAccountConfiguration,
+  pending_confirmation? : Bool = false,
 ) -> Bool {
-  guard !record.closing &&
-    record.preflight is Some(preflight) &&
-    value.source_publications.get(record.source)
-    is Some({ closing: false, produced: true, .. }) &&
-    value.computes.get(record.compute) is Some({ closing: false, .. }) else {
+  guard record.preflight is Some(preflight) &&
+    value.source_publications.get(record.source) is Some(source) &&
+    source.produced &&
+    value.computes.get(record.compute) is Some(compute) else {
+    return false
+  }
+  // Parent close seals new work before it waits for retained children. Only
+  // confirmation of an already-begun original write may use that custody.
+  if !pending_confirmation &&
+    (record.closing || source.closing || compute.closing) {
     return false
   }
   @local_run.validate_local_publication_preflight_current(preflight, account)

@@ -160,18 +160,24 @@ fn publication_current(
   value : Instance,
   record : StoredPublication,
   account : @authorization.AdmittedAccountConfiguration,
+  pending_confirmation? : Bool = false,
 ) -> Bool {
-  guard value.source_publications.get(record.source)
-    is Some({ closing: false, compute, .. }) &&
-    value.computes.get(compute) is Some({ closing: false, .. }) &&
+  guard value.source_publications.get(record.source) is Some(source) &&
+    value.computes.get(source.compute) is Some(compute) &&
     value.publication_preflights.get(record.preflight) is Some(preflight) &&
     preflight.source == record.source &&
-    stored_preflight_current(value, preflight, account) else {
+    stored_preflight_current(value, preflight, account, pending_confirmation~) else {
+    return false
+  }
+  if !pending_confirmation && (source.closing || compute.closing) {
     return false
   }
   for result in record.results {
-    guard value.result_exports.get(result)
-      is Some({ closing: false, issue: None, .. }) else {
+    guard value.result_exports.get(result) is Some(output) &&
+      output.issue is None else {
+      return false
+    }
+    if !pending_confirmation && output.closing {
       return false
     }
   }

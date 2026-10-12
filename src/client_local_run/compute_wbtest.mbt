@@ -39,13 +39,13 @@ test "the existing managed task Owners execute multiple tasks from Program and A
       (@input.Program(compute_program), true),
       (
         @input.Aql(
-          "DATA seed = SELECT 1 AS n; FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS value |> RESULT answer",
+          "WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS value |> RESULT answer",
         ),
         false,
       ),
       (
         @input.Aql(
-          "DATA seed = SELECT 1 AS n; FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS value |> RESULT answer",
+          "WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS value |> RESULT answer",
         ),
         true,
       ),
