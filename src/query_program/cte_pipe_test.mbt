@@ -64,7 +64,16 @@ test "Pipe CTE chains retain prior scope and reject unchecked declarations" {
 test "captured WHERE-only and source-only CTEs bind the retained producer" {
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","select":["id","customer_id","status","amount"],"as":"aql_script_cte_1"},{"from":"aql_script_cte_1","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  // Two transparent producer bindings retain two immutable scope projections,
+  // while the original captured Source is still acquired exactly once.
+  let expected_chain = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","select":["id","customer_id","status","amount"],"as":"aql_script_cte_1"},{"from":"aql_script_cte_1","select":["id","customer_id","status","amount"],"as":"aql_script_cte_2"},{"from":"aql_script_cte_2","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -79,6 +88,7 @@ test "captured WHERE-only and source-only CTEs bind the retained producer" {
     ] {
     let query = @query.parse_query(text, syntax_limits()).unwrap()
     let program = compile(query, context, construction_limits()).unwrap()
+    let expected = if text.contains("WITH first AS") { expected_chain } else { expected }
     assert_eq(semantic(program), semantic(expected))
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
