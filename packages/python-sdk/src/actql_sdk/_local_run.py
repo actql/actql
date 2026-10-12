@@ -17,6 +17,7 @@ class _RunConfiguration:
     owner: object
     handle: int
     input: _Input
+    current: _Output | None = None
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -84,6 +85,8 @@ class LocalRunCustody:
         if (type(value) is not _RunConfiguration or value.owner is not self._identity
                 or self._configurations.get(value.handle) is not value):
             raise ValueError('Foreign or released Local Run configuration')
+        if value.current is not None:
+            self._core._owned_output(value.current, 'current')
 
     def _run(self, value: _Run) -> None:
         self._nominal()
@@ -110,6 +113,27 @@ class LocalRunCustody:
             if handle <= 0:
                 raise LocalCoreError('install_configuration', handle)
             value = _RunConfiguration(self._identity, handle, input)
+            self._configurations[handle] = value
+            return value
+
+    def install_current_configuration(self, current: _Output, input: _Input) -> _RunConfiguration:
+        """Use the original live Core current/scope Owner, not Python-generated IDs.
+
+        The original namespace/result-policy setup is held as an input loan.
+        This requires the same Store transaction frame and does not adopt or
+        repair the Host, grant execution, or acknowledge a durable write.
+        """
+        with self._core._lock:
+            self._active()
+            self._core._host_current_ready(current)
+            self._core._owned_input(input)
+            handle = self._core._call('run', 'install_current_configuration', current.handle, input.handle)
+            callbacks = self._core._journal_callbacks(current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            if handle <= 0:
+                raise LocalCoreError('install_current_configuration', handle)
+            value = _RunConfiguration(self._identity, handle, input, current)
             self._configurations[handle] = value
             return value
 

@@ -15,6 +15,7 @@ priv struct StoredMaterial {
 priv struct StoredSubmittedMaterial {
   current_configuration : Int
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
+  mut rows : @local_run.LocalSubmittedRunRows?
 }
 
 ///|
@@ -115,7 +116,11 @@ pub fn reserve_submitted_rows_material(
   let borrow = @buffers.borrow_buffer(value.pool, slot, () => {
     physical_reader_stop(physical, handle) == 0
   })
-  value.materials[handle].submission = Some({ current_configuration, borrow, })
+  value.materials[handle].submission = Some({
+    current_configuration,
+    borrow,
+    rows: None,
+  })
   handle
 }
 
@@ -176,6 +181,7 @@ fn submitted_rows_material_wire(
     Err(@local_run.AuthorizationMismatch) => return Err(-32)
     Err(_) => return Err(-31)
   }
+  submission.rows = Some(rows)
   let fields = match @local_run.local_submitted_run_rows(rows, plan, original) {
     Ok(value) => value
     Err(_) => return Err(-31)
@@ -309,6 +315,9 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) else {
     return -2
+  }
+  if value.journal_observations.values().any(child => child.material == handle) {
+    return -9
   }
   if !material.output_closed {
     let result = status(@buffers.close_buffer(value.pool, material.slot))

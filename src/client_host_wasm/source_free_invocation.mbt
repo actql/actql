@@ -58,6 +58,10 @@ pub fn prepare_source_free_invocation(
   if record.invoked || record.pending {
     return -33
   }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
   record.invoked = true
   let borrow = match record.borrow {
     Ok(borrow) => borrow

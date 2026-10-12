@@ -33,6 +33,8 @@ class _NamespaceReader:
     # One physical transaction loan, not completeness or admission proof.
     scan_after: Callable[[str, str, _NamespaceConsumer], None]
     read: Callable[[str, str, _NamespaceConsumer], None]
+    owner: 'LocalByteStore'
+    current: Callable[[], None]
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -126,6 +128,10 @@ class LocalByteStore:
         if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
                 or parent.st_uid != os.getuid()):
             raise LocalStorageError('Local storage requires a private owned directory')
+        self._physical_path = path
+        self._physical_parent = (parent.st_dev, parent.st_ino)
+        self._physical_original: tuple[int, int] | None = None
+        self._physical_owner = self
         try:
             self._opening_descriptor = os.open(
                 path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -135,15 +141,18 @@ class LocalByteStore:
                     or metadata.st_mode & 0o077
                     or metadata.st_uid != os.getuid()):
                 raise LocalStorageError('Local physical storage must be a private owned file')
+            self._physical_original = self._file_generation(metadata)
         else:
             self._created = True
             try:
+                self._physical_original = self._file_generation(os.fstat(self._opening_descriptor))
                 self._close_descriptor()
             except BaseException as original:
                 raise LocalStorageInitializationError(self) from original
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False)
         try:
+            self._observe_generation()
             self._connection.execute('BEGIN IMMEDIATE')
             try:
                 schema = self._connection.execute('''SELECT name, sql FROM sqlite_schema
@@ -168,6 +177,7 @@ class LocalByteStore:
             self._connection.execute('PRAGMA cache_size = -64')
             self._connection.execute('PRAGMA mmap_size = 0')
             self._connection.execute('PRAGMA temp_store = FILE')
+            self._observe_generation()
             self._ready = True
         except BaseException as original:
             try:
@@ -175,6 +185,45 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    @staticmethod
+    def _file_generation(metadata: os.stat_result) -> tuple[int, int]:
+        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_mode & 0o077
+                or metadata.st_uid != os.getuid()
+                or not 0 <= metadata.st_dev < 2**64 or not 0 <= metadata.st_ino < 2**64):
+            raise LocalStorageError('Original Local Store file generation is unavailable')
+        return (metadata.st_dev, metadata.st_ino)
+
+    def _observe_generation(self) -> tuple[int, int]:
+        if self._physical_owner is not self:
+            raise ValueError('Copied or foreign Local physical Store generation')
+        parent = self._physical_path.parent.lstat()
+        if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
+                or parent.st_uid != os.getuid()
+                or (parent.st_dev, parent.st_ino) != self._physical_parent):
+            raise LocalStorageError('Original Local Store directory generation changed')
+        current = self._file_generation(self._physical_path.lstat())
+        if self._physical_original is None or current != self._physical_original:
+            raise LocalStorageError('Original Local Store file generation changed')
+        return current
+
+    def observe_generation(self) -> tuple[int, int]:
+        """Recheck this Store's original physical device/inode without SQL or writes.
+
+        This is a path-generation observation under the trusted Host's existing
+        exclusive root ownership, not an adoption, transaction or authority
+        witness. The Host also retains original configuration bytes, intent and
+        settings and supplies the actual same-transaction adoption row to Core.
+        An active transaction is not certified by observing this generation.
+        Failure retains this connection for original-owner cleanup/observation;
+        a replacement pathname never initializes or repairs the original Store.
+        """
+        with self._lock:
+            if self._physical_owner is not self:
+                raise ValueError('Copied or foreign Local physical Store generation')
+            if self._closed or not self._ready:
+                raise LocalStorageError('Local physical storage is closed')
+            return self._observe_generation()
 
     def claim_creation(self) -> bool:
         """Consume this handle's exclusive new-file observation once.
@@ -596,6 +645,40 @@ class LocalByteStore:
                 database.execute('ROLLBACK')
                 return result
 
+    def inspect_namespaces(self, fences: tuple[ByteFence, ...], *,
+                           inspect: _InventoryInspection,
+                           current: Callable[[], object]) -> None:
+        """Supply original namespace queries in a fenced read-only transaction.
+
+        Core chooses namespaces, keys and cursors and decides completeness and
+        meaning. The existing reader enforces thread/lifetime, raw-byte bounds,
+        failure latching and original physical fences. This path performs no
+        write, adoption, COMMIT, repair, Run acceptance or retry.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local namespace inspection callback')
+        self._validate_metadata_fences(fences, ())
+        with self._lock:
+            self._open()
+            database = self._connection
+            database.execute('BEGIN')
+            try:
+                self._fenced_current(current)
+                if not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local namespace fences changed')
+                self._inspect_namespace_locked(inspect, fences, current)
+                self._fenced_current(current)
+                if not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local namespace fences changed')
+            except BaseException:
+                if database.in_transaction:
+                    database.execute('ROLLBACK')
+                raise
+            else:
+                # A failed physical stop keeps this same connection pending.
+                # No observation escapes and no cleanup is automatically repeated.
+                database.execute('ROLLBACK')
+
     def _inspect_namespace_locked(
             self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
@@ -614,6 +697,16 @@ class LocalByteStore:
             self._fenced_current(current)
             if not self._fences_match_locked(fences, successors):
                 raise LocalStorageError('Original Local inventory metadata changed')
+
+        def current_snapshot() -> None:
+            nonlocal failure
+            try:
+                if not active or reading or get_ident() != thread or failure is not None:
+                    raise ValueError('Local inventory reader is not active')
+                fence()
+            except BaseException as error:
+                failure = error
+                raise
 
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
                     scan: bool) -> None:
@@ -681,7 +774,8 @@ class LocalByteStore:
                 scan_after=lambda namespace, after, consume:
                     observe(namespace, after, consume, scan=True),
                 read=lambda namespace, key, consume:
-                    observe(namespace, key, consume, scan=False)))
+                    observe(namespace, key, consume, scan=False),
+                owner=self, current=current_snapshot))
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:
@@ -1023,6 +1117,10 @@ class LocalByteStore:
     def _validate_fences(self, fences: tuple[ByteFence, ...],
                          writes: tuple[ByteWrite, ...]) -> None:
         self._exchange_write_keys(writes)
+        self._validate_metadata_fences(fences, writes)
+
+    def _validate_metadata_fences(self, fences: tuple[ByteFence, ...],
+                                  writes: tuple[ByteWrite, ...]) -> None:
         if type(fences) is not tuple or not 1 <= len(fences) <= self._max_records:
             raise ValueError('Invalid Local physical metadata fences')
         keys: set[str] = set()
