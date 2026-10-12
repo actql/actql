@@ -518,13 +518,16 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     // Release this process's Store owner if one is still retained. Waiting
     // evidence is never deleted here.
     async close() {
-      const pending = await queue;
+      const closing = queue;
+      const pending = await closing;
       if (pending?.cleanupHandle?.status().pending) {
         try { await pending.cleanupHandle.retry(); }
         catch { throw pending; }
         if (pending.cleanupHandle.status().pending) throw pending;
       }
-      queue = Promise.resolve();
+      // Do not overwrite a newer queued operation across the close await.
+      // Confirmed close can retire this old error/handle, not its successor.
+      if (queue === closing) queue = Promise.resolve();
       const store = retained;
       if (store !== undefined) {
         await store.close();
