@@ -28,7 +28,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
-  ioNotification, originalPreparation}) {
+  ioNotification, originalPreparation, rawCaptureBinder}) {
+  if (rawCaptureBinder !== undefined && typeof rawCaptureBinder !== 'function') {
+    throw new TypeError('InvalidInferRawCaptureBinder');
+  }
+  let rawCaptureBound = false;
   // The original installing Run has already reserved this entire simultaneous
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
@@ -183,6 +187,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (reclaimed) {
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
+      rawCaptureBinder = undefined;
       io?.close();
       io = undefined;
     }
@@ -401,6 +406,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Installation-only wake endpoint of this already claimed operation.
     // It is not an ACK, public capability or permission to begin another call.
     ioNotification,
+    // Private installation seam of this original physical operation only.
+    // Common registration supplies the nominal raw authority; this callback
+    // creates neither a send claim nor an alternate cleanup owner.
+    bindModelRawCapture(registration) {
+      if (closing || reclaimed || rawCaptureBound || rawCaptureBinder === undefined) {
+        throw new TypeError('InferRawCaptureBindingUnavailable');
+      }
+      rawCaptureBound = true;
+      if (rawCaptureBinder(registration) !== undefined) {
+        throw new TypeError('InvalidInferRawCaptureBinderResult');
+      }
+    },
     bindModelEntryPersistence: (control, plan, preparedCallSet, scope, observation) =>
       control.bindCheckedClientInferModelEntryPersistence(plan.compiled, active,
         plan.runDefinition, preparedCallSet, scope, {...observation,
