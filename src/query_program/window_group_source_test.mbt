@@ -366,26 +366,30 @@ test "public window output retains independent full schema including empty input
       @check.checked_stage_results(checked),
       @program.stage_count(program) - 1,
     ).unwrap()
-    let fields = @schema.fields(
-      @relation_results.output_schema(
-        @relation_results.lookup(stage, "rows").unwrap(),
-      ),
-    )
-    assert_eq(fields.map(field => @schema.field_reference_name(field)), [
+    let result = @relation_results.lookup(stage, "rows").unwrap()
+    // Canonical object-schema ordering is separate from Result projection.
+    // Assert the authored public order through its existing Result owner.
+    assert_eq(@relation_results.fields(result), [
       "window_start", "window_end", "cohort", "n", "total",
     ])
-    for i in 0..<fields.length() {
-      assert_eq(fields[i].presence, @schema.Required)
-      let expected = if i == 2 {
+    let schema = @relation_results.output_schema(result)
+    assert_eq(
+      @schema.fields(schema).map(field => @schema.field_reference_name(field)),
+      ["cohort", "n", "total", "window_end", "window_start"],
+    )
+    for name in @relation_results.fields(result) {
+      let field = @schema.lookup_reference(schema, name).unwrap()
+      assert_eq(field.presence, @schema.Required)
+      let expected = if name == "cohort" {
         "{\"type\":\"string\",\"nullable\":false,\"max_utf8_bytes\":1}"
-      } else if i == 4 {
+      } else if name == "total" {
         "{\"type\":\"number\",\"nullable\":true}"
       } else {
         "{\"type\":\"number\",\"nullable\":false}"
       }
       assert_eq(
         @json.parse(
-          @contract.stringify_checked(fields[i].contract, 10000, 10000, 100),
+          @contract.stringify_checked(field.contract, 10000, 10000, 100),
         ),
         @json.parse(expected),
       )

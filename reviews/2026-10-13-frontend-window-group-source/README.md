@@ -69,3 +69,11 @@ The current material assertions follow that independent vector, never runtime
 output. Parent receipts and all historical vectors remain immutable. The
 independent registration census adds exactly nine normal and nine refusal cases
 without changing prior fixture bodies or other profile inventories.
+
+Fixed 76ad7a71f added the full-schema test and executed JS24/25 in run-yir8Cy;
+Node was not executed. Its test mistakenly used canonical object-schema field
+ordering as public projection order. The existing relation_results.fields API
+owns the public order, while output_schema is canonical UTF-16 name order.
+The follow-up checks those separate adopted contracts and compares full value
+contracts by field name. Public rows/columns, product code and limits are
+unchanged; the original failure remains fixed-source evidence.
