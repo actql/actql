@@ -28,7 +28,7 @@ fn host_account_test_file() -> NativeEffectHostAccountFile {
 ///|
 test "explicit Host file selection is optional but selected missing is installation failure" {
   let reads = [0]
-  let missing = () => {
+  let missing = _limit => {
     reads[0] += 1
     Err(@bounded_files.Missing)
   }
@@ -44,7 +44,7 @@ test "explicit Host file selection is optional but selected missing is installat
 ///|
 test "explicit Host file is admitted by Common with the independent original configuration CID" {
   let selected = host_account_test_file()
-  let installation = install_host_account_with_read(Some(selected), () => {
+  let installation = install_host_account_with_read(Some(selected), _limit => {
       Ok(host_account_test_wire())
     })
     .unwrap()
@@ -58,7 +58,7 @@ test "explicit Host file is admitted by Common with the independent original con
       selected,
       "sha256:" + "a".repeat(64),
       false,
-      () => Ok(host_account_test_wire()),
+      _limit => Ok(host_account_test_wire()),
     ),
   )
 }
@@ -70,7 +70,7 @@ test "Host file read authority does not authorize publication" {
       host_account_test_file(),
       "sha256:" + "a".repeat(64),
       true,
-      () => Ok(host_account_test_wire()),
+      _limit => Ok(host_account_test_wire()),
     ),
   )
 }
@@ -80,7 +80,8 @@ test "Host file rejects invalid oversized foreign and unknown installation" {
   let selected = host_account_test_file()
   for wire in ["not-json", "{}", "x".repeat(1000001)] {
     assert_true(
-      install_host_account_with_read(Some(selected), () => Ok(wire)) is Err(_),
+      install_host_account_with_read(Some(selected), _limit => Ok(wire))
+      is Err(_),
     )
   }
   for
@@ -91,14 +92,14 @@ test "Host file rejects invalid oversized foreign and unknown installation" {
       { ..selected.subject, read_resource: "", },
     ] {
     assert_true(
-      install_host_account_with_read(Some({ ..selected, subject, }), () => {
+      install_host_account_with_read(Some({ ..selected, subject, }), _limit => {
         Ok(host_account_test_wire())
       })
       is Err(_),
     )
   }
   assert_true(
-    install_host_account_with_read(Some(selected), () => {
+    install_host_account_with_read(Some(selected), _limit => {
       Err(@bounded_files.InvalidUtf8)
     })
     is Err(File(@bounded_files.InvalidUtf8)),
@@ -127,7 +128,7 @@ test "Host Core denial no match and unresolved delegation never become Allow" {
         changed,
         "sha256:" + "a".repeat(64),
         false,
-        () => Ok(wire),
+        _limit => Ok(wire),
       ),
     )
   }
@@ -141,7 +142,7 @@ test "Host Core denial no match and unresolved delegation never become Allow" {
         { ..selected, subject, },
         "sha256:" + "a".repeat(64),
         false,
-        () => Ok(host_account_test_wire()),
+        _limit => Ok(host_account_test_wire()),
       ),
     )
   }
@@ -163,7 +164,7 @@ test "Host rereads current placement and refuses deletion replacement and revoca
         selected,
         "sha256:" + "a".repeat(64),
         false,
-        () => {
+        _limit => {
           reads[0] += 1
           if reads[0] == 1 {
             Ok(host_account_test_wire())
@@ -185,7 +186,7 @@ test "Host first and last current decision use Common and exact original subject
       host_account_test_file(),
       "sha256:" + "a".repeat(64),
       false,
-      () => {
+      _limit => {
         reads[0] += 1
         Ok(host_account_test_wire())
       },
@@ -197,7 +198,7 @@ test "Host first and last current decision use Common and exact original subject
       host_account_test_file(),
       "unbound-dispatch",
       false,
-      () => Ok(host_account_test_wire()),
+      _limit => Ok(host_account_test_wire()),
     ),
   )
 }
@@ -215,7 +216,7 @@ test "explicit independent publication selector can authorize only its original 
     },
   }
   assert_true(
-    install_host_account_with_read(Some(selected), () => Ok(wire))
+    install_host_account_with_read(Some(selected), _limit => Ok(wire))
     is Ok(Some(_)),
   )
   assert_true(
@@ -223,11 +224,11 @@ test "explicit independent publication selector can authorize only its original 
       selected,
       "sha256:" + "a".repeat(64),
       false,
-      () => Ok(wire),
+      _limit => Ok(wire),
     ),
   )
   assert_true(
-    host_account_current_with_read(selected, "sha256:" + "a".repeat(64), true, () => {
+    host_account_current_with_read(selected, "sha256:" + "a".repeat(64), true, _limit => {
       Ok(wire)
     }),
   )
@@ -236,8 +237,190 @@ test "explicit independent publication selector can authorize only its original 
     subject: { ..selected.subject, publication_resource: "foreign-receiver", },
   }
   assert_false(
-    host_account_current_with_read(foreign, "sha256:" + "a".repeat(64), true, () => {
+    host_account_current_with_read(foreign, "sha256:" + "a".repeat(64), true, _limit => {
       Ok(wire)
     }),
   )
+}
+
+///|
+test "Host omitted ceiling preserves the original million byte read limit" {
+  let limits = []
+  let installation = install_host_account_with_read(
+      Some(host_account_test_file()),
+      limit => {
+        limits.push(limit)
+        Ok(host_account_test_wire())
+      },
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(installation.read_ceiling, 1000000)
+  assert_eq(limits.length(), 1)
+  assert_eq(limits[0], 1000000)
+  let explicit = install_host_account_with_read(
+      Some(host_account_test_file()),
+      _limit => Ok(host_account_test_wire()),
+      read_ceiling=1000000,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(explicit.read_ceiling, installation.read_ceiling)
+}
+
+///|
+test "Host rejects invalid operator ceilings before any read" {
+  for limit in [-1, 0, 1000001] {
+    let reads = [0]
+    let read = _limit => {
+      reads[0] += 1
+      Ok(host_account_test_wire())
+    }
+    assert_true(
+      install_host_account_with_read(
+        Some(host_account_test_file()),
+        read,
+        read_ceiling=limit,
+      )
+      is Err(InvalidSelection),
+    )
+    assert_eq(reads[0], 0)
+    assert_true(
+      install_host_account_with_read(None, read, read_ceiling=limit) is Ok(None),
+    )
+    assert_eq(reads[0], 0)
+  }
+}
+
+///|
+test "Host selected ceiling accepts exact UTF8 bytes and refuses one extra byte" {
+  let selected = host_account_test_file()
+  let wire = host_account_test_wire()
+  let ceiling = 32768
+  let exact = wire + " ".repeat(ceiling - @utf8.encode(wire).length())
+  // JSON whitespace does not change the independent original configuration.
+  assert_eq(@utf8.encode(exact).length(), ceiling)
+  let installation = install_host_account_with_read(
+      Some(selected),
+      limit => {
+        assert_eq(limit, ceiling)
+        Ok(exact)
+      },
+      read_ceiling=ceiling,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(installation.read_ceiling, ceiling)
+  assert_true(
+    install_host_account_with_read(
+      Some(selected),
+      _limit => Ok(exact + " "),
+      read_ceiling=ceiling,
+    )
+    is Err(File(@bounded_files.CapacityExceeded)),
+  )
+}
+
+///|
+test "Host ceiling uses UTF8 bytes before Common configuration admission" {
+  let wire = "\"é\""
+  assert_eq(wire.length(), 3)
+  assert_eq(@utf8.encode(wire).length(), 4)
+  assert_true(
+    host_account_configuration(
+      host_account_test_file(),
+      _limit => Ok(wire),
+      read_ceiling=3,
+    )
+    is Err(File(@bounded_files.CapacityExceeded)),
+  )
+  // Exact byte length reaches Common admission, which refuses a scalar config.
+  assert_true(
+    host_account_configuration(
+      host_account_test_file(),
+      _limit => Ok(wire),
+      read_ceiling=4,
+    )
+    is Err(Configuration(_)),
+  )
+}
+
+///|
+test "Host current first and final reads retain the installed ceiling" {
+  let selected = host_account_test_file()
+  let wire = host_account_test_wire()
+  let ceiling = @utf8.encode(wire).length()
+  let installation = install_host_account_with_read(
+      Some(selected),
+      _limit => Ok(wire),
+      read_ceiling=ceiling,
+    )
+    .unwrap()
+    .unwrap()
+  let limits = []
+  assert_true(
+    host_account_current_with_read(
+      installation.selected,
+      "sha256:" + "a".repeat(64),
+      false,
+      limit => {
+        limits.push(limit)
+        Ok(wire)
+      },
+      read_ceiling=installation.read_ceiling,
+    ),
+  )
+  assert_eq(limits.length(), 2)
+  assert_eq(limits[0], ceiling)
+  assert_eq(limits[1], ceiling)
+  for changed_read in [1, 2] {
+    let reads = [0]
+    assert_false(
+      host_account_current_with_read(
+        installation.selected,
+        "sha256:" + "a".repeat(64),
+        false,
+        limit => {
+          reads[0] += 1
+          assert_eq(limit, ceiling)
+          Ok(if reads[0] == changed_read { wire + " " } else { wire })
+        },
+        read_ceiling=installation.read_ceiling,
+      ),
+    )
+    assert_eq(reads[0], changed_read)
+  }
+}
+
+///|
+test "Host bounded current failure foreign CID and revocation remain refusal" {
+  let selected = host_account_test_file()
+  let wire = host_account_test_wire()
+  for
+    next in [
+      Err(@bounded_files.Missing),
+      Err(@bounded_files.InvalidUtf8),
+      Ok(wire.replace(old="local:operator", new="foreign")),
+      Ok(wire.replace(old="\"allow\"", new="\"deny\"")),
+    ] {
+    let reads = [0]
+    assert_false(
+      host_account_current_with_read(
+        selected,
+        "sha256:" + "a".repeat(64),
+        false,
+        limit => {
+          assert_eq(limit, 32768)
+          reads[0] += 1
+          if reads[0] == 1 {
+            Ok(wire)
+          } else {
+            next
+          }
+        },
+        read_ceiling=32768,
+      ),
+    )
+    assert_eq(reads[0], 2)
+  }
 }
