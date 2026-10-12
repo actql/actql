@@ -6,12 +6,17 @@ pub fn park_original_model_resources(
   active : Execution,
   scope : @publication_host.ClientModelReadScope,
 ) -> Result[@publication_host.ClientModelResourcePark, Issue] {
-  guard !active.advancing && !active.cancelled && !active.reclaimed &&
-    active.phase is Model && active.rows is Some(rows) &&
-    active.call_scope is Some(call_scope) && active.model is Some(model) &&
+  guard !active.advancing &&
+    !active.cancelled &&
+    !active.reclaimed &&
+    active.phase is Model &&
+    active.rows is Some(rows) &&
+    active.call_scope is Some(call_scope) &&
+    active.model is Some(model) &&
     active.original_preparation is Some(original) &&
     original.read is Claimed(consumer) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) &&
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) &&
     @model.model_original_park_candidate(model, rows, call_scope) is Some(_) else {
     return Err(InvalidAdvance)
   }
@@ -21,7 +26,11 @@ pub fn park_original_model_resources(
   // A successful park is returned directly to its existing caller/custody.
   // Do not add a fallible post-fence bind that could discard its only handle.
   @publication_host.park_client_model_read_consumer(
-    scope, consumer, bound.compiled, bound.definition, plan,
+    scope,
+    consumer,
+    bound.compiled,
+    bound.definition,
+    plan,
   ).map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
 }
 
@@ -33,15 +42,26 @@ pub fn original_model_resource_park_current(
   scope : @publication_host.ClientModelReadScope,
   park : @publication_host.ClientModelResourcePark,
 ) -> @publication_host.ClientModelResourcePark? {
-  guard !active.advancing && !active.cancelled && !active.reclaimed &&
-    active.phase is Model && active.rows is Some(rows) &&
-    active.call_scope is Some(call_scope) && active.model is Some(model) &&
-    active.original_preparation is Some(original) && original.read is Claimed(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) &&
-    @model.model_original_resource_park_current(model, rows, call_scope, park) is Some(_) else {
+  guard !active.advancing &&
+    !active.cancelled &&
+    !active.reclaimed &&
+    active.phase is Model &&
+    active.rows is Some(rows) &&
+    active.call_scope is Some(call_scope) &&
+    active.model is Some(model) &&
+    active.original_preparation is Some(original) &&
+    original.read is Claimed(_) &&
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) &&
+    @model.model_original_resource_park_current(model, rows, call_scope, park)
+    is Some(_) else {
     return None
   }
   @publication_host.client_model_resource_park_current(
-    park, scope, bound.compiled, bound.definition, plan,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
   )
 }

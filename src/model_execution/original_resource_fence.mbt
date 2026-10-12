@@ -4,7 +4,9 @@
 fn check_model_original_resources_mutable(
   state : ModelState,
 ) -> Result[Unit, ModelExecutionIssue] {
-  @resources.check_original_resources_mutable(state.ledger).map_err(issue => Ledger(issue))
+  @resources.check_original_resources_mutable(state.ledger).map_err(issue => {
+    Ledger(issue)
+  })
 }
 
 ///|
@@ -25,20 +27,31 @@ pub fn model_original_park_candidate(
   scope : @publication_host.ClientInferCallScope,
 ) -> ModelExecution? {
   let state = execution.state
-  guard !execution.advancing && !state.reclaimed && !state.accepted &&
-    !state.stop_requested && !@bounded.session_stopped(execution.session) &&
-    state.phase is DispatchSlot && state.entering is None &&
-    state.pending_response is None && state.settlement_pending is None &&
-    state.request is None && state.output_uses == 0 &&
+  guard !execution.advancing &&
+    !state.reclaimed &&
+    !state.accepted &&
+    !state.stop_requested &&
+    !@bounded.session_stopped(execution.session) &&
+    state.phase is DispatchSlot &&
+    state.entering is None &&
+    state.pending_response is None &&
+    state.settlement_pending is None &&
+    state.request is None &&
+    state.output_uses == 0 &&
     state.source is Provider(_) &&
     physical_equal(state.rows, rows) &&
-    state.call_scope is Some(current_scope) && physical_equal(current_scope, scope) &&
-    state.original_startup is Some(startup) && startup.used &&
-    physical_equal(startup.rows, rows) && physical_equal(startup.ledger, state.ledger) &&
-    startup.scope is Some(original_scope) && physical_equal(original_scope, scope) &&
+    state.call_scope is Some(current_scope) &&
+    physical_equal(current_scope, scope) &&
+    state.original_startup is Some(startup) &&
+    startup.used &&
+    physical_equal(startup.rows, rows) &&
+    physical_equal(startup.ledger, state.ledger) &&
+    startup.scope is Some(original_scope) &&
+    physical_equal(original_scope, scope) &&
     @resources.capacity_reservation_open(startup.capacity) &&
     state.prepared_call_set is Some(prepared) &&
-    physical_equal(prepared.owner, execution) && prepared_model_current(prepared) &&
+    physical_equal(prepared.owner, execution) &&
+    prepared_model_current(prepared) &&
     state.requests.length() == @relation.prepared_infer_rows_count(rows) else {
     return None
   }
@@ -55,7 +68,10 @@ pub fn[T] model_original_resource_park_current(
   park : @resources.OriginalResourcePark[T],
 ) -> ModelExecution? {
   guard model_original_park_candidate(execution, rows, scope) is Some(original) &&
-    @resources.original_resource_park_current_for_ledger(park, execution.state.ledger)
+    @resources.original_resource_park_current_for_ledger(
+      park,
+      execution.state.ledger,
+    )
     is Some(_) else {
     return None
   }
