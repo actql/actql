@@ -1612,3 +1612,22 @@ refusal or permission to repeat the batch. Query and cleanup
 failures are exceptions, never unmatched/absent results or replay permission.
 The adapter only returns physical generations/raw bytes. Existing Core Owners
 still validate original identity, admission, publication and execution facts.
+
+The shared SubmissionReference codec preserves the original Native token
+shape, canonical reference bytes and typed nonce identity. A syntactically
+valid authenticator is not HMAC authentication. The physical Host still verifies
+the original durable key, clock and epoch in the same admission transaction.
+Native authentication, journal readers, count custody and transactions remain
+separate from this pure codec.
+
+The Local submitted-row preparation binds the exact nominal submitted
+preparation to its original checked Plan, request, current Account permit and
+context. It compares the retained preparing row with the original encoded
+intent and reference before projecting the initial Run row and ready candidate.
+It cannot prepare a ready row again, replace an equivalent preparation, or use
+a foreign or expired reference. These opaque projections perform no I/O and
+prove no COMMIT, accepted Submission or start permission. Before adoption, the
+Host must validate complete original journal/count custody, current epoch
+authentication and the same physical transaction, then readmit the actual saved
+rows through the existing Owners. A lost acknowledgement never authorizes
+repeating the candidate writes or reconstructing a new Run.
