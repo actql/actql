@@ -65,7 +65,7 @@ test "ordinary range binding preserves nested nullable and same-named value rece
   )
   let value = compile(
     @query.parse_query(
-      "SELECT (payload).score AS value FROM objects payload",
+      "SELECT (payload.payload).score AS value FROM objects payload",
       syntax_limits(),
     ).unwrap(),
     pipe_range_property_context(),
@@ -109,14 +109,15 @@ test "ordinary range binding preserves exact unknown and bounded-work refusals" 
     text in [
       "SELECT (missing).x AS value FROM pair p", "SELECT (p).missing AS value FROM pair p",
     ] {
-    assert_true(
-      compile(
-        @query.parse_query(text, syntax_limits()).unwrap(),
-        pair_context(),
-        construction_limits(),
-      )
-      is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
-    )
+    match compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ) {
+      Err(Expression({ issue: UnknownReference, origin: Some(_), })) => ()
+      Ok(program) => fail("Unexpected unresolved receiver Program: " + text + " " + semantic(program))
+      Err(_) => fail("Unexpected unresolved receiver refusal: " + text)
+    }
   }
   assert_true(
     compile(
