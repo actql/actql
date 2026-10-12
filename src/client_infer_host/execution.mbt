@@ -1028,6 +1028,10 @@ pub fn advance(active : Execution, quantum : Int) -> Result[Poll, Issue] {
     active.phase is Terminal {
     return Err(InvalidAdvance)
   }
+  if active.model is Some(model) &&
+    @model.model_execution_mutation_current(model) is Err(issue) {
+    return Err(Model(issue))
+  }
   active.advancing = true
   let poll = advance_child(active, quantum)
   active.advancing = false

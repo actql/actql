@@ -198,6 +198,31 @@ pub fn issue_prepared_client_effect_local_update_normalization(
 }
 
 ///|
+/// Select only the inventory retained by the original checked Effect kind.
+/// Both paths reuse their existing issuer and exact preparation-owned proof;
+/// neither a caller profile nor a failed alternate issuer selects this kind.
+pub fn issue_prepared_client_effect_selected_normalization(
+  owner : PreparedClientEffectComputation,
+) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue] {
+  let selected = match checked_client_effect_normalization_inventory(owner) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let original = match selected {
+    MappedCreate(_) => issue_prepared_client_effect_normalization(owner)
+    LocalUpdate(_) =>
+      issue_prepared_client_effect_local_update_normalization(owner)
+  }
+  match original {
+    Err(issue) => Err(issue)
+    Ok(proof) =>
+      prepared_client_effect_normalization_evidence(owner, proof).map(fn(_) {
+        proof
+      })
+  }
+}
+
+///|
 /// A copied or foreign preparation cannot take another original journal.
 /// Definition, semantics and check-environment identity are inherited from
 /// this exact preparation owner, rather than inferred from equal source bytes.

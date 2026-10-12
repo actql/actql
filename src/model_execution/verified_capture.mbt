@@ -12,6 +12,9 @@ pub fn acquire_verified_model_capture(
   execution : ModelExecution,
 ) -> VerifiedModelCapture? {
   let state = execution.state
+  if check_model_original_resources_mutable(state) is Err(_) {
+    return None
+  }
   if !state.accepted ||
     state.reclaimed ||
     state.call_scope is None ||
@@ -120,6 +123,9 @@ pub fn release_verified_model_capture(capture : VerifiedModelCapture) -> Bool {
   if capture.released {
     return false
   }
+  if check_model_original_resources_mutable(capture.owner.state) is Err(_) {
+    return false
+  }
   capture.released = true
   capture.owner.state.output_uses -= 1
   true
@@ -210,6 +216,9 @@ pub fn start_model_capture_replay(
   limits : ModelExecutionLimits,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   let prior = capture.owner.state
+  if check_model_original_resources_mutable(prior) is Err(issue) {
+    return Err(issue)
+  }
   guard !capture.released &&
     prior.accepted &&
     !prior.reclaimed &&

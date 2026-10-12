@@ -26,6 +26,10 @@ pub fn acknowledge_model_call_entry(
   if entry.acknowledgement is Some(original) {
     return Some(original)
   }
+  if check_model_original_resources_mutable(entry.prepared.owner.state)
+    is Err(_) {
+    return None
+  }
   let acknowledgement : ModelCallEntryAcknowledgement = { entry, }
   entry.acknowledgement = Some(acknowledgement)
   Some(acknowledgement)
@@ -87,7 +91,9 @@ fn model_call_start_current(
       return Err(RequestIdentity)
     }
   }
-  Ok(())
+  // This final read follows every installed authority/egress callback and
+  // precedes one-shot consumption and the original fixed transport start.
+  check_model_original_resources_mutable(state)
 }
 
 ///|
@@ -160,5 +166,5 @@ fn check_model_physical_start_current(
     @resources.reservation_open(reservation) else {
     return Err(CallEntryRefused)
   }
-  Ok(())
+  check_model_original_resources_mutable(state)
 }
