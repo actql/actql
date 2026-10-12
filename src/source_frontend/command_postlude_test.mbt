@@ -8,6 +8,11 @@ test "SQL and Pipe use the same checked COMMAND postlude without losing effects"
       "WITH ids AS (SELECT id FROM records) FROM ids |> RESULT selected",
       registered_test_context(),
     ),
+    (
+      Sql,
+      "WITH ids AS (SELECT id FROM records) FROM ids |> RESULT selected",
+      registered_test_context(),
+    ),
   ]
   for (format, query, context) in cases {
     let text = query +
@@ -43,7 +48,7 @@ test "SQL and Pipe use the same checked COMMAND postlude without losing effects"
   )
   assert_true(
     lower(
-      "WITH ids AS (SELECT id FROM records) FROM ids |> RESULT selected; EFFECT upload COMMAND FROM RESULT selected AS t TARGET t.id CONTRACT c INPUT ();",
+      "FROM records |> SELECT id |> RESULT selected; EFFECT upload COMMAND FROM RESULT selected AS t TARGET t.id CONTRACT c INPUT ();",
       Sql,
       Some(test_context()),
     )
