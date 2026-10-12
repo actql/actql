@@ -25,3 +25,26 @@ test('temporal public selector preserves ordinary registration and actual receip
   assert.ok(consumer.includes("['scripts/fixtures/temporal-join-source-input.mjs', 'temporal-join-source-input.mjs']"));
   assert.ok(consumer.includes('temporal-join-receipts.local.json'));
 });
+test('actual copied import closure reaches temporal fixtures and detects their removal',()=>{
+  const copies=new Map([...readFileSync('scripts/test-packed-public-query.mjs','utf8')
+    .matchAll(/\['([^']+)', '([^']+\.mjs)'\]/gu)].map(match=>[match[2],match[1]]));
+  function missing(map) {
+    const pending=['acceptance.mjs'],seen=new Set(),absent=[];
+    while(pending.length) {
+      const name=pending.pop(); if(seen.has(name)) continue; seen.add(name);
+      const source=map.get(name); if(!source) {absent.push(name);continue;}
+      for(const match of readFileSync(source,'utf8').matchAll(/(?:from\s*|import\s*\()(['"])(\.[^'"\n]+\.mjs)\1/gu)) {
+        // Current copied fixture modules are flat. A new subdirectory requires
+        // an explicit delivery change rather than silently guessing a path.
+        assert.match(match[2],/^\.\/[^/]+\.mjs$/u);
+        pending.push(match[2].slice(2));
+      }
+    }
+    return {absent,seen};
+  }
+  const actual=missing(copies);
+  assert.deepEqual(actual.absent,[]);
+  assert.ok(actual.seen.has('temporal-join-source-input.mjs'));
+  const omitted=new Map(copies); omitted.delete('temporal-join-source-input.mjs');
+  assert.deepEqual(missing(omitted).absent,['temporal-join-source-input.mjs']);
+});
