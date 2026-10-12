@@ -35,3 +35,16 @@ for (const mutation of ['none','foreignRun','mapCid','compiledCid','extra','wire
     assert.equal(starts,0);assert(reads>0);
   });
 }
+
+// Isolate the SDK guard from the ingress guard: a Host port can return a
+// structurally valid view for a different Run, and the SDK must still refuse it.
+test('SDK independently refuses a foreign original Run response', async t => {
+  const client=await connectInProcess({mode:'local',owner:'local'}, {async perform(operation,body) {
+    if(operation==='connect') return profile;
+    if(operation==='attach') return {ref:body.ref,durability:'volatile',revision:0};
+    assert.equal(operation,'run-plan');
+    return {...answer(),run_ref:{...ref,runDefinitionCid:cid('0')}};
+  }});
+  t.after(()=>client.close());const run=await client.attach(ref);
+  await assert.rejects(run.plan(),{code:'InvalidClientHostRunPlanView'});
+});
