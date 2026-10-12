@@ -128,6 +128,10 @@ class LocalByteStore:
         if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
                 or parent.st_uid != os.getuid()):
             raise LocalStorageError('Local storage requires a private owned directory')
+        self._physical_path = path
+        self._physical_parent = (parent.st_dev, parent.st_ino)
+        self._physical_original: tuple[int, int] | None = None
+        self._physical_owner = self
         try:
             self._opening_descriptor = os.open(
                 path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -137,15 +141,18 @@ class LocalByteStore:
                     or metadata.st_mode & 0o077
                     or metadata.st_uid != os.getuid()):
                 raise LocalStorageError('Local physical storage must be a private owned file')
+            self._physical_original = self._file_generation(metadata)
         else:
             self._created = True
             try:
+                self._physical_original = self._file_generation(os.fstat(self._opening_descriptor))
                 self._close_descriptor()
             except BaseException as original:
                 raise LocalStorageInitializationError(self) from original
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False)
         try:
+            self._observe_generation()
             self._connection.execute('BEGIN IMMEDIATE')
             try:
                 schema = self._connection.execute('''SELECT name, sql FROM sqlite_schema
@@ -170,6 +177,7 @@ class LocalByteStore:
             self._connection.execute('PRAGMA cache_size = -64')
             self._connection.execute('PRAGMA mmap_size = 0')
             self._connection.execute('PRAGMA temp_store = FILE')
+            self._observe_generation()
             self._ready = True
         except BaseException as original:
             try:
@@ -177,6 +185,45 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    @staticmethod
+    def _file_generation(metadata: os.stat_result) -> tuple[int, int]:
+        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_mode & 0o077
+                or metadata.st_uid != os.getuid()
+                or not 0 <= metadata.st_dev < 2**64 or not 0 <= metadata.st_ino < 2**64):
+            raise LocalStorageError('Original Local Store file generation is unavailable')
+        return (metadata.st_dev, metadata.st_ino)
+
+    def _observe_generation(self) -> tuple[int, int]:
+        if self._physical_owner is not self:
+            raise ValueError('Copied or foreign Local physical Store generation')
+        parent = self._physical_path.parent.lstat()
+        if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
+                or parent.st_uid != os.getuid()
+                or (parent.st_dev, parent.st_ino) != self._physical_parent):
+            raise LocalStorageError('Original Local Store directory generation changed')
+        current = self._file_generation(self._physical_path.lstat())
+        if self._physical_original is None or current != self._physical_original:
+            raise LocalStorageError('Original Local Store file generation changed')
+        return current
+
+    def observe_generation(self) -> tuple[int, int]:
+        """Recheck this Store's original physical device/inode without SQL or writes.
+
+        This is a path-generation observation under the trusted Host's existing
+        exclusive root ownership, not an adoption, transaction or authority
+        witness. The Host also retains original configuration bytes, intent and
+        settings and supplies the actual same-transaction adoption row to Core.
+        An active transaction is not certified by observing this generation.
+        Failure retains this connection for original-owner cleanup/observation;
+        a replacement pathname never initializes or repairs the original Store.
+        """
+        with self._lock:
+            if self._physical_owner is not self:
+                raise ValueError('Copied or foreign Local physical Store generation')
+            if self._closed or not self._ready:
+                raise LocalStorageError('Local physical storage is closed')
+            return self._observe_generation()
 
     def claim_creation(self) -> bool:
         """Consume this handle's exclusive new-file observation once.

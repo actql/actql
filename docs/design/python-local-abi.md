@@ -1784,3 +1784,17 @@ descriptor without another close or open. Physical EOF/digest is neither
 adoption nor current authority. The existing Common adopted/current material
 must still validate the original Account and actual same-Store adoption row,
 and publication requires its independent current publisher and durable ACK.
+
+The same `LocalByteStore` retains its original database and parent-directory
+device/inode observations. `observe_generation` rechecks private ownership and
+those original generations without SQL, writes, adoption or replacement. It
+can supply physical facts during the original namespace-reader transaction;
+it neither validates that transaction nor bypasses the reader's thread, fence
+and lifetime checks. Normal SQLite writes preserve file identity. Changed,
+missing, public or symlink names fail without opening a replacement Store.
+The trusted Host must hold the original exclusive root custody throughout;
+this path observation is not an independent proof of a SQLite descriptor's
+identity against an adversary controlling that root. The Common current port
+still requires the actual original adoption row, saved settings/intent and
+Account bytes and independently checks current authority. File/query failure
+does not prove absence or authorize resending an unknown operation.
