@@ -25,6 +25,30 @@ fn lag_source_text(call : String) -> String {
 }
 
 ///|
+test "P2 Lag source keeps exact common invalid count order and collision refusals" {
+  let prefix = "WITH rows AS (SELECT 1 AS id, 10 AS amount), keyed AS (FROM rows |> ASSERT UNIQUE BY (id)) FROM keyed |> "
+  let cases : Array[(String, @pipeline.IssueKind)] = [
+    ("lag(partition_by: [], order_by: [], field: amount, output: previous)", Operation(InvalidOrder)),
+    ("lag(partition_by: [], order_by: [{amount: 'asc'}], field: amount, output: previous, offset: 0)", Operation(InvalidCount)),
+    ("lag(partition_by: [], order_by: [{amount: 'asc'}], field: amount, output: previous, offset: -1)", Operation(InvalidCount)),
+    ("lag(partition_by: [], order_by: [{amount: 'asc'}], field: amount, output: previous, offset: 1.5)", Operation(InvalidCount)),
+    ("lag(partition_by: [], order_by: [{amount: 'asc'}], field: amount, output: amount)", Operation(InputCollision("amount"))),
+  ]
+  for (call, expected) in cases {
+    assert_eq(event_window_issue(prefix + call), expected)
+  }
+}
+
+///|
+test "P2 Lag source does not restore dropped columns or old range aliases" {
+  let prefix = "WITH rows AS (SELECT 1 AS id, 10 AS amount), kept AS (FROM rows AS old |> SELECT id |> AS current) FROM kept AS r |> "
+  for field in ["amount", "old.id", "current.id"] {
+    assert_true(with_carrier_program(prefix + "lag(partition_by: [], order_by: [{id: 'asc'}], field: " + field + ", output: previous)", { ..pair_context(), inputs: [], }) is Err(UnknownColumn))
+  }
+  assert_true(with_carrier_program(lag_source_text("lag(partition_by: [], order_by: [{id: 'asc'}], field: amount, output: previous, max_output_rows: 10)"), { ..pair_context(), inputs: [], }) is Err(InvalidQuery))
+}
+
+///|
 test "P2 independent Lag Program retains nullable navigation and candidate-key order" {
   for offset in ["", ",\"offset\":2", ",\"offset\":{\"$param\":\"p\"}"] {
     event_window_common_checked(lag_source_control(
