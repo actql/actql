@@ -1,0 +1,1329 @@
+{
+  "version": "frontend-lag-source-evidence/0.1",
+  "recordedAt": "2026-10-12T05:48:02.388523+00:00",
+  "rawEvidenceRoot": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source",
+  "testedSource": "da3601f29b53999d2b9f863a7cd0d87e49490a89",
+  "testedTree": "82d71e4130d052b7375cc53e7a5dd3dbc6b2bcb2",
+  "latestReadOnlySource": "f13f558827435d09dc34d3822a807483d7f71276",
+  "adoptedMain": "f6632bd6fa2941a1988c3a4de0c38afd2b449c71",
+  "newExternalE2EPasses": 0,
+  "publicAcceptance": "not_started_shared_heavy_window_pending",
+  "ownerAndGroupCheck": {
+    "performed": true,
+    "method": "direct ps -A pid/pgid/stat filtered to the exact receipt Owners and groups",
+    "matchingRows": 0,
+    "owners": [
+      4338,
+      5127,
+      6331,
+      6835,
+      7627,
+      10615,
+      12389,
+      13907,
+      15750,
+      16127,
+      16615,
+      17333,
+      19337,
+      20246,
+      20835,
+      22050,
+      24537
+    ]
+  },
+  "runs": [
+    {
+      "run": "run-u70jpv",
+      "status": "failed",
+      "complete": false,
+      "exitCode": 2,
+      "owner": {
+        "token": "f12c8061-9538-4a5a-902c-f8937c1f8db2",
+        "pid": 4338,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:12:14.647Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-u70jpv"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-CEeNJd",
+      "status": "failed",
+      "complete": false,
+      "exitCode": 2,
+      "owner": {
+        "token": "3f3eded1-a20a-4def-955a-7ff438cb581c",
+        "pid": 5127,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:13:09.776Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-CEeNJd"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt",
+          "src/query_program/event_dedupe_source_test.mbt",
+          "src/query_syntax/event_dedupe_call_test.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-0UewA7",
+      "status": "failed",
+      "complete": false,
+      "exitCode": 1,
+      "owner": {
+        "token": "eef8fcda-bfde-459a-9452-ca5464fa86a6",
+        "pid": 6331,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:14:31.128Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-0UewA7"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-Qv5AgC",
+      "status": "failed",
+      "complete": false,
+      "exitCode": 2,
+      "owner": {
+        "token": "87cba898-c988-4741-b415-31889ae30dee",
+        "pid": 6835,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:15:21.132Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Qv5AgC"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-1kgXYf",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "285e85f0-3cc6-4258-8b29-fdb3fb35c05c",
+        "pid": 7627,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:16:21.188Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-1kgXYf"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt",
+          "src/query_program/event_dedupe_source_test.mbt",
+          "src/query_syntax/event_dedupe_call_test.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-fcrNlJ",
+      "status": "timeout",
+      "complete": false,
+      "exitCode": 124,
+      "owner": {
+        "token": "d373822d-55b6-48f9-a9b1-4949f10a4afa",
+        "pid": 10615,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:25:12.873Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-fcrNlJ"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt",
+          "src/pipeline_typing/lag_order_test.mbt",
+          "src/lowering_relation/lag_encode_test.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-ZxyzAc",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "6c2a9e82-cfaa-45f4-831b-c1b647bd6856",
+        "pid": 12389,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:28:05.408Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ZxyzAc"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "scripts/compilation-manifests.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/lag-identity-oracle.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs",
+          "--write"
+        ]
+      ]
+    },
+    {
+      "run": "run-ljjOxo",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "81edb041-a2e7-4f6f-9044-3e5eb3329660",
+        "pid": 13907,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:30:48.916Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ljjOxo"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_argument_roles.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-5pWCWk",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "b0aa6ec8-e351-484a-a8f1-989eea1c388b",
+        "pid": 15750,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:32:42.563Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-5pWCWk"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {readFileSync,writeFileSync} from 'node:fs'; import {registeredPublicQueryInventory} from './scripts/public-query-inventory.mjs'; const path='scripts/fixtures/public-query-inventory.json'; const previous=JSON.parse(readFileSync(path,'utf8')); const actual=await registeredPublicQueryInventory(); writeFileSync(path,JSON.stringify({...previous,...actual},null,2)+'\\n'); console.log(JSON.stringify(actual));"
+        ]
+      ]
+    },
+    {
+      "run": "run-efroyx",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "63988679-8c89-4453-b302-16ed0c23ea17",
+        "pid": 16127,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:33:20.451Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-efroyx"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-3xABh2",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "714d6722-f3ed-4f57-b7ab-ceeb299bb30d",
+        "pid": 16615,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:33:58.782Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-3xABh2"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/lag-identity.test.mjs",
+          "scripts/row-watermark-identity.test.mjs",
+          "scripts/lag-source.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs",
+          "scripts/compilation-manifests.test.mjs",
+          "scripts/frontend-profile.test.mjs",
+          "scripts/public-query-profiles.test.mjs"
+        ]
+      ]
+    },
+    {
+      "run": "run-k4NAyE",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "9040b0d9-5342-4011-a348-ceecce02efee",
+        "pid": 17333,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:35:16.938Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-k4NAyE"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "moon",
+          "info",
+          "--target",
+          "js",
+          "src/query_syntax",
+          "src/query_program",
+          "src/source_frontend"
+        ]
+      ]
+    },
+    {
+      "run": "run-x9eWBC",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "f7809507-7f6a-4791-bc94-d0f6bc20da70",
+        "pid": 19337,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:39:06.625Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-x9eWBC"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ]
+    },
+    {
+      "run": "run-pFXNO1",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "ef46b5d7-3c08-44af-ac15-478b3082f9cc",
+        "pid": 20246,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:40:50.188Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-pFXNO1"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "moon",
+          "check",
+          "--target",
+          "wasm",
+          "src/query_syntax",
+          "src/query_program",
+          "src/source_frontend"
+        ]
+      ]
+    },
+    {
+      "run": "run-hhlQfF",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "a0d32c80-b9e1-4234-99c8-df68a35725d1",
+        "pid": 20835,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:41:37.994Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-hhlQfF"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "moon",
+          "check",
+          "--target",
+          "native",
+          "src/query_syntax",
+          "src/query_program",
+          "src/source_frontend"
+        ]
+      ]
+    },
+    {
+      "run": "run-NdMcsF",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "8d300d79-528e-4125-aab4-98b9e27dad43",
+        "pid": 22050,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:42:38.864Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-NdMcsF"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/lag-identity.test.mjs",
+          "scripts/row-watermark-identity.test.mjs",
+          "scripts/lag-source.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs",
+          "scripts/compilation-manifests.test.mjs",
+          "scripts/frontend-profile.test.mjs",
+          "scripts/public-query-profiles.test.mjs"
+        ]
+      ]
+    },
+    {
+      "run": "run-HHAkEP",
+      "status": "passed",
+      "complete": true,
+      "exitCode": 0,
+      "owner": {
+        "token": "7c75cdc7-c7a4-4915-a2ea-d0e5c693e6fc",
+        "pid": 24537,
+        "uid": 501,
+        "host": "dyson",
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "startedAt": "2026-10-12T05:45:27.922Z",
+        "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-HHAkEP"
+      },
+      "locks": [
+        "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+      ],
+      "locksReleased": true,
+      "commands": [
+        [
+          "node",
+          "scripts/compilation-manifests.mjs"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import assert from 'node:assert/strict'; import {readFileSync} from 'node:fs'; import {spawnSync} from 'node:child_process'; const write=process.argv[1]==='write'; for(const file of process.argv.slice(2)){const result=spawnSync('moonfmt',write?['-w',file]:[file],{encoding:'utf8'}); assert.equal(result.status,0,result.stderr); if(!write)assert.equal(result.stdout,readFileSync(file,'utf8'),file);} console.log('Pinned changed-file formatter verified');",
+          "check",
+          "src/query_program/lag_source_test.mbt",
+          "src/query_syntax/lag_call_test.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_argument_roles.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ]
+    }
+  ],
+  "retainedFiles": [
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-u70jpv/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-u70jpv/summary.json",
+      "bytes": 1659,
+      "sha256": "583ef1563251d4b5b12f621da5b5f812d6934a5984d8df4e958cf43a6be50e43"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-u70jpv/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-u70jpv/output.log",
+      "bytes": 6235,
+      "sha256": "56e11a4b857010ffbb9fc84d3ac50035b4094ada095886f3b1035736af881a79"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-CEeNJd/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-CEeNJd/summary.json",
+      "bytes": 1772,
+      "sha256": "bdcb05f2517d61ba15a023a34dc40df1414382871cf96ff08e8b531da90358f3"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-CEeNJd/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-CEeNJd/output.log",
+      "bytes": 4451,
+      "sha256": "1448f160723455358387b9939af4d48fd99c1611487a4bd814242f7a1dcaa229"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-0UewA7/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-0UewA7/summary.json",
+      "bytes": 1613,
+      "sha256": "a458b57071517232eef93a7171cc9122138e6c46b0ffe68e8d2ed25193fced3f"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-0UewA7/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-0UewA7/output.log",
+      "bytes": 1315,
+      "sha256": "30654de3d9869015bf8ded8a7ebad0c05ac82c31309f058aff617ac5b3337fb6"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Qv5AgC/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-Qv5AgC/summary.json",
+      "bytes": 1613,
+      "sha256": "ed5ab0e72d5f6467dacbf28fb8fc4b1bdffec43c0265a0eef007faf759931a70"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Qv5AgC/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-Qv5AgC/output.log",
+      "bytes": 911,
+      "sha256": "6f7509f0b86ed59d67483f4bfe7ac0a0792837a11d1ed809bcb3469c6190f91d"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-1kgXYf/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-1kgXYf/summary.json",
+      "bytes": 1771,
+      "sha256": "aa0024a9c54fdcc716ce6764241c7240d18defd479cbb6f645b96694a25f5a3c"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-1kgXYf/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-1kgXYf/output.log",
+      "bytes": 486,
+      "sha256": "a4b58649c48adcddcfdccb0bfb8a35ec0f454d30f9bd0582685c4d899e32c173"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-fcrNlJ/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-fcrNlJ/summary.json",
+      "bytes": 1774,
+      "sha256": "1d9012326c301b5bf15ca97894cc5188a0dab8800577d53d71c6229ed2281dbb"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-fcrNlJ/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-fcrNlJ/output.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ZxyzAc/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-ZxyzAc/summary.json",
+      "bytes": 2927,
+      "sha256": "8454340adf5ff60e2f267dd35b38481fd8366dac9547436c3fb470ece0d7f055"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ZxyzAc/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-ZxyzAc/output.log",
+      "bytes": 2086,
+      "sha256": "b378960c304f90f10354da778627136e7f483c93add3be3d090fa5a0974d0d60"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ljjOxo/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-ljjOxo/summary.json",
+      "bytes": 1638,
+      "sha256": "0fb36df22cf560cb0d879a82199e305e70209f21ff7611946ada4af05431b764"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ljjOxo/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-ljjOxo/output.log",
+      "bytes": 46,
+      "sha256": "44ff93cd5b59d2c63ab154f92912d485ef8339951490ea479f71812ef1df6f07"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-5pWCWk/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-5pWCWk/summary.json",
+      "bytes": 1777,
+      "sha256": "dee357887eadbaf48710545b987ce19c2423ca9b3f5e2cbefe7f5b5dd3514b2d"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-5pWCWk/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-5pWCWk/output.log",
+      "bytes": 696,
+      "sha256": "5a3d1df1794cf85cd2197f88df1ef103da32638d740748b12d2812f11c667da8"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-efroyx/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-efroyx/summary.json",
+      "bytes": 1659,
+      "sha256": "329f52f610fc4ba4a6439e3815a24867c0773d6f49a84b4edf2e72200d6ee601"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-efroyx/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-efroyx/output.log",
+      "bytes": 387,
+      "sha256": "a3f702f639f946cd7e03518a16008b9a18195d83b528c03f4b5c522d1491bd23"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-3xABh2/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-3xABh2/summary.json",
+      "bytes": 1868,
+      "sha256": "93e4e9915e9c39af590e0a7a6cee315c78dfec859cea13bd35545199e94248d5"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-3xABh2/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-3xABh2/output.log",
+      "bytes": 67427,
+      "sha256": "3bf5088c87d33c1f9243ba58480dca34e3c6a73d5953a59192fc74cbeef3659a"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-k4NAyE/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-k4NAyE/summary.json",
+      "bytes": 1443,
+      "sha256": "09e9d91c68458dbef3c904469acd1c42eea132420c24082e02ec6f5f353d1890"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-k4NAyE/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-k4NAyE/output.log",
+      "bytes": 44,
+      "sha256": "08dfb28aa47cadb52adbbe0e17f43b3527323993cdb1c310eea3ddaafceb5d46"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-x9eWBC/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-x9eWBC/summary.json",
+      "bytes": 1734,
+      "sha256": "be4bec0b695255042bf70795dbc6f154c99573e0fe9e9f61f9634ccdd3422904"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-x9eWBC/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-x9eWBC/output.log",
+      "bytes": 453,
+      "sha256": "4f20535b8cf063645a4d0c11299b938320e50f5247df66253d2bfcf29f75a0d9"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-pFXNO1/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-pFXNO1/summary.json",
+      "bytes": 1446,
+      "sha256": "749951d649a35b36edb58c67327441e72535831f42c4043a202ef74876211cb6"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-pFXNO1/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-pFXNO1/output.log",
+      "bytes": 45,
+      "sha256": "60ed775d567b98f58219333fb810112fc5666e052004c5644ff594a11c0e8f1f"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-hhlQfF/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-hhlQfF/summary.json",
+      "bytes": 1448,
+      "sha256": "5ed7b80b74e7b08012f7f6b83f52e25a88214d73e1bfdcc9043ccb31b5e37809"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-hhlQfF/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-hhlQfF/output.log",
+      "bytes": 45,
+      "sha256": "60ed775d567b98f58219333fb810112fc5666e052004c5644ff594a11c0e8f1f"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-NdMcsF/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-NdMcsF/summary.json",
+      "bytes": 1868,
+      "sha256": "72c69d4402914d83af82886c902395aefd0b3c482980682e3e4a0368a3b91cd5"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-NdMcsF/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-NdMcsF/output.log",
+      "bytes": 67450,
+      "sha256": "a5640eb1a2ced6d60c11cd308d2a50524748f5262b08834bf03e64e68fbe033c"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-HHAkEP/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-HHAkEP/summary.json",
+      "bytes": 3649,
+      "sha256": "21c6b83b2e1e084619254587c0de47f46cce15e5395bcbd861d75773a117af1b"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-HHAkEP/output.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/guard/run-HHAkEP/output.log",
+      "bytes": 488,
+      "sha256": "b5034e32fee351a77dcee87cc2785830256caafced1dead79223b0506339650e"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/0001.summary.json",
+      "bytes": 630,
+      "sha256": "6fa83f1e5d23b1b476b0405a62b6479b17883bacad301cbb86fc1b0a76f518a0"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/summary.json",
+      "bytes": 1650,
+      "sha256": "426b553014403b77e727d26b568ed441bd9f32105a7a09c98f81312360ef5099"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/001.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/001.started.json",
+      "bytes": 797,
+      "sha256": "1a4a27dfc953ae12580777effcd7d347470ff95d81347850be5af864a2239876"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/001.result.json",
+      "bytes": 868,
+      "sha256": "2311bb96735f1b37d0f8fd7e785e1ca8269c0ae1a325be797b71c7dccc64d229"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/001.stderr.log",
+      "bytes": 1014,
+      "sha256": "375a46efd80a3029a80e6f8d2aa680cb2344fe04411877cc317307d1b6926bc9"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/0002.summary.json",
+      "bytes": 1550,
+      "sha256": "42ffcd003f6c452b8729afb5a352113d1da8cad694ff781695d00c70e5e052d2"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/0004.summary.json",
+      "bytes": 1650,
+      "sha256": "426b553014403b77e727d26b568ed441bd9f32105a7a09c98f81312360ef5099"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-2csdIi/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-2csdIi/0003.summary.json",
+      "bytes": 1629,
+      "sha256": "87a5020e35ade06f0e49a854da7d665434b0816897ae556059d5cdf4e47154e8"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/0001.summary.json",
+      "bytes": 630,
+      "sha256": "12fea595a5a1400753bf6eaf33193c8569ee62e66c158b4b543e0f37ddb49935"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/summary.json",
+      "bytes": 2246,
+      "sha256": "9d80e83854b4d032fd84d9ee47f24b848464fc8bceea05a76b0538dc824ea184"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/001.stdout.log",
+      "bytes": 66727,
+      "sha256": "1f0df937c50a4ea4ac015cb9821689398e26d61a0f28af3eadb162b067406c1b"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/001.started.json",
+      "bytes": 1238,
+      "sha256": "1803d97db5620ae4e67db428b16d53efdfb59067b51015d760e82a2c067cb461"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/001.result.json",
+      "bytes": 1417,
+      "sha256": "d56823c60c2c75e1d293323b49f89065274c61cc62d7dde456eadf90edf83693"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/0002.summary.json",
+      "bytes": 2011,
+      "sha256": "137c87b8eade7930f496bc7525f41ad2c2837836ab0c3dab017fe0d27b2c69a8"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/0004.summary.json",
+      "bytes": 2246,
+      "sha256": "9d80e83854b4d032fd84d9ee47f24b848464fc8bceea05a76b0538dc824ea184"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-R2W1FX/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-R2W1FX/0003.summary.json",
+      "bytes": 2226,
+      "sha256": "b6cb9c33052e6ecd22ea868aeead72837c560498edb5832141c4d25080523967"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/0001.summary.json",
+      "bytes": 630,
+      "sha256": "6007b7631373a528fe296b866744127462d7944f89b976bd8739de2a6b9a91db"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/summary.json",
+      "bytes": 2252,
+      "sha256": "dd06c67bcbdce53763c7d40955ceb98461876f25cad1496cd73bd3cd931be4de"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/001.stdout.log",
+      "bytes": 66704,
+      "sha256": "a470d5f888b251da235f14de21ea94de644c7c0e17a240bafb2d59cc2ed1c9dd"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/001.started.json",
+      "bytes": 1238,
+      "sha256": "ac100fa3d77f847e30bae248a6d010051a16efeb72a3a1f20cf583fb3d11d7d3"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/001.result.json",
+      "bytes": 1423,
+      "sha256": "a6ac10101eb4288e5532d9946416032c2b84e00f4e9ee89ee81ab27d98b1de7b"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/0002.summary.json",
+      "bytes": 2011,
+      "sha256": "36c5b8708669a8c1a3fe68a6b0ec4bdf7ed128b2e6a2e3177815006dbc31d427"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/0004.summary.json",
+      "bytes": 2252,
+      "sha256": "dd06c67bcbdce53763c7d40955ceb98461876f25cad1496cd73bd3cd931be4de"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yeNf9e/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yeNf9e/0003.summary.json",
+      "bytes": 2232,
+      "sha256": "e68924c456a90549695809c830c16088c9237871d22847c8259200953dcde4c9"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/0001.summary.json",
+      "bytes": 630,
+      "sha256": "6b05e46e8364bc7e6ed3f40cb63cbb48db127c7508e9cd23c1da2610744a0777"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/summary.json",
+      "bytes": 1951,
+      "sha256": "56df3948a234ec3328292499826c0a83001c7658709ef535caa0280141552755"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/001.stdout.log",
+      "bytes": 40,
+      "sha256": "b28f3b8e4d471a65d42128a3bc856cea2eb1a5f113adb1c3f790d6750a89ba8d"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/001.started.json",
+      "bytes": 944,
+      "sha256": "31bdab87974e9d6d2dd5a2a0e10176cf2e98de637d44a5ad6105ac7c18b5e7fb"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/001.result.json",
+      "bytes": 1130,
+      "sha256": "9f9d34b5a3a10ef9cf35dd18f156f087f277597e693ed030c4f23806e1f6a28d"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/0002.summary.json",
+      "bytes": 1709,
+      "sha256": "f70ca88a8cd28ec2aa4e761f6909d6383ba349b575e7bd94ae8011f88436e2dc"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/0004.summary.json",
+      "bytes": 1951,
+      "sha256": "56df3948a234ec3328292499826c0a83001c7658709ef535caa0280141552755"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-a3KOE2/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-a3KOE2/0003.summary.json",
+      "bytes": 1931,
+      "sha256": "6cb1cc5f4d5830281a2e6339ea84031492737c95ecf96858dfbc0df6de7a950e"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/0001.summary.json",
+      "bytes": 630,
+      "sha256": "d7692cff4b9817cf91fadf986c13da91059e2094ae9b4134d88c0f5f1181f63d"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/summary.json",
+      "bytes": 1836,
+      "sha256": "00cbcc9fefb6234f65b96f24ebfed9fcea45874b900ececb01b82cc59ba2005a"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/001.stdout.log",
+      "bytes": 38,
+      "sha256": "29250d71d26eddc15e31c1bdd9bba84e69f30e65ab60f24e083ca22ffdaddc4a"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/001.started.json",
+      "bytes": 839,
+      "sha256": "2044f23017f10d876e52baa4200d8ac77fe8ff8c11972847b57bb097200bf71f"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/001.result.json",
+      "bytes": 1023,
+      "sha256": "d68f31a0f0a620890f71544daa7d55dd9574b514b5e049a24017c6c7eae3185b"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/0002.summary.json",
+      "bytes": 1596,
+      "sha256": "9f21679f66262b7cfe470685b4457a41df6594a1b3815a399c5741d001637c6b"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/0004.summary.json",
+      "bytes": 1836,
+      "sha256": "00cbcc9fefb6234f65b96f24ebfed9fcea45874b900ececb01b82cc59ba2005a"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-PFB7Tu/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-PFB7Tu/0003.summary.json",
+      "bytes": 1816,
+      "sha256": "459e3f4012b52df088e1fdef2682b38c97c6024c5c4bde02fa7b26119bf241be"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/0001.summary.json",
+      "bytes": 630,
+      "sha256": "96f77d30bc24ec03b0e9d7826dc8996e005d789387d39a81f387c6f142d13cae"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/summary.json",
+      "bytes": 1837,
+      "sha256": "e56697bd705d17d3bf4b7d3dec40b5098d8d65254fa83053055fdd06dbee3f79"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/001.stdout.log",
+      "bytes": 5876,
+      "sha256": "a16958134a98664460a16505a2ce3fdc14f30fdbe831d0c262d0b265717194be"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/001.started.json",
+      "bytes": 839,
+      "sha256": "5b848f8a818d54404dffc81fead86940093d43601ece28f02acb1db1ca143e23"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/001.result.json",
+      "bytes": 1023,
+      "sha256": "2dadb566402c4815a8085ceae6aec807d3fdbf8bb4758ba0a1beb0258a5ed3ab"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/0002.summary.json",
+      "bytes": 1596,
+      "sha256": "b4ee03e087067db60a5f7e37810565eab4a29f7d8709fcb4d4d11a4e82825896"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/0004.summary.json",
+      "bytes": 1837,
+      "sha256": "e56697bd705d17d3bf4b7d3dec40b5098d8d65254fa83053055fdd06dbee3f79"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-yzjEC0/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-yzjEC0/0003.summary.json",
+      "bytes": 1816,
+      "sha256": "85850f9057a4c9190920918cdc316a2c4bec24c2b942224cce06eb7ade4fb7b6"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-SOE00f/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-SOE00f/0001.summary.json",
+      "bytes": 630,
+      "sha256": "c86f1c1955f6ebde8e155f1668dfc560ce5da71f0f0a88869c047a07b621389c"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-SOE00f/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-SOE00f/summary.json",
+      "bytes": 1699,
+      "sha256": "78fd033567e51c7f324bf5e9b2359f5935ba028e15abf64ce95f265f2f53a3da"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-SOE00f/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-SOE00f/001.started.json",
+      "bytes": 934,
+      "sha256": "3a43f2e1dac2926eecd6d2ab79efd25dc298f944a512ef80200932384eaae575"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-SOE00f/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-SOE00f/0002.summary.json",
+      "bytes": 1699,
+      "sha256": "78fd033567e51c7f324bf5e9b2359f5935ba028e15abf64ce95f265f2f53a3da"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/0001.summary.json",
+      "bytes": 630,
+      "sha256": "970ba59c1d1ca6dfae672a81830c1d89f864ce0004cbe93804f08d622e511eb7"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/summary.json",
+      "bytes": 1911,
+      "sha256": "4a40ab769cb845796a76aec0328719a12bfcc105f4e9dc4f3789854a5b77af82"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/001.stdout.log",
+      "bytes": 38,
+      "sha256": "2bbf8d5bcbf8824a27ba86cfb25fbacbee7e78a130dab463b6c2354ad2f75540"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/001.started.json",
+      "bytes": 910,
+      "sha256": "0110fa421dad9b09c3c93b7332cc2a4f866bb4a3e15849bc5dd43a560689552e"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/001.result.json",
+      "bytes": 1094,
+      "sha256": "458fcc6ee9d2247c3409a1230863d8f07cd7506a46395f2d231ae6c95b8e1399"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/0002.summary.json",
+      "bytes": 1671,
+      "sha256": "ecd7b5a484fb56513bfded2b69e44afd0d64798b1c4a009e4a6603071fdbefd5"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/0004.summary.json",
+      "bytes": 1911,
+      "sha256": "4a40ab769cb845796a76aec0328719a12bfcc105f4e9dc4f3789854a5b77af82"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-wUO1o3/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-wUO1o3/0003.summary.json",
+      "bytes": 1891,
+      "sha256": "27725812dcc690e8bd72e6513624f5e12f3946d121a3d23ba2704e608d05c6a6"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/0001.summary.json",
+      "bytes": 630,
+      "sha256": "3013ffb9055e05423cffa429e742fd74f3f43d6a5dc885763373c19c98f95c06"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/summary.json",
+      "bytes": 1952,
+      "sha256": "41000c320ef37b3c27927206ced08ecb4515ee422c96cfb5907a8f773eec8345"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/001.stdout.log",
+      "bytes": 3995,
+      "sha256": "103d96f49c5fa4c3e6129b9e86f4b4805cd2415d38bd5d5be26958a6d6db3384"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/001.started.json",
+      "bytes": 944,
+      "sha256": "d2d648e399b7e884c441133827093d4aeafdef266120d9baf69664ee0be0f82b"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/001.result.json",
+      "bytes": 1130,
+      "sha256": "8468d36ad97ae52719254b6fdc2ff023a2e7f7ead6d727a27b66f6aa0d970800"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/0002.summary.json",
+      "bytes": 1709,
+      "sha256": "fe3a6905d45128a90b695e61382f43b8f750eaee9deca315a1f58ba135285212"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/0004.summary.json",
+      "bytes": 1952,
+      "sha256": "41000c320ef37b3c27927206ced08ecb4515ee422c96cfb5907a8f773eec8345"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-4i8V2R/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-4i8V2R/0003.summary.json",
+      "bytes": 1931,
+      "sha256": "b675b02fc98baaafd6104125a9216013d287731e846aa9b95d1c806b69ee89de"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/0001.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/0001.summary.json",
+      "bytes": 630,
+      "sha256": "ca3c8f3c7530e5df0b1f18417d1742068fab5e48b1b391d845f75005057b7f1d"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/summary.json",
+      "bytes": 1791,
+      "sha256": "116844cf5b66b14ebf1b1afabbc6328200eb17298ad0e1d5493f03afdbac5006"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/001.stdout.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/001.stdout.log",
+      "bytes": 589,
+      "sha256": "d83e82e851baaa5c02e0a86fc51397a63c454b225b793d456cdb28af93bbdb14"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/001.started.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/001.started.json",
+      "bytes": 797,
+      "sha256": "099525a5aba9ae1c9638b0c202a28562052813a870fdba9066763904998ebc2d"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/001.result.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/001.result.json",
+      "bytes": 981,
+      "sha256": "1cd41ef947a6f2b8b7ce8f2bb1b82271a3d77f8de00a8c248fdcef9cdf91b07a"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/001.stderr.log",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/001.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/0002.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/0002.summary.json",
+      "bytes": 1550,
+      "sha256": "3138d6fa631b47667784637a1111727b2bcb7a76df0a5bdad8f0a53cc7ecf6e6"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/0004.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/0004.summary.json",
+      "bytes": 1791,
+      "sha256": "116844cf5b66b14ebf1b1afabbc6328200eb17298ad0e1d5493f03afdbac5006"
+    },
+    {
+      "original": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-84xZUO/0003.summary.json",
+      "retained": "/Users/t14i/workspace/20260822/reviews/2026-10-12-b-frontend-core-repair-evidence/lag-source/focused/focused-test-84xZUO/0003.summary.json",
+      "bytes": 1770,
+      "sha256": "b9616b4c83960aff6a5b27993eead2b1e5d0189fa2d8d712cd8cc123226cec91"
+    }
+  ],
+  "retainedBytes": 426009
+}
