@@ -1661,3 +1661,41 @@ then re-encodes the complete admitted record. The shared issuance-count reader
 preserves the original canonical decimal syntax and finite profile. A valid
 count is not evidence of complete registration: the same Store transaction
 must still scan every original row and validate all custody relationships.
+
+The physical Store's inspected batch forwards Owner-selected namespace/cursor
+reads synchronously under the same SQLite transaction as the original metadata
+fences and CAS. It copies one original row at a time, preserves raw keys,
+generations and bytes, and distinguishes the observed physical end from query
+failure. The existing record and cumulative copy limits include repeated reads.
+A captured reader cannot outlive that transaction or be used concurrently or
+recursively; swallowing a query, current-port or consumer failure still aborts
+the batch. The Host accounts for Core inputs, retained originals and SQLite
+workspace and returns the same transfer loans before requesting another row.
+
+Lost-acknowledgement inspection checks the exact original write successors and
+untouched metadata, then forwards saved inventory rows in that same read-only
+snapshot. It performs no write or replay. Core must validate complete required
+inventories and readmit the actual saved records with their original identities
+before an accepted operation can be exposed. Neither a count match, a partial
+scan nor the physical callback's return value supplies that evidence. Cleanup
+failure retains the same Store transaction; attempted-COMMIT uncertainty keeps
+the original Store handle for lookup instead of creating a replacement Run.
+
+The shared submitted-row decoder preserves the original Native reference,
+unchecked intent, preparing/ready shape and exact Int64 admission revision. A
+decoded ready field is not an accepted public operation. The original retained
+relationship validator binds its Reference authority/caller, Request intent,
+Run Definition and admission revision to the actual retained Run. A later Run
+revision preserves the immutable earlier admission; an expired epoch can still
+identify retained history without granting a fresh admission or resend.
+Native keeps its actual Run reader, nested original validators, complete
+inventory scans, authenticated epoch and SQLite transaction around this shared
+validation. Its original codec test adapters are test-only.
+
+Local validation additionally binds observed physical keys/generations and
+saved rows to the exact nominal submitted preparation and checked Plan that
+issued the original candidates. A changed submitted intent or a merely equal
+preparation cannot acquire that relationship. This returns only a relation
+check: nested originals, complete same-Store inventories, current authority,
+authenticated epoch and physical COMMIT still require their existing Owners.
+The returned Unit is not an acknowledgement, start permit or public Run state.

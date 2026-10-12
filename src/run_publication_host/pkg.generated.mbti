@@ -470,6 +470,8 @@ pub fn client_local_product_common_originals(String, String, ClientLocalProductA
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
+pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, ClientModelOriginalOriginIssue]
+
 pub fn client_model_raw_capture_matches(ClientModelRawCaptureRegistration, ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope) -> Bool
 
 pub fn client_model_raw_capture_policy(ClientModelRawCaptureRegistration) -> @run_publication.BoundModelRawCapturePolicy
@@ -763,6 +765,8 @@ pub fn client_values_static_plan_view(PreparedClientProgram, ClientValuesCompila
 pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
 
 pub fn decode_client_run_journal_row(Bytes) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
+
+pub fn decode_client_submitted_journal_row(Bytes) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
@@ -1295,6 +1299,8 @@ pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProduc
 pub fn validate_client_retained_task_input_current(ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn validate_client_run_binding(ClientRequestIdentity, PreparedClientProgram, ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientRunBindingIssue]
+
+pub fn validate_client_submitted_retained_run(ClientSubmissionReferenceRecord, (ClientRequestIdentity, String, Int64), ClientRequestIdentity, @run_publication.PublicationContract, Int64) -> Result[Unit, ClientJournalDecodingIssue]
 
 pub fn verify_client_retained_source_cleanup_observation(ClientRetainedSourceCleanup, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, Int, Int, Int, Int64) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -2542,6 +2548,12 @@ pub(all) enum ClientSubmittedIntentIssue {
   InvalidEnvelope
   Encoding
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientSubmittedJournalEncoding {
+  reference : ClientSubmissionReferenceRecord
+  intent : ClientSubmittedIntent
+  run_admission : (ClientRequestIdentity, String, Int64)?
+}
 
 pub(all) enum ClientSubmittedRunRecordIssue {
   Encoding
