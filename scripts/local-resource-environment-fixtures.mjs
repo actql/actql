@@ -28,10 +28,15 @@ export function registeredResourceEnvironmentCase(item, source, graphRegistry = 
   if (item.suite === 'node:graph_public_host') {
     const registration = source.replace(/\s+/gu, '');
     const registry = graphRegistry.replace(/\s+/gu, '');
+    const registryLoop = `export const graphPublicHostCases = Object.freeze(['local','remote'].flatMap(mode =>
+      Object.entries(profiles).flatMap(([profile,title]) => profile === 'graph-mean'
+        ? ['basic', 'asymmetric'].map(partition => Object.freeze({mode,profile,partition,
+          name:\`\${title} \${mode}\${partition === 'basic' ? '' : ' (asymmetric)'}\`}))
+        : [Object.freeze({mode,profile,name:\`\${title} \${mode}\`})])));`;
     if (!registration.includes("import{graphPublicHostCases}from'./fixtures/graph-host-cases.mjs';") ||
-        !registration.includes('for(const{mode,profile,name}ofgraphPublicHostCases){test(name,') ||
+        !registration.includes('for(const{mode,profile,name,partition}ofgraphPublicHostCases){test(name,') ||
         !graphRegistry.includes('name:`${title} ${mode}`') ||
-        !registry.includes("exportconstgraphPublicHostCases=Object.freeze(['local','remote'].flatMap(mode=>Object.entries(profiles).map(([profile,title])=>Object.freeze({mode,profile,name:`${title}${mode}`}))))")) {
+        !registry.includes(registryLoop.replace(/\s+/gu, ''))) {
       return false;
     }
     const profiles = /^const profiles = \{([\s\S]*?)^\};/mu.exec(graphRegistry);
