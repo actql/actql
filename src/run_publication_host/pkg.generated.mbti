@@ -466,6 +466,8 @@ pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDec
 
 pub fn client_local_completion_free_catalog_cid() -> String
 
+pub fn client_local_product_assets() -> ClientLocalProductAssets
+
 pub fn client_local_product_common_originals(String, String, ClientLocalProductAssets) -> Result[ClientLocalProductCommonOriginals, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
