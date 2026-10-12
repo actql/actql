@@ -11,7 +11,7 @@ import sys
 from threading import RLock
 from typing import Any, Literal
 
-LOCAL_CORE_ABI = 44
+LOCAL_CORE_ABI = 45
 
 
 class LocalCoreError(RuntimeError):
@@ -226,6 +226,12 @@ _SOURCE_PUBLICATION_SIGNATURES = {
     'finish': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
+}
+_RUN_INVOCATION_SIGNATURES = {
+    'reserve_source_free': ('i64 i32 i32 i32 i64', 'i32'),
+    'prepare_source_free': ('i64 i32 i32', 'i32'),
+    'length_source_free': ('i64 i32', 'i32'),
+    'close_source_free': ('i64 i32', 'i32'),
 }
 _MATERIAL_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
@@ -512,6 +518,8 @@ class LocalCore:
                              for name, value in _SUBMISSION_SIGNATURES.items()})
             expected.update({'actql_source_publication_' + name: value
                              for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
+            expected.update({'actql_run_invocation_' + name: value
+                             for name, value in _RUN_INVOCATION_SIGNATURES.items()})
             expected.update({'actql_material_' + name: value
                              for name, value in _MATERIAL_SIGNATURES.items()})
             expected.update({'actql_publication_' + name: value
@@ -924,6 +932,18 @@ class LocalCore:
     def reserve_source_publication(self, compute: _Compute, source: _Input, *,
                                    cleanup: Callable[[], bool]) -> _Output:
         """Borrow the original acquisition; never fetch it or publish a Run."""
+        return self._reserve_invocation_output(
+            compute, source, cleanup, 'source_publication', 'reserve')
+
+    def reserve_source_free_invocation(self, compute: _Compute, source: _Input, *,
+                                        cleanup: Callable[[], bool]) -> _Output:
+        """Borrow the original Compute/input; Core issues the formal invocation."""
+        return self._reserve_invocation_output(
+            compute, source, cleanup, 'run_invocation', 'reserve_source_free')
+
+    def _reserve_invocation_output(self, compute: _Compute, source: _Input,
+                                   cleanup: Callable[[], bool], family: str,
+                                   operation: str) -> _Output:
         with self._lock:
             self._owned_compute(compute)
             self._owned_input(source)
@@ -936,13 +956,13 @@ class LocalCore:
             limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
-                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'source_publication')))
-            handle = self._call('source_publication', 'reserve', compute.handle, source.handle,
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
+            handle = self._call(family, operation, compute.handle, source.handle,
                                 ticket, physical_bytes)
             if handle <= 0:
                 del self._inputs[ticket]
-                raise LocalCoreError('reserve_source_publication', handle)
-            value = _Output(self._identity, ticket, handle, limit, 'source_publication')
+                raise LocalCoreError(operation, handle)
+            value = _Output(self._identity, ticket, handle, limit, family)
             self._loans[ticket] = value
             return value
 
@@ -995,11 +1015,33 @@ class LocalCore:
     def close_source_publication(self, value: _Output) -> bool:
         return self._close_output(value, 'source_publication', 'close')
 
+    def prepare_source_free_invocation(self, value: _Output,
+                                       current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(value, 'run_invocation')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current invocation configuration')
+            self._check('prepare_source_free_invocation', self._call(
+                'run_invocation', 'prepare_source_free', value.handle, current_configuration))
+
+    def read_source_free_invocation(self, value: _Output) -> bytes:
+        return self._read_output(value, 'run_invocation', 'length_source_free')
+
+    def close_source_free_invocation(self, value: _Output) -> bool:
+        return self._close_output(value, 'run_invocation', 'close_source_free')
+
+    def _owned_invocation_output(self, value: _Output) -> None:
+        self._owned(value)
+        if type(value) is not _Output or value.family not in ('source_publication', 'run_invocation'):
+            raise ValueError('Local publication requires the original invocation loan')
+
     def reserve_publication_preflight(self, source: _Output, request: _Input, *,
                                       cleanup: Callable[[], bool]) -> _Output:
         """Private original intent before Compute; grants no Store permission."""
         with self._lock:
-            self._owned_output(source, 'source_publication')
+            self._owned_invocation_output(source)
             self._owned_input(request)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
@@ -1051,7 +1093,7 @@ class LocalCore:
                             cleanup: Callable[[], bool]) -> _Output:
         """Private complete Result capture; not a durable publication commit."""
         with self._lock:
-            self._owned_output(source, 'source_publication')
+            self._owned_invocation_output(source)
             self._owned_input(request)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
