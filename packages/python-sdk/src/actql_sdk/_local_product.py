@@ -59,6 +59,9 @@ class _PayloadCustody:
     physical: _PayloadFile | None = None
     names: _Output | None = None
     adoption: _NameAdoption | None = None
+    chunk: _Output | None = None
+    chunk_offset: int = 0
+    chunk_file_offset: int = 0
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -1358,6 +1361,55 @@ class InstalledLocalHost:
         assert held.area is not None
         held.origin = root.open_area(held.area)
 
+    def _advance_original_payload_copy(self, held: _PayloadCustody) -> bool:
+        """Copy at most one physical chunk from the original Core Result replay.
+
+        The original loan and physical byte offset survive short writes, current
+        refusal and cleanup failure. Unknown writes are rejected by the existing
+        File Owner; no Source/Compute replay or second payload is started. True
+        denotes only the copied Core EOF, never publication or a Store ACK.
+        """
+        with self._core._lock:
+            installation, configuration, _ = self._payload_original(held)
+            physical, request, names = held.physical, held.request, held.names
+            if (physical is None or request is None or names is None
+                    or held.adoption is not None or held.row is None):
+                raise ValueError('Original staged payload copy custody is unavailable')
+            if held.writing is not None:
+                if not self._core.close_payload_writing(held.writing):
+                    raise LocalProductCleanupPending(self)
+                self._payload_transition_attempts.discard(held.writing.ticket)
+                held.writing = None
+            completed: list[bool] = []
+            def copy(_: _Output) -> None:
+                self._core.read_payload_names(names, configuration.handle)
+                self._core.start_payload_replay(request, configuration.handle)
+                if held.chunk is None:
+                    held.chunk = self._reserve(lambda:
+                        self._core.reserve_payload_chunk(request, cleanup=lambda: True))
+                    held.chunk_offset = 0
+                    held.chunk_file_offset = physical.written
+                chunk = held.chunk
+                self._core.produce_payload_chunk(chunk, configuration.handle)
+                data, final = self._core.read_payload_chunk(chunk, configuration.handle)
+                if held.chunk_offset < len(data):
+                    part = data[held.chunk_offset:held.chunk_offset + physical.root._max_chunk_bytes]
+                    count = physical.root.append(physical,
+                        held.chunk_file_offset + held.chunk_offset, part)
+                    # Record actual progress before the post-I/O current check;
+                    # a later refusal cannot repeat a completed physical write.
+                    held.chunk_offset += count
+                if held.chunk_offset != len(data):
+                    completed.append(False)
+                    return
+                if not self._core.close_payload_chunk(chunk):
+                    raise LocalProductCleanupPending(self)
+                held.chunk = None
+                held.chunk_offset = 0
+                completed.append(final)
+            installation.binding.inspect(copy)
+            return completed[0]
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],
@@ -1437,6 +1489,10 @@ class InstalledLocalHost:
                 if (held.record is not None and held.record.ticket in self._payload_capacity_attempts
                         and held.capacity is None):
                     return False
+                if held.chunk is not None:
+                    if not self._core.close_payload_chunk(held.chunk):
+                        return False
+                    held.chunk = None
                 if held.names is not None:
                     if not self._core.close_payload_names(held.names):
                         return False
