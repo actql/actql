@@ -38,6 +38,33 @@ Provider, producer or Heavy ran. The source parser evidence does not establish
 public Local/HTTPS results. Normative pins, remaining adapter obligations and
 the full P2/public matrix remain unfinished.
 
+## P2-A lexical operand scope and normative identity
+
+[Exact scope and normative evidence](p2-sga-scope-normative-execution.json)
+retains the nested WITH qualifier counterexample at `1d7bf7c53`: producer
+`rows` became `inner_rows`, but `ROWS.element` did not. The minimal parser
+adapter resolves only declared operand selector qualifiers, preserving ordinary
+property receivers and rejecting a different operand. Fixed `96eb57880`
+passed JS8/8, including unchanged independent complete Program/common-check
+controls. The full predecessor grammar and Values preimages are immutable.
+
+Authored grammar/spec/profile/design now distinguish producer, field, output,
+expression and literal roles. Existing generators wrote the compiler grammar
+pins and registered metadata; a separate independent oracle rehashed complete
+Values preimages from the two authored query inputs. The actual grammar-bound
+Values consumer passed JS2/2, independent Node83/83 passed, and two read-only
+freshness commands passed at `94204b746`. Original failed selections remain:
+Node86/89 is not relabeled as Node89 success.
+
+Family generation is blocked by the existing unowned
+`spec/contracts/actql-run-publication.json#/schemas/compiled_plan`. It was
+reported to the integration owner; the validator was not relaxed or bypassed.
+Canonical regeneration was not reached, and its generated manifest assertion
+remains stale. No public Local/HTTPS, new package producer, Provider, Heavy,
+Native/Wasm execution or hosted CI ran. Complete name-admission/VecA/TEA adapter
+coverage and the full P2 public matrix remain separate unfinished boundaries.
+All eight exact guards ended and actual Owner/group/ownlock absence was checked.
+
 ## Earlier finite source
 
 
