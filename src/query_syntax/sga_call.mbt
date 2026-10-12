@@ -11,6 +11,7 @@ pub(all) enum SgaArgument {
   NullValue
   ParameterValue(String)
   ObjectValue(Array[(String, SgaArgument)])
+  FieldMapValue(Array[(Array[NamePart], SgaArgument)])
   ListValue(Array[SgaArgument])
 } derive(Eq, Debug)
 
@@ -36,6 +37,7 @@ fn sga_operation(name : String) -> Bool {
     | "row_window"
     | "window_events"
     | "watermark_events"
+    | "dedupe_events"
     | "session"
     | "events"
     | "reach"
@@ -98,7 +100,7 @@ fn carrier_call_head(token : Token) -> Bool {
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
         "to_events", "row_window", "window_events", "watermark_events", "session",
-        "events",
+        "events", "dedupe_events",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -109,6 +111,8 @@ fn copy_sga_argument(argument : SgaArgument) -> SgaArgument {
   match argument {
     ObjectValue(fields) =>
       ObjectValue(fields.map(field => (field.0, copy_sga_argument(field.1))))
+    FieldMapValue(fields) =>
+      FieldMapValue(fields.map(field => (field.0.copy(), copy_sga_argument(field.1))))
     ListValue(items) => ListValue(items.map(copy_sga_argument))
     other => other
   }
@@ -212,6 +216,10 @@ fn QueryParser::sga_argument(
     // and cannot select an existing producer, including inside explicit lists.
     return Producer(self.resolve_producer([self.name()])[0])
   }
+  if token.value == Symbol(123) && operation == "dedupe_events" &&
+    path == ["order_by"] {
+    return self.sga_order_argument(operation, depth + 1)
+  }
   if token.value == Symbol(123) {
     self.symbol(123)
     let fields = self.sga_arguments(operation, path, depth + 1, 125)
@@ -246,6 +254,67 @@ fn QueryParser::sga_argument(
     _ =>
       raise QueryAbort("Expected SGA value or producer reference", token.start)
   }
+}
+
+///|
+// The common OrderKey reader distinguishes a one-field shorthand from the
+// closed field/dir/nulls form. Preserve shorthand names as typed references,
+// including quotation and receivers, until ordinary Carrier name resolution.
+fn QueryParser::sga_order_argument(
+  self : QueryParser,
+  operation : String,
+  depth : Int,
+) -> SgaArgument raise QueryAbort {
+  if depth > self.limits.expression.max_depth || depth > 32 {
+    raise QueryAbort("SGA argument depth limit", self.peek().start)
+  }
+  self.symbol(123)
+  let fields : Array[(Array[NamePart], SgaArgument)] = []
+  while self.peek().value != Symbol(125) {
+    self.node()
+    let at = self.peek().start
+    let key = self.path()
+    self.spend(fields.length())
+    if fields.any(field => field.0 == key) {
+      raise QueryAbort("Duplicate SGA argument", at)
+    }
+    self.symbol(58)
+    let value = if key.length() == 1 && ascii_upper(key[0].value) == "FIELD" &&
+      (self.peek().value is Word(_) || self.peek().value is QuotedName(_)) {
+      self.node()
+      FieldReference(self.path())
+    } else {
+      self.sga_argument(operation, ["literal"], depth)
+    }
+    fields.push((key, value))
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    self.symbol(44)
+    if self.peek().value == Symbol(125) {
+      raise QueryAbort("Expected SGA named argument", self.peek().start)
+    }
+  }
+  self.symbol(125)
+  if fields.length() == 1 {
+    return FieldMapValue(fields)
+  }
+  let named : Array[(String, SgaArgument)] = []
+  for (key, value) in fields {
+    guard key.length() == 1 else {
+      raise QueryAbort("Expected OrderKey argument name", self.peek().start)
+    }
+    let key = ascii_upper(key[0].value).to_lower()
+    self.spend(named.length())
+    if named.any(field => field.0 == key) {
+      raise QueryAbort("Duplicate SGA argument", self.peek().start)
+    }
+    if key == "field" && !(value is FieldReference(_)) {
+      raise QueryAbort("Expected OrderKey field reference", self.peek().start)
+    }
+    named.push((key, value))
+  }
+  ObjectValue(named)
 }
 
 ///|
