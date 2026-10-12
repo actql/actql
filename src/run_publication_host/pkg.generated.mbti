@@ -62,6 +62,10 @@ pub fn admit_client_retained_task_route(@remote_site_protocol.RemoteInputBinding
 
 pub fn admit_client_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientRunMaterials, ClientRunMaterialsIssue]
 
+pub fn admit_client_submission_epoch_token(String) -> Result[ClientSubmissionEpochToken, ClientSubmissionEpochTokenIssue]
+
+pub fn admit_client_submission_reference_record(String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
+
 pub fn admit_client_submitted_run_admission_wire(String) -> Result[(ClientRequestIdentity, String, Int64), ClientSubmittedRunRecordIssue]
 
 pub fn admit_client_task_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue]
@@ -161,6 +165,8 @@ pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Resu
 pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[Unit, ClientInferEgressIssue]
 
 pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, ClientCompiledRun) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
+
+pub fn check_client_model_original_checked_origin(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelOriginalOriginIssue]
 
 pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
 
@@ -607,6 +613,20 @@ pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLim
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
+
+pub fn client_submission_epoch_token_body(ClientSubmissionEpochToken) -> @logical_request_scope.SubmissionEpoch
+
+pub fn client_submission_epoch_token_tag(ClientSubmissionEpochToken) -> Bytes
+
+pub fn client_submission_epoch_token_wire(ClientSubmissionEpochToken) -> String
+
+pub fn client_submission_reference_matches_request(ClientSubmissionReferenceRecord, ClientRequestIdentity) -> Bool
+
+pub fn client_submission_reference_record_epoch(ClientSubmissionReferenceRecord) -> ClientSubmissionEpochToken
+
+pub fn client_submission_reference_record_request_id(ClientSubmissionReferenceRecord) -> String
+
+pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) -> String
 
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
@@ -1061,6 +1081,8 @@ pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIde
 pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRunStartIssue]
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
+
+pub fn prepare_client_submission_reference_record(ClientSubmissionEpochToken, String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
 
 pub fn prepare_client_submitted_intent(String, Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
 
@@ -1946,6 +1968,13 @@ pub(all) enum ClientModelInputCapacityIssue {
   Read(ClientModelReadPreparationIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ClientModelOriginalOriginIssue {
+  Unavailable
+  ForeignRun
+  OriginMismatch(String)
+  Layout(ClientModelPreparationLayoutIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientModelPreparationLayoutIssue {
   Unavailable
   InvalidLayout
@@ -2439,6 +2468,30 @@ pub(all) enum ClientStageOwnerIssue {
   MissingStageIdentity(Int)
   Lowering(@lowering_relation.Issue)
   Binding(@lowering_relation.BindingIssue)
+}
+
+pub struct ClientSubmissionEpochToken {
+  body : @logical_request_scope.SubmissionEpoch
+  authority_scope_cid : String
+  tag : Bytes
+  wire : String
+}
+
+pub(all) enum ClientSubmissionEpochTokenIssue {
+  Unverifiable
+  Identity(@logical_request_scope.SubmissionIdentityIssue)
+}
+
+pub struct ClientSubmissionReferenceRecord {
+  epoch : ClientSubmissionEpochToken
+  request_id : String
+  wire : String
+}
+
+pub(all) enum ClientSubmissionReferenceRecordIssue {
+  InvalidReference
+  Encoding
+  Epoch(ClientSubmissionEpochTokenIssue)
 }
 
 type ClientSubmittedIntent derive(Eq, @debug.Debug)
