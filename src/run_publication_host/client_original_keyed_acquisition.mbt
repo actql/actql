@@ -53,3 +53,75 @@ pub fn borrow_client_original_keyed_direct_ledger(
   }
   Ok(scope.ledger)
 }
+
+///|
+// The exact accounted Row capture is validated by the only receiver, Core
+// Local, after this synchronous loan and after preparing the left producer.
+// This does not issue a captured observation or bypass per-key Source duties.
+pub fn borrow_client_original_keyed_captured_ledger(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  prepared : PreparedClientProgram,
+  keyed : ClientKeyedAcquisition,
+  source : @query.CapturedInputSource,
+) -> Result[@resources.Ledger, ClientModelReadPreparationIssue] {
+  if !client_model_origin_matches(scope.origin, compiled, definition, plan) ||
+    !client_compiled_run_matches(compiled, prepared) ||
+    !physical_equal(plan.owner, prepared) ||
+    check_client_compiled_run_definition(compiled, definition) is Err(_) {
+    return Err(ForeignRun)
+  }
+  guard client_compiled_run_serialization(compiled) is Some(component) &&
+    plan.serialization is Some(selected) &&
+    physical_equal(component, selected) &&
+    physical_equal(component.owner, prepared) &&
+    client_keyed_acquisition_matches_program(keyed, prepared) &&
+    select_client_single_keyed_acquisition(prepared) is Ok(Some(original)) &&
+    physical_equal(keyed.check, original.check) &&
+    client_keyed_acquisition_coordinates(keyed) is Some((_, task, join)) &&
+    task == component.task && join < component.step &&
+    client_serialization_single_capture_shape(prepared, component.task) &&
+    @strategy.graph_task_owner(prepared.graph, 0) is Some(owner) &&
+    @query.captured_source_matches(source,
+      @checked.source_identity(@strategy.graph_program(prepared.graph)), owner) else {
+    return Err(ForeignRun)
+  }
+  // Source liveness can synchronously stop/reenter; only the current census
+  // AFTER that callback can authorize this Core borrow.
+  if !@resources.original_ledger_captured_preparation_available(scope.identity) {
+    return Err(Resource(@resources.ChangedOriginalState))
+  }
+  Ok(scope.ledger)
+}
+
+///|
+// Closed Core Local receiver only; the Node facade exposes no Ledger getter.
+// Local retains the original capture and confirms its exact Row custody before
+// calling this existing assembly constructor. Scope/control/input overlap is
+// part of the trusted bootstrap, not a new numeric profile in this entry.
+pub fn start_client_original_keyed_lookup_input(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  prepared : PreparedClientProgram,
+  keyed : ClientKeyedAcquisition,
+  left : ClientKeyedLeftRead,
+  max_bytes : Int,
+  max_work : Int,
+) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
+  if !physical_equal(left.acquisition, keyed) {
+    return Err(ForeignLeft)
+  }
+  let ledger = match borrow_client_original_keyed_captured_ledger(
+    scope, compiled, definition, plan, prepared, keyed, left.source,
+  ) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("original_custody_changed"))
+  }
+  start_client_keyed_lookup_input_owned(
+    left, ledger, max_bytes, max_work, Some(scope.identity),
+  )
+}
